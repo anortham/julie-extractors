@@ -259,12 +259,12 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 **Approach:** Start with schema creation/readback and required indexes from `docs/contracts/sqlite-schema-v1.md`. Use old Julie database code only as evidence for extraction domains and operational pitfalls. Do not copy internal Julie schema tables.
 
 **Acceptance criteria:**
-- [ ] Schema creates all v1 public tables.
-- [ ] Required indexes from the SQLite contract exist.
-- [ ] Metadata keys required by the contract are inserted and readable.
-- [ ] Query-plan or schema tests fail if required indexes are missing.
-- [ ] SQL contract snippets and schema tests pass.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Schema creates all v1 public tables.
+- [x] Required indexes from the SQLite contract exist.
+- [x] Metadata keys required by the contract are inserted and readable.
+- [x] Query-plan or schema tests fail if required indexes are missing.
+- [x] SQL contract snippets and schema tests pass.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 6: Batched SQLite Writer
 
@@ -414,7 +414,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 2: Move Extractor Crate And Fixtures
 - [x] Task 3: Restore Extractor Test Tiers
 - [x] Task 4: Move Extraction-Owned Language Configuration
-- [ ] Task 5: Artifact Crate Skeleton And Schema v1
+- [x] Task 5: Artifact Crate Skeleton And Schema v1
 - [ ] Task 6: Batched SQLite Writer
 - [ ] Task 7: JSON Report Model
 - [ ] Task 8: JSONL Exporter
@@ -432,6 +432,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | Moved extractor crate compiles, capability snapshot resolves, and copied support fixtures satisfy narrow fixture gates. | `cargo check -p julie-extractors`; `cargo test -p julie-extractors capability_snapshot`; targeted Elixir, JSONL, QML, and R fixture tests; source dependency scan | `f221c4a` | pass | `2026-05-31T17:10Z` |
 | worker-red-green | Extractor test tiers are selected by `cargo xtask`, slow gates are feature-gated out of default tests, and old Julie evidence refs no longer require old commits/plans. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test language rust`; `cargo xtask test contract`; `cargo xtask test certification`; `cargo xtask test real-world`; default inventory leak scan; `cargo metadata --format-version 1 --no-deps`; `git diff --check` | `7e1160e` | pass | `2026-05-31T17:27Z` |
 | worker-red-green | Extraction-owned language policy contains only literal carrier config, is embedded by the crate, aliases JSX/TSX, and classifies/gates literals without copying Julie search/test-role policy. | `cargo fmt --check`; `cargo test -p julie-extractors language_policy -- --nocapture`; `cargo xtask test default`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; non-literal TOML section scan; stale old-Julie pipeline/test-role comment scan | `f477047` | pass | `2026-05-31T17:47Z` |
+| worker-red-green | Artifact crate owns SQLite schema v1 tables, required indexes, metadata rows, report row domains, and default/contract test-tier wiring without old Julie internal schema tables. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; SQL fence extraction from `docs/contracts/sqlite-schema-v1.md` through `sqlite3 :memory:`; forbidden old-Julie table scan | `8fe5cbf` | pass | `2026-05-31T19:16Z` |
 
 ## Execution Notes
 
