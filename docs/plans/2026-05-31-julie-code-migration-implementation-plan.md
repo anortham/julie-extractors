@@ -338,13 +338,13 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 **Approach:** Build only commands in `docs/contracts/cli.md`: `scan`, `update`, `delete`, `info`, `export`, and `languages`. Map command outcomes to report statuses and exit codes from the contracts.
 
 **Acceptance criteria:**
-- [ ] Binary name is `julie-extract`.
-- [ ] `scan`, `update`, `delete`, `info`, `export`, and `languages` parse.
-- [ ] `--json` reports match the report contract.
-- [ ] Exit codes `0`, `1`, `2`, and `3` are covered by tests.
-- [ ] No `analyze` command is implemented.
-- [ ] No server, daemon, MCP, search, embedding, watcher, dashboard, or editing behavior is linked.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Binary name is `julie-extract`.
+- [x] `scan`, `update`, `delete`, `info`, `export`, and `languages` parse.
+- [x] `--json` reports match the report contract.
+- [x] Exit codes `0`, `1`, `2`, and `3` are covered by tests.
+- [x] No `analyze` command is implemented.
+- [x] No server, daemon, MCP, search, embedding, watcher, dashboard, or editing behavior is linked.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 10: Source Discovery And Path Policy
 
@@ -419,7 +419,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 6: Batched SQLite Writer
 - [x] Task 7: JSON Report Model
 - [x] Task 8: JSONL Exporter
-- [ ] Task 9: CLI Skeleton And Commands
+- [x] Task 9: CLI Skeleton And Commands
 - [ ] Task 10: Source Discovery And Path Policy
 - [ ] Task 11: CLI Operations End To End
 - [ ] Task 12: Certification And Release Scaffolding
@@ -437,6 +437,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | Artifact writer persists SQLite v1 row families with one transaction per operation, exact scan/update/delete replacement semantics, incremental hash skips, force-scan rewrites, rollback on failed batches, data-loss guarding, and tiny-fixture throughput protection. | `cargo test -p julie-extract-artifact --test writer_contract`; `cargo test -p julie-extract-artifact --test writer_performance`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `8d2b60f` | pass | `2026-05-31T20:20Z` |
 | worker-red-green | JSON report model serializes schema version 1, stable status/error code spellings, single-file input paths, and exhaustive SQLite v1 row-count domains without old Julie analysis/status fields. | `cargo test -p julie-extract-artifact --test report_contract`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; old-Julie report-field scan | `9ad4d7e` | pass | `2026-05-31T20:29Z` |
 | worker-red-green | JSONL exporter emits deterministic SQLite-derived snapshot records in JSONL v1 order, decodes SQLite JSON text columns, covers every record kind with contract tests, preserves all-or-error path export behavior, and keeps report/JSONL tests inside the contract tier. | `cargo test -p julie-extract-artifact --test jsonl_contract`; `cargo test -p julie-extract-artifact`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `549c78c` | pass | `2026-05-31T20:46Z` |
+| worker-red-green | `julie-extract` binary exposes only v1 commands, emits report-contract JSON for the skeleton paths, covers exit codes `0`, `1`, `2`, and `3`, rejects old Julie `analyze`, excludes server/tool behavior, and is wired into default and contract tiers. | `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `1c8a037` | pass | `2026-05-31T20:58Z` |
 
 ## Execution Notes
 
