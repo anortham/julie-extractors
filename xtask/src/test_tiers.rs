@@ -277,6 +277,10 @@ fn contract_plan() -> TestPlan {
         "cargo",
         ["test", "-p", "julie-extract-cli", "--test", "cli_contract"],
     ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        ["test", "-p", "julie-extract-cli", "--test", "path_policy"],
+    ));
     TestPlan { commands }
 }
 

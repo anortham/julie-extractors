@@ -2,21 +2,30 @@ use std::collections::BTreeMap;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::ExitCode;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use julie_extract_artifact::jsonl::{JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION, export_jsonl};
-use julie_extract_artifact::metadata::read_metadata;
+use julie_extract_artifact::metadata::{ArtifactMetadata, read_metadata};
+use julie_extract_artifact::model::{RevisionInput, WriteMode, WriteOperation};
 use julie_extract_artifact::reports::{
     ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
     ReportOperation, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
 };
 use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION};
+use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
 use julie_extractors::{CapabilityFlags, capability_snapshot};
 use rusqlite::{Connection, OpenFlags};
 use serde_json::{Value, json};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::args::{
     Cli, Command, DeleteArgs, ExportArgs, InfoArgs, LanguagesArgs, ScanArgs, UpdateArgs,
+};
+use crate::discovery::{DiscoveryPolicy, FileSelection, canonicalize_ignore_files};
+use crate::paths::{
+    FileTarget, PathPolicyError, canonicalize_db_path, canonicalize_root, canonicalize_update_file,
+    normalize_delete_file,
 };
 
 pub fn run_from_env() -> ExitCode {
@@ -59,53 +68,224 @@ fn run(cli: Cli) -> CommandOutcome {
 }
 
 fn scan(args: ScanArgs) -> CommandOutcome {
-    let report = base_report(
-        ReportStatus::Failed,
-        ReportOperation::Scan,
-        if args.force {
-            ReportMode::Force
-        } else {
-            ReportMode::Incremental
-        },
-        ReportInput {
-            db_path: Some(display_path(&args.db)),
-            root_path: Some(display_path(&args.root)),
-            file_path: None,
-            root_relative_path: None,
-            format: None,
-            output_path: None,
-        },
-    )
-    .with_error(diagnostic(
-        ReportCode::InternalError,
-        "scan requires source discovery",
-        None,
-        None,
-        false,
-        json!({"command": "scan"}),
-    ));
-    outcome(report, 1, args.json, ReportStream::Stdout)
+    let mode = if args.force {
+        ReportMode::Force
+    } else {
+        ReportMode::Incremental
+    };
+    let root = match canonicalize_root(&args.root) {
+        Ok(root) => root,
+        Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
+    };
+    let db = match canonicalize_db_path(&args.db) {
+        Ok(db) => db,
+        Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
+    };
+    let ignore_files = match canonicalize_ignore_files(&args.ignore_files) {
+        Ok(ignore_files) => ignore_files,
+        Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
+    };
+    let input = artifact_input(&db, Some(&root), None, None);
+
+    if db.exists() && !args.force {
+        match open_artifact_for_root(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION), &root) {
+            Ok(_) => {}
+            Err(error) => {
+                return outcome(
+                    base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                        .with_error(error.diagnostic),
+                    error.exit_code,
+                    args.json,
+                    ReportStream::Stdout,
+                );
+            }
+        }
+    }
+
+    let discovery = match DiscoveryPolicy::build(&root, &db, &ignore_files) {
+        Ok(discovery) => discovery,
+        Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
+    };
+    let discovered = discovery.discover();
+    if !discovered.supported_files.is_empty() {
+        let report = base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+            .with_error(diagnostic(
+                ReportCode::InternalError,
+                "scan extraction is not wired yet for supported files",
+                None,
+                None,
+                false,
+                json!({"supported_files": discovered.supported_files.len()}),
+            ));
+        return outcome(report, 1, args.json, ReportStream::Stdout);
+    }
+
+    if args.force {
+        remove_artifact_files(&db);
+    }
+
+    match ArtifactWriter::open_path(&db, new_artifact_metadata(&root, None)) {
+        Ok(writer) => {
+            let connection = writer.connection();
+            let metadata = read_metadata(connection).unwrap_or_default();
+            let artifact = match artifact_report(&db, &metadata, Some(JSONL_SCHEMA_VERSION)) {
+                Ok(artifact) => artifact,
+                Err(error) => {
+                    return outcome(
+                        base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                            .with_error(error.diagnostic),
+                        error.exit_code,
+                        args.json,
+                        ReportStream::Stdout,
+                    );
+                }
+            };
+            let mut report = base_report(ReportStatus::Ok, ReportOperation::Scan, mode, input)
+                .with_artifact(artifact)
+                .with_revision(ReportRevision {
+                    latest_revision_id: latest_revision_id(connection),
+                    created_revision_id: None,
+                })
+                .with_totals(table_totals(connection));
+            report.counts.files_scanned = discovered.unsupported_files as i64;
+            report.counts.files_unsupported = discovered.unsupported_files as i64;
+            outcome(report, 0, args.json, ReportStream::Stdout)
+        }
+        Err(error) => outcome(
+            base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input).with_error(
+                diagnostic(
+                    ReportCode::DbOpenFailed,
+                    format!("could not create SQLite artifact: {error}"),
+                    Some(display_path(&db)),
+                    None,
+                    true,
+                    json!({}),
+                ),
+            ),
+            1,
+            args.json,
+            ReportStream::Stdout,
+        ),
+    }
 }
 
 fn update(args: UpdateArgs) -> CommandOutcome {
+    let root = match canonicalize_root(&args.root) {
+        Ok(root) => root,
+        Err(error) => {
+            return path_error_outcome(
+                error,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                args.json,
+            );
+        }
+    };
+    let db = match canonicalize_db_path(&args.db) {
+        Ok(db) => db,
+        Err(error) => {
+            return path_error_outcome(
+                error,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                args.json,
+            );
+        }
+    };
+    let target = match canonicalize_update_file(&root, &args.file) {
+        Ok(target) => target,
+        Err(error) => {
+            return path_error_outcome_with_paths(
+                error,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                args.json,
+                Some(&db),
+                Some(&root),
+                Some(&args.file),
+                None,
+            );
+        }
+    };
+    let ignore_files = match canonicalize_ignore_files(&args.ignore_files) {
+        Ok(ignore_files) => ignore_files,
+        Err(error) => {
+            return path_error_outcome_with_paths(
+                error,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                args.json,
+                Some(&db),
+                Some(&root),
+                Some(&target.absolute_path),
+                Some(&target.root_relative_path),
+            );
+        }
+    };
+    let input = artifact_input(
+        &db,
+        Some(&root),
+        Some(&target.absolute_path),
+        Some(&target.root_relative_path),
+    );
+
+    let existing_artifact = match existing_artifact_for_root(
+        &db,
+        args.strict_schema,
+        Some(JSONL_SCHEMA_VERSION),
+        &root,
+    ) {
+        Ok(artifact) => artifact,
+        Err(error) => {
+            return outcome(
+                base_report(
+                    ReportStatus::Failed,
+                    ReportOperation::Update,
+                    ReportMode::SingleFile,
+                    input,
+                )
+                .with_error(error.diagnostic),
+                error.exit_code,
+                args.json,
+                ReportStream::Stdout,
+            );
+        }
+    };
+
+    let discovery = match DiscoveryPolicy::build(&root, &db, &ignore_files) {
+        Ok(discovery) => discovery,
+        Err(error) => {
+            return path_error_outcome_with_paths(
+                error,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                args.json,
+                Some(&db),
+                Some(&root),
+                Some(&target.absolute_path),
+                Some(&target.root_relative_path),
+            );
+        }
+    };
+
+    if matches!(
+        discovery.select_file(&target),
+        FileSelection::Unsupported { .. }
+    ) {
+        return cleanup_unsupported_update(&db, &root, target, existing_artifact, args.json);
+    }
+
     let report = base_report(
         ReportStatus::Failed,
         ReportOperation::Update,
         ReportMode::SingleFile,
-        ReportInput {
-            db_path: Some(display_path(&args.db)),
-            root_path: Some(display_path(&args.root)),
-            file_path: Some(display_path(&args.file)),
-            root_relative_path: None,
-            format: None,
-            output_path: None,
-        },
+        input,
     )
     .with_error(diagnostic(
         ReportCode::InternalError,
-        "update requires source discovery",
-        Some(display_path(&args.file)),
-        None,
+        "update extraction is not wired yet for supported files",
+        Some(display_path(&target.absolute_path)),
+        Some(target.root_relative_path),
         false,
         json!({"command": "update"}),
     ));
@@ -113,28 +293,74 @@ fn update(args: UpdateArgs) -> CommandOutcome {
 }
 
 fn delete(args: DeleteArgs) -> CommandOutcome {
-    let report = base_report(
-        ReportStatus::Failed,
-        ReportOperation::Delete,
-        ReportMode::SingleFile,
-        ReportInput {
-            db_path: Some(display_path(&args.db)),
-            root_path: Some(display_path(&args.root)),
-            file_path: Some(display_path(&args.file)),
-            root_relative_path: None,
-            format: None,
-            output_path: None,
-        },
-    )
-    .with_error(diagnostic(
-        ReportCode::InternalError,
-        "delete requires source discovery",
-        Some(display_path(&args.file)),
-        None,
-        false,
-        json!({"command": "delete"}),
-    ));
-    outcome(report, 1, args.json, ReportStream::Stdout)
+    let root = match canonicalize_root(&args.root) {
+        Ok(root) => root,
+        Err(error) => {
+            return path_error_outcome(
+                error,
+                ReportOperation::Delete,
+                ReportMode::SingleFile,
+                args.json,
+            );
+        }
+    };
+    let db = match canonicalize_db_path(&args.db) {
+        Ok(db) => db,
+        Err(error) => {
+            return path_error_outcome(
+                error,
+                ReportOperation::Delete,
+                ReportMode::SingleFile,
+                args.json,
+            );
+        }
+    };
+    let target = match normalize_delete_file(&root, &args.file) {
+        Ok(target) => target,
+        Err(error) => {
+            return path_error_outcome_with_paths(
+                error,
+                ReportOperation::Delete,
+                ReportMode::SingleFile,
+                args.json,
+                Some(&db),
+                Some(&root),
+                Some(&args.file),
+                None,
+            );
+        }
+    };
+    let input = artifact_input(
+        &db,
+        Some(&root),
+        Some(&target.absolute_path),
+        Some(&target.root_relative_path),
+    );
+
+    let existing_artifact = match existing_artifact_for_root(
+        &db,
+        args.strict_schema,
+        Some(JSONL_SCHEMA_VERSION),
+        &root,
+    ) {
+        Ok(artifact) => artifact,
+        Err(error) => {
+            return outcome(
+                base_report(
+                    ReportStatus::Failed,
+                    ReportOperation::Delete,
+                    ReportMode::SingleFile,
+                    input,
+                )
+                .with_error(error.diagnostic),
+                error.exit_code,
+                args.json,
+                ReportStream::Stdout,
+            );
+        }
+    };
+
+    cleanup_delete(&db, &root, target, existing_artifact, args.json)
 }
 
 fn info(args: InfoArgs) -> CommandOutcome {
@@ -311,9 +537,236 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
     outcome(report, 0, args.json, ReportStream::Stdout)
 }
 
+fn cleanup_unsupported_update(
+    db: &Path,
+    root: &Path,
+    target: FileTarget,
+    existing_artifact: Option<ExistingArtifact>,
+    json_report: bool,
+) -> CommandOutcome {
+    let input = artifact_input(
+        db,
+        Some(root),
+        Some(&target.absolute_path),
+        Some(&target.root_relative_path),
+    );
+    let root_relative_path = target.root_relative_path.clone();
+    match delete_artifact_rows(
+        db,
+        root,
+        &root_relative_path,
+        existing_artifact,
+        WriteOperation::Delete,
+    ) {
+        Ok((writer, write_result)) => {
+            let connection = writer.connection();
+            let artifact = match artifact_report_from_connection(db, connection) {
+                Ok(artifact) => artifact,
+                Err(error) => {
+                    return outcome(
+                        base_report(
+                            ReportStatus::Failed,
+                            ReportOperation::Update,
+                            ReportMode::SingleFile,
+                            input,
+                        )
+                        .with_error(error.diagnostic),
+                        error.exit_code,
+                        json_report,
+                        ReportStream::Stdout,
+                    );
+                }
+            };
+            let mut report = base_report(
+                ReportStatus::Unsupported,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                input,
+            )
+            .with_artifact(artifact)
+            .with_revision(ReportRevision {
+                latest_revision_id: latest_revision_id(connection),
+                created_revision_id: write_result.revision_id,
+            })
+            .with_totals(table_totals(connection))
+            .with_warning(diagnostic(
+                ReportCode::UnsupportedFile,
+                "file is ignored or unsupported; stale artifact rows were removed",
+                Some(display_path(&target.absolute_path)),
+                Some(root_relative_path),
+                true,
+                json!({}),
+            ));
+            report.counts.files_scanned = 1;
+            report.counts.files_unsupported = 1;
+            report.counts.files_deleted = write_result.files_changed as i64;
+            report.counts.rows_written = RowDomainCounts::from(&write_result.rows_written);
+            outcome(report, 0, json_report, ReportStream::Stdout)
+        }
+        Err(error) => write_error_outcome(
+            error,
+            ReportOperation::Update,
+            ReportMode::SingleFile,
+            input,
+            json_report,
+        ),
+    }
+}
+
+fn cleanup_delete(
+    db: &Path,
+    root: &Path,
+    target: FileTarget,
+    existing_artifact: Option<ExistingArtifact>,
+    json_report: bool,
+) -> CommandOutcome {
+    let input = artifact_input(
+        db,
+        Some(root),
+        Some(&target.absolute_path),
+        Some(&target.root_relative_path),
+    );
+    match delete_artifact_rows(
+        db,
+        root,
+        &target.root_relative_path,
+        existing_artifact,
+        WriteOperation::Delete,
+    ) {
+        Ok((writer, write_result)) => {
+            let connection = writer.connection();
+            let artifact = match artifact_report_from_connection(db, connection) {
+                Ok(artifact) => artifact,
+                Err(error) => {
+                    return outcome(
+                        base_report(
+                            ReportStatus::Failed,
+                            ReportOperation::Delete,
+                            ReportMode::SingleFile,
+                            input,
+                        )
+                        .with_error(error.diagnostic),
+                        error.exit_code,
+                        json_report,
+                        ReportStream::Stdout,
+                    );
+                }
+            };
+            let status = if write_result.files_changed == 0 {
+                ReportStatus::NotFound
+            } else {
+                ReportStatus::Ok
+            };
+            let mut report = base_report(
+                status,
+                ReportOperation::Delete,
+                ReportMode::SingleFile,
+                input,
+            )
+            .with_artifact(artifact)
+            .with_revision(ReportRevision {
+                latest_revision_id: latest_revision_id(connection),
+                created_revision_id: write_result.revision_id,
+            })
+            .with_totals(table_totals(connection));
+            report.counts.files_deleted = write_result.files_changed as i64;
+            report.counts.rows_written = RowDomainCounts::from(&write_result.rows_written);
+            outcome(report, 0, json_report, ReportStream::Stdout)
+        }
+        Err(error) => write_error_outcome(
+            error,
+            ReportOperation::Delete,
+            ReportMode::SingleFile,
+            input,
+            json_report,
+        ),
+    }
+}
+
+fn delete_artifact_rows(
+    db: &Path,
+    root: &Path,
+    root_relative_path: &str,
+    existing_artifact: Option<ExistingArtifact>,
+    operation: WriteOperation,
+) -> Result<(ArtifactWriter, julie_extract_artifact::model::WriteResult), ArtifactWriteError> {
+    let metadata = existing_artifact
+        .map(|artifact| refreshed_metadata(artifact.write_metadata))
+        .unwrap_or_else(|| new_artifact_metadata(root, None));
+    let mut writer = ArtifactWriter::open_path(db, metadata)?;
+    let result = writer.delete_file(
+        revision_input(operation, Some(WriteMode::SingleFile), root),
+        root_relative_path,
+    )?;
+    Ok((writer, result))
+}
+
+fn artifact_report_from_connection(
+    db: &Path,
+    connection: &Connection,
+) -> Result<ArtifactReport, CommandError> {
+    let metadata = read_metadata(connection).map_err(|error| {
+        command_error(
+            3,
+            ReportCode::SchemaIncompatible,
+            format!("artifact metadata could not be read: {error}"),
+            Some(display_path(db)),
+            None,
+            false,
+            json!({}),
+        )
+    })?;
+    artifact_report(db, &metadata, Some(JSONL_SCHEMA_VERSION))
+}
+
+fn write_error_outcome(
+    error: ArtifactWriteError,
+    operation: ReportOperation,
+    mode: ReportMode,
+    input: ReportInput,
+    json_report: bool,
+) -> CommandOutcome {
+    let (code, report_code, message, details) = match error {
+        ArtifactWriteError::Sqlite(error) => (
+            1,
+            ReportCode::DbWriteFailed,
+            format!("SQLite artifact write failed: {error}"),
+            json!({}),
+        ),
+        ArtifactWriteError::DataLossGuard {
+            path,
+            existing_symbols,
+            reason,
+        } => (
+            1,
+            ReportCode::DataLossGuard,
+            format!("data-loss guard preserved existing rows for {path}"),
+            json!({"path": path, "existing_symbols": existing_symbols, "reason": reason}),
+        ),
+    };
+    outcome(
+        base_report(ReportStatus::Failed, operation, mode, input).with_error(diagnostic(
+            report_code,
+            message,
+            None,
+            None,
+            false,
+            details,
+        )),
+        code,
+        json_report,
+        ReportStream::Stdout,
+    )
+}
+
 struct OpenArtifact {
     connection: Connection,
     report: ArtifactReport,
+    write_metadata: ArtifactMetadata,
+}
+
+struct ExistingArtifact {
+    write_metadata: ArtifactMetadata,
 }
 
 struct CommandError {
@@ -350,8 +803,68 @@ fn open_artifact(
         )
     })?;
     check_versions(&metadata, strict_schema)?;
+    let write_metadata = artifact_metadata_from_rows(&metadata)?;
     let report = artifact_report(db_path, &metadata, jsonl_schema_version)?;
-    Ok(OpenArtifact { connection, report })
+    Ok(OpenArtifact {
+        connection,
+        report,
+        write_metadata,
+    })
+}
+
+fn existing_artifact_for_root(
+    db_path: &Path,
+    strict_schema: bool,
+    jsonl_schema_version: Option<i64>,
+    root: &Path,
+) -> Result<Option<ExistingArtifact>, CommandError> {
+    if !db_path.exists() {
+        return Ok(None);
+    }
+
+    let artifact = open_artifact(db_path, strict_schema, jsonl_schema_version)?;
+    if artifact.report.root_path != display_path(root) {
+        return Err(command_error(
+            3,
+            ReportCode::RootMismatch,
+            "artifact root does not match requested root",
+            Some(display_path(db_path)),
+            None,
+            false,
+            json!({
+                "artifact_root": artifact.report.root_path,
+                "requested_root": display_path(root),
+            }),
+        ));
+    }
+
+    Ok(Some(ExistingArtifact {
+        write_metadata: artifact.write_metadata,
+    }))
+}
+
+fn open_artifact_for_root(
+    db_path: &Path,
+    strict_schema: bool,
+    jsonl_schema_version: Option<i64>,
+    root: &Path,
+) -> Result<OpenArtifact, CommandError> {
+    let artifact = open_artifact(db_path, strict_schema, jsonl_schema_version)?;
+    if artifact.report.root_path != display_path(root) {
+        return Err(command_error(
+            3,
+            ReportCode::RootMismatch,
+            "artifact root does not match requested root",
+            Some(display_path(db_path)),
+            None,
+            false,
+            json!({
+                "artifact_root": artifact.report.root_path,
+                "requested_root": display_path(root),
+            }),
+        ));
+    }
+    Ok(artifact)
 }
 
 fn check_versions(
@@ -431,6 +944,24 @@ fn artifact_report(
             metadata,
             "capability_snapshot_fingerprint",
         )?,
+    })
+}
+
+fn artifact_metadata_from_rows(
+    metadata: &BTreeMap<String, String>,
+) -> Result<ArtifactMetadata, CommandError> {
+    Ok(ArtifactMetadata {
+        artifact_id: metadata_string(metadata, "artifact_id")?,
+        root_path: metadata_string(metadata, "root_path")?,
+        binary_version: metadata_string(metadata, "binary_version")?,
+        hash_algorithm: metadata_string(metadata, "hash_algorithm")?,
+        parser_inventory_fingerprint: metadata_string(metadata, "parser_inventory_fingerprint")?,
+        capability_snapshot_fingerprint: metadata_string(
+            metadata,
+            "capability_snapshot_fingerprint",
+        )?,
+        created_at: metadata_string(metadata, "created_at")?,
+        updated_at: metadata_string(metadata, "updated_at")?,
     })
 }
 
@@ -572,11 +1103,159 @@ fn base_report(
     }
 }
 
+fn artifact_input(
+    db_path: &Path,
+    root_path: Option<&Path>,
+    file_path: Option<&Path>,
+    root_relative_path: Option<&str>,
+) -> ReportInput {
+    ReportInput {
+        db_path: Some(display_path(db_path)),
+        root_path: root_path.map(display_path),
+        file_path: file_path.map(display_path),
+        root_relative_path: root_relative_path.map(ToOwned::to_owned),
+        format: None,
+        output_path: None,
+    }
+}
+
+fn path_error_outcome(
+    error: PathPolicyError,
+    operation: ReportOperation,
+    mode: ReportMode,
+    json_report: bool,
+) -> CommandOutcome {
+    path_error_outcome_with_paths(error, operation, mode, json_report, None, None, None, None)
+}
+
+fn path_error_outcome_with_paths(
+    error: PathPolicyError,
+    operation: ReportOperation,
+    mode: ReportMode,
+    json_report: bool,
+    db_path: Option<&Path>,
+    root_path: Option<&Path>,
+    file_path: Option<&Path>,
+    root_relative_path: Option<&str>,
+) -> CommandOutcome {
+    let diagnostic = path_error_diagnostic(error);
+    let input = ReportInput {
+        db_path: db_path.map(display_path),
+        root_path: root_path.map(display_path),
+        file_path: file_path.map(display_path),
+        root_relative_path: root_relative_path
+            .map(ToOwned::to_owned)
+            .or_else(|| diagnostic.root_relative_path.clone()),
+        format: None,
+        output_path: None,
+    };
+    outcome(
+        base_report(ReportStatus::Failed, operation, mode, input).with_error(diagnostic),
+        1,
+        json_report,
+        ReportStream::Stdout,
+    )
+}
+
+fn path_error_diagnostic(error: PathPolicyError) -> ReportDiagnostic {
+    match error {
+        PathPolicyError::InvalidPath { path, message } => diagnostic(
+            ReportCode::InvalidPath,
+            message,
+            Some(path),
+            None,
+            true,
+            json!({}),
+        ),
+        PathPolicyError::FileOutsideRoot { path, root_path } => diagnostic(
+            ReportCode::FileOutsideRoot,
+            "file is outside the requested root",
+            Some(path),
+            None,
+            true,
+            json!({"root_path": root_path}),
+        ),
+        PathPolicyError::FileNotFound {
+            path,
+            root_relative_path,
+        } => diagnostic(
+            ReportCode::FileNotFound,
+            "update target file does not exist",
+            Some(path),
+            root_relative_path,
+            true,
+            json!({"hint": "use delete for removed source files"}),
+        ),
+    }
+}
+
+fn new_artifact_metadata(root: &Path, artifact_id: Option<String>) -> ArtifactMetadata {
+    let now = now_rfc3339();
+    ArtifactMetadata {
+        artifact_id: artifact_id.unwrap_or_else(generated_artifact_id),
+        root_path: display_path(root),
+        binary_version: env!("CARGO_PKG_VERSION").to_string(),
+        hash_algorithm: "blake3".to_string(),
+        parser_inventory_fingerprint: "sha256:parser-inventory-v1".to_string(),
+        capability_snapshot_fingerprint: "sha256:capability-snapshot-v1".to_string(),
+        created_at: now.clone(),
+        updated_at: now,
+    }
+}
+
+fn refreshed_metadata(mut metadata: ArtifactMetadata) -> ArtifactMetadata {
+    metadata.updated_at = now_rfc3339();
+    metadata
+}
+
+fn revision_input(
+    operation: WriteOperation,
+    mode: Option<WriteMode>,
+    root: &Path,
+) -> RevisionInput {
+    let started_at = now_rfc3339();
+    RevisionInput {
+        operation,
+        mode,
+        started_at: started_at.clone(),
+        completed_at: started_at,
+        binary_version: env!("CARGO_PKG_VERSION").to_string(),
+        input_root: Some(display_path(root)),
+    }
+}
+
+fn now_rfc3339() -> String {
+    OffsetDateTime::now_utc()
+        .format(&Rfc3339)
+        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
+}
+
+fn generated_artifact_id() -> String {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    format!("artifact-{nanos}")
+}
+
+fn remove_artifact_files(db: &Path) {
+    for path in [
+        db.to_path_buf(),
+        Path::new(&format!("{}-wal", db.display())).to_path_buf(),
+        Path::new(&format!("{}-shm", db.display())).to_path_buf(),
+    ] {
+        if path.exists() {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+}
+
 trait ReportBuilder {
     fn with_artifact(self, artifact: ArtifactReport) -> Self;
     fn with_revision(self, revision: ReportRevision) -> Self;
     fn with_totals(self, totals: RowDomainCounts) -> Self;
     fn with_error(self, error: ReportDiagnostic) -> Self;
+    fn with_warning(self, warning: ReportDiagnostic) -> Self;
     fn with_languages(self, languages: Value) -> Self;
 }
 
@@ -598,6 +1277,11 @@ impl ReportBuilder for Report {
 
     fn with_error(mut self, error: ReportDiagnostic) -> Self {
         self.errors.push(error);
+        self
+    }
+
+    fn with_warning(mut self, warning: ReportDiagnostic) -> Self {
+        self.warnings.push(warning);
         self
     }
 

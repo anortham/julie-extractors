@@ -83,7 +83,8 @@ cargo xtask test contract
 
 This runs golden fixtures, capability matrix checks, and the downstream smoke
 consumer, plus the SQLite schema, JSON report, and JSONL contract tests for
-`julie-extract-artifact` and the CLI contract tests for `julie-extract-cli`.
+`julie-extract-artifact` and the CLI contract and path-policy tests for
+`julie-extract-cli`.
 
 ## Certification Tier
 

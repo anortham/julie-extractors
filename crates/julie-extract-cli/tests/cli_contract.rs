@@ -180,6 +180,10 @@ fn cli_crate_does_not_link_forbidden_julie_behaviors() {
             .unwrap_or_default(),
         std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/commands.rs"))
             .unwrap_or_default(),
+        std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/discovery.rs"))
+            .unwrap_or_default(),
+        std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/paths.rs"))
+            .unwrap_or_default(),
     ]
     .join("\n");
     let searchable = format!("{manifest}\n{source}").to_ascii_lowercase();
