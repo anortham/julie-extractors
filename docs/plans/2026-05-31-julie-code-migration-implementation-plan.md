@@ -358,12 +358,12 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 **Approach:** Use old Julie indexing path code as evidence, but rewrite dependencies around the standalone product. Store root-relative Unix paths. Treat unsupported/ignored update targets as stale-row cleanup.
 
 **Acceptance criteria:**
-- [ ] `--root`, `--db`, `--file`, and `--ignore-file` canonicalize at the CLI boundary.
-- [ ] File outside root returns a typed error.
-- [ ] `delete --file` does not require the source file to exist.
-- [ ] `update --file` requires the source file to exist.
-- [ ] Root mismatch returns exit code `3` unless `scan --force` rebuilds.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] `--root`, `--db`, `--file`, and `--ignore-file` canonicalize at the CLI boundary.
+- [x] File outside root returns a typed error.
+- [x] `delete --file` does not require the source file to exist.
+- [x] `update --file` requires the source file to exist.
+- [x] Root mismatch returns exit code `3` unless `scan --force` rebuilds.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 11: CLI Operations End To End
 
@@ -420,7 +420,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 7: JSON Report Model
 - [x] Task 8: JSONL Exporter
 - [x] Task 9: CLI Skeleton And Commands
-- [ ] Task 10: Source Discovery And Path Policy
+- [x] Task 10: Source Discovery And Path Policy
 - [ ] Task 11: CLI Operations End To End
 - [ ] Task 12: Certification And Release Scaffolding
 
@@ -438,6 +438,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | JSON report model serializes schema version 1, stable status/error code spellings, single-file input paths, and exhaustive SQLite v1 row-count domains without old Julie analysis/status fields. | `cargo test -p julie-extract-artifact --test report_contract`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; old-Julie report-field scan | `9ad4d7e` | pass | `2026-05-31T20:29Z` |
 | worker-red-green | JSONL exporter emits deterministic SQLite-derived snapshot records in JSONL v1 order, decodes SQLite JSON text columns, covers every record kind with contract tests, preserves all-or-error path export behavior, and keeps report/JSONL tests inside the contract tier. | `cargo test -p julie-extract-artifact --test jsonl_contract`; `cargo test -p julie-extract-artifact`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `549c78c` | pass | `2026-05-31T20:46Z` |
 | worker-red-green | `julie-extract` binary exposes only v1 commands, emits report-contract JSON for the skeleton paths, covers exit codes `0`, `1`, `2`, and `3`, rejects old Julie `analyze`, excludes server/tool behavior, and is wired into default and contract tiers. | `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `1c8a037` | pass | `2026-05-31T20:58Z` |
+| worker-red-green | CLI source path policy canonicalizes root/db/file/ignore inputs, rejects outside-root and missing update targets with typed reports, allows delete of missing source files, removes stale rows for ignored update targets, and enforces root-bound artifacts with `scan --force` rebuild behavior. | `cargo test -p julie-extract-cli --test path_policy`; `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `dd4399e` | pass | `2026-05-31T21:21Z` |
 
 ## Execution Notes
 
