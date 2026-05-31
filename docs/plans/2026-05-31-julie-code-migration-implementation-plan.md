@@ -299,12 +299,12 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 **Approach:** Keep report structs product-neutral. Include `input`, `artifact`, `tool`, `revision`, exhaustive `counts.rows_written`, exhaustive `counts.totals`, typed `errors`, and typed `warnings`.
 
 **Acceptance criteria:**
-- [ ] Reports serialize with `report_schema_version: 1`.
-- [ ] Every status value from the report contract is covered by tests.
-- [ ] Every v1 error code has a stable serialized spelling.
-- [ ] Single-file success reports include `input.file_path` and `input.root_relative_path`.
-- [ ] Report row-count keys are exhaustive for SQLite v1.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Reports serialize with `report_schema_version: 1`.
+- [x] Every status value from the report contract is covered by tests.
+- [x] Every v1 error code has a stable serialized spelling.
+- [x] Single-file success reports include `input.file_path` and `input.root_relative_path`.
+- [x] Report row-count keys are exhaustive for SQLite v1.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 8: JSONL Exporter
 
@@ -417,7 +417,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 4: Move Extraction-Owned Language Configuration
 - [x] Task 5: Artifact Crate Skeleton And Schema v1
 - [x] Task 6: Batched SQLite Writer
-- [ ] Task 7: JSON Report Model
+- [x] Task 7: JSON Report Model
 - [ ] Task 8: JSONL Exporter
 - [ ] Task 9: CLI Skeleton And Commands
 - [ ] Task 10: Source Discovery And Path Policy
@@ -435,6 +435,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | Extraction-owned language policy contains only literal carrier config, is embedded by the crate, aliases JSX/TSX, and classifies/gates literals without copying Julie search/test-role policy. | `cargo fmt --check`; `cargo test -p julie-extractors language_policy -- --nocapture`; `cargo xtask test default`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; non-literal TOML section scan; stale old-Julie pipeline/test-role comment scan | `f477047` | pass | `2026-05-31T17:47Z` |
 | worker-red-green | Artifact crate owns SQLite schema v1 tables, required indexes, metadata rows, report row domains, and default/contract test-tier wiring without old Julie internal schema tables. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; SQL fence extraction from `docs/contracts/sqlite-schema-v1.md` through `sqlite3 :memory:`; forbidden old-Julie table scan | `8fe5cbf` | pass | `2026-05-31T19:16Z` |
 | worker-red-green | Artifact writer persists SQLite v1 row families with one transaction per operation, exact scan/update/delete replacement semantics, incremental hash skips, force-scan rewrites, rollback on failed batches, data-loss guarding, and tiny-fixture throughput protection. | `cargo test -p julie-extract-artifact --test writer_contract`; `cargo test -p julie-extract-artifact --test writer_performance`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `8d2b60f` | pass | `2026-05-31T20:20Z` |
+| worker-red-green | JSON report model serializes schema version 1, stable status/error code spellings, single-file input paths, and exhaustive SQLite v1 row-count domains without old Julie analysis/status fields. | `cargo test -p julie-extract-artifact --test report_contract`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; old-Julie report-field scan | `9ad4d7e` | pass | `2026-05-31T20:29Z` |
 
 ## Execution Notes
 
