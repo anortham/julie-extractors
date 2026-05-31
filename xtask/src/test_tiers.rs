@@ -158,6 +158,7 @@ fn default_plan() -> TestPlan {
         commands: vec![
             CommandSpec::new("cargo", ["test", "-p", "julie-extractors"]),
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact"]),
+            CommandSpec::new("cargo", ["test", "-p", "julie-extract-cli"]),
         ],
     }
 }
@@ -271,6 +272,10 @@ fn contract_plan() -> TestPlan {
             "--test",
             "jsonl_contract",
         ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        ["test", "-p", "julie-extract-cli", "--test", "cli_contract"],
     ));
     TestPlan { commands }
 }

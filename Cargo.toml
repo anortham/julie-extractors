@@ -1,5 +1,10 @@
 [workspace]
-members = ["crates/julie-extract-artifact", "crates/julie-extractors", "xtask"]
+members = [
+    "crates/julie-extract-artifact",
+    "crates/julie-extract-cli",
+    "crates/julie-extractors",
+    "xtask",
+]
 resolver = "2"
 
 [workspace.package]

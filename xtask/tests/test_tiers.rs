@@ -9,7 +9,8 @@ fn test_default_tier_runs_plain_extractor_tests() {
         plan.commands,
         vec![
             CommandSpec::new("cargo", ["test", "-p", "julie-extractors",]),
-            CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact",])
+            CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact",]),
+            CommandSpec::new("cargo", ["test", "-p", "julie-extract-cli",])
         ]
     );
 }
@@ -100,6 +101,10 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "--test",
                     "jsonl_contract",
                 ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                ["test", "-p", "julie-extract-cli", "--test", "cli_contract",]
             ),
         ]
     );
