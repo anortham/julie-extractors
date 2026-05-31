@@ -155,10 +155,10 @@ pub fn run_plan(plan: TestPlan) -> ExitCode {
 
 fn default_plan() -> TestPlan {
     TestPlan {
-        commands: vec![CommandSpec::new(
-            "cargo",
-            ["test", "-p", "julie-extractors"],
-        )],
+        commands: vec![
+            CommandSpec::new("cargo", ["test", "-p", "julie-extractors"]),
+            CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact"]),
+        ],
     }
 }
 
@@ -240,6 +240,16 @@ fn contract_plan() -> TestPlan {
             "--test",
             "downstream_smoke",
             "julie_extractors_works_as_path_dependency_in_downstream_crate",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-artifact",
+            "--test",
+            "schema_contract",
         ],
     ));
     TestPlan { commands }

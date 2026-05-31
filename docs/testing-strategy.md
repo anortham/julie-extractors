@@ -16,10 +16,11 @@ Use `cargo xtask test list` to print the tier names.
 - Parser certification: `cargo xtask test certification`
 - Real-world fixtures: `cargo xtask test real-world`
 
-The default command expands to `cargo test -p julie-extractors`. Slow and
-contract-heavy gates are selected by Cargo features, so plain default runs do
-not include golden fixtures, capability matrix scans, parser-upgrade checks,
-downstream smoke consumers, or real-world fixtures.
+The default command expands to fast package tests for `julie-extractors` and
+`julie-extract-artifact`. Slow and contract-heavy gates are selected by Cargo
+features or named test targets, so plain default runs do not include golden
+fixtures, capability matrix scans, parser-upgrade checks, downstream smoke
+consumers, or real-world fixtures.
 
 ## Default Tier
 
@@ -74,15 +75,16 @@ Runs artifact-facing behavior:
 
 This tier protects Miller/Eros-style users.
 
-Current extractor-only form:
+Current form:
 
 ```bash
 cargo xtask test contract
 ```
 
 This runs golden fixtures, capability matrix checks, and the downstream smoke
-consumer. Artifact, CLI, SQLite, report, and JSONL contract gates are added as
-those crates land.
+consumer, plus the SQLite schema contract for `julie-extract-artifact`.
+Additional CLI, report, and JSONL contract gates are added as those crates and
+modules land.
 
 ## Certification Tier
 

@@ -7,10 +7,10 @@ fn test_default_tier_runs_plain_extractor_tests() {
 
     assert_eq!(
         plan.commands,
-        vec![CommandSpec::new(
-            "cargo",
-            ["test", "-p", "julie-extractors",]
-        )]
+        vec![
+            CommandSpec::new("cargo", ["test", "-p", "julie-extractors",]),
+            CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact",])
+        ]
     );
 }
 
@@ -69,6 +69,16 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "--test",
                     "downstream_smoke",
                     "julie_extractors_works_as_path_dependency_in_downstream_crate",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--test",
+                    "schema_contract",
                 ]
             ),
         ]
