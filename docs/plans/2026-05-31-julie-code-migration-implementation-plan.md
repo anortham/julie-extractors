@@ -238,10 +238,10 @@ and fixture/capability evidence stays in `fixtures/extraction/capabilities.json`
 Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 
 **Acceptance criteria:**
-- [ ] Every moved config key has an artifact-producing purpose.
-- [ ] Non-extraction Julie policy is not copied.
-- [ ] Extractor tests that depend on language policy pass.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Every moved config key has an artifact-producing purpose.
+- [x] Non-extraction Julie policy is not copied.
+- [x] Extractor tests that depend on language policy pass.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 5: Artifact Crate Skeleton And Schema v1
 
@@ -413,7 +413,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 1: Rust Workspace Shell
 - [x] Task 2: Move Extractor Crate And Fixtures
 - [x] Task 3: Restore Extractor Test Tiers
-- [ ] Task 4: Move Extraction-Owned Language Configuration
+- [x] Task 4: Move Extraction-Owned Language Configuration
 - [ ] Task 5: Artifact Crate Skeleton And Schema v1
 - [ ] Task 6: Batched SQLite Writer
 - [ ] Task 7: JSON Report Model
@@ -431,6 +431,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | Workspace shell is a valid Cargo workspace and contains no forbidden Julie behavior crates. | `cargo metadata --format-version 1 --no-deps` | `a54eda6` | pass | `2026-05-31T17:06Z` |
 | worker-red-green | Moved extractor crate compiles, capability snapshot resolves, and copied support fixtures satisfy narrow fixture gates. | `cargo check -p julie-extractors`; `cargo test -p julie-extractors capability_snapshot`; targeted Elixir, JSONL, QML, and R fixture tests; source dependency scan | `f221c4a` | pass | `2026-05-31T17:10Z` |
 | worker-red-green | Extractor test tiers are selected by `cargo xtask`, slow gates are feature-gated out of default tests, and old Julie evidence refs no longer require old commits/plans. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test language rust`; `cargo xtask test contract`; `cargo xtask test certification`; `cargo xtask test real-world`; default inventory leak scan; `cargo metadata --format-version 1 --no-deps`; `git diff --check` | `7e1160e` | pass | `2026-05-31T17:27Z` |
+| worker-red-green | Extraction-owned language policy contains only literal carrier config, is embedded by the crate, aliases JSX/TSX, and classifies/gates literals without copying Julie search/test-role policy. | `cargo fmt --check`; `cargo test -p julie-extractors language_policy -- --nocapture`; `cargo xtask test default`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; non-literal TOML section scan; stale old-Julie pipeline/test-role comment scan | `f477047` | pass | `2026-05-31T17:47Z` |
 
 ## Execution Notes
 
