@@ -110,6 +110,16 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                 "cargo",
                 ["test", "-p", "julie-extract-cli", "--test", "path_policy",]
             ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--test",
+                    "operations_contract",
+                ]
+            ),
         ]
     );
 }

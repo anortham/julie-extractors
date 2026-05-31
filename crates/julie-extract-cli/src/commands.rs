@@ -7,7 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use clap::Parser;
 use julie_extract_artifact::jsonl::{JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION, export_jsonl};
 use julie_extract_artifact::metadata::{ArtifactMetadata, read_metadata};
-use julie_extract_artifact::model::{RevisionInput, WriteMode, WriteOperation};
+use julie_extract_artifact::model::{ArtifactFile, RevisionInput, WriteMode, WriteOperation};
 use julie_extract_artifact::reports::{
     ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
     ReportOperation, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
@@ -23,6 +23,7 @@ use crate::args::{
     Cli, Command, DeleteArgs, ExportArgs, InfoArgs, LanguagesArgs, ScanArgs, UpdateArgs,
 };
 use crate::discovery::{DiscoveryPolicy, FileSelection, canonicalize_ignore_files};
+use crate::extraction::{ExtractFileError, ExtractFileErrorKind, extract_artifact_file};
 use crate::paths::{
     FileTarget, PathPolicyError, canonicalize_db_path, canonicalize_root, canonicalize_update_file,
     normalize_delete_file,
@@ -87,9 +88,9 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     };
     let input = artifact_input(&db, Some(&root), None, None);
 
-    if db.exists() && !args.force {
+    let existing_scan_metadata = if db.exists() && !args.force {
         match open_artifact_for_root(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION), &root) {
-            Ok(_) => {}
+            Ok(artifact) => Some(artifact.write_metadata),
             Err(error) => {
                 return outcome(
                     base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
@@ -100,57 +101,106 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                 );
             }
         }
-    }
+    } else {
+        None
+    };
 
     let discovery = match DiscoveryPolicy::build(&root, &db, &ignore_files) {
         Ok(discovery) => discovery,
         Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
     };
     let discovered = discovery.discover();
-    if !discovered.supported_files.is_empty() {
-        let report = base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
-            .with_error(diagnostic(
-                ReportCode::InternalError,
-                "scan extraction is not wired yet for supported files",
-                None,
-                None,
-                false,
-                json!({"supported_files": discovered.supported_files.len()}),
-            ));
-        return outcome(report, 1, args.json, ReportStream::Stdout);
-    }
 
-    if args.force {
+    let force_existing_metadata = if args.force && db.exists() {
+        match open_artifact(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
+            Ok(artifact) if artifact.report.root_path == display_path(&root) => {
+                Some(artifact.write_metadata)
+            }
+            Ok(_) | Err(_) => None,
+        }
+    } else {
+        None
+    };
+    let should_rebuild_db = args.force && db.exists() && force_existing_metadata.is_none();
+    let indexed_at = now_rfc3339();
+    let files = match extract_discovered_files(
+        &root,
+        &discovery,
+        &discovered.supported_files,
+        indexed_at,
+    ) {
+        Ok(files) => files,
+        Err(error) => {
+            return extract_error_outcome(error, ReportOperation::Scan, mode, input, args.json);
+        }
+    };
+
+    if should_rebuild_db {
         remove_artifact_files(&db);
     }
+    let db_existed_before_write = db.exists();
 
-    match ArtifactWriter::open_path(&db, new_artifact_metadata(&root, None)) {
-        Ok(writer) => {
-            let connection = writer.connection();
-            let metadata = read_metadata(connection).unwrap_or_default();
-            let artifact = match artifact_report(&db, &metadata, Some(JSONL_SCHEMA_VERSION)) {
-                Ok(artifact) => artifact,
-                Err(error) => {
-                    return outcome(
-                        base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
-                            .with_error(error.diagnostic),
-                        error.exit_code,
-                        args.json,
-                        ReportStream::Stdout,
-                    );
-                }
-            };
-            let mut report = base_report(ReportStatus::Ok, ReportOperation::Scan, mode, input)
-                .with_artifact(artifact)
-                .with_revision(ReportRevision {
-                    latest_revision_id: latest_revision_id(connection),
-                    created_revision_id: None,
-                })
-                .with_totals(table_totals(connection));
-            report.counts.files_scanned = discovered.unsupported_files as i64;
-            report.counts.files_unsupported = discovered.unsupported_files as i64;
-            outcome(report, 0, args.json, ReportStream::Stdout)
-        }
+    let metadata = force_existing_metadata
+        .or(existing_scan_metadata)
+        .map(refreshed_metadata)
+        .unwrap_or_else(|| new_artifact_metadata(&root, None));
+
+    match ArtifactWriter::open_path(&db, metadata) {
+        Ok(mut writer) => match writer.write_scan(
+            revision_input(
+                WriteOperation::Scan,
+                Some(if args.force {
+                    WriteMode::Force
+                } else {
+                    WriteMode::Incremental
+                }),
+                &root,
+            ),
+            &files,
+        ) {
+            Ok(write_result) => {
+                let connection = writer.connection();
+                let artifact = match artifact_report_from_connection(&db, connection) {
+                    Ok(artifact) => artifact,
+                    Err(error) => {
+                        return outcome(
+                            base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                                .with_error(error.diagnostic),
+                            error.exit_code,
+                            args.json,
+                            ReportStream::Stdout,
+                        );
+                    }
+                };
+                let status = if write_result.revision_id.is_some()
+                    || should_rebuild_db
+                    || !db_existed_before_write
+                {
+                    ReportStatus::Ok
+                } else {
+                    ReportStatus::NoChange
+                };
+                let mut report = base_report(status, ReportOperation::Scan, mode, input)
+                    .with_artifact(artifact)
+                    .with_revision(ReportRevision {
+                        latest_revision_id: latest_revision_id(connection),
+                        created_revision_id: write_result.revision_id,
+                    })
+                    .with_totals(table_totals(connection));
+                report.counts.files_scanned =
+                    (discovered.supported_files.len() + discovered.unsupported_files) as i64;
+                report.counts.files_changed = write_result
+                    .files_changed
+                    .saturating_sub(write_result.files_deleted)
+                    as i64;
+                report.counts.files_unchanged = write_result.files_skipped as i64;
+                report.counts.files_unsupported = discovered.unsupported_files as i64;
+                report.counts.files_deleted = write_result.files_deleted as i64;
+                report.counts.rows_written = RowDomainCounts::from(&write_result.rows_written);
+                outcome(report, 0, args.json, ReportStream::Stdout)
+            }
+            Err(error) => write_error_outcome(error, ReportOperation::Scan, mode, input, args.json),
+        },
         Err(error) => outcome(
             base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input).with_error(
                 diagnostic(
@@ -268,28 +318,104 @@ fn update(args: UpdateArgs) -> CommandOutcome {
         }
     };
 
-    if matches!(
-        discovery.select_file(&target),
-        FileSelection::Unsupported { .. }
-    ) {
-        return cleanup_unsupported_update(&db, &root, target, existing_artifact, args.json);
-    }
+    let language = match discovery.select_file(&target) {
+        FileSelection::Supported { language } => language,
+        FileSelection::Unsupported { .. } => {
+            return cleanup_unsupported_update(&db, &root, target, existing_artifact, args.json);
+        }
+    };
 
-    let report = base_report(
-        ReportStatus::Failed,
-        ReportOperation::Update,
-        ReportMode::SingleFile,
-        input,
-    )
-    .with_error(diagnostic(
-        ReportCode::InternalError,
-        "update extraction is not wired yet for supported files",
-        Some(display_path(&target.absolute_path)),
-        Some(target.root_relative_path),
-        false,
-        json!({"command": "update"}),
-    ));
-    outcome(report, 1, args.json, ReportStream::Stdout)
+    let file = match extract_artifact_file(&root, &target, language, now_rfc3339()) {
+        Ok(file) => file,
+        Err(error) => {
+            return extract_error_outcome(
+                error,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                input,
+                args.json,
+            );
+        }
+    };
+    let metadata = existing_artifact
+        .map(|artifact| refreshed_metadata(artifact.write_metadata))
+        .unwrap_or_else(|| new_artifact_metadata(&root, None));
+
+    match ArtifactWriter::open_path(&db, metadata) {
+        Ok(mut writer) => match writer.write_update(
+            revision_input(WriteOperation::Update, Some(WriteMode::SingleFile), &root),
+            &file,
+        ) {
+            Ok(write_result) => {
+                let connection = writer.connection();
+                let artifact = match artifact_report_from_connection(&db, connection) {
+                    Ok(artifact) => artifact,
+                    Err(error) => {
+                        return outcome(
+                            base_report(
+                                ReportStatus::Failed,
+                                ReportOperation::Update,
+                                ReportMode::SingleFile,
+                                input,
+                            )
+                            .with_error(error.diagnostic),
+                            error.exit_code,
+                            args.json,
+                            ReportStream::Stdout,
+                        );
+                    }
+                };
+                let status = if write_result.revision_id.is_some() {
+                    ReportStatus::Ok
+                } else {
+                    ReportStatus::NoChange
+                };
+                let mut report = base_report(
+                    status,
+                    ReportOperation::Update,
+                    ReportMode::SingleFile,
+                    input,
+                )
+                .with_artifact(artifact)
+                .with_revision(ReportRevision {
+                    latest_revision_id: latest_revision_id(connection),
+                    created_revision_id: write_result.revision_id,
+                })
+                .with_totals(table_totals(connection));
+                report.counts.files_scanned = 1;
+                report.counts.files_changed = write_result.files_changed as i64;
+                report.counts.files_unchanged = write_result.files_skipped as i64;
+                report.counts.rows_written = RowDomainCounts::from(&write_result.rows_written);
+                outcome(report, 0, args.json, ReportStream::Stdout)
+            }
+            Err(error) => write_error_outcome(
+                error,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                input,
+                args.json,
+            ),
+        },
+        Err(error) => outcome(
+            base_report(
+                ReportStatus::Failed,
+                ReportOperation::Update,
+                ReportMode::SingleFile,
+                input,
+            )
+            .with_error(diagnostic(
+                ReportCode::DbOpenFailed,
+                format!("could not open SQLite artifact for update: {error}"),
+                Some(display_path(&db)),
+                None,
+                true,
+                json!({}),
+            )),
+            1,
+            args.json,
+            ReportStream::Stdout,
+        ),
+    }
 }
 
 fn delete(args: DeleteArgs) -> CommandOutcome {
@@ -535,6 +661,54 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
         "languages": languages,
     }));
     outcome(report, 0, args.json, ReportStream::Stdout)
+}
+
+fn extract_discovered_files(
+    root: &Path,
+    discovery: &DiscoveryPolicy,
+    targets: &[FileTarget],
+    indexed_at: String,
+) -> Result<Vec<ArtifactFile>, ExtractFileError> {
+    let mut files = Vec::with_capacity(targets.len());
+    for target in targets {
+        let FileSelection::Supported { language } = discovery.select_file(target) else {
+            continue;
+        };
+        files.push(extract_artifact_file(
+            root,
+            target,
+            language,
+            indexed_at.clone(),
+        )?);
+    }
+    Ok(files)
+}
+
+fn extract_error_outcome(
+    error: ExtractFileError,
+    operation: ReportOperation,
+    mode: ReportMode,
+    input: ReportInput,
+    json_report: bool,
+) -> CommandOutcome {
+    let code = match error.kind {
+        ExtractFileErrorKind::Read => ReportCode::ReadFailed,
+        ExtractFileErrorKind::Extract => ReportCode::ParseFailed,
+        ExtractFileErrorKind::Serialize => ReportCode::InternalError,
+    };
+    outcome(
+        base_report(ReportStatus::Failed, operation, mode, input).with_error(diagnostic(
+            code,
+            error.message,
+            Some(error.path),
+            Some(error.root_relative_path),
+            true,
+            json!({}),
+        )),
+        1,
+        json_report,
+        ReportStream::Stdout,
+    )
 }
 
 fn cleanup_unsupported_update(

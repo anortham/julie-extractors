@@ -140,6 +140,7 @@ pub struct WriteResult {
     pub revision_id: Option<i64>,
     pub rows_written: RowCounts,
     pub files_changed: usize,
+    pub files_deleted: usize,
     pub files_skipped: usize,
     pub transactions_committed: usize,
 }

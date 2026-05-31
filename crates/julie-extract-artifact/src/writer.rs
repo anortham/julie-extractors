@@ -47,20 +47,33 @@ impl From<rusqlite::Error> for ArtifactWriteError {
 
 pub struct ArtifactWriter {
     connection: Connection,
+    metadata: ArtifactMetadata,
 }
 
 impl ArtifactWriter {
     pub fn open_in_memory(metadata: ArtifactMetadata) -> rusqlite::Result<Self> {
         let connection = Connection::open_in_memory()?;
-        initialize_connection(&connection, &metadata)?;
-        Ok(Self { connection })
+        create_schema(&connection)?;
+        initialize_metadata(&connection, &metadata)?;
+        Ok(Self {
+            connection,
+            metadata,
+        })
     }
 
     pub fn open_path(path: impl AsRef<Path>, metadata: ArtifactMetadata) -> rusqlite::Result<Self> {
+        let path = path.as_ref();
+        let existed = path.exists();
         let connection = Connection::open(path)?;
         connection.pragma_update(None, "journal_mode", "WAL")?;
-        initialize_connection(&connection, &metadata)?;
-        Ok(Self { connection })
+        create_schema(&connection)?;
+        if !existed || metadata_row_count(&connection)? == 0 {
+            initialize_metadata(&connection, &metadata)?;
+        }
+        Ok(Self {
+            connection,
+            metadata,
+        })
     }
 
     pub fn connection(&self) -> &Connection {
@@ -77,7 +90,7 @@ impl ArtifactWriter {
         files: &[ArtifactFile],
     ) -> ArtifactWriteResult<WriteResult> {
         debug_assert_eq!(revision.operation, WriteOperation::Scan);
-        self.write_files(revision, files)
+        self.write_scan_snapshot(revision, files)
     }
 
     pub fn write_update(
@@ -107,6 +120,7 @@ impl ArtifactWriter {
 
         let parent_revision_id = current_revision_id(&tx)?;
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
+        write_metadata(&tx, &self.metadata)?;
         delete_file_rows(&tx, &existing.file_id, path)?;
 
         let mut row_counts = RowCounts::default();
@@ -124,6 +138,7 @@ impl ArtifactWriter {
             revision_id: Some(revision_id),
             rows_written: row_counts,
             files_changed: 1,
+            files_deleted: 1,
             files_skipped: 0,
             transactions_committed: 1,
         })
@@ -175,6 +190,7 @@ impl ArtifactWriter {
 
         let parent_revision_id = current_revision_id(&tx)?;
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
+        write_metadata(&tx, &self.metadata)?;
         let mut row_counts = RowCounts::default();
 
         for (file, existing, _) in &planned {
@@ -215,6 +231,120 @@ impl ArtifactWriter {
         Ok(WriteResult {
             revision_id: Some(revision_id),
             files_changed: files.len() - files_skipped,
+            files_deleted: 0,
+            files_skipped,
+            rows_written: row_counts,
+            transactions_committed: 1,
+        })
+    }
+
+    fn write_scan_snapshot(
+        &mut self,
+        revision: RevisionInput,
+        files: &[ArtifactFile],
+    ) -> ArtifactWriteResult<WriteResult> {
+        let tx = self.connection.transaction()?;
+        let mut planned = Vec::new();
+        let mut files_skipped = 0;
+        let skip_unchanged_content = revision.mode != Some(WriteMode::Force);
+        let snapshot_paths = files
+            .iter()
+            .map(|file| file.path.as_str())
+            .collect::<HashSet<_>>();
+        let deleted = load_existing_files(&tx)?
+            .into_iter()
+            .filter(|existing| !snapshot_paths.contains(existing.path.as_str()))
+            .collect::<Vec<_>>();
+
+        for file in files {
+            let existing = load_existing_file(&tx, &file.path)?;
+            if skip_unchanged_content
+                && existing
+                    .as_ref()
+                    .is_some_and(|row| row.content_hash == file.content_hash)
+            {
+                files_skipped += 1;
+                continue;
+            }
+
+            ensure_data_loss_guard(&tx, file)?;
+            let change_kind = match file.status {
+                FileStatus::Unsupported => RevisionChangeKind::Unsupported,
+                FileStatus::Indexed | FileStatus::FailedPreserved => {
+                    if existing.is_some() {
+                        RevisionChangeKind::Updated
+                    } else {
+                        RevisionChangeKind::Inserted
+                    }
+                }
+            };
+            planned.push((file, existing, change_kind));
+        }
+
+        if planned.is_empty() && deleted.is_empty() {
+            tx.commit()?;
+            return Ok(WriteResult {
+                files_skipped,
+                transactions_committed: 1,
+                ..WriteResult::default()
+            });
+        }
+
+        let parent_revision_id = current_revision_id(&tx)?;
+        let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
+        write_metadata(&tx, &self.metadata)?;
+        let mut row_counts = RowCounts::default();
+
+        for (file, existing, _) in &planned {
+            if let Some(existing) = existing {
+                delete_file_rows(&tx, &existing.file_id, &file.path)?;
+            }
+        }
+
+        for existing in &deleted {
+            delete_file_rows(&tx, &existing.file_id, &existing.path)?;
+            row_counts.revision_file_changes += insert_revision_file_change(
+                &tx,
+                revision_id,
+                &existing.file_id,
+                &existing.path,
+                RevisionChangeKind::Deleted,
+            )?;
+        }
+
+        for (file, _, change_kind) in &planned {
+            insert_file(&tx, revision_id, file)?;
+            row_counts.files += 1;
+            row_counts.revision_file_changes += insert_revision_file_change(
+                &tx,
+                revision_id,
+                &file.file_id,
+                &file.path,
+                *change_kind,
+            )?;
+        }
+
+        for (file, _, _) in &planned {
+            row_counts.symbols += insert_symbols(&tx, file)?;
+        }
+        let symbol_lookup = load_symbol_lookup(&tx, planned.iter().map(|(file, _, _)| *file))?;
+        update_symbol_parents(
+            &tx,
+            planned.iter().map(|(file, _, _)| *file),
+            &symbol_lookup,
+        )?;
+
+        for (file, _, _) in &planned {
+            insert_child_rows(&tx, file, &symbol_lookup, &mut row_counts)?;
+        }
+
+        update_revision_counts(&tx, revision_id, &row_counts)?;
+        tx.commit()?;
+
+        Ok(WriteResult {
+            revision_id: Some(revision_id),
+            files_changed: planned.len() + deleted.len(),
+            files_deleted: deleted.len(),
             files_skipped,
             rows_written: row_counts,
             transactions_committed: 1,
@@ -222,18 +352,29 @@ impl ArtifactWriter {
     }
 }
 
-fn initialize_connection(
-    connection: &Connection,
-    metadata: &ArtifactMetadata,
-) -> rusqlite::Result<()> {
-    create_schema(connection)?;
-    initialize_metadata(connection, metadata)?;
-    Ok(())
-}
-
 struct ExistingFile {
     file_id: String,
+    path: String,
     content_hash: String,
+}
+
+fn metadata_row_count(connection: &Connection) -> rusqlite::Result<i64> {
+    connection.query_row("SELECT COUNT(*) FROM artifact_metadata", [], |row| {
+        row.get(0)
+    })
+}
+
+fn write_metadata(tx: &Transaction<'_>, metadata: &ArtifactMetadata) -> rusqlite::Result<()> {
+    let mut statement = tx.prepare(
+        "INSERT INTO artifact_metadata (key, value) VALUES (?1, ?2) \
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )?;
+
+    for (key, value) in metadata.rows() {
+        statement.execute(params![key, value])?;
+    }
+
+    Ok(())
 }
 
 fn load_existing_file(tx: &Transaction<'_>, path: &str) -> rusqlite::Result<Option<ExistingFile>> {
@@ -243,11 +384,25 @@ fn load_existing_file(tx: &Transaction<'_>, path: &str) -> rusqlite::Result<Opti
         |row| {
             Ok(ExistingFile {
                 file_id: row.get(0)?,
+                path: path.to_string(),
                 content_hash: row.get(1)?,
             })
         },
     )
     .optional()
+}
+
+fn load_existing_files(tx: &Transaction<'_>) -> rusqlite::Result<Vec<ExistingFile>> {
+    let mut statement = tx.prepare("SELECT file_id, path, content_hash FROM files")?;
+    statement
+        .query_map([], |row| {
+            Ok(ExistingFile {
+                file_id: row.get(0)?,
+                path: row.get(1)?,
+                content_hash: row.get(2)?,
+            })
+        })?
+        .collect()
 }
 
 fn current_revision_id(tx: &Transaction<'_>) -> rusqlite::Result<Option<i64>> {

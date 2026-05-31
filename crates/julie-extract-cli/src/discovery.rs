@@ -82,6 +82,9 @@ impl DiscoveryPolicy {
         };
         self.discover_dir(&self.root, &mut summary);
         summary
+            .supported_files
+            .sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
+        summary
     }
 
     fn discover_dir(&self, dir: &Path, summary: &mut DiscoverySummary) {

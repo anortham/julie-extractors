@@ -41,6 +41,46 @@ fn scan_batch_writes_multiple_files_in_one_transaction() {
 }
 
 #[test]
+fn scan_deletes_files_missing_from_the_current_source_snapshot() {
+    let mut writer = open_writer();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[
+                file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]),
+                file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]),
+            ],
+        )
+        .unwrap();
+
+    let result = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-b", "src/b.rs", "hash-b", ["wrong"])],
+        )
+        .unwrap();
+
+    assert_eq!(result.transactions_committed, 1);
+    assert_eq!(result.files_changed, 1);
+    assert_eq!(result.files_deleted, 1);
+    assert_eq!(result.files_skipped, 1);
+    assert_eq!(result.rows_written.files, 0);
+    assert_eq!(result.rows_written.revision_file_changes, 1);
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/b.rs"),
+        vec!["beta"]
+    );
+    assert_eq!(
+        latest_change(writer.connection(), "src/a.rs"),
+        Some("deleted".to_string())
+    );
+}
+
+#[test]
 fn scan_persists_every_normalized_row_family_with_counts() {
     let mut writer = open_writer();
 

@@ -11,11 +11,13 @@ name = "julie-extract"
 path = "src/main.rs"
 
 [dependencies]
+blake3 = "1.8"
 clap = { version = "4.5.53", features = ["derive"] }
 ignore = "0.4"
 julie-extract-artifact = { path = "../julie-extract-artifact" }
 julie-extractors = { path = "../julie-extractors" }
 rusqlite = { version = "0.40.0", default-features = false, features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 time = { version = "0.3", features = ["formatting"] }
 
