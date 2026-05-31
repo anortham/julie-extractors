@@ -398,9 +398,9 @@ Read-only source paths:
 Use this section as the execution ledger. Update task checkboxes only after the
 task's acceptance criteria and verification ledger entry are complete.
 
-- [ ] Task 0: Contract Baseline Commit
-- [ ] Task 1: Rust Workspace Shell
-- [ ] Task 2: Move Extractor Crate And Fixtures
+- [x] Task 0: Contract Baseline Commit
+- [x] Task 1: Rust Workspace Shell
+- [x] Task 2: Move Extractor Crate And Fixtures
 - [ ] Task 3: Restore Extractor Test Tiers
 - [ ] Task 4: Move Extraction-Owned Language Configuration
 - [ ] Task 5: Artifact Crate Skeleton And Schema v1
@@ -411,6 +411,14 @@ task's acceptance criteria and verification ledger entry are complete.
 - [ ] Task 10: Source Discovery And Path Policy
 - [ ] Task 11: CLI Operations End To End
 - [ ] Task 12: Certification And Release Scaffolding
+
+## Verification Ledger
+
+| Scope | Invariant | Command | Commit | Result | Time |
+|-------|-----------|---------|--------|--------|------|
+| worker-red-green | Contract baseline docs parse and have no placeholders. | `sqlite3 :memory:` SQL snippet check; `jq` JSON snippet check; placeholder scan | `3a3d889` | pass | `2026-05-31T17:04Z` |
+| worker-red-green | Workspace shell is a valid Cargo workspace and contains no forbidden Julie behavior crates. | `cargo metadata --format-version 1 --no-deps` | `a54eda6` | pass | `2026-05-31T17:06Z` |
+| worker-red-green | Moved extractor crate compiles, capability snapshot resolves, and copied support fixtures satisfy narrow fixture gates. | `cargo check -p julie-extractors`; `cargo test -p julie-extractors capability_snapshot`; targeted Elixir, JSONL, QML, and R fixture tests; source dependency scan | `f221c4a` | pass | `2026-05-31T17:10Z` |
 
 ## Execution Notes
 
