@@ -279,13 +279,14 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 **Approach:** Write through explicit transactions, prepared statements, batched inserts, indexed file replacement, and data-loss guard checks. Start with tiny fixtures and deterministic row counts before broad language coverage.
 
 **Acceptance criteria:**
-- [ ] `scan`-style batch writes multiple files in one transaction.
-- [ ] `update`-style write replaces exactly one file's rows.
-- [ ] `delete`-style write removes exactly one file's rows.
-- [ ] Unchanged file hashes avoid row churn.
-- [ ] Data-loss guard preserves known-good rows on parser/read failure evidence.
-- [ ] Tiny-fixture performance tripwire detects per-row commits.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] `scan`-style batch writes multiple files in one transaction.
+- [x] `update`-style write replaces exactly one file's rows.
+- [x] `delete`-style write removes exactly one file's rows.
+- [x] Unchanged file hashes avoid row churn for incremental/single-file writes.
+- [x] Force scans rewrite rows even when content hashes are unchanged.
+- [x] Data-loss guard preserves known-good rows on parser/read failure evidence.
+- [x] Tiny-fixture performance tripwire detects per-row commits.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 7: JSON Report Model
 
@@ -415,7 +416,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 3: Restore Extractor Test Tiers
 - [x] Task 4: Move Extraction-Owned Language Configuration
 - [x] Task 5: Artifact Crate Skeleton And Schema v1
-- [ ] Task 6: Batched SQLite Writer
+- [x] Task 6: Batched SQLite Writer
 - [ ] Task 7: JSON Report Model
 - [ ] Task 8: JSONL Exporter
 - [ ] Task 9: CLI Skeleton And Commands
@@ -433,6 +434,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | Extractor test tiers are selected by `cargo xtask`, slow gates are feature-gated out of default tests, and old Julie evidence refs no longer require old commits/plans. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test language rust`; `cargo xtask test contract`; `cargo xtask test certification`; `cargo xtask test real-world`; default inventory leak scan; `cargo metadata --format-version 1 --no-deps`; `git diff --check` | `7e1160e` | pass | `2026-05-31T17:27Z` |
 | worker-red-green | Extraction-owned language policy contains only literal carrier config, is embedded by the crate, aliases JSX/TSX, and classifies/gates literals without copying Julie search/test-role policy. | `cargo fmt --check`; `cargo test -p julie-extractors language_policy -- --nocapture`; `cargo xtask test default`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; non-literal TOML section scan; stale old-Julie pipeline/test-role comment scan | `f477047` | pass | `2026-05-31T17:47Z` |
 | worker-red-green | Artifact crate owns SQLite schema v1 tables, required indexes, metadata rows, report row domains, and default/contract test-tier wiring without old Julie internal schema tables. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; SQL fence extraction from `docs/contracts/sqlite-schema-v1.md` through `sqlite3 :memory:`; forbidden old-Julie table scan | `8fe5cbf` | pass | `2026-05-31T19:16Z` |
+| worker-red-green | Artifact writer persists SQLite v1 row families with one transaction per operation, exact scan/update/delete replacement semantics, incremental hash skips, force-scan rewrites, rollback on failed batches, data-loss guarding, and tiny-fixture throughput protection. | `cargo test -p julie-extract-artifact --test writer_contract`; `cargo test -p julie-extract-artifact --test writer_performance`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `8d2b60f` | pass | `2026-05-31T20:20Z` |
 
 ## Execution Notes
 
