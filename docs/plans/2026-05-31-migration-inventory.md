@@ -52,12 +52,20 @@ with the extraction engine.
 Source:
 
 - `/Users/murphy/source/julie/fixtures/extraction/`
+- `/Users/murphy/source/julie/fixtures/elixir/basic.ex`
+- `/Users/murphy/source/julie/fixtures/qml/real-world/cool-retro-term-main.qml`
+- `/Users/murphy/source/julie/fixtures/qml/real-world/kde-plasma-desktop-main.qml`
+- `/Users/murphy/source/julie/fixtures/r/real-world/ggplot2-geom-point.R`
+- `/Users/murphy/source/julie/fixtures/real-world/json/memories.jsonl`
 
 Includes:
 
 - `capabilities.json`
 - `tree-sitter-real-world-corpus.toml`
 - all `source.*` and `expected.json` fixtures
+- the Elixir full-fixture support file used by extractor unit tests
+- real-world support fixtures referenced directly by copied QML, R, and JSON
+  extractor tests
 
 Reason: fixtures are product evidence. Keep the same relative path initially or
 update all `include_str!` references in the same migration task.

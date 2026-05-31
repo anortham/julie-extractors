@@ -172,6 +172,15 @@ Read-only source paths:
 - Create: `crates/julie-extractors/`
 - Copy from: `/Users/murphy/source/julie/fixtures/extraction/`
 - Create: `fixtures/extraction/`
+- Copy from: `/Users/murphy/source/julie/fixtures/elixir/basic.ex`
+- Create: `fixtures/elixir/basic.ex`
+- Copy from: `/Users/murphy/source/julie/fixtures/qml/real-world/cool-retro-term-main.qml`
+- Copy from: `/Users/murphy/source/julie/fixtures/qml/real-world/kde-plasma-desktop-main.qml`
+- Create: `fixtures/qml/real-world/`
+- Copy from: `/Users/murphy/source/julie/fixtures/r/real-world/ggplot2-geom-point.R`
+- Create: `fixtures/r/real-world/`
+- Copy from: `/Users/murphy/source/julie/fixtures/real-world/json/memories.jsonl`
+- Create: `fixtures/real-world/json/memories.jsonl`
 
 **What to build:** Move the reusable extraction engine and its fixture evidence mostly intact.
 
@@ -180,6 +189,8 @@ Read-only source paths:
 **Acceptance criteria:**
 - [ ] `crates/julie-extractors/src/` exists with base modules, language modules, registry, pipeline, manager, factory, and capability snapshot.
 - [ ] `fixtures/extraction/capabilities.json` and golden fixtures exist.
+- [ ] `fixtures/elixir/basic.ex` exists for the copied Elixir full-fixture unit test.
+- [ ] Referenced QML, R, and JSON real-world support fixtures exist.
 - [ ] Capability snapshot path references resolve from the new crate location.
 - [ ] No dependency points back to `/Users/murphy/source/julie`.
 - [ ] Narrow extractor compile/test command passes or failing output is recorded with a concrete next task.
