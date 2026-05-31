@@ -43,8 +43,9 @@ pub struct BaseExtractor {
     /// `record_type_arguments`; flattened into the `type_arguments` table.
     pub type_argument_usages: Vec<TypeArgumentUsage>,
     /// String literals captured at call-argument sites (Miller bridge Phase 3).
-    /// Populated config-free by language readers via `record_literal`; the `src/`
-    /// pipeline classifies + gates them by carrier before persistence.
+    /// Populated config-free by language readers via `record_literal`; the
+    /// artifact language-policy pass classifies + gates them by carrier before
+    /// persistence.
     pub literals: Vec<Literal>,
     pub context_config: ContextConfig,
 }
@@ -111,10 +112,10 @@ impl BaseExtractor {
 
     /// Record a string literal captured at a call-argument site (Phase 3).
     ///
-    /// Config-free: `kind` is always [`LiteralKind::Other`] here; the `src/`
-    /// pipeline reclassifies and gates by `carrier`. `node` is the string-literal
-    /// argument node (used for the span and stable id). Returns the created
-    /// `Literal` (also pushed to `self.literals`).
+    /// Config-free: `kind` is always [`LiteralKind::Other`] here; the artifact
+    /// language-policy pass reclassifies and gates by `carrier`. `node` is the
+    /// string-literal argument node (used for the span and stable id). Returns
+    /// the created `Literal` (also pushed to `self.literals`).
     pub fn record_literal(
         &mut self,
         node: &Node,

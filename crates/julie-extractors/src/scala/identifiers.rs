@@ -44,7 +44,7 @@ fn extract_identifier_from_node(
         // Function/method calls
         "call_expression" => {
             // Phase 3b: capture string-literal call-arguments (config-free;
-            // carrier classification + gate run later in the src/ pipeline).
+            // carrier classification + gate run later in the artifact language-policy pass).
             // Runs before the early-returning callee branches below.
             record_scala_call_arg_literals(base, node, symbol_map);
             for child in node.children(&mut node.walk()) {
@@ -157,7 +157,7 @@ fn find_containing_symbol_id(
 /// records.
 ///
 /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
-/// classification and the carrier gate run later in the `src/` pipeline. Scala's
+/// classification and the carrier gate run later in the artifact language-policy pass. Scala's
 /// call has a `function` callee and an `arguments` node holding `expression`
 /// children; `arg_position` is counted over the full argument list. Plain Scala
 /// `string` nodes expose no content child, so they decode via the shared

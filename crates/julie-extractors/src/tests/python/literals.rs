@@ -3,7 +3,7 @@
 //! Like the TS/C# reference legs, the extractor captures string literals passed
 //! to calls **config-free**: the `carrier` is the verbatim callee text and
 //! `kind` is always `Other`. URL/SQL classification and the carrier gate happen
-//! later in the `src/` pipeline. These tests assert the raw capture: text
+//! later in the artifact language-policy pass. These tests assert the raw capture: text
 //! decoding (incl. f-string interpolation holes), carrier derivation (bare
 //! `open`, dotted `requests.get`/`cursor.execute`), `arg_position` over the full
 //! list, keyword-argument descent, and enclosing-symbol anchoring.
@@ -32,8 +32,8 @@ fn capture(code: &str) -> Vec<Literal> {
 #[test]
 fn requests_get_string_arg_captured_with_dotted_carrier() {
     // `requests.get("https://api/users")` — member callee, so the carrier is the
-    // `object.attribute` join `requests.get`. kind stays Other (the gate is a
-    // later src/ pass); the literal anchors to the enclosing function.
+    // `object.attribute` join `requests.get`. kind stays Other until the artifact
+    // language-policy pass; the literal anchors to the enclosing function.
     let code = r#"
 def load():
     return requests.get("https://api/users")

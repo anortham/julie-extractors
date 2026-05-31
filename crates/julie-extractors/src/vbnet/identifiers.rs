@@ -65,7 +65,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
-            // carrier classification + gate happen in the src/ pipeline).
+            // carrier classification + gate happen in the artifact language-policy pass).
             record_vbnet_call_arg_literals(base, node, symbol_map);
         }
         "member_access_expression" | "member_access" => {
@@ -171,9 +171,10 @@ fn find_containing_symbol_id(
 /// Capture string-literal arguments of a VB.NET `invocation` as `Literal`
 /// records. Config-free: `carrier` is the invoked method name (mirrors the C#
 /// leg); the URL/SQL classification and the carrier gate run later in the
-/// `src/` pipeline. VB wraps each call argument in an `argument` node, so the
-/// value expression is the argument's last named child (after any `name:=` for a
-/// named argument). `arg_position` is counted over the full argument list.
+/// artifact language-policy pass. VB wraps each call argument in an `argument`
+/// node, so the value expression is the argument's last named child (after any
+/// `name:=` for a named argument). `arg_position` is counted over the full
+/// argument list.
 fn record_vbnet_call_arg_literals(
     base: &mut BaseExtractor,
     node: Node,

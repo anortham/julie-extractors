@@ -65,6 +65,7 @@ tree-sitter-vb-dotnet = { git = "https://github.com/LuisCarreras/tree-sitter-vb-
 # Serialization (for Symbol, Identifier, Relationship types)
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+toml = "1.1.2"
 
 # Utilities
 md5 = "0.7"

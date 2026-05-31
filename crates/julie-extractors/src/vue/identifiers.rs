@@ -141,7 +141,7 @@ fn extract_identifier_from_node_with_content(
                 }
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
-            // carrier classification + gate happen in the src/ pipeline). Vue
+            // carrier classification + gate happen in the artifact language-policy pass). Vue
             // parses the <script> with its own byte offsets, so this path decodes
             // from `script_content` and remaps spans to the host SFC via `offset`.
             record_vue_call_arg_literals(base, node, symbol_map, script_content, offset);

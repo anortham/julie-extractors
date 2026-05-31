@@ -7,7 +7,7 @@
 //! (`array_literal_expression > unary_expression > string_literal`). The
 //! extractor captures them **config-free** — the `carrier` is the verbatim cmdlet
 //! name and `kind` is always `Other`; URL/SQL classification and the carrier gate
-//! happen later in the `src/` pipeline (`classify_literals_by_carrier`).
+//! happen later in the artifact language-policy pass (`classify_literals_by_carrier`).
 //!
 //! These tests assert the raw capture: expandable (double-quote) and verbatim
 //! (single-quote) decoding, cmdlet-name carrier, `arg_position` over the
@@ -132,7 +132,7 @@ function Run-Query {
 fn multiple_string_args_each_captured_carrier_agnostic() {
     // `Invoke-RestMethod -Uri "url" -Body "payload"` — the extractor is
     // carrier-AGNOSTIC: it captures BOTH string values under carrier
-    // "Invoke-RestMethod". Dropping non-matching literals is the src/ pipeline's
+    // "Invoke-RestMethod". Dropping non-matching literals is the artifact language-policy pass's
     // job, not the extractor's. -Uri value is position 1, -Body value position 3.
     let code = r#"
 function Post-Data {

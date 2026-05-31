@@ -4,7 +4,7 @@
 //! to `call` nodes **config-free**: the `carrier` is the verbatim callee (bare
 //! function name, or the `Module.function` join for a `dot` target) and `kind`
 //! is always `Other`. URL/SQL classification and the carrier gate happen later
-//! in the `src/` pipeline. These tests assert the raw capture: text decoding
+//! in the artifact language-policy pass. These tests assert the raw capture: text decoding
 //! (incl. `#{}` interpolation holes), carrier derivation (bare `execute`,
 //! dotted `HTTPoison.get`/`Repo.query`), `arg_position` over the full list, and
 //! enclosing-symbol anchoring.

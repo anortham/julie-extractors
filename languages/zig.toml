@@ -1,0 +1,11 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "std.uri.parse",
+    "std.uri.parseafterscheme",
+]
+sql = [
+    "exec",
+    "prepare",
+]
+route = []

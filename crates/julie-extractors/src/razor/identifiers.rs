@@ -74,7 +74,7 @@ impl super::RazorExtractor {
                     }
                 }
                 // Phase 3: capture string-literal call-arguments (config-free; the
-                // carrier classification + gate happen in the src/ pipeline).
+                // carrier classification + gate happen in the artifact language-policy pass).
                 self.record_razor_call_arg_literals(node, symbol_map);
             }
 
@@ -145,7 +145,7 @@ impl super::RazorExtractor {
     /// Capture string-literal arguments of a Razor/C# `invocation_expression`
     /// as `Literal` records. Config-free: `carrier` is the invoked method name
     /// (mirrors the C# leg); the URL/SQL classification and the carrier gate run
-    /// later in the `src/` pipeline. Razor embeds C#, so each argument is wrapped
+    /// later in the artifact language-policy pass. Razor embeds C#, so each argument is wrapped
     /// in an `argument` node whose value is its last named child. `arg_position`
     /// is counted over the full argument list.
     fn record_razor_call_arg_literals(

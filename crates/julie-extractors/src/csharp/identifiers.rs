@@ -62,7 +62,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
-            // carrier classification + gate happen in the src/ pipeline).
+            // carrier classification + gate happen in the artifact language-policy pass).
             record_csharp_call_arg_literals(base, node, symbol_map);
         }
         "object_creation_expression" => {
@@ -336,7 +336,7 @@ fn find_containing_symbol_id(
 
 /// Capture string-literal arguments of a C# `invocation_expression` as `Literal`
 /// records. Config-free: `carrier` is the method name (generics stripped); the
-/// URL/SQL classification and the carrier gate run later in the `src/` pipeline.
+/// URL/SQL classification and the carrier gate run later in the artifact language-policy pass.
 ///
 /// C# wraps each call argument in an `argument` node, so the value expression is
 /// the argument's last named child (after any `name:` for a named argument).

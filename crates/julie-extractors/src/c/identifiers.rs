@@ -63,7 +63,7 @@ fn extract_identifier_from_node(
                 );
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
-            // carrier classification + gate happen in the src/ pipeline).
+            // carrier classification + gate happen in the artifact language-policy pass).
             record_c_call_arg_literals(extractor, node, symbol_map);
         }
 
@@ -155,7 +155,7 @@ fn find_containing_symbol_id(
 /// Capture string-literal arguments of a C `call_expression` as `Literal`
 /// records. Config-free: `carrier` is the called function name (or `recv.field`
 /// for a function-pointer member call); the URL/SQL classification and the
-/// carrier gate run later in the `src/` pipeline. C has no named-argument
+/// carrier gate run later in the artifact language-policy pass. C has no named-argument
 /// wrappers, so each `argument_list` named child is decoded directly.
 /// `arg_position` is counted over the full argument list, so e.g. the URL in
 /// `curl_easy_setopt(h, CURLOPT_URL, "https://...")` reports position 2.

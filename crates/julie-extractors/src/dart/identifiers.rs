@@ -41,7 +41,7 @@ fn extract_identifier_from_node(
                 );
             }
             // Phase 3b: capture string-literal call-arguments (config-free;
-            // carrier classification + gate run later in the src/ pipeline).
+            // carrier classification + gate run later in the artifact language-policy pass).
             record_dart_call_arg_literals(base, node, symbol_map);
         }
 
@@ -309,7 +309,7 @@ fn find_containing_symbol_id(
 /// records.
 ///
 /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
-/// classification and the carrier gate run later in the `src/` pipeline. The
+/// classification and the carrier gate run later in the artifact language-policy pass. The
 /// call has a `function` callee and an `arguments` node; a `named_argument`
 /// (`body: "..."`) carries a leading `label`, so the value is its last non-label
 /// child. `arg_position` is counted over the full argument list.

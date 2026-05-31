@@ -117,7 +117,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
-            // carrier classification + gate happen in the src/ pipeline).
+            // carrier classification + gate happen in the artifact language-policy pass).
             record_qml_call_arg_literals(extractor, node, symbol_map);
         }
 
@@ -266,7 +266,7 @@ fn find_containing_symbol_id(
 /// Capture string-literal arguments of a QML `call_expression` as `Literal`
 /// records. Config-free: `carrier` is the called function (or `recv.method` for
 /// a member call); the URL/SQL classification and the carrier gate run later in
-/// the `src/` pipeline. QML-JS shares the TS grammar: the `arguments` field is an
+/// the artifact language-policy pass. QML-JS shares the TS grammar: the `arguments` field is an
 /// `arguments` node whose named children are the values directly (no per-argument
 /// wrapper). Tagged-template calls (`arguments` is a `template_string`) are
 /// skipped. `arg_position` is counted over the full argument list, so e.g. the

@@ -1,12 +1,10 @@
-//! Swift test-role detection signals (Miller bridge test-roles).
+//! Swift test detection signals.
 //!
-//! These are EXTRACTOR-level assertions: the role classifier
-//! (`src/analysis/test_roles.rs`) lives in the `julie` crate and consumes the
-//! signals produced here. Swift has two frameworks:
+//! These are extractor-level assertions for signals preserved in artifact v1.
+//! Swift has two frameworks:
 //! - **XCTest**: a `class … : XCTestCase` is a test container. The extractor
 //!   records the inherited types under the canonical `base_types` metadata key;
-//!   the classifier's base-type rule + `test_base_types = ["XCTestCase"]` config
-//!   light it up. `func test*` methods are flagged `is_test` in test paths.
+//!   `func test*` methods are flagged `is_test` in test paths.
 //! - **Swift Testing**: `@Test` / `@Suite` macros, captured as annotation
 //!   markers (`annotation_key` "test"/"suite"), path-independent.
 

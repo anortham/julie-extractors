@@ -8,7 +8,7 @@ use super::{find_containing_symbol_id_for_span, get_node_text_from_content};
 
 /// Capture string-literal arguments of a Vue `<script>` `call_expression` as
 /// `Literal` records. Config-free: `carrier` is the verbatim callee text; the
-/// URL/SQL classification and the carrier gate run later in the `src/` pipeline.
+/// URL/SQL classification and the carrier gate run later in the artifact language-policy pass.
 /// `arg_position` is counted over the full named argument list.
 pub(super) fn record_vue_call_arg_literals(
     base: &mut BaseExtractor,

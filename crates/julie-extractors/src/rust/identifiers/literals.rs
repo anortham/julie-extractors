@@ -7,7 +7,7 @@ use super::containing_symbols::ContainingSymbolIndex;
 /// records.
 ///
 /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
-/// classification and the carrier gate run later in the `src/` pipeline.
+/// classification and the carrier gate run later in the artifact language-policy pass.
 /// Records one literal per string-like argument, with `arg_position` counted
 /// over the full `arguments` list. The turbofish wrapper (`generic_function`)
 /// is unwrapped to its inner callee first.

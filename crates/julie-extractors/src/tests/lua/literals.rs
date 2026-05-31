@@ -5,7 +5,7 @@
 //! callee — a bare `identifier` (`load`), or the `table.field`/`table.method`
 //! join for a `dot_index_expression` (`http.request`) / `method_index_expression`
 //! (`conn:execute` → `conn.execute`). `kind` is always `Other`; URL/SQL
-//! classification and the carrier gate happen later in the `src/` pipeline. Lua
+//! classification and the carrier gate happen later in the artifact language-policy pass. Lua
 //! string literals have no interpolation, so decoding is a plain delimiter strip.
 //! These tests assert raw capture: carrier derivation (bare AND dotted),
 //! `arg_position` over the full list, and enclosing-symbol anchoring.

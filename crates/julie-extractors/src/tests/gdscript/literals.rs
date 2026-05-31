@@ -6,7 +6,7 @@
 //! attribute_call }`, so the call args live on the `attribute_call` node — the
 //! carrier is the `receiver.method` join (`http.request`). A bare `call`
 //! (`load("res://…")`) yields the plain identifier carrier. URL/SQL
-//! classification and the carrier gate happen later in the `src/` pipeline.
+//! classification and the carrier gate happen later in the artifact language-policy pass.
 //! GDScript string literals have no interpolation, so decoding is a plain
 //! delimiter strip. These tests assert raw capture: carrier derivation (bare AND
 //! dotted), `arg_position` over the full list, and enclosing-symbol anchoring.

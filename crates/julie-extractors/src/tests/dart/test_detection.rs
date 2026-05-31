@@ -1,6 +1,6 @@
-//! Dart test-role detection signals (Miller bridge test-roles).
+//! Dart test detection signals.
 //!
-//! EXTRACTOR-level assertions; the role classifier lives in the `julie` crate.
+//! Extractor-level assertions for signals preserved in artifact v1.
 //! Dart's primary style is call-based (`package:test`): `test()`/`group()`/
 //! `setUp()` are call expressions, not named declarations, so the extractor
 //! materializes each as a `Function` symbol carrying `is_test` /

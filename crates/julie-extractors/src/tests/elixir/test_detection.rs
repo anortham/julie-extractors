@@ -1,6 +1,6 @@
-//! Elixir ExUnit test-role detection signals (Miller bridge test-roles).
+//! Elixir ExUnit test detection signals.
 //!
-//! EXTRACTOR-level assertions; the role classifier lives in the `julie` crate.
+//! Extractor-level assertions for signals preserved in artifact v1.
 //! ExUnit is call/macro-style: `test "…" do`, `describe "…" do`, and the
 //! `setup`/`setup_all` lifecycle hooks are all `call` nodes, materialized by the
 //! bespoke dispatch in `elixir/calls.rs` (NOT the shared `test_calls` core —
@@ -8,7 +8,7 @@
 //!
 //! Guards the two gaps the call-style breadth ledger (#53) found:
 //! - `describe` was a Namespace with `metadata: None` → must carry
-//!   `test_container` so the role classifier lights it up.
+//!   `test_container` metadata.
 //! - `setup` / `setup_all` were absent from the dispatch → must materialize as
 //!   `is_test` + `test_lifecycle` Function symbols (mirroring JS beforeEach /
 //!   Ruby before).

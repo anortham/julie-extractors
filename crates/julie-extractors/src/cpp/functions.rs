@@ -60,13 +60,10 @@ pub(super) fn extract_function(
     // identifier IS the macro keyword and whose two "parameters" are the suite/
     // fixture and the test name. When the rebuild succeeds we rename the symbol to
     // `Suite.Name` AND remember the keyword so we can attach a synthetic annotation
-    // below. The role classifier maps that annotation_key via cpp.toml
-    // `[annotation_classes.test]` (test/test_f/typed_test → TestCase;
-    // test_p/typed_test_p → ParameterizedTest) — that annotation path is the ONLY
-    // way to preserve the parameterized-vs-plain role distinction the `_P` macros
-    // encode (a structural is_test alone would collapse them all to test_case). We
-    // ALSO set is_test structurally below as a graceful fallback if the TOML ever
-    // drifts. No detect_cpp arm needed.
+    // below. Standalone artifact v1 preserves that annotation key as extracted
+    // evidence, but it does not ship old Julie's test-role TOML classifier.
+    // Structural `is_test` remains the artifact-visible test marker here. No
+    // detect_cpp arm needed.
     let googletest_macro: Option<(String, String)> =
         if function_declarators::GTEST_MACROS.contains(&name.as_str()) {
             function_declarators::googletest_suite_dot_name(base, func_node, &name)
@@ -173,8 +170,8 @@ pub(super) fn extract_function(
     let mut annotations = normalize_annotations(&extract_standard_attributes(base, node), "cpp");
     // GoogleTest test macros carry no source attribute, so synthesize an annotation
     // whose key is the lowercased macro keyword (`test`, `test_f`, `test_p`,
-    // `typed_test`, `typed_test_p`). The post-extraction role classifier maps it to
-    // a test role via cpp.toml `[annotation_classes.test]` and sets `is_test`.
+    // `typed_test`, `typed_test_p`). The artifact preserves this evidence without
+    // assigning old Julie test roles in v1.
     if let Some((macro_keyword, _)) = &googletest_macro {
         annotations.push(AnnotationMarker {
             annotation: macro_keyword.clone(),

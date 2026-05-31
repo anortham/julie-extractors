@@ -80,7 +80,7 @@ impl super::JavaScriptExtractor {
                     }
                 }
                 // Phase 3: capture string-literal call-arguments (config-free; the
-                // carrier classification + gate happen in the src/ pipeline).
+                // carrier classification + gate happen in the artifact language-policy pass).
                 self.record_call_arg_literals(&node, symbol_map);
             }
 
@@ -157,7 +157,7 @@ impl super::JavaScriptExtractor {
 
     /// Capture string-literal arguments of a JS `call_expression` as `Literal`
     /// records. Config-free: `carrier` is the verbatim callee text; the URL/SQL
-    /// classification and the carrier gate run later in the `src/` pipeline.
+    /// classification and the carrier gate run later in the artifact language-policy pass.
     /// Mirrors the TypeScript leg (JS shares the same `call_expression` grammar
     /// shape: `function` callee + `arguments` list, with tagged templates
     /// arriving as a `template_string` in the `arguments` field). `arg_position`

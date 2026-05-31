@@ -5,7 +5,7 @@
 //! function name (`dbGetQuery`, imported `POST`), or the `package.function`
 //! join for a `namespace_operator` (`httr::GET` → `httr.GET`) / `extract_operator`
 //! (`con$query` → `con.query`). `kind` is always `Other`; URL/SQL classification
-//! and the carrier gate happen later in the `src/` pipeline. R strings have no
+//! and the carrier gate happen later in the artifact language-policy pass. R strings have no
 //! interpolation, so decoding is a plain delimiter strip. These tests assert raw
 //! capture: carrier derivation (bare AND qualified), `arg_position` over the full
 //! list, and enclosing-symbol anchoring.

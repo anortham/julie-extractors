@@ -102,9 +102,8 @@ impl SwiftExtractor {
                 serde_json::Value::String(keys),
             );
         }
-        // Canonical base-type signal (Miller bridge test-roles): record the
-        // inherited types/protocols so `src/analysis/test_roles.rs` can flag an
-        // `XCTestCase` subclass as a TestContainer without an annotation.
+        // Canonical base-type signal: record inherited types/protocols as
+        // artifact metadata without assigning old Julie test-container roles.
         if !base_types.is_empty() {
             metadata.insert("base_types".to_string(), serde_json::json!(base_types));
         }

@@ -32,8 +32,8 @@ fn capture(code: &str) -> Vec<Literal> {
 #[test]
 fn net_http_get_string_arg_captured_with_dotted_carrier() {
     // `Net::HTTP.get("https://api/users")` — member callee, so the carrier is the
-    // `receiver.method` join `Net::HTTP.get`. kind stays Other (the gate is a
-    // later src/ pass); the literal anchors to the enclosing method.
+    // `receiver.method` join `Net::HTTP.get`. kind stays Other until the artifact
+    // language-policy pass; the literal anchors to the enclosing method.
     let code = r#"
 def load
   Net::HTTP.get("https://api/users")

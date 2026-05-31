@@ -1,0 +1,33 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "Net::HTTP.get",
+    "Net::HTTP.post",
+    "Net::HTTP.get_response",
+    "HTTParty.get",
+    "HTTParty.post",
+    "HTTParty.put",
+    "HTTParty.delete",
+    "HTTParty.patch",
+    "HTTParty.head",
+    "RestClient.get",
+    "RestClient.post",
+    "RestClient.put",
+    "RestClient.delete",
+    "RestClient.patch",
+    "RestClient.head",
+    "Faraday.get",
+    "Faraday.post",
+    "Faraday.put",
+    "Faraday.delete",
+    "Faraday.patch",
+    "Faraday.head",
+]
+sql = [
+    "execute",
+    "exec_query",
+    "find_by_sql",
+    "select_all",
+    "query",
+]
+route = []

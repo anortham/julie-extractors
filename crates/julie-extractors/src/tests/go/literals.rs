@@ -3,7 +3,7 @@
 //! Extractors capture string literals passed to calls **config-free**: the
 //! `carrier` is the verbatim callee text and `kind` is always `Other` straight
 //! from the reader. URL/SQL classification and the carrier gate happen later in
-//! the `src/` pipeline (`classify_literals_by_carrier`), not here. These tests
+//! the artifact language-policy pass (`classify_literals_by_carrier`), not here. These tests
 //! assert the raw capture: text decoding (incl. Go raw strings), carrier
 //! derivation (bare + dotted `http.Get`), `arg_position`, and enclosing-symbol
 //! anchoring. Go has no string interpolation, so raw/interpreted strings decode
@@ -134,7 +134,7 @@ func load() {
 fn multiple_string_args_each_captured_carrier_agnostic() {
     // `fmt.Println("first", "second")` — the extractor is carrier-AGNOSTIC: it
     // captures BOTH string args (carrier fmt.Println, positions 0 and 1).
-    // Dropping non-carrier literals is the src/ pipeline's job, not the
+    // Dropping non-carrier literals is the artifact language-policy pass's job, not the
     // extractor's.
     let code = r#"package main
 

@@ -33,6 +33,7 @@ pub mod jsonl_invariants;
 pub mod jsonl_pipeline;
 pub mod kind_conversions;
 pub mod kotlin;
+pub mod language_policy;
 pub mod lua;
 pub mod markdown;
 #[cfg(feature = "test-certification")]

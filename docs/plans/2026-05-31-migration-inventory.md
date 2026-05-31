@@ -78,9 +78,11 @@ Source:
 
 - `/Users/murphy/source/julie/languages/*.toml`
 
-Reason: extractor-adjacent features such as literal carrier classification and
-test-role classification need language policy. Move or split the subset that is
-artifact-producing extraction policy.
+Reason: literal carrier classification is artifact-producing policy because it
+sets `literals.kind` and drops non-carrier literal bloat before persistence.
+Move only `[literal_carriers]` while SQLite/JSONL v1 lacks a `test_role`
+artifact field. Leave tokenizer, variants, scoring, embeddings, warnings,
+test-evidence, and test-role enrichment policy in old Julie.
 
 ## Carry And Rewrite Docs
 

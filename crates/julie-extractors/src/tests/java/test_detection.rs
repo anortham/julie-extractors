@@ -1,15 +1,13 @@
-//! Java test-role detection signals (Miller bridge test-roles).
+//! Java test detection signals.
 //!
-//! EXTRACTOR-level assertions; the role classifier lives in the `julie` crate.
-//! Java covers:
+//! Extractor-level assertions for signals preserved in artifact v1. Java covers:
 //! - **JUnit 4/5**: `@Test` / `@ParameterizedTest` / `@BeforeEach` … captured as
 //!   annotation markers on methods (already wired) + the method `is_test` flag.
 //! - **JUnit 3 / TestNG legacy**: a `class … extends TestCase` is a test
 //!   container with no annotation. The extractor records the superclass +
-//!   interfaces under the canonical `base_types` key; the classifier's base-type
-//!   rule + `test_base_types = ["TestCase"]` config light it up.
+//!   interfaces under the canonical `base_types` key.
 //! - **`@Nested`**: a JUnit 5 nested container class — the class extractor now
-//!   captures class-level annotations so the classifier sees `nested`.
+//!   captures class-level annotations.
 
 use crate::base::SymbolKind;
 use crate::java::JavaExtractor;

@@ -88,7 +88,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3: capture string-literal call-arguments config-free; the
-            // carrier classification + bloat gate run later in the src/ pipeline.
+            // carrier classification + bloat gate run later in the artifact language-policy pass.
             record_python_call_arg_literals(extractor, node, symbol_map);
         }
 
@@ -265,7 +265,7 @@ fn find_containing_symbol_id(
 /// Capture string-literal arguments of a Python `call` as `Literal` records.
 ///
 /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
-/// classification and the carrier gate run later in the `src/` pipeline.
+/// classification and the carrier gate run later in the artifact language-policy pass.
 /// Records one literal per string-like argument, with `arg_position` counted
 /// over the full (named) argument list. Keyword arguments (`url="..."`) descend
 /// to their `value` so `requests.get(url="/api")` is captured too.

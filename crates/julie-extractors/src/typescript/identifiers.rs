@@ -94,7 +94,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
-            // carrier classification + gate happen in the src/ pipeline).
+            // carrier classification + gate happen in the artifact language-policy pass).
             record_call_arg_literals(extractor, &node, symbol_map);
         }
 
@@ -318,7 +318,7 @@ fn find_containing_symbol_id(
 /// Capture string-literal arguments of a call as `Literal` records.
 ///
 /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
-/// classification and the carrier gate run later in the `src/` pipeline.
+/// classification and the carrier gate run later in the artifact language-policy pass.
 /// Records one literal per string-like argument, with `arg_position` counted
 /// over the full (named) argument list so `foo(x, "sql")` reports position 1.
 fn record_call_arg_literals(

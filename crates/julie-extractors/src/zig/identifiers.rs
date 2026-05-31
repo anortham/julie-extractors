@@ -90,7 +90,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3: capture string-literal call-arguments (config-free; the
-            // carrier classification + gate happen in the src/ pipeline).
+            // carrier classification + gate happen in the artifact language-policy pass).
             record_zig_call_arg_literals(base, node, symbol_map);
         }
 
@@ -206,7 +206,7 @@ fn is_after_colon(parent: Node, child: Node) -> bool {
 /// Capture string-literal arguments of a Zig `call_expression` as `Literal`
 /// records. Config-free: `carrier` is the called function name or dotted path
 /// (e.g. `std.Uri.parse`); the URL/SQL classification and the carrier gate run
-/// later in the `src/` pipeline.
+/// later in the artifact language-policy pass.
 ///
 /// **Zig grammar detail**: `call_expression` has NO `arguments` wrapper node — the
 /// callee is the `function` field and the arguments are the *other* named children

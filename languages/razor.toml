@@ -1,0 +1,40 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "getasync",
+    "getstringasync",
+    "getbytearrayasync",
+    "getstreamasync",
+    "postasync",
+    "putasync",
+    "deleteasync",
+    "patchasync",
+    "sendasync",
+]
+sql = [
+    "query",
+    "queryasync",
+    "queryfirst",
+    "queryfirstasync",
+    "queryfirstordefault",
+    "queryfirstordefaultasync",
+    "querysingle",
+    "querysingleasync",
+    "querysingleordefault",
+    "querysingleordefaultasync",
+    "querymultiple",
+    "querymultipleasync",
+    "execute",
+    "executeasync",
+    "executescalar",
+    "executescalarasync",
+    "executereader",
+    "executereaderasync",
+    "fromsqlraw",
+    "fromsqlinterpolated",
+    "executesqlraw",
+    "executesqlrawasync",
+    "executesqlinterpolated",
+    "executesqlinterpolatedasync",
+]
+route = []

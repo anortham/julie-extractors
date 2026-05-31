@@ -91,7 +91,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3b: capture string-literal call-arguments (config-free;
-            // carrier classification + gate run later in the src/ pipeline).
+            // carrier classification + gate run later in the artifact language-policy pass).
             record_kotlin_call_arg_literals(base, node, symbol_map);
         }
 
@@ -286,7 +286,7 @@ fn find_containing_symbol_id(
 /// records.
 ///
 /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
-/// classification and the carrier gate run later in the `src/` pipeline.
+/// classification and the carrier gate run later in the artifact language-policy pass.
 /// Kotlin call args live in a `value_arguments` child holding `value_argument`
 /// nodes; a named argument (`url = "..."`) carries an extra `identifier` name,
 /// so the value is the argument's last named child. `arg_position` is counted

@@ -92,7 +92,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3b: capture string-literal call-arguments config-free; the
-            // carrier classification + bloat gate run later in the src/ pipeline.
+            // carrier classification + bloat gate run later in the artifact language-policy pass.
             record_lua_call_arg_literals(extractor, node, symbol_map);
         }
 

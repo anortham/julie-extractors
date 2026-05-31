@@ -1,13 +1,9 @@
-//! GDScript test-role detection support (Miller bridge test detection).
+//! GDScript test detection support.
 //!
 //! GUT (Godot Unit Test) scripts are a top-level `extends GutTest` with `func test_*`
-//! methods. There are no annotations, so the post-extraction classifier
-//! (src/analysis/test_roles.rs) recognizes the container by its base type: the
-//! gdscript extractor synthesizes an implicit file-class and must emit
-//! `base_types = ["GutTest"]` on it, and `gdscript.toml`'s
-//! `test_base_types = ["GutTest"]` then flags it as a `TestContainer`. These tests
-//! assert the extractor half of that contract (the metadata emission); the
-//! classifier half is covered by src/tests/analysis/test_roles_tests.rs.
+//! methods. The gdscript extractor synthesizes an implicit file-class and emits
+//! `base_types = ["GutTest"]` on it. Artifact v1 preserves that metadata
+//! evidence but does not copy old Julie's test-container classifier.
 
 use super::extract_symbols;
 use crate::base::SymbolKind;
@@ -30,8 +26,7 @@ fn base_types(symbol: &crate::base::Symbol) -> Vec<String> {
 #[test]
 fn extends_guttest_implicit_class_emits_base_types_metadata() {
     // A top-level `extends GutTest` synthesizes an implicit file-class. It must
-    // record `["GutTest"]` under `base_types` so the classifier can match it
-    // against `test_base_types = ["GutTest"]`.
+    // record `["GutTest"]` under `base_types`.
     let code = r#"extends GutTest
 
 func test_player_health():
@@ -51,8 +46,7 @@ func test_player_health():
 
 #[test]
 fn extends_non_test_base_records_its_own_base_type() {
-    // The mechanism is general: a `extends Node2D` script records `["Node2D"]`,
-    // which does not match `test_base_types`, so it is NOT a test container.
+    // The mechanism is general: a `extends Node2D` script records `["Node2D"]`.
     let code = r#"extends Node2D
 
 func _ready():

@@ -63,9 +63,8 @@ pub(super) fn extract_class(
     // classifier recognize annotated container classes.
     let annotations = helpers::extract_annotations(extractor.base(), node);
 
-    // Canonical base-type signal (Miller bridge test-roles): superclass +
-    // implemented interfaces. Lets `src/analysis/test_roles.rs` flag a JUnit 3
-    // `extends TestCase` class as a TestContainer with no annotation.
+    // Canonical base-type signal: superclass + implemented interfaces. Artifact
+    // v1 preserves this metadata evidence without assigning old Julie test roles.
     let mut base_types: Vec<String> = Vec::new();
     if let Some(superclass) = superclass {
         base_types.push(superclass);

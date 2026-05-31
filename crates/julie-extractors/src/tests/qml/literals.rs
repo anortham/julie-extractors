@@ -3,7 +3,7 @@
 //! Extractors capture string literals passed to calls **config-free**: the
 //! `carrier` is the verbatim callee text and `kind` is always `Other` straight
 //! from the reader. URL/SQL classification and the carrier gate happen later in
-//! the `src/` pipeline (`classify_literals_by_carrier`), not here. These tests
+//! the artifact language-policy pass (`classify_literals_by_carrier`), not here. These tests
 //! assert the raw capture: text decoding, carrier derivation (bare +
 //! `object.property` for a member call), `arg_position` over the full argument
 //! list, and enclosing-symbol anchoring. The carriers exercised are QML-JS APIs

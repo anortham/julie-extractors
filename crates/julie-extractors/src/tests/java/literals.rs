@@ -5,7 +5,7 @@
 //! callee — the bare `name` for a receiverless call, or the `object.name` join
 //! for a member call (`restTemplate.getForObject`, `st.execute`). `kind` is
 //! always `Other`; URL/SQL classification and the carrier gate happen later in
-//! the `src/` pipeline. These tests assert raw capture: carrier derivation (bare
+//! the artifact language-policy pass. These tests assert raw capture: carrier derivation (bare
 //! AND dotted), `arg_position` over the full list, `kind == Other`, and
 //! enclosing-symbol anchoring.
 

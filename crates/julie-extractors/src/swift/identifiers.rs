@@ -74,7 +74,7 @@ impl SwiftExtractor {
                     }
                 }
                 // Phase 3b: capture string-literal call-arguments (config-free;
-                // carrier classification + gate run later in the src/ pipeline).
+                // carrier classification + gate run later in the artifact language-policy pass).
                 self.record_call_arg_literals(node, symbol_map);
             }
 
@@ -169,7 +169,7 @@ impl SwiftExtractor {
     /// records (Miller bridge Phase 3b).
     ///
     /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
-    /// classification and the carrier gate run later in the `src/` pipeline.
+    /// classification and the carrier gate run later in the artifact language-policy pass.
     /// Swift wraps args as `call_suffix` → `value_arguments` → `value_argument`
     /// (each holding the literal in its `value` field, with an optional argument
     /// label in `name`). `arg_position` is counted over the full argument list.

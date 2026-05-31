@@ -33,7 +33,7 @@ impl CppExtractor {
             // Function calls: foo(), bar.baz(), make_shared<Foo>()
             "call_expression" => {
                 // Phase 3: capture string-literal call-arguments (config-free; the
-                // carrier classification + gate happen in the src/ pipeline). Done
+                // carrier classification + gate happen in the artifact language-policy pass). Done
                 // first so it also covers template calls (`query<T>("SELECT ...")`),
                 // which the identifier logic below returns early for.
                 self.record_call_arg_literals(node, symbol_map);
@@ -146,7 +146,7 @@ impl CppExtractor {
     /// Capture string-literal arguments of a C++ `call_expression` as `Literal`
     /// records. Config-free: `carrier` is the called function name (or
     /// `recv.method` for a member/qualified call); the URL/SQL classification and
-    /// the carrier gate run later in the `src/` pipeline. C++ wraps arguments in
+    /// the carrier gate run later in the artifact language-policy pass. C++ wraps arguments in
     /// an `argument_list` with no per-argument name wrapper, so each named child
     /// is decoded directly. `arg_position` is counted over the full argument list,
     /// so e.g. the URL in `curl_easy_setopt(h, CURLOPT_URL, "https://...")`

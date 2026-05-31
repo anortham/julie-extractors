@@ -1,0 +1,31 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "HTTPoison.get",
+    "HTTPoison.post",
+    "HTTPoison.put",
+    "HTTPoison.delete",
+    "HTTPoison.patch",
+    "HTTPoison.head",
+    "HTTPoison.request",
+    "Req.get",
+    "Req.post",
+    "Req.put",
+    "Req.delete",
+    "Req.patch",
+    "Req.head",
+    "Req.request",
+    "Tesla.get",
+    "Tesla.post",
+    "Tesla.put",
+    "Tesla.delete",
+    "Tesla.patch",
+    "Tesla.head",
+]
+sql = [
+    "query",
+    "query!",
+    "execute",
+    "prepare",
+]
+route = []

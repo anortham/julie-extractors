@@ -53,10 +53,8 @@ pub(super) fn extract_class(
         if !bases.is_empty() {
             signature.push_str(&format!(" : {}", bases.join(", ")));
         }
-        // Canonical base-type signal (Miller bridge test-roles): clean type names
-        // (no access specifier, no template args) so the post-extraction classifier
-        // can flag a GoogleTest fixture (`: public ::testing::Test`) as a
-        // TestContainer via `test_base_types`.
+        // Canonical base-type signal: clean type names (no access specifier, no
+        // template args) so the artifact preserves fixture inheritance evidence.
         base_type_names = helpers::extract_base_type_names(base, base_clause);
     }
 

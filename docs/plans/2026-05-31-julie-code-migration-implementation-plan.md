@@ -223,11 +223,19 @@ Read-only source paths:
 **Files:**
 - Copy or split from: `/Users/murphy/source/julie/languages/*.toml`
 - Create/Modify: `languages/*.toml`
-- Modify: `crates/julie-extractors/` language config loading code if needed
+- Create/Modify: `languages/README.md`
+- Create/Modify: `crates/julie-extractors/src/language_policy.rs`
+- Modify: `crates/julie-extractors/src/lib.rs`
+- Create/Modify: `crates/julie-extractors/src/tests/language_policy.rs`
 
 **What to build:** Bring over language policy that directly affects artifact-producing extraction.
 
-**Approach:** Include config used for literal carrier classification, test-role classification only if artifact-owned, language extension mapping, and fixture/capability evidence. Leave Julie workspace/search policy behind.
+**Approach:** Include only `[literal_carriers]` config used to classify and
+gate persisted `literals` artifact rows. Do not copy test-role TOML into this
+task because SQLite/JSONL v1 does not define a `test_role` artifact field.
+Language extension mapping stays in `crates/julie-extractors/src/language_spec/`
+and fixture/capability evidence stays in `fixtures/extraction/capabilities.json`.
+Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 
 **Acceptance criteria:**
 - [ ] Every moved config key has an artifact-producing purpose.

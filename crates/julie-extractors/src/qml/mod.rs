@@ -87,9 +87,8 @@ impl QmlExtractor {
 
                         let signature = Some(format!("extends {}", base_type));
                         // Emit the root component's base type under the canonical
-                        // `base_types` key so the post-extraction test-role classifier
-                        // (src/analysis/test_roles.rs) can flag a `TestCase { ... }`
-                        // root as a Qt Quick Test container via `test_base_types`.
+                        // `base_types` key. Artifact v1 preserves this metadata
+                        // evidence without assigning old Julie test-container roles.
                         let mut metadata = HashMap::new();
                         metadata.insert(
                             "base_types".to_string(),

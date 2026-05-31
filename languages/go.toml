@@ -1,0 +1,26 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "http.get",
+    "http.post",
+    "http.head",
+    "http.postform",
+    "http.newrequest",
+    "http.newrequestwithcontext",
+]
+sql = [
+    "query",
+    "querycontext",
+    "queryrow",
+    "queryrowcontext",
+    "exec",
+    "execcontext",
+    "prepare",
+    "preparecontext",
+    "queryx",
+    "queryrowx",
+    "namedexec",
+    "namedquery",
+    "mustexec",
+]
+route = []

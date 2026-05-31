@@ -168,13 +168,11 @@ impl SwiftExtractor {
         None
     }
 
-    /// Collect inherited type / protocol names as a clean list (base-type signal
-    /// for test-role classification, Miller bridge test-roles).
+    /// Collect inherited type / protocol names as a clean base-type list.
     ///
     /// Same two-path walk as [`extract_inheritance`] but returns the individual
     /// type names rather than a joined string, so `class FooTests: XCTestCase`
-    /// yields `["XCTestCase"]`. The `src/analysis/test_roles.rs` base-type rule
-    /// matches these by last path segment against the `test_base_types` config.
+    /// yields `["XCTestCase"]`.
     pub(super) fn extract_inheritance_list(&self, node: Node) -> Vec<String> {
         // Path 1: standard type_inheritance_clause.
         if let Some(inheritance) = node

@@ -136,7 +136,7 @@ fn extract_identifier_from_node(
                 }
             }
             // Phase 3b: capture string-literal call-arguments (config-free;
-            // carrier classification + gate run later in the src/ pipeline).
+            // carrier classification + gate run later in the artifact language-policy pass).
             record_rust_call_arg_literals(extractor, node, containing_symbols);
         }
 

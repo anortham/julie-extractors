@@ -81,7 +81,7 @@ impl super::GoExtractor {
                     }
                 }
                 // Phase 3b: capture string-literal call-arguments (config-free;
-                // carrier classification + gate run later in the src/ pipeline).
+                // carrier classification + gate run later in the artifact language-policy pass).
                 self.record_call_arg_literals(node, symbol_map);
             }
 
@@ -143,7 +143,7 @@ impl super::GoExtractor {
     /// records (Miller bridge Phase 3b).
     ///
     /// Config-free: `carrier` is the verbatim callee text; the URL/SQL
-    /// classification and the carrier gate run later in the `src/` pipeline.
+    /// classification and the carrier gate run later in the artifact language-policy pass.
     /// Records one literal per string-like argument, with `arg_position` counted
     /// over the full `argument_list`. Go has no string interpolation, so both
     /// `interpreted_string_literal` and `raw_string_literal` decode to their

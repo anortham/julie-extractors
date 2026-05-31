@@ -81,12 +81,10 @@ impl GDScriptExtractor {
                             "baseClass".to_string(),
                             serde_json::Value::String(base_class_name.clone()),
                         );
-                        // Also emit the canonical `base_types` array so the
-                        // post-extraction test-role classifier (test_roles.rs) can
-                        // flag a top-level `extends GutTest` script as a GUT test
-                        // container via `test_base_types`. `baseClass` (a string) is
-                        // kept for existing consumers; `base_types` is the array form
-                        // the classifier reads.
+                        // Also emit the canonical `base_types` array. Artifact v1
+                        // preserves this metadata evidence without assigning old
+                        // Julie test-container roles. `baseClass` (a string) is kept
+                        // for existing consumers.
                         metadata.insert(
                             "base_types".to_string(),
                             serde_json::Value::Array(vec![serde_json::Value::String(

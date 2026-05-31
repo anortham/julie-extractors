@@ -3,7 +3,7 @@
 //! Extractors capture string literals passed to calls **config-free**: the
 //! `carrier` is the verbatim callee text and `kind` is always `Other` straight
 //! from the reader. URL/SQL classification and the carrier gate happen later in
-//! the `src/` pipeline (`classify_literals_by_carrier`), not here. These tests
+//! the artifact language-policy pass (`classify_literals_by_carrier`), not here. These tests
 //! assert the raw capture: text decoding, carrier derivation (incl. dotted
 //! `axios.get`), `arg_position`, and enclosing-symbol anchoring.
 
@@ -32,8 +32,8 @@ fn capture(code: &str) -> Vec<Literal> {
 #[test]
 fn fetch_string_arg_captured_as_literal_with_carrier() {
     // `fetch("/api/users")` — one string-literal arg. The extractor records it
-    // verbatim with carrier="fetch", arg_position=0, kind=Other (classification
-    // to Url is a later src/ pass). It must be anchored to the enclosing fn.
+    // verbatim with carrier="fetch", arg_position=0, kind=Other until the artifact
+    // language-policy pass. It must be anchored to the enclosing fn.
     let code = r#"
 function load() {
     return fetch("/api/users");
@@ -135,7 +135,7 @@ function load() {
 fn multiple_string_args_each_captured_carrier_agnostic() {
     // `console.log("a", "b")` — the extractor is carrier-AGNOSTIC: it captures
     // BOTH string args (carrier console.log, positions 0 and 1). Dropping
-    // non-carrier literals is the src/ pipeline's job, not the extractor's.
+    // non-carrier literals is the artifact language-policy pass's job, not the extractor's.
     let code = r#"
 function load() {
     console.log("first", "second");

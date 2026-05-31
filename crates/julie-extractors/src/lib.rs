@@ -43,6 +43,7 @@ pub mod base;
 pub mod capability_snapshot;
 mod factory;
 pub mod language;
+pub mod language_policy;
 mod language_spec;
 pub mod manager;
 pub mod pipeline;

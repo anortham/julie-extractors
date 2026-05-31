@@ -1,12 +1,9 @@
-//! QML test-role detection support (Miller bridge test detection).
+//! QML test detection support.
 //!
 //! Qt Quick Test files declare tests as a `TestCase { ... }` root component. There
-//! are no annotations, so the post-extraction classifier (src/analysis/test_roles.rs)
-//! recognizes the container by its base type: the qml extractor must emit
-//! `base_types = ["TestCase"]` on the root component symbol, and `qml.toml`'s
-//! `test_base_types = ["TestCase"]` then flags it as a `TestContainer`. These tests
-//! assert the extractor half of that contract (the metadata emission); the
-//! classifier half is covered by src/tests/analysis/test_roles_tests.rs.
+//! are no annotations, so the qml extractor emits `base_types = ["TestCase"]` on
+//! the root component symbol. Artifact v1 preserves that metadata evidence but
+//! does not copy old Julie's test-container classifier.
 
 use super::extract_symbols;
 use crate::base::SymbolKind;
@@ -29,8 +26,7 @@ fn base_types(symbol: &crate::base::Symbol) -> Vec<String> {
 #[test]
 fn testcase_root_component_emits_base_types_metadata() {
     // A `TestCase { ... }` root is the Qt Quick Test container. The root component
-    // is extracted as a Class whose `base_types` records the component type so the
-    // classifier can match it against `test_base_types = ["TestCase"]`.
+    // is extracted as a Class whose `base_types` records the component type.
     let code = r#"
 import QtTest 1.0
 
@@ -56,9 +52,8 @@ TestCase {
 
 #[test]
 fn non_test_root_component_records_its_own_base_type() {
-    // The `base_types` mechanism is general (config-driven, not a TestCase special
-    // case): a plain `Rectangle { }` root records `["Rectangle"]`, which simply does
-    // not match `test_base_types`, so it is NOT a test container.
+    // The `base_types` mechanism is general: a plain `Rectangle { }` root records
+    // `["Rectangle"]`.
     let code = r#"
 import QtQuick 2.0
 

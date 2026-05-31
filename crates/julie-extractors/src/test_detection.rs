@@ -314,7 +314,7 @@ fn detect_dart(name: &str, file_path: &str, annotation_keys: &[String]) -> bool 
 
 /// GDScript GUT (Godot Unit Test): test methods run by GUT are any `test`-prefixed
 /// method (`func test_foo` / `func testFoo`). The enclosing `extends GutTest` class
-/// is flagged a container independently via `test_base_types`. Path-guarded so a
+/// is represented independently through `base_types` metadata. Path-guarded so a
 /// production method like `testConnection` isn't mis-flagged. Broader than the
 /// generic fallback, which only catches `test_`/`Test`.
 fn detect_gdscript(name: &str, file_path: &str) -> bool {

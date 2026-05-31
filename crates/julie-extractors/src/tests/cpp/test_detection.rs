@@ -1,4 +1,4 @@
-//! C++ test detection (Miller bridge test-role work).
+//! C++ test detection.
 //!
 //! C++ has no annotation/attribute test markers, so detection is structural +
 //! base-type driven, verified here against real extractor output:
@@ -9,22 +9,15 @@
 //!     The extractor (`cpp/functions.rs`) rebuilds a `Suite.Name` symbol, sets
 //!     `is_test=true` STRUCTURALLY (a graceful fallback), AND attaches a SYNTHETIC
 //!     annotation whose key is the lowercased macro keyword (`test`, `test_f`,
-//!     `test_p`, `typed_test`, `typed_test_p`). The post-extraction role classifier
-//!     (a main-crate concern) maps that key via `languages/cpp.toml`
-//!     `[annotation_classes.test]` to a ROLE — `_P` variants →
-//!     `parameterized_test`, the rest → `test_case` — which is the whole reason for
-//!     the annotation (structural is_test alone would collapse the `_P` distinction).
-//!     There is no GoogleTest arm in `test_detection.rs`. These extractor tests lock
-//!     the rename + is_test + per-macro annotation key (the inputs the classifier
-//!     consumes); the annotation-key → role mapping is asserted in the main crate
-//!     where the classifier runs.
+//!     `test_p`, `typed_test`, `typed_test_p`). Standalone artifact v1 preserves
+//!     that annotation evidence but does not assign old Julie test roles. There is
+//!     no GoogleTest arm in `test_detection.rs`. These extractor tests lock the
+//!     rename + is_test + per-macro annotation key.
 //!
 //!   - GoogleTest fixtures subclass `::testing::Test` / `::testing::TestWithParam<T>`.
 //!     The extractor records clean `base_types` (access specifier dropped, template
-//!     args stripped) so `src/analysis/test_roles.rs` can flag the fixture class as
-//!     a `TestContainer` via the `test_base_types` config in `languages/cpp.toml`.
-//!     (That `TestContainer` classification is a main-crate concern and is covered
-//!     there; here we lock the extractor's `base_types` output that feeds it.)
+//!     args stripped). Artifact v1 stores the metadata evidence; it does not copy
+//!     old Julie's test-container classifier.
 //!
 //!   - Catch2 `TEST_CASE("...")` parses as a `call_expression` statement with a
 //!     DETACHED block — no `function_definition` symbol is emitted, so it is NOT
@@ -78,8 +71,7 @@ fn base_types(sym: &Symbol) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// Last `.`/`:`-delimited segment — mirrors `test_roles::last_type_segment`, the
-/// matching the role classifier uses against `test_base_types`.
+/// Last `.`/`:`-delimited segment used to verify generic and namespace cleanup.
 fn last_segment(name: &str) -> &str {
     name.rsplit(['.', ':']).next().unwrap_or(name).trim()
 }
@@ -112,8 +104,7 @@ TEST(MathTest, AdditionWorks) {
 #[test]
 fn googletest_test_f_and_typed_test_carry_test_case_annotation_keys() {
     // TEST_F (fixture) and TYPED_TEST share the macro shape; both rename to
-    // `Suite.Name` and carry the plain (non-parameterized) annotation key that
-    // cpp.toml maps to `test_case`.
+    // `Suite.Name` and carry the plain annotation key.
     let syms = symbols(
         r#"
 TEST_F(MathFixture, AdditionWorks) {
@@ -204,8 +195,7 @@ int add(int a, int b) {
 #[test]
 fn googletest_fixture_class_records_base_types_for_container_match() {
     // `class X : public ::testing::Test` — the extractor must record a clean
-    // `base_types` whose last segment is `Test` so the role classifier flags the
-    // fixture as a TestContainer via `test_base_types = ["testing::Test"]`.
+    // `base_types` whose last segment is `Test`.
     let syms = symbols(
         r#"
 class DatabaseTest : public ::testing::Test {
@@ -230,8 +220,7 @@ protected:
 fn googletest_parameterized_fixture_strips_template_args_from_base_types() {
     // `class X : public ::testing::TestWithParam<int>` — the recorded base type
     // must be the generic head `::testing::TestWithParam` (no `<int>`), otherwise
-    // last-segment matching against `test_base_types = ["testing::TestWithParam"]`
-    // would fail on `TestWithParam<int>`.
+    // downstream suffix matching would fail on `TestWithParam<int>`.
     let syms = symbols(
         r#"
 class ParameterizedMathTest : public ::testing::TestWithParam<int> {

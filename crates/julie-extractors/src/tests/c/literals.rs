@@ -3,7 +3,7 @@
 //! Extractors capture string literals passed to calls **config-free**: the
 //! `carrier` is the verbatim callee text and `kind` is always `Other` straight
 //! from the reader. URL/SQL classification and the carrier gate happen later in
-//! the `src/` pipeline (`classify_literals_by_carrier`), not here. These tests
+//! the artifact language-policy pass (`classify_literals_by_carrier`), not here. These tests
 //! assert the raw capture: text decoding, carrier derivation (bare +
 //! `recv.field` for a function-pointer member call), `arg_position` over the full
 //! argument list (so the SQL in `sqlite3_exec(db, "...")` and the URL in
@@ -137,7 +137,7 @@ void load(struct conn *state) {
 fn multiple_string_args_each_captured_carrier_agnostic() {
     // `printf("first", "second")` — the extractor is carrier-AGNOSTIC: it
     // captures BOTH string args (carrier printf, positions 0 and 1). Dropping
-    // non-carrier literals is the src/ pipeline's job, not the extractor's.
+    // non-carrier literals is the artifact language-policy pass's job, not the extractor's.
     let code = r#"
 void load(void) {
     printf("first", "second");

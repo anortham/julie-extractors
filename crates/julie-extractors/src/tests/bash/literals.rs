@@ -5,8 +5,8 @@
 //! The extractor captures string-literal args **config-free** — the `carrier`
 //! is the verbatim command name and `kind` is always `Other` straight from the
 //! reader. URL/SQL classification and the carrier gate happen later in the
-//! `src/` pipeline (`classify_literals_by_carrier`), keyed off the command name
-//! (`curl`/`wget` → URL, `psql`/`mysql`/`sqlite3` → SQL).
+//! artifact language-policy pass (`classify_literals_by_carrier`), keyed off
+//! the command name (`curl`/`wget` → URL, `psql`/`mysql`/`sqlite3` → SQL).
 //!
 //! These tests assert the raw capture: double-quoted (`string`) and
 //! single-quoted (`raw_string`) decoding, command-name carrier, `arg_position`
@@ -123,7 +123,7 @@ query() {
 fn multiple_string_args_each_captured_carrier_agnostic() {
     // `psql -c "SELECT 1" -c "SELECT 2"` — the extractor is carrier-AGNOSTIC: it
     // captures BOTH string args under carrier "psql". Dropping non-matching
-    // literals is the src/ pipeline's job, not the extractor's.
+    // literals is the artifact language-policy pass's job, not the extractor's.
     let code = r#"
 multi() {
     psql -c "SELECT 1" -c "SELECT 2"

@@ -1,0 +1,20 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "reqwest.get",
+    "reqwest.post",
+    "reqwest.head",
+    "ureq.get",
+    "ureq.post",
+]
+sql = [
+    "query",
+    "query_as",
+    "query_scalar",
+    "execute",
+    "prepare",
+    "query_row",
+    "query_map",
+    "batch_execute",
+]
+route = []

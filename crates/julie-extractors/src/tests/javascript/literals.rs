@@ -3,7 +3,7 @@
 //! Mirrors the TypeScript reference leg (JS shares the `call_expression` grammar
 //! shape). Extractors capture string literals passed to calls **config-free**:
 //! the `carrier` is the verbatim callee text and `kind` is always `Other`. URL/SQL
-//! classification and the carrier gate happen later in the `src/` pipeline, not
+//! classification and the carrier gate happen later in the artifact language-policy pass, not
 //! here. These tests assert the raw capture: text decoding (incl. template
 //! interpolation holes), carrier derivation (bare and dotted `axios.get`),
 //! `arg_position` over the full list, and enclosing-symbol anchoring.
@@ -33,7 +33,7 @@ fn capture(code: &str) -> Vec<Literal> {
 #[test]
 fn fetch_string_arg_captured_as_literal_with_carrier() {
     // `fetch("/api/users")` — one string-literal arg, carrier="fetch",
-    // arg_position=0, kind=Other (classification to Url is a later src/ pass),
+    // arg_position=0, kind=Other until the artifact language-policy pass,
     // anchored to the enclosing function.
     let code = r#"
 function load() {
@@ -136,7 +136,7 @@ function load() {
 fn multiple_string_args_each_captured_carrier_agnostic() {
     // `console.log("first", "second")` — the extractor is carrier-AGNOSTIC: it
     // captures BOTH string args (carrier console.log, positions 0 and 1).
-    // Dropping non-carrier literals is the src/ pipeline's job, not the extractor's.
+    // Dropping non-carrier literals is the artifact language-policy pass's job, not the extractor's.
     let code = r#"
 function load() {
     console.log("first", "second");
