@@ -139,11 +139,11 @@ Read-only source paths:
 **Approach:** Verify docs snippets, stage only product-bootstrap docs and checkpoint files, then commit with a docs-focused message. Do not include copied code in this commit.
 
 **Acceptance criteria:**
-- [ ] SQL snippets from `docs/contracts/sqlite-schema-v1.md` execute through `sqlite3 :memory:`.
-- [ ] JSON examples from `docs/contracts/jsonl-v1.md` and `docs/contracts/reports.md` parse with `jq`.
-- [ ] Placeholder scan over touched docs returns no matches.
-- [ ] Commit contains docs/checkpoints only, no moved Rust code.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] SQL snippets from `docs/contracts/sqlite-schema-v1.md` execute through `sqlite3 :memory:`.
+- [x] JSON examples from `docs/contracts/jsonl-v1.md` and `docs/contracts/reports.md` parse with `jq`.
+- [x] Placeholder scan over touched docs returns no matches.
+- [x] Commit contains docs/checkpoints only, no moved Rust code.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 1: Rust Workspace Shell
 
@@ -160,10 +160,10 @@ Read-only source paths:
 **Approach:** Use a workspace with separate crates for extractor engine, artifact persistence, and CLI. Keep package names aligned with the product names: `julie-extractors`, `julie-extract-artifact`, and `julie-extract-cli`.
 
 **Acceptance criteria:**
-- [ ] Workspace manifest names all crates that exist at the end of the task.
-- [ ] No Julie server, MCP, daemon, search, embedding, watcher, dashboard, or editing crates are referenced.
-- [ ] `cargo metadata` succeeds once the first crate is present.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Workspace manifest names all crates that exist at the end of the task.
+- [x] No Julie server, MCP, daemon, search, embedding, watcher, dashboard, or editing crates are referenced.
+- [x] `cargo metadata` succeeds once the first crate is present.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 2: Move Extractor Crate And Fixtures
 
@@ -189,15 +189,15 @@ Read-only source paths:
 **Approach:** Preserve extractor source structure first, then fix only path and workspace breakage needed for compilation. Do not redesign language extractors during the move. Keep fixture paths stable unless include paths require a coordinated update.
 
 **Acceptance criteria:**
-- [ ] `crates/julie-extractors/src/` exists with base modules, language modules, registry, pipeline, manager, factory, and capability snapshot.
-- [ ] `fixtures/extraction/capabilities.json` and golden fixtures exist.
-- [ ] `fixtures/elixir/basic.ex` exists for the copied Elixir full-fixture unit test.
-- [ ] Referenced QML, R, and JSON real-world support fixtures exist.
-- [ ] `fixtures/scala/basic.scala` exists for the copied Scala full-fixture unit test.
-- [ ] Capability snapshot path references resolve from the new crate location.
-- [ ] No dependency points back to `/Users/murphy/source/julie`.
-- [ ] Narrow extractor compile/test command passes or failing output is recorded with a concrete next task.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] `crates/julie-extractors/src/` exists with base modules, language modules, registry, pipeline, manager, factory, and capability snapshot.
+- [x] `fixtures/extraction/capabilities.json` and golden fixtures exist.
+- [x] `fixtures/elixir/basic.ex` exists for the copied Elixir full-fixture unit test.
+- [x] Referenced QML, R, and JSON real-world support fixtures exist.
+- [x] `fixtures/scala/basic.scala` exists for the copied Scala full-fixture unit test.
+- [x] Capability snapshot path references resolve from the new crate location.
+- [x] No dependency points back to `/Users/murphy/source/julie`.
+- [x] Narrow extractor compile/test command passes or failing output is recorded with a concrete next task.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 3: Restore Extractor Test Tiers
 
@@ -212,11 +212,11 @@ Read-only source paths:
 **Approach:** Bring up default, language, golden fixture, capability matrix, certification, and real-world tiers according to `docs/testing-strategy.md`. The first passing suite should be narrow; slow gates must be tagged or routed out immediately.
 
 **Acceptance criteria:**
-- [ ] Default test command is documented in the task report.
-- [ ] Golden/capability tests are runnable as a named non-default or contract/language tier.
-- [ ] Certification and real-world gates are not part of default tests.
-- [ ] A convention check or documented test-tier rule prevents slow tests from entering default.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Default test command is documented in the task report.
+- [x] Golden/capability tests are runnable as a named non-default or contract/language tier.
+- [x] Certification and real-world gates are not part of default tests.
+- [x] A convention check or documented test-tier rule prevents slow tests from entering default.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 4: Move Extraction-Owned Language Configuration
 
@@ -377,15 +377,15 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 **Approach:** Start with tiny fixture roots. Prove full scan, force scan, single-file update, single-file delete, info, export, and languages. Keep watcher integration as documented command semantics, not a long-running watcher service.
 
 **Acceptance criteria:**
-- [ ] `scan` creates a SQLite artifact with expected rows.
-- [ ] `scan` with no changes returns `no_change`.
-- [ ] `scan --force` rebuilds with `operation: scan`, `mode: force`.
-- [ ] `update` changes one file and preserves other files.
-- [ ] `delete` removes one file and missing rows return `not_found`.
-- [ ] `info` is read-only.
-- [ ] `export --format jsonl` emits valid JSONL v1.
-- [ ] `languages --json` emits capability snapshot data.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] `scan` creates a SQLite artifact with expected rows.
+- [x] `scan` with no changes returns `no_change`.
+- [x] `scan --force` rebuilds with `operation: scan`, `mode: force`.
+- [x] `update` changes one file and preserves other files.
+- [x] `delete` removes one file and missing rows return `not_found`.
+- [x] `info` is read-only.
+- [x] `export --format jsonl` emits valid JSONL v1.
+- [x] `languages --json` emits capability snapshot data.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 12: Certification And Release Scaffolding
 
