@@ -81,6 +81,26 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "schema_contract",
                 ]
             ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--test",
+                    "report_contract",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--test",
+                    "jsonl_contract",
+                ]
+            ),
         ]
     );
 }

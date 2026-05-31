@@ -5,6 +5,7 @@
 //! does not contain parser, search, embedding, MCP, watcher, dashboard, or
 //! editing behavior.
 
+pub mod jsonl;
 pub mod metadata;
 pub mod model;
 pub mod reports;

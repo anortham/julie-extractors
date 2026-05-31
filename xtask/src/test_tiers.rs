@@ -252,6 +252,26 @@ fn contract_plan() -> TestPlan {
             "schema_contract",
         ],
     ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-artifact",
+            "--test",
+            "report_contract",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-artifact",
+            "--test",
+            "jsonl_contract",
+        ],
+    ));
     TestPlan { commands }
 }
 
