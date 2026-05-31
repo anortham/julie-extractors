@@ -14,7 +14,10 @@ Use `cargo xtask test list` to print the tier names.
 - Capability matrix: `cargo xtask test capability`
 - Extractor contract: `cargo xtask test contract`
 - Parser certification: `cargo xtask test certification`
-- Real-world fixtures: `cargo xtask test real-world`
+- Changed paths: `cargo xtask test changed <path>...`
+- Real-world smoke fixtures: `cargo xtask test real-world-smoke`
+- Real-world release fixtures: `cargo xtask test real-world-release`
+- Release package manifest: `cargo xtask release package-list`
 
 The default command expands to fast package tests for `julie-extractors`,
 `julie-extract-artifact`, and `julie-extract-cli`. Slow and contract-heavy
@@ -83,8 +86,8 @@ cargo xtask test contract
 
 This runs golden fixtures, capability matrix checks, and the downstream smoke
 consumer, plus the SQLite schema, JSON report, and JSONL contract tests for
-`julie-extract-artifact` and the CLI contract and path-policy tests for
-`julie-extract-cli`.
+`julie-extract-artifact` and the CLI contract, path-policy, and operations
+contract tests for `julie-extract-cli`.
 
 ## Certification Tier
 
@@ -93,24 +96,50 @@ Runs capability matrix, parser certification, and parser upgrade checks.
 This tier is required before parser dependency changes and release candidates,
 not during every edit.
 
-Current parser-upgrade form:
+Current form:
 
 ```bash
 cargo xtask test certification
 ```
 
-## Real-World Tier
+## Changed-Path Tier
+
+Runs the default tier and adds the full certification tier when changed files
+can affect parser dependency behavior.
+
+Current parser dependency triggers:
+
+- `Cargo.lock`
+- `crates/julie-extractors/Cargo.toml`
+- `crates/julie-extractors/src/language_spec/**`
+- `crates/julie-extractors/src/registry*`
+
+Current form:
+
+```bash
+cargo xtask test changed crates/julie-extractors/Cargo.toml
+```
+
+## Real-World Tiers
 
 Runs selected real-world repositories.
 
 Use this for release confidence and extractor quality audits. Keep smoke and
 release profiles separate.
 
-Current fixture-backed form:
+Current smoke form:
 
 ```bash
-cargo xtask test real-world
+cargo xtask test real-world-smoke
 ```
+
+Current release form:
+
+```bash
+cargo xtask test real-world-release
+```
+
+`cargo xtask test real-world` is kept as an alias for the release profile.
 
 ## Release Tier
 
@@ -122,6 +151,16 @@ Runs:
 - certification tier
 - real-world smoke or release profile based on release type
 - packaging checks for all target platforms
+
+The release package manifest is:
+
+```bash
+cargo xtask release package-list
+```
+
+The package list is constrained to `julie-extract` binaries, checksums,
+contract and architecture docs, testing strategy docs, and versioned release
+notes.
 
 ## Guardrails
 

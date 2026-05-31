@@ -13,6 +13,16 @@ fn test_default_tier_runs_plain_extractor_tests() {
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-cli",])
         ]
     );
+    assert!(
+        !plan
+            .commands
+            .iter()
+            .flat_map(|command| command.args.iter())
+            .any(|arg| arg == "test-certification"
+                || arg == "test-capability-matrix"
+                || arg == "test-real-world"),
+        "default tier must not include certification, capability-matrix, or real-world gates"
+    );
 }
 
 #[test]
@@ -130,18 +140,32 @@ fn test_certification_tier_selects_parser_upgrade_feature() {
 
     assert_eq!(
         plan.commands,
-        vec![CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extractors",
-                "--features",
-                "test-certification",
-                "--lib",
-                "parser_upgrade",
-            ]
-        )]
+        vec![
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-capability-matrix",
+                    "--lib",
+                    "capability_matrix",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-certification",
+                    "--lib",
+                    "parser_upgrade",
+                ]
+            ),
+        ]
     );
 }
 
@@ -150,7 +174,49 @@ fn test_real_world_tier_selects_every_real_fixture_gate() {
     let plan = plan_from_args(["test", "real-world"]).expect("real-world plan");
 
     assert_eq!(
-        plan.commands,
+        plan,
+        plan_from_args(["test", "real-world-release"]).expect("real-world release plan")
+    );
+}
+
+#[test]
+fn test_real_world_smoke_and_release_profiles_are_separate() {
+    let smoke = plan_from_args(["test", "real-world-smoke"]).expect("real-world smoke plan");
+    let release = plan_from_args(["test", "real-world-release"]).expect("real-world release plan");
+
+    assert_ne!(smoke.commands, release.commands);
+    assert!(
+        smoke.commands.len() < release.commands.len(),
+        "smoke profile should be narrower than release profile"
+    );
+    assert!(
+        !plan_from_args(["test", "default"])
+            .unwrap()
+            .commands
+            .iter()
+            .flat_map(|command| command.args.iter())
+            .any(|arg| arg == "test-real-world"),
+        "default tier must not include real-world gates"
+    );
+
+    assert_eq!(
+        smoke.commands,
+        vec![CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-real-world",
+                "--lib",
+                "test_real_world_jsonl_memories_fixture",
+            ],
+        )]
+    );
+
+    assert_eq!(
+        release.commands,
         vec![
             CommandSpec::new(
                 "cargo",
@@ -205,6 +271,85 @@ fn test_real_world_tier_selects_every_real_fixture_gate() {
 }
 
 #[test]
+fn test_changed_parser_dependency_paths_trigger_certification_gate() {
+    for path in [
+        "Cargo.lock",
+        "crates/julie-extractors/Cargo.toml",
+        "crates/julie-extractors/src/language_spec/specs.rs",
+        "crates/julie-extractors/src/registry.rs",
+    ] {
+        let parser_change =
+            plan_from_args(["test", "changed", path]).expect("changed parser dependency plan");
+        assert!(
+            parser_change.commands.contains(&CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-capability-matrix",
+                    "--lib",
+                    "capability_matrix",
+                ]
+            )),
+            "parser dependency change `{path}` must run capability certification"
+        );
+        assert!(
+            parser_change.commands.contains(&CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-certification",
+                    "--lib",
+                    "parser_upgrade",
+                ]
+            )),
+            "parser dependency change `{path}` must run parser certification"
+        );
+    }
+
+    let cli_change = plan_from_args(["test", "changed", "crates/julie-extract-cli/src/main.rs"])
+        .expect("changed non-parser plan");
+    assert!(
+        !cli_change
+            .commands
+            .iter()
+            .flat_map(|command| command.args.iter())
+            .any(|arg| arg == "test-certification"),
+        "ordinary CLI changes should not trigger parser certification"
+    );
+}
+
+#[test]
+fn test_changed_tier_combines_multiple_paths_and_requires_at_least_one_path() {
+    let mixed_change = plan_from_args([
+        "test",
+        "changed",
+        "docs/testing-strategy.md",
+        "crates/julie-extractors/src/language_spec/specs.rs",
+    ])
+    .expect("mixed changed plan");
+    assert!(
+        mixed_change
+            .commands
+            .iter()
+            .flat_map(|command| command.args.iter())
+            .any(|arg| arg == "test-certification"),
+        "any parser dependency path in a changed set must trigger certification"
+    );
+
+    let error = plan_from_args(["test", "changed"]).expect_err("missing changed path");
+    assert!(
+        error.message().contains("missing changed path"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn test_tier_names_are_stable_for_docs_and_help() {
     assert_eq!(
         tier_names(),
@@ -215,7 +360,10 @@ fn test_tier_names_are_stable_for_docs_and_help() {
             "capability",
             "contract",
             "certification",
+            "changed <path>...",
+            "real-world-smoke",
             "real-world",
+            "real-world-release",
         ]
     );
 }

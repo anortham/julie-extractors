@@ -59,7 +59,7 @@ impl std::fmt::Display for CliError {
 
 impl std::error::Error for CliError {}
 
-pub fn tier_names() -> [&'static str; 7] {
+pub fn tier_names() -> [&'static str; 10] {
     [
         "default",
         "language <name>",
@@ -67,7 +67,10 @@ pub fn tier_names() -> [&'static str; 7] {
         "capability",
         "contract",
         "certification",
+        "changed <path>...",
+        "real-world-smoke",
         "real-world",
+        "real-world-release",
     ]
 }
 
@@ -102,7 +105,11 @@ where
         "capability" => expect_no_extra_args(&args, 1).map(|()| capability_plan()),
         "contract" => expect_no_extra_args(&args, 1).map(|()| contract_plan()),
         "certification" => expect_no_extra_args(&args, 1).map(|()| certification_plan()),
-        "real-world" => expect_no_extra_args(&args, 1).map(|()| real_world_plan()),
+        "changed" => changed_plan(&args),
+        "real-world-smoke" => expect_no_extra_args(&args, 1).map(|()| real_world_smoke_plan()),
+        "real-world" | "real-world-release" => {
+            expect_no_extra_args(&args, 1).map(|()| real_world_release_plan())
+        }
         "list" => expect_no_extra_args(&args, 1).map(|()| TestPlan {
             commands: Vec::new(),
         }),
@@ -124,6 +131,10 @@ pub fn run_from_env_args(args: impl IntoIterator<Item = OsString>) -> ExitCode {
         for name in tier_names() {
             println!("{name}");
         }
+        return ExitCode::SUCCESS;
+    }
+    if args == ["release", "package-list"] {
+        print!("{}", crate::release::render_release_package_list());
         return ExitCode::SUCCESS;
     }
 
@@ -295,6 +306,48 @@ fn contract_plan() -> TestPlan {
 }
 
 fn certification_plan() -> TestPlan {
+    let mut commands = capability_plan().commands;
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extractors",
+            "--features",
+            "test-certification",
+            "--lib",
+            "parser_upgrade",
+        ],
+    ));
+    TestPlan { commands }
+}
+
+fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
+    if args.len() < 3 {
+        return Err(CliError::new(
+            "missing changed path for `cargo xtask test changed <path>...`",
+        ));
+    }
+
+    let mut commands = default_plan().commands;
+    if args
+        .iter()
+        .skip(2)
+        .any(|path| is_parser_dependency_path(path))
+    {
+        commands.extend(certification_plan().commands);
+    }
+    Ok(TestPlan { commands })
+}
+
+fn is_parser_dependency_path(path: &str) -> bool {
+    path == "Cargo.lock"
+        || path == "crates/julie-extractors/Cargo.toml"
+        || path.starts_with("crates/julie-extractors/src/language_spec/")
+        || path.starts_with("crates/julie-extractors/src/registry")
+}
+
+fn real_world_smoke_plan() -> TestPlan {
     TestPlan {
         commands: vec![CommandSpec::new(
             "cargo",
@@ -303,15 +356,15 @@ fn certification_plan() -> TestPlan {
                 "-p",
                 "julie-extractors",
                 "--features",
-                "test-certification",
+                "test-real-world",
                 "--lib",
-                "parser_upgrade",
+                "test_real_world_jsonl_memories_fixture",
             ],
         )],
     }
 }
 
-fn real_world_plan() -> TestPlan {
+fn real_world_release_plan() -> TestPlan {
     TestPlan {
         commands: vec![
             CommandSpec::new(
