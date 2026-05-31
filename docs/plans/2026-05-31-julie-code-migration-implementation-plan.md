@@ -399,11 +399,11 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 **Approach:** Use old Julie `xtask` and release workflow as evidence. The new release ships `julie-extract` binaries, checksums, schema docs, contract docs, and release notes.
 
 **Acceptance criteria:**
-- [ ] Certification tier runs independently from default tests.
-- [ ] Real-world smoke and release profiles are separate.
-- [ ] Release package list contains only `julie-extract` binaries, checksums, docs, and release notes.
-- [ ] Parser dependency changes trigger certification gates.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Certification tier runs independently from default tests.
+- [x] Real-world smoke and release profiles are separate.
+- [x] Release package list contains only `julie-extract` binaries, checksums, docs, and release notes.
+- [x] Parser dependency changes trigger certification gates.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ## Progress Tracking
 
@@ -422,7 +422,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 9: CLI Skeleton And Commands
 - [x] Task 10: Source Discovery And Path Policy
 - [x] Task 11: CLI Operations End To End
-- [ ] Task 12: Certification And Release Scaffolding
+- [x] Task 12: Certification And Release Scaffolding
 
 ## Verification Ledger
 
@@ -440,6 +440,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | `julie-extract` binary exposes only v1 commands, emits report-contract JSON for the skeleton paths, covers exit codes `0`, `1`, `2`, and `3`, rejects old Julie `analyze`, excludes server/tool behavior, and is wired into default and contract tiers. | `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `1c8a037` | pass | `2026-05-31T20:58Z` |
 | worker-red-green | CLI source path policy canonicalizes root/db/file/ignore inputs, rejects outside-root and missing update targets with typed reports, allows delete of missing source files, removes stale rows for ignored update targets, and enforces root-bound artifacts with `scan --force` rebuild behavior. | `cargo test -p julie-extract-cli --test path_policy`; `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `dd4399e` | pass | `2026-05-31T21:21Z` |
 | worker-red-green | CLI operations run end-to-end from discovery and parser extraction into SQLite, preserve snapshot semantics and no-change immutability, update/delete single files, export JSONL v1, expose languages capability data, and route operations into the contract tier. | `cargo test -p julie-extract-cli --test operations_contract`; `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli --test path_policy`; `cargo test -p julie-extract-artifact --test writer_contract`; `cargo test -p julie-extract-artifact --test jsonl_contract`; `cargo test -p julie-extract-cli`; `cargo test -p julie-extract-artifact`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `87f2e1d` | pass | `2026-05-31T21:48Z` |
+| worker-red-green | Certification, changed-path, real-world, and release package scaffolding are selected by `cargo xtask`, certification stays outside default, real-world smoke and release profiles are distinct, parser dependency changes add certification gates, and the release manifest contains only standalone `julie-extract` binaries, checksums, docs, and release notes. | `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo xtask test certification`; `cargo xtask test real-world-smoke`; `cargo xtask test real-world-release`; `cargo xtask test changed crates/julie-extractors/Cargo.toml`; `cargo xtask release package-list`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `513aa4d` | pass | `2026-05-31T22:02Z` |
 
 ## Execution Notes
 
