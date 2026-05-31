@@ -1,0 +1,558 @@
+# SQLite Schema v1
+
+## Scope
+
+SQLite is the primary durable artifact for `julie-extractors`.
+
+This document defines the draft v1 logical schema. Implementations may add
+indexes, views, and internal helper tables, but downstream readers should rely
+only on the tables and columns named here.
+
+## Invariants
+
+- One database represents one canonical source root.
+- File paths are root-relative Unix-style strings.
+- IDs are opaque stable text values. Consumers must not parse ID internals.
+- Lines are 1-based. Columns are 0-based. Byte offsets are 0-based offsets into
+  the original UTF-8 file content.
+- Enum values are lower-case snake_case strings.
+- Booleans are stored as `INTEGER NOT NULL` values `0` or `1`.
+- Timestamps are RFC 3339 UTC strings.
+- JSON columns store UTF-8 JSON text and must be valid JSON when non-null.
+- Tree-sitter node kinds, parser object names, and Rust enum names are internal
+  implementation details unless they are explicitly exposed through capability
+  metadata.
+- The final artifact must include the required indexes in this contract.
+
+## Metadata
+
+### `artifact_metadata`
+
+Key-value metadata for the whole artifact.
+
+Required keys:
+
+- `artifact_id`: generated stable identifier for this artifact.
+- `root_path`: canonical source root.
+- `schema_version`: `1`.
+- `extract_contract_version`: `1`.
+- `sqlite_schema_version`: `1`.
+- `binary_version`: `julie-extract` version that last wrote the artifact.
+- `hash_algorithm`: content hash algorithm name.
+- `parser_inventory_fingerprint`: fingerprint of parser package inventory.
+- `capability_snapshot_fingerprint`: fingerprint of language capabilities.
+- `created_at`: artifact creation timestamp.
+- `updated_at`: last successful mutation timestamp.
+
+```sql
+CREATE TABLE artifact_metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+```
+
+### `parser_inventory`
+
+Parser dependency rows captured at artifact creation or mutation time.
+
+```sql
+CREATE TABLE parser_inventory (
+  language TEXT NOT NULL,
+  parser_package TEXT NOT NULL,
+  parser_version TEXT,
+  grammar_version TEXT,
+  source TEXT,
+  metadata_json TEXT,
+  PRIMARY KEY (language, parser_package)
+);
+```
+
+`parser_package` may be a Rust crate, vendored grammar, or another parser
+package identifier. Downstream readers should treat it as evidence, not as an
+API they need to load.
+
+## Revisions
+
+### `extraction_revisions`
+
+One row per committed artifact mutation.
+
+```sql
+CREATE TABLE extraction_revisions (
+  revision_id INTEGER PRIMARY KEY,
+  parent_revision_id INTEGER,
+  operation TEXT NOT NULL,
+  mode TEXT,
+  started_at TEXT NOT NULL,
+  completed_at TEXT NOT NULL,
+  binary_version TEXT NOT NULL,
+  extract_contract_version INTEGER NOT NULL,
+  sqlite_schema_version INTEGER NOT NULL,
+  input_root TEXT,
+  counts_json TEXT NOT NULL,
+  FOREIGN KEY (parent_revision_id) REFERENCES extraction_revisions(revision_id)
+);
+```
+
+`operation` values are `scan`, `update`, and `delete`.
+
+`mode` values are operation-specific. `scan` uses `incremental` or `force`.
+`update` and `delete` use `single_file`.
+
+### `revision_file_changes`
+
+Files changed by a revision.
+
+```sql
+CREATE TABLE revision_file_changes (
+  revision_id INTEGER NOT NULL,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  change_kind TEXT NOT NULL,
+  PRIMARY KEY (revision_id, file_id),
+  FOREIGN KEY (revision_id) REFERENCES extraction_revisions(revision_id)
+);
+```
+
+`change_kind` values are `inserted`, `updated`, `deleted`, and `unsupported`.
+
+## Files
+
+### `files`
+
+One row per source file currently represented in the artifact.
+
+```sql
+CREATE TABLE files (
+  file_id TEXT PRIMARY KEY,
+  path TEXT NOT NULL UNIQUE,
+  language TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  content_bytes INTEGER NOT NULL,
+  line_count INTEGER,
+  indexed_at TEXT NOT NULL,
+  last_revision_id INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (last_revision_id) REFERENCES extraction_revisions(revision_id)
+);
+```
+
+`status` values are `indexed`, `unsupported`, and `failed_preserved`.
+
+Unsupported files normally have no row. `unsupported` is allowed only when a
+consumer needs evidence that stale rows were removed for that path.
+
+## Symbols
+
+### `symbols`
+
+Named source entities.
+
+```sql
+CREATE TABLE symbols (
+  symbol_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  name TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  signature TEXT,
+  doc_comment TEXT,
+  visibility TEXT,
+  parent_symbol_id TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  body_start_line INTEGER,
+  body_start_column INTEGER,
+  body_end_line INTEGER,
+  body_end_column INTEGER,
+  body_start_byte INTEGER,
+  body_end_byte INTEGER,
+  body_hash TEXT,
+  semantic_group TEXT,
+  confidence REAL,
+  content_type TEXT,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+```
+
+`body_hash` is present only when all body span columns are present.
+
+### `symbol_annotations`
+
+Annotations, decorators, attributes, or equivalent markers attached to symbols.
+
+```sql
+CREATE TABLE symbol_annotations (
+  annotation_id TEXT PRIMARY KEY,
+  symbol_id TEXT NOT NULL,
+  annotation TEXT NOT NULL,
+  annotation_key TEXT NOT NULL,
+  raw_text TEXT,
+  carrier TEXT,
+  metadata_json TEXT,
+  FOREIGN KEY (symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE
+);
+```
+
+## Identifiers
+
+### `identifiers`
+
+Usage locations such as calls, variable references, type usages, and member
+accesses.
+
+```sql
+CREATE TABLE identifiers (
+  identifier_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  name TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  containing_symbol_id TEXT,
+  target_symbol_id TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  confidence REAL NOT NULL,
+  code_context TEXT,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL,
+  FOREIGN KEY (target_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+```
+
+## Relationships
+
+### `relationships`
+
+Resolved symbol-to-symbol edges.
+
+```sql
+CREATE TABLE relationships (
+  relationship_id TEXT PRIMARY KEY,
+  from_symbol_id TEXT NOT NULL,
+  to_symbol_id TEXT NOT NULL,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  start_line INTEGER,
+  start_column INTEGER,
+  end_line INTEGER,
+  end_column INTEGER,
+  start_byte INTEGER,
+  end_byte INTEGER,
+  confidence REAL NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (from_symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE,
+  FOREIGN KEY (to_symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE
+);
+```
+
+### `pending_relationships`
+
+Structured unresolved edges whose target may resolve in another file or a
+subsequent extraction pass.
+
+```sql
+CREATE TABLE pending_relationships (
+  pending_relationship_id TEXT PRIMARY KEY,
+  from_symbol_id TEXT NOT NULL,
+  caller_scope_symbol_id TEXT,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target_display_name TEXT NOT NULL,
+  target_terminal_name TEXT NOT NULL,
+  target_receiver TEXT,
+  target_namespace_json TEXT NOT NULL,
+  target_import_context TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER,
+  end_line INTEGER,
+  end_column INTEGER,
+  start_byte INTEGER,
+  end_byte INTEGER,
+  confidence REAL NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (from_symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE,
+  FOREIGN KEY (caller_scope_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE
+);
+```
+
+`target_namespace_json` is a JSON array of strings.
+
+## Type Facts
+
+### `type_facts`
+
+Type information attached to a symbol.
+
+```sql
+CREATE TABLE type_facts (
+  type_fact_id TEXT PRIMARY KEY,
+  symbol_id TEXT NOT NULL,
+  language TEXT NOT NULL,
+  resolved_type TEXT NOT NULL,
+  generic_params_json TEXT,
+  constraints_json TEXT,
+  is_inferred INTEGER NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE
+);
+```
+
+### `type_argument_usages`
+
+Type argument usage attached to an identifier.
+
+```sql
+CREATE TABLE type_argument_usages (
+  usage_id TEXT PRIMARY KEY,
+  identifier_id TEXT NOT NULL,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (identifier_id) REFERENCES identifiers(identifier_id) ON DELETE CASCADE,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE
+);
+```
+
+### `type_arguments`
+
+Normalized nested type arguments for one usage.
+
+```sql
+CREATE TABLE type_arguments (
+  type_argument_id TEXT PRIMARY KEY,
+  usage_id TEXT NOT NULL,
+  parent_type_argument_id TEXT,
+  ordinal INTEGER NOT NULL,
+  type_name TEXT NOT NULL,
+  FOREIGN KEY (usage_id) REFERENCES type_argument_usages(usage_id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_type_argument_id) REFERENCES type_arguments(type_argument_id) ON DELETE CASCADE
+);
+```
+
+## Literals
+
+### `literals`
+
+String or scalar literals that carry useful extracted facts such as routes,
+URLs, SQL, or other configured carriers.
+
+```sql
+CREATE TABLE literals (
+  literal_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  literal_text TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  carrier TEXT,
+  arg_position INTEGER NOT NULL,
+  containing_symbol_id TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  confidence REAL NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+```
+
+## Diagnostics
+
+### `parse_diagnostics`
+
+Tree-sitter parse errors and missing-node diagnostics normalized into stable
+artifact rows.
+
+```sql
+CREATE TABLE parse_diagnostics (
+  diagnostic_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  message TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE
+);
+```
+
+`kind` values are `error` and `missing`.
+
+## Language Capabilities
+
+### `language_capabilities`
+
+One row per language in the capability snapshot.
+
+```sql
+CREATE TABLE language_capabilities (
+  language TEXT PRIMARY KEY,
+  parser_package TEXT NOT NULL,
+  extensions_json TEXT NOT NULL,
+  dependency_status TEXT NOT NULL,
+  target_symbols INTEGER NOT NULL,
+  target_relationships INTEGER NOT NULL,
+  target_pending_relationships INTEGER NOT NULL,
+  target_identifiers INTEGER NOT NULL,
+  target_types INTEGER NOT NULL,
+  actual_symbols INTEGER NOT NULL,
+  actual_relationships INTEGER NOT NULL,
+  actual_pending_relationships INTEGER NOT NULL,
+  actual_identifiers INTEGER NOT NULL,
+  actual_types INTEGER NOT NULL,
+  kind_coverage_json TEXT NOT NULL
+);
+```
+
+### `language_capability_fixtures`
+
+Fixture evidence rows referenced by a capability snapshot.
+
+```sql
+CREATE TABLE language_capability_fixtures (
+  language TEXT NOT NULL,
+  fixture_name TEXT NOT NULL,
+  source_path TEXT NOT NULL,
+  expected_path TEXT NOT NULL,
+  PRIMARY KEY (language, fixture_name),
+  FOREIGN KEY (language) REFERENCES language_capabilities(language) ON DELETE CASCADE
+);
+```
+
+### `language_capability_gaps`
+
+Declared gaps with typed evidence.
+
+```sql
+CREATE TABLE language_capability_gaps (
+  gap_id TEXT PRIMARY KEY,
+  language TEXT NOT NULL,
+  capability TEXT NOT NULL,
+  status TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  required_closure TEXT NOT NULL,
+  evidence_json TEXT NOT NULL,
+  FOREIGN KEY (language) REFERENCES language_capabilities(language) ON DELETE CASCADE
+);
+```
+
+## Performance Contract
+
+The writer must optimize for extraction throughput and predictable downstream
+queries.
+
+Required writer behavior:
+
+- Use one explicit SQLite transaction per committed `scan`, `update`, `delete`,
+  or `scan --force` operation.
+- Use prepared statements for repeated inserts, updates, and deletes.
+- Replace one file by deleting existing rows through `file_id` or indexed
+  `path`, then inserting the new normalized rows in batches.
+- Avoid per-row commits and per-row schema or metadata reads.
+- Compute hashes before extraction writes so unchanged files skip row churn.
+- Run the data-loss guard before deleting known-good parser-backed rows.
+- Leave the artifact with all required indexes present before reporting success.
+
+Permitted implementation optimizations:
+
+- `scan --force` may write into a new database file and atomically replace the
+  old artifact after the transaction succeeds.
+- Secondary indexes may be created after a bulk load when that is faster, as
+  long as readers never observe a successful artifact without required indexes.
+- Temporary or staging tables may be used inside a transaction. They are not
+  part of the public schema.
+
+SQLite mode requirements:
+
+- Writers should use WAL mode for normal incremental operation.
+- Readers must tolerate WAL sidecar files.
+- Lower-durability settings for benchmarks are not part of the v1 product
+  contract.
+
+## Required Indexes
+
+```sql
+CREATE INDEX idx_files_path ON files(path);
+CREATE INDEX idx_files_language ON files(language);
+CREATE INDEX idx_symbols_path ON symbols(path);
+CREATE INDEX idx_symbols_file ON symbols(file_id);
+CREATE INDEX idx_symbols_name_kind ON symbols(name, kind);
+CREATE INDEX idx_symbols_parent ON symbols(parent_symbol_id);
+CREATE INDEX idx_identifiers_path ON identifiers(path);
+CREATE INDEX idx_identifiers_file ON identifiers(file_id);
+CREATE INDEX idx_identifiers_name_kind ON identifiers(name, kind);
+CREATE INDEX idx_identifiers_containing ON identifiers(containing_symbol_id);
+CREATE INDEX idx_identifiers_target ON identifiers(target_symbol_id);
+CREATE INDEX idx_relationships_from ON relationships(from_symbol_id);
+CREATE INDEX idx_relationships_to ON relationships(to_symbol_id);
+CREATE INDEX idx_relationships_kind ON relationships(kind);
+CREATE INDEX idx_pending_terminal ON pending_relationships(target_terminal_name);
+CREATE INDEX idx_pending_file ON pending_relationships(file_id);
+CREATE INDEX idx_diagnostics_path ON parse_diagnostics(path);
+```
+
+These indexes protect the v1 access patterns. Implementations may add more
+indexes, but removing one requires a schema-versioned contract change.
+
+## Performance Budgets
+
+Exact timing budgets belong in tests and release gates, not in this prose
+contract. The first implementation must still provide measurable gates for:
+
+- tiny-fixture writer throughput in the default or contract tier
+- query-plan checks for required indexes in the contract tier
+- real-world scan throughput in the real-world or release tier
+
+## Deliberate Exclusions
+
+- No search index tables.
+- No embedding tables.
+- No MCP, daemon, watcher, or workspace registry tables.
+- No Julie analysis tables for reference scoring, test linkage, or test quality.
+- No old Julie schema compatibility tables as a v1 requirement.
+
+## Tradeoffs
+
+- **Stable opaque IDs:** downstream readers get durable references without
+  depending on old fixture key or MD5 mechanics.
+- **Structured pending only:** v1 stores the richer unresolved target shape and
+  does not expose Julie's legacy flat pending queue as a separate contract.
+- **Capability rows in SQLite:** consumers can validate language evidence from
+  the artifact without also reading repository fixtures.
+- **Indexes are required, not advisory:** write cost is acceptable because this
+  product is an artifact producer for downstream tools that need predictable
+  lookup performance.
+- **Open decision before implementation:** exact parser version fields depend on
+  what each parser package exposes. The required contract is a parser inventory
+  table plus fingerprint; missing package-level versions must be represented as
+  null, not guessed.

@@ -13,6 +13,7 @@ Contains:
 - focused unit tests for touched extractor helpers
 - CLI argument/report contract tests with tiny fixtures
 - schema writer/readback tests with tiny fixtures
+- tiny-fixture writer performance tripwires for obvious regressions
 - convention tests that enforce test categorization
 
 Does not contain:
@@ -41,6 +42,8 @@ Runs artifact-facing behavior:
 
 - CLI scan/update/delete/info
 - SQLite schema compatibility
+- required SQLite indexes and query-plan checks
+- batched writer behavior for scan/update/delete with tiny fixtures
 - JSON report shape
 - JSONL export shape
 - downstream smoke consumers
@@ -75,7 +78,10 @@ Runs:
 ## Guardrails
 
 - Add a default-suite wall-clock budget before implementation work grows.
+- Add a tiny-fixture writer budget before the SQLite writer lands.
 - Add convention tests that fail if slow tests enter default.
+- Add contract tests that fail when required schema indexes are missing.
+- Add a performance gate that detects per-row commits in the SQLite writer.
 - Require every slow test to carry a category marker.
 - Keep exact per-language commands documented.
 - Workers run narrow tests; lead sessions own broad gates.

@@ -10,6 +10,7 @@ derived from the same canonical data.
 - Explicit about versions and capability evidence.
 - Friendly to incremental update/delete operations.
 - Usable from any language with SQLite support.
+- Fast for both write-heavy extraction and read-heavy downstream lookup.
 
 ## Required Domains
 
@@ -42,6 +43,28 @@ Every database must expose:
 - parser inventory
 - capability snapshot fingerprint
 - created/updated timestamps
+
+## Performance Requirements
+
+Performance is a product requirement, not an implementation afterthought.
+
+The schema and writer must support:
+
+- full-repo scan without per-row transactions
+- single-file update/delete by indexed path
+- bulk replacement of one file's rows by indexed file id
+- downstream lookup by file path, symbol name/kind, parent symbol, identifier
+  target, relationship endpoints, and pending target name
+- deterministic export without table scans that depend on incidental row order
+
+The SQLite writer should use explicit transactions, prepared statements, batched
+inserts, and stable deletion order. Any staging tables or deferred secondary
+index creation used for force rebuild are implementation details, but the final
+artifact must contain the contracted indexes.
+
+Performance tests should start small and fast: tiny fixtures can catch missing
+indexes, per-row commits, and accidental table scans before real-world corpus
+gates exist.
 
 ## JSONL
 
