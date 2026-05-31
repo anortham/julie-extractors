@@ -80,6 +80,7 @@ pub mod identifiers; // Identifier extraction (calls, member access, variable re
 pub mod layouts; // Anchors, layouts, positioning
 pub mod literals; // String-literal call-argument capture (Miller bridge Phase 3b)
 pub mod modern; // Qt 5.x/6.x modern features
+#[cfg(feature = "test-real-world")]
 pub mod real_world; // Real-world validation (cool-retro-term, KDE)
 pub mod relationships; // Relationship extraction (calls, signal connections, instantiation)
 pub mod signals; // Signals and signal handlers

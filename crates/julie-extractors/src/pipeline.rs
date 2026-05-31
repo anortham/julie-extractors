@@ -213,6 +213,10 @@ fn parse_diagnostic_for_node(node: Node<'_>, kind: ParseDiagnosticKind) -> Parse
 }
 
 #[cfg(test)]
+#[cfg_attr(
+    not(any(feature = "test-golden", feature = "test-certification")),
+    allow(dead_code)
+)]
 pub(crate) fn detect_language_for_path(file_path: &str) -> Result<&'static str, anyhow::Error> {
     let extension = Path::new(file_path)
         .extension()

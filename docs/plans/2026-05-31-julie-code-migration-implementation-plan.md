@@ -181,6 +181,8 @@ Read-only source paths:
 - Create: `fixtures/r/real-world/`
 - Copy from: `/Users/murphy/source/julie/fixtures/real-world/json/memories.jsonl`
 - Create: `fixtures/real-world/json/memories.jsonl`
+- Copy from: `/Users/murphy/source/julie/fixtures/scala/basic.scala`
+- Create: `fixtures/scala/basic.scala`
 
 **What to build:** Move the reusable extraction engine and its fixture evidence mostly intact.
 
@@ -191,6 +193,7 @@ Read-only source paths:
 - [ ] `fixtures/extraction/capabilities.json` and golden fixtures exist.
 - [ ] `fixtures/elixir/basic.ex` exists for the copied Elixir full-fixture unit test.
 - [ ] Referenced QML, R, and JSON real-world support fixtures exist.
+- [ ] `fixtures/scala/basic.scala` exists for the copied Scala full-fixture unit test.
 - [ ] Capability snapshot path references resolve from the new crate location.
 - [ ] No dependency points back to `/Users/murphy/source/julie`.
 - [ ] Narrow extractor compile/test command passes or failing output is recorded with a concrete next task.
@@ -401,7 +404,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 0: Contract Baseline Commit
 - [x] Task 1: Rust Workspace Shell
 - [x] Task 2: Move Extractor Crate And Fixtures
-- [ ] Task 3: Restore Extractor Test Tiers
+- [x] Task 3: Restore Extractor Test Tiers
 - [ ] Task 4: Move Extraction-Owned Language Configuration
 - [ ] Task 5: Artifact Crate Skeleton And Schema v1
 - [ ] Task 6: Batched SQLite Writer
@@ -419,6 +422,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | Contract baseline docs parse and have no placeholders. | `sqlite3 :memory:` SQL snippet check; `jq` JSON snippet check; placeholder scan | `3a3d889` | pass | `2026-05-31T17:04Z` |
 | worker-red-green | Workspace shell is a valid Cargo workspace and contains no forbidden Julie behavior crates. | `cargo metadata --format-version 1 --no-deps` | `a54eda6` | pass | `2026-05-31T17:06Z` |
 | worker-red-green | Moved extractor crate compiles, capability snapshot resolves, and copied support fixtures satisfy narrow fixture gates. | `cargo check -p julie-extractors`; `cargo test -p julie-extractors capability_snapshot`; targeted Elixir, JSONL, QML, and R fixture tests; source dependency scan | `f221c4a` | pass | `2026-05-31T17:10Z` |
+| worker-red-green | Extractor test tiers are selected by `cargo xtask`, slow gates are feature-gated out of default tests, and old Julie evidence refs no longer require old commits/plans. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test language rust`; `cargo xtask test contract`; `cargo xtask test certification`; `cargo xtask test real-world`; default inventory leak scan; `cargo metadata --format-version 1 --no-deps`; `git diff --check` | `921d5c6` | pass | `2026-05-31T17:27Z` |
 
 ## Execution Notes
 

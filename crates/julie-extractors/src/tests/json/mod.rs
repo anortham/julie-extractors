@@ -875,6 +875,7 @@ mod json_extractor_tests {
         );
     }
 
+    #[cfg(feature = "test-real-world")]
     #[test]
     fn test_real_world_jsonl_memories_fixture() {
         // Test real-world JSONL fixture (recall memory format)

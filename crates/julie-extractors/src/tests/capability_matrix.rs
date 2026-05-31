@@ -558,9 +558,20 @@ fn capability_matrix_negative_cases_emit_no_wrong_edges() {
 fn capability_matrix_open_rows_have_planned_closure_task() {
     let root = workspace_root();
     let matrix = load_matrix(&root);
-    let plan_path = root.join("docs/plans/2026-05-10-best-in-class-tree-sitter-plan.md");
-    let plan_body = std::fs::read_to_string(&plan_path)
-        .unwrap_or_else(|err| panic!("plan file must exist at {}: {}", plan_path.display(), err));
+    let has_open_rows = matrix
+        .languages
+        .iter()
+        .flat_map(|row| &row.capability_gaps)
+        .any(|gap| gap.status == "open");
+    let plan_body = if has_open_rows {
+        let plan_path =
+            root.join("docs/plans/2026-05-31-julie-code-migration-implementation-plan.md");
+        std::fs::read_to_string(&plan_path).unwrap_or_else(|err| {
+            panic!("plan file must exist at {}: {}", plan_path.display(), err)
+        })
+    } else {
+        String::new()
+    };
     let mut errors = Vec::new();
     for row in &matrix.languages {
         for gap in &row.capability_gaps {

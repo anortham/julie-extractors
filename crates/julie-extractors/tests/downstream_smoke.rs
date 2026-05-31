@@ -11,10 +11,13 @@
 //! consumer crate, path-deps julie-extractors, and runs a program calling
 //! both extract_canonical and capability_snapshot.
 
+#![cfg(feature = "test-downstream-smoke")]
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+#[cfg(feature = "test-downstream-smoke")]
 #[test]
 fn julie_extractors_works_as_path_dependency_in_downstream_crate() {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");

@@ -13,6 +13,13 @@ categories = ["development-tools", "parsing"]
 name = "julie_extractors"
 path = "src/lib.rs"
 
+[features]
+test-golden = []
+test-capability-matrix = []
+test-certification = []
+test-downstream-smoke = []
+test-real-world = []
+
 [dependencies]
 # Tree-sitter parser inventory is audited in docs/TREE_SITTER_UPGRADES.md.
 tree-sitter = "0.26.8"

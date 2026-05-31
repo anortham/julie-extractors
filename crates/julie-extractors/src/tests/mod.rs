@@ -8,6 +8,7 @@ pub mod base;
 pub mod bash;
 pub mod body_span;
 pub mod c;
+#[cfg(feature = "test-capability-matrix")]
 pub mod capability_matrix;
 pub mod capability_snapshot_test;
 pub mod cpp;
@@ -20,6 +21,7 @@ pub mod elixir;
 pub mod embedded_spans;
 pub mod gdscript;
 pub mod go;
+#[cfg(feature = "test-golden")]
 pub mod golden;
 pub mod helpers;
 pub mod html;
@@ -33,9 +35,11 @@ pub mod kind_conversions;
 pub mod kotlin;
 pub mod lua;
 pub mod markdown;
+#[cfg(feature = "test-certification")]
 pub mod parser_upgrade;
 pub mod path_identity;
 pub mod path_invariants;
+#[cfg(feature = "test-capability-matrix")]
 pub mod pending_shape_contract;
 pub mod php;
 pub mod pipeline;
@@ -63,3 +67,4 @@ pub mod zig;
 // Cross-cutting concerns
 pub mod factory_tests;
 pub mod test_detection;
+pub mod test_tiers;

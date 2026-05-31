@@ -77,12 +77,14 @@ pub mod control_flow; // if/else, loops, vectorized operations
 pub mod cross_file_pending; // Cross-file structured pending shape (Phase 4a)
 pub mod cross_file_relationships; // Cross-file relationship resolution (pending relationships)
 pub mod data_structures; // data.frame, tibble, vector, list, matrix
+#[cfg(feature = "test-real-world")]
 pub mod file_integration_bug; // BUG HUNT: Reproduction test for file extraction failure
 pub mod functions; // Function definitions, parameters, closures
 pub mod identifiers; // Identifier extraction (calls, member access, variable refs)
 pub mod literals; // String-literal call-argument capture (Miller bridge Phase 3b)
 pub mod modern; // Modern R patterns (tidyverse, data.table)
 pub mod packages; // library(), require(), package::function syntax
+#[cfg(feature = "test-real-world")]
 pub mod real_world; // Real-world validation (ggplot2, dplyr)
 pub mod relationships; // Relationship extraction (calls, pipes, library usage)
 pub mod test_detection; // testthat call-style test detection (Miller bridge test-roles)

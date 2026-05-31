@@ -57,6 +57,7 @@ Source:
 - `/Users/murphy/source/julie/fixtures/qml/real-world/kde-plasma-desktop-main.qml`
 - `/Users/murphy/source/julie/fixtures/r/real-world/ggplot2-geom-point.R`
 - `/Users/murphy/source/julie/fixtures/real-world/json/memories.jsonl`
+- `/Users/murphy/source/julie/fixtures/scala/basic.scala`
 
 Includes:
 
@@ -64,6 +65,7 @@ Includes:
 - `tree-sitter-real-world-corpus.toml`
 - all `source.*` and `expected.json` fixtures
 - the Elixir full-fixture support file used by extractor unit tests
+- the Scala full-fixture support file used by extractor unit tests
 - real-world support fixtures referenced directly by copied QML, R, and JSON
   extractor tests
 

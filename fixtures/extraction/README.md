@@ -11,14 +11,14 @@ Every case has:
 Run normal verification with:
 
 ```bash
-cargo nextest run -p julie-extractors golden
-cargo nextest run -p julie-extractors capability_matrix
+cargo xtask test golden
+cargo xtask test capability
 ```
 
 Regenerate expected files only when the extractor output change is intentional:
 
 ```bash
-UPDATE_GOLDEN=1 cargo nextest run -p julie-extractors golden
+UPDATE_GOLDEN=1 cargo xtask test golden
 ```
 
 Do not add a language to the registry without adding a matrix row and fixture.

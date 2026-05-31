@@ -841,9 +841,9 @@
           "reason": "CSS has no static type system. Custom property values are runtime strings; there is no type metadata to extract.",
           "required_closure": "N/A — domain limitation.",
           "evidence": {
-            "kind": "commit",
-            "value": "c0def8f643af9e3a481d19890f42c15bddd07dfd",
-            "command": "git show c0def8f643af9e3a481d19890f42c15bddd07dfd"
+            "kind": "fixture",
+            "value": "fixtures/extraction/css/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         }
       ],
@@ -1863,9 +1863,9 @@
           "reason": "Lua is a dynamically typed language with no static type annotations in core syntax. Luau-style annotations are out of scope for the base Lua extractor.",
           "required_closure": "Out of scope — Lua is dynamic. Luau-style type annotations would be a separate language target.",
           "evidence": {
-            "kind": "commit",
-            "value": "c0def8f643af9e3a481d19890f42c15bddd07dfd",
-            "command": "git show c0def8f643af9e3a481d19890f42c15bddd07dfd"
+            "kind": "fixture",
+            "value": "fixtures/extraction/lua/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         }
       ],
@@ -1950,9 +1950,9 @@
           "reason": "QML property bindings carry runtime type names that are stored on Symbol metadata (propertyType field), not as separate TypeInfo rows. QML has no static type system distinct from these tags. Domain classification, not a deferred gap.",
           "required_closure": "N/A — QML property types are recorded on Symbol metadata. A separate TypeInfo row layer would duplicate, not enrich.",
           "evidence": {
-            "kind": "commit",
-            "value": "c0def8f643af9e3a481d19890f42c15bddd07dfd",
-            "command": "git show c0def8f643af9e3a481d19890f42c15bddd07dfd"
+            "kind": "fixture",
+            "value": "fixtures/extraction/qml/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         }
       ],
@@ -2041,9 +2041,9 @@
           "reason": "R is a dynamically typed language with no static type system. roxygen @param type tags are documentation-only and not currently extracted as TypeInfo.",
           "required_closure": "N/A — domain limitation. Future work could harvest roxygen type annotations into TypeInfo.",
           "evidence": {
-            "kind": "commit",
-            "value": "c0def8f643af9e3a481d19890f42c15bddd07dfd",
-            "command": "git show c0def8f643af9e3a481d19890f42c15bddd07dfd"
+            "kind": "fixture",
+            "value": "fixtures/extraction/r/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         }
       ],
@@ -2601,9 +2601,9 @@
           "reason": "Markdown is a presentation format with no static type system.",
           "required_closure": "N/A — domain limitation.",
           "evidence": {
-            "kind": "commit",
-            "value": "c0def8f643af9e3a481d19890f42c15bddd07dfd",
-            "command": "git show c0def8f643af9e3a481d19890f42c15bddd07dfd"
+            "kind": "fixture",
+            "value": "fixtures/extraction/markdown/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         },
         {
@@ -2704,9 +2704,9 @@
           "reason": "JSON has no static type system. JSON Schema type keywords are runtime hints, not extracted as TypeInfo. Domain limitation, not a gap.",
           "required_closure": "N/A — domain limitation. JSON Schema type extraction would require a schema-aware extractor mode outside the tree-sitter scope.",
           "evidence": {
-            "kind": "commit",
-            "value": "8120d04e3e013b4f71443e94f53e02c090ed1e35",
-            "command": "git show 8120d04e3e013b4f71443e94f53e02c090ed1e35"
+            "kind": "fixture",
+            "value": "fixtures/extraction/json/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         },
         {
@@ -2808,9 +2808,9 @@
           "reason": "TOML has no cross-document construct that requires deferred resolution. All references in TOML are file-local (Cargo deps, pyproject tool tables). Domain limitation, not a gap.",
           "required_closure": "N/A — domain limitation. TOML resolution is always intra-file.",
           "evidence": {
-            "kind": "commit",
-            "value": "2e4c50c7c9967a6963c1c4f74cc4da6c0f0965e7",
-            "command": "git show 2e4c50c7c9967a6963c1c4f74cc4da6c0f0965e7"
+            "kind": "fixture",
+            "value": "fixtures/extraction/toml/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         },
         {
@@ -2819,9 +2819,9 @@
           "reason": "TOML has no static type system. Value types (string/int/array) are format-level, not extracted as TypeInfo. Domain limitation, not a gap.",
           "required_closure": "N/A — domain limitation.",
           "evidence": {
-            "kind": "commit",
-            "value": "2e4c50c7c9967a6963c1c4f74cc4da6c0f0965e7",
-            "command": "git show 2e4c50c7c9967a6963c1c4f74cc4da6c0f0965e7"
+            "kind": "fixture",
+            "value": "fixtures/extraction/toml/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         },
         {
@@ -2925,9 +2925,9 @@
           "reason": "YAML has no static type system. Tag types (!!str, !!int) are format-level, not extracted as TypeInfo.",
           "required_closure": "N/A — domain limitation.",
           "evidence": {
-            "kind": "commit",
-            "value": "c0def8f643af9e3a481d19890f42c15bddd07dfd",
-            "command": "git show c0def8f643af9e3a481d19890f42c15bddd07dfd"
+            "kind": "fixture",
+            "value": "fixtures/extraction/yaml/basic/expected.json",
+            "command": "cargo xtask test golden"
           }
         }
       ],
