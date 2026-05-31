@@ -317,12 +317,12 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 **Approach:** Read canonical SQLite rows and emit deterministic `snapshot` records with the envelope and exact payload schemas from `docs/contracts/jsonl-v1.md`.
 
 **Acceptance criteria:**
-- [ ] Export starts with `artifact` records and follows the documented record order.
-- [ ] Every record kind in JSONL v1 has a contract test.
-- [ ] SQLite JSON text columns are decoded into JSON objects or arrays.
-- [ ] Output is deterministic for the same artifact.
-- [ ] Failed export does not claim a complete output file.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Export starts with `artifact` records and follows the documented record order.
+- [x] Every record kind in JSONL v1 has a contract test.
+- [x] SQLite JSON text columns are decoded into JSON objects or arrays.
+- [x] Output is deterministic for the same artifact.
+- [x] Failed export does not claim a complete output file.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 9: CLI Skeleton And Commands
 
@@ -418,7 +418,7 @@ task's acceptance criteria and verification ledger entry are complete.
 - [x] Task 5: Artifact Crate Skeleton And Schema v1
 - [x] Task 6: Batched SQLite Writer
 - [x] Task 7: JSON Report Model
-- [ ] Task 8: JSONL Exporter
+- [x] Task 8: JSONL Exporter
 - [ ] Task 9: CLI Skeleton And Commands
 - [ ] Task 10: Source Discovery And Path Policy
 - [ ] Task 11: CLI Operations End To End
@@ -436,6 +436,7 @@ task's acceptance criteria and verification ledger entry are complete.
 | worker-red-green | Artifact crate owns SQLite schema v1 tables, required indexes, metadata rows, report row domains, and default/contract test-tier wiring without old Julie internal schema tables. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; SQL fence extraction from `docs/contracts/sqlite-schema-v1.md` through `sqlite3 :memory:`; forbidden old-Julie table scan | `8fe5cbf` | pass | `2026-05-31T19:16Z` |
 | worker-red-green | Artifact writer persists SQLite v1 row families with one transaction per operation, exact scan/update/delete replacement semantics, incremental hash skips, force-scan rewrites, rollback on failed batches, data-loss guarding, and tiny-fixture throughput protection. | `cargo test -p julie-extract-artifact --test writer_contract`; `cargo test -p julie-extract-artifact --test writer_performance`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `8d2b60f` | pass | `2026-05-31T20:20Z` |
 | worker-red-green | JSON report model serializes schema version 1, stable status/error code spellings, single-file input paths, and exhaustive SQLite v1 row-count domains without old Julie analysis/status fields. | `cargo test -p julie-extract-artifact --test report_contract`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; old-Julie report-field scan | `9ad4d7e` | pass | `2026-05-31T20:29Z` |
+| worker-red-green | JSONL exporter emits deterministic SQLite-derived snapshot records in JSONL v1 order, decodes SQLite JSON text columns, covers every record kind with contract tests, preserves all-or-error path export behavior, and keeps report/JSONL tests inside the contract tier. | `cargo test -p julie-extract-artifact --test jsonl_contract`; `cargo test -p julie-extract-artifact`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `549c78c` | pass | `2026-05-31T20:46Z` |
 
 ## Execution Notes
 
