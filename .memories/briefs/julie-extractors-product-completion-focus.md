@@ -16,7 +16,7 @@ tags:
 ## Current State
 
 - `main` is at `bac074a` after PR #6 merged the JSONL export buffered writer.
-- Active branch: `codex/repeatable-performance-baseline`.
+- Active branch: `codex/repeatable-performance-baseline` in PR #7.
 - Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline, release-binary dogfood evidence, JSONL export performance plan, JSONL export buffering, repeatable performance baseline.
 - Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
@@ -40,7 +40,7 @@ tags:
 - JSONL export buffering evidence: `docs/release-evidence/2026-06-01-jsonl-export-buffering.md`.
 - Slice 3 evidence in PR #6: bounded-write red test failed with `2853` writes for an `8558` byte fixture export; buffered release export to `/dev/null` measured `2.43s` real with `0.21s` sys against the same dogfood artifact.
 - Repeatable performance baseline evidence: `docs/release-evidence/2026-06-01-repeatable-performance-baseline.md`.
-- Slice 4 evidence: 3 release-profile dogfood-backed runs at `844f1bb`; cold scan min/median/max `6277ms` / `6387ms` / `7508ms`; no-change rescan `51ms` / `51ms` / `52ms`; JSONL export `1330ms` / `1330ms` / `1333ms`; stable output `1018` files, `33019` symbols, `215388` JSONL records.
+- Slice 4 evidence in PR #7: 3 release-profile dogfood-backed runs at `844f1bb`; cold scan min/median/max `6277ms` / `6387ms` / `7508ms`; no-change rescan `51ms` / `51ms` / `52ms`; JSONL export `1330ms` / `1330ms` / `1333ms`; stable output `1018` files, `33019` symbols, `215388` JSONL records.
 
 ## Next Slices In Order
 
