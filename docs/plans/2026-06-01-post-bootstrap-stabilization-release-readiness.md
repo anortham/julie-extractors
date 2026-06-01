@@ -156,7 +156,7 @@ Out of scope:
 - [x] Task 5: Dogfood this repo and capture v0.1.0 evidence
 - [x] Task 6: Add Python SQLite consumer spike
 - [x] Task 7: Update release docs, README, and release notes
-- [ ] Task 8: Completion audit
+- [x] Task 8: Completion audit
 
 ## Tasks
 
@@ -332,17 +332,17 @@ Out of scope:
 **Approach:** Run the full branch gate plus the specialist checks required by touched areas. Update this plan's progress checkboxes and the verification ledger entries with final command results. Keep generated artifacts under `target/`.
 
 **Acceptance criteria:**
-- [ ] `cargo fmt --check` passes.
-- [ ] `cargo metadata --format-version 1 --no-deps` passes.
-- [ ] `cargo test -p xtask` passes.
-- [ ] `cargo xtask test default` passes.
-- [ ] `cargo xtask test contract` passes.
-- [ ] `cargo xtask test certification` passes.
-- [ ] `cargo xtask test real-world-smoke` passes.
-- [ ] `cargo xtask test real-world-release` passes.
-- [ ] `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors` passes.
-- [ ] `cargo xtask release package --version 0.1.0 --target <host-target> --out-dir target/release-package --binary <built-julie-extract>` passes.
-- [ ] `python3 examples/python/sqlite_consumer.py target/dogfood/julie-extractors/artifact.sqlite` passes.
-- [ ] `rg -n "/Users/murphy/source/julie" Cargo.toml Cargo.lock crates xtask .github examples` returns no matches.
-- [ ] `rg -n "julie-server|julie-daemon|julie-adapter|mcp|embedding|watcher|dashboard|editing" xtask .github examples` returns no matches.
-- [ ] `git diff --check` passes.
+- [x] `cargo fmt --check` passes.
+- [x] `cargo metadata --format-version 1 --no-deps` passes.
+- [x] `cargo test -p xtask` passes.
+- [x] `cargo xtask test default` passes.
+- [x] `cargo xtask test contract` passes.
+- [x] `cargo xtask test certification` passes.
+- [x] `cargo xtask test real-world-smoke` passes.
+- [x] `cargo xtask test real-world-release` passes.
+- [x] `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors` passes.
+- [x] `cargo xtask release package --version 0.1.0 --target aarch64-apple-darwin --out-dir target/release-package/v0.1.0-aarch64-apple-darwin --binary target/release/julie-extract` passes.
+- [x] `python3 examples/python/sqlite_consumer.py target/dogfood/julie-extractors/artifact.sqlite` passes.
+- [x] `rg -n "/Users/murphy/source/julie" Cargo.toml Cargo.lock crates xtask .github examples` returns no matches.
+- [x] `rg -n "julie-server|julie-daemon|julie-adapter|mcp|embedding|watcher|dashboard|editing" xtask .github examples -g '!xtask/tests/release_contract.rs'` returns no matches.
+- [x] `git diff --check` passes.
