@@ -16,7 +16,7 @@ tags:
 ## Current State
 
 - `main` is at `987dc37` after PR #5 merged the JSONL export performance plan.
-- Active branch: `codex/jsonl-export-buffered-writer`.
+- Active branch: `codex/jsonl-export-buffered-writer` in PR #6.
 - Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline, release-binary dogfood evidence, JSONL export performance plan.
 - Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
@@ -38,7 +38,7 @@ tags:
 - JSONL export performance plan: `docs/plans/2026-06-01-jsonl-export-performance.md`.
 - Slice 2 inspection evidence: SQLite counts `0.158s`, fetch all exported rows `0.763s`, release export to `/dev/null` `20.79s` real with `15.66s` sys; first target is buffered JSONL writes.
 - JSONL export buffering evidence: `docs/release-evidence/2026-06-01-jsonl-export-buffering.md`.
-- Slice 3 evidence: bounded-write red test failed with `2853` writes for an `8558` byte fixture export; buffered release export to `/dev/null` measured `2.43s` real with `0.21s` sys against the same dogfood artifact.
+- Slice 3 evidence in PR #6: bounded-write red test failed with `2853` writes for an `8558` byte fixture export; buffered release export to `/dev/null` measured `2.43s` real with `0.21s` sys against the same dogfood artifact.
 
 ## Next Slices In Order
 
