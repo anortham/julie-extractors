@@ -153,7 +153,7 @@ Out of scope:
 - [x] Task 2: Add dogfood command and evidence model
 - [x] Task 3: Add release package staging command
 - [x] Task 4: Add CI and specialist workflows
-- [ ] Task 5: Dogfood this repo and capture v0.1.0 evidence
+- [x] Task 5: Dogfood this repo and capture v0.1.0 evidence
 - [ ] Task 6: Add Python SQLite consumer spike
 - [ ] Task 7: Update release docs, README, and release notes
 - [ ] Task 8: Completion audit
@@ -258,8 +258,8 @@ Out of scope:
 - [x] Regular CI does not run certification, real-world, dogfood, or release package staging.
 - [x] Specialist workflow includes certification, real-world smoke, real-world release, dogfood repo, and release package staging commands.
 - [x] Workflow YAML parses with an available local parser.
-- [ ] Workflow command names match the documented commands.
-- [ ] `cargo test -p xtask` passes after workflow docs/tests are updated.
+- [x] Workflow command names match the documented commands.
+- [x] `cargo test -p xtask` passes after workflow docs/tests are updated.
 
 ### Task 5: Dogfood This Repo And Capture v0.1.0 Evidence
 
@@ -274,12 +274,12 @@ Out of scope:
 **Approach:** Run the dogfood command on `/Users/murphy/source/julie-extractors` and keep generated artifacts under `target/dogfood/julie-extractors/`. Commit only the evidence document, not the generated SQLite or JSONL files. Record exact command, commit SHA, timestamp, hard-gate results, row totals, artifact sizes, and report-only performance metrics.
 
 **Acceptance criteria:**
-- [ ] `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors` exits `0`.
-- [ ] `scan-report.json`, `info-report.json`, and `export-report.json` have `status: ok`.
-- [ ] SQLite metadata reports schema version `1`, extract contract version `1`, and root path for this repo.
-- [ ] File count, symbol count, and JSONL record count are nonzero.
-- [ ] `docs/release-evidence/v0.1.0-dogfood.md` records the command, commit SHA, timestamp, hard-gate results, row totals, artifact sizes, and report-only timings.
-- [ ] Generated artifacts remain ignored or under `target/`, not committed.
+- [x] `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors` exits `0`.
+- [x] `scan-report.json`, `info-report.json`, and `export-report.json` have `status: ok`.
+- [x] SQLite metadata reports schema version `1`, extract contract version `1`, and root path for this repo.
+- [x] File count, symbol count, and JSONL record count are nonzero.
+- [x] `docs/release-evidence/v0.1.0-dogfood.md` records the command, commit SHA, timestamp, hard-gate results, row totals, artifact sizes, and report-only timings.
+- [x] Generated artifacts remain ignored or under `target/`, not committed.
 
 ### Task 6: Add Python SQLite Consumer Spike
 

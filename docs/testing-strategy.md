@@ -178,7 +178,8 @@ cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
 
 This gate is not part of the default tier. It is release-readiness evidence and
 should run intentionally when extraction, CLI, artifact, JSONL, report, or
-release evidence behavior changes.
+release evidence behavior changes. v0.1.0 dogfood evidence is recorded in
+`docs/release-evidence/v0.1.0-dogfood.md`.
 
 ## CI Policy
 

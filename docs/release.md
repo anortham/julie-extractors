@@ -57,3 +57,10 @@ Rules:
 - `docs/release-notes/v{version}.md` must exist before staging.
 - The checksum file is SHA-256 and uses this deterministic format:
   `<hex>  dist/{target}/julie-extract{exe_suffix}`.
+
+## Evidence
+
+Release evidence is recorded under `docs/release-evidence/`. Generated SQLite,
+JSONL, and raw report files stay under `target/` and are not committed.
+
+v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
