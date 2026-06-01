@@ -14,9 +14,9 @@
 
 ## Current Status
 
-- `main` was at `a3038ee` when Slice 1 started.
-- CI Fast Gates passed on `main` after the tracker push.
-- Active product implementation branch: `codex/release-dogfood-evidence`.
+- `main` is at `0b56050` after PR #4 merged release-binary dogfood evidence.
+- CI Fast Gates passed on PR #4 before merge.
+- Active product implementation branch: `codex/jsonl-export-performance-plan`.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 
@@ -45,6 +45,11 @@
   - immediate no-change rescan `52ms`;
   - export `68983ms`;
   - release binary SHA-256 `af51b3792e10eb54f6aab5d94cd04c257801b183be0fb23f08db96ba23f441ce`.
+- JSONL export performance plan: `docs/plans/2026-06-01-jsonl-export-performance.md`.
+  - local SQLite table counts across every JSONL row domain: `0.158s`;
+  - local fetch of all exported SQLite rows: `213232` rows in `0.763s`;
+  - release binary export to `/dev/null`: `20.79s` real, `3.83s` user, `15.66s` sys;
+  - first implementation target: buffered JSONL writes, with no JSONL/SQLite/report/CLI contract changes.
 - Autonomous run report for PR #3: `.memories/autonomous-run-2026-06-01-dogfood-rescan-baseline.md`.
 
 ## Non-Goals To Keep Out
@@ -90,11 +95,31 @@
 - Branch gate before PR: `cargo xtask test default` and `cargo xtask test contract`.
 
 **Acceptance criteria:**
-- [ ] Plan identifies whether bottleneck is SQLite reads, JSON serialization, file writes, or process/profile overhead.
-- [ ] Plan separates hard contract invariants from report-only performance evidence.
-- [ ] No JSONL contract changes unless explicitly approved.
+- [x] Plan identifies whether bottleneck is SQLite reads, JSON serialization, file writes, or process/profile overhead.
+- [x] Plan separates hard contract invariants from report-only performance evidence.
+- [x] No JSONL contract changes unless explicitly approved.
 
-### Slice 3: Repeatable Performance Baseline
+### Slice 3: JSONL Export Buffered Writer Implementation
+
+**Why next:** Slice 2 identified unbuffered output writes as the first verified export bottleneck. Fix that before collecting repeatable baseline numbers.
+
+**Expected files:**
+- Modify `crates/julie-extract-artifact/src/jsonl.rs`.
+- Modify `crates/julie-extract-artifact/tests/jsonl_contract.rs`.
+- Modify CLI export tests only if the CLI path needs extra coverage.
+- Create release evidence for before/after JSONL export metrics.
+
+**Verification:**
+- Follow `docs/plans/2026-06-01-jsonl-export-performance.md`.
+- Focused worker scope: `cargo test -p julie-extract-artifact --test jsonl_contract buffered_export_uses_bounded_write_calls`.
+- Branch gate before PR: `cargo xtask test default` and `cargo xtask test contract`.
+
+**Acceptance criteria:**
+- [ ] JSONL v1 output shape, order, and report counts are unchanged.
+- [ ] Export uses bounded downstream write calls for multi-record output.
+- [ ] Release-profile report-only export metrics are recorded.
+
+### Slice 4: Repeatable Performance Baseline
 
 **Why after release evidence/export inspection:** Thresholds need repeated same-machine runs and release-profile data, not one debug dogfood run.
 
@@ -111,7 +136,7 @@
 - [ ] Records variance or at least min/median/max before proposing hard budgets.
 - [ ] Keeps default tests fast.
 
-### Slice 4: v0.1.0 Release Candidate Audit
+### Slice 5: v0.1.0 Release Candidate Audit
 
 **Why later:** This is meaningful after release-binary dogfood evidence and any export performance decision.
 
@@ -140,6 +165,7 @@
 
 - [x] Tracker created after PR #3 merge.
 - [x] Slice 1: Release-binary dogfood evidence.
-- [ ] Slice 2: JSONL export performance plan.
-- [ ] Slice 3: Repeatable performance baseline.
-- [ ] Slice 4: v0.1.0 release candidate audit.
+- [x] Slice 2: JSONL export performance plan.
+- [ ] Slice 3: JSONL export buffered writer implementation.
+- [ ] Slice 4: Repeatable performance baseline.
+- [ ] Slice 5: v0.1.0 release candidate audit.

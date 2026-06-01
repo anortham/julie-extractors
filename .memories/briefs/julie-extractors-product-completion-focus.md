@@ -15,9 +15,9 @@ tags:
 
 ## Current State
 
-- `main` was at `a3038ee` when Slice 1 started.
-- Active branch: `codex/release-dogfood-evidence`.
-- Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline.
+- `main` is at `0b56050` after PR #4 merged release-binary dogfood evidence.
+- Active branch: `codex/jsonl-export-performance-plan`.
+- Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline, release-binary dogfood evidence.
 - Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
 
@@ -35,10 +35,12 @@ tags:
 - Release dogfood metrics at `a3038ee`: cold scan `7607ms`, no-change rescan `52ms`, export `68983ms`, rescan row writes all `0`.
 - Release binary: `target/release/julie-extract`, version `julie-extract 0.1.0`, SHA-256 `af51b3792e10eb54f6aab5d94cd04c257801b183be0fb23f08db96ba23f441ce`.
 - Release binary workflow evidence: `docs/release-evidence/2026-06-01-release-binaries-workflow.md`.
+- JSONL export performance plan: `docs/plans/2026-06-01-jsonl-export-performance.md`.
+- Slice 2 inspection evidence: SQLite counts `0.158s`, fetch all exported rows `0.763s`, release export to `/dev/null` `20.79s` real with `15.66s` sys; first target is buffered JSONL writes.
 
 ## Next Slices In Order
 
-1. JSONL export performance plan: inspect exporter path before optimizing because export dominates runtime.
+1. JSONL export buffered writer implementation: fix the verified write-path bottleneck without changing contracts.
 2. Repeatable performance baseline: repeated same-machine release-profile runs before thresholds.
 3. v0.1.0 release candidate audit.
 
