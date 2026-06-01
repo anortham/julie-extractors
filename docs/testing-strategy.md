@@ -18,12 +18,14 @@ Use `cargo xtask test list` to print the tier names.
 - Real-world smoke fixtures: `cargo xtask test real-world-smoke`
 - Real-world release fixtures: `cargo xtask test real-world-release`
 - Release package manifest: `cargo xtask release package-list`
+- Dogfood this repo: `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors`
 
 The default command expands to fast package tests for `julie-extractors`,
 `julie-extract-artifact`, and `julie-extract-cli`. Slow and contract-heavy
 gates are selected by Cargo features or named test targets, so plain default
 runs do not include golden fixtures, capability matrix scans, parser-upgrade
-checks, downstream smoke consumers, or real-world fixtures.
+checks, downstream smoke consumers, dogfood repo scans, release packaging, or
+real-world fixtures.
 
 ## Default Tier
 
@@ -44,7 +46,7 @@ Does not contain:
 - real-world corpus
 - downstream smoke consumers
 - release packaging
-- large repo scans
+- large repo scans, including dogfood scans of this repository
 
 ## Language Tier
 
@@ -161,6 +163,22 @@ cargo xtask release package-list
 The package list is constrained to `julie-extract` binaries, checksums,
 contract and architecture docs, testing strategy docs, and versioned release
 notes.
+
+## Dogfood Gate
+
+Dogfood scans this repository through the public `julie-extract` CLI and
+validates the generated SQLite artifact, JSON reports, JSONL export, and
+report-only performance metrics.
+
+Current form:
+
+```bash
+cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
+```
+
+This gate is not part of the default tier. It is release-readiness evidence and
+should run intentionally when extraction, CLI, artifact, JSONL, report, or
+release evidence behavior changes.
 
 ## Guardrails
 

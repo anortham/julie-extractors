@@ -150,7 +150,7 @@ Out of scope:
 
 - [x] Task 0: Plan baseline
 - [x] Task 1: Split xtask command routing
-- [ ] Task 2: Add dogfood command and evidence model
+- [x] Task 2: Add dogfood command and evidence model
 - [ ] Task 3: Add release package staging command
 - [ ] Task 4: Add CI and specialist workflows
 - [ ] Task 5: Dogfood this repo and capture v0.1.0 evidence
@@ -213,12 +213,12 @@ Out of scope:
 **Approach:** Implement `cargo xtask dogfood repo --root <path> --out-dir <path> [--binary <path>]`. The command should run `scan --json`, `info --json`, and `export --format jsonl --json`; write `artifact.sqlite`, `artifact.jsonl`, `scan-report.json`, `info-report.json`, `export-report.json`, and `metrics.json` under the output directory; validate SQLite metadata, file counts, symbol counts, JSONL parseability, and report statuses. Unit tests should cover pure command planning and validation using small temporary artifacts, not a full repo scan.
 
 **Acceptance criteria:**
-- [ ] `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors` is a documented command but not part of `cargo xtask test default`.
-- [ ] `metrics.json` records scan duration, info duration, export duration, SQLite bytes, JSONL bytes, row totals, and rows per second when calculable.
-- [ ] Hard validation fails on non-`ok` JSON reports, missing SQLite metadata, schema version mismatch, zero files, zero symbols, invalid JSONL, or missing output files.
-- [ ] Performance fields are report-only in this task; no repository-scan runtime threshold is enforced.
-- [ ] `cargo test -p xtask --test dogfood_contract` passes.
-- [ ] `cargo test -p xtask` passes.
+- [x] `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors` is a documented command but not part of `cargo xtask test default`.
+- [x] `metrics.json` records scan duration, info duration, export duration, SQLite bytes, JSONL bytes, row totals, and rows per second when calculable.
+- [x] Hard validation fails on non-`ok` JSON reports, missing SQLite metadata, schema version mismatch, zero files, zero symbols, invalid JSONL, or missing output files.
+- [x] Performance fields are report-only in this task; no repository-scan runtime threshold is enforced.
+- [x] `cargo test -p xtask --test dogfood_contract` passes.
+- [x] `cargo test -p xtask` passes.
 
 ### Task 3: Add Release Package Staging Command
 

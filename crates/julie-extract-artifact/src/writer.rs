@@ -4,8 +4,8 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
-    ArtifactFile, ArtifactSymbolAnnotation, ArtifactTypeArgument, FileStatus, RevisionChangeKind,
-    RevisionInput, RowCounts, WriteMode, WriteOperation, WriteResult,
+    ArtifactFile, ArtifactTypeArgument, FileStatus, RevisionChangeKind, RevisionInput, RowCounts,
+    WriteMode, WriteOperation, WriteResult,
 };
 use crate::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_schema};
 
@@ -539,13 +539,15 @@ fn insert_child_rows(
     symbol_lookup: &SymbolLookup,
     counts: &mut RowCounts,
 ) -> rusqlite::Result<()> {
-    counts.symbol_annotations += insert_symbol_annotations(tx, &file.symbol_annotations)?;
+    counts.symbol_annotations += insert_symbol_annotations(tx, file, symbol_lookup)?;
     counts.identifiers += insert_identifiers(tx, file, symbol_lookup)?;
-    counts.relationships += insert_relationships(tx, file)?;
+    let identifier_lookup = IdentifierLookup::from_file(file);
+    counts.relationships += insert_relationships(tx, file, symbol_lookup)?;
     counts.pending_relationships += insert_pending_relationships(tx, file, symbol_lookup)?;
-    counts.type_facts += insert_type_facts(tx, file)?;
-    counts.type_argument_usages += insert_type_argument_usages(tx, file)?;
-    counts.type_arguments += insert_type_arguments(tx, &file.type_arguments)?;
+    counts.type_facts += insert_type_facts(tx, file, symbol_lookup)?;
+    counts.type_argument_usages += insert_type_argument_usages(tx, file, &identifier_lookup)?;
+    let usage_lookup = TypeArgumentUsageLookup::from_file(file, &identifier_lookup);
+    counts.type_arguments += insert_type_arguments(tx, &file.type_arguments, &usage_lookup)?;
     counts.literals += insert_literals(tx, file, symbol_lookup)?;
     counts.parse_diagnostics += insert_parse_diagnostics(tx, file)?;
     Ok(())
@@ -644,14 +646,19 @@ fn update_symbol_parents<'a>(
 
 fn insert_symbol_annotations(
     tx: &Transaction<'_>,
-    annotations: &[ArtifactSymbolAnnotation],
+    file: &ArtifactFile,
+    symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare(
         "INSERT INTO symbol_annotations
          (annotation_id, symbol_id, annotation, annotation_key, raw_text, carrier, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
     )?;
-    for annotation in annotations {
+    let mut inserted = 0;
+    for annotation in &file.symbol_annotations {
+        if !symbol_lookup.contains(&annotation.symbol_id) {
+            continue;
+        }
         stmt.execute(params![
             annotation.annotation_id,
             annotation.symbol_id,
@@ -661,8 +668,9 @@ fn insert_symbol_annotations(
             annotation.carrier,
             annotation.metadata_json,
         ])?;
+        inserted += 1;
     }
-    Ok(annotations.len() as i64)
+    Ok(inserted)
 }
 
 fn insert_identifiers(
@@ -714,14 +722,24 @@ fn insert_identifiers(
     Ok(file.identifiers.len() as i64)
 }
 
-fn insert_relationships(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
+fn insert_relationships(
+    tx: &Transaction<'_>,
+    file: &ArtifactFile,
+    symbol_lookup: &SymbolLookup,
+) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare(
         "INSERT INTO relationships
          (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
           start_column, end_line, end_column, start_byte, end_byte, confidence, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
     )?;
+    let mut inserted = 0;
     for relationship in &file.relationships {
+        if !symbol_lookup.contains(&relationship.from_symbol_id)
+            || !symbol_lookup.contains(&relationship.to_symbol_id)
+        {
+            continue;
+        }
         stmt.execute(params![
             relationship.relationship_id,
             relationship.from_symbol_id,
@@ -738,8 +756,9 @@ fn insert_relationships(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::
             relationship.confidence,
             relationship.metadata_json,
         ])?;
+        inserted += 1;
     }
-    Ok(file.relationships.len() as i64)
+    Ok(inserted)
 }
 
 fn insert_pending_relationships(
@@ -756,7 +775,11 @@ fn insert_pending_relationships(
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
                  ?18, ?19)",
     )?;
+    let mut inserted = 0;
     for pending in &file.pending_relationships {
+        if !symbol_lookup.contains(&pending.from_symbol_id) {
+            continue;
+        }
         stmt.execute(params![
             pending.pending_relationship_id,
             pending.from_symbol_id,
@@ -778,18 +801,27 @@ fn insert_pending_relationships(
             pending.confidence,
             pending.metadata_json,
         ])?;
+        inserted += 1;
     }
-    Ok(file.pending_relationships.len() as i64)
+    Ok(inserted)
 }
 
-fn insert_type_facts(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
+fn insert_type_facts(
+    tx: &Transaction<'_>,
+    file: &ArtifactFile,
+    symbol_lookup: &SymbolLookup,
+) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare(
         "INSERT INTO type_facts
          (type_fact_id, symbol_id, language, resolved_type, generic_params_json,
           constraints_json, is_inferred, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
     )?;
+    let mut inserted = 0;
     for fact in &file.type_facts {
+        if !symbol_lookup.contains(&fact.symbol_id) {
+            continue;
+        }
         stmt.execute(params![
             fact.type_fact_id,
             fact.symbol_id,
@@ -800,17 +832,26 @@ fn insert_type_facts(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Res
             fact.is_inferred as i64,
             fact.metadata_json,
         ])?;
+        inserted += 1;
     }
-    Ok(file.type_facts.len() as i64)
+    Ok(inserted)
 }
 
-fn insert_type_argument_usages(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
+fn insert_type_argument_usages(
+    tx: &Transaction<'_>,
+    file: &ArtifactFile,
+    identifier_lookup: &IdentifierLookup,
+) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare(
         "INSERT INTO type_argument_usages
          (usage_id, identifier_id, file_id, path, language, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
     )?;
+    let mut inserted = 0;
     for usage in &file.type_argument_usages {
+        if !identifier_lookup.contains(&usage.identifier_id) {
+            continue;
+        }
         stmt.execute(params![
             usage.usage_id,
             usage.identifier_id,
@@ -819,20 +860,26 @@ fn insert_type_argument_usages(tx: &Transaction<'_>, file: &ArtifactFile) -> rus
             file.language,
             usage.metadata_json,
         ])?;
+        inserted += 1;
     }
-    Ok(file.type_argument_usages.len() as i64)
+    Ok(inserted)
 }
 
 fn insert_type_arguments(
     tx: &Transaction<'_>,
     arguments: &[ArtifactTypeArgument],
+    usage_lookup: &TypeArgumentUsageLookup,
 ) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare(
         "INSERT INTO type_arguments
          (type_argument_id, usage_id, parent_type_argument_id, ordinal, type_name)
          VALUES (?1, ?2, ?3, ?4, ?5)",
     )?;
+    let mut inserted = 0;
     for argument in arguments {
+        if !usage_lookup.contains(&argument.usage_id) {
+            continue;
+        }
         stmt.execute(params![
             argument.type_argument_id,
             argument.usage_id,
@@ -840,8 +887,9 @@ fn insert_type_arguments(
             argument.ordinal,
             argument.type_name,
         ])?;
+        inserted += 1;
     }
-    Ok(arguments.len() as i64)
+    Ok(inserted)
 }
 
 fn insert_literals(
@@ -929,6 +977,9 @@ fn load_symbol_lookup<'a>(
                 requested.insert(parent_symbol_id.to_string());
             }
         }
+        for annotation in &file.symbol_annotations {
+            requested.insert(annotation.symbol_id.clone());
+        }
         for identifier in &file.identifiers {
             if let Some(containing_symbol_id) = identifier.containing_symbol_id.as_deref() {
                 requested.insert(containing_symbol_id.to_string());
@@ -937,10 +988,18 @@ fn load_symbol_lookup<'a>(
                 requested.insert(target_symbol_id.to_string());
             }
         }
+        for relationship in &file.relationships {
+            requested.insert(relationship.from_symbol_id.clone());
+            requested.insert(relationship.to_symbol_id.clone());
+        }
         for pending in &file.pending_relationships {
+            requested.insert(pending.from_symbol_id.clone());
             if let Some(caller_scope_symbol_id) = pending.caller_scope_symbol_id.as_deref() {
                 requested.insert(caller_scope_symbol_id.to_string());
             }
+        }
+        for fact in &file.type_facts {
+            requested.insert(fact.symbol_id.clone());
         }
         for literal in &file.literals {
             if let Some(containing_symbol_id) = literal.containing_symbol_id.as_deref() {
@@ -977,4 +1036,45 @@ fn valid_symbol_id<'a>(
     symbol_id: Option<&'a str>,
 ) -> Option<&'a str> {
     symbol_id.filter(|symbol_id| symbol_lookup.contains(symbol_id))
+}
+
+struct IdentifierLookup {
+    ids: HashSet<String>,
+}
+
+impl IdentifierLookup {
+    fn from_file(file: &ArtifactFile) -> Self {
+        Self {
+            ids: file
+                .identifiers
+                .iter()
+                .map(|identifier| identifier.identifier_id.clone())
+                .collect(),
+        }
+    }
+
+    fn contains(&self, identifier_id: &str) -> bool {
+        self.ids.contains(identifier_id)
+    }
+}
+
+struct TypeArgumentUsageLookup {
+    ids: HashSet<String>,
+}
+
+impl TypeArgumentUsageLookup {
+    fn from_file(file: &ArtifactFile, identifier_lookup: &IdentifierLookup) -> Self {
+        Self {
+            ids: file
+                .type_argument_usages
+                .iter()
+                .filter(|usage| identifier_lookup.contains(&usage.identifier_id))
+                .map(|usage| usage.usage_id.clone())
+                .collect(),
+        }
+    }
+
+    fn contains(&self, usage_id: &str) -> bool {
+        self.ids.contains(usage_id)
+    }
 }

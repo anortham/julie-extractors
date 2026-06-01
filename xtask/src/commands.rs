@@ -18,6 +18,9 @@ pub fn run_from_env_args(args: impl IntoIterator<Item = OsString>) -> ExitCode {
         print!("{}", crate::release::render_release_package_list());
         return ExitCode::SUCCESS;
     }
+    if args.first().map(String::as_str) == Some("dogfood") {
+        return crate::dogfood::run_from_args(&args[1..]);
+    }
 
     match crate::test_tiers::plan_from_args(args) {
         Ok(plan) => crate::test_tiers::run_plan(plan),

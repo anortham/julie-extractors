@@ -123,6 +123,70 @@ fn scan_deletes_rows_for_source_files_missing_from_the_snapshot() {
 }
 
 #[test]
+fn scan_deduplicates_duplicate_extractor_identifiers_before_writing() {
+    let fixture = FixtureRoot::with_file(
+        "src/lib.rs",
+        r#"fn f(args: &[String]) {
+    let x = args.iter().map(|arg| arg.as_str()).collect::<Vec<_>>();
+}
+"#,
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_success(output);
+    assert!(table_count(&db, "identifiers") > 0);
+    assert_eq!(
+        table_count(&db, "identifiers"),
+        distinct_count(&db, "identifiers", "identifier_id"),
+        "artifact identifiers must have unique IDs after CLI normalization"
+    );
+}
+
+#[test]
+fn scan_skips_relationships_with_missing_symbol_endpoints_before_writing() {
+    let fixture = FixtureRoot::with_file(
+        "src/page.razor",
+        r#"@page "/example"
+@using OtherProject.Models
+
+<h3>Example Page</h3>
+<p>@LocalHelper()</p>
+
+@code {
+    private int LocalHelper() { return 42; }
+
+    private void Entry() {
+        var item = new ItemFromOther();
+        _ = LocalHelper();
+    }
+}
+"#,
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_success(output);
+    assert!(table_count(&db, "symbols") > 0);
+}
+
+#[test]
 fn force_scan_rebuilds_and_reports_force_mode() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -360,6 +424,15 @@ impl FixtureRoot {
         Self { _temp: temp, root }
     }
 
+    fn with_file(relative: &str, contents: &str) -> Self {
+        let temp = TempDir::new().unwrap();
+        let root = temp.path().join("repo");
+        let path = root.join(relative);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, contents).unwrap();
+        Self { _temp: temp, root }
+    }
+
     fn root_str(&self) -> &str {
         path_str(&self.root)
     }
@@ -384,6 +457,16 @@ fn table_count(db: &Path, table: &str) -> i64 {
     conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
         row.get(0)
     })
+    .unwrap()
+}
+
+fn distinct_count(db: &Path, table: &str, column: &str) -> i64 {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        &format!("SELECT COUNT(DISTINCT {column}) FROM {table}"),
+        [],
+        |row| row.get(0),
+    )
     .unwrap()
 }
 

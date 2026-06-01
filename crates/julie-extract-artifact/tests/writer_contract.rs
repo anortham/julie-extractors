@@ -117,14 +117,7 @@ fn scan_persists_every_normalized_row_family_with_counts() {
 fn failed_mid_batch_rolls_back_prior_file_writes() {
     let mut writer = open_writer();
     let mut broken = file_with_symbols("file-bad", "src/bad.rs", "hash-bad", ["bad"]);
-    broken.relationships.push(ArtifactRelationship {
-        relationship_id: "broken-relationship".to_string(),
-        from_symbol_id: "missing-symbol".to_string(),
-        to_symbol_id: "file-bad-symbol-0".to_string(),
-        kind: "calls".to_string(),
-        confidence: 1.0,
-        ..ArtifactRelationship::default()
-    });
+    broken.symbols[0].symbol_id = "file-a-symbol-0".to_string();
 
     let error = writer
         .write_scan(
@@ -141,6 +134,80 @@ fn failed_mid_batch_rolls_back_prior_file_writes() {
     assert_eq!(count(writer.connection(), "files"), 0);
     assert_eq!(count(writer.connection(), "symbols"), 0);
     assert_eq!(count(writer.connection(), "relationships"), 0);
+}
+
+#[test]
+fn scan_skips_child_rows_with_missing_required_references() {
+    let mut writer = open_writer();
+    let mut file = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    file.symbol_annotations.push(ArtifactSymbolAnnotation {
+        annotation_id: "missing-annotation-symbol".to_string(),
+        symbol_id: "missing-symbol".to_string(),
+        annotation: "Missing".to_string(),
+        annotation_key: "missing".to_string(),
+        raw_text: None,
+        carrier: None,
+        metadata_json: None,
+    });
+    file.relationships.push(ArtifactRelationship {
+        relationship_id: "missing-from-symbol".to_string(),
+        from_symbol_id: "missing-symbol".to_string(),
+        to_symbol_id: "file-a-symbol-0".to_string(),
+        kind: "calls".to_string(),
+        confidence: 1.0,
+        ..ArtifactRelationship::default()
+    });
+    file.pending_relationships
+        .push(ArtifactPendingRelationship {
+            pending_relationship_id: "missing-pending-from-symbol".to_string(),
+            from_symbol_id: "missing-symbol".to_string(),
+            target_display_name: "Missing".to_string(),
+            target_terminal_name: "Missing".to_string(),
+            ..ArtifactPendingRelationship::default()
+        });
+    file.type_facts.push(ArtifactTypeFact {
+        type_fact_id: "missing-type-symbol".to_string(),
+        symbol_id: "missing-symbol".to_string(),
+        resolved_type: "Missing".to_string(),
+        generic_params_json: None,
+        constraints_json: None,
+        is_inferred: true,
+        metadata_json: None,
+    });
+    file.type_argument_usages.push(ArtifactTypeArgumentUsage {
+        usage_id: "missing-identifier-usage".to_string(),
+        identifier_id: "missing-identifier".to_string(),
+        metadata_json: None,
+    });
+    file.type_arguments.push(ArtifactTypeArgument {
+        type_argument_id: "missing-identifier-argument".to_string(),
+        usage_id: "missing-identifier-usage".to_string(),
+        parent_type_argument_id: None,
+        ordinal: 0,
+        type_name: "Missing".to_string(),
+    });
+
+    let result = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file],
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.files, 1);
+    assert_eq!(result.rows_written.symbols, 1);
+    assert_eq!(result.rows_written.symbol_annotations, 0);
+    assert_eq!(result.rows_written.relationships, 0);
+    assert_eq!(result.rows_written.pending_relationships, 0);
+    assert_eq!(result.rows_written.type_facts, 0);
+    assert_eq!(result.rows_written.type_argument_usages, 0);
+    assert_eq!(result.rows_written.type_arguments, 0);
+    assert_eq!(count(writer.connection(), "symbol_annotations"), 0);
+    assert_eq!(count(writer.connection(), "relationships"), 0);
+    assert_eq!(count(writer.connection(), "pending_relationships"), 0);
+    assert_eq!(count(writer.connection(), "type_facts"), 0);
+    assert_eq!(count(writer.connection(), "type_argument_usages"), 0);
+    assert_eq!(count(writer.connection(), "type_arguments"), 0);
 }
 
 #[test]

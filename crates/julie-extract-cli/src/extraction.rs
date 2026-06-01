@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
@@ -144,6 +145,34 @@ fn map_results(
     let mut type_infos = results.types.values().collect::<Vec<_>>();
     type_infos.sort_by(|left, right| left.symbol_id.cmp(&right.symbol_id));
 
+    let identifiers = dedupe_by_id(map_identifiers(&results, target)?, |identifier| {
+        identifier.identifier_id.as_str()
+    });
+    let relationships = dedupe_by_id(map_relationships(&results, target)?, |relationship| {
+        relationship.relationship_id.as_str()
+    });
+    let pending_relationships =
+        dedupe_by_id(map_pending_relationships(&results, target)?, |pending| {
+            pending.pending_relationship_id.as_str()
+        });
+    let type_facts = dedupe_by_id(map_type_facts(type_infos, target)?, |type_fact| {
+        type_fact.type_fact_id.as_str()
+    });
+    let type_argument_usages = dedupe_by_id(
+        map_type_argument_usages(&results.type_argument_usages),
+        |usage| usage.usage_id.as_str(),
+    );
+    let type_arguments = dedupe_by_id(
+        map_type_arguments(&results.type_argument_usages),
+        |type_argument| type_argument.type_argument_id.as_str(),
+    );
+    let literals = dedupe_by_id(map_literals(&results.literals), |literal| {
+        literal.literal_id.as_str()
+    });
+    let parse_diagnostics = dedupe_by_id(map_parse_diagnostics(&results, target), |diagnostic| {
+        diagnostic.diagnostic_id.as_str()
+    });
+
     Ok(ArtifactFile {
         file_id,
         path,
@@ -154,17 +183,26 @@ fn map_results(
         indexed_at,
         status: FileStatus::Indexed,
         metadata_json: None,
-        symbols,
-        symbol_annotations,
-        identifiers: map_identifiers(&results, target)?,
-        relationships: map_relationships(&results, target)?,
-        pending_relationships: map_pending_relationships(&results, target)?,
-        type_facts: map_type_facts(type_infos, target)?,
-        type_argument_usages: map_type_argument_usages(&results.type_argument_usages),
-        type_arguments: map_type_arguments(&results.type_argument_usages),
-        literals: map_literals(&results.literals),
-        parse_diagnostics: map_parse_diagnostics(&results, target),
+        symbols: dedupe_by_id(symbols, |symbol| symbol.symbol_id.as_str()),
+        symbol_annotations: dedupe_by_id(symbol_annotations, |annotation| {
+            annotation.annotation_id.as_str()
+        }),
+        identifiers,
+        relationships,
+        pending_relationships,
+        type_facts,
+        type_argument_usages,
+        type_arguments,
+        literals,
+        parse_diagnostics,
     })
+}
+
+fn dedupe_by_id<T>(rows: Vec<T>, mut key: impl FnMut(&T) -> &str) -> Vec<T> {
+    let mut seen = HashSet::new();
+    rows.into_iter()
+        .filter(|row| seen.insert(key(row).to_string()))
+        .collect()
 }
 
 fn map_identifiers(
