@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use tempfile::TempDir;
 use xtask::release::render_release_package_list;
 use xtask::test_tiers::tier_names;
 
@@ -73,6 +74,35 @@ fn commands_route_release_package_list() {
     assert_eq!(
         String::from_utf8(output.stdout).expect("stdout is utf-8"),
         render_release_package_list()
+    );
+}
+
+#[test]
+fn commands_route_release_package_staging_before_test_tier_parser() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("package");
+    let binary = temp.path().join("missing-julie-extract");
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args([
+            "release",
+            "package",
+            "--version",
+            "0.1.0",
+            "--target",
+            "x86_64-apple-darwin",
+            "--out-dir",
+            out_dir.to_str().expect("utf-8 path"),
+            "--binary",
+            binary.to_str().expect("utf-8 path"),
+        ])
+        .output()
+        .expect("run xtask release package");
+
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("missing release input"),
+        "release package route must reach release staging, stderr: {stderr}"
     );
 }
 

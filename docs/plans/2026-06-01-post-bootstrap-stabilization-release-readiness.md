@@ -151,7 +151,7 @@ Out of scope:
 - [x] Task 0: Plan baseline
 - [x] Task 1: Split xtask command routing
 - [x] Task 2: Add dogfood command and evidence model
-- [ ] Task 3: Add release package staging command
+- [x] Task 3: Add release package staging command
 - [ ] Task 4: Add CI and specialist workflows
 - [ ] Task 5: Dogfood this repo and capture v0.1.0 evidence
 - [ ] Task 6: Add Python SQLite consumer spike
@@ -234,12 +234,12 @@ Out of scope:
 **Approach:** Implement `cargo xtask release package --version <version> --target <target> --out-dir <path> [--binary <path>]`. The command should require `docs/release-notes/v{version}.md`, stage `dist/{target}/julie-extract{exe_suffix}`, copy only the docs listed by `release_package_items()`, write `dist/{target}/julie-extract{exe_suffix}.sha256`, and fail if any required input is missing. Add `sha2` for portable checksum generation and `tempfile` as an xtask test dev-dependency if tests need temporary directories.
 
 **Acceptance criteria:**
-- [ ] `cargo xtask release package-list` output remains exact and ordered.
-- [ ] Package staging copies only the binary, checksum, contract docs, architecture docs, testing/release docs, and the requested release note.
-- [ ] The checksum file contains the SHA-256 digest and staged binary path in a deterministic format.
-- [ ] Missing release notes, missing binary, unsupported extra package item kinds, and forbidden package paths produce typed xtask errors.
-- [ ] `cargo test -p xtask --test release_contract` passes.
-- [ ] A local staging command using a built `julie-extract` binary succeeds before release evidence is recorded.
+- [x] `cargo xtask release package-list` output remains exact and ordered.
+- [x] Package staging copies only the binary, checksum, contract docs, architecture docs, testing/release docs, and the requested release note.
+- [x] The checksum file contains the SHA-256 digest and staged binary path in a deterministic format.
+- [x] Missing release notes, missing binary, unsupported extra package item kinds, and forbidden package paths produce typed xtask errors.
+- [x] `cargo test -p xtask --test release_contract` passes.
+- [x] A local staging command using a built `julie-extract` binary succeeds before release evidence is recorded.
 
 ### Task 4: Add CI And Specialist Workflows
 
