@@ -3,7 +3,7 @@ use crate::registry::{capabilities_for_language, supported_languages};
 use crate::{IdentifierKind, RelationshipKind, SymbolKind};
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -608,38 +608,169 @@ fn capability_matrix_open_rows_have_planned_closure_task() {
     assert!(errors.is_empty(), "{}", errors.join("\n"));
 }
 
-fn load_test_inventory(root: &Path) -> std::collections::HashSet<String> {
-    let output = std::process::Command::new("cargo")
-        .args([
+fn load_test_inventory(root: &Path) -> HashSet<String> {
+    let nextest_attempt = run_cargo_attempt(
+        root,
+        "cargo nextest list -p julie-extractors --message-format json",
+        &[
             "nextest",
             "list",
             "-p",
             "julie-extractors",
             "--message-format",
             "json",
-        ])
+        ],
+    );
+
+    load_test_inventory_from_attempts(nextest_attempt, || {
+        run_cargo_attempt(
+            root,
+            "cargo test -p julie-extractors --lib -- --list --format terse",
+            &[
+                "test",
+                "-p",
+                "julie-extractors",
+                "--lib",
+                "--",
+                "--list",
+                "--format",
+                "terse",
+            ],
+        )
+    })
+    .unwrap_or_else(|err| panic!("failed to load test inventory:\n{err}"))
+}
+
+#[derive(Debug)]
+struct CommandAttempt {
+    command: String,
+    success: bool,
+    stdout: String,
+    stderr: String,
+}
+
+fn run_cargo_attempt(root: &Path, command: &str, args: &[&str]) -> CommandAttempt {
+    match std::process::Command::new("cargo")
+        .args(args)
         .current_dir(root)
         .output()
-        .expect("cargo nextest list");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut names = std::collections::HashSet::new();
-    if let Ok(root_value) = serde_json::from_str::<Value>(&stdout) {
-        if let Some(suites) = root_value.get("rust-suites").and_then(Value::as_object) {
-            for (_suite_name, suite_value) in suites {
-                let Some(testcases) = suite_value.get("testcases").and_then(Value::as_object)
-                else {
-                    continue;
-                };
-                for full_name in testcases.keys() {
-                    names.insert(full_name.clone());
-                    if let Some(bare) = full_name.split("::").last() {
-                        names.insert(bare.to_string());
-                    }
-                }
-            }
+    {
+        Ok(output) => CommandAttempt {
+            command: command.to_string(),
+            success: output.status.success(),
+            stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        },
+        Err(err) => CommandAttempt {
+            command: command.to_string(),
+            success: false,
+            stdout: String::new(),
+            stderr: err.to_string(),
+        },
+    }
+}
+
+fn load_test_inventory_from_attempts(
+    nextest_attempt: CommandAttempt,
+    cargo_test_attempt: impl FnOnce() -> CommandAttempt,
+) -> Result<HashSet<String>, String> {
+    match parse_nextest_inventory(&nextest_attempt) {
+        Ok(names) => Ok(names),
+        Err(nextest_error) => {
+            let cargo_test_attempt = cargo_test_attempt();
+            parse_cargo_test_inventory(&cargo_test_attempt)
+                .map_err(|cargo_test_error| format!("{nextest_error}\n{cargo_test_error}"))
         }
     }
-    names
+}
+
+fn parse_nextest_inventory(attempt: &CommandAttempt) -> Result<HashSet<String>, String> {
+    if !attempt.success {
+        return Err(format_command_error(attempt));
+    }
+
+    let root_value = serde_json::from_str::<Value>(&attempt.stdout)
+        .map_err(|err| format!("{} emitted invalid JSON: {err}", attempt.command))?;
+    let suites = root_value
+        .get("rust-suites")
+        .and_then(Value::as_object)
+        .ok_or_else(|| format!("{} JSON has no rust-suites object", attempt.command))?;
+
+    let mut names = HashSet::new();
+    for suite_value in suites.values() {
+        let Some(testcases) = suite_value.get("testcases").and_then(Value::as_object) else {
+            continue;
+        };
+        for full_name in testcases.keys() {
+            insert_test_name(&mut names, full_name);
+        }
+    }
+
+    non_empty_inventory(names, &attempt.command)
+}
+
+fn parse_cargo_test_inventory(attempt: &CommandAttempt) -> Result<HashSet<String>, String> {
+    if !attempt.success {
+        return Err(format_command_error(attempt));
+    }
+
+    let mut names = HashSet::new();
+    for line in attempt.stdout.lines() {
+        let Some(full_name) = line.trim().strip_suffix(": test") else {
+            continue;
+        };
+        insert_test_name(&mut names, full_name.trim());
+    }
+
+    non_empty_inventory(names, &attempt.command)
+}
+
+fn insert_test_name(names: &mut HashSet<String>, full_name: &str) {
+    names.insert(full_name.to_string());
+    if let Some(bare) = full_name.split("::").last() {
+        names.insert(bare.to_string());
+    }
+}
+
+fn non_empty_inventory(names: HashSet<String>, command: &str) -> Result<HashSet<String>, String> {
+    if names.is_empty() {
+        Err(format!("{command} produced no test names"))
+    } else {
+        Ok(names)
+    }
+}
+
+fn format_command_error(attempt: &CommandAttempt) -> String {
+    let stderr = attempt.stderr.trim();
+    if stderr.is_empty() {
+        format!("{} failed without stderr", attempt.command)
+    } else {
+        format!("{} failed: {stderr}", attempt.command)
+    }
+}
+
+#[test]
+fn test_inventory_falls_back_to_cargo_test_list_when_nextest_is_unavailable() {
+    let names = load_test_inventory_from_attempts(
+        CommandAttempt {
+            command: "cargo nextest list -p julie-extractors --message-format json".to_string(),
+            success: false,
+            stdout: String::new(),
+            stderr: "error: no such command: `nextest`".to_string(),
+        },
+        || CommandAttempt {
+            command: "cargo test -p julie-extractors --lib -- --list --format terse".to_string(),
+            success: true,
+            stdout: "tests::yaml::cross_file_pending::yaml_pending_relationships_intra_document_only: test\n".to_string(),
+            stderr: String::new(),
+        },
+    )
+    .expect("cargo test list fallback should provide a usable inventory");
+
+    assert!(names.contains(
+        "tests::yaml::cross_file_pending::yaml_pending_relationships_intra_document_only"
+    ));
+    assert!(names.contains("yaml_pending_relationships_intra_document_only"));
 }
 
 #[test]
