@@ -1,6 +1,6 @@
 # julie-extractors
 
-Tree-sitter-based extraction for Julie's code intelligence pipeline.
+Tree-sitter-based extraction for `julie-extract` artifacts and Rust callers.
 
 ## Public Surface
 

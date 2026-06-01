@@ -3,9 +3,8 @@
 //! Loads from `fixtures/extraction/capabilities.json` (single source of truth)
 //! via `include_str!` at compile time. No build script. Path-dep and git-dep
 //! consumers work because cargo serves the whole repo at its on-disk location.
-//! This crate is intentionally NOT `cargo publish`-able to crates.io — see
-//! `docs/plans/2026-05-10-best-in-class-tree-sitter-plan.md` Architecture
-//! Quality section for the Pillar-3 scope decision.
+//! The `julie-extract` CLI also persists this snapshot into SQLite artifacts
+//! so non-Rust consumers can read the same capability evidence.
 
 use serde::Deserialize;
 use std::collections::HashMap;
