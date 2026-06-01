@@ -113,6 +113,7 @@
 - [x] Task 2: Run and validate dogfood rescan
 - [x] Task 3: Update docs and evidence
 - [x] Task 4: Verify focused and branch gates
+- [x] Task 5: Harden rescan validation after review
 
 ## Tasks
 
@@ -184,3 +185,18 @@
 - [x] Dogfood command writes valid rescan evidence.
 - [x] Python consumer reads the generated SQLite artifact.
 - [x] Default and contract branch gates pass before merge, push, or PR.
+
+### Task 5: Harden Rescan Validation After Review
+
+**Files:**
+- Modify: `xtask/src/dogfood.rs`
+- Modify: `xtask/tests/dogfood_contract.rs`
+- Modify: `docs/release-evidence/v0.1.0-dogfood.md`
+
+**What to build:** Make dogfood reject `no_change` rescan reports that still
+create a revision or write rows.
+
+**Acceptance criteria:**
+- [x] Invalid rescan evidence with `revision.created_revision_id` set fails validation.
+- [x] Invalid rescan evidence with nonzero `counts.rows_written` fails validation.
+- [x] Evidence is refreshed against the commit containing the validation hardening.
