@@ -3,7 +3,7 @@ id: julie-extractors-product-completion-focus
 title: julie-extractors Product Completion Focus
 status: active
 created: 2026-06-01T13:24:06.835Z
-updated: 2026-06-01T20:52:23.564Z
+updated: 2026-06-01T21:12:41.587Z
 tags:
   - julie-extractors
   - product-bootstrap
@@ -15,42 +15,29 @@ tags:
 
 ## Current State
 
-- Pre-release audit on 2026-06-01 started from `e9d5601`, after PR #9 merge-status documentation landed; workflow publishing upgrade is now in progress after the user asked to mirror Julie's working release setup.
-- PR #9: https://github.com/anortham/julie-extractors/pull/9.
-- Current release target: v2.0.0, chosen because the old Julie in-tree extractor crate had reached v1.22.0 and the standalone product should not publish below that line.
+- v2.0.0 is published: https://github.com/anortham/julie-extractors/releases/tag/v2.0.0.
+- Release Binaries workflow run `26781742834` passed from `main` commit `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
+- Remote tag `v2.0.0` points at `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
+- Four GitHub Release assets are published: Linux x86_64, macOS Apple Silicon, macOS Intel, and Windows x86_64.
 - Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
-- Completed slice plans:
-  - `docs/plans/2026-06-01-release-blocker-review-fixes.md`
-  - `docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`
+- Release evidence: `docs/release-evidence/2026-06-01-v2-0-0-release.md`.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
 - Full source file contents are intentionally not stored in SQLite, JSONL, or JSON reports. Consumers read the matching source tree when complete file text is needed.
 
-## Release Workflow Direction
+## Completed Release Scope
 
-- Julie's working release workflow builds and publishes four assets: Linux x86_64, macOS Apple Silicon, macOS Intel, and Windows x86_64.
-- `julie-extractors` should mirror that shape for `julie-extract` only, without Julie server/daemon/plugin behavior.
-- The `Release Binaries` workflow now needs to be treated as a publishing workflow: build four target-specific binaries, stage packages with `cargo xtask release package`, archive each staged package, create or update GitHub Release `v{version}`, and upload release assets.
-- Manual dispatch is retained for the first release path; tag pushes matching `v*` remain supported.
+- Standalone contracts, repo bootstrap, Julie code migration, release readiness, release blocker fixes, v2.0.0 version alignment, and test-role contract alignment are complete.
+- Release workflow publishing upgrade is complete: four platform-specific release archives are attached to the GitHub Release.
+- The v2.0.0 release decision has been executed. There is no active pre-release implementation branch.
 
 ## Current Evidence
 
 - PR #9 merged as `94f1661` on 2026-06-01 after GitHub Fast Gates passed.
 - Post-merge status commit `e9d5601` passed GitHub Fast Gates in run `26776385538`.
-- No open pull requests at audit time.
-- `gh release list` and `git tag --list 'v*'` returned no releases or tags at audit time.
-- `cargo xtask release package-list` passed and showed the v2.0.0 package includes the binary, checksum, contracts, release docs, and release notes.
-- Release workflow upgrade local verification passed:
-  - red test: `cargo test -p xtask --test commands_contract workflow_commands_keep_release_binary_workflow_explicit` failed before workflow changes on missing `contents: write`;
-  - green test: same focused command passed after workflow/docs changes;
-  - `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/release-binaries.yml")'` passed;
-  - `cargo fmt --all -- --check` passed;
-  - `cargo test -p xtask` passed;
-  - `cargo metadata --format-version 1` passed;
-  - `cargo clippy --no-deps -p julie-extract-artifact -p julie-extract-cli -p xtask --lib --bins -- -D warnings` passed;
-  - `scripts/check-agent-doc-sync.sh` passed;
-  - `cargo xtask release package-list` passed;
-  - `cargo xtask test default` passed;
-  - `cargo xtask test contract` passed.
+- Release workflow upgrade commit `a1f5069` passed local gates before push: `cargo fmt --all -- --check`, `cargo test -p xtask`, `cargo metadata --format-version 1`, scoped `cargo clippy`, `scripts/check-agent-doc-sync.sh`, `cargo xtask release package-list`, `cargo xtask test default`, and `cargo xtask test contract`.
+- GitHub Fast Gates passed for `a1f5069` before release in run `26781385166`.
+- Release Binaries workflow run `26781742834` passed and published `v2.0.0`.
+- GitHub release metadata confirms `v2.0.0` is published, non-draft, non-prerelease, and targets `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
 
 ## Hard Boundaries
 
@@ -58,12 +45,6 @@ tags:
 - Do not write to `/Users/murphy/source/julie` unless explicitly asked.
 - Do not change public CLI, SQLite, JSONL, or report contracts without a tracked plan.
 - Keep default tests fast; dogfood, certification, real-world, and package staging stay specialist gates.
-
-## Next Decision
-
-1. Land the release workflow publishing upgrade and confirm GitHub Fast Gates pass on `main`.
-2. Trigger the Release Binaries workflow for `2.0.0` from current `main` or create/push tag `v2.0.0`.
-3. Capture resulting four-platform release asset evidence under `docs/release-evidence/`.
 
 ## Operating Rule
 

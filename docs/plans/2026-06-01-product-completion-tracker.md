@@ -14,20 +14,21 @@
 
 ## Current Status
 
-- Pre-release audit started from `e9d5601`, after PR #9 merge-status
-  documentation landed.
+- v2.0.0 is published:
+  https://github.com/anortham/julie-extractors/releases/tag/v2.0.0.
+- Release Binaries workflow run `26781742834` passed from `main` commit
+  `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
+- Remote tag `v2.0.0` points at
+  `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
+- Four GitHub Release assets were published for Linux x86_64, macOS Apple
+  Silicon, macOS Intel, and Windows x86_64.
 - PR #9: https://github.com/anortham/julie-extractors/pull/9.
 - PR #9 Fast Gates passed before merge.
-- Latest pushed `main` CI evidence at audit time passed for `e9d5601` in run
-  `26776385538`.
-- No GitHub releases or `v*` tags exist yet for this repository.
 - No active product implementation branch remains.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
-- Current release target is v2.0.0 after the user selected continuity from the
-  old Julie extractor crate line.
-- Release decision is next: trigger the Release Binaries workflow for v2.0.0 or
-  hold the release candidate after the four-platform publishing workflow lands.
+- The v2.0.0 release target was selected for continuity from the old Julie
+  extractor crate line, which had reached v1.22.0.
 
 ## Completed Milestones
 
@@ -50,11 +51,16 @@
   - `created_revision_id=null`;
   - every rescan `counts.rows_written` value is `0`;
   - report-only timing: cold scan `18189ms`, rescan `215ms`, export `76771ms`.
-- Release binary workflow evidence: `docs/release-evidence/2026-06-01-release-binaries-workflow.md`.
+- Historical release binary workflow evidence: `docs/release-evidence/2026-06-01-release-binaries-workflow.md`.
   - original workflow staged three Actions artifacts only;
-  - current release workflow upgrade mirrors Julie's working four-platform
-    release pattern with Linux x86_64, macOS Apple Silicon, macOS Intel, and
-    Windows x86_64 archives published to GitHub Release assets.
+  - this evidence is superseded by the v2.0.0 GitHub Release evidence.
+- v2.0.0 release publishing evidence:
+  `docs/release-evidence/2026-06-01-v2-0-0-release.md`.
+  - Release Binaries workflow run `26781742834` passed;
+  - GitHub Release `v2.0.0` points at
+    `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`;
+  - release assets were uploaded for Linux x86_64, macOS Apple Silicon, macOS
+    Intel, and Windows x86_64.
 - Release-binary dogfood evidence: `docs/release-evidence/2026-06-01-release-binary-dogfood.md`.
   - cold scan `7607ms`;
   - immediate no-change rescan `52ms`;
@@ -101,13 +107,19 @@
   - local verification included `cargo xtask test default` and
     `cargo xtask test contract`;
   - GitHub Fast Gates passed in run `26775855499`.
-- Post-merge main evidence:
+- Pre-release post-merge main evidence:
   - `e9d5601` recorded the PR #9 merge status;
   - GitHub Fast Gates passed for `e9d5601` in run `26776385538`;
   - `gh pr list --state open` returned no open pull requests;
-  - `gh release list` and `git tag --list 'v*'` returned no releases or tags;
   - `cargo xtask release package-list` passed and showed the v2.0.0 package
     includes the CLI, checksums, contracts, release docs, and release notes.
+- Release workflow publishing upgrade:
+  - `a1f5069` added four-platform GitHub Release asset publishing;
+  - Release Binaries workflow run `26781742834` passed for `a1f5069`;
+  - `gh release view v2.0.0` confirmed a published, non-draft,
+    non-prerelease GitHub Release;
+  - `git ls-remote --tags origin 'v2.0.0'` confirmed the remote tag points at
+    `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
 - v2.0.0 version/test-role alignment:
   `docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`.
   - package metadata and release workflow defaults now target v2.0.0;
@@ -280,6 +292,7 @@ Gates passed.
 - [x] Slice 7: v2.0.0 version and test-role contract alignment.
 - [x] PR #8 merged to `main`.
 - [x] PR #9 merged to `main`.
-- [ ] Release workflow publishing upgrade: build four platforms and publish
+- [x] Release workflow publishing upgrade: build four platforms and publish
   GitHub Release assets.
-- [ ] Release decision: trigger the Release Binaries workflow for `v2.0.0` or hold the release candidate.
+- [x] Release decision: triggered the Release Binaries workflow for `v2.0.0`.
+- [x] v2.0.0 GitHub Release published with four platform assets.

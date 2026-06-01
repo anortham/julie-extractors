@@ -117,3 +117,6 @@ report-only performance metrics.
 Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
+
+Published v2.0.0 release evidence:
+`docs/release-evidence/2026-06-01-v2-0-0-release.md`.

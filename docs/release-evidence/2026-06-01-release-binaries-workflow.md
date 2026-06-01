@@ -6,6 +6,8 @@ This evidence records the original three-platform workflow-artifact staging run.
 It is historical evidence, not the current release-publishing contract. The
 current `Release Binaries` workflow builds four platforms, archives the staged
 packages, creates or updates a GitHub Release, and uploads release assets.
+Published v2.0.0 evidence lives in
+`docs/release-evidence/2026-06-01-v2-0-0-release.md`.
 
 ## Run
 

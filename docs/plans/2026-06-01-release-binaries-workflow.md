@@ -12,6 +12,14 @@
 
 ---
 
+## Completion Evidence
+
+- Implemented on `main` in `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
+- Release Binaries workflow run `26781742834` passed for v2.0.0.
+- GitHub Release `v2.0.0` was published with Linux x86_64, macOS Apple
+  Silicon, macOS Intel, and Windows x86_64 assets.
+- Evidence: `docs/release-evidence/2026-06-01-v2-0-0-release.md`.
+
 ## Accepted Design
 
 - Create `.github/workflows/release-binaries.yml`.

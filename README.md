@@ -1,62 +1,188 @@
 # julie-extractors
 
-`julie-extractors` is the standalone extraction product for Julie's tree-sitter
-work.
-
-The product boundary is:
+`julie-extractors` is the standalone extraction product for Julie's
+Tree-sitter-based extraction work.
 
 ```text
 source tree -> versioned extraction artifact
 ```
 
-The primary artifact is SQLite. JSONL is a secondary export and streaming
-format. The primary integration surface is the `julie-extract` CLI so projects
-in any language can consume the extractor work without embedding Rust or running
-Julie MCP/server/daemon code.
+The primary artifact is SQLite. JSONL is the secondary export and streaming
+format. The primary integration surface is the `julie-extract` CLI, so tools
+written in C#, Python, Go, JavaScript, Rust, or any other language can consume
+extraction results by spawning a binary and reading a durable artifact.
 
-## Status
+## Current Release
 
-v2.0.0 release target. The migrated CLI, SQLite artifact writer, JSONL export,
-dogfood gate, package staging, and CI workflow are in this repo. The unpublished
-v0.1.0 release-candidate evidence is retained as historical audit evidence.
-`/Users/murphy/source/julie` remains maintenance-only while this repo takes over
-future extractor development.
+- Current release: `v2.0.0`
+- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.0.0
+- Published: `2026-06-01T21:08:05Z`
+- Release commit: `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`
+- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/26781742834
+- Release evidence: [docs/release-evidence/2026-06-01-v2-0-0-release.md](docs/release-evidence/2026-06-01-v2-0-0-release.md)
+
+| Platform | Asset | SHA-256 |
+| --- | --- | --- |
+| Linux x86_64 | [`julie-extract-v2.0.0-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.0.0/julie-extract-v2.0.0-x86_64-unknown-linux-gnu.tar.gz) | `582febb8c7f6dda99df6e8aa219a9437640535c4751515925858fda87363e07b` |
+| macOS Apple Silicon | [`julie-extract-v2.0.0-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.0.0/julie-extract-v2.0.0-aarch64-apple-darwin.tar.gz) | `bc9e21ef0b119bb9ab9bc2eb8a7260990244d8c9912047166beeae5ee51ea6bb` |
+| macOS Intel | [`julie-extract-v2.0.0-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.0.0/julie-extract-v2.0.0-x86_64-apple-darwin.tar.gz) | `2f06df2731639bcb0153c2b4e5f8d858ffda664f9f1f42b9e8558c10f9cd0988` |
+| Windows x86_64 | [`julie-extract-v2.0.0-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.0.0/julie-extract-v2.0.0-x86_64-pc-windows-msvc.zip) | `ee2a3c52e1b6972ef67ea267458b75d7f7b289585f51bb70424c1bd44657112e` |
+
+The v2.0.0 line starts above the old in-tree Julie extractor crate line, which
+had reached v1.22.0 before this repo became the standalone product.
+
+## Install
+
+Download a published binary archive from the release page, extract it, and put
+`julie-extract` on your `PATH`.
+
+Linux example:
+
+```bash
+curl -L -o julie-extract-v2.0.0-x86_64-unknown-linux-gnu.tar.gz \
+  https://github.com/anortham/julie-extractors/releases/download/v2.0.0/julie-extract-v2.0.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf julie-extract-v2.0.0-x86_64-unknown-linux-gnu.tar.gz
+./dist/x86_64-unknown-linux-gnu/julie-extract --version
+```
+
+Build from source:
+
+```bash
+cargo build --release -p julie-extract-cli --bin julie-extract
+./target/release/julie-extract --version
+```
 
 ## Quickstart
 
-Build the CLI:
+Create a SQLite artifact for this repo:
 
 ```bash
-cargo build -p julie-extract-cli --bin julie-extract
+mkdir -p target/example
+julie-extract scan --root . --db target/example/artifact.sqlite --json
 ```
 
-Create a SQLite artifact:
+Inspect the artifact:
 
 ```bash
-cargo run -p julie-extract-cli --bin julie-extract -- \
-  scan --root . --db target/example/artifact.sqlite --json
+julie-extract info --db target/example/artifact.sqlite --json
 ```
 
-Inspect and export it:
+Export the artifact to JSONL:
 
 ```bash
-cargo run -p julie-extract-cli --bin julie-extract -- \
-  info --db target/example/artifact.sqlite --json
-cargo run -p julie-extract-cli --bin julie-extract -- \
-  export --db target/example/artifact.sqlite --format jsonl --out target/example/artifact.jsonl --json
+julie-extract export \
+  --db target/example/artifact.sqlite \
+  --format jsonl \
+  --out target/example/artifact.jsonl \
+  --json
 ```
 
-Run the repo dogfood gate:
+List language capability metadata:
 
 ```bash
-cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
+julie-extract languages --json
 ```
 
-Read the dogfood SQLite artifact from Python:
+Read the SQLite artifact from Python with only the standard library:
 
 ```bash
-python3 examples/python/sqlite_consumer.py target/dogfood/julie-extractors/artifact.sqlite
+python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 ```
+
+## CLI Surface
+
+| Command | Purpose | Key options |
+| --- | --- | --- |
+| `scan` | Create or refresh an artifact for a source root. | `--root`, `--db`, `--force`, repeated `--ignore-file`, `--strict-schema`, `--json` |
+| `update` | Re-extract one file in an existing artifact. | `--root`, `--db`, `--file`, repeated `--ignore-file`, `--strict-schema`, `--json` |
+| `delete` | Remove one file and its child rows from an artifact. | `--root`, `--db`, `--file`, `--strict-schema`, `--json` |
+| `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
+| `export` | Export a SQLite artifact to JSONL v1. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
+| `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
+
+Every command accepts `--json` for a stable machine-readable report. Human output
+is intentionally not part of the contract.
+
+## Artifact Contract
+
+SQLite v1 is the source of truth for durable output. It stores:
+
+- artifact metadata and schema versions;
+- parser inventory and language capability snapshots;
+- extraction revisions and per-file change records;
+- source file metadata, hashes, and line counts;
+- symbols, symbol annotations, identifiers, relationships, pending
+  relationships, type facts, generic type arguments, literals, and parse
+  diagnostics.
+
+The SQLite contract requires lookup indexes for common consumer paths: files by
+path/language, symbols by path/file/name-kind/parent/test-role flags,
+identifiers by path/file/name-kind/containing/target, relationships by source,
+target, and kind, pending relationships by terminal/file, and diagnostics by
+path.
+
+Artifacts do not store complete source file contents. Consumers that need full
+text should read the matching source tree directly.
+
+## JSONL Export
+
+JSONL v1 is derived from SQLite and is not a separate source of truth. A full
+export writes deterministic `snapshot` records in this order:
+
+1. `artifact`
+2. `parser_inventory`
+3. `language_capability`
+4. `language_capability_fixture`
+5. `language_capability_gap`
+6. `revision`
+7. `revision_file_change`
+8. `file`
+9. `symbol`
+10. `symbol_annotation`
+11. `identifier`
+12. `relationship`
+13. `pending_relationship`
+14. `type_fact`
+15. `type_argument_usage`
+16. `type_argument`
+17. `literal`
+18. `parse_diagnostic`
+
+JSON text stored in SQLite is decoded into JSON values in JSONL payloads.
+
+## Reports And Exit Status
+
+JSON reports use `report_schema_version: 1` and include command status, input
+paths, artifact metadata, tool version, revision IDs, row counts, warnings, and
+typed errors.
+
+Stable status values are:
+
+- `ok`
+- `no_change`
+- `unsupported`
+- `not_found`
+- `partial`
+- `failed`
+
+`partial` means the artifact is still consistent, but at least one supported file
+failed extraction. Callers should treat it as an error status while preserving
+usable rows from successful files.
+
+## Supported Languages
+
+The current `languages --json` capability snapshot reports 36 languages:
+
+```text
+bash, c, cpp, csharp, css, dart, elixir, gdscript, go, html, java,
+javascript, json, jsx, kotlin, lua, markdown, php, powershell, python, qml, r,
+razor, regex, ruby, rust, scala, sql, swift, toml, tsx, typescript, vbnet, vue,
+yaml, zig
+```
+
+Capability rows distinguish target support from actual fixture-backed evidence.
+Use `julie-extract languages --json` for the current parser and capability
+snapshot instead of hard-coding this list in consumers.
 
 ## Intended Users
 
@@ -64,46 +190,74 @@ python3 examples/python/sqlite_consumer.py target/dogfood/julie-extractors/artif
   SQLite artifact.
 - Eros and Python tools that may choose CLI-first consumption.
 - Rust callers that want the in-process extractor crate.
-- Maintainers adding or improving extraction support across 34+ languages.
-
-## Product Surfaces
-
-- `julie-extract scan --root <dir> --db <path>`
-- `julie-extract update --root <dir> --db <path> --file <path>`
-- `julie-extract delete --root <dir> --db <path> --file <path>`
-- `julie-extract info --db <path> --json`
-- `julie-extract export --db <path> --format jsonl`
-- `julie-extract languages --json`
-- Rust crate API for in-process extraction.
-
-## Consumer Examples
-
-- Python SQLite reader: [examples/python/sqlite_consumer.py](examples/python/sqlite_consumer.py)
+- Maintainers adding or improving extraction support across supported languages.
 
 ## Non-Goals
 
-- MCP server behavior.
-- Daemon/session lifecycle.
-- Search ranking, search indexes, or embeddings.
-- Editing/refactoring tools.
-- Julie workspace registry or watcher service.
+This repo does not ship or own:
 
-## Current Docs
+- Julie MCP server behavior;
+- daemon or session lifecycle;
+- search ranking, search indexes, or embeddings;
+- watcher services, dashboards, or workspace registry behavior;
+- editing, refactoring, or code modification tools.
+
+`/Users/murphy/source/julie` remains maintenance-only while this repo owns future
+extractor product development.
+
+## Development Gates
+
+Fast branch gates:
+
+```bash
+cargo fmt --all -- --check
+cargo xtask test default
+cargo xtask test contract
+```
+
+Useful focused gates:
+
+```bash
+cargo test -p xtask
+cargo test -p julie-extract-artifact --test schema_contract
+cargo test -p julie-extract-artifact --test jsonl_contract
+cargo test -p julie-extract-cli --test cli_contract
+cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
+cargo xtask release package-list
+```
+
+Slow gates such as parser certification and real-world release tests are kept out
+of the default suite by design.
+
+## Documentation Map
+
+Product and architecture:
 
 - [Product vision](docs/product/vision.md)
 - [Product boundary](docs/architecture/product-boundary.md)
-- [CLI contract draft](docs/architecture/cli-contract.md)
+- [CLI architecture contract](docs/architecture/cli-contract.md)
 - [Schema principles](docs/architecture/schema-principles.md)
+- [Decision 0001](docs/decisions/0001-standalone-extraction-product.md)
+
+Public contracts:
+
 - [CLI contract](docs/contracts/cli.md)
 - [SQLite schema v1](docs/contracts/sqlite-schema-v1.md)
 - [JSONL v1](docs/contracts/jsonl-v1.md)
 - [JSON reports](docs/contracts/reports.md)
+
+Release and testing:
+
 - [Testing strategy](docs/testing-strategy.md)
 - [Release and certification](docs/release.md)
 - [v2.0.0 release notes](docs/release-notes/v2.0.0.md)
+- [v2.0.0 release evidence](docs/release-evidence/2026-06-01-v2-0-0-release.md)
 - [historical v0.1.0 dogfood evidence](docs/release-evidence/v0.1.0-dogfood.md)
 - [historical v0.1.0 release candidate audit](docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md)
-- [Decision 0001](docs/decisions/0001-standalone-extraction-product.md)
+
+Plans and migration history:
+
+- [Product completion tracker](docs/plans/2026-06-01-product-completion-tracker.md)
 - [Bootstrap design](docs/plans/2026-05-31-product-bootstrap-design.md)
 - [Bootstrap implementation plan](docs/plans/2026-05-31-repo-bootstrap-implementation-plan.md)
 - [Julie code migration implementation plan](docs/plans/2026-05-31-julie-code-migration-implementation-plan.md)
