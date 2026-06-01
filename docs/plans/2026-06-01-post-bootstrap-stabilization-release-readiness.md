@@ -152,7 +152,7 @@ Out of scope:
 - [x] Task 1: Split xtask command routing
 - [x] Task 2: Add dogfood command and evidence model
 - [x] Task 3: Add release package staging command
-- [ ] Task 4: Add CI and specialist workflows
+- [x] Task 4: Add CI and specialist workflows
 - [ ] Task 5: Dogfood this repo and capture v0.1.0 evidence
 - [ ] Task 6: Add Python SQLite consumer spike
 - [ ] Task 7: Update release docs, README, and release notes
@@ -255,9 +255,9 @@ Out of scope:
 **Approach:** `ci.yml` should run on pull requests and pushes to `main`, with formatting, `cargo metadata`, `cargo test -p xtask`, `cargo xtask test default`, and `cargo xtask test contract`. `specialist-gates.yml` should be `workflow_dispatch` and run certification, real-world smoke, real-world release, dogfood, and release package staging. Add a local convention test or docs check that the workflow command list matches `docs/testing-strategy.md` and `docs/release.md`.
 
 **Acceptance criteria:**
-- [ ] Regular CI does not run certification, real-world, dogfood, or release package staging.
-- [ ] Specialist workflow includes certification, real-world smoke, real-world release, dogfood repo, and release package staging commands.
-- [ ] Workflow YAML parses with an available local parser.
+- [x] Regular CI does not run certification, real-world, dogfood, or release package staging.
+- [x] Specialist workflow includes certification, real-world smoke, real-world release, dogfood repo, and release package staging commands.
+- [x] Workflow YAML parses with an available local parser.
 - [ ] Workflow command names match the documented commands.
 - [ ] `cargo test -p xtask` passes after workflow docs/tests are updated.
 

@@ -106,6 +106,57 @@ fn commands_route_release_package_staging_before_test_tier_parser() {
     );
 }
 
+#[test]
+fn workflow_commands_keep_fast_and_specialist_gates_separate() {
+    let root = repo_root();
+    let ci = std::fs::read_to_string(root.join(".github/workflows/ci.yml")).expect("read ci.yml");
+    let specialist = std::fs::read_to_string(root.join(".github/workflows/specialist-gates.yml"))
+        .expect("read specialist-gates.yml");
+    let testing_doc =
+        std::fs::read_to_string(root.join("docs/testing-strategy.md")).expect("testing docs");
+    let release_doc = std::fs::read_to_string(root.join("docs/release.md")).expect("release docs");
+
+    for command in [
+        "cargo fmt --check",
+        "cargo metadata --format-version 1",
+        "cargo test -p xtask",
+        "cargo xtask test default",
+        "cargo xtask test contract",
+    ] {
+        assert!(ci.contains(command), "ci.yml must run `{command}`");
+    }
+
+    for forbidden in [
+        "cargo xtask test certification",
+        "cargo xtask test real-world-smoke",
+        "cargo xtask test real-world-release",
+        "cargo xtask dogfood repo",
+        "cargo xtask release package --version",
+    ] {
+        assert!(
+            !ci.contains(forbidden),
+            "regular CI must not run slow gate `{forbidden}`"
+        );
+    }
+
+    for command in [
+        "cargo xtask test certification",
+        "cargo xtask test real-world-smoke",
+        "cargo xtask test real-world-release",
+        "cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors",
+        "cargo xtask release package --version",
+    ] {
+        assert!(
+            specialist.contains(command),
+            "specialist workflow must run `{command}`"
+        );
+        assert!(
+            testing_doc.contains(command) || release_doc.contains(command),
+            "docs must mention specialist command `{command}`"
+        );
+    }
+}
+
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()

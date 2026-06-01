@@ -1,0 +1,91 @@
+name: Specialist Gates
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version for package staging
+        required: true
+        default: 0.1.0
+      target:
+        description: Release target name recorded in package paths
+        required: true
+        default: x86_64-unknown-linux-gnu
+
+jobs:
+  certification:
+    name: Parser Certification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run certification tier
+        run: cargo xtask test certification
+
+  real-world-smoke:
+    name: Real-World Smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run real-world smoke tier
+        run: cargo xtask test real-world-smoke
+
+  real-world-release:
+    name: Real-World Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run real-world release tier
+        run: cargo xtask test real-world-release
+
+  dogfood:
+    name: Dogfood Repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run dogfood gate
+        run: cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
+
+  release-package:
+    name: Release Package Staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release -p julie-extract-cli --bin julie-extract
+
+      - name: Stage release package
+        run: >-
+          cargo xtask release package --version ${{ inputs.version }}
+          --target ${{ inputs.target }}
+          --out-dir target/release-package/v${{ inputs.version }}-${{ inputs.target }}
+          --binary target/release/julie-extract

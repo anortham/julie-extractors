@@ -180,6 +180,28 @@ This gate is not part of the default tier. It is release-readiness evidence and
 should run intentionally when extraction, CLI, artifact, JSONL, report, or
 release evidence behavior changes.
 
+## CI Policy
+
+Regular CI runs only fast gates:
+
+```bash
+cargo fmt --check
+cargo metadata --format-version 1
+cargo test -p xtask
+cargo xtask test default
+cargo xtask test contract
+```
+
+Specialist gates are manual through `workflow_dispatch`:
+
+```bash
+cargo xtask test certification
+cargo xtask test real-world-smoke
+cargo xtask test real-world-release
+cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
+cargo xtask release package --version <version> --target <target> --out-dir <path> --binary <path>
+```
+
 ## Guardrails
 
 - Add a default-suite wall-clock budget before implementation work grows.
