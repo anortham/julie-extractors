@@ -1,7 +1,7 @@
 # julie-extractors
 
-`julie-extractors` is planned as the standalone extraction product for Julie's
-tree-sitter work.
+`julie-extractors` is the standalone extraction product for Julie's tree-sitter
+work.
 
 The product boundary is:
 
@@ -16,8 +16,46 @@ Julie MCP/server/daemon code.
 
 ## Status
 
-Planning and bootstrap. `/Users/murphy/source/julie` remains intact while this
-repo takes over future extractor development.
+Post-bootstrap release readiness. The migrated CLI, SQLite artifact writer,
+JSONL export, dogfood gate, package staging, and CI workflow are in this repo.
+`/Users/murphy/source/julie` remains maintenance-only while this repo takes over
+future extractor development.
+
+## Quickstart
+
+Build the CLI:
+
+```bash
+cargo build -p julie-extract-cli --bin julie-extract
+```
+
+Create a SQLite artifact:
+
+```bash
+cargo run -p julie-extract-cli --bin julie-extract -- \
+  scan --root . --db target/example/artifact.sqlite --json
+```
+
+Inspect and export it:
+
+```bash
+cargo run -p julie-extract-cli --bin julie-extract -- \
+  info --db target/example/artifact.sqlite --json
+cargo run -p julie-extract-cli --bin julie-extract -- \
+  export --db target/example/artifact.sqlite --format jsonl --out target/example/artifact.jsonl --json
+```
+
+Run the repo dogfood gate:
+
+```bash
+cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
+```
+
+Read the dogfood SQLite artifact from Python:
+
+```bash
+python3 examples/python/sqlite_consumer.py target/dogfood/julie-extractors/artifact.sqlite
+```
 
 ## Intended Users
 
@@ -37,6 +75,10 @@ repo takes over future extractor development.
 - `julie-extract languages --json`
 - Rust crate API for in-process extraction.
 
+## Consumer Examples
+
+- Python SQLite reader: [examples/python/sqlite_consumer.py](examples/python/sqlite_consumer.py)
+
 ## Non-Goals
 
 - MCP server behavior.
@@ -45,7 +87,7 @@ repo takes over future extractor development.
 - Editing/refactoring tools.
 - Julie workspace registry or watcher service.
 
-## Current Planning Docs
+## Current Docs
 
 - [Product vision](docs/product/vision.md)
 - [Product boundary](docs/architecture/product-boundary.md)
@@ -56,6 +98,9 @@ repo takes over future extractor development.
 - [JSONL v1](docs/contracts/jsonl-v1.md)
 - [JSON reports](docs/contracts/reports.md)
 - [Testing strategy](docs/testing-strategy.md)
+- [Release and certification](docs/release.md)
+- [v0.1.0 dogfood evidence](docs/release-evidence/v0.1.0-dogfood.md)
+- [v0.1.0 release notes](docs/release-notes/v0.1.0.md)
 - [Decision 0001](docs/decisions/0001-standalone-extraction-product.md)
 - [Bootstrap design](docs/plans/2026-05-31-product-bootstrap-design.md)
 - [Bootstrap implementation plan](docs/plans/2026-05-31-repo-bootstrap-implementation-plan.md)
