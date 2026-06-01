@@ -149,7 +149,7 @@ Out of scope:
 ## Progress
 
 - [x] Task 0: Plan baseline
-- [ ] Task 1: Split xtask command routing
+- [x] Task 1: Split xtask command routing
 - [ ] Task 2: Add dogfood command and evidence model
 - [ ] Task 3: Add release package staging command
 - [ ] Task 4: Add CI and specialist workflows
@@ -191,13 +191,13 @@ Out of scope:
 **Approach:** Add a `commands` module that accepts environment args, routes `test <tier>`, `test list`, `release package-list`, dogfood commands, and package commands. Keep `test_tiers` focused on tier names, test-plan creation, command display, and plan execution. Preserve existing public behavior for `cargo xtask test list` and `cargo xtask release package-list`.
 
 **Acceptance criteria:**
-- [ ] `xtask/src/test_tiers.rs` no longer mentions `release`.
-- [ ] `xtask::commands::run_from_env_args` is the only top-level route used by `xtask/src/main.rs`.
-- [ ] `cargo test -p xtask --test commands_contract` passes.
-- [ ] `cargo test -p xtask --test test_tiers` passes.
-- [ ] `cargo test -p xtask --test release_contract` passes.
-- [ ] `cargo xtask test list` prints the documented tiers.
-- [ ] `cargo xtask release package-list` prints the existing manifest.
+- [x] `xtask/src/test_tiers.rs` no longer owns release-package routing.
+- [x] `xtask::commands::run_from_env_args` is the only top-level route used by `xtask/src/main.rs`.
+- [x] `cargo test -p xtask --test commands_contract` passes.
+- [x] `cargo test -p xtask --test test_tiers` passes.
+- [x] `cargo test -p xtask --test release_contract` passes.
+- [x] `cargo xtask test list` prints the documented tiers.
+- [x] `cargo xtask release package-list` prints the existing manifest.
 
 ### Task 2: Add Dogfood Command And Evidence Model
 
