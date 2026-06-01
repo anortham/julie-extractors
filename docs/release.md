@@ -81,18 +81,30 @@ Rules:
 
 ## Release Binaries Workflow
 
-The `Release Binaries` GitHub Actions workflow stages downloadable packages for
-the supported host platforms. It runs from `workflow_dispatch` with an explicit
-version input, and from tag pushes matching `v*`; tag runs derive the package
-version by stripping the leading `v`.
+The `Release Binaries` GitHub Actions workflow stages downloadable packages and
+publishes GitHub Release assets for the supported host platforms. It runs from
+`workflow_dispatch` with an explicit version input, and from tag pushes matching `v*`;
+tag runs derive the package version by stripping the leading `v`.
 
-The workflow builds `julie-extract` in release mode on Linux, macOS, and
-Windows, then runs the same package-staging command documented above for each
-target. Each staged package directory is uploaded as a GitHub Actions artifact
-named `julie-extract-v{version}-{target}`.
+The workflow builds `julie-extract` in release mode for four targets:
 
-This workflow does not publish a GitHub Release or attach release assets. It
-only produces GitHub Actions artifacts for review and manual promotion.
+- Linux x86_64: `x86_64-unknown-linux-gnu`
+- macOS Apple Silicon: `aarch64-apple-darwin`
+- macOS Intel: `x86_64-apple-darwin`
+- Windows x86_64: `x86_64-pc-windows-msvc`
+
+Each matrix job installs the target toolchain, builds with
+`cargo build --release --target <target> -p julie-extract-cli --bin
+julie-extract`, then runs the same package-staging command documented above for
+that target. The staged package directory is archived as
+`julie-extract-v{version}-{target}.tar.gz` on Linux/macOS and
+`julie-extract-v{version}-{target}.zip` on Windows.
+
+The release job downloads all archives, copies
+`docs/release-notes/v{version}.md` into the GitHub Release notes, creates or
+updates `v{version}`, and uploads all archives with `gh release upload
+--clobber`. Manual dispatch creates the release tag at the workflow commit when
+the tag does not already exist; tag-triggered runs require the pushed tag.
 
 ## Evidence
 

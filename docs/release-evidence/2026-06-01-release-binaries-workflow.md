@@ -1,5 +1,12 @@
 # Release Binaries Workflow Evidence
 
+## Superseded Scope
+
+This evidence records the original three-platform workflow-artifact staging run.
+It is historical evidence, not the current release-publishing contract. The
+current `Release Binaries` workflow builds four platforms, archives the staged
+packages, creates or updates a GitHub Release, and uploads release assets.
+
 ## Run
 
 - Commit: `6fedd9b8dd6690f81afd1fa5978a46bf113e62d0`

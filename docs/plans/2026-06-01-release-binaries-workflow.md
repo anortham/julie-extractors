@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use razorback:subagent-driven-development when subagent delegation is available. Fall back to razorback:executing-plans for single-task, tightly-sequential, or no-delegation runs.
 
-**Goal:** Add a GitHub Actions workflow that builds `julie-extract` release binaries, stages versioned release packages, and uploads them as workflow artifacts.
+**Goal:** Add a GitHub Actions workflow that builds `julie-extract` release binaries, stages versioned release packages, and publishes them as GitHub Release assets.
 
-**Architecture:** Keep release binary production separate from fast CI and specialist verification gates. The new workflow builds the CLI binary per platform, runs the existing `xtask release package` staging command, and uploads the staged package directory without publishing a GitHub Release yet.
+**Architecture:** Keep release binary production separate from fast CI and specialist verification gates. The workflow builds the CLI binary per platform, runs the existing `xtask release package` staging command, archives each staged package, and publishes those archives on a GitHub Release.
 
-**Tech Stack:** GitHub Actions, Rust stable toolchain, existing `cargo xtask release package` command, `actions/upload-artifact`.
+**Tech Stack:** GitHub Actions, Rust stable toolchain, existing `cargo xtask release package` command, `actions/upload-artifact`, `actions/download-artifact`, GitHub CLI release commands.
 
 **Architecture Quality:** Release packaging is strategy-tier in `RAZORBACK.md`. The workflow must reuse the existing package staging contract instead of adding a second package format or product behavior.
 
@@ -16,17 +16,24 @@
 
 - Create `.github/workflows/release-binaries.yml`.
 - Trigger the workflow with `workflow_dispatch` and tag pushes matching `v*`.
-- Build a matrix for Linux, macOS, and Windows.
-- Build `julie-extract` in release mode for each matrix row.
+- Build a matrix for Linux x86_64, macOS Apple Silicon, macOS Intel, and
+  Windows x86_64.
+- Build `julie-extract` in release mode for each matrix row with
+  `--target ${{ matrix.target }}`.
 - Stage packages with the existing `cargo xtask release package` command.
-- Upload each staged package directory as a GitHub Actions artifact.
-- Keep release upload/publishing out of scope for this workflow.
+- Archive each staged package directory as `.tar.gz` for Linux/macOS and `.zip`
+  for Windows.
+- Upload each archive as a GitHub Actions artifact.
+- Create or update GitHub Release `v{version}` and upload the archives as
+  release assets.
 
 ## Files
 
 - Create: `.github/workflows/release-binaries.yml`
 - Modify: `xtask/tests/commands_contract.rs`
 - Modify: `docs/release.md`
+- Modify: `docs/release-notes/v2.0.0.md`
+- Modify: `docs/plans/2026-06-01-product-completion-tracker.md`
 
 ## Implementation Tasks
 
@@ -37,28 +44,42 @@ Add an `xtask` convention test that proves the release-binaries workflow:
 - exists at `.github/workflows/release-binaries.yml`;
 - has `workflow_dispatch`;
 - has tag push trigger for `v*`;
-- includes Linux, macOS, and Windows runners;
-- runs `cargo build --release -p julie-extract-cli --bin julie-extract`;
+- includes Linux x86_64, macOS Apple Silicon, macOS Intel, and Windows x86_64
+  runners;
+- grants `contents: write`;
+- runs `cargo build --release --target ${{ matrix.target }} -p
+  julie-extract-cli --bin julie-extract`;
 - stages packages with `cargo xtask release package`;
-- uploads artifacts with `actions/upload-artifact`.
+- uploads build archives with `actions/upload-artifact`;
+- downloads archives with `actions/download-artifact`;
+- creates or updates a GitHub Release and uploads release assets.
 
 ### Task 2: Workflow
 
-Create `.github/workflows/release-binaries.yml` with one matrix job:
+Create `.github/workflows/release-binaries.yml` with one build matrix job:
 
-- Linux: `ubuntu-latest`, target label `x86_64-unknown-linux-gnu`, binary path `target/release/julie-extract`.
-- macOS: `macos-15`, target label `aarch64-apple-darwin`, binary path `target/release/julie-extract`.
-- Windows: `windows-2022`, target label `x86_64-pc-windows-msvc`, binary path `target/release/julie-extract.exe`.
+- Linux: `ubuntu-latest`, target label `x86_64-unknown-linux-gnu`, binary path `target/x86_64-unknown-linux-gnu/release/julie-extract`.
+- macOS Apple Silicon: `macos-latest`, target label `aarch64-apple-darwin`, binary path `target/aarch64-apple-darwin/release/julie-extract`.
+- macOS Intel: `macos-15-intel`, target label `x86_64-apple-darwin`, binary path `target/x86_64-apple-darwin/release/julie-extract`.
+- Windows: `windows-latest`, target label `x86_64-pc-windows-msvc`, binary path `target/x86_64-pc-windows-msvc/release/julie-extract.exe`.
 
-The package out-dir must be `target/release-package/v${{ inputs.version }}-${{ matrix.target }}` and the uploaded artifact name must include both version and target.
+The package out-dir must be `target/release-package/v${version}-${{ matrix.target }}`. The uploaded archive name must include version and target:
+
+- `julie-extract-v{version}-{target}.tar.gz` for Linux/macOS.
+- `julie-extract-v{version}-{target}.zip` for Windows.
+
+Add a release job that waits for all build matrix jobs, downloads the archives,
+uses `docs/release-notes/v{version}.md`, creates or updates GitHub Release
+`v{version}`, and uploads all archives with `gh release upload --clobber`.
 
 ### Task 3: Release Docs
 
 Update `docs/release.md` to document:
 
 - the workflow name and triggers;
-- artifact staging behavior;
-- the fact that the workflow uploads Actions artifacts only and does not publish a GitHub Release.
+- four-platform artifact staging behavior;
+- GitHub Release creation/update behavior;
+- archive naming and upload behavior.
 
 ## Verification Strategy
 

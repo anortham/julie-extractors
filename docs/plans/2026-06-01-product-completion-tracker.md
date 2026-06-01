@@ -27,7 +27,7 @@
 - Current release target is v2.0.0 after the user selected continuity from the
   old Julie extractor crate line.
 - Release decision is next: trigger the Release Binaries workflow for v2.0.0 or
-  hold the release candidate.
+  hold the release candidate after the four-platform publishing workflow lands.
 
 ## Completed Milestones
 
@@ -51,6 +51,10 @@
   - every rescan `counts.rows_written` value is `0`;
   - report-only timing: cold scan `18189ms`, rescan `215ms`, export `76771ms`.
 - Release binary workflow evidence: `docs/release-evidence/2026-06-01-release-binaries-workflow.md`.
+  - original workflow staged three Actions artifacts only;
+  - current release workflow upgrade mirrors Julie's working four-platform
+    release pattern with Linux x86_64, macOS Apple Silicon, macOS Intel, and
+    Windows x86_64 archives published to GitHub Release assets.
 - Release-binary dogfood evidence: `docs/release-evidence/2026-06-01-release-binary-dogfood.md`.
   - cold scan `7607ms`;
   - immediate no-change rescan `52ms`;
@@ -276,4 +280,6 @@ Gates passed.
 - [x] Slice 7: v2.0.0 version and test-role contract alignment.
 - [x] PR #8 merged to `main`.
 - [x] PR #9 merged to `main`.
+- [ ] Release workflow publishing upgrade: build four platforms and publish
+  GitHub Release assets.
 - [ ] Release decision: trigger the Release Binaries workflow for `v2.0.0` or hold the release candidate.
