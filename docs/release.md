@@ -23,6 +23,27 @@ The changed-path gate adds the full certification tier when these paths change:
 - `crates/julie-extractors/src/language_spec/**`
 - `crates/julie-extractors/src/registry*`
 
+## Branch Gates
+
+Before merging release-readiness work, run:
+
+```bash
+cargo fmt --check
+cargo test -p xtask
+cargo xtask test default
+cargo xtask test contract
+```
+
+Run specialist gates intentionally when their owned surface changes:
+
+```bash
+cargo xtask test certification
+cargo xtask test real-world-smoke
+cargo xtask test real-world-release
+cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
+cargo xtask release package --version <version> --target <target> --out-dir <path> --binary <path>
+```
+
 ## Package Contents
 
 Release packages contain only:

@@ -155,7 +155,7 @@ Out of scope:
 - [x] Task 4: Add CI and specialist workflows
 - [x] Task 5: Dogfood this repo and capture v0.1.0 evidence
 - [x] Task 6: Add Python SQLite consumer spike
-- [ ] Task 7: Update release docs, README, and release notes
+- [x] Task 7: Update release docs, README, and release notes
 - [ ] Task 8: Completion audit
 
 ## Tasks
@@ -314,12 +314,12 @@ Out of scope:
 **Approach:** Update status from planning/bootstrap to post-bootstrap release readiness. Add quickstart commands for `julie-extract scan`, `info`, `export`, dogfood, and Python consumer readback. Expand release docs with package staging, checksum expectations, evidence requirements, and the distinction between regular CI and specialist gates. Write v0.1.0 notes that list shipped surfaces and known boundaries without claiming publication.
 
 **Acceptance criteria:**
-- [ ] README no longer says the project is only "Planning and bootstrap".
-- [ ] README keeps the standalone product boundary and non-goals visible.
-- [ ] `docs/release.md` documents `cargo xtask release package-list`, `cargo xtask release package`, dogfood evidence, checksum verification, and branch gates.
-- [ ] `docs/testing-strategy.md` documents dogfood and release package staging as non-default gates.
-- [ ] `docs/release-notes/v0.1.0.md` names the CLI, SQLite, JSONL, reports, release package contents, and known non-goals.
-- [ ] Docs contain no claims that release assets have been published unless that has happened.
+- [x] README no longer says the project is only "Planning and bootstrap".
+- [x] README keeps the standalone product boundary and non-goals visible.
+- [x] `docs/release.md` documents `cargo xtask release package-list`, `cargo xtask release package`, dogfood evidence, checksum verification, and branch gates.
+- [x] `docs/testing-strategy.md` documents dogfood and release package staging as non-default gates.
+- [x] `docs/release-notes/v0.1.0.md` names the CLI, SQLite, JSONL, reports, release package contents, and known non-goals.
+- [x] Docs contain no claims that release assets have been published unless that has happened.
 
 ### Task 8: Completion Audit
 
