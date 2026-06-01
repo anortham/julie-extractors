@@ -121,6 +121,10 @@ identifiers by path/file/name-kind/containing/target, relationships by source,
 target, and kind, pending relationships by terminal/file, and diagnostics by
 path.
 
+Source file `content_hash` values use `blake3:<hex>`. Parser inventory and
+capability snapshot fingerprints use `sha256:<hex>`, and release asset digests
+are also SHA-256.
+
 Artifacts do not store complete source file contents. Consumers that need full
 text should read the matching source tree directly.
 
