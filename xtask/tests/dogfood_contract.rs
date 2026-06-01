@@ -35,6 +35,10 @@ fn repo_args_build_default_output_paths_and_binary() {
         plan.out_dir.join("info-report.json")
     );
     assert_eq!(
+        plan.paths.rescan_report_path,
+        plan.out_dir.join("rescan-report.json")
+    );
+    assert_eq!(
         plan.paths.export_report_path,
         plan.out_dir.join("export-report.json")
     );
@@ -95,6 +99,7 @@ fn validate_outputs_accepts_ok_reports_sqlite_metadata_and_valid_jsonl() {
         &fixture.root_path,
         CommandDurations {
             scan: Duration::from_millis(200),
+            rescan: Duration::from_millis(80),
             info: Duration::from_millis(10),
             export: Duration::from_millis(20),
         },
@@ -113,6 +118,9 @@ fn validate_outputs_accepts_ok_reports_sqlite_metadata_and_valid_jsonl() {
     assert_eq!(metrics.jsonl_records_by_kind["symbol"], 1);
     assert!(metrics.sqlite_bytes > 0);
     assert!(metrics.jsonl_bytes > 0);
+    assert_eq!(metrics.rescan_duration_ms, 80);
+    assert_eq!(metrics.rescan_files_unchanged, 2);
+    assert_eq!(metrics.rescan_files_changed, 0);
     assert!(metrics.rows_per_second.is_some());
 }
 
@@ -182,6 +190,18 @@ fn validate_outputs_rejects_other_required_hard_gate_failures() {
         |fixture| std::fs::remove_file(&fixture.paths.jsonl_path).expect("remove jsonl"),
         "failed to read",
     );
+    assert_invalid_evidence(
+        |fixture| fixture.write_rescan_report("ok", 0, 2, 0, 0),
+        "rescan report status was `ok`; expected `no_change`",
+    );
+    assert_invalid_evidence(
+        |fixture| fixture.write_rescan_report("no_change", 0, 0, 0, 0),
+        "rescan report must include unchanged files and zero changed/deleted/failed files",
+    );
+    assert_invalid_evidence(
+        |fixture| fixture.write_rescan_report("no_change", 1, 1, 0, 0),
+        "rescan report must include unchanged files and zero changed/deleted/failed files",
+    );
 }
 
 fn assert_invalid_evidence(setup: impl FnOnce(&DogfoodFixture), expected_error: &str) {
@@ -226,8 +246,26 @@ impl DogfoodFixture {
 
     fn write_ok_reports(&self) {
         self.write_report(&self.paths.scan_report_path, "ok", "scan");
+        self.write_rescan_report("no_change", 0, 2, 0, 0);
         self.write_report(&self.paths.info_report_path, "ok", "info");
         self.write_report(&self.paths.export_report_path, "ok", "export");
+    }
+
+    fn write_rescan_report(
+        &self,
+        status: &str,
+        files_changed: i64,
+        files_unchanged: i64,
+        files_deleted: i64,
+        files_failed: i64,
+    ) {
+        std::fs::write(
+            &self.paths.rescan_report_path,
+            format!(
+                r#"{{"report_schema_version":1,"status":"{status}","operation":"scan","mode":"incremental","revision":{{"created_revision_id":null}},"counts":{{"files_scanned":2,"files_changed":{files_changed},"files_unchanged":{files_unchanged},"files_deleted":{files_deleted},"files_failed":{files_failed},"rows_written":{{"files":0,"symbols":0}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
+            ),
+        )
+        .expect("write rescan report");
     }
 
     fn write_report(&self, path: &Path, status: &str, operation: &str) {

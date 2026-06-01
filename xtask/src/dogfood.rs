@@ -80,6 +80,7 @@ pub struct DogfoodOutputPaths {
     pub db_path: PathBuf,
     pub jsonl_path: PathBuf,
     pub scan_report_path: PathBuf,
+    pub rescan_report_path: PathBuf,
     pub info_report_path: PathBuf,
     pub export_report_path: PathBuf,
     pub metrics_path: PathBuf,
@@ -91,6 +92,7 @@ impl DogfoodOutputPaths {
             db_path: out_dir.join("artifact.sqlite"),
             jsonl_path: out_dir.join("artifact.jsonl"),
             scan_report_path: out_dir.join("scan-report.json"),
+            rescan_report_path: out_dir.join("rescan-report.json"),
             info_report_path: out_dir.join("info-report.json"),
             export_report_path: out_dir.join("export-report.json"),
             metrics_path: out_dir.join("metrics.json"),
@@ -101,6 +103,7 @@ impl DogfoodOutputPaths {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct CommandDurations {
     pub scan: Duration,
+    pub rescan: Duration,
     pub info: Duration,
     pub export: Duration,
 }
@@ -119,6 +122,11 @@ pub struct DogfoodMetrics {
     pub sqlite_bytes: u64,
     pub jsonl_bytes: u64,
     pub scan_duration_ms: u128,
+    pub rescan_duration_ms: u128,
+    pub rescan_files_unchanged: i64,
+    pub rescan_files_changed: i64,
+    pub rescan_files_deleted: i64,
+    pub rescan_files_failed: i64,
     pub info_duration_ms: u128,
     pub export_duration_ms: u128,
     pub rows_per_second: Option<f64>,
@@ -317,6 +325,20 @@ pub fn run_repo(plan: DogfoodPlan) -> Result<DogfoodMetrics, DogfoodError> {
     write_command_stdout(&plan.paths.scan_report_path, &scan_output)?;
     ensure_success("julie-extract scan", scan_output)?;
 
+    let (rescan_duration, rescan_output) = run_julie_extract(
+        &plan.binary,
+        [
+            "scan",
+            "--root",
+            path_str(&root)?,
+            "--db",
+            path_str(&plan.paths.db_path)?,
+            "--json",
+        ],
+    )?;
+    write_command_stdout(&plan.paths.rescan_report_path, &rescan_output)?;
+    ensure_success("julie-extract rescan", rescan_output)?;
+
     let (info_duration, info_output) = run_julie_extract(
         &plan.binary,
         ["info", "--db", path_str(&plan.paths.db_path)?, "--json"],
@@ -345,6 +367,7 @@ pub fn run_repo(plan: DogfoodPlan) -> Result<DogfoodMetrics, DogfoodError> {
         &root,
         CommandDurations {
             scan: scan_duration,
+            rescan: rescan_duration,
             info: info_duration,
             export: export_duration,
         },
@@ -359,6 +382,7 @@ pub fn validate_outputs(
     durations: CommandDurations,
 ) -> Result<DogfoodMetrics, DogfoodError> {
     validate_report(&paths.scan_report_path, "scan", "incremental")?;
+    let rescan_counts = validate_rescan_report(&paths.rescan_report_path)?;
     validate_report(&paths.info_report_path, "info", "read_only")?;
     validate_report(&paths.export_report_path, "export", "jsonl")?;
 
@@ -440,6 +464,11 @@ pub fn validate_outputs(
         sqlite_bytes,
         jsonl_bytes,
         scan_duration_ms: durations.scan.as_millis(),
+        rescan_duration_ms: durations.rescan.as_millis(),
+        rescan_files_unchanged: rescan_counts.files_unchanged,
+        rescan_files_changed: rescan_counts.files_changed,
+        rescan_files_deleted: rescan_counts.files_deleted,
+        rescan_files_failed: rescan_counts.files_failed,
         info_duration_ms: durations.info.as_millis(),
         export_duration_ms: durations.export.as_millis(),
         rows_per_second,
@@ -481,6 +510,7 @@ fn clear_outputs(paths: &DogfoodOutputPaths) -> Result<(), DogfoodError> {
         &paths.db_path.with_extension("sqlite-shm"),
         &paths.jsonl_path,
         &paths.scan_report_path,
+        &paths.rescan_report_path,
         &paths.info_report_path,
         &paths.export_report_path,
         &paths.metrics_path,
@@ -666,6 +696,101 @@ fn validate_report(
         }
     }
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct RescanCounts {
+    files_unchanged: i64,
+    files_changed: i64,
+    files_deleted: i64,
+    files_failed: i64,
+}
+
+fn validate_rescan_report(path: &Path) -> Result<RescanCounts, DogfoodError> {
+    let value = read_json(path)?;
+    let report_schema_version = value
+        .get("report_schema_version")
+        .and_then(Value::as_i64)
+        .ok_or_else(|| {
+            DogfoodError::InvalidEvidence(
+                "rescan report is missing integer report_schema_version".to_string(),
+            )
+        })?;
+    if report_schema_version != 1 {
+        return Err(DogfoodError::InvalidEvidence(format!(
+            "rescan report schema version was {report_schema_version}; expected 1"
+        )));
+    }
+    let status = value.get("status").and_then(Value::as_str).ok_or_else(|| {
+        DogfoodError::InvalidEvidence("rescan report is missing string status".to_string())
+    })?;
+    if status != "no_change" {
+        return Err(DogfoodError::InvalidEvidence(format!(
+            "rescan report status was `{status}`; expected `no_change`"
+        )));
+    }
+    let operation = value
+        .get("operation")
+        .and_then(Value::as_str)
+        .ok_or_else(|| {
+            DogfoodError::InvalidEvidence("rescan report is missing string operation".to_string())
+        })?;
+    if operation != "scan" {
+        return Err(DogfoodError::InvalidEvidence(format!(
+            "rescan report operation was `{operation}`; expected `scan`"
+        )));
+    }
+    let mode = value.get("mode").and_then(Value::as_str).ok_or_else(|| {
+        DogfoodError::InvalidEvidence("rescan report is missing string mode".to_string())
+    })?;
+    if mode != "incremental" {
+        return Err(DogfoodError::InvalidEvidence(format!(
+            "rescan report mode was `{mode}`; expected `incremental`"
+        )));
+    }
+    let errors = value
+        .get("errors")
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            DogfoodError::InvalidEvidence("rescan report is missing errors array".to_string())
+        })?;
+    if !errors.is_empty() {
+        return Err(DogfoodError::InvalidEvidence(
+            "rescan report had nonempty errors array".to_string(),
+        ));
+    }
+
+    let counts = RescanCounts {
+        files_unchanged: report_count(&value, "/counts/files_unchanged", "files_unchanged")?,
+        files_changed: report_count(&value, "/counts/files_changed", "files_changed")?,
+        files_deleted: report_count(&value, "/counts/files_deleted", "files_deleted")?,
+        files_failed: report_count(&value, "/counts/files_failed", "files_failed")?,
+    };
+    if counts.files_unchanged <= 0
+        || counts.files_changed != 0
+        || counts.files_deleted != 0
+        || counts.files_failed != 0
+    {
+        return Err(DogfoodError::InvalidEvidence(
+            "rescan report must include unchanged files and zero changed/deleted/failed files"
+                .to_string(),
+        ));
+    }
+
+    Ok(counts)
+}
+
+fn report_count(
+    value: &Value,
+    pointer: &'static str,
+    label: &'static str,
+) -> Result<i64, DogfoodError> {
+    value
+        .pointer(pointer)
+        .and_then(Value::as_i64)
+        .ok_or_else(|| {
+            DogfoodError::InvalidEvidence(format!("rescan report is missing integer {label}"))
+        })
 }
 
 fn read_json(path: &Path) -> Result<Value, DogfoodError> {

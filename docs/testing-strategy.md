@@ -173,8 +173,9 @@ notes.
 
 ## Dogfood Gate
 
-Dogfood scans this repository through the public `julie-extract` CLI and
-validates the generated SQLite artifact, JSON reports, JSONL export, and
+Dogfood scans this repository through the public `julie-extract` CLI, immediately
+rescans the same SQLite artifact to prove the incremental `no_change` path,
+then validates the generated SQLite artifact, JSON reports, JSONL export, and
 report-only performance metrics.
 
 Current form:
@@ -185,8 +186,9 @@ cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
 
 This gate is not part of the default tier. It is release-readiness evidence and
 should run intentionally when extraction, CLI, artifact, JSONL, report, or
-release evidence behavior changes. v0.1.0 dogfood evidence is recorded in
-`docs/release-evidence/v0.1.0-dogfood.md`.
+release evidence behavior changes. Its hard evidence includes the cold scan
+`ok` report and immediate rescan `no_change` report; timings are report-only.
+v0.1.0 dogfood evidence is recorded in `docs/release-evidence/v0.1.0-dogfood.md`.
 
 ## CI Policy
 
