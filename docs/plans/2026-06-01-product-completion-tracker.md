@@ -14,9 +14,9 @@
 
 ## Current Status
 
-- `main` is at `987dc37` after PR #5 merged the JSONL export performance plan.
-- CI Fast Gates passed on PR #5 before merge.
-- Active product implementation branch: `codex/jsonl-export-buffered-writer` in PR #6.
+- `main` is at `bac074a` after PR #6 merged the JSONL export buffered writer.
+- CI Fast Gates passed on PR #6 before merge.
+- Active product implementation branch: `codex/repeatable-performance-baseline`.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 
@@ -29,6 +29,8 @@
 - **Release binary workflow:** completed in `docs/plans/2026-06-01-release-binaries-workflow.md`.
 - **Incremental scan hash skip:** completed in `docs/plans/2026-06-01-incremental-scan-hash-skip.md`.
 - **Dogfood no-change rescan baseline:** completed in `docs/plans/2026-06-01-dogfood-incremental-rescan-baseline.md`.
+- **JSONL export buffering:** completed in `docs/plans/2026-06-01-jsonl-export-performance.md`.
+- **Repeatable performance baseline:** completed in `docs/plans/2026-06-01-repeatable-performance-baseline.md`.
 
 ## Current Evidence
 
@@ -56,6 +58,15 @@
   - bounded-write red test failed before buffering with `2853` downstream writes for an `8558` byte fixture export;
   - buffered release binary export to `/dev/null`: `2.43s` real, `1.06s` user, `0.21s` sys;
   - fallback per-record line buffer is not needed before the repeatable baseline slice.
+- Repeatable performance baseline evidence:
+  `docs/release-evidence/2026-06-01-repeatable-performance-baseline.md`.
+  - implementation commit `844f1bb`;
+  - command:
+    `cargo xtask performance baseline --root . --out-dir target/performance/julie-extractors-baseline --binary target/release/julie-extract --runs 3`;
+  - cold scan min/median/max: `6277ms` / `6387ms` / `7508ms`;
+  - no-change rescan min/median/max: `51ms` / `51ms` / `52ms`;
+  - JSONL export min/median/max: `1330ms` / `1330ms` / `1333ms`;
+  - stable rows: `1018` files, `33019` symbols, `215388` JSONL records.
 - Autonomous run report for PR #3: `.memories/autonomous-run-2026-06-01-dogfood-rescan-baseline.md`.
 
 ## Non-Goals To Keep Out
@@ -138,9 +149,9 @@
 - Keep metrics report-only until repeated data supports a threshold.
 
 **Acceptance criteria:**
-- [ ] Captures cold scan, no-change rescan, export, artifact sizes, and row counts across repeated runs.
-- [ ] Records variance or at least min/median/max before proposing hard budgets.
-- [ ] Keeps default tests fast.
+- [x] Captures cold scan, no-change rescan, export, artifact sizes, and row counts across repeated runs.
+- [x] Records variance or at least min/median/max before proposing hard budgets.
+- [x] Keeps default tests fast.
 
 ### Slice 5: v0.1.0 Release Candidate Audit
 
@@ -173,5 +184,5 @@
 - [x] Slice 1: Release-binary dogfood evidence.
 - [x] Slice 2: JSONL export performance plan.
 - [x] Slice 3: JSONL export buffered writer implementation.
-- [ ] Slice 4: Repeatable performance baseline.
+- [x] Slice 4: Repeatable performance baseline.
 - [ ] Slice 5: v0.1.0 release candidate audit.
