@@ -16,7 +16,7 @@
 
 - `main` is at `987dc37` after PR #5 merged the JSONL export performance plan.
 - CI Fast Gates passed on PR #5 before merge.
-- Active product implementation branch: `codex/jsonl-export-buffered-writer`.
+- Active product implementation branch: `codex/jsonl-export-buffered-writer` in PR #6.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 
@@ -51,6 +51,7 @@
   - release binary export to `/dev/null`: `20.79s` real, `3.83s` user, `15.66s` sys;
   - first implementation target: buffered JSONL writes, with no JSONL/SQLite/report/CLI contract changes.
 - JSONL export buffering evidence: `docs/release-evidence/2026-06-01-jsonl-export-buffering.md`.
+  - PR #6: https://github.com/anortham/julie-extractors/pull/6;
   - implementation commit `14da93e`;
   - bounded-write red test failed before buffering with `2853` downstream writes for an `8558` byte fixture export;
   - buffered release binary export to `/dev/null`: `2.43s` real, `1.06s` user, `0.21s` sys;
