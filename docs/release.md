@@ -103,3 +103,5 @@ report, info report, JSONL export report, SQLite/JSONL artifact validation, and
 report-only performance metrics.
 
 v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
+v0.1.0 release-candidate audit evidence:
+`docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.

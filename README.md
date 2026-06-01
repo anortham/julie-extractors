@@ -16,7 +16,7 @@ Julie MCP/server/daemon code.
 
 ## Status
 
-Post-bootstrap release readiness. The migrated CLI, SQLite artifact writer,
+v0.1.0 release-candidate audit. The migrated CLI, SQLite artifact writer,
 JSONL export, dogfood gate, package staging, and CI workflow are in this repo.
 `/Users/murphy/source/julie` remains maintenance-only while this repo takes over
 future extractor development.
@@ -100,6 +100,7 @@ python3 examples/python/sqlite_consumer.py target/dogfood/julie-extractors/artif
 - [Testing strategy](docs/testing-strategy.md)
 - [Release and certification](docs/release.md)
 - [v0.1.0 dogfood evidence](docs/release-evidence/v0.1.0-dogfood.md)
+- [v0.1.0 release candidate audit](docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md)
 - [v0.1.0 release notes](docs/release-notes/v0.1.0.md)
 - [Decision 0001](docs/decisions/0001-standalone-extraction-product.md)
 - [Bootstrap design](docs/plans/2026-05-31-product-bootstrap-design.md)

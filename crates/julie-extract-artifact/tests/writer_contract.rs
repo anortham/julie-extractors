@@ -490,7 +490,10 @@ fn capability_snapshot_sync_writes_static_rows_once() {
     assert_eq!(first.language_capability_gaps, 1);
     assert_eq!(count(writer.connection(), "parser_inventory"), 1);
     assert_eq!(count(writer.connection(), "language_capabilities"), 1);
-    assert_eq!(count(writer.connection(), "language_capability_fixtures"), 1);
+    assert_eq!(
+        count(writer.connection(), "language_capability_fixtures"),
+        1
+    );
     assert_eq!(count(writer.connection(), "language_capability_gaps"), 1);
     assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
 
@@ -499,7 +502,10 @@ fn capability_snapshot_sync_writes_static_rows_once() {
     assert!(!second.has_rows());
     assert_eq!(count(writer.connection(), "parser_inventory"), 1);
     assert_eq!(count(writer.connection(), "language_capabilities"), 1);
-    assert_eq!(count(writer.connection(), "language_capability_fixtures"), 1);
+    assert_eq!(
+        count(writer.connection(), "language_capability_fixtures"),
+        1
+    );
     assert_eq!(count(writer.connection(), "language_capability_gaps"), 1);
     assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
 }

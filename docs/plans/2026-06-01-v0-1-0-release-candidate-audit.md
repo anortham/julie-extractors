@@ -4,11 +4,11 @@
 
 **Goal:** Produce the v0.1.0 release-candidate audit evidence and update release notes so the standalone extraction product is ready for a release decision.
 
-**Architecture:** This slice changes release documentation and release-evidence records only. It uses the existing release package staging command as the hard packaging proof, and it treats dogfood/performance timings as already-recorded report-only evidence. Public CLI, SQLite, JSONL, report, and Rust crate contracts remain unchanged.
+**Architecture:** This slice started as a release documentation and evidence audit. The audit found a release-blocking contract mismatch: SQLite/JSONL/report contracts exposed parser inventory and language capability rows, but real artifacts had zero rows. The slice therefore includes a targeted product fix to persist the existing capability snapshot without changing language capability claims. It uses the existing release package staging command as the hard packaging proof, and it treats dogfood/performance timings as report-only evidence. Public CLI, SQLite, JSONL, report, and Rust crate contract shapes remain unchanged.
 
 **Tech Stack:** Rust workspace, `julie-extract`, `cargo xtask release package`, release binary, SHA-256 checksums, markdown release notes and evidence docs.
 
-**Architecture Quality:** No Architecture Impact. The work audits and records release readiness; it does not change product code, artifact schemas, parser dependencies, or release package manifest logic.
+**Architecture Quality:** Medium Architecture Impact. The work preserves the public v1 schema shape but fills previously empty contract tables from the existing extractor capability snapshot. It does not add parser dependencies, change capability claims, or change release package manifest logic.
 
 ---
 
@@ -41,19 +41,26 @@
 `docs/testing-strategy.md`, `docs/release.md`, and `xtask` release contract
 tests.
 
-**Worker red/green scope:** This slice is release-evidence/docs-only after
-the staging command. If tests are needed for changed wording or manifest
-coverage, use `cargo test -p xtask`.
+**Worker red/green scope:** The audit fix is covered at the CLI and artifact
+writer surfaces. For the capability-row fix, use
+`cargo test -p julie-extract-cli --test operations_contract` and
+`cargo test -p julie-extract-artifact --test writer_contract`.
 
-**Worker ceiling:** `cargo test -p xtask`.
+**Worker ceiling:** `cargo test -p julie-extract-cli --test operations_contract`
+plus `cargo test -p julie-extract-artifact --test writer_contract`.
 
 **Worker gate invariant:** Release notes and audit evidence match actual staged
 package contents, actual binary identity, latest dogfood/performance evidence,
 and stated non-goals.
 
 **Lead affected-change scope:**
+- `cargo test -p julie-extract-cli --test operations_contract`
+- `cargo test -p julie-extract-artifact --test writer_contract`
+- `cargo test -p julie-extract-artifact --test jsonl_contract`
+- `cargo test -p julie-extract-artifact --test report_contract`
 - `cargo build --release -p julie-extract-cli --bin julie-extract`
-- `cargo xtask release package --version 0.1.0 --target aarch64-apple-darwin --out-dir target/release-package/v0.1.0-aarch64-apple-darwin --binary target/release/julie-extract`
+- `cargo xtask performance baseline --root . --out-dir target/performance/julie-extractors-baseline-805da3b --binary target/release/julie-extract --runs 3`
+- `cargo xtask release package --version 0.1.0 --target aarch64-apple-darwin --out-dir target/release-package/v0.1.0-aarch64-apple-darwin-c407cde --binary target/release/julie-extract`
 - checksum verification inside the staged package
 - `cargo test -p xtask`
 
@@ -67,7 +74,8 @@ plan sets budgets.
 
 **Escalation triggers:** Missing release note, staged manifest drift, checksum
 failure, package output containing files outside the manifest, public contract
-changes, parser dependency changes, or weak evidence quality.
+changes, parser dependency changes, zero capability evidence rows, or weak
+evidence quality.
 
 **Assigned verification failure:** Workers stop and report when assigned
 verification fails unless this plan explicitly says to update that gate.
@@ -119,6 +127,10 @@ package evidence interpretation, metrics, or acceptance gates.
   status and final active state.
 - Modify: `.memories/briefs/julie-extractors-product-completion-focus.md` -
   keep the active brief current.
+- Modify: `crates/julie-extract-artifact/` and `crates/julie-extract-cli/` -
+  targeted fix for capability snapshot persistence found by the audit.
+- Modify: `crates/julie-extractors/` - crate metadata and docs alignment for
+  the secondary Rust API surface.
 
 ## Tasks
 
@@ -131,10 +143,10 @@ package evidence interpretation, metrics, or acceptance gates.
 - Record the manifest file list from the staged output.
 
 **Acceptance criteria:**
-- [ ] Release binary builds.
-- [ ] Release package staging passes into `target/release-package/`.
-- [ ] Staged checksum verifies against the staged binary.
-- [ ] Staged files match the release package manifest and no generated files are committed.
+- [x] Release binary builds.
+- [x] Release package staging passes into `target/release-package/`.
+- [x] Staged checksum verifies against the staged binary.
+- [x] Staged files match the release package manifest and no generated files are committed.
 
 ### Task 2: Update Release Notes And Evidence
 
@@ -144,11 +156,27 @@ package evidence interpretation, metrics, or acceptance gates.
 - Add release-candidate audit evidence under `docs/release-evidence/`.
 
 **Acceptance criteria:**
-- [ ] Release notes name current shipped surfaces and non-goals.
-- [ ] Release notes point at latest dogfood, buffering, performance, and
+- [x] Release notes name current shipped surfaces and non-goals.
+- [x] Release notes point at latest dogfood, buffering, performance, and
   package-staging evidence.
-- [ ] Evidence records commands, commit, timestamp, target, binary identity,
+- [x] Evidence records commands, commit, timestamp, target, binary identity,
   staged files, checksum verification, and judgment.
+
+### Task 2.5: Resolve Capability Evidence Contract Drift
+
+**What to do:**
+- Persist the extractor capability snapshot into SQLite artifacts.
+- Include capability rows in JSONL exports from real scanned artifacts.
+- Keep language capability claims unchanged.
+- Align the secondary Rust crate metadata to v0.1.0 and this repository.
+
+**Acceptance criteria:**
+- [x] Real scan-created artifacts have nonzero parser inventory and language
+  capability rows.
+- [x] Real JSONL exports include parser inventory, capability, fixture, and gap
+  records.
+- [x] No-change rescans remain `status=no_change` with zero rows written.
+- [x] `julie-extractors` crate metadata no longer points at old Julie.
 
 ### Task 3: Close Tracker State
 
@@ -158,28 +186,38 @@ package evidence interpretation, metrics, or acceptance gates.
   decision, not automatically published.
 
 **Acceptance criteria:**
-- [ ] Tracker marks Slice 5 complete.
-- [ ] Active brief points at current `main`, branch, and audit evidence.
-- [ ] No stale "active PR #7" or pre-Slice-5 status remains.
+- [x] Tracker marks Slice 5 complete.
+- [x] Active brief points at current `main`, branch, and audit evidence.
+- [x] No stale "active PR #7" or pre-Slice-5 status remains.
 
 ### Task 4: Verify And Finish Branch
 
 **What to do:**
 - Run focused and branch gates.
+
+**Acceptance criteria:**
+- [x] `cargo test -p xtask` passes.
+- [x] `cargo fmt --all -- --check` passes.
+- [x] `cargo xtask test default` passes.
+- [x] `cargo xtask test contract` passes.
+- [x] Changed-path gate passes for touched extractor metadata and product code
+  paths.
+
+### Task 5: Push PR And Watch CI
+
+**What to do:**
 - Push the branch and open a PR.
 - Watch Fast Gates.
 
 **Acceptance criteria:**
-- [ ] `cargo test -p xtask` passes.
-- [ ] `cargo fmt --all -- --check` passes.
-- [ ] `cargo xtask test default` passes.
-- [ ] `cargo xtask test contract` passes.
 - [ ] PR Fast Gates pass.
 
 ## Progress
 
 - [x] Task 0: Merge PR #7, sync `main`, and create Slice 5 worktree.
-- [ ] Task 1: Stage release package and capture facts.
-- [ ] Task 2: Update release notes and evidence.
-- [ ] Task 3: Close tracker state.
-- [ ] Task 4: Verify and finish branch.
+- [x] Task 1: Stage release package and capture facts.
+- [x] Task 2: Update release notes and evidence.
+- [x] Task 2.5: Resolve capability evidence contract drift.
+- [x] Task 3: Close tracker state.
+- [x] Task 4: Verify branch.
+- [ ] Task 5: Push branch, open PR, and watch CI.
