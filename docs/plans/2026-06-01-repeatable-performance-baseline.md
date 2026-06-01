@@ -206,13 +206,13 @@ dogfood runner and writes `baseline-summary.json`.
 the hard-gate result plus report-only min/median/max.
 
 **Acceptance criteria:**
-- [ ] Evidence records commit, timestamp, command, binary SHA-256, binary size,
+- [x] Evidence records commit, timestamp, command, binary SHA-256, binary size,
   output directory, and generated summary path.
-- [ ] Evidence records cold scan, no-change rescan, export, artifact sizes, row
+- [x] Evidence records cold scan, no-change rescan, export, artifact sizes, row
   counts, and JSONL record counts across repeated runs.
-- [ ] Evidence explicitly says timings are report-only and no threshold was
+- [x] Evidence explicitly says timings are report-only and no threshold was
   introduced.
-- [ ] Tracker marks Slice 4 complete and leaves Slice 5 as the next active
+- [x] Tracker marks Slice 4 complete and leaves Slice 5 as the next active
   slice.
 
 ### Task 4: Verify And Finish Branch
@@ -234,5 +234,5 @@ the hard-gate result plus report-only min/median/max.
 - [x] Task 0: Plan Slice 4 shape from existing dogfood and release evidence.
 - [x] Task 1: Add baseline command contract tests.
 - [x] Task 2: Implement repeatable baseline runner.
-- [ ] Task 3: Run release-profile baseline and record evidence.
+- [x] Task 3: Run release-profile baseline and record evidence.
 - [ ] Task 4: Verify and finish branch.
