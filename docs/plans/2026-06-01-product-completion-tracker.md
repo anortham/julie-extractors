@@ -16,7 +16,7 @@
 
 - `main` is at `bac074a` after PR #6 merged the JSONL export buffered writer.
 - CI Fast Gates passed on PR #6 before merge.
-- Active product implementation branch: `codex/repeatable-performance-baseline`.
+- Active product implementation branch: `codex/repeatable-performance-baseline` in PR #7.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 
@@ -60,6 +60,7 @@
   - fallback per-record line buffer is not needed before the repeatable baseline slice.
 - Repeatable performance baseline evidence:
   `docs/release-evidence/2026-06-01-repeatable-performance-baseline.md`.
+  - PR #7: https://github.com/anortham/julie-extractors/pull/7;
   - implementation commit `844f1bb`;
   - command:
     `cargo xtask performance baseline --root . --out-dir target/performance/julie-extractors-baseline --binary target/release/julie-extract --runs 3`;
