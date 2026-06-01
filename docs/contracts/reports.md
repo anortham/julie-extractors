@@ -6,6 +6,9 @@ JSON reports are the stable machine-readable result for `julie-extract`
 commands. They summarize command status, artifact versions, counts, and typed
 errors.
 
+Reports do not include complete source file contents. They may report file paths,
+metadata, counts, warnings, and typed errors.
+
 Every command accepts `--json`. Without `--json`, output is human-facing and not
 part of this contract.
 

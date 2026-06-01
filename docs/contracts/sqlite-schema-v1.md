@@ -15,6 +15,9 @@ only on the tables and columns named here.
 - IDs are opaque stable text values. Consumers must not parse ID internals.
 - Lines are 1-based. Columns are 0-based. Byte offsets are 0-based offsets into
   the original UTF-8 file content.
+- Full source file content is not stored. The artifact stores file metadata,
+  hashes, spans, and source-derived extraction facts; consumers that need the
+  complete file text must read the matching source tree.
 - Enum values are lower-case snake_case strings.
 - Booleans are stored as `INTEGER NOT NULL` values `0` or `1`.
 - Timestamps are RFC 3339 UTC strings.

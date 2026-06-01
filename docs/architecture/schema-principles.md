@@ -10,6 +10,8 @@ derived from the same canonical data.
 - Explicit about versions and capability evidence.
 - Friendly to incremental update/delete operations.
 - Usable from any language with SQLite support.
+- Compact by default: store hashes, spans, and extracted facts, not complete
+  source file contents.
 - Fast for both write-heavy extraction and read-heavy downstream lookup.
 
 ## Required Domains

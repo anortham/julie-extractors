@@ -14,10 +14,13 @@
 
 ## Current Status
 
-- `main` is at `94f1661` after PR #9 merged the release-blocker fixes and
-  v2.0.0 contract alignment.
+- Pre-release audit started from `e9d5601`, after PR #9 merge-status
+  documentation landed.
 - PR #9: https://github.com/anortham/julie-extractors/pull/9.
 - PR #9 Fast Gates passed before merge.
+- Latest pushed `main` CI evidence at audit time passed for `e9d5601` in run
+  `26776385538`.
+- No GitHub releases or `v*` tags exist yet for this repository.
 - No active product implementation branch remains.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
@@ -94,6 +97,13 @@
   - local verification included `cargo xtask test default` and
     `cargo xtask test contract`;
   - GitHub Fast Gates passed in run `26775855499`.
+- Post-merge main evidence:
+  - `e9d5601` recorded the PR #9 merge status;
+  - GitHub Fast Gates passed for `e9d5601` in run `26776385538`;
+  - `gh pr list --state open` returned no open pull requests;
+  - `gh release list` and `git tag --list 'v*'` returned no releases or tags;
+  - `cargo xtask release package-list` passed and showed the v2.0.0 package
+    includes the CLI, checksums, contracts, release docs, and release notes.
 - v2.0.0 version/test-role alignment:
   `docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`.
   - package metadata and release workflow defaults now target v2.0.0;

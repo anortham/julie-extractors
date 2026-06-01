@@ -5,6 +5,9 @@
 JSONL is the secondary export and streaming format. It is derived from the same
 canonical rows as SQLite and must not become a separate source of truth.
 
+JSONL does not embed complete source files. It exports file metadata,
+hashes, spans, and source-derived extraction facts from the SQLite artifact.
+
 `julie-extract export --db <path> --format jsonl --out <path|->` writes JSONL
 v1 records.
 
