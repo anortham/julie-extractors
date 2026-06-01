@@ -190,6 +190,17 @@ release evidence behavior changes. Its hard evidence includes the cold scan
 `ok` report and immediate rescan `no_change` report; timings are report-only.
 v0.1.0 dogfood evidence is recorded in `docs/release-evidence/v0.1.0-dogfood.md`.
 
+Repeatable performance baselines run the release binary through the same dogfood
+validator multiple times and aggregate report-only min/median/max metrics:
+
+```bash
+cargo build --release -p julie-extract-cli --bin julie-extract
+cargo xtask performance baseline --root . --out-dir target/performance/julie-extractors-baseline --binary target/release/julie-extract --runs 3
+```
+
+This command is release-evidence tooling. It is not part of regular CI, and it
+does not define hard timing thresholds.
+
 ## CI Policy
 
 Regular CI runs only fast gates:
@@ -210,6 +221,13 @@ cargo xtask test real-world-smoke
 cargo xtask test real-world-release
 cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
 cargo xtask release package --version <version> --target <target> --out-dir <path> --binary <path>
+```
+
+Repeatable performance baselines are local release-evidence runs unless a future
+plan explicitly adds a dedicated workflow:
+
+```bash
+cargo xtask performance baseline --root . --out-dir target/performance/julie-extractors-baseline --binary target/release/julie-extract --runs 3
 ```
 
 ## Guardrails
