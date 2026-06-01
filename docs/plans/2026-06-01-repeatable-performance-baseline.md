@@ -171,12 +171,12 @@ agent, use `inherit` and continue.
 implementation.
 
 **Acceptance criteria:**
-- [ ] `performance baseline` requires `--root`, `--out-dir`, `--binary`, and
+- [x] `performance baseline` requires `--root`, `--out-dir`, `--binary`, and
   `--runs`.
-- [ ] `--runs 1` and `--runs 2` fail with a clear error.
-- [ ] Per-run output directories are planned as `run-001`, `run-002`, etc.
-- [ ] Aggregate summaries compute min, median, and max from sample metrics.
-- [ ] Serialized summary contains per-run metrics and aggregate metrics.
+- [x] `--runs 1` and `--runs 2` fail with a clear error.
+- [x] Per-run output directories are planned as `run-001`, `run-002`, etc.
+- [x] Aggregate summaries compute min, median, and max from sample metrics.
+- [x] Serialized summary contains per-run metrics and aggregate metrics.
 
 ### Task 2: Implement Repeatable Baseline Runner
 
@@ -189,11 +189,11 @@ implementation.
 dogfood runner and writes `baseline-summary.json`.
 
 **Acceptance criteria:**
-- [ ] Uses existing `dogfood::run_repo` validation instead of duplicating hard
+- [x] Uses existing `dogfood::run_repo` validation instead of duplicating hard
   evidence checks.
-- [ ] Writes generated artifacts only under the requested `--out-dir`.
-- [ ] Does not change public product CLI, schema, JSONL, or report contracts.
-- [ ] Keeps timing and rows-per-second metrics report-only.
+- [x] Writes generated artifacts only under the requested `--out-dir`.
+- [x] Does not change public product CLI, schema, JSONL, or report contracts.
+- [x] Keeps timing and rows-per-second metrics report-only.
 
 ### Task 3: Run Release-Profile Baseline And Record Evidence
 
@@ -232,7 +232,7 @@ the hard-gate result plus report-only min/median/max.
 ## Progress
 
 - [x] Task 0: Plan Slice 4 shape from existing dogfood and release evidence.
-- [ ] Task 1: Add baseline command contract tests.
-- [ ] Task 2: Implement repeatable baseline runner.
+- [x] Task 1: Add baseline command contract tests.
+- [x] Task 2: Implement repeatable baseline runner.
 - [ ] Task 3: Run release-profile baseline and record evidence.
 - [ ] Task 4: Verify and finish branch.

@@ -35,6 +35,10 @@ fn test_tiers_module_does_not_own_release_routing() {
         !source.contains("crate::release"),
         "test_tiers must not call release module commands"
     );
+    assert!(
+        !source.contains("crate::performance"),
+        "test_tiers must not call performance baseline commands"
+    );
 }
 
 #[test]
@@ -107,6 +111,35 @@ fn commands_route_release_package_staging_before_test_tier_parser() {
 }
 
 #[test]
+fn commands_route_performance_baseline_before_test_tier_parser() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("baseline");
+    let binary = temp.path().join("missing-julie-extract");
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args([
+            "performance",
+            "baseline",
+            "--root",
+            temp.path().to_str().expect("utf-8 path"),
+            "--out-dir",
+            out_dir.to_str().expect("utf-8 path"),
+            "--binary",
+            binary.to_str().expect("utf-8 path"),
+            "--runs",
+            "3",
+        ])
+        .output()
+        .expect("run xtask performance baseline");
+
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("failed to run"),
+        "performance baseline route must reach baseline runner, stderr: {stderr}"
+    );
+}
+
+#[test]
 fn workflow_commands_keep_fast_and_specialist_gates_separate() {
     let root = repo_root();
     let ci = std::fs::read_to_string(root.join(".github/workflows/ci.yml")).expect("read ci.yml");
@@ -132,6 +165,7 @@ fn workflow_commands_keep_fast_and_specialist_gates_separate() {
         "cargo xtask test real-world-release",
         "cargo xtask dogfood repo",
         "cargo xtask release package --version",
+        "cargo xtask performance baseline",
     ] {
         assert!(
             !ci.contains(forbidden),
