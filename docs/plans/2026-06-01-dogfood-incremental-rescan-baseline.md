@@ -97,6 +97,7 @@
 - Modify: `xtask/src/dogfood.rs` - add rescan report path, run the second scan, validate `no_change`, and serialize rescan timing/summary metrics.
 - Modify: `xtask/tests/dogfood_contract.rs` - add red/green tests for rescan path planning, rescan validation, and invalid rescan evidence.
 - Modify: `docs/testing-strategy.md` - document that dogfood includes an immediate no-change rescan.
+- Modify: `docs/release.md` - document that release dogfood evidence includes rescan evidence.
 - Modify: `docs/release-evidence/v0.1.0-dogfood.md` - refresh evidence after running the updated dogfood gate on this branch.
 
 ## Open Decisions
@@ -110,8 +111,8 @@
 - [x] Task 0: Plan baseline
 - [x] Task 1: Add red rescan evidence tests
 - [x] Task 2: Run and validate dogfood rescan
-- [ ] Task 3: Update docs and evidence
-- [ ] Task 4: Verify focused and branch gates
+- [x] Task 3: Update docs and evidence
+- [x] Task 4: Verify focused and branch gates
 
 ## Tasks
 
@@ -158,14 +159,15 @@
 
 **Files:**
 - Modify: `docs/testing-strategy.md`
+- Modify: `docs/release.md`
 - Modify: `docs/release-evidence/v0.1.0-dogfood.md`
 
 **What to build:** Document the new rescan evidence shape and refresh dogfood evidence with current metrics.
 
 **Acceptance criteria:**
-- [ ] Testing strategy says dogfood runs cold scan, immediate rescan, info, and JSONL export.
-- [ ] Evidence document records current commit, command, output paths including `rescan-report.json`, hard gate result, row totals, and report-only rescan timing.
-- [ ] Generated SQLite, JSONL, reports, and metrics remain under `target/` and are not committed.
+- [x] Testing strategy says dogfood runs cold scan, immediate rescan, info, and JSONL export.
+- [x] Evidence document records current commit, command, output paths including `rescan-report.json`, hard gate result, row totals, and report-only rescan timing.
+- [x] Generated SQLite, JSONL, reports, and metrics remain under `target/` and are not committed.
 
 ### Task 4: Verify Focused And Branch Gates
 
@@ -178,7 +180,7 @@
 - `cargo xtask test contract`
 
 **Acceptance criteria:**
-- [ ] Focused dogfood contract tests pass.
-- [ ] Dogfood command writes valid rescan evidence.
-- [ ] Python consumer reads the generated SQLite artifact.
-- [ ] Default and contract branch gates pass before merge, push, or PR.
+- [x] Focused dogfood contract tests pass.
+- [x] Dogfood command writes valid rescan evidence.
+- [x] Python consumer reads the generated SQLite artifact.
+- [x] Default and contract branch gates pass before merge, push, or PR.
