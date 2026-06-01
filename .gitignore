@@ -1,5 +1,7 @@
 /target/
 /.miller/
+/.julie/
+/.julieignore
 **/*.rs.bk
 *.sqlite
 *.sqlite-shm
