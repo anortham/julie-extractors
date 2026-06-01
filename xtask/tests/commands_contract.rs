@@ -197,6 +197,27 @@ fn workflow_commands_keep_release_binary_workflow_explicit() {
     }
 }
 
+#[test]
+fn workflow_actions_use_node24_ready_checkout() {
+    let root = repo_root();
+
+    for workflow in [
+        ".github/workflows/ci.yml",
+        ".github/workflows/specialist-gates.yml",
+        ".github/workflows/release-binaries.yml",
+    ] {
+        let source = std::fs::read_to_string(root.join(workflow)).expect("read workflow");
+        assert!(
+            !source.contains("actions/checkout@v4"),
+            "{workflow} must not use checkout@v4 because it runs on deprecated Node.js 20"
+        );
+        assert!(
+            source.contains("actions/checkout@v5"),
+            "{workflow} must use checkout@v5"
+        );
+    }
+}
+
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
