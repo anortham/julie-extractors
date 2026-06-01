@@ -50,6 +50,58 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
             .unwrap()
             >= 2
     );
+    let parser_inventory = table_count(&db, "parser_inventory");
+    let language_capabilities = table_count(&db, "language_capabilities");
+    let language_capability_fixtures = table_count(&db, "language_capability_fixtures");
+    let language_capability_gaps = table_count(&db, "language_capability_gaps");
+    assert!(
+        parser_inventory > 0,
+        "scan artifacts must persist parser inventory rows"
+    );
+    assert_eq!(
+        parser_inventory, language_capabilities,
+        "parser inventory and language capability rows must cover the same language snapshot"
+    );
+    assert!(
+        language_capability_fixtures >= language_capabilities,
+        "capability fixture evidence should be persisted with the language snapshot"
+    );
+    assert!(
+        language_capability_gaps > 0,
+        "known capability gaps should be persisted instead of hidden"
+    );
+    assert_eq!(
+        report["counts"]["rows_written"]["parser_inventory"],
+        parser_inventory
+    );
+    assert_eq!(
+        report["counts"]["rows_written"]["language_capabilities"],
+        language_capabilities
+    );
+    assert_eq!(
+        report["counts"]["rows_written"]["language_capability_fixtures"],
+        language_capability_fixtures
+    );
+    assert_eq!(
+        report["counts"]["rows_written"]["language_capability_gaps"],
+        language_capability_gaps
+    );
+    assert_eq!(
+        report["counts"]["totals"]["parser_inventory"],
+        parser_inventory
+    );
+    assert_eq!(
+        report["counts"]["totals"]["language_capabilities"],
+        language_capabilities
+    );
+    assert_eq!(
+        report["counts"]["totals"]["language_capability_fixtures"],
+        language_capability_fixtures
+    );
+    assert_eq!(
+        report["counts"]["totals"]["language_capability_gaps"],
+        language_capability_gaps
+    );
     assert_eq!(report["revision"]["created_revision_id"], 1);
 
     assert_eq!(table_count(&db, "files"), 2);
@@ -383,6 +435,26 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
     assert_eq!(parsed[0]["kind"], "artifact");
     assert_eq!(parsed[0]["op"], "snapshot");
     assert_eq!(parsed[0]["jsonl_schema_version"], 1);
+    assert!(
+        parsed
+            .iter()
+            .any(|record| record["kind"] == "parser_inventory")
+    );
+    assert!(
+        parsed
+            .iter()
+            .any(|record| record["kind"] == "language_capability")
+    );
+    assert!(
+        parsed
+            .iter()
+            .any(|record| record["kind"] == "language_capability_fixture")
+    );
+    assert!(
+        parsed
+            .iter()
+            .any(|record| record["kind"] == "language_capability_gap")
+    );
     assert!(parsed.iter().any(|record| record["kind"] == "file"));
     assert!(parsed.iter().any(|record| record["kind"] == "symbol"));
 }

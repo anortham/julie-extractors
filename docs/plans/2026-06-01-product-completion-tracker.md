@@ -14,9 +14,12 @@
 
 ## Current Status
 
-- `main` is at `bac074a` after PR #6 merged the JSONL export buffered writer.
-- CI Fast Gates passed on PR #6 before merge.
-- Active product implementation branch: `codex/repeatable-performance-baseline` in PR #7.
+- `main` is at `1440759` after PR #7 merged the repeatable performance baseline.
+- CI Fast Gates passed on PR #7 before merge.
+- Active product implementation branch:
+  `codex/v0-1-0-release-candidate-audit` in PR #8.
+- PR #8: https://github.com/anortham/julie-extractors/pull/8.
+- PR #8 Fast Gates passed.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 
@@ -68,6 +71,20 @@
   - no-change rescan min/median/max: `51ms` / `51ms` / `52ms`;
   - JSONL export min/median/max: `1330ms` / `1330ms` / `1333ms`;
   - stable rows: `1018` files, `33019` symbols, `215388` JSONL records.
+- v0.1.0 release candidate audit evidence:
+  `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
+  - package staging commit `c407cde`;
+  - release binary SHA-256
+    `c52b86f01c369088fad94da2ca013c9ddcfc840830e787c2f758a06724cf9237`;
+  - staged target `aarch64-apple-darwin`;
+  - package checksum verification passed;
+  - audit blocker fixed: SQLite and JSONL artifacts now persist `36` parser
+    inventory rows, `36` language capability rows, `76` fixture rows, and
+    `17` gap rows;
+  - refreshed repeatable baseline at `805da3b`: cold scan min/median/max
+    `6485ms` / `6514ms` / `7550ms`, no-change rescan `56ms` / `62ms` /
+    `62ms`, JSONL export `1318ms` / `1321ms` / `1328ms`, stable output
+    `1020` files, `33099` symbols, `216253` JSONL records.
 - Autonomous run report for PR #3: `.memories/autonomous-run-2026-06-01-dogfood-rescan-baseline.md`.
 
 ## Non-Goals To Keep Out
@@ -159,7 +176,9 @@
 **Why later:** This is meaningful after release-binary dogfood evidence and any export performance decision.
 
 **Expected files:**
-- Update release evidence, release notes, and this tracker.
+- Update release evidence, release notes, this tracker, and active brief.
+- Fix release-blocking contract drift found by the audit when it is directly on
+  the package-readiness path.
 
 **Verification:**
 - `cargo xtask test default`
@@ -167,9 +186,9 @@
 - Specialist gates only where the audit touches their owned areas.
 
 **Acceptance criteria:**
-- [ ] Release package staging evidence is current.
-- [ ] Release notes match actual shipped surfaces and known non-goals.
-- [ ] No generated artifacts are committed.
+- [x] Release package staging evidence is current.
+- [x] Release notes match actual shipped surfaces and known non-goals.
+- [x] No generated artifacts are committed.
 
 ## Verification Discipline
 
@@ -186,4 +205,4 @@
 - [x] Slice 2: JSONL export performance plan.
 - [x] Slice 3: JSONL export buffered writer implementation.
 - [x] Slice 4: Repeatable performance baseline.
-- [ ] Slice 5: v0.1.0 release candidate audit.
+- [x] Slice 5: v0.1.0 release candidate audit.

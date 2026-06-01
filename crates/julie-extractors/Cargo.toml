@@ -1,11 +1,11 @@
 [package]
 name = "julie-extractors"
-version = "1.22.0"
+version = "0.1.0"
 edition = "2024"
 authors = ["Alan"]
-description = "Cross-platform code intelligence extractors for 34 programming languages"
+description = "Tree-sitter extraction engine for julie-extract artifacts"
 license = "MIT"
-repository = "https://github.com/your-org/julie"
+repository = "https://github.com/murphy/julie-extractors"
 keywords = ["tree-sitter", "code-intelligence", "parsing", "extractors"]
 categories = ["development-tools", "parsing"]
 

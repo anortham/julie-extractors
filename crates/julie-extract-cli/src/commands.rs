@@ -7,14 +7,19 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use clap::Parser;
 use julie_extract_artifact::jsonl::{JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION, export_jsonl};
 use julie_extract_artifact::metadata::{ArtifactMetadata, read_metadata};
-use julie_extract_artifact::model::{ArtifactFile, RevisionInput, WriteMode, WriteOperation};
+use julie_extract_artifact::model::{
+    ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactFile,
+    ArtifactLanguageCapabilityFixtureRow, ArtifactLanguageCapabilityGapRow,
+    ArtifactLanguageCapabilityRow, ArtifactParserInventoryRow, RevisionInput, WriteMode,
+    WriteOperation, WriteResult,
+};
 use julie_extract_artifact::reports::{
     ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
     ReportOperation, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
 };
 use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION};
 use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
-use julie_extractors::{CapabilityFlags, capability_snapshot};
+use julie_extractors::{CapabilityFlags, KindCoverage, capability_snapshot};
 use rusqlite::{Connection, OpenFlags};
 use serde_json::{Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
@@ -168,61 +173,84 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         .unwrap_or_else(|| new_artifact_metadata(&root, None));
 
     match ArtifactWriter::open_path(&db, metadata) {
-        Ok(mut writer) => match writer.write_scan(
-            revision_input(
-                WriteOperation::Scan,
-                Some(if args.force {
-                    WriteMode::Force
-                } else {
-                    WriteMode::Incremental
-                }),
-                &root,
-            ),
-            &files,
-        ) {
-            Ok(write_result) => {
-                let connection = writer.connection();
-                let artifact = match artifact_report_from_connection(&db, connection) {
-                    Ok(artifact) => artifact,
-                    Err(error) => {
-                        return outcome(
-                            base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+        Ok(mut writer) => {
+            let capability_rows_written = match sync_capability_snapshot(&mut writer) {
+                Ok(counts) => counts,
+                Err(error) => {
+                    return write_error_outcome(
+                        error,
+                        ReportOperation::Scan,
+                        mode,
+                        input,
+                        args.json,
+                    );
+                }
+            };
+            match writer.write_scan(
+                revision_input(
+                    WriteOperation::Scan,
+                    Some(if args.force {
+                        WriteMode::Force
+                    } else {
+                        WriteMode::Incremental
+                    }),
+                    &root,
+                ),
+                &files,
+            ) {
+                Ok(write_result) => {
+                    let connection = writer.connection();
+                    let artifact = match artifact_report_from_connection(&db, connection) {
+                        Ok(artifact) => artifact,
+                        Err(error) => {
+                            return outcome(
+                                base_report(
+                                    ReportStatus::Failed,
+                                    ReportOperation::Scan,
+                                    mode,
+                                    input,
+                                )
                                 .with_error(error.diagnostic),
-                            error.exit_code,
-                            args.json,
-                            ReportStream::Stdout,
-                        );
-                    }
-                };
-                let status = if write_result.revision_id.is_some()
-                    || should_rebuild_db
-                    || !db_existed_before_write
-                {
-                    ReportStatus::Ok
-                } else {
-                    ReportStatus::NoChange
-                };
-                let mut report = base_report(status, ReportOperation::Scan, mode, input)
-                    .with_artifact(artifact)
-                    .with_revision(ReportRevision {
-                        latest_revision_id: latest_revision_id(connection),
-                        created_revision_id: write_result.revision_id,
-                    })
-                    .with_totals(table_totals(connection));
-                report.counts.files_scanned =
-                    (discovered.supported_files.len() + discovered.unsupported_files) as i64;
-                report.counts.files_changed = write_result
-                    .files_changed
-                    .saturating_sub(write_result.files_deleted)
-                    as i64;
-                report.counts.files_unchanged = write_result.files_skipped as i64;
-                report.counts.files_unsupported = discovered.unsupported_files as i64;
-                report.counts.files_deleted = write_result.files_deleted as i64;
-                report.counts.rows_written = RowDomainCounts::from(&write_result.rows_written);
-                outcome(report, 0, args.json, ReportStream::Stdout)
+                                error.exit_code,
+                                args.json,
+                                ReportStream::Stdout,
+                            );
+                        }
+                    };
+                    let status = if write_result.revision_id.is_some()
+                        || should_rebuild_db
+                        || !db_existed_before_write
+                        || capability_rows_written.has_rows()
+                    {
+                        ReportStatus::Ok
+                    } else {
+                        ReportStatus::NoChange
+                    };
+                    let mut report = base_report(status, ReportOperation::Scan, mode, input)
+                        .with_artifact(artifact)
+                        .with_revision(ReportRevision {
+                            latest_revision_id: latest_revision_id(connection),
+                            created_revision_id: write_result.revision_id,
+                        })
+                        .with_totals(table_totals(connection));
+                    report.counts.files_scanned =
+                        (discovered.supported_files.len() + discovered.unsupported_files) as i64;
+                    report.counts.files_changed = write_result
+                        .files_changed
+                        .saturating_sub(write_result.files_deleted)
+                        as i64;
+                    report.counts.files_unchanged = write_result.files_skipped as i64;
+                    report.counts.files_unsupported = discovered.unsupported_files as i64;
+                    report.counts.files_deleted = write_result.files_deleted as i64;
+                    report.counts.rows_written =
+                        rows_written_with_capabilities(&capability_rows_written, &write_result);
+                    outcome(report, 0, args.json, ReportStream::Stdout)
+                }
+                Err(error) => {
+                    write_error_outcome(error, ReportOperation::Scan, mode, input, args.json)
+                }
             }
-            Err(error) => write_error_outcome(error, ReportOperation::Scan, mode, input, args.json),
-        },
+        }
         Err(error) => outcome(
             base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input).with_error(
                 diagnostic(
@@ -364,60 +392,77 @@ fn update(args: UpdateArgs) -> CommandOutcome {
         .unwrap_or_else(|| new_artifact_metadata(&root, None));
 
     match ArtifactWriter::open_path(&db, metadata) {
-        Ok(mut writer) => match writer.write_update(
-            revision_input(WriteOperation::Update, Some(WriteMode::SingleFile), &root),
-            &file,
-        ) {
-            Ok(write_result) => {
-                let connection = writer.connection();
-                let artifact = match artifact_report_from_connection(&db, connection) {
-                    Ok(artifact) => artifact,
-                    Err(error) => {
-                        return outcome(
-                            base_report(
-                                ReportStatus::Failed,
-                                ReportOperation::Update,
-                                ReportMode::SingleFile,
-                                input,
-                            )
-                            .with_error(error.diagnostic),
-                            error.exit_code,
-                            args.json,
-                            ReportStream::Stdout,
-                        );
-                    }
-                };
-                let status = if write_result.revision_id.is_some() {
-                    ReportStatus::Ok
-                } else {
-                    ReportStatus::NoChange
-                };
-                let mut report = base_report(
-                    status,
+        Ok(mut writer) => {
+            let capability_rows_written = match sync_capability_snapshot(&mut writer) {
+                Ok(counts) => counts,
+                Err(error) => {
+                    return write_error_outcome(
+                        error,
+                        ReportOperation::Update,
+                        ReportMode::SingleFile,
+                        input,
+                        args.json,
+                    );
+                }
+            };
+            match writer.write_update(
+                revision_input(WriteOperation::Update, Some(WriteMode::SingleFile), &root),
+                &file,
+            ) {
+                Ok(write_result) => {
+                    let connection = writer.connection();
+                    let artifact = match artifact_report_from_connection(&db, connection) {
+                        Ok(artifact) => artifact,
+                        Err(error) => {
+                            return outcome(
+                                base_report(
+                                    ReportStatus::Failed,
+                                    ReportOperation::Update,
+                                    ReportMode::SingleFile,
+                                    input,
+                                )
+                                .with_error(error.diagnostic),
+                                error.exit_code,
+                                args.json,
+                                ReportStream::Stdout,
+                            );
+                        }
+                    };
+                    let status = if write_result.revision_id.is_some()
+                        || capability_rows_written.has_rows()
+                    {
+                        ReportStatus::Ok
+                    } else {
+                        ReportStatus::NoChange
+                    };
+                    let mut report = base_report(
+                        status,
+                        ReportOperation::Update,
+                        ReportMode::SingleFile,
+                        input,
+                    )
+                    .with_artifact(artifact)
+                    .with_revision(ReportRevision {
+                        latest_revision_id: latest_revision_id(connection),
+                        created_revision_id: write_result.revision_id,
+                    })
+                    .with_totals(table_totals(connection));
+                    report.counts.files_scanned = 1;
+                    report.counts.files_changed = write_result.files_changed as i64;
+                    report.counts.files_unchanged = write_result.files_skipped as i64;
+                    report.counts.rows_written =
+                        rows_written_with_capabilities(&capability_rows_written, &write_result);
+                    outcome(report, 0, args.json, ReportStream::Stdout)
+                }
+                Err(error) => write_error_outcome(
+                    error,
                     ReportOperation::Update,
                     ReportMode::SingleFile,
                     input,
-                )
-                .with_artifact(artifact)
-                .with_revision(ReportRevision {
-                    latest_revision_id: latest_revision_id(connection),
-                    created_revision_id: write_result.revision_id,
-                })
-                .with_totals(table_totals(connection));
-                report.counts.files_scanned = 1;
-                report.counts.files_changed = write_result.files_changed as i64;
-                report.counts.files_unchanged = write_result.files_skipped as i64;
-                report.counts.rows_written = RowDomainCounts::from(&write_result.rows_written);
-                outcome(report, 0, args.json, ReportStream::Stdout)
+                    args.json,
+                ),
             }
-            Err(error) => write_error_outcome(
-                error,
-                ReportOperation::Update,
-                ReportMode::SingleFile,
-                input,
-                args.json,
-            ),
-        },
+        }
         Err(error) => outcome(
             base_report(
                 ReportStatus::Failed,
@@ -814,7 +859,7 @@ fn cleanup_unsupported_update(
         existing_artifact,
         WriteOperation::Delete,
     ) {
-        Ok((writer, write_result)) => {
+        Ok((writer, write_result, capability_rows_written)) => {
             let connection = writer.connection();
             let artifact = match artifact_report_from_connection(db, connection) {
                 Ok(artifact) => artifact,
@@ -856,7 +901,8 @@ fn cleanup_unsupported_update(
             report.counts.files_scanned = 1;
             report.counts.files_unsupported = 1;
             report.counts.files_deleted = write_result.files_changed as i64;
-            report.counts.rows_written = RowDomainCounts::from(&write_result.rows_written);
+            report.counts.rows_written =
+                rows_written_with_capabilities(&capability_rows_written, &write_result);
             outcome(report, 0, json_report, ReportStream::Stdout)
         }
         Err(error) => write_error_outcome(
@@ -889,7 +935,7 @@ fn cleanup_delete(
         existing_artifact,
         WriteOperation::Delete,
     ) {
-        Ok((writer, write_result)) => {
+        Ok((writer, write_result, capability_rows_written)) => {
             let connection = writer.connection();
             let artifact = match artifact_report_from_connection(db, connection) {
                 Ok(artifact) => artifact,
@@ -926,7 +972,8 @@ fn cleanup_delete(
             })
             .with_totals(table_totals(connection));
             report.counts.files_deleted = write_result.files_changed as i64;
-            report.counts.rows_written = RowDomainCounts::from(&write_result.rows_written);
+            report.counts.rows_written =
+                rows_written_with_capabilities(&capability_rows_written, &write_result);
             outcome(report, 0, json_report, ReportStream::Stdout)
         }
         Err(error) => write_error_outcome(
@@ -945,16 +992,17 @@ fn delete_artifact_rows(
     root_relative_path: &str,
     existing_artifact: Option<ExistingArtifact>,
     operation: WriteOperation,
-) -> Result<(ArtifactWriter, julie_extract_artifact::model::WriteResult), ArtifactWriteError> {
+) -> Result<(ArtifactWriter, WriteResult, RowDomainCounts), ArtifactWriteError> {
     let metadata = existing_artifact
         .map(|artifact| refreshed_metadata(artifact.write_metadata))
         .unwrap_or_else(|| new_artifact_metadata(root, None));
     let mut writer = ArtifactWriter::open_path(db, metadata)?;
+    let capability_rows_written = sync_capability_snapshot(&mut writer)?;
     let result = writer.delete_file(
         revision_input(operation, Some(WriteMode::SingleFile), root),
         root_relative_path,
     )?;
-    Ok((writer, result))
+    Ok((writer, result, capability_rows_written))
 }
 
 fn artifact_report_from_connection(
@@ -1373,6 +1421,106 @@ fn jsonl_counts(records_by_kind: &BTreeMap<&'static str, usize>) -> RowDomainCou
         }
     }
     counts
+}
+
+fn sync_capability_snapshot(
+    writer: &mut ArtifactWriter,
+) -> Result<RowDomainCounts, ArtifactWriteError> {
+    writer.sync_capability_snapshot(&artifact_capability_snapshot())
+}
+
+fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
+    let snapshot = capability_snapshot();
+    let languages = snapshot
+        .languages()
+        .map(|row| ArtifactLanguageCapabilityRow {
+            language: row.language.clone(),
+            parser_package: row.parser_crate.clone(),
+            extensions: row.extensions.clone(),
+            dependency_status: row.dependency_status.clone(),
+            target_capabilities: artifact_flags(row.target_capabilities),
+            actual_capabilities: artifact_flags(row.capabilities),
+            kind_coverage: json!({
+                "symbols": kind_coverage_domain(&row.kind_coverage.symbols),
+                "relationships": kind_coverage_domain(&row.kind_coverage.relationships),
+                "identifiers": kind_coverage_domain(&row.kind_coverage.identifiers),
+                "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
+            }),
+            fixtures: row
+                .fixtures
+                .iter()
+                .map(|fixture| ArtifactLanguageCapabilityFixtureRow {
+                    fixture_name: fixture.name.clone(),
+                    source_path: fixture.source.clone(),
+                    expected_path: fixture.expected.clone(),
+                })
+                .collect(),
+            gaps: row
+                .capability_gaps
+                .iter()
+                .map(|gap| ArtifactLanguageCapabilityGapRow {
+                    gap_id: format!("{}:{}", row.language, gap.capability),
+                    capability: gap.capability.clone(),
+                    status: gap.status.clone(),
+                    reason: gap.reason.clone(),
+                    required_closure: gap.required_closure.clone(),
+                    evidence: gap.evidence.clone(),
+                })
+                .collect(),
+        })
+        .collect::<Vec<_>>();
+    let parser_inventory = languages
+        .iter()
+        .map(|row| ArtifactParserInventoryRow {
+            language: row.language.clone(),
+            parser_package: row.parser_package.clone(),
+            parser_version: None,
+            grammar_version: None,
+            source: Some("capability_snapshot".to_string()),
+            metadata: Some(json!({
+                "dependency_status": row.dependency_status,
+            })),
+        })
+        .collect();
+
+    ArtifactCapabilitySnapshot {
+        parser_inventory,
+        languages,
+    }
+}
+
+fn artifact_flags(flags: CapabilityFlags) -> ArtifactCapabilityFlags {
+    ArtifactCapabilityFlags {
+        symbols: flags.symbols,
+        relationships: flags.relationships,
+        pending_relationships: flags.pending_relationships,
+        identifiers: flags.identifiers,
+        types: flags.types,
+    }
+}
+
+fn kind_coverage_domain(domain: &KindCoverage) -> Value {
+    json!({
+        "supported": domain.supported,
+        "not_applicable": domain.not_applicable,
+        "open_gaps": domain.open_gaps.iter().map(|gap| {
+            json!({
+                "kind": gap.kind,
+                "reason": gap.reason,
+                "required_closure": gap.required_closure,
+                "planned_closure_task": gap.planned_closure_task,
+            })
+        }).collect::<Vec<_>>(),
+    })
+}
+
+fn rows_written_with_capabilities(
+    capability_rows_written: &RowDomainCounts,
+    write_result: &WriteResult,
+) -> RowDomainCounts {
+    let mut rows_written = RowDomainCounts::from(&write_result.rows_written);
+    rows_written.add_counts(capability_rows_written);
+    rows_written
 }
 
 fn flags(flags: CapabilityFlags) -> Value {

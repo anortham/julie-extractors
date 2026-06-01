@@ -180,6 +180,48 @@ pub struct RowDomainCounts {
 }
 
 impl RowDomainCounts {
+    pub fn has_rows(&self) -> bool {
+        self.artifact_metadata != 0
+            || self.parser_inventory != 0
+            || self.language_capabilities != 0
+            || self.language_capability_fixtures != 0
+            || self.language_capability_gaps != 0
+            || self.extraction_revisions != 0
+            || self.revision_file_changes != 0
+            || self.files != 0
+            || self.symbols != 0
+            || self.symbol_annotations != 0
+            || self.identifiers != 0
+            || self.relationships != 0
+            || self.pending_relationships != 0
+            || self.type_facts != 0
+            || self.type_argument_usages != 0
+            || self.type_arguments != 0
+            || self.literals != 0
+            || self.parse_diagnostics != 0
+    }
+
+    pub fn add_counts(&mut self, other: &Self) {
+        self.artifact_metadata += other.artifact_metadata;
+        self.parser_inventory += other.parser_inventory;
+        self.language_capabilities += other.language_capabilities;
+        self.language_capability_fixtures += other.language_capability_fixtures;
+        self.language_capability_gaps += other.language_capability_gaps;
+        self.extraction_revisions += other.extraction_revisions;
+        self.revision_file_changes += other.revision_file_changes;
+        self.files += other.files;
+        self.symbols += other.symbols;
+        self.symbol_annotations += other.symbol_annotations;
+        self.identifiers += other.identifiers;
+        self.relationships += other.relationships;
+        self.pending_relationships += other.pending_relationships;
+        self.type_facts += other.type_facts;
+        self.type_argument_usages += other.type_argument_usages;
+        self.type_arguments += other.type_arguments;
+        self.literals += other.literals;
+        self.parse_diagnostics += other.parse_diagnostics;
+    }
+
     pub fn from_extraction_rows(row_counts: &RowCounts) -> Self {
         Self {
             revision_file_changes: row_counts.revision_file_changes,

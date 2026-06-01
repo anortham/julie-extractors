@@ -1,12 +1,15 @@
 use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
-    ArtifactFile, ArtifactIdentifier, ArtifactLiteral, ArtifactParseDiagnostic,
-    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSymbol, ArtifactSymbolAnnotation,
-    ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus, RevisionInput,
-    WriteMode, WriteOperation,
+    ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactFile, ArtifactIdentifier,
+    ArtifactLanguageCapabilityFixtureRow, ArtifactLanguageCapabilityGapRow,
+    ArtifactLanguageCapabilityRow, ArtifactLiteral, ArtifactParseDiagnostic,
+    ArtifactParserInventoryRow, ArtifactPendingRelationship, ArtifactRelationship, ArtifactSymbol,
+    ArtifactSymbolAnnotation, ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact,
+    FileStatus, RevisionInput, WriteMode, WriteOperation,
 };
 use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
 use rusqlite::Connection;
+use serde_json::json;
 
 #[test]
 fn scan_batch_writes_multiple_files_in_one_transaction() {
@@ -474,6 +477,39 @@ fn data_loss_guard_preserves_known_good_rows_on_parser_failure_evidence() {
     assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
 }
 
+#[test]
+fn capability_snapshot_sync_writes_static_rows_once() {
+    let mut writer = open_writer();
+    let snapshot = one_language_capability_snapshot();
+
+    let first = writer.sync_capability_snapshot(&snapshot).unwrap();
+
+    assert_eq!(first.parser_inventory, 1);
+    assert_eq!(first.language_capabilities, 1);
+    assert_eq!(first.language_capability_fixtures, 1);
+    assert_eq!(first.language_capability_gaps, 1);
+    assert_eq!(count(writer.connection(), "parser_inventory"), 1);
+    assert_eq!(count(writer.connection(), "language_capabilities"), 1);
+    assert_eq!(
+        count(writer.connection(), "language_capability_fixtures"),
+        1
+    );
+    assert_eq!(count(writer.connection(), "language_capability_gaps"), 1);
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
+
+    let second = writer.sync_capability_snapshot(&snapshot).unwrap();
+
+    assert!(!second.has_rows());
+    assert_eq!(count(writer.connection(), "parser_inventory"), 1);
+    assert_eq!(count(writer.connection(), "language_capabilities"), 1);
+    assert_eq!(
+        count(writer.connection(), "language_capability_fixtures"),
+        1
+    );
+    assert_eq!(count(writer.connection(), "language_capability_gaps"), 1);
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
+}
+
 fn open_writer() -> ArtifactWriter {
     ArtifactWriter::open_in_memory(ArtifactMetadata {
         artifact_id: "artifact-writer-test".to_string(),
@@ -486,6 +522,58 @@ fn open_writer() -> ArtifactWriter {
         updated_at: "2026-05-31T19:20:00Z".to_string(),
     })
     .unwrap()
+}
+
+fn one_language_capability_snapshot() -> ArtifactCapabilitySnapshot {
+    ArtifactCapabilitySnapshot {
+        parser_inventory: vec![ArtifactParserInventoryRow {
+            language: "rust".to_string(),
+            parser_package: "tree-sitter-rust".to_string(),
+            parser_version: Some("0.24.2".to_string()),
+            grammar_version: None,
+            source: Some("capability_snapshot".to_string()),
+            metadata: Some(json!({"dependency_status": "current"})),
+        }],
+        languages: vec![ArtifactLanguageCapabilityRow {
+            language: "rust".to_string(),
+            parser_package: "tree-sitter-rust".to_string(),
+            extensions: vec!["rs".to_string()],
+            dependency_status: "current".to_string(),
+            target_capabilities: ArtifactCapabilityFlags {
+                symbols: true,
+                relationships: true,
+                pending_relationships: true,
+                identifiers: true,
+                types: true,
+            },
+            actual_capabilities: ArtifactCapabilityFlags {
+                symbols: true,
+                relationships: true,
+                pending_relationships: true,
+                identifiers: true,
+                types: true,
+            },
+            kind_coverage: json!({
+                "symbols": {"supported": ["function"], "not_applicable": [], "open_gaps": []},
+                "relationships": {"supported": ["calls"], "not_applicable": [], "open_gaps": []},
+                "identifiers": {"supported": ["call"], "not_applicable": [], "open_gaps": []},
+                "body_spans": {"supported": ["function"], "not_applicable": [], "open_gaps": []}
+            }),
+            fixtures: vec![ArtifactLanguageCapabilityFixtureRow {
+                fixture_name: "basic".to_string(),
+                source_path: "fixtures/extraction/rust/basic/source.rs".to_string(),
+                expected_path: "fixtures/extraction/rust/basic/expected.json".to_string(),
+            }],
+            gaps: vec![ArtifactLanguageCapabilityGapRow {
+                gap_id: "rust:types".to_string(),
+                capability: "types".to_string(),
+                status: "planned".to_string(),
+                reason: "test gap".to_string(),
+                required_closure: "add fixture evidence".to_string(),
+                evidence: json!({"fixture": "basic"}),
+            }],
+        }],
+    }
 }
 
 fn revision(operation: WriteOperation, mode: Option<WriteMode>) -> RevisionInput {

@@ -3,7 +3,8 @@
 //! Tree-sitter-backed code extraction for 34 languages plus TSX/JSX variants.
 //! Produces a stable [`ExtractionResults`] shape: symbols, relationships,
 //! structured pending relationships, identifiers, type info, and parse
-//! diagnostics. Used by Julie's MCP server but consumable from any Rust crate.
+//! diagnostics. Used by `julie-extract` and consumable from Rust callers that
+//! want in-process extraction.
 //!
 //! ## Quickstart
 //!

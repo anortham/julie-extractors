@@ -145,6 +145,61 @@ pub struct WriteResult {
     pub transactions_committed: usize,
 }
 
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ArtifactCapabilitySnapshot {
+    pub parser_inventory: Vec<ArtifactParserInventoryRow>,
+    pub languages: Vec<ArtifactLanguageCapabilityRow>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArtifactParserInventoryRow {
+    pub language: String,
+    pub parser_package: String,
+    pub parser_version: Option<String>,
+    pub grammar_version: Option<String>,
+    pub source: Option<String>,
+    pub metadata: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArtifactLanguageCapabilityRow {
+    pub language: String,
+    pub parser_package: String,
+    pub extensions: Vec<String>,
+    pub dependency_status: String,
+    pub target_capabilities: ArtifactCapabilityFlags,
+    pub actual_capabilities: ArtifactCapabilityFlags,
+    pub kind_coverage: serde_json::Value,
+    pub fixtures: Vec<ArtifactLanguageCapabilityFixtureRow>,
+    pub gaps: Vec<ArtifactLanguageCapabilityGapRow>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ArtifactCapabilityFlags {
+    pub symbols: bool,
+    pub relationships: bool,
+    pub pending_relationships: bool,
+    pub identifiers: bool,
+    pub types: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtifactLanguageCapabilityFixtureRow {
+    pub fixture_name: String,
+    pub source_path: String,
+    pub expected_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArtifactLanguageCapabilityGapRow {
+    pub gap_id: String,
+    pub capability: String,
+    pub status: String,
+    pub reason: String,
+    pub required_closure: String,
+    pub evidence: serde_json::Value,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ArtifactFile {
     pub file_id: String,
