@@ -14,16 +14,17 @@
 
 ## Current Status
 
-- `main` is at `516a11b` after PR #8 merged the v0.1.0 release candidate audit.
-- PR #8: https://github.com/anortham/julie-extractors/pull/8.
-- PR #8 Fast Gates passed before merge.
-- Active product branch: `codex/release-blocker-review-fixes`.
+- `main` is at `94f1661` after PR #9 merged the release-blocker fixes and
+  v2.0.0 contract alignment.
+- PR #9: https://github.com/anortham/julie-extractors/pull/9.
+- PR #9 Fast Gates passed before merge.
+- No active product implementation branch remains.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 - Current release target is v2.0.0 after the user selected continuity from the
   old Julie extractor crate line.
-- Active work now also includes
-  `docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`.
+- Release decision is next: trigger the Release Binaries workflow for v2.0.0 or
+  hold the release candidate.
 
 ## Completed Milestones
 
@@ -84,10 +85,15 @@
   - audit blocker fixed: SQLite and JSONL artifacts now persist `36` parser
     inventory rows, `36` language capability rows, `76` fixture rows, and
     `17` gap rows;
-	  - refreshed repeatable baseline at `805da3b`: cold scan min/median/max
-	    `6485ms` / `6514ms` / `7550ms`, no-change rescan `56ms` / `62ms` /
-	    `62ms`, JSONL export `1318ms` / `1321ms` / `1328ms`, stable output
-	    `1020` files, `33099` symbols, `216253` JSONL records.
+  - refreshed repeatable baseline at `805da3b`: cold scan min/median/max
+    `6485ms` / `6514ms` / `7550ms`, no-change rescan `56ms` / `62ms` /
+    `62ms`, JSONL export `1318ms` / `1321ms` / `1328ms`, stable output
+    `1020` files, `33099` symbols, `216253` JSONL records.
+- PR #9 release-blocker and v2.0.0 alignment evidence:
+  - merged into `main` as `94f1661` on 2026-06-01 after Fast Gates passed;
+  - local verification included `cargo xtask test default` and
+    `cargo xtask test contract`;
+  - GitHub Fast Gates passed in run `26775855499`.
 - v2.0.0 version/test-role alignment:
   `docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`.
   - package metadata and release workflow defaults now target v2.0.0;
@@ -208,8 +214,8 @@ before making the v2.0.0 publish decision.
 
 **Reference plan:** `docs/plans/2026-06-01-release-blocker-review-fixes.md`.
 
-**Status:** Implementation is complete on the active branch. Merge after fast
-gates pass.
+**Status:** Merged via PR #9 as `94f1661` after local gates and GitHub Fast
+Gates passed.
 
 **Acceptance criteria:**
 - [x] Partial scans preserve prior good rows and commit valid files when another
@@ -229,7 +235,8 @@ is a downstream lookup path that should not depend on unindexed JSON extraction.
 **Reference plan:**
 `docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`.
 
-**Status:** Implementation is on the active branch. Merge after fast gates pass.
+**Status:** Merged via PR #9 as `94f1661` after local gates and GitHub Fast
+Gates passed.
 
 **Acceptance criteria:**
 
@@ -258,4 +265,5 @@ is a downstream lookup path that should not depend on unindexed JSON extraction.
 - [x] Slice 6: Release-blocker review fixes.
 - [x] Slice 7: v2.0.0 version and test-role contract alignment.
 - [x] PR #8 merged to `main`.
+- [x] PR #9 merged to `main`.
 - [ ] Release decision: trigger the Release Binaries workflow for `v2.0.0` or hold the release candidate.
