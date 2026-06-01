@@ -48,7 +48,7 @@ Create `.github/workflows/release-binaries.yml` with one matrix job:
 
 - Linux: `ubuntu-latest`, target label `x86_64-unknown-linux-gnu`, binary path `target/release/julie-extract`.
 - macOS: `macos-15`, target label `aarch64-apple-darwin`, binary path `target/release/julie-extract`.
-- Windows: `windows-2025`, target label `x86_64-pc-windows-msvc`, binary path `target/release/julie-extract.exe`.
+- Windows: `windows-2022`, target label `x86_64-pc-windows-msvc`, binary path `target/release/julie-extract.exe`.
 
 The package out-dir must be `target/release-package/v${{ inputs.version }}-${{ matrix.target }}` and the uploaded artifact name must include both version and target.
 

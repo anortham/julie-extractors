@@ -170,7 +170,7 @@ fn workflow_commands_keep_release_binary_workflow_explicit() {
         "- 'v*'",
         "ubuntu-latest",
         "macos-15",
-        "windows-2025",
+        "windows-2022",
         "x86_64-unknown-linux-gnu",
         "aarch64-apple-darwin",
         "x86_64-pc-windows-msvc",
