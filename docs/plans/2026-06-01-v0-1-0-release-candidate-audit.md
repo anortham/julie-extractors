@@ -210,7 +210,8 @@ package evidence interpretation, metrics, or acceptance gates.
 - Watch Fast Gates.
 
 **Acceptance criteria:**
-- [ ] PR Fast Gates pass.
+- [x] PR opened: https://github.com/anortham/julie-extractors/pull/8.
+- [x] PR Fast Gates pass.
 
 ## Progress
 
@@ -220,4 +221,4 @@ package evidence interpretation, metrics, or acceptance gates.
 - [x] Task 2.5: Resolve capability evidence contract drift.
 - [x] Task 3: Close tracker state.
 - [x] Task 4: Verify branch.
-- [ ] Task 5: Push branch, open PR, and watch CI.
+- [x] Task 5: Push branch, open PR, and watch CI.

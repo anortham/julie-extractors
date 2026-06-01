@@ -16,13 +16,14 @@ tags:
 ## Current State
 
 - `main` is at `1440759` after PR #7 merged the repeatable performance baseline.
-- Active branch: `codex/v0-1-0-release-candidate-audit`.
+- Active branch: `codex/v0-1-0-release-candidate-audit` in PR #8.
+- PR #8: https://github.com/anortham/julie-extractors/pull/8.
 - Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline, release-binary dogfood evidence, JSONL export performance plan, JSONL export buffering, repeatable performance baseline.
 - Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
-- Current next state: v0.1.0 release candidate branch verification passed and
-  the branch is ready for PR, CI, and user release decision. Publication is not
-  automatic.
+- Current next state: v0.1.0 release candidate branch verification and PR Fast
+  Gates passed. The next user decision is merge, then trigger release binary
+  workflow or hold the release candidate. Publication is not automatic.
 
 ## Hard Boundaries
 
@@ -51,7 +52,7 @@ tags:
 
 ## Next Slices In Order
 
-1. Open the v0.1.0 release candidate audit PR and watch Fast Gates.
+1. Merge PR #8 when ready.
 2. After merge and CI pass, make the user release decision: trigger release
    binary workflow or hold the release candidate.
 

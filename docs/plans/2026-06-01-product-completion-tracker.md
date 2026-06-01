@@ -17,7 +17,9 @@
 - `main` is at `1440759` after PR #7 merged the repeatable performance baseline.
 - CI Fast Gates passed on PR #7 before merge.
 - Active product implementation branch:
-  `codex/v0-1-0-release-candidate-audit`.
+  `codex/v0-1-0-release-candidate-audit` in PR #8.
+- PR #8: https://github.com/anortham/julie-extractors/pull/8.
+- PR #8 Fast Gates passed.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 
