@@ -3,7 +3,7 @@ id: julie-extractors-product-completion-focus
 title: julie-extractors Product Completion Focus
 status: active
 created: 2026-06-01T13:24:06.835Z
-updated: 2026-06-01T13:24:06.835Z
+updated: 2026-06-01T13:51:25.717Z
 tags:
   - julie-extractors
   - product-bootstrap
@@ -15,7 +15,8 @@ tags:
 
 ## Current State
 
-- `main` is at `875ee0f` after PR #3: dogfood now captures immediate no-change rescan evidence.
+- `main` was at `a3038ee` when Slice 1 started.
+- Active branch: `codex/release-dogfood-evidence`.
 - Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline.
 - Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
@@ -29,16 +30,17 @@ tags:
 
 ## Current Evidence
 
-- Dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
-- PR #3 evidence: cold scan `18189ms`, no-change rescan `215ms`, export `76771ms`, rescan row writes all `0`.
+- Debug dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
+- Release-binary dogfood evidence: `docs/release-evidence/2026-06-01-release-binary-dogfood.md`.
+- Release dogfood metrics at `a3038ee`: cold scan `7607ms`, no-change rescan `52ms`, export `68983ms`, rescan row writes all `0`.
+- Release binary: `target/release/julie-extract`, version `julie-extract 0.1.0`, SHA-256 `af51b3792e10eb54f6aab5d94cd04c257801b183be0fb23f08db96ba23f441ce`.
 - Release binary workflow evidence: `docs/release-evidence/2026-06-01-release-binaries-workflow.md`.
 
 ## Next Slices In Order
 
-1. Release-binary dogfood evidence: build `target/release/julie-extract`, run dogfood with `--binary`, update evidence.
-2. JSONL export performance plan: inspect exporter path before optimizing because export dominates runtime.
-3. Repeatable performance baseline: repeated same-machine release-profile runs before thresholds.
-4. v0.1.0 release candidate audit.
+1. JSONL export performance plan: inspect exporter path before optimizing because export dominates runtime.
+2. Repeatable performance baseline: repeated same-machine release-profile runs before thresholds.
+3. v0.1.0 release candidate audit.
 
 ## Operating Rule
 

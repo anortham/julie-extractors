@@ -14,9 +14,9 @@
 
 ## Current Status
 
-- `main` is at `875ee0f` after PR #3.
-- CI Fast Gates passed on `main` after the PR #3 fast-forward push.
-- No active product implementation branch is open.
+- `main` was at `a3038ee` when Slice 1 started.
+- CI Fast Gates passed on `main` after the tracker push.
+- Active product implementation branch: `codex/release-dogfood-evidence`.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 
@@ -40,6 +40,11 @@
   - every rescan `counts.rows_written` value is `0`;
   - report-only timing: cold scan `18189ms`, rescan `215ms`, export `76771ms`.
 - Release binary workflow evidence: `docs/release-evidence/2026-06-01-release-binaries-workflow.md`.
+- Release-binary dogfood evidence: `docs/release-evidence/2026-06-01-release-binary-dogfood.md`.
+  - cold scan `7607ms`;
+  - immediate no-change rescan `52ms`;
+  - export `68983ms`;
+  - release binary SHA-256 `af51b3792e10eb54f6aab5d94cd04c257801b183be0fb23f08db96ba23f441ce`.
 - Autonomous run report for PR #3: `.memories/autonomous-run-2026-06-01-dogfood-rescan-baseline.md`.
 
 ## Non-Goals To Keep Out
@@ -67,9 +72,9 @@
 - Branch gate only when committing code or release docs: `cargo xtask test default` and `cargo xtask test contract`.
 
 **Acceptance criteria:**
-- [ ] Evidence records the release binary path, commit, timestamp, hard-gate statuses, row totals, artifact sizes, and report-only timings.
-- [ ] Evidence makes clear whether timings are debug or release profile.
-- [ ] Generated artifacts remain under `target/`.
+- [x] Evidence records the release binary path, commit, timestamp, hard-gate statuses, row totals, artifact sizes, and report-only timings.
+- [x] Evidence makes clear whether timings are debug or release profile.
+- [x] Generated artifacts remain under `target/`.
 
 ### Slice 2: JSONL Export Performance Plan
 
@@ -134,7 +139,7 @@
 ## Progress
 
 - [x] Tracker created after PR #3 merge.
-- [ ] Slice 1: Release-binary dogfood evidence.
+- [x] Slice 1: Release-binary dogfood evidence.
 - [ ] Slice 2: JSONL export performance plan.
 - [ ] Slice 3: Repeatable performance baseline.
 - [ ] Slice 4: v0.1.0 release candidate audit.
