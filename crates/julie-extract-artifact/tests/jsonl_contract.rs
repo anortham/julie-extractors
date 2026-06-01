@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -352,6 +353,34 @@ fn full_export_is_deterministic_for_same_artifact() {
 }
 
 #[test]
+fn buffered_export_uses_bounded_write_calls() {
+    const TEST_BUFFER_BYTES: usize = 64 * 1024;
+
+    let conn = populated_artifact();
+    let mut writer = CountingWriter::default();
+
+    let summary = export_jsonl(&conn, &mut writer).unwrap();
+
+    let output = String::from_utf8(writer.bytes.clone()).unwrap();
+    let records = output
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    let max_expected_write_calls = writer.bytes_written.div_ceil(TEST_BUFFER_BYTES).max(1);
+
+    assert_eq!(summary.total_records, records.len());
+    assert!(records.len() >= JSONL_RECORD_KINDS.len());
+    assert_eq!(records[0]["kind"], "artifact");
+    assert!(
+        writer.write_calls <= max_expected_write_calls,
+        "export wrote {} chunks for {} bytes; expected at most {} chunks",
+        writer.write_calls,
+        writer.bytes_written,
+        max_expected_write_calls
+    );
+}
+
+#[test]
 fn failed_path_export_removes_incomplete_output_file() {
     let conn = populated_artifact();
     conn.execute("UPDATE files SET metadata_json = '{'", [])
@@ -403,6 +432,26 @@ fn assert_record_keys(records: &[Value], kind: &str, expected: &[&str]) {
     let expected = expected.iter().copied().collect::<BTreeSet<_>>();
 
     assert_eq!(actual, expected, "{kind} payload keys drifted");
+}
+
+#[derive(Default)]
+struct CountingWriter {
+    bytes: Vec<u8>,
+    bytes_written: usize,
+    write_calls: usize,
+}
+
+impl Write for CountingWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.write_calls += 1;
+        self.bytes_written += buf.len();
+        self.bytes.extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 fn populated_artifact() -> Connection {

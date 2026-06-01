@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs::{self, File};
-use std::io::{self, Write};
+use std::io::{self, BufWriter, Write};
 use std::path::Path;
 
 use rusqlite::Connection;
@@ -31,6 +31,8 @@ pub const JSONL_RECORD_KINDS: &[&str] = &[
     "literal",
     "parse_diagnostic",
 ];
+
+const JSONL_EXPORT_BUFFER_BYTES: usize = 64 * 1024;
 
 pub type JsonlExportResult<T> = Result<T, JsonlExportError>;
 
@@ -105,8 +107,9 @@ impl JsonlExportSummary {
 
 pub fn export_jsonl<W: Write>(
     conn: &Connection,
-    mut writer: W,
+    writer: W,
 ) -> JsonlExportResult<JsonlExportSummary> {
+    let mut writer = BufWriter::with_capacity(JSONL_EXPORT_BUFFER_BYTES, writer);
     let metadata = load_required_metadata(conn)?;
     let artifact_id = required_metadata(&metadata, "artifact_id")?;
     let mut summary = JsonlExportSummary::default();
