@@ -187,10 +187,10 @@ agent, use `inherit` and continue.
 ## Progress
 
 - [x] Task 0: Plan baseline and bottleneck identification
-- [ ] Task 1: Add bounded-write red test
-- [ ] Task 2: Buffer JSONL export writes
-- [ ] Task 3: Verify CLI export contract and release-profile metric evidence
-- [ ] Task 4: Update evidence and tracker
+- [x] Task 1: Add bounded-write red test
+- [x] Task 2: Buffer JSONL export writes
+- [x] Task 3: Verify CLI export contract and release-profile metric evidence
+- [x] Task 4: Update evidence and tracker
 
 ## Tasks
 
@@ -230,11 +230,11 @@ and assert the resulting JSONL is valid, record order is unchanged, and writer
 calls are bounded by buffer-sized chunks rather than serde token writes.
 
 **Acceptance criteria:**
-- [ ] The test fails before buffering because downstream write calls are too
+- [x] The test fails before buffering because downstream write calls are too
   high.
-- [ ] The test asserts JSONL parseability and record count, not only write-call
+- [x] The test asserts JSONL parseability and record count, not only write-call
   count.
-- [ ] The threshold is based on output bytes and the chosen buffer size, not a
+- [x] The threshold is based on output bytes and the chosen buffer size, not a
   wall-clock duration.
 
 ### Task 2: Buffer JSONL Export Writes
@@ -251,12 +251,12 @@ before returning the summary. Keep `write_record` focused on envelope
 serialization and summary updates.
 
 **Acceptance criteria:**
-- [ ] `export_jsonl` output remains byte-for-byte valid JSONL v1.
-- [ ] `export_jsonl_to_path` still removes incomplete temporary output on export
+- [x] `export_jsonl` output remains byte-for-byte valid JSONL v1.
+- [x] `export_jsonl_to_path` still removes incomplete temporary output on export
   failure.
-- [ ] `export --out - --json` still writes JSONL to stdout and the report to
+- [x] `export --out - --json` still writes JSONL to stdout and the report to
   stderr.
-- [ ] No public schema, report, CLI, or crate API changes are introduced.
+- [x] No public schema, report, CLI, or crate API changes are introduced.
 
 ### Task 3: Verify CLI Export Contract And Release-Profile Metrics
 
@@ -273,11 +273,11 @@ dogfood artifact for before/after comparison. If the implementation changes the
 CLI path, run dogfood through the release binary and Python SQLite consumer.
 
 **Acceptance criteria:**
-- [ ] CLI export report `status`, `operation`, `mode`, row counts, and
+- [x] CLI export report `status`, `operation`, `mode`, row counts, and
   stdout/stderr behavior remain stable.
-- [ ] Release export to `/dev/null` is recorded as report-only evidence.
-- [ ] If dogfood is rerun, generated SQLite, JSONL, reports, and metrics remain
-  under `target/`.
+- [x] Release export to `/dev/null` is recorded as report-only evidence.
+- [x] Dogfood was not rerun because the CLI path did not change; generated
+  measurement output stayed outside tracked source files.
 
 ### Task 4: Update Evidence And Tracker
 
@@ -295,8 +295,8 @@ next slice remains repeatable performance baseline. If it does not, update the
 tracker to run the per-record line-buffer candidate before baseline work.
 
 **Acceptance criteria:**
-- [ ] Evidence records commit, binary path/profile, command, artifact row
+- [x] Evidence records commit, binary path/profile, command, artifact row
   counts, JSONL bytes, and report-only export timings.
-- [ ] Tracker records whether the next slice is repeatable baseline or the
+- [x] Tracker records whether the next slice is repeatable baseline or the
   fallback line-buffer candidate.
-- [ ] Default and contract branch gates pass before PR.
+- [x] Default and contract branch gates pass before PR.
