@@ -14,9 +14,9 @@
 
 ## Current Status
 
-- `main` is at `0b56050` after PR #4 merged release-binary dogfood evidence.
-- CI Fast Gates passed on PR #4 before merge.
-- Active product implementation branch: `codex/jsonl-export-performance-plan`.
+- `main` is at `987dc37` after PR #5 merged the JSONL export performance plan.
+- CI Fast Gates passed on PR #5 before merge.
+- Active product implementation branch: `codex/jsonl-export-buffered-writer`.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
 
@@ -50,6 +50,11 @@
   - local fetch of all exported SQLite rows: `213232` rows in `0.763s`;
   - release binary export to `/dev/null`: `20.79s` real, `3.83s` user, `15.66s` sys;
   - first implementation target: buffered JSONL writes, with no JSONL/SQLite/report/CLI contract changes.
+- JSONL export buffering evidence: `docs/release-evidence/2026-06-01-jsonl-export-buffering.md`.
+  - implementation commit `14da93e`;
+  - bounded-write red test failed before buffering with `2853` downstream writes for an `8558` byte fixture export;
+  - buffered release binary export to `/dev/null`: `2.43s` real, `1.06s` user, `0.21s` sys;
+  - fallback per-record line buffer is not needed before the repeatable baseline slice.
 - Autonomous run report for PR #3: `.memories/autonomous-run-2026-06-01-dogfood-rescan-baseline.md`.
 
 ## Non-Goals To Keep Out
@@ -115,9 +120,9 @@
 - Branch gate before PR: `cargo xtask test default` and `cargo xtask test contract`.
 
 **Acceptance criteria:**
-- [ ] JSONL v1 output shape, order, and report counts are unchanged.
-- [ ] Export uses bounded downstream write calls for multi-record output.
-- [ ] Release-profile report-only export metrics are recorded.
+- [x] JSONL v1 output shape, order, and report counts are unchanged.
+- [x] Export uses bounded downstream write calls for multi-record output.
+- [x] Release-profile report-only export metrics are recorded.
 
 ### Slice 4: Repeatable Performance Baseline
 
@@ -166,6 +171,6 @@
 - [x] Tracker created after PR #3 merge.
 - [x] Slice 1: Release-binary dogfood evidence.
 - [x] Slice 2: JSONL export performance plan.
-- [ ] Slice 3: JSONL export buffered writer implementation.
+- [x] Slice 3: JSONL export buffered writer implementation.
 - [ ] Slice 4: Repeatable performance baseline.
 - [ ] Slice 5: v0.1.0 release candidate audit.
