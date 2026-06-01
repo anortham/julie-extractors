@@ -157,6 +157,46 @@ fn workflow_commands_keep_fast_and_specialist_gates_separate() {
     }
 }
 
+#[test]
+fn workflow_commands_keep_release_binary_workflow_explicit() {
+    let root = repo_root();
+    let workflow = std::fs::read_to_string(root.join(".github/workflows/release-binaries.yml"))
+        .expect("read release-binaries.yml");
+    let release_doc = std::fs::read_to_string(root.join("docs/release.md")).expect("release docs");
+
+    for required in [
+        "workflow_dispatch:",
+        "tags:",
+        "- 'v*'",
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "cargo build --release -p julie-extract-cli --bin julie-extract",
+        "cargo xtask release package",
+        "actions/upload-artifact",
+    ] {
+        assert!(
+            workflow.contains(required),
+            "release-binaries.yml must contain `{required}`"
+        );
+    }
+
+    for required in [
+        "Release Binaries",
+        "workflow_dispatch",
+        "tag pushes matching `v*`",
+        "GitHub Actions artifacts",
+    ] {
+        assert!(
+            release_doc.contains(required),
+            "release docs must mention `{required}`"
+        );
+    }
+}
+
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()

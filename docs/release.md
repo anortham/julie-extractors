@@ -79,6 +79,21 @@ Rules:
 - The checksum file is SHA-256 and uses this deterministic format:
   `<hex>  dist/{target}/julie-extract{exe_suffix}`.
 
+## Release Binaries Workflow
+
+The `Release Binaries` GitHub Actions workflow stages downloadable packages for
+the supported host platforms. It runs from `workflow_dispatch` with an explicit
+version input, and from tag pushes matching `v*`; tag runs derive the package
+version by stripping the leading `v`.
+
+The workflow builds `julie-extract` in release mode on Linux, macOS, and
+Windows, then runs the same package-staging command documented above for each
+target. Each staged package directory is uploaded as a GitHub Actions artifact
+named `julie-extract-v{version}-{target}`.
+
+This workflow does not publish a GitHub Release or attach release assets. It
+only produces GitHub Actions artifacts for review and manual promotion.
+
 ## Evidence
 
 Release evidence is recorded under `docs/release-evidence/`. Generated SQLite,
