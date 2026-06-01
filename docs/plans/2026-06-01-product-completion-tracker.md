@@ -14,14 +14,13 @@
 
 ## Current Status
 
-- `main` is at `1440759` after PR #7 merged the repeatable performance baseline.
-- CI Fast Gates passed on PR #7 before merge.
-- Active product implementation branch:
-  `codex/v0-1-0-release-candidate-audit` in PR #8.
+- `main` is at `516a11b` after PR #8 merged the v0.1.0 release candidate audit.
 - PR #8: https://github.com/anortham/julie-extractors/pull/8.
-- PR #8 Fast Gates passed.
+- PR #8 Fast Gates passed before merge.
+- No active product implementation branch remains; the local worktree and local/remote `codex/v0-1-0-release-candidate-audit` branches were cleaned up after merge.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
+- Current user decision: trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate. Publication is not automatic.
 
 ## Completed Milestones
 
@@ -73,6 +72,7 @@
   - stable rows: `1018` files, `33019` symbols, `215388` JSONL records.
 - v0.1.0 release candidate audit evidence:
   `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
+  - PR #8 merged into `main` as `516a11b` on 2026-06-01 after Fast Gates passed;
   - package staging commit `c407cde`;
   - release binary SHA-256
     `c52b86f01c369088fad94da2ca013c9ddcfc840830e787c2f758a06724cf9237`;
@@ -206,3 +206,5 @@
 - [x] Slice 3: JSONL export buffered writer implementation.
 - [x] Slice 4: Repeatable performance baseline.
 - [x] Slice 5: v0.1.0 release candidate audit.
+- [x] PR #8 merged to `main`.
+- [ ] Release decision: trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate.

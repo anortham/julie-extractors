@@ -3,7 +3,7 @@ id: julie-extractors-product-completion-focus
 title: julie-extractors Product Completion Focus
 status: active
 created: 2026-06-01T13:24:06.835Z
-updated: 2026-06-01T15:44:05.000Z
+updated: 2026-06-01T16:08:45.000Z
 tags:
   - julie-extractors
   - product-bootstrap
@@ -15,15 +15,13 @@ tags:
 
 ## Current State
 
-- `main` is at `1440759` after PR #7 merged the repeatable performance baseline.
-- Active branch: `codex/v0-1-0-release-candidate-audit` in PR #8.
-- PR #8: https://github.com/anortham/julie-extractors/pull/8.
-- Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline, release-binary dogfood evidence, JSONL export performance plan, JSONL export buffering, repeatable performance baseline.
+- `main` is at `516a11b` after PR #8 merged the v0.1.0 release candidate audit.
+- No active product implementation branch remains.
+- PR #8: https://github.com/anortham/julie-extractors/pull/8, merged after Fast Gates passed.
+- Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline, release-binary dogfood evidence, JSONL export performance plan, JSONL export buffering, repeatable performance baseline, v0.1.0 release candidate audit.
 - Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
-- Current next state: v0.1.0 release candidate branch verification and PR Fast
-  Gates passed. The next user decision is merge, then trigger release binary
-  workflow or hold the release candidate. Publication is not automatic.
+- Current next state: make the user release decision: trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate. Publication is not automatic.
 
 ## Hard Boundaries
 
@@ -50,11 +48,11 @@ tags:
 - Slice 5 package staging at `c407cde`: target `aarch64-apple-darwin`, binary `julie-extract 0.1.0`, SHA-256 `c52b86f01c369088fad94da2ca013c9ddcfc840830e787c2f758a06724cf9237`, checksum verification passed.
 - Slice 5 refreshed baseline at `805da3b`: cold scan `6485ms` / `6514ms` / `7550ms`; no-change rescan `56ms` / `62ms` / `62ms`; JSONL export `1318ms` / `1321ms` / `1328ms`; stable output `1020` files, `33099` symbols, `216253` JSONL records.
 
-## Next Slices In Order
+## Next Decision
 
-1. Merge PR #8 when ready.
-2. After merge and CI pass, make the user release decision: trigger release
-   binary workflow or hold the release candidate.
+1. No active implementation slices remain in the current tracker.
+2. Decide whether to trigger the Release Binaries workflow for `v0.1.0` or hold
+   the release candidate.
 
 ## Operating Rule
 

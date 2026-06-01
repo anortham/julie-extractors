@@ -4,6 +4,7 @@
 
 - Merged PR #7 locally into `main` and based Slice 5 on `1440759`.
 - Opened PR #8: https://github.com/anortham/julie-extractors/pull/8.
+- Merged PR #8 into `main` as `516a11b` after Fast Gates passed.
 - Fixed a release-blocking contract mismatch: real SQLite/JSONL artifacts now
   persist parser inventory and language capability snapshot rows.
 - Staged v0.1.0 for `aarch64-apple-darwin`.
@@ -39,7 +40,7 @@
 
 ## Next
 
-- Merge PR #8 when ready.
-- After merge and CI pass, decide whether to trigger the Release Binaries
-  workflow for v0.1.0 or hold the release candidate.
+- Decide whether to trigger the Release Binaries workflow for `v0.1.0` or hold
+  the release candidate.
+- Publication remains manual; no release was triggered by the merge.
 
