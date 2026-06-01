@@ -1,5 +1,7 @@
 use std::process::{Command, ExitCode};
 
+const CAPABILITIES_JSON: &str = include_str!("../../fixtures/extraction/capabilities.json");
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TestPlan {
     pub commands: Vec<CommandSpec>,
@@ -161,19 +163,55 @@ fn language_plan(args: &[String]) -> Result<TestPlan, CliError> {
             "invalid language `{language}`; expected letters, numbers, `_`, or `-`"
         )));
     }
+    let Some(test_filter) = language_test_filter(language)? else {
+        return Err(CliError::new(format!(
+            "unsupported language `{language}`; supported languages: {}",
+            supported_languages()?.join(", ")
+        )));
+    };
 
     Ok(TestPlan {
         commands: vec![CommandSpec::new(
             "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extractors",
-                "--lib",
-                &format!("tests::{}::", language.replace('-', "_")),
-            ],
+            ["test", "-p", "julie-extractors", "--lib", &test_filter],
         )],
     })
+}
+
+fn language_test_filter(language: &str) -> Result<Option<String>, CliError> {
+    if !supported_languages()?
+        .iter()
+        .any(|supported| supported == language)
+    {
+        return Ok(None);
+    }
+
+    Ok(Some(match language {
+        "tsx" => "tests::typescript::tsx".to_string(),
+        "jsx" => "tests::javascript::jsx".to_string(),
+        other => format!("tests::{}::", other.replace('-', "_")),
+    }))
+}
+
+fn supported_languages() -> Result<Vec<String>, CliError> {
+    let snapshot: serde_json::Value = serde_json::from_str(CAPABILITIES_JSON).map_err(|err| {
+        CliError::new(format!("failed to parse embedded capabilities.json: {err}"))
+    })?;
+    let languages = snapshot
+        .get("languages")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| CliError::new("embedded capabilities.json is missing languages array"))?
+        .iter()
+        .map(|row| {
+            row.get("language")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string)
+                .ok_or_else(|| {
+                    CliError::new("embedded capabilities.json has a row missing language")
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(languages)
 }
 
 fn golden_plan() -> TestPlan {
@@ -195,18 +233,32 @@ fn golden_plan() -> TestPlan {
 
 fn capability_plan() -> TestPlan {
     TestPlan {
-        commands: vec![CommandSpec::new(
-            "cargo",
-            [
-                "test",
-                "-p",
-                "julie-extractors",
-                "--features",
-                "test-capability-matrix",
-                "--lib",
-                "capability_matrix",
-            ],
-        )],
+        commands: vec![
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-capability-matrix",
+                    "--lib",
+                    "capability_matrix",
+                ],
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-capability-matrix",
+                    "--lib",
+                    "pending_shape_contract",
+                ],
+            ),
+        ],
     }
 }
 
@@ -315,8 +367,12 @@ fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
 fn is_parser_dependency_path(path: &str) -> bool {
     path == "Cargo.lock"
         || path == "crates/julie-extractors/Cargo.toml"
+        || path == "fixtures/extraction/capabilities.json"
+        || path.starts_with("fixtures/extraction/")
         || path.starts_with("crates/julie-extractors/src/language_spec/")
         || path.starts_with("crates/julie-extractors/src/registry")
+        || path.starts_with("crates/julie-extractors/src/tests/capability_matrix")
+        || path.starts_with("crates/julie-extractors/src/tests/pending_shape_contract")
 }
 
 fn real_world_smoke_plan() -> TestPlan {

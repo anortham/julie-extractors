@@ -23,3 +23,7 @@ UPDATE_GOLDEN=1 cargo xtask test golden
 
 Do not add a language to the registry without adding a matrix row and fixture.
 Variants count as separate entries, including `tsx`, `jsx`, and `vue`.
+
+Use `docs/languages/new-language-checklist.md` before adding or upgrading a
+language claim. Use `docs/contracts/extracted-data-v1.md` to decide which row
+domains and capability flags need fixture evidence.

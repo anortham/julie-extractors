@@ -11,7 +11,7 @@ Use `cargo xtask test list` to print the tier names.
 - Default: `cargo xtask test default`
 - One language: `cargo xtask test language rust`
 - Golden fixtures: `cargo xtask test golden`
-- Capability matrix: `cargo xtask test capability`
+- Capability and pending-shape contracts: `cargo xtask test capability`
 - Extractor contract: `cargo xtask test contract`
 - Parser certification: `cargo xtask test certification`
 - Changed paths: `cargo xtask test changed <path>...`
@@ -23,9 +23,9 @@ Use `cargo xtask test list` to print the tier names.
 The default command expands to fast package tests for `julie-extractors`,
 `julie-extract-artifact`, and `julie-extract-cli`. Slow and contract-heavy
 gates are selected by Cargo features or named test targets, so plain default
-runs do not include golden fixtures, capability matrix scans, parser-upgrade
-checks, downstream smoke consumers, dogfood repo scans, release packaging, or
-real-world fixtures.
+runs do not include golden fixtures, capability matrix scans, pending-shape
+checks, parser-upgrade checks, downstream smoke consumers, dogfood repo scans,
+release packaging, or real-world fixtures.
 
 ## Default Tier
 
@@ -86,10 +86,10 @@ Current form:
 cargo xtask test contract
 ```
 
-This runs golden fixtures, capability matrix checks, and the downstream smoke
-consumer, plus the SQLite schema, JSON report, and JSONL contract tests for
-`julie-extract-artifact` and the CLI contract, path-policy, and operations
-contract tests for `julie-extract-cli`.
+This runs golden fixtures, capability matrix checks, pending-shape checks, and
+the downstream smoke consumer, plus the SQLite schema, JSON report, and JSONL
+contract tests for `julie-extract-artifact` and the CLI contract, path-policy,
+and operations contract tests for `julie-extract-cli`.
 
 The Python SQLite consumer example is a downstream smoke check for non-Rust
 artifact readers:
@@ -100,7 +100,8 @@ python3 examples/python/sqlite_consumer.py target/dogfood/julie-extractors/artif
 
 ## Certification Tier
 
-Runs capability matrix, parser certification, and parser upgrade checks.
+Runs capability matrix checks, pending-shape checks, parser certification, and
+parser upgrade checks.
 
 This tier is required before parser dependency changes and release candidates,
 not during every edit.
@@ -122,6 +123,9 @@ Current parser dependency triggers:
 - `crates/julie-extractors/Cargo.toml`
 - `crates/julie-extractors/src/language_spec/**`
 - `crates/julie-extractors/src/registry*`
+- `crates/julie-extractors/src/tests/capability_matrix*`
+- `crates/julie-extractors/src/tests/pending_shape_contract*`
+- `fixtures/extraction/**`
 
 Current form:
 

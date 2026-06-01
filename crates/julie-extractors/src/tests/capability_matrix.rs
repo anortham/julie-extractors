@@ -817,6 +817,33 @@ fn capability_matrix_pending_claim_requires_pending_output_in_fixtures() {
 }
 
 #[test]
+fn capability_matrix_type_claim_requires_type_output_in_fixtures() {
+    let root = workspace_root();
+    let matrix = load_matrix(&root);
+
+    for row in matrix.languages {
+        if !row.capabilities.types {
+            continue;
+        }
+
+        let has_type_evidence = row
+            .fixtures
+            .iter()
+            .any(|fixture| fixture_exercises_types(&root, fixture));
+        let has_type_gap = row
+            .capability_gaps
+            .iter()
+            .any(|gap| gap.capability == "types");
+
+        assert!(
+            has_type_evidence || has_type_gap,
+            "{} advertises type support but no golden fixture emits types and no gap is recorded",
+            row.language
+        );
+    }
+}
+
+#[test]
 fn capability_matrix_requires_body_span_hash_coverage_domain() {
     let root = workspace_root();
     let matrix = load_matrix(&root);
@@ -1246,6 +1273,15 @@ fn fixture_exercises_pending_relationships(root: &Path, fixture: &FixtureRow) ->
                 .and_then(Value::as_array)
                 .is_some_and(|items| !items.is_empty())
         })
+}
+
+fn fixture_exercises_types(root: &Path, fixture: &FixtureRow) -> bool {
+    let expected = load_expected_fixture(root, fixture);
+
+    expected
+        .get("types")
+        .and_then(Value::as_array)
+        .is_some_and(|items| !items.is_empty())
 }
 
 fn assert_fixture_pending_parity(root: &Path, fixture: &FixtureRow, language: &str) {

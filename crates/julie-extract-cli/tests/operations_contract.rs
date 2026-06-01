@@ -1,9 +1,12 @@
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::process::{Command, Output};
 
 use rusqlite::Connection;
 use serde_json::Value;
 use tempfile::TempDir;
+
+const CAPABILITIES_JSON: &str = include_str!("../../../fixtures/extraction/capabilities.json");
 
 fn julie_extract(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_julie-extract"))
@@ -705,14 +708,45 @@ fn languages_json_emits_capability_snapshot_data() {
     let report = json_report(&output);
     assert_eq!(report["status"], "ok");
     assert_eq!(report["operation"], "languages");
-    assert!(report["languages"]["total"].as_i64().unwrap() > 0);
-    assert!(
-        report["languages"]["languages"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|language| language["language"] == "rust")
-    );
+    let emitted = report["languages"]["languages"].as_array().unwrap();
+    let expected_names = expected_capability_languages();
+    let emitted_names = emitted
+        .iter()
+        .map(|language| {
+            language["language"]
+                .as_str()
+                .expect("language rows include language")
+                .to_string()
+        })
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(report["languages"]["total"], expected_names.len());
+    assert_eq!(emitted_names, expected_names);
+    for language in emitted {
+        assert!(
+            language["parser_crate"]
+                .as_str()
+                .is_some_and(|v| !v.is_empty())
+        );
+        assert!(
+            language["extensions"]
+                .as_array()
+                .is_some_and(|v| !v.is_empty())
+        );
+        assert!(language["target_capabilities"].is_object());
+        assert!(language["actual_capabilities"].is_object());
+        assert!(language["fixtures"].as_i64().unwrap() > 0);
+    }
+}
+
+fn expected_capability_languages() -> BTreeSet<String> {
+    let snapshot: Value = serde_json::from_str(CAPABILITIES_JSON).unwrap();
+    snapshot["languages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|language| language["language"].as_str().unwrap().to_string())
+        .collect()
 }
 
 struct FixtureRoot {

@@ -19,3 +19,8 @@ artifact rows.
 Language extension mapping, parser inventory, doc-comment rules, and capability
 metadata live in `crates/julie-extractors/src/language_spec/` and
 `fixtures/extraction/capabilities.json`.
+
+Contributor workflow and claim definitions live in:
+
+- `docs/contracts/extracted-data-v1.md`
+- `docs/languages/new-language-checklist.md`

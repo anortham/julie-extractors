@@ -1,0 +1,7 @@
+{
+  // JSONC fixture: comments must route through the public .jsonc extension.
+  "compilerOptions": {
+    "module": "commonjs", // Inline comments are valid JSONC input.
+    "strict": true
+  }
+}

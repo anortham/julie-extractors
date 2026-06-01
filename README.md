@@ -188,6 +188,13 @@ Capability rows distinguish target support from actual fixture-backed evidence.
 Use `julie-extract languages --json` for the current parser and capability
 snapshot instead of hard-coding this list in consumers.
 
+Contributor-facing language contracts:
+
+- `docs/contracts/extracted-data-v1.md`: definitive list of extracted data domains
+  and support labels.
+- `docs/languages/new-language-checklist.md`: checklist for adding a language or
+  upgrading a language capability claim.
+
 ## Intended Users
 
 - Miller and other non-Rust code intelligence tools that want a stable CLI and
@@ -246,9 +253,14 @@ Product and architecture:
 Public contracts:
 
 - [CLI contract](docs/contracts/cli.md)
+- [Extracted data v1](docs/contracts/extracted-data-v1.md)
 - [SQLite schema v1](docs/contracts/sqlite-schema-v1.md)
 - [JSONL v1](docs/contracts/jsonl-v1.md)
 - [JSON reports](docs/contracts/reports.md)
+
+Language support:
+
+- [New language checklist](docs/languages/new-language-checklist.md)
 
 Release and testing:
 

@@ -39,6 +39,48 @@ fn test_language_tier_filters_one_language_module() {
 }
 
 #[test]
+fn test_language_tier_rejects_unknown_languages_and_maps_variants() {
+    let unknown = plan_from_args(["test", "language", "does_not_exist"])
+        .expect_err("unknown language must not run a zero-test cargo filter");
+    assert!(
+        unknown
+            .message()
+            .contains("unsupported language `does_not_exist`"),
+        "unexpected error: {unknown}"
+    );
+
+    let tsx = plan_from_args(["test", "language", "tsx"]).expect("tsx language plan");
+    assert_eq!(
+        tsx.commands,
+        vec![CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--lib",
+                "tests::typescript::tsx",
+            ]
+        )]
+    );
+
+    let jsx = plan_from_args(["test", "language", "jsx"]).expect("jsx language plan");
+    assert_eq!(
+        jsx.commands,
+        vec![CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--lib",
+                "tests::javascript::jsx",
+            ]
+        )]
+    );
+}
+
+#[test]
 fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
     let plan = plan_from_args(["test", "contract"]).expect("contract plan");
 
@@ -67,6 +109,18 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "test-capability-matrix",
                     "--lib",
                     "capability_matrix",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-capability-matrix",
+                    "--lib",
+                    "pending_shape_contract",
                 ]
             ),
             CommandSpec::new(
@@ -151,6 +205,18 @@ fn test_certification_tier_selects_parser_upgrade_feature() {
                     "test-capability-matrix",
                     "--lib",
                     "capability_matrix",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extractors",
+                    "--features",
+                    "test-capability-matrix",
+                    "--lib",
+                    "pending_shape_contract",
                 ]
             ),
             CommandSpec::new(
@@ -277,6 +343,10 @@ fn test_changed_parser_dependency_paths_trigger_certification_gate() {
         "crates/julie-extractors/Cargo.toml",
         "crates/julie-extractors/src/language_spec/specs.rs",
         "crates/julie-extractors/src/registry.rs",
+        "fixtures/extraction/capabilities.json",
+        "fixtures/extraction/rust/basic/source.rs",
+        "fixtures/extraction/rust/basic/expected.json",
+        "crates/julie-extractors/src/tests/capability_matrix.rs",
     ] {
         let parser_change =
             plan_from_args(["test", "changed", path]).expect("changed parser dependency plan");

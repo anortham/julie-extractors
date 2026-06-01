@@ -2688,6 +2688,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/json/cross_file/source.json",
           "expected": "fixtures/extraction/json/cross_file/expected.json"
+        },
+        {
+          "name": "jsonc",
+          "source": "fixtures/extraction/json/jsonc/source.jsonc",
+          "expected": "fixtures/extraction/json/jsonc/expected.json"
         }
       ],
       "target_capabilities": {

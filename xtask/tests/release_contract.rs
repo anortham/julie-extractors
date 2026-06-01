@@ -101,6 +101,10 @@ fn release_package_list_is_exact_and_ordered() {
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
+                path_template: "docs/contracts/extracted-data-v1.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
                 path_template: "docs/architecture/product-boundary.md",
             },
             ReleasePackageItem {
@@ -130,6 +134,7 @@ fn release_package_list_renders_as_a_stable_xtask_manifest() {
     assert!(rendered.contains("binary\tdist/{target}/julie-extract{exe_suffix}\n"));
     assert!(rendered.contains("checksum\tdist/{target}/julie-extract{exe_suffix}.sha256\n"));
     assert!(rendered.contains("doc\tdocs/contracts/cli.md\n"));
+    assert!(rendered.contains("doc\tdocs/contracts/extracted-data-v1.md\n"));
     assert!(rendered.contains("doc\tdocs/release.md\n"));
     assert!(rendered.contains("release_note\tdocs/release-notes/v{version}.md\n"));
 }
