@@ -17,10 +17,13 @@
 - `main` is at `516a11b` after PR #8 merged the v0.1.0 release candidate audit.
 - PR #8: https://github.com/anortham/julie-extractors/pull/8.
 - PR #8 Fast Gates passed before merge.
-- No active product implementation branch remains; the local worktree and local/remote `codex/v0-1-0-release-candidate-audit` branches were cleaned up after merge.
+- Active product branch: `codex/release-blocker-review-fixes`.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
-- Current user decision: trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate. Publication is not automatic.
+- Current release target is v2.0.0 after the user selected continuity from the
+  old Julie extractor crate line.
+- Active work now also includes
+  `docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`.
 
 ## Completed Milestones
 
@@ -81,10 +84,17 @@
   - audit blocker fixed: SQLite and JSONL artifacts now persist `36` parser
     inventory rows, `36` language capability rows, `76` fixture rows, and
     `17` gap rows;
-  - refreshed repeatable baseline at `805da3b`: cold scan min/median/max
-    `6485ms` / `6514ms` / `7550ms`, no-change rescan `56ms` / `62ms` /
-    `62ms`, JSONL export `1318ms` / `1321ms` / `1328ms`, stable output
-    `1020` files, `33099` symbols, `216253` JSONL records.
+	  - refreshed repeatable baseline at `805da3b`: cold scan min/median/max
+	    `6485ms` / `6514ms` / `7550ms`, no-change rescan `56ms` / `62ms` /
+	    `62ms`, JSONL export `1318ms` / `1321ms` / `1328ms`, stable output
+	    `1020` files, `33099` symbols, `216253` JSONL records.
+- v2.0.0 version/test-role alignment:
+  `docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`.
+  - package metadata and release workflow defaults now target v2.0.0;
+  - SQLite `symbols` promotes `is_test`, `test_container`, and
+    `test_lifecycle` to first-class indexed booleans;
+  - JSONL `symbol` records expose the same booleans while preserving metadata
+    keys for old metadata-oriented consumers.
 - Autonomous run report for PR #3: `.memories/autonomous-run-2026-06-01-dogfood-rescan-baseline.md`.
 
 ## Non-Goals To Keep Out
@@ -190,6 +200,45 @@
 - [x] Release notes match actual shipped surfaces and known non-goals.
 - [x] No generated artifacts are committed.
 
+### Slice 6: Release-Blocker Review Fixes
+
+**Why now:** `docs/findings/CC_REVIEW.md` identified release-blocking and
+high-priority contract gaps after the release candidate audit. Resolve those
+before making the v2.0.0 publish decision.
+
+**Reference plan:** `docs/plans/2026-06-01-release-blocker-review-fixes.md`.
+
+**Status:** Implementation is complete on the active branch. Merge after fast
+gates pass.
+
+**Acceptance criteria:**
+- [x] Partial scans preserve prior good rows and commit valid files when another
+  supported file fails.
+- [x] Intentionally empty supported files can replace stale symbols.
+- [x] Discovery does not index out-of-root symlinked files.
+- [x] Parser inventory and capability snapshot fingerprints are computed
+  `sha256:<hex>` values.
+- [x] Workspace lint inheritance and a scoped CI clippy gate are enforced.
+- [x] Fast branch gates pass before merge.
+
+### Slice 7: v2.0.0 Version And Test-Role Contract Alignment
+
+**Why now:** The old Julie crate was already at v1.22.0, and test-role metadata
+is a downstream lookup path that should not depend on unindexed JSON extraction.
+
+**Reference plan:**
+`docs/plans/2026-06-01-v2-0-0-version-and-test-role-contract.md`.
+
+**Status:** Implementation is on the active branch. Merge after fast gates pass.
+
+**Acceptance criteria:**
+
+- [x] Package metadata and release workflow defaults target v2.0.0.
+- [x] Artifact contract version numbers remain v1.
+- [x] SQLite and JSONL contracts expose first-class test-role booleans.
+- [x] SQLite has required indexes for test-role lookups.
+- [x] CLI scan preserves old metadata keys and fills the first-class columns.
+
 ## Verification Discipline
 
 - Reuse same-HEAD passing evidence from plan ledgers instead of rerunning broad gates for status updates.
@@ -206,5 +255,7 @@
 - [x] Slice 3: JSONL export buffered writer implementation.
 - [x] Slice 4: Repeatable performance baseline.
 - [x] Slice 5: v0.1.0 release candidate audit.
+- [x] Slice 6: Release-blocker review fixes.
+- [x] Slice 7: v2.0.0 version and test-role contract alignment.
 - [x] PR #8 merged to `main`.
-- [ ] Release decision: trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate.
+- [ ] Release decision: trigger the Release Binaries workflow for `v2.0.0` or hold the release candidate.

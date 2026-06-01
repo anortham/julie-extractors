@@ -87,6 +87,12 @@ fn query_plan_uses_required_lookup_indexes() {
     );
     assert_query_uses_index(
         &conn,
+        "SELECT symbol_id FROM symbols WHERE is_test = ?1",
+        ["1"],
+        "idx_symbols_is_test",
+    );
+    assert_query_uses_index(
+        &conn,
         "SELECT identifier_id FROM identifiers WHERE name = ?1 AND kind = ?2",
         ["load", "call"],
         "idx_identifiers_name_kind",
@@ -321,6 +327,9 @@ fn expected_tables() -> Vec<ExpectedTable> {
             "semantic_group TEXT",
             "confidence REAL",
             "content_type TEXT",
+            "is_test INTEGER",
+            "test_container INTEGER",
+            "test_lifecycle INTEGER",
             "metadata_json TEXT",
         ],
     );
@@ -554,6 +563,21 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_symbols_parent",
             table: "symbols",
             columns: vec!["parent_symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_symbols_is_test",
+            table: "symbols",
+            columns: vec!["is_test"],
+        },
+        ExpectedIndex {
+            name: "idx_symbols_test_container",
+            table: "symbols",
+            columns: vec!["test_container"],
+        },
+        ExpectedIndex {
+            name: "idx_symbols_test_lifecycle",
+            table: "symbols",
+            columns: vec!["test_lifecycle"],
         },
         ExpectedIndex {
             name: "idx_identifiers_path",

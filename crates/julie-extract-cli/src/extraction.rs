@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::string::FromUtf8Error;
 
 use julie_extract_artifact::model::{
     ArtifactFile, ArtifactIdentifier, ArtifactLiteral, ArtifactParseDiagnostic,
@@ -14,6 +15,7 @@ use julie_extractors::{
     TypeArgumentUsage, TypeInfo, extract_canonical,
 };
 use serde::Serialize;
+use serde_json::Value;
 
 use crate::paths::FileTarget;
 
@@ -30,6 +32,8 @@ pub(crate) struct ExtractFileError {
     pub path: String,
     pub root_relative_path: String,
     pub message: String,
+    pub content_hash: Option<String>,
+    pub content_bytes: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,16 +57,22 @@ pub(crate) fn extract_artifact_file(
 pub(crate) fn read_source_snapshot(
     target: &FileTarget,
 ) -> Result<SourceSnapshot, ExtractFileError> {
-    let content = fs::read_to_string(&target.absolute_path).map_err(|error| ExtractFileError {
+    let bytes = fs::read(&target.absolute_path).map_err(|error| ExtractFileError {
         kind: ExtractFileErrorKind::Read,
         path: target.absolute_path.display().to_string(),
         root_relative_path: target.root_relative_path.clone(),
-        message: format!("source file could not be read as UTF-8: {error}"),
+        message: format!("source file could not be read: {error}"),
+        content_hash: None,
+        content_bytes: None,
     })?;
+    let content_hash = content_hash_bytes(&bytes);
+    let content_bytes = bytes.len() as i64;
+    let content = String::from_utf8(bytes)
+        .map_err(|error| utf8_error(target, error, &content_hash, content_bytes))?;
 
     Ok(SourceSnapshot {
-        content_hash: content_hash(&content),
-        content_bytes: content.len() as i64,
+        content_hash,
+        content_bytes,
         line_count: Some(line_count(&content)),
         content,
     })
@@ -81,10 +91,46 @@ pub(crate) fn extract_artifact_file_from_snapshot(
             path: target.absolute_path.display().to_string(),
             root_relative_path: target.root_relative_path.clone(),
             message: error.to_string(),
+            content_hash: Some(snapshot.content_hash.clone()),
+            content_bytes: Some(snapshot.content_bytes),
         })?;
     classify_literals_by_carrier(&mut results.literals);
 
     map_results(target, language, indexed_at, &snapshot, results)
+}
+
+pub(crate) fn failed_artifact_file(
+    target: &FileTarget,
+    language: String,
+    indexed_at: String,
+    error: &ExtractFileError,
+) -> ArtifactFile {
+    let path = target.root_relative_path.clone();
+    let content_hash = error.content_hash.clone().unwrap_or_else(|| {
+        content_hash(&format!("{}:{}", error.root_relative_path, error.message))
+    });
+    let content_bytes = error.content_bytes.unwrap_or(0);
+    ArtifactFile {
+        file_id: stable_id("file", [&path]),
+        path,
+        language,
+        content_hash,
+        content_bytes,
+        line_count: None,
+        indexed_at,
+        status: FileStatus::FailedPreserved,
+        metadata_json: None,
+        symbols: Vec::new(),
+        symbol_annotations: Vec::new(),
+        identifiers: Vec::new(),
+        relationships: Vec::new(),
+        pending_relationships: Vec::new(),
+        type_facts: Vec::new(),
+        type_argument_usages: Vec::new(),
+        type_arguments: Vec::new(),
+        literals: Vec::new(),
+        parse_diagnostics: vec![failure_parse_diagnostic(target, error, content_bytes)],
+    }
 }
 
 pub(crate) fn unchanged_artifact_file(
@@ -175,6 +221,9 @@ fn map_results(
             semantic_group: symbol.semantic_group.clone(),
             confidence: symbol.confidence.map(f64::from),
             content_type: symbol.content_type.clone(),
+            is_test: metadata_flag(&symbol.metadata, "is_test"),
+            test_container: metadata_flag(&symbol.metadata, "test_container"),
+            test_lifecycle: metadata_flag(&symbol.metadata, "test_lifecycle"),
             metadata_json: optional_json(&symbol.metadata, target)?,
         });
 
@@ -552,12 +601,22 @@ fn json_string<T: Serialize>(value: &T, _target: &FileTarget) -> Result<String, 
     serde_json::to_string(value)
 }
 
+fn metadata_flag(metadata: &Option<std::collections::HashMap<String, Value>>, key: &str) -> bool {
+    metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
 fn serialization_error(target: &FileTarget, error: serde_json::Error) -> ExtractFileError {
     ExtractFileError {
         kind: ExtractFileErrorKind::Serialize,
         path: target.absolute_path.display().to_string(),
         root_relative_path: target.root_relative_path.clone(),
         message: format!("extraction row metadata could not be serialized: {error}"),
+        content_hash: None,
+        content_bytes: None,
     }
 }
 
@@ -578,7 +637,11 @@ fn type_argument_usage_id(usage: &TypeArgumentUsage) -> String {
 }
 
 fn content_hash(content: &str) -> String {
-    format!("blake3:{}", blake3::hash(content.as_bytes()).to_hex())
+    content_hash_bytes(content.as_bytes())
+}
+
+fn content_hash_bytes(content: &[u8]) -> String {
+    format!("blake3:{}", blake3::hash(content).to_hex())
 }
 
 fn line_count(content: &str) -> i64 {
@@ -601,4 +664,48 @@ where
     }
     let hex = hasher.finalize().to_hex().to_string();
     format!("{prefix}-{}", &hex[..32])
+}
+
+fn utf8_error(
+    target: &FileTarget,
+    error: FromUtf8Error,
+    content_hash: &str,
+    content_bytes: i64,
+) -> ExtractFileError {
+    ExtractFileError {
+        kind: ExtractFileErrorKind::Read,
+        path: target.absolute_path.display().to_string(),
+        root_relative_path: target.root_relative_path.clone(),
+        message: format!("source file could not be read as UTF-8: {error}"),
+        content_hash: Some(content_hash.to_string()),
+        content_bytes: Some(content_bytes),
+    }
+}
+
+fn failure_parse_diagnostic(
+    target: &FileTarget,
+    error: &ExtractFileError,
+    content_bytes: i64,
+) -> ArtifactParseDiagnostic {
+    ArtifactParseDiagnostic {
+        diagnostic_id: stable_id(
+            "parse_diagnostic",
+            [
+                target.root_relative_path.as_str(),
+                "error",
+                "1",
+                "0",
+                error.message.as_str(),
+            ],
+        ),
+        kind: "error".to_string(),
+        message: Some(error.message.clone()),
+        start_line: 1,
+        start_column: 0,
+        end_line: 1,
+        end_column: 0,
+        start_byte: 0,
+        end_byte: content_bytes,
+        metadata_json: None,
+    }
 }

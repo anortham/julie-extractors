@@ -212,14 +212,16 @@ impl ArtifactWriter {
         write_metadata(&tx, &self.metadata)?;
         delete_file_rows(&tx, &existing.file_id, path)?;
 
-        let mut row_counts = RowCounts::default();
-        row_counts.revision_file_changes = insert_revision_file_change(
-            &tx,
-            revision_id,
-            &existing.file_id,
-            path,
-            RevisionChangeKind::Deleted,
-        )?;
+        let row_counts = RowCounts {
+            revision_file_changes: insert_revision_file_change(
+                &tx,
+                revision_id,
+                &existing.file_id,
+                path,
+                RevisionChangeKind::Deleted,
+            )?,
+            ..RowCounts::default()
+        };
         update_revision_counts(&tx, revision_id, &row_counts)?;
         tx.commit()?;
 
@@ -356,7 +358,9 @@ impl ArtifactWriter {
                 continue;
             }
 
-            ensure_data_loss_guard(&tx, file)?;
+            if file.status != FileStatus::FailedPreserved {
+                ensure_data_loss_guard(&tx, file)?;
+            }
             let change_kind = match file.status {
                 FileStatus::Unsupported => RevisionChangeKind::Unsupported,
                 FileStatus::Indexed | FileStatus::FailedPreserved => {
@@ -385,6 +389,9 @@ impl ArtifactWriter {
         let mut row_counts = RowCounts::default();
 
         for (file, existing, _) in &planned {
+            if is_preserved_failure_update(file, existing.as_ref()) {
+                continue;
+            }
             if let Some(existing) = existing {
                 delete_file_rows(&tx, &existing.file_id, &file.path)?;
             }
@@ -401,9 +408,15 @@ impl ArtifactWriter {
             )?;
         }
 
-        for (file, _, change_kind) in &planned {
-            insert_file(&tx, revision_id, file)?;
-            row_counts.files += 1;
+        for (file, existing, change_kind) in &planned {
+            if let Some(existing) = existing.as_ref().filter(|_| is_preserved_failure(file)) {
+                update_failed_preserved_file(&tx, revision_id, file, &existing.file_id)?;
+                row_counts.files += 1;
+                row_counts.parse_diagnostics += replace_parse_diagnostics(&tx, file)?;
+            } else {
+                insert_file(&tx, revision_id, file)?;
+                row_counts.files += 1;
+            }
             row_counts.revision_file_changes += insert_revision_file_change(
                 &tx,
                 revision_id,
@@ -413,17 +426,19 @@ impl ArtifactWriter {
             )?;
         }
 
-        for (file, _, _) in &planned {
+        let rewritten_files = planned
+            .iter()
+            .filter(|(file, existing, _)| !is_preserved_failure_update(file, existing.as_ref()))
+            .map(|(file, _, _)| *file)
+            .collect::<Vec<_>>();
+
+        for file in &rewritten_files {
             row_counts.symbols += insert_symbols(&tx, file)?;
         }
-        let symbol_lookup = load_symbol_lookup(&tx, planned.iter().map(|(file, _, _)| *file))?;
-        update_symbol_parents(
-            &tx,
-            planned.iter().map(|(file, _, _)| *file),
-            &symbol_lookup,
-        )?;
+        let symbol_lookup = load_symbol_lookup(&tx, rewritten_files.iter().copied())?;
+        update_symbol_parents(&tx, rewritten_files.iter().copied(), &symbol_lookup)?;
 
-        for (file, _, _) in &planned {
+        for file in &rewritten_files {
             insert_child_rows(&tx, file, &symbol_lookup, &mut row_counts)?;
         }
 
@@ -736,7 +751,6 @@ fn ensure_data_loss_guard(tx: &Transaction<'_>, file: &ArtifactFile) -> Artifact
 
     let reason = match file.status {
         FileStatus::FailedPreserved => Some("parser/read failure evidence"),
-        FileStatus::Indexed if file.symbols.is_empty() => Some("parser returned zero symbols"),
         FileStatus::Indexed | FileStatus::Unsupported => None,
     };
 
@@ -853,16 +867,65 @@ fn insert_file(
     Ok(())
 }
 
+fn is_preserved_failure(file: &ArtifactFile) -> bool {
+    file.status == FileStatus::FailedPreserved
+}
+
+fn is_preserved_failure_update(file: &ArtifactFile, existing: Option<&ExistingFile>) -> bool {
+    is_preserved_failure(file) && existing.is_some()
+}
+
+fn update_failed_preserved_file(
+    tx: &Transaction<'_>,
+    revision_id: i64,
+    file: &ArtifactFile,
+    existing_file_id: &str,
+) -> rusqlite::Result<()> {
+    tx.execute(
+        "UPDATE files
+         SET language = ?1,
+             content_hash = ?2,
+             content_bytes = ?3,
+             line_count = ?4,
+             indexed_at = ?5,
+             last_revision_id = ?6,
+             status = ?7,
+             metadata_json = ?8
+         WHERE file_id = ?9",
+        params![
+            file.language,
+            file.content_hash,
+            file.content_bytes,
+            file.line_count,
+            file.indexed_at,
+            revision_id,
+            file.status.as_str(),
+            file.metadata_json,
+            existing_file_id,
+        ],
+    )?;
+    Ok(())
+}
+
+fn replace_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
+    tx.execute(
+        "DELETE FROM parse_diagnostics WHERE file_id = ?1 OR path = ?2",
+        params![file.file_id, file.path],
+    )?;
+    insert_parse_diagnostics(tx, file)
+}
+
 fn insert_symbols(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare(
         "INSERT INTO symbols
-         (symbol_id, file_id, path, language, name, kind, signature, doc_comment, visibility,
-          parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
-          body_start_line, body_start_column, body_end_line, body_end_column, body_start_byte,
-          body_end_byte, body_hash, semantic_group, confidence, content_type, metadata_json)
-         VALUES
-         (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-          ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26)",
+	     (symbol_id, file_id, path, language, name, kind, signature, doc_comment, visibility,
+	      parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
+	      body_start_line, body_start_column, body_end_line, body_end_column, body_start_byte,
+	      body_end_byte, body_hash, semantic_group, confidence, content_type, is_test,
+	      test_container, test_lifecycle, metadata_json)
+	     VALUES
+	     (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
+	      ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29)",
     )?;
     for symbol in &file.symbols {
         stmt.execute(params![
@@ -891,6 +954,9 @@ fn insert_symbols(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result
             symbol.semantic_group,
             symbol.confidence,
             symbol.content_type,
+            symbol.is_test,
+            symbol.test_container,
+            symbol.test_lifecycle,
             symbol.metadata_json,
         ])?;
     }
@@ -908,10 +974,10 @@ fn update_symbol_parents<'a>(
         tx.prepare("UPDATE symbols SET parent_symbol_id = ?1 WHERE symbol_id = ?2")?;
     for file in files {
         for symbol in &file.symbols {
-            if let Some(parent_symbol_id) = symbol.parent_symbol_id.as_deref() {
-                if symbol_lookup.contains(parent_symbol_id) {
-                    parent_update.execute(params![parent_symbol_id, symbol.symbol_id])?;
-                }
+            if let Some(parent_symbol_id) = symbol.parent_symbol_id.as_deref()
+                && symbol_lookup.contains(parent_symbol_id)
+            {
+                parent_update.execute(params![parent_symbol_id, symbol.symbol_id])?;
             }
         }
     }
@@ -1286,8 +1352,7 @@ fn load_symbol_lookup<'a>(
         return Ok(SymbolLookup::default());
     }
 
-    let bind_marks = std::iter::repeat("?")
-        .take(requested.len())
+    let bind_marks = std::iter::repeat_n("?", requested.len())
         .collect::<Vec<_>>()
         .join(", ");
     let sql = format!("SELECT symbol_id FROM symbols WHERE symbol_id IN ({bind_marks})");

@@ -140,6 +140,23 @@ fn commands_route_performance_baseline_before_test_tier_parser() {
 }
 
 #[test]
+fn workspace_members_inherit_workspace_lints() {
+    let root = repo_root();
+    for manifest in [
+        "crates/julie-extract-artifact/Cargo.toml",
+        "crates/julie-extract-cli/Cargo.toml",
+        "crates/julie-extractors/Cargo.toml",
+        "xtask/Cargo.toml",
+    ] {
+        let source = std::fs::read_to_string(root.join(manifest)).expect("read manifest");
+        assert!(
+            source.contains("\n[lints]\nworkspace = true\n"),
+            "{manifest} must inherit workspace lint settings"
+        );
+    }
+}
+
+#[test]
 fn workflow_commands_keep_fast_and_specialist_gates_separate() {
     let root = repo_root();
     let ci = std::fs::read_to_string(root.join(".github/workflows/ci.yml")).expect("read ci.yml");
@@ -152,6 +169,11 @@ fn workflow_commands_keep_fast_and_specialist_gates_separate() {
     for command in [
         "cargo fmt --check",
         "cargo metadata --format-version 1",
+        "cargo clippy --no-deps",
+        "-p julie-extract-artifact",
+        "-p julie-extract-cli",
+        "-p xtask",
+        "--lib --bins -- -D warnings",
         "cargo test -p xtask",
         "cargo xtask test default",
         "cargo xtask test contract",

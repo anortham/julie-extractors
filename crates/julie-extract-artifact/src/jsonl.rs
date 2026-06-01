@@ -589,7 +589,7 @@ fn export_symbols<W: Write>(
                 visibility, parent_symbol_id, start_line, start_column, end_line, end_column,
                 start_byte, end_byte, body_start_line, body_start_column, body_end_line,
                 body_end_column, body_start_byte, body_end_byte, body_hash, semantic_group,
-                confidence, content_type, metadata_json
+                confidence, content_type, is_test, test_container, test_lifecycle, metadata_json
          FROM symbols
          ORDER BY symbol_id",
     )?;
@@ -621,7 +621,10 @@ fn export_symbols<W: Write>(
             row.get::<_, Option<String>>(23)?,
             row.get::<_, Option<f64>>(24)?,
             row.get::<_, Option<String>>(25)?,
-            row.get::<_, Option<String>>(26)?,
+            row.get::<_, bool>(26)?,
+            row.get::<_, bool>(27)?,
+            row.get::<_, bool>(28)?,
+            row.get::<_, Option<String>>(29)?,
         ))
     })?;
     for row in rows {
@@ -652,6 +655,9 @@ fn export_symbols<W: Write>(
             semantic_group,
             confidence,
             content_type,
+            is_test,
+            test_container,
+            test_lifecycle,
             metadata_json,
         ) = row?;
         let record = json!({
@@ -678,6 +684,9 @@ fn export_symbols<W: Write>(
             "semantic_group": semantic_group,
             "confidence": confidence,
             "content_type": content_type,
+            "is_test": is_test,
+            "test_container": test_container,
+            "test_lifecycle": test_lifecycle,
             "metadata": object_or_empty("symbols.metadata_json", metadata_json)?,
         });
         write_record(writer, artifact_id, "symbol", &symbol_id, record, summary)?;

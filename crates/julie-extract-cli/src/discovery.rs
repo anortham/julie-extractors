@@ -97,7 +97,13 @@ impl DiscoveryPolicy {
             let Ok(relative) = crate::paths::root_relative_unix(&self.root, &path) else {
                 continue;
             };
-            if path.is_dir() {
+            let Ok(file_type) = entry.file_type() else {
+                continue;
+            };
+            if file_type.is_symlink() {
+                continue;
+            }
+            if file_type.is_dir() {
                 if is_hard_excluded(&path, &relative, &self.db_path)
                     || self
                         .matcher
@@ -109,7 +115,7 @@ impl DiscoveryPolicy {
                 self.discover_dir(&path, summary);
                 continue;
             }
-            if !path.is_file() {
+            if !file_type.is_file() {
                 continue;
             }
             let target = FileTarget {

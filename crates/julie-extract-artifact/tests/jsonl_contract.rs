@@ -63,8 +63,11 @@ fn sqlite_json_text_columns_are_decoded_into_json_values() {
     assert_eq!(record(&records, "file")["metadata"], json!({"file": true}));
     assert_eq!(
         record(&records, "symbol")["metadata"],
-        json!({"symbol": true})
+        json!({"symbol": true, "is_test": true, "test_lifecycle": true})
     );
+    assert_eq!(record(&records, "symbol")["is_test"], json!(true));
+    assert_eq!(record(&records, "symbol")["test_container"], json!(false));
+    assert_eq!(record(&records, "symbol")["test_lifecycle"], json!(true));
     assert_eq!(
         record(&records, "pending_relationship")["target"]["namespace"],
         json!(["crate", "external"])
@@ -206,6 +209,9 @@ fn every_record_kind_uses_exact_payload_keys() {
             "semantic_group",
             "confidence",
             "content_type",
+            "is_test",
+            "test_container",
+            "test_lifecycle",
             "metadata",
         ],
     );
@@ -551,11 +557,12 @@ fn insert_extraction_rows(conn: &Connection) {
          (symbol_id, file_id, path, language, name, kind, signature, doc_comment, visibility,
           parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
           body_start_line, body_start_column, body_end_line, body_end_column, body_start_byte,
-          body_end_byte, body_hash, semantic_group, confidence, content_type, metadata_json)
+          body_end_byte, body_hash, semantic_group, confidence, content_type, is_test,
+          test_container, test_lifecycle, metadata_json)
          VALUES ('sym-alpha', 'file-a', 'src/a.rs', 'rust', 'alpha', 'function',
           'fn alpha()', NULL, 'public', NULL, 1, 0, 3, 1, 0, 32, 2, 0, 3, 1,
-          12, 32, 'body-hash', 'function', 1.0, 'code', ?1)",
-        [r#"{"symbol":true}"#],
+          12, 32, 'body-hash', 'function', 1.0, 'code', 1, 0, 1, ?1)",
+        [r#"{"symbol":true,"is_test":true,"test_lifecycle":true}"#],
     )
     .unwrap();
     conn.execute(
@@ -563,10 +570,11 @@ fn insert_extraction_rows(conn: &Connection) {
          (symbol_id, file_id, path, language, name, kind, signature, doc_comment, visibility,
           parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
           body_start_line, body_start_column, body_end_line, body_end_column, body_start_byte,
-          body_end_byte, body_hash, semantic_group, confidence, content_type, metadata_json)
+          body_end_byte, body_hash, semantic_group, confidence, content_type, is_test,
+          test_container, test_lifecycle, metadata_json)
          VALUES ('sym-beta', 'file-a', 'src/a.rs', 'rust', 'beta', 'function',
           'fn beta()', NULL, 'private', 'sym-alpha', 4, 0, 5, 1, 33, 50,
-          NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'function', 1.0, 'code', NULL)",
+          NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'function', 1.0, 'code', 0, 0, 0, NULL)",
         [],
     )
     .unwrap();

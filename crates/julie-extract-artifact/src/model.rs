@@ -248,6 +248,9 @@ pub struct ArtifactSymbol {
     pub semantic_group: Option<String>,
     pub confidence: Option<f64>,
     pub content_type: Option<String>,
+    pub is_test: bool,
+    pub test_container: bool,
+    pub test_lifecycle: bool,
     pub metadata_json: Option<String>,
 }
 
@@ -277,6 +280,9 @@ impl Default for ArtifactSymbol {
             semantic_group: None,
             confidence: None,
             content_type: None,
+            is_test: false,
+            test_container: false,
+            test_lifecycle: false,
             metadata_json: None,
         }
     }

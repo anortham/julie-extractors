@@ -54,7 +54,7 @@ The schema and writer must support:
 - single-file update/delete by indexed path
 - bulk replacement of one file's rows by indexed file id
 - downstream lookup by file path, symbol name/kind, parent symbol, identifier
-  target, relationship endpoints, and pending target name
+  target, relationship endpoints, pending target name, and test-role flags
 - deterministic export without table scans that depend on incidental row order
 
 The SQLite writer should use explicit transactions, prepared statements, batched

@@ -24,6 +24,14 @@ jobs:
       - name: Check workspace metadata
         run: cargo metadata --format-version 1
 
+      - name: Check clippy
+        run: >-
+          cargo clippy --no-deps
+          -p julie-extract-artifact
+          -p julie-extract-cli
+          -p xtask
+          --lib --bins -- -D warnings
+
       - name: Test xtask
         run: cargo test -p xtask
 
