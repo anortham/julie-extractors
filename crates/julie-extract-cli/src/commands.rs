@@ -23,7 +23,10 @@ use crate::args::{
     Cli, Command, DeleteArgs, ExportArgs, InfoArgs, LanguagesArgs, ScanArgs, UpdateArgs,
 };
 use crate::discovery::{DiscoveryPolicy, FileSelection, canonicalize_ignore_files};
-use crate::extraction::{ExtractFileError, ExtractFileErrorKind, extract_artifact_file};
+use crate::extraction::{
+    ExtractFileError, ExtractFileErrorKind, SourceSnapshot, extract_artifact_file,
+    extract_artifact_file_from_snapshot, read_source_snapshot, unchanged_artifact_file,
+};
 use crate::paths::{
     FileTarget, PathPolicyError, canonicalize_db_path, canonicalize_root, canonicalize_update_file,
     normalize_delete_file,
@@ -88,9 +91,9 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     };
     let input = artifact_input(&db, Some(&root), None, None);
 
-    let existing_scan_metadata = if db.exists() && !args.force {
+    let existing_scan_artifact = if db.exists() && !args.force {
         match open_artifact_for_root(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION), &root) {
-            Ok(artifact) => Some(artifact.write_metadata),
+            Ok(artifact) => Some(artifact),
             Err(error) => {
                 return outcome(
                     base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
@@ -104,6 +107,23 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     } else {
         None
     };
+    let existing_content_hashes = match existing_scan_artifact
+        .as_ref()
+        .map(|artifact| load_existing_content_hashes(&artifact.connection))
+        .transpose()
+    {
+        Ok(hashes) => hashes,
+        Err(error) => {
+            return outcome(
+                base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                    .with_error(error.diagnostic),
+                error.exit_code,
+                args.json,
+                ReportStream::Stdout,
+            );
+        }
+    };
+    let existing_scan_metadata = existing_scan_artifact.map(|artifact| artifact.write_metadata);
 
     let discovery = match DiscoveryPolicy::build(&root, &db, &ignore_files) {
         Ok(discovery) => discovery,
@@ -128,6 +148,8 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         &discovery,
         &discovered.supported_files,
         indexed_at,
+        existing_content_hashes.as_ref(),
+        args.force,
     ) {
         Ok(files) => files,
         Err(error) => {
@@ -668,17 +690,77 @@ fn extract_discovered_files(
     discovery: &DiscoveryPolicy,
     targets: &[FileTarget],
     indexed_at: String,
+    existing_content_hashes: Option<&BTreeMap<String, String>>,
+    force: bool,
+) -> Result<Vec<ArtifactFile>, ExtractFileError> {
+    let mut supported_targets = Vec::with_capacity(targets.len());
+    for target in targets {
+        if let FileSelection::Supported { language } = discovery.select_file(target) {
+            supported_targets.push(SupportedFileTarget::new(target.clone(), language));
+        }
+    }
+    extract_supported_files(
+        root,
+        &supported_targets,
+        indexed_at,
+        existing_content_hashes,
+        force,
+        extract_artifact_file_from_snapshot,
+    )
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SupportedFileTarget {
+    target: FileTarget,
+    language: String,
+}
+
+impl SupportedFileTarget {
+    fn new(target: FileTarget, language: impl Into<String>) -> Self {
+        Self {
+            target,
+            language: language.into(),
+        }
+    }
+}
+
+fn extract_supported_files(
+    root: &Path,
+    targets: &[SupportedFileTarget],
+    indexed_at: String,
+    existing_content_hashes: Option<&BTreeMap<String, String>>,
+    force: bool,
+    mut extract: impl FnMut(
+        &Path,
+        &FileTarget,
+        String,
+        String,
+        SourceSnapshot,
+    ) -> Result<ArtifactFile, ExtractFileError>,
 ) -> Result<Vec<ArtifactFile>, ExtractFileError> {
     let mut files = Vec::with_capacity(targets.len());
-    for target in targets {
-        let FileSelection::Supported { language } = discovery.select_file(target) else {
+    for supported in targets {
+        let snapshot = read_source_snapshot(&supported.target)?;
+        if !force
+            && existing_content_hashes
+                .and_then(|hashes| hashes.get(&supported.target.root_relative_path))
+                .is_some_and(|existing_hash| existing_hash == &snapshot.content_hash)
+        {
+            files.push(unchanged_artifact_file(
+                &supported.target,
+                supported.language.clone(),
+                indexed_at.clone(),
+                &snapshot,
+            ));
             continue;
-        };
-        files.push(extract_artifact_file(
+        }
+
+        files.push(extract(
             root,
-            target,
-            language,
+            &supported.target,
+            supported.language.clone(),
             indexed_at.clone(),
+            snapshot,
         )?);
     }
     Ok(files)
@@ -984,6 +1066,56 @@ fn open_artifact(
         report,
         write_metadata,
     })
+}
+
+fn load_existing_content_hashes(
+    connection: &Connection,
+) -> Result<BTreeMap<String, String>, CommandError> {
+    let mut statement = connection
+        .prepare("SELECT path, content_hash FROM files")
+        .map_err(|error| {
+            command_error(
+                3,
+                ReportCode::SchemaIncompatible,
+                format!("existing file hashes could not be prepared: {error}"),
+                None,
+                None,
+                false,
+                json!({}),
+            )
+        })?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(|error| {
+            command_error(
+                3,
+                ReportCode::SchemaIncompatible,
+                format!("existing file hashes could not be read: {error}"),
+                None,
+                None,
+                false,
+                json!({}),
+            )
+        })?;
+
+    let mut hashes = BTreeMap::new();
+    for row in rows {
+        let (path, content_hash) = row.map_err(|error| {
+            command_error(
+                3,
+                ReportCode::SchemaIncompatible,
+                format!("existing file hash row could not be read: {error}"),
+                None,
+                None,
+                false,
+                json!({}),
+            )
+        })?;
+        hashes.insert(path, content_hash);
+    }
+    Ok(hashes)
 }
 
 fn existing_artifact_for_root(
@@ -1553,4 +1685,188 @@ fn human_status(report: &Report) -> &'static str {
 
 fn display_path(path: &Path) -> String {
     path.display().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use julie_extract_artifact::model::{ArtifactSymbol, FileStatus};
+    use tempfile::TempDir;
+
+    use super::*;
+
+    #[test]
+    fn incremental_scan_reuses_existing_hash_without_parser_work() {
+        let fixture = ScanFixture::new();
+        let unchanged = fixture.write("src/unchanged.rs", "pub fn unchanged() {}\n");
+        let changed = fixture.write("src/changed.rs", "pub fn changed() {}\n");
+        let unchanged_snapshot = read_source_snapshot(&unchanged).unwrap();
+        let mut existing_hashes = BTreeMap::new();
+        existing_hashes.insert(
+            unchanged.root_relative_path.clone(),
+            unchanged_snapshot.content_hash.clone(),
+        );
+        existing_hashes.insert(
+            changed.root_relative_path.clone(),
+            "blake3:stale".to_string(),
+        );
+        let extracted_paths = RefCell::new(Vec::new());
+
+        let files = extract_supported_files(
+            fixture.root(),
+            &[
+                SupportedFileTarget::new(unchanged.clone(), "rust"),
+                SupportedFileTarget::new(changed.clone(), "rust"),
+            ],
+            "2026-06-01T00:00:00Z".to_string(),
+            Some(&existing_hashes),
+            false,
+            |_, target, language, indexed_at, snapshot| {
+                extracted_paths
+                    .borrow_mut()
+                    .push(target.root_relative_path.clone());
+                Ok(extracted_artifact_file(
+                    target, language, indexed_at, snapshot,
+                ))
+            },
+        )
+        .unwrap();
+
+        assert_eq!(extracted_paths.into_inner(), vec!["src/changed.rs"]);
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.path.as_str())
+                .collect::<Vec<_>>(),
+            vec!["src/unchanged.rs", "src/changed.rs"]
+        );
+        assert!(
+            files
+                .iter()
+                .find(|file| file.path == "src/unchanged.rs")
+                .unwrap()
+                .symbols
+                .is_empty(),
+            "unchanged files must be represented in the snapshot without parser rows"
+        );
+        assert_eq!(
+            files
+                .iter()
+                .find(|file| file.path == "src/changed.rs")
+                .unwrap()
+                .symbols
+                .len(),
+            1,
+            "changed files must still use the extraction callback"
+        );
+    }
+
+    #[test]
+    fn force_scan_ignores_existing_hashes_and_extracts_all_supported_files() {
+        let fixture = ScanFixture::new();
+        let left = fixture.write("src/left.rs", "pub fn left() {}\n");
+        let right = fixture.write("src/right.rs", "pub fn right() {}\n");
+        let mut existing_hashes = BTreeMap::new();
+        existing_hashes.insert(
+            left.root_relative_path.clone(),
+            read_source_snapshot(&left).unwrap().content_hash,
+        );
+        existing_hashes.insert(
+            right.root_relative_path.clone(),
+            read_source_snapshot(&right).unwrap().content_hash,
+        );
+        let extracted_paths = RefCell::new(Vec::new());
+
+        let files = extract_supported_files(
+            fixture.root(),
+            &[
+                SupportedFileTarget::new(left.clone(), "rust"),
+                SupportedFileTarget::new(right.clone(), "rust"),
+            ],
+            "2026-06-01T00:00:00Z".to_string(),
+            Some(&existing_hashes),
+            true,
+            |_, target, language, indexed_at, snapshot| {
+                extracted_paths
+                    .borrow_mut()
+                    .push(target.root_relative_path.clone());
+                Ok(extracted_artifact_file(
+                    target, language, indexed_at, snapshot,
+                ))
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            extracted_paths.into_inner(),
+            vec!["src/left.rs", "src/right.rs"]
+        );
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.symbols.len())
+                .collect::<Vec<_>>(),
+            vec![1, 1]
+        );
+    }
+
+    struct ScanFixture {
+        temp: TempDir,
+    }
+
+    impl ScanFixture {
+        fn new() -> Self {
+            Self {
+                temp: TempDir::new().unwrap(),
+            }
+        }
+
+        fn root(&self) -> &Path {
+            self.temp.path()
+        }
+
+        fn write(&self, relative_path: &str, contents: &str) -> FileTarget {
+            let absolute_path = self.root().join(relative_path);
+            std::fs::create_dir_all(absolute_path.parent().unwrap()).unwrap();
+            std::fs::write(&absolute_path, contents).unwrap();
+            FileTarget {
+                absolute_path,
+                root_relative_path: relative_path.to_string(),
+            }
+        }
+    }
+
+    fn extracted_artifact_file(
+        target: &FileTarget,
+        language: String,
+        indexed_at: String,
+        snapshot: SourceSnapshot,
+    ) -> ArtifactFile {
+        ArtifactFile {
+            file_id: format!("extracted-{}", target.root_relative_path),
+            path: target.root_relative_path.clone(),
+            language,
+            content_hash: snapshot.content_hash,
+            content_bytes: snapshot.content_bytes,
+            line_count: snapshot.line_count,
+            indexed_at,
+            status: FileStatus::Indexed,
+            metadata_json: None,
+            symbols: vec![ArtifactSymbol {
+                symbol_id: format!("symbol-{}", target.root_relative_path),
+                name: "extracted".to_string(),
+                ..ArtifactSymbol::default()
+            }],
+            symbol_annotations: Vec::new(),
+            identifiers: Vec::new(),
+            relationships: Vec::new(),
+            pending_relationships: Vec::new(),
+            type_facts: Vec::new(),
+            type_argument_usages: Vec::new(),
+            type_arguments: Vec::new(),
+            literals: Vec::new(),
+            parse_diagnostics: Vec::new(),
+        }
+    }
 }

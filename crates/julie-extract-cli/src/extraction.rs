@@ -32,12 +32,27 @@ pub(crate) struct ExtractFileError {
     pub message: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SourceSnapshot {
+    pub content: String,
+    pub content_hash: String,
+    pub content_bytes: i64,
+    pub line_count: Option<i64>,
+}
+
 pub(crate) fn extract_artifact_file(
     root: &Path,
     target: &FileTarget,
     language: String,
     indexed_at: String,
 ) -> Result<ArtifactFile, ExtractFileError> {
+    let snapshot = read_source_snapshot(target)?;
+    extract_artifact_file_from_snapshot(root, target, language, indexed_at, snapshot)
+}
+
+pub(crate) fn read_source_snapshot(
+    target: &FileTarget,
+) -> Result<SourceSnapshot, ExtractFileError> {
     let content = fs::read_to_string(&target.absolute_path).map_err(|error| ExtractFileError {
         kind: ExtractFileErrorKind::Read,
         path: target.absolute_path.display().to_string(),
@@ -45,25 +60,68 @@ pub(crate) fn extract_artifact_file(
         message: format!("source file could not be read as UTF-8: {error}"),
     })?;
 
-    let mut results =
-        extract_canonical(&target.root_relative_path, &content, root).map_err(|error| {
-            ExtractFileError {
-                kind: ExtractFileErrorKind::Extract,
-                path: target.absolute_path.display().to_string(),
-                root_relative_path: target.root_relative_path.clone(),
-                message: error.to_string(),
-            }
+    Ok(SourceSnapshot {
+        content_hash: content_hash(&content),
+        content_bytes: content.len() as i64,
+        line_count: Some(line_count(&content)),
+        content,
+    })
+}
+
+pub(crate) fn extract_artifact_file_from_snapshot(
+    root: &Path,
+    target: &FileTarget,
+    language: String,
+    indexed_at: String,
+    snapshot: SourceSnapshot,
+) -> Result<ArtifactFile, ExtractFileError> {
+    let mut results = extract_canonical(&target.root_relative_path, &snapshot.content, root)
+        .map_err(|error| ExtractFileError {
+            kind: ExtractFileErrorKind::Extract,
+            path: target.absolute_path.display().to_string(),
+            root_relative_path: target.root_relative_path.clone(),
+            message: error.to_string(),
         })?;
     classify_literals_by_carrier(&mut results.literals);
 
-    map_results(target, language, indexed_at, &content, results)
+    map_results(target, language, indexed_at, &snapshot, results)
+}
+
+pub(crate) fn unchanged_artifact_file(
+    target: &FileTarget,
+    language: String,
+    indexed_at: String,
+    snapshot: &SourceSnapshot,
+) -> ArtifactFile {
+    let path = target.root_relative_path.clone();
+    ArtifactFile {
+        file_id: stable_id("file", [&path]),
+        path,
+        language,
+        content_hash: snapshot.content_hash.clone(),
+        content_bytes: snapshot.content_bytes,
+        line_count: snapshot.line_count,
+        indexed_at,
+        status: FileStatus::Indexed,
+        metadata_json: None,
+        symbols: Vec::new(),
+        symbol_annotations: Vec::new(),
+        identifiers: Vec::new(),
+        relationships: Vec::new(),
+        pending_relationships: Vec::new(),
+        type_facts: Vec::new(),
+        type_argument_usages: Vec::new(),
+        type_arguments: Vec::new(),
+        literals: Vec::new(),
+        parse_diagnostics: Vec::new(),
+    }
 }
 
 fn map_results(
     target: &FileTarget,
     language: String,
     indexed_at: String,
-    content: &str,
+    snapshot: &SourceSnapshot,
     results: ExtractionResults,
 ) -> Result<ArtifactFile, ExtractFileError> {
     let path = target.root_relative_path.clone();
@@ -177,9 +235,9 @@ fn map_results(
         file_id,
         path,
         language,
-        content_hash: content_hash(content),
-        content_bytes: content.len() as i64,
-        line_count: Some(line_count(content)),
+        content_hash: snapshot.content_hash.clone(),
+        content_bytes: snapshot.content_bytes,
+        line_count: snapshot.line_count,
         indexed_at,
         status: FileStatus::Indexed,
         metadata_json: None,
