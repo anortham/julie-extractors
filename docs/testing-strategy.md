@@ -91,6 +91,13 @@ consumer, plus the SQLite schema, JSON report, and JSONL contract tests for
 `julie-extract-artifact` and the CLI contract, path-policy, and operations
 contract tests for `julie-extract-cli`.
 
+The Python SQLite consumer example is a downstream smoke check for non-Rust
+artifact readers:
+
+```bash
+python3 examples/python/sqlite_consumer.py target/dogfood/julie-extractors/artifact.sqlite
+```
+
 ## Certification Tier
 
 Runs capability matrix, parser certification, and parser upgrade checks.

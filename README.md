@@ -37,6 +37,10 @@ repo takes over future extractor development.
 - `julie-extract languages --json`
 - Rust crate API for in-process extraction.
 
+## Consumer Examples
+
+- Python SQLite reader: [examples/python/sqlite_consumer.py](examples/python/sqlite_consumer.py)
+
 ## Non-Goals
 
 - MCP server behavior.

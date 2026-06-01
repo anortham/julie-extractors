@@ -154,7 +154,7 @@ Out of scope:
 - [x] Task 3: Add release package staging command
 - [x] Task 4: Add CI and specialist workflows
 - [x] Task 5: Dogfood this repo and capture v0.1.0 evidence
-- [ ] Task 6: Add Python SQLite consumer spike
+- [x] Task 6: Add Python SQLite consumer spike
 - [ ] Task 7: Update release docs, README, and release notes
 - [ ] Task 8: Completion audit
 
@@ -294,11 +294,11 @@ Out of scope:
 **Approach:** Add a small Python script that accepts an artifact path, reads `artifact_metadata`, counts key tables, prints a compact JSON summary, and exits nonzero for missing required metadata or zero file rows. Keep it read-only and dependency-free. Document running it against the dogfood artifact after Task 5.
 
 **Acceptance criteria:**
-- [ ] `python3 -m py_compile examples/python/sqlite_consumer.py` passes.
-- [ ] The script uses only Python standard library modules.
-- [ ] The script opens SQLite read-only and does not mutate the artifact.
-- [ ] Running the script against the dogfood artifact prints valid JSON with schema version, extract contract version, root path, file count, symbol count, and relationship count.
-- [ ] The example docs show the exact command using `target/dogfood/julie-extractors/artifact.sqlite`.
+- [x] `python3 -m py_compile examples/python/sqlite_consumer.py` passes.
+- [x] The script uses only Python standard library modules.
+- [x] The script opens SQLite read-only and does not mutate the artifact.
+- [x] Running the script against the dogfood artifact prints valid JSON with schema version, extract contract version, root path, file count, symbol count, and relationship count.
+- [x] The example docs show the exact command using `target/dogfood/julie-extractors/artifact.sqlite`.
 
 ### Task 7: Update Release Docs, README, And Release Notes
 
