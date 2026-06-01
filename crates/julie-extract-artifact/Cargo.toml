@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 description = "SQLite artifact persistence for julie-extract"
 
+[lints]
+workspace = true
+
 [dependencies]
 rusqlite = { version = "0.40.0", default-features = false, features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }

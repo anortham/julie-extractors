@@ -3,7 +3,7 @@ id: julie-extractors-product-completion-focus
 title: julie-extractors Product Completion Focus
 status: active
 created: 2026-06-01T13:24:06.835Z
-updated: 2026-06-01T16:08:45.000Z
+updated: 2026-06-01T18:39:59.016Z
 tags:
   - julie-extractors
   - product-bootstrap
@@ -15,13 +15,33 @@ tags:
 
 ## Current State
 
-- `main` is at `516a11b` after PR #8 merged the v0.1.0 release candidate audit.
-- No active product implementation branch remains.
-- PR #8: https://github.com/anortham/julie-extractors/pull/8, merged after Fast Gates passed.
-- Completed historical plans: repo bootstrap, old Julie migration, post-bootstrap release readiness, release binaries workflow, incremental scan hash skip, dogfood rescan baseline, release-binary dogfood evidence, JSONL export performance plan, JSONL export buffering, repeatable performance baseline, v0.1.0 release candidate audit.
+- Active branch: `codex/release-blocker-review-fixes`.
+- Base state: `main` had PR #8 merged as `516a11b` after the v0.1.0 release candidate audit.
+- Release decision is held until the release-blocker review fixes merge.
 - Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
+- Active slice plan: `docs/plans/2026-06-01-release-blocker-review-fixes.md`.
+- Review input: `docs/findings/CC_REVIEW.md`.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
-- Current next state: make the user release decision: trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate. Publication is not automatic.
+
+## Fixed On Active Branch
+
+- Partial scan semantics: per-file read/extract failures now produce `partial`, exit `1`, `files_failed`, report errors, and `failed_preserved` file rows while valid files still commit.
+- Data-loss guard semantics: intentionally empty supported files can replace stale symbols; `failed_preserved` scan updates preserve prior known-good symbols and add failure diagnostics.
+- Discovery policy: scan discovery skips symlinks before recursion or file selection, preventing out-of-root symlink injection and loop recursion.
+- Metadata fingerprints: parser inventory and capability snapshot fingerprints are deterministic `sha256:<hex>` values derived from canonicalized rows and refreshed on existing metadata reuse.
+- Guardrails: member crates inherit workspace lints; CI runs a scoped clippy gate for `julie-extract-artifact`, `julie-extract-cli`, and `xtask` with `--no-deps -D warnings`.
+
+## Current Evidence
+
+- Focused red/green tests were added for empty files, partial invalid UTF-8 scans, preserved prior rows, symlink skipping, and computed metadata fingerprints.
+- `cargo fmt --all -- --check` passed.
+- `cargo clippy --no-deps -p julie-extract-artifact -p julie-extract-cli -p xtask --lib --bins -- -D warnings` passed.
+- `cargo metadata --format-version 1` passed.
+- `scripts/check-agent-doc-sync.sh` passed.
+- `cargo test -p xtask` passed.
+- `cargo xtask test default` passed.
+- `cargo xtask test contract` passed.
+- `git diff --check` passed.
 
 ## Hard Boundaries
 
@@ -30,30 +50,12 @@ tags:
 - Do not change public CLI, SQLite, JSONL, or report contracts without a fresh strategy-tier plan.
 - Keep default tests fast; dogfood, certification, real-world, and package staging stay specialist gates.
 
-## Current Evidence
-
-- Debug dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
-- Release-binary dogfood evidence: `docs/release-evidence/2026-06-01-release-binary-dogfood.md`.
-- Release dogfood metrics at `a3038ee`: cold scan `7607ms`, no-change rescan `52ms`, export `68983ms`, rescan row writes all `0`.
-- Release binary: `target/release/julie-extract`, version `julie-extract 0.1.0`, SHA-256 `af51b3792e10eb54f6aab5d94cd04c257801b183be0fb23f08db96ba23f441ce`.
-- Release binary workflow evidence: `docs/release-evidence/2026-06-01-release-binaries-workflow.md`.
-- JSONL export performance plan: `docs/plans/2026-06-01-jsonl-export-performance.md`.
-- Slice 2 inspection evidence: SQLite counts `0.158s`, fetch all exported rows `0.763s`, release export to `/dev/null` `20.79s` real with `15.66s` sys; first target is buffered JSONL writes.
-- JSONL export buffering evidence: `docs/release-evidence/2026-06-01-jsonl-export-buffering.md`.
-- Slice 3 evidence in PR #6: bounded-write red test failed with `2853` writes for an `8558` byte fixture export; buffered release export to `/dev/null` measured `2.43s` real with `0.21s` sys against the same dogfood artifact.
-- Repeatable performance baseline evidence: `docs/release-evidence/2026-06-01-repeatable-performance-baseline.md`.
-- Slice 4 evidence in PR #7: 3 release-profile dogfood-backed runs at `844f1bb`; cold scan min/median/max `6277ms` / `6387ms` / `7508ms`; no-change rescan `51ms` / `51ms` / `52ms`; JSONL export `1330ms` / `1330ms` / `1333ms`; stable output `1018` files, `33019` symbols, `215388` JSONL records.
-- v0.1.0 release candidate audit evidence: `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
-- Slice 5 fixed a release-blocking contract mismatch: SQLite/JSONL now persist `36` parser inventory rows, `36` language capability rows, `76` fixture rows, and `17` gap rows from the existing capability snapshot.
-- Slice 5 package staging at `c407cde`: target `aarch64-apple-darwin`, binary `julie-extract 0.1.0`, SHA-256 `c52b86f01c369088fad94da2ca013c9ddcfc840830e787c2f758a06724cf9237`, checksum verification passed.
-- Slice 5 refreshed baseline at `805da3b`: cold scan `6485ms` / `6514ms` / `7550ms`; no-change rescan `56ms` / `62ms` / `62ms`; JSONL export `1318ms` / `1321ms` / `1328ms`; stable output `1020` files, `33099` symbols, `216253` JSONL records.
-
 ## Next Decision
 
-1. No active implementation slices remain in the current tracker.
-2. Decide whether to trigger the Release Binaries workflow for `v0.1.0` or hold
-   the release candidate.
+1. Commit and push `codex/release-blocker-review-fixes`.
+2. Open/merge the PR after GitHub Fast Gates pass.
+3. After merge, decide whether to trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate.
 
 ## Operating Rule
 
-Do not keep rerunning broad tests for status checks. Use existing same-HEAD evidence. Run focused tests after edits, and run default+contract branch gates before merge/push/PR.
+Do not keep rerunning broad tests for status checks. Use same-HEAD evidence after the branch commit unless code changes. Run focused tests after edits, and run default+contract branch gates before merge/push/PR.

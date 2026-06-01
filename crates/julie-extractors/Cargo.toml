@@ -13,6 +13,9 @@ categories = ["development-tools", "parsing"]
 name = "julie_extractors"
 path = "src/lib.rs"
 
+[lints]
+workspace = true
+
 [features]
 test-golden = []
 test-capability-matrix = []

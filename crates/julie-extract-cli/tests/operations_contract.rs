@@ -111,6 +111,33 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
 }
 
 #[test]
+fn scan_metadata_fingerprints_are_computed_sha256_hashes() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    let parser = metadata_value(&db, "parser_inventory_fingerprint");
+    let capabilities = metadata_value(&db, "capability_snapshot_fingerprint");
+
+    assert_sha256_fingerprint(&parser);
+    assert_sha256_fingerprint(&capabilities);
+    assert_ne!(parser, "sha256:parser-inventory-v1");
+    assert_ne!(capabilities, "sha256:capability-snapshot-v1");
+    assert_ne!(
+        parser, capabilities,
+        "independent metadata domains must not share one placeholder fingerprint"
+    );
+}
+
+#[test]
 fn scan_with_no_changes_returns_no_change_without_new_revision() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -172,6 +199,162 @@ fn scan_deletes_rows_for_source_files_missing_from_the_snapshot() {
     assert_eq!(report["counts"]["files_unchanged"], 1);
     assert_eq!(symbols_for_path(&db, "src/a.rs"), Vec::<String>::new());
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+}
+
+#[test]
+fn scan_allows_intentional_empty_supported_file_to_replace_old_symbols() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    std::fs::write(fixture.root.join("src/a.rs"), "// intentionally empty\n").unwrap();
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["counts"]["files_failed"], 0);
+    assert_eq!(report["counts"]["files_changed"], 1);
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), Vec::<String>::new());
+    assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+    assert_eq!(file_status_for_path(&db, "src/a.rs"), "indexed");
+    assert_eq!(table_count(&db, "symbols"), 1);
+    assert_eq!(table_count(&db, "extraction_revisions"), 2);
+}
+
+#[test]
+fn scan_commits_valid_files_and_reports_partial_when_one_supported_file_fails() {
+    let fixture = FixtureRoot::with_file("src/good.rs", "pub fn good() {}\n");
+    let bad = fixture.path("src/bad.rs");
+    std::fs::write(&bad, [0xff, 0xfe, 0xfd]).unwrap();
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "partial");
+    assert_eq!(report["counts"]["files_scanned"], 2);
+    assert_eq!(report["counts"]["files_failed"], 1);
+    assert_eq!(report["counts"]["rows_written"]["files"], 2);
+    assert_eq!(report["counts"]["rows_written"]["symbols"], 1);
+    assert_eq!(report["counts"]["rows_written"]["parse_diagnostics"], 1);
+    assert_eq!(report["errors"][0]["code"], "read_failed");
+    assert_eq!(report["errors"][0]["root_relative_path"], "src/bad.rs");
+
+    assert_eq!(symbols_for_path(&db, "src/good.rs"), vec!["good"]);
+    assert_eq!(file_status_for_path(&db, "src/good.rs"), "indexed");
+    assert_eq!(file_status_for_path(&db, "src/bad.rs"), "failed_preserved");
+    assert_eq!(diagnostics_for_path(&db, "src/bad.rs"), vec!["error"]);
+}
+
+#[test]
+fn scan_preserves_existing_symbols_when_changed_file_becomes_unreadable() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    std::fs::write(fixture.root.join("src/a.rs"), [0xff, 0xfe, 0xfd]).unwrap();
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "partial");
+    assert_eq!(report["counts"]["files_failed"], 1);
+    assert_eq!(report["counts"]["files_unchanged"], 1);
+    assert_eq!(report["counts"]["rows_written"]["files"], 1);
+    assert_eq!(report["counts"]["rows_written"]["symbols"], 0);
+    assert_eq!(report["counts"]["rows_written"]["parse_diagnostics"], 1);
+    assert_eq!(report["errors"][0]["code"], "read_failed");
+    assert_eq!(report["errors"][0]["root_relative_path"], "src/a.rs");
+
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
+    assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+    assert_eq!(file_status_for_path(&db, "src/a.rs"), "failed_preserved");
+    assert_eq!(diagnostics_for_path(&db, "src/a.rs"), vec!["error"]);
+}
+
+#[cfg(unix)]
+#[test]
+fn scan_does_not_follow_symlinked_paths_outside_root() {
+    let fixture = FixtureRoot::with_file("src/local.rs", "pub fn local() {}\n");
+    let outside = fixture._temp.path().join("outside");
+    std::fs::create_dir_all(&outside).unwrap();
+    std::fs::write(outside.join("secret.rs"), "pub fn secret() {}\n").unwrap();
+    std::os::unix::fs::symlink(&outside, fixture.path("vendor_link")).unwrap();
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_success(output);
+    assert_eq!(table_count(&db, "files"), 1);
+    assert_eq!(symbols_for_path(&db, "src/local.rs"), vec!["local"]);
+    assert_eq!(
+        symbols_for_path(&db, "vendor_link/secret.rs"),
+        Vec::<String>::new()
+    );
 }
 
 #[test]
@@ -551,6 +734,49 @@ fn symbols_for_path(db: &Path, path: &str) -> Vec<String> {
         .unwrap()
         .collect::<Result<_, _>>()
         .unwrap()
+}
+
+fn file_status_for_path(db: &Path, path: &str) -> String {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row("SELECT status FROM files WHERE path = ?1", [path], |row| {
+        row.get(0)
+    })
+    .unwrap()
+}
+
+fn diagnostics_for_path(db: &Path, path: &str) -> Vec<String> {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn
+        .prepare("SELECT kind FROM parse_diagnostics WHERE path = ?1 ORDER BY diagnostic_id")
+        .unwrap();
+    stmt.query_map([path], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap()
+}
+
+fn metadata_value(db: &Path, key: &str) -> String {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT value FROM artifact_metadata WHERE key = ?1",
+        [key],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn assert_sha256_fingerprint(value: &str) {
+    assert!(
+        value.starts_with("sha256:"),
+        "fingerprint must use sha256 prefix: {value}"
+    );
+    assert_eq!(value.len(), "sha256:".len() + 64);
+    assert!(
+        value["sha256:".len()..]
+            .chars()
+            .all(|ch| ch.is_ascii_digit() || ('a'..='f').contains(&ch)),
+        "fingerprint digest must be lowercase hex: {value}"
+    );
 }
 
 fn artifact_fingerprint(db: &Path) -> Vec<(String, String)> {

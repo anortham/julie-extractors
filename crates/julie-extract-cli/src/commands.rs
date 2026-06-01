@@ -22,6 +22,7 @@ use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
 use julie_extractors::{CapabilityFlags, KindCoverage, capability_snapshot};
 use rusqlite::{Connection, OpenFlags};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::args::{
@@ -30,7 +31,8 @@ use crate::args::{
 use crate::discovery::{DiscoveryPolicy, FileSelection, canonicalize_ignore_files};
 use crate::extraction::{
     ExtractFileError, ExtractFileErrorKind, SourceSnapshot, extract_artifact_file,
-    extract_artifact_file_from_snapshot, read_source_snapshot, unchanged_artifact_file,
+    extract_artifact_file_from_snapshot, failed_artifact_file, read_source_snapshot,
+    unchanged_artifact_file,
 };
 use crate::paths::{
     FileTarget, PathPolicyError, canonicalize_db_path, canonicalize_root, canonicalize_update_file,
@@ -148,19 +150,14 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     };
     let should_rebuild_db = args.force && db.exists() && force_existing_metadata.is_none();
     let indexed_at = now_rfc3339();
-    let files = match extract_discovered_files(
+    let extracted = extract_discovered_files(
         &root,
         &discovery,
         &discovered.supported_files,
         indexed_at,
         existing_content_hashes.as_ref(),
         args.force,
-    ) {
-        Ok(files) => files,
-        Err(error) => {
-            return extract_error_outcome(error, ReportOperation::Scan, mode, input, args.json);
-        }
-    };
+    );
 
     if should_rebuild_db {
         remove_artifact_files(&db);
@@ -196,7 +193,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     }),
                     &root,
                 ),
-                &files,
+                &extracted.files,
             ) {
                 Ok(write_result) => {
                     let connection = writer.connection();
@@ -217,7 +214,9 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                             );
                         }
                     };
-                    let status = if write_result.revision_id.is_some()
+                    let status = if !extracted.errors.is_empty() {
+                        ReportStatus::Partial
+                    } else if write_result.revision_id.is_some()
                         || should_rebuild_db
                         || !db_existed_before_write
                         || capability_rows_written.has_rows()
@@ -242,9 +241,14 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     report.counts.files_unchanged = write_result.files_skipped as i64;
                     report.counts.files_unsupported = discovered.unsupported_files as i64;
                     report.counts.files_deleted = write_result.files_deleted as i64;
+                    report.counts.files_failed = extracted.errors.len() as i64;
                     report.counts.rows_written =
                         rows_written_with_capabilities(&capability_rows_written, &write_result);
-                    outcome(report, 0, args.json, ReportStream::Stdout)
+                    report
+                        .errors
+                        .extend(extracted.errors.iter().map(extract_error_diagnostic));
+                    let exit_code = if extracted.errors.is_empty() { 0 } else { 1 };
+                    outcome(report, exit_code, args.json, ReportStream::Stdout)
                 }
                 Err(error) => {
                     write_error_outcome(error, ReportOperation::Scan, mode, input, args.json)
@@ -300,10 +304,12 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                 ReportOperation::Update,
                 ReportMode::SingleFile,
                 args.json,
-                Some(&db),
-                Some(&root),
-                Some(&args.file),
-                None,
+                PathErrorInput {
+                    db_path: Some(&db),
+                    root_path: Some(&root),
+                    file_path: Some(&args.file),
+                    root_relative_path: None,
+                },
             );
         }
     };
@@ -315,10 +321,12 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                 ReportOperation::Update,
                 ReportMode::SingleFile,
                 args.json,
-                Some(&db),
-                Some(&root),
-                Some(&target.absolute_path),
-                Some(&target.root_relative_path),
+                PathErrorInput {
+                    db_path: Some(&db),
+                    root_path: Some(&root),
+                    file_path: Some(&target.absolute_path),
+                    root_relative_path: Some(&target.root_relative_path),
+                },
             );
         }
     };
@@ -360,10 +368,12 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                 ReportOperation::Update,
                 ReportMode::SingleFile,
                 args.json,
-                Some(&db),
-                Some(&root),
-                Some(&target.absolute_path),
-                Some(&target.root_relative_path),
+                PathErrorInput {
+                    db_path: Some(&db),
+                    root_path: Some(&root),
+                    file_path: Some(&target.absolute_path),
+                    root_relative_path: Some(&target.root_relative_path),
+                },
             );
         }
     };
@@ -516,10 +526,12 @@ fn delete(args: DeleteArgs) -> CommandOutcome {
                 ReportOperation::Delete,
                 ReportMode::SingleFile,
                 args.json,
-                Some(&db),
-                Some(&root),
-                Some(&args.file),
-                None,
+                PathErrorInput {
+                    db_path: Some(&db),
+                    root_path: Some(&root),
+                    file_path: Some(&args.file),
+                    root_relative_path: None,
+                },
             );
         }
     };
@@ -737,7 +749,7 @@ fn extract_discovered_files(
     indexed_at: String,
     existing_content_hashes: Option<&BTreeMap<String, String>>,
     force: bool,
-) -> Result<Vec<ArtifactFile>, ExtractFileError> {
+) -> ExtractedFiles {
     let mut supported_targets = Vec::with_capacity(targets.len());
     for target in targets {
         if let FileSelection::Supported { language } = discovery.select_file(target) {
@@ -752,6 +764,24 @@ fn extract_discovered_files(
         force,
         extract_artifact_file_from_snapshot,
     )
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+struct ExtractedFiles {
+    files: Vec<ArtifactFile>,
+    errors: Vec<ExtractFileError>,
+}
+
+impl ExtractedFiles {
+    #[cfg(test)]
+    fn unwrap(self) -> Vec<ArtifactFile> {
+        assert!(
+            self.errors.is_empty(),
+            "expected extraction to succeed without per-file errors: {:?}",
+            self.errors
+        );
+        self.files
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -782,10 +812,23 @@ fn extract_supported_files(
         String,
         SourceSnapshot,
     ) -> Result<ArtifactFile, ExtractFileError>,
-) -> Result<Vec<ArtifactFile>, ExtractFileError> {
+) -> ExtractedFiles {
     let mut files = Vec::with_capacity(targets.len());
+    let mut errors = Vec::new();
     for supported in targets {
-        let snapshot = read_source_snapshot(&supported.target)?;
+        let snapshot = match read_source_snapshot(&supported.target) {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                files.push(failed_artifact_file(
+                    &supported.target,
+                    supported.language.clone(),
+                    indexed_at.clone(),
+                    &error,
+                ));
+                errors.push(error);
+                continue;
+            }
+        };
         if !force
             && existing_content_hashes
                 .and_then(|hashes| hashes.get(&supported.target.root_relative_path))
@@ -800,15 +843,26 @@ fn extract_supported_files(
             continue;
         }
 
-        files.push(extract(
+        match extract(
             root,
             &supported.target,
             supported.language.clone(),
             indexed_at.clone(),
-            snapshot,
-        )?);
+            snapshot.clone(),
+        ) {
+            Ok(file) => files.push(file),
+            Err(error) => {
+                files.push(failed_artifact_file(
+                    &supported.target,
+                    supported.language.clone(),
+                    indexed_at.clone(),
+                    &error,
+                ));
+                errors.push(error);
+            }
+        }
     }
-    Ok(files)
+    ExtractedFiles { files, errors }
 }
 
 fn extract_error_outcome(
@@ -818,23 +872,28 @@ fn extract_error_outcome(
     input: ReportInput,
     json_report: bool,
 ) -> CommandOutcome {
+    outcome(
+        base_report(ReportStatus::Failed, operation, mode, input)
+            .with_error(extract_error_diagnostic(&error)),
+        1,
+        json_report,
+        ReportStream::Stdout,
+    )
+}
+
+fn extract_error_diagnostic(error: &ExtractFileError) -> ReportDiagnostic {
     let code = match error.kind {
         ExtractFileErrorKind::Read => ReportCode::ReadFailed,
         ExtractFileErrorKind::Extract => ReportCode::ParseFailed,
         ExtractFileErrorKind::Serialize => ReportCode::InternalError,
     };
-    outcome(
-        base_report(ReportStatus::Failed, operation, mode, input).with_error(diagnostic(
-            code,
-            error.message,
-            Some(error.path),
-            Some(error.root_relative_path),
-            true,
-            json!({}),
-        )),
-        1,
-        json_report,
-        ReportStream::Stdout,
+    diagnostic(
+        code,
+        error.message.clone(),
+        Some(error.path.clone()),
+        Some(error.root_relative_path.clone()),
+        true,
+        json!({}),
     )
 }
 
@@ -1429,6 +1488,14 @@ fn sync_capability_snapshot(
     writer.sync_capability_snapshot(&artifact_capability_snapshot())
 }
 
+fn current_capability_fingerprints() -> (String, String) {
+    let snapshot = artifact_capability_snapshot();
+    (
+        parser_inventory_fingerprint(&snapshot.parser_inventory),
+        capability_snapshot_fingerprint(&snapshot.languages),
+    )
+}
+
 fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
     let snapshot = capability_snapshot();
     let languages = snapshot
@@ -1487,6 +1554,124 @@ fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
         parser_inventory,
         languages,
     }
+}
+
+fn parser_inventory_fingerprint(rows: &[ArtifactParserInventoryRow]) -> String {
+    let mut canonical_rows = rows
+        .iter()
+        .map(|row| {
+            (
+                row.language.clone(),
+                row.parser_package.clone(),
+                json!({
+                    "language": row.language,
+                    "parser_package": row.parser_package,
+                    "parser_version": row.parser_version,
+                    "grammar_version": row.grammar_version,
+                    "source": row.source,
+                    "metadata": row.metadata,
+                }),
+            )
+        })
+        .collect::<Vec<_>>();
+    canonical_rows.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
+    fingerprint_json(&json!({
+        "domain": "parser_inventory",
+        "version": 1,
+        "rows": canonical_rows
+            .into_iter()
+            .map(|(_, _, value)| value)
+            .collect::<Vec<_>>(),
+    }))
+}
+
+fn capability_snapshot_fingerprint(rows: &[ArtifactLanguageCapabilityRow]) -> String {
+    let mut canonical_rows = rows
+        .iter()
+        .map(|row| {
+            let mut extensions = row.extensions.clone();
+            extensions.sort();
+            let mut fixtures = row
+                .fixtures
+                .iter()
+                .map(|fixture| {
+                    (
+                        fixture.fixture_name.clone(),
+                        json!({
+                            "fixture_name": fixture.fixture_name,
+                            "source_path": fixture.source_path,
+                            "expected_path": fixture.expected_path,
+                        }),
+                    )
+                })
+                .collect::<Vec<_>>();
+            fixtures.sort_by(|left, right| left.0.cmp(&right.0));
+            let mut gaps = row
+                .gaps
+                .iter()
+                .map(|gap| {
+                    (
+                        gap.gap_id.clone(),
+                        json!({
+                            "gap_id": gap.gap_id,
+                            "capability": gap.capability,
+                            "status": gap.status,
+                            "reason": gap.reason,
+                            "required_closure": gap.required_closure,
+                            "evidence": gap.evidence,
+                        }),
+                    )
+                })
+                .collect::<Vec<_>>();
+            gaps.sort_by(|left, right| left.0.cmp(&right.0));
+            (
+                row.language.clone(),
+                json!({
+                    "language": row.language,
+                    "parser_package": row.parser_package,
+                    "extensions": extensions,
+                    "dependency_status": row.dependency_status,
+                    "target_capabilities": capability_flags_json(row.target_capabilities),
+                    "actual_capabilities": capability_flags_json(row.actual_capabilities),
+                    "kind_coverage": row.kind_coverage,
+                    "fixtures": fixtures
+                        .into_iter()
+                        .map(|(_, value)| value)
+                        .collect::<Vec<_>>(),
+                    "gaps": gaps
+                        .into_iter()
+                        .map(|(_, value)| value)
+                        .collect::<Vec<_>>(),
+                }),
+            )
+        })
+        .collect::<Vec<_>>();
+    canonical_rows.sort_by(|left, right| left.0.cmp(&right.0));
+    fingerprint_json(&json!({
+        "domain": "capability_snapshot",
+        "version": 1,
+        "rows": canonical_rows
+            .into_iter()
+            .map(|(_, value)| value)
+            .collect::<Vec<_>>(),
+    }))
+}
+
+fn capability_flags_json(flags: ArtifactCapabilityFlags) -> Value {
+    json!({
+        "symbols": flags.symbols,
+        "relationships": flags.relationships,
+        "pending_relationships": flags.pending_relationships,
+        "identifiers": flags.identifiers,
+        "types": flags.types,
+    })
+}
+
+fn fingerprint_json(value: &Value) -> String {
+    let bytes = serde_json::to_vec(value).expect("capability fingerprint input must serialize");
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!("sha256:{:x}", hasher.finalize())
 }
 
 fn artifact_flags(flags: CapabilityFlags) -> ArtifactCapabilityFlags {
@@ -1579,7 +1764,21 @@ fn path_error_outcome(
     mode: ReportMode,
     json_report: bool,
 ) -> CommandOutcome {
-    path_error_outcome_with_paths(error, operation, mode, json_report, None, None, None, None)
+    path_error_outcome_with_paths(
+        error,
+        operation,
+        mode,
+        json_report,
+        PathErrorInput::default(),
+    )
+}
+
+#[derive(Default)]
+struct PathErrorInput<'a> {
+    db_path: Option<&'a Path>,
+    root_path: Option<&'a Path>,
+    file_path: Option<&'a Path>,
+    root_relative_path: Option<&'a str>,
 }
 
 fn path_error_outcome_with_paths(
@@ -1587,17 +1786,15 @@ fn path_error_outcome_with_paths(
     operation: ReportOperation,
     mode: ReportMode,
     json_report: bool,
-    db_path: Option<&Path>,
-    root_path: Option<&Path>,
-    file_path: Option<&Path>,
-    root_relative_path: Option<&str>,
+    input_paths: PathErrorInput<'_>,
 ) -> CommandOutcome {
     let diagnostic = path_error_diagnostic(error);
     let input = ReportInput {
-        db_path: db_path.map(display_path),
-        root_path: root_path.map(display_path),
-        file_path: file_path.map(display_path),
-        root_relative_path: root_relative_path
+        db_path: input_paths.db_path.map(display_path),
+        root_path: input_paths.root_path.map(display_path),
+        file_path: input_paths.file_path.map(display_path),
+        root_relative_path: input_paths
+            .root_relative_path
             .map(ToOwned::to_owned)
             .or_else(|| diagnostic.root_relative_path.clone()),
         format: None,
@@ -1645,19 +1842,26 @@ fn path_error_diagnostic(error: PathPolicyError) -> ReportDiagnostic {
 
 fn new_artifact_metadata(root: &Path, artifact_id: Option<String>) -> ArtifactMetadata {
     let now = now_rfc3339();
+    let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
+        current_capability_fingerprints();
     ArtifactMetadata {
         artifact_id: artifact_id.unwrap_or_else(generated_artifact_id),
         root_path: display_path(root),
         binary_version: env!("CARGO_PKG_VERSION").to_string(),
         hash_algorithm: "blake3".to_string(),
-        parser_inventory_fingerprint: "sha256:parser-inventory-v1".to_string(),
-        capability_snapshot_fingerprint: "sha256:capability-snapshot-v1".to_string(),
+        parser_inventory_fingerprint,
+        capability_snapshot_fingerprint,
         created_at: now.clone(),
         updated_at: now,
     }
 }
 
 fn refreshed_metadata(mut metadata: ArtifactMetadata) -> ArtifactMetadata {
+    let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
+        current_capability_fingerprints();
+    metadata.binary_version = env!("CARGO_PKG_VERSION").to_string();
+    metadata.parser_inventory_fingerprint = parser_inventory_fingerprint;
+    metadata.capability_snapshot_fingerprint = capability_snapshot_fingerprint;
     metadata.updated_at = now_rfc3339();
     metadata
 }
@@ -1839,7 +2043,11 @@ fn display_path(path: &Path) -> String {
 mod tests {
     use std::cell::RefCell;
 
-    use julie_extract_artifact::model::{ArtifactSymbol, FileStatus};
+    use julie_extract_artifact::model::{
+        ArtifactCapabilityFlags, ArtifactLanguageCapabilityFixtureRow,
+        ArtifactLanguageCapabilityGapRow, ArtifactLanguageCapabilityRow,
+        ArtifactParserInventoryRow, ArtifactSymbol, FileStatus,
+    };
     use tempfile::TempDir;
 
     use super::*;
@@ -1959,6 +2167,55 @@ mod tests {
         );
     }
 
+    #[test]
+    fn metadata_fingerprints_change_when_snapshot_rows_change() {
+        let mut parser_inventory = vec![ArtifactParserInventoryRow {
+            language: "rust".to_string(),
+            parser_package: "tree-sitter-rust".to_string(),
+            parser_version: Some("1.0.0".to_string()),
+            grammar_version: Some("2.0.0".to_string()),
+            source: Some("test".to_string()),
+            metadata: Some(json!({"dependency_status": "available"})),
+        }];
+        let parser = parser_inventory_fingerprint(&parser_inventory);
+        parser_inventory[0].grammar_version = Some("2.0.1".to_string());
+        let changed_parser = parser_inventory_fingerprint(&parser_inventory);
+
+        assert_sha256(&parser);
+        assert_sha256(&changed_parser);
+        assert_ne!(parser, changed_parser);
+
+        let mut languages = vec![ArtifactLanguageCapabilityRow {
+            language: "rust".to_string(),
+            parser_package: "tree-sitter-rust".to_string(),
+            extensions: vec!["rs".to_string()],
+            dependency_status: "available".to_string(),
+            target_capabilities: capability_flags(true),
+            actual_capabilities: capability_flags(true),
+            kind_coverage: json!({"symbols": {"supported": ["function"]}}),
+            fixtures: vec![ArtifactLanguageCapabilityFixtureRow {
+                fixture_name: "basic".to_string(),
+                source_path: "fixtures/rust/basic.rs".to_string(),
+                expected_path: "fixtures/rust/basic.json".to_string(),
+            }],
+            gaps: vec![ArtifactLanguageCapabilityGapRow {
+                gap_id: "rust:types".to_string(),
+                capability: "types".to_string(),
+                status: "open".to_string(),
+                reason: "test gap".to_string(),
+                required_closure: "task".to_string(),
+                evidence: json!({"source": "test"}),
+            }],
+        }];
+        let capabilities = capability_snapshot_fingerprint(&languages);
+        languages[0].actual_capabilities.types = false;
+        let changed_capabilities = capability_snapshot_fingerprint(&languages);
+
+        assert_sha256(&capabilities);
+        assert_sha256(&changed_capabilities);
+        assert_ne!(capabilities, changed_capabilities);
+    }
+
     struct ScanFixture {
         temp: TempDir,
     }
@@ -2016,5 +2273,20 @@ mod tests {
             literals: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
+    }
+
+    fn capability_flags(value: bool) -> ArtifactCapabilityFlags {
+        ArtifactCapabilityFlags {
+            symbols: value,
+            relationships: value,
+            pending_relationships: value,
+            identifiers: value,
+            types: value,
+        }
+    }
+
+    fn assert_sha256(value: &str) {
+        assert!(value.starts_with("sha256:"));
+        assert_eq!(value.len(), "sha256:".len() + 64);
     }
 }

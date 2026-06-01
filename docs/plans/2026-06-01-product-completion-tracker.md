@@ -20,7 +20,9 @@
 - No active product implementation branch remains; the local worktree and local/remote `codex/v0-1-0-release-candidate-audit` branches were cleaned up after merge.
 - All migration and post-bootstrap plans below are complete and should be treated as historical evidence, not active task queues.
 - Julie code intelligence is available again for this repo. Local Julie state is workspace tooling, not product code.
-- Current user decision: trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate. Publication is not automatic.
+- Current user decision is held while `docs/plans/2026-06-01-release-blocker-review-fixes.md`
+  resolves the validated release-blocking and high-priority findings from
+  `docs/findings/CC_REVIEW.md`.
 
 ## Completed Milestones
 
@@ -190,6 +192,27 @@
 - [x] Release notes match actual shipped surfaces and known non-goals.
 - [x] No generated artifacts are committed.
 
+### Slice 6: Release-Blocker Review Fixes
+
+**Why now:** `docs/findings/CC_REVIEW.md` identified release-blocking and
+high-priority contract gaps after the release candidate audit. Resolve those
+before making the `v0.1.0` publish decision.
+
+**Reference plan:** `docs/plans/2026-06-01-release-blocker-review-fixes.md`.
+
+**Status:** Implementation is complete on the active branch. Merge after fast
+gates pass.
+
+**Acceptance criteria:**
+- [x] Partial scans preserve prior good rows and commit valid files when another
+  supported file fails.
+- [x] Intentionally empty supported files can replace stale symbols.
+- [x] Discovery does not index out-of-root symlinked files.
+- [x] Parser inventory and capability snapshot fingerprints are computed
+  `sha256:<hex>` values.
+- [x] Workspace lint inheritance and a scoped CI clippy gate are enforced.
+- [x] Fast branch gates pass before merge.
+
 ## Verification Discipline
 
 - Reuse same-HEAD passing evidence from plan ledgers instead of rerunning broad gates for status updates.
@@ -206,5 +229,6 @@
 - [x] Slice 3: JSONL export buffered writer implementation.
 - [x] Slice 4: Repeatable performance baseline.
 - [x] Slice 5: v0.1.0 release candidate audit.
+- [x] Slice 6: Release-blocker review fixes.
 - [x] PR #8 merged to `main`.
 - [ ] Release decision: trigger the Release Binaries workflow for `v0.1.0` or hold the release candidate.

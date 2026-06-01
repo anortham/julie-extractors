@@ -53,20 +53,25 @@ dashboard, or editing behavior.
 - CI must run a clippy gate. If the existing test warning baseline is too large
   for `--all-targets -D warnings`, the release-candidate gate may start with
   production library/binary targets and document the deliberate exclusion.
+- The current release-candidate clippy gate is deliberately scoped to
+  `julie-extract-artifact`, `julie-extract-cli`, and `xtask` with `--no-deps`.
+  The extractor engine crate still inherits workspace Rust lints, but its
+  broader clippy cleanup remains outside this release-blocker slice because the
+  ported extractor modules currently produce hundreds of style warnings.
 
 ## Acceptance Criteria
 
-- [ ] CLI test proves an intentionally empty changed file replaces stale rows.
-- [ ] CLI test proves one invalid UTF-8 supported file yields partial scan while
+- [x] CLI test proves an intentionally empty changed file replaces stale rows.
+- [x] CLI test proves one invalid UTF-8 supported file yields partial scan while
       committing another valid file.
-- [ ] CLI or discovery test proves out-of-root symlinked files are not indexed.
-- [ ] Metadata fingerprint tests prove the values are not static placeholders
+- [x] CLI or discovery test proves out-of-root symlinked files are not indexed.
+- [x] Metadata fingerprint tests prove the values are not static placeholders
       and change when their input rows change.
-- [ ] Workspace lint inheritance is enforced by manifest or convention test.
-- [ ] CI includes a clippy gate that can pass on the current tree.
-- [ ] `cargo xtask test default` passes.
-- [ ] `cargo xtask test contract` passes.
-- [ ] `scripts/check-agent-doc-sync.sh` passes if guidance docs are touched.
+- [x] Workspace lint inheritance is enforced by manifest or convention test.
+- [x] CI includes a clippy gate that can pass on the current tree.
+- [x] `cargo xtask test default` passes.
+- [x] `cargo xtask test contract` passes.
+- [x] `scripts/check-agent-doc-sync.sh` passes if guidance docs are touched.
 
 ## Non-Goals
 
