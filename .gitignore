@@ -1,9 +1,10 @@
-target/
-.DS_Store
-.miller/
-.julie/
+/target/
+/.miller/
+**/*.rs.bk
 *.sqlite
-*.sqlite-*
+*.sqlite-shm
+*.sqlite-wal
 *.db
-*.db-*
-*.log
+*.db-shm
+*.db-wal
+.DS_Store

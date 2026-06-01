@@ -1,0 +1,13 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "invoke-restmethod",
+    "invoke-webrequest",
+    "irm",
+    "iwr",
+]
+sql = [
+    "invoke-sqlcmd",
+    "invoke-sqlcmd2",
+]
+route = []

@@ -139,11 +139,11 @@ Read-only source paths:
 **Approach:** Verify docs snippets, stage only product-bootstrap docs and checkpoint files, then commit with a docs-focused message. Do not include copied code in this commit.
 
 **Acceptance criteria:**
-- [ ] SQL snippets from `docs/contracts/sqlite-schema-v1.md` execute through `sqlite3 :memory:`.
-- [ ] JSON examples from `docs/contracts/jsonl-v1.md` and `docs/contracts/reports.md` parse with `jq`.
-- [ ] Placeholder scan over touched docs returns no matches.
-- [ ] Commit contains docs/checkpoints only, no moved Rust code.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] SQL snippets from `docs/contracts/sqlite-schema-v1.md` execute through `sqlite3 :memory:`.
+- [x] JSON examples from `docs/contracts/jsonl-v1.md` and `docs/contracts/reports.md` parse with `jq`.
+- [x] Placeholder scan over touched docs returns no matches.
+- [x] Commit contains docs/checkpoints only, no moved Rust code.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 1: Rust Workspace Shell
 
@@ -160,10 +160,10 @@ Read-only source paths:
 **Approach:** Use a workspace with separate crates for extractor engine, artifact persistence, and CLI. Keep package names aligned with the product names: `julie-extractors`, `julie-extract-artifact`, and `julie-extract-cli`.
 
 **Acceptance criteria:**
-- [ ] Workspace manifest names all crates that exist at the end of the task.
-- [ ] No Julie server, MCP, daemon, search, embedding, watcher, dashboard, or editing crates are referenced.
-- [ ] `cargo metadata` succeeds once the first crate is present.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Workspace manifest names all crates that exist at the end of the task.
+- [x] No Julie server, MCP, daemon, search, embedding, watcher, dashboard, or editing crates are referenced.
+- [x] `cargo metadata` succeeds once the first crate is present.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 2: Move Extractor Crate And Fixtures
 
@@ -172,18 +172,32 @@ Read-only source paths:
 - Create: `crates/julie-extractors/`
 - Copy from: `/Users/murphy/source/julie/fixtures/extraction/`
 - Create: `fixtures/extraction/`
+- Copy from: `/Users/murphy/source/julie/fixtures/elixir/basic.ex`
+- Create: `fixtures/elixir/basic.ex`
+- Copy from: `/Users/murphy/source/julie/fixtures/qml/real-world/cool-retro-term-main.qml`
+- Copy from: `/Users/murphy/source/julie/fixtures/qml/real-world/kde-plasma-desktop-main.qml`
+- Create: `fixtures/qml/real-world/`
+- Copy from: `/Users/murphy/source/julie/fixtures/r/real-world/ggplot2-geom-point.R`
+- Create: `fixtures/r/real-world/`
+- Copy from: `/Users/murphy/source/julie/fixtures/real-world/json/memories.jsonl`
+- Create: `fixtures/real-world/json/memories.jsonl`
+- Copy from: `/Users/murphy/source/julie/fixtures/scala/basic.scala`
+- Create: `fixtures/scala/basic.scala`
 
 **What to build:** Move the reusable extraction engine and its fixture evidence mostly intact.
 
 **Approach:** Preserve extractor source structure first, then fix only path and workspace breakage needed for compilation. Do not redesign language extractors during the move. Keep fixture paths stable unless include paths require a coordinated update.
 
 **Acceptance criteria:**
-- [ ] `crates/julie-extractors/src/` exists with base modules, language modules, registry, pipeline, manager, factory, and capability snapshot.
-- [ ] `fixtures/extraction/capabilities.json` and golden fixtures exist.
-- [ ] Capability snapshot path references resolve from the new crate location.
-- [ ] No dependency points back to `/Users/murphy/source/julie`.
-- [ ] Narrow extractor compile/test command passes or failing output is recorded with a concrete next task.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] `crates/julie-extractors/src/` exists with base modules, language modules, registry, pipeline, manager, factory, and capability snapshot.
+- [x] `fixtures/extraction/capabilities.json` and golden fixtures exist.
+- [x] `fixtures/elixir/basic.ex` exists for the copied Elixir full-fixture unit test.
+- [x] Referenced QML, R, and JSON real-world support fixtures exist.
+- [x] `fixtures/scala/basic.scala` exists for the copied Scala full-fixture unit test.
+- [x] Capability snapshot path references resolve from the new crate location.
+- [x] No dependency points back to `/Users/murphy/source/julie`.
+- [x] Narrow extractor compile/test command passes or failing output is recorded with a concrete next task.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 3: Restore Extractor Test Tiers
 
@@ -198,28 +212,36 @@ Read-only source paths:
 **Approach:** Bring up default, language, golden fixture, capability matrix, certification, and real-world tiers according to `docs/testing-strategy.md`. The first passing suite should be narrow; slow gates must be tagged or routed out immediately.
 
 **Acceptance criteria:**
-- [ ] Default test command is documented in the task report.
-- [ ] Golden/capability tests are runnable as a named non-default or contract/language tier.
-- [ ] Certification and real-world gates are not part of default tests.
-- [ ] A convention check or documented test-tier rule prevents slow tests from entering default.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Default test command is documented in the task report.
+- [x] Golden/capability tests are runnable as a named non-default or contract/language tier.
+- [x] Certification and real-world gates are not part of default tests.
+- [x] A convention check or documented test-tier rule prevents slow tests from entering default.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 4: Move Extraction-Owned Language Configuration
 
 **Files:**
 - Copy or split from: `/Users/murphy/source/julie/languages/*.toml`
 - Create/Modify: `languages/*.toml`
-- Modify: `crates/julie-extractors/` language config loading code if needed
+- Create/Modify: `languages/README.md`
+- Create/Modify: `crates/julie-extractors/src/language_policy.rs`
+- Modify: `crates/julie-extractors/src/lib.rs`
+- Create/Modify: `crates/julie-extractors/src/tests/language_policy.rs`
 
 **What to build:** Bring over language policy that directly affects artifact-producing extraction.
 
-**Approach:** Include config used for literal carrier classification, test-role classification only if artifact-owned, language extension mapping, and fixture/capability evidence. Leave Julie workspace/search policy behind.
+**Approach:** Include only `[literal_carriers]` config used to classify and
+gate persisted `literals` artifact rows. Do not copy test-role TOML into this
+task because SQLite/JSONL v1 does not define a `test_role` artifact field.
+Language extension mapping stays in `crates/julie-extractors/src/language_spec/`
+and fixture/capability evidence stays in `fixtures/extraction/capabilities.json`.
+Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 
 **Acceptance criteria:**
-- [ ] Every moved config key has an artifact-producing purpose.
-- [ ] Non-extraction Julie policy is not copied.
-- [ ] Extractor tests that depend on language policy pass.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Every moved config key has an artifact-producing purpose.
+- [x] Non-extraction Julie policy is not copied.
+- [x] Extractor tests that depend on language policy pass.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 5: Artifact Crate Skeleton And Schema v1
 
@@ -237,12 +259,12 @@ Read-only source paths:
 **Approach:** Start with schema creation/readback and required indexes from `docs/contracts/sqlite-schema-v1.md`. Use old Julie database code only as evidence for extraction domains and operational pitfalls. Do not copy internal Julie schema tables.
 
 **Acceptance criteria:**
-- [ ] Schema creates all v1 public tables.
-- [ ] Required indexes from the SQLite contract exist.
-- [ ] Metadata keys required by the contract are inserted and readable.
-- [ ] Query-plan or schema tests fail if required indexes are missing.
-- [ ] SQL contract snippets and schema tests pass.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Schema creates all v1 public tables.
+- [x] Required indexes from the SQLite contract exist.
+- [x] Metadata keys required by the contract are inserted and readable.
+- [x] Query-plan or schema tests fail if required indexes are missing.
+- [x] SQL contract snippets and schema tests pass.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 6: Batched SQLite Writer
 
@@ -257,13 +279,14 @@ Read-only source paths:
 **Approach:** Write through explicit transactions, prepared statements, batched inserts, indexed file replacement, and data-loss guard checks. Start with tiny fixtures and deterministic row counts before broad language coverage.
 
 **Acceptance criteria:**
-- [ ] `scan`-style batch writes multiple files in one transaction.
-- [ ] `update`-style write replaces exactly one file's rows.
-- [ ] `delete`-style write removes exactly one file's rows.
-- [ ] Unchanged file hashes avoid row churn.
-- [ ] Data-loss guard preserves known-good rows on parser/read failure evidence.
-- [ ] Tiny-fixture performance tripwire detects per-row commits.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] `scan`-style batch writes multiple files in one transaction.
+- [x] `update`-style write replaces exactly one file's rows.
+- [x] `delete`-style write removes exactly one file's rows.
+- [x] Unchanged file hashes avoid row churn for incremental/single-file writes.
+- [x] Force scans rewrite rows even when content hashes are unchanged.
+- [x] Data-loss guard preserves known-good rows on parser/read failure evidence.
+- [x] Tiny-fixture performance tripwire detects per-row commits.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 7: JSON Report Model
 
@@ -276,12 +299,12 @@ Read-only source paths:
 **Approach:** Keep report structs product-neutral. Include `input`, `artifact`, `tool`, `revision`, exhaustive `counts.rows_written`, exhaustive `counts.totals`, typed `errors`, and typed `warnings`.
 
 **Acceptance criteria:**
-- [ ] Reports serialize with `report_schema_version: 1`.
-- [ ] Every status value from the report contract is covered by tests.
-- [ ] Every v1 error code has a stable serialized spelling.
-- [ ] Single-file success reports include `input.file_path` and `input.root_relative_path`.
-- [ ] Report row-count keys are exhaustive for SQLite v1.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Reports serialize with `report_schema_version: 1`.
+- [x] Every status value from the report contract is covered by tests.
+- [x] Every v1 error code has a stable serialized spelling.
+- [x] Single-file success reports include `input.file_path` and `input.root_relative_path`.
+- [x] Report row-count keys are exhaustive for SQLite v1.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 8: JSONL Exporter
 
@@ -294,12 +317,12 @@ Read-only source paths:
 **Approach:** Read canonical SQLite rows and emit deterministic `snapshot` records with the envelope and exact payload schemas from `docs/contracts/jsonl-v1.md`.
 
 **Acceptance criteria:**
-- [ ] Export starts with `artifact` records and follows the documented record order.
-- [ ] Every record kind in JSONL v1 has a contract test.
-- [ ] SQLite JSON text columns are decoded into JSON objects or arrays.
-- [ ] Output is deterministic for the same artifact.
-- [ ] Failed export does not claim a complete output file.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Export starts with `artifact` records and follows the documented record order.
+- [x] Every record kind in JSONL v1 has a contract test.
+- [x] SQLite JSON text columns are decoded into JSON objects or arrays.
+- [x] Output is deterministic for the same artifact.
+- [x] Failed export does not claim a complete output file.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 9: CLI Skeleton And Commands
 
@@ -315,13 +338,13 @@ Read-only source paths:
 **Approach:** Build only commands in `docs/contracts/cli.md`: `scan`, `update`, `delete`, `info`, `export`, and `languages`. Map command outcomes to report statuses and exit codes from the contracts.
 
 **Acceptance criteria:**
-- [ ] Binary name is `julie-extract`.
-- [ ] `scan`, `update`, `delete`, `info`, `export`, and `languages` parse.
-- [ ] `--json` reports match the report contract.
-- [ ] Exit codes `0`, `1`, `2`, and `3` are covered by tests.
-- [ ] No `analyze` command is implemented.
-- [ ] No server, daemon, MCP, search, embedding, watcher, dashboard, or editing behavior is linked.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Binary name is `julie-extract`.
+- [x] `scan`, `update`, `delete`, `info`, `export`, and `languages` parse.
+- [x] `--json` reports match the report contract.
+- [x] Exit codes `0`, `1`, `2`, and `3` are covered by tests.
+- [x] No `analyze` command is implemented.
+- [x] No server, daemon, MCP, search, embedding, watcher, dashboard, or editing behavior is linked.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 10: Source Discovery And Path Policy
 
@@ -335,12 +358,12 @@ Read-only source paths:
 **Approach:** Use old Julie indexing path code as evidence, but rewrite dependencies around the standalone product. Store root-relative Unix paths. Treat unsupported/ignored update targets as stale-row cleanup.
 
 **Acceptance criteria:**
-- [ ] `--root`, `--db`, `--file`, and `--ignore-file` canonicalize at the CLI boundary.
-- [ ] File outside root returns a typed error.
-- [ ] `delete --file` does not require the source file to exist.
-- [ ] `update --file` requires the source file to exist.
-- [ ] Root mismatch returns exit code `3` unless `scan --force` rebuilds.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] `--root`, `--db`, `--file`, and `--ignore-file` canonicalize at the CLI boundary.
+- [x] File outside root returns a typed error.
+- [x] `delete --file` does not require the source file to exist.
+- [x] `update --file` requires the source file to exist.
+- [x] Root mismatch returns exit code `3` unless `scan --force` rebuilds.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 11: CLI Operations End To End
 
@@ -354,15 +377,15 @@ Read-only source paths:
 **Approach:** Start with tiny fixture roots. Prove full scan, force scan, single-file update, single-file delete, info, export, and languages. Keep watcher integration as documented command semantics, not a long-running watcher service.
 
 **Acceptance criteria:**
-- [ ] `scan` creates a SQLite artifact with expected rows.
-- [ ] `scan` with no changes returns `no_change`.
-- [ ] `scan --force` rebuilds with `operation: scan`, `mode: force`.
-- [ ] `update` changes one file and preserves other files.
-- [ ] `delete` removes one file and missing rows return `not_found`.
-- [ ] `info` is read-only.
-- [ ] `export --format jsonl` emits valid JSONL v1.
-- [ ] `languages --json` emits capability snapshot data.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] `scan` creates a SQLite artifact with expected rows.
+- [x] `scan` with no changes returns `no_change`.
+- [x] `scan --force` rebuilds with `operation: scan`, `mode: force`.
+- [x] `update` changes one file and preserves other files.
+- [x] `delete` removes one file and missing rows return `not_found`.
+- [x] `info` is read-only.
+- [x] `export --format jsonl` emits valid JSONL v1.
+- [x] `languages --json` emits capability snapshot data.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ### Task 12: Certification And Release Scaffolding
 
@@ -376,30 +399,48 @@ Read-only source paths:
 **Approach:** Use old Julie `xtask` and release workflow as evidence. The new release ships `julie-extract` binaries, checksums, schema docs, contract docs, and release notes.
 
 **Acceptance criteria:**
-- [ ] Certification tier runs independently from default tests.
-- [ ] Real-world smoke and release profiles are separate.
-- [ ] Release package list contains only `julie-extract` binaries, checksums, docs, and release notes.
-- [ ] Parser dependency changes trigger certification gates.
-- [ ] Worker-scope verification passes and commit is recorded.
+- [x] Certification tier runs independently from default tests.
+- [x] Real-world smoke and release profiles are separate.
+- [x] Release package list contains only `julie-extract` binaries, checksums, docs, and release notes.
+- [x] Parser dependency changes trigger certification gates.
+- [x] Worker-scope verification passes and commit is recorded.
 
 ## Progress Tracking
 
 Use this section as the execution ledger. Update task checkboxes only after the
 task's acceptance criteria and verification ledger entry are complete.
 
-- [ ] Task 0: Contract Baseline Commit
-- [ ] Task 1: Rust Workspace Shell
-- [ ] Task 2: Move Extractor Crate And Fixtures
-- [ ] Task 3: Restore Extractor Test Tiers
-- [ ] Task 4: Move Extraction-Owned Language Configuration
-- [ ] Task 5: Artifact Crate Skeleton And Schema v1
-- [ ] Task 6: Batched SQLite Writer
-- [ ] Task 7: JSON Report Model
-- [ ] Task 8: JSONL Exporter
-- [ ] Task 9: CLI Skeleton And Commands
-- [ ] Task 10: Source Discovery And Path Policy
-- [ ] Task 11: CLI Operations End To End
-- [ ] Task 12: Certification And Release Scaffolding
+- [x] Task 0: Contract Baseline Commit
+- [x] Task 1: Rust Workspace Shell
+- [x] Task 2: Move Extractor Crate And Fixtures
+- [x] Task 3: Restore Extractor Test Tiers
+- [x] Task 4: Move Extraction-Owned Language Configuration
+- [x] Task 5: Artifact Crate Skeleton And Schema v1
+- [x] Task 6: Batched SQLite Writer
+- [x] Task 7: JSON Report Model
+- [x] Task 8: JSONL Exporter
+- [x] Task 9: CLI Skeleton And Commands
+- [x] Task 10: Source Discovery And Path Policy
+- [x] Task 11: CLI Operations End To End
+- [x] Task 12: Certification And Release Scaffolding
+
+## Verification Ledger
+
+| Scope | Invariant | Command | Commit | Result | Time |
+|-------|-----------|---------|--------|--------|------|
+| worker-red-green | Contract baseline docs parse and have no placeholders. | `sqlite3 :memory:` SQL snippet check; `jq` JSON snippet check; placeholder scan | `3a3d889` | pass | `2026-05-31T17:04Z` |
+| worker-red-green | Workspace shell is a valid Cargo workspace and contains no forbidden Julie behavior crates. | `cargo metadata --format-version 1 --no-deps` | `a54eda6` | pass | `2026-05-31T17:06Z` |
+| worker-red-green | Moved extractor crate compiles, capability snapshot resolves, and copied support fixtures satisfy narrow fixture gates. | `cargo check -p julie-extractors`; `cargo test -p julie-extractors capability_snapshot`; targeted Elixir, JSONL, QML, and R fixture tests; source dependency scan | `f221c4a` | pass | `2026-05-31T17:10Z` |
+| worker-red-green | Extractor test tiers are selected by `cargo xtask`, slow gates are feature-gated out of default tests, and old Julie evidence refs no longer require old commits/plans. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test language rust`; `cargo xtask test contract`; `cargo xtask test certification`; `cargo xtask test real-world`; default inventory leak scan; `cargo metadata --format-version 1 --no-deps`; `git diff --check` | `7e1160e` | pass | `2026-05-31T17:27Z` |
+| worker-red-green | Extraction-owned language policy contains only literal carrier config, is embedded by the crate, aliases JSX/TSX, and classifies/gates literals without copying Julie search/test-role policy. | `cargo fmt --check`; `cargo test -p julie-extractors language_policy -- --nocapture`; `cargo xtask test default`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; non-literal TOML section scan; stale old-Julie pipeline/test-role comment scan | `f477047` | pass | `2026-05-31T17:47Z` |
+| worker-red-green | Artifact crate owns SQLite schema v1 tables, required indexes, metadata rows, report row domains, and default/contract test-tier wiring without old Julie internal schema tables. | `cargo fmt --check`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; SQL fence extraction from `docs/contracts/sqlite-schema-v1.md` through `sqlite3 :memory:`; forbidden old-Julie table scan | `8fe5cbf` | pass | `2026-05-31T19:16Z` |
+| worker-red-green | Artifact writer persists SQLite v1 row families with one transaction per operation, exact scan/update/delete replacement semantics, incremental hash skips, force-scan rewrites, rollback on failed batches, data-loss guarding, and tiny-fixture throughput protection. | `cargo test -p julie-extract-artifact --test writer_contract`; `cargo test -p julie-extract-artifact --test writer_performance`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `8d2b60f` | pass | `2026-05-31T20:20Z` |
+| worker-red-green | JSON report model serializes schema version 1, stable status/error code spellings, single-file input paths, and exhaustive SQLite v1 row-count domains without old Julie analysis/status fields. | `cargo test -p julie-extract-artifact --test report_contract`; `cargo test -p julie-extract-artifact`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; old-Julie report-field scan | `9ad4d7e` | pass | `2026-05-31T20:29Z` |
+| worker-red-green | JSONL exporter emits deterministic SQLite-derived snapshot records in JSONL v1 order, decodes SQLite JSON text columns, covers every record kind with contract tests, preserves all-or-error path export behavior, and keeps report/JSONL tests inside the contract tier. | `cargo test -p julie-extract-artifact --test jsonl_contract`; `cargo test -p julie-extract-artifact`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `549c78c` | pass | `2026-05-31T20:46Z` |
+| worker-red-green | `julie-extract` binary exposes only v1 commands, emits report-contract JSON for the skeleton paths, covers exit codes `0`, `1`, `2`, and `3`, rejects old Julie `analyze`, excludes server/tool behavior, and is wired into default and contract tiers. | `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `1c8a037` | pass | `2026-05-31T20:58Z` |
+| worker-red-green | CLI source path policy canonicalizes root/db/file/ignore inputs, rejects outside-root and missing update targets with typed reports, allows delete of missing source files, removes stale rows for ignored update targets, and enforces root-bound artifacts with `scan --force` rebuild behavior. | `cargo test -p julie-extract-cli --test path_policy`; `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `dd4399e` | pass | `2026-05-31T21:21Z` |
+| worker-red-green | CLI operations run end-to-end from discovery and parser extraction into SQLite, preserve snapshot semantics and no-change immutability, update/delete single files, export JSONL v1, expose languages capability data, and route operations into the contract tier. | `cargo test -p julie-extract-cli --test operations_contract`; `cargo test -p julie-extract-cli --test cli_contract`; `cargo test -p julie-extract-cli --test path_policy`; `cargo test -p julie-extract-artifact --test writer_contract`; `cargo test -p julie-extract-artifact --test jsonl_contract`; `cargo test -p julie-extract-cli`; `cargo test -p julie-extract-artifact`; `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `87f2e1d` | pass | `2026-05-31T21:48Z` |
+| worker-red-green | Certification, changed-path, real-world, and release package scaffolding are selected by `cargo xtask`, certification stays outside default, real-world smoke and release profiles are distinct, parser dependency changes add certification gates, and the release manifest contains only standalone `julie-extract` binaries, checksums, docs, and release notes. | `cargo test -p xtask`; `cargo xtask test default`; `cargo xtask test contract`; `cargo xtask test certification`; `cargo xtask test real-world-smoke`; `cargo xtask test real-world-release`; `cargo xtask test changed crates/julie-extractors/Cargo.toml`; `cargo xtask release package-list`; `cargo fmt --check`; `cargo metadata --format-version 1 --no-deps`; `git diff --check`; placeholder scan; forbidden-boundary scan | `513aa4d` | pass | `2026-05-31T22:02Z` |
 
 ## Execution Notes
 

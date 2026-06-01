@@ -1,0 +1,27 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "getForObject",
+    "getForEntity",
+    "postForObject",
+    "postForEntity",
+    "patchForObject",
+    "exchange",
+    "url",
+    "URI.create",
+]
+sql = [
+    "execute",
+    "executeQuery",
+    "executeUpdate",
+    "executeLargeUpdate",
+    "prepareStatement",
+    "prepareCall",
+    "query",
+    "queryForObject",
+    "queryForList",
+    "queryForMap",
+    "update",
+    "batchUpdate",
+]
+route = []

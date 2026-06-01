@@ -1,0 +1,17 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "curl_easy_setopt",
+]
+sql = [
+    "sqlite3_exec",
+    "sqlite3_prepare",
+    "sqlite3_prepare_v2",
+    "sqlite3_prepare_v3",
+    "pqexec",
+    "pqprepare",
+    "pqexecparams",
+    "mysql_query",
+    "mysql_real_query",
+]
+route = []

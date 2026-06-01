@@ -1,0 +1,15 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "requests.get",
+    "requests.post",
+    "requests.put",
+    "requests.delete",
+]
+sql = [
+    "sql",
+    "executequery",
+    "executeupdate",
+    "preparestatement",
+]
+route = []

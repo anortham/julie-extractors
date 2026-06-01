@@ -1,0 +1,21 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "http.get",
+    "http.post",
+    "http.put",
+    "http.delete",
+    "http.head",
+    "dio.get",
+    "dio.post",
+    "dio.put",
+    "dio.delete",
+]
+sql = [
+    "rawquery",
+    "rawinsert",
+    "rawupdate",
+    "rawdelete",
+    "execute",
+]
+route = []

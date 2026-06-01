@@ -1,0 +1,13 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "url",
+    "af.request",
+]
+sql = [
+    "prepare",
+    "run",
+    "execute",
+    "scalar",
+]
+route = []

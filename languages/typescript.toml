@@ -1,0 +1,41 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "fetch",
+    "$fetch",
+    "axios",
+    "axios.get",
+    "axios.post",
+    "axios.put",
+    "axios.delete",
+    "axios.patch",
+    "axios.request",
+    "axios.head",
+    "request",
+    "ky",
+    "ky.get",
+    "ky.post",
+    "ky.put",
+    "ky.delete",
+    "ky.patch",
+    "ky.head",
+    "got",
+    "got.get",
+    "got.post",
+    "got.put",
+    "got.delete",
+    "got.patch",
+    "ofetch",
+]
+sql = [
+    "query",
+    "execute",
+    "exec",
+    "raw",
+    "prepare",
+    "$queryraw",
+    "$executeraw",
+    "$queryrawunsafe",
+    "$executerawunsafe",
+]
+route = []

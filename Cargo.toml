@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "crates/julie-extract-artifact",
+    "crates/julie-extract-cli",
+    "crates/julie-extractors",
+    "xtask",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/murphy/julie-extractors"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"

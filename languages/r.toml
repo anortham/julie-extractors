@@ -1,0 +1,18 @@
+# Artifact-owned extraction policy only. Do not add search, embedding, watcher, or scoring config here.
+[literal_carriers]
+url = [
+    "httr.GET",
+    "httr.HEAD",
+    "POST",
+    "PUT",
+    "DELETE",
+    "PATCH",
+    "VERB",
+]
+sql = [
+    "dbGetQuery",
+    "dbExecute",
+    "dbSendQuery",
+    "dbSendStatement",
+]
+route = []
