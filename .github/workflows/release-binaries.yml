@@ -6,7 +6,7 @@ on:
       version:
         description: Release version to stage
         required: true
-        default: 0.1.0
+        default: 2.0.0
   push:
     tags:
       - 'v*'

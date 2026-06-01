@@ -119,7 +119,7 @@ keys are part of the v1 contract.
   "schema_version": 1,
   "extract_contract_version": 1,
   "sqlite_schema_version": 1,
-  "binary_version": "0.1.0",
+  "binary_version": "2.0.0",
   "hash_algorithm": "blake3",
   "parser_inventory_fingerprint": "sha256:...",
   "capability_snapshot_fingerprint": "sha256:...",
@@ -176,9 +176,28 @@ keys are part of the v1 contract.
   "semantic_group": null,
   "confidence": null,
   "content_type": null,
-  "metadata": {}
+  "is_test": true,
+  "test_container": false,
+  "test_lifecycle": false,
+  "metadata": {
+    "is_test": true
+  }
 }
 ```
+
+Reserved symbol test-role fields:
+
+- `is_test`: boolean. `true` means the extractor identified the symbol as a test
+  case or test lifecycle hook.
+- `test_container`: boolean. `true` means the symbol groups tests, for example
+  `describe`, `context`, `suite`, or `group` constructs. Containers are not test
+  cases unless `is_test` is also true.
+- `test_lifecycle`: boolean. `true` means the symbol is setup, teardown, or an
+  equivalent lifecycle hook. Lifecycle hooks must also carry `is_test: true`.
+
+The same keys remain reserved inside `metadata` when present so existing
+metadata-oriented consumers do not lose the old Julie signal. They are extracted
+metadata, not Julie test-quality or linkage analysis.
 
 ### `parser_inventory`
 

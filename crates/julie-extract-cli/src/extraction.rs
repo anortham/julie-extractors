@@ -15,6 +15,7 @@ use julie_extractors::{
     TypeArgumentUsage, TypeInfo, extract_canonical,
 };
 use serde::Serialize;
+use serde_json::Value;
 
 use crate::paths::FileTarget;
 
@@ -220,6 +221,9 @@ fn map_results(
             semantic_group: symbol.semantic_group.clone(),
             confidence: symbol.confidence.map(f64::from),
             content_type: symbol.content_type.clone(),
+            is_test: metadata_flag(&symbol.metadata, "is_test"),
+            test_container: metadata_flag(&symbol.metadata, "test_container"),
+            test_lifecycle: metadata_flag(&symbol.metadata, "test_lifecycle"),
             metadata_json: optional_json(&symbol.metadata, target)?,
         });
 
@@ -595,6 +599,14 @@ fn optional_json<T: Serialize>(
 
 fn json_string<T: Serialize>(value: &T, _target: &FileTarget) -> Result<String, serde_json::Error> {
     serde_json::to_string(value)
+}
+
+fn metadata_flag(metadata: &Option<std::collections::HashMap<String, Value>>, key: &str) -> bool {
+    metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
 }
 
 fn serialization_error(target: &FileTarget, error: serde_json::Error) -> ExtractFileError {

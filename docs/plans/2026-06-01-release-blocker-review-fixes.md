@@ -1,7 +1,7 @@
 # Release-Blocker Review Fixes Plan
 
 **Goal:** Resolve the validated release-blocking and high-priority findings from
-`docs/findings/CC_REVIEW.md` before deciding whether to publish `v0.1.0`.
+`docs/findings/CC_REVIEW.md` before deciding whether to publish v2.0.0.
 
 **Product boundary:** Keep this repo scoped to `source tree -> versioned
 extraction artifact`. Do not add Julie MCP, daemon, search, embedding, watcher,

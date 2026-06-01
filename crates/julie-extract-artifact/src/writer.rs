@@ -918,13 +918,14 @@ fn replace_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusql
 fn insert_symbols(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare(
         "INSERT INTO symbols
-         (symbol_id, file_id, path, language, name, kind, signature, doc_comment, visibility,
-          parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
-          body_start_line, body_start_column, body_end_line, body_end_column, body_start_byte,
-          body_end_byte, body_hash, semantic_group, confidence, content_type, metadata_json)
-         VALUES
-         (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-          ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26)",
+	     (symbol_id, file_id, path, language, name, kind, signature, doc_comment, visibility,
+	      parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
+	      body_start_line, body_start_column, body_end_line, body_end_column, body_start_byte,
+	      body_end_byte, body_hash, semantic_group, confidence, content_type, is_test,
+	      test_container, test_lifecycle, metadata_json)
+	     VALUES
+	     (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
+	      ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29)",
     )?;
     for symbol in &file.symbols {
         stmt.execute(params![
@@ -953,6 +954,9 @@ fn insert_symbols(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result
             symbol.semantic_group,
             symbol.confidence,
             symbol.content_type,
+            symbol.is_test,
+            symbol.test_container,
+            symbol.test_lifecycle,
             symbol.metadata_json,
         ])?;
     }

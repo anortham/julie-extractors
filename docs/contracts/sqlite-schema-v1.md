@@ -177,6 +177,9 @@ CREATE TABLE symbols (
   semantic_group TEXT,
   confidence REAL,
   content_type TEXT,
+  is_test INTEGER NOT NULL DEFAULT 0,
+  test_container INTEGER NOT NULL DEFAULT 0,
+  test_lifecycle INTEGER NOT NULL DEFAULT 0,
   metadata_json TEXT,
   FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
   FOREIGN KEY (parent_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
@@ -184,6 +187,22 @@ CREATE TABLE symbols (
 ```
 
 `body_hash` is present only when all body span columns are present.
+
+`is_test`, `test_container`, and `test_lifecycle` are integer booleans (`0` or
+`1`) derived from extractor test-role metadata.
+
+Artifact producers must keep these first-class columns and the reserved metadata
+keys in sync:
+
+- `is_test`: `1` means the extractor identified the symbol as a test case or
+  test lifecycle hook.
+- `test_container`: `1` means the symbol groups tests, for example `describe`,
+  `context`, `suite`, or `group` constructs.
+- `test_lifecycle`: `1` means the symbol is setup, teardown, or an equivalent
+  lifecycle hook. Lifecycle hooks must also have `is_test = 1`.
+
+These fields are extraction metadata. They are not Julie test linkage, test
+quality, or reference-scoring analysis.
 
 ### `symbol_annotations`
 
@@ -508,6 +527,9 @@ CREATE INDEX idx_symbols_path ON symbols(path);
 CREATE INDEX idx_symbols_file ON symbols(file_id);
 CREATE INDEX idx_symbols_name_kind ON symbols(name, kind);
 CREATE INDEX idx_symbols_parent ON symbols(parent_symbol_id);
+CREATE INDEX idx_symbols_is_test ON symbols(is_test);
+CREATE INDEX idx_symbols_test_container ON symbols(test_container);
+CREATE INDEX idx_symbols_test_lifecycle ON symbols(test_lifecycle);
 CREATE INDEX idx_identifiers_path ON identifiers(path);
 CREATE INDEX idx_identifiers_file ON identifiers(file_id);
 CREATE INDEX idx_identifiers_name_kind ON identifiers(name, kind);
@@ -552,6 +574,9 @@ contract. The first implementation must still provide measurable gates for:
 - **Indexes are required, not advisory:** write cost is acceptable because this
   product is an artifact producer for downstream tools that need predictable
   lookup performance.
+- **Test role flags are first-class:** extractor metadata is also exposed as
+  indexed SQLite booleans because downstream test filtering should not depend on
+  JSON expression scans.
 - **Open decision before implementation:** exact parser version fields depend on
   what each parser package exposes. The required contract is a parser inventory
   table plus fingerprint; missing package-level versions must be represented as

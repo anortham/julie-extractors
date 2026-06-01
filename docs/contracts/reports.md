@@ -39,7 +39,7 @@ part of this contract.
   },
   "tool": {
     "binary_name": "julie-extract",
-    "binary_version": "0.1.0"
+    "binary_version": "2.0.0"
   },
   "revision": {
     "latest_revision_id": 7,

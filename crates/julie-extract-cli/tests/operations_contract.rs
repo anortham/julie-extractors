@@ -111,6 +111,61 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
 }
 
 #[test]
+fn scan_promotes_test_role_metadata_to_indexed_sqlite_columns() {
+    let fixture = FixtureRoot::with_file(
+        "src/math.test.js",
+        r#"
+describe("math", () => {
+  beforeEach(() => {});
+  it("adds", () => {});
+});
+"#,
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    assert!(
+        scalar_i64(
+            &db,
+            "SELECT COUNT(*) FROM symbols \
+             WHERE is_test = 1 AND json_extract(metadata_json, '$.is_test') = 1",
+        ) >= 1,
+        "test cases must preserve metadata.is_test and expose indexed symbols.is_test"
+    );
+    assert!(
+        scalar_i64(
+            &db,
+            "SELECT COUNT(*) FROM symbols \
+             WHERE test_container = 1 AND json_extract(metadata_json, '$.test_container') = 1",
+        ) >= 1,
+        "test containers must preserve metadata.test_container and expose symbols.test_container"
+    );
+    assert!(
+        scalar_i64(
+            &db,
+            "SELECT COUNT(*) FROM symbols \
+             WHERE is_test = 1 \
+               AND test_lifecycle = 1 \
+               AND json_extract(metadata_json, '$.test_lifecycle') = 1",
+        ) >= 1,
+        "lifecycle hooks must preserve metadata.test_lifecycle and expose symbols.test_lifecycle"
+    );
+    assert!(
+        query_plan(&db, "SELECT symbol_id FROM symbols WHERE is_test = 1")
+            .contains("idx_symbols_is_test"),
+        "test-symbol lookups must use the first-class test index"
+    );
+}
+
+#[test]
 fn scan_metadata_fingerprints_are_computed_sha256_hashes() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -713,6 +768,21 @@ fn table_count(db: &Path, table: &str) -> i64 {
         row.get(0)
     })
     .unwrap()
+}
+
+fn scalar_i64(db: &Path, sql: &str) -> i64 {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(sql, [], |row| row.get(0)).unwrap()
+}
+
+fn query_plan(db: &Path, sql: &str) -> String {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn.prepare(&format!("EXPLAIN QUERY PLAN {sql}")).unwrap();
+    stmt.query_map([], |row| row.get::<_, String>(3))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+        .join("\n")
 }
 
 fn distinct_count(db: &Path, table: &str, column: &str) -> i64 {

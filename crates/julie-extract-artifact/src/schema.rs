@@ -90,6 +90,9 @@ CREATE TABLE IF NOT EXISTS symbols (
   semantic_group TEXT,
   confidence REAL,
   content_type TEXT,
+  is_test INTEGER NOT NULL DEFAULT 0,
+  test_container INTEGER NOT NULL DEFAULT 0,
+  test_lifecycle INTEGER NOT NULL DEFAULT 0,
   metadata_json TEXT,
   FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
   FOREIGN KEY (parent_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
@@ -290,6 +293,9 @@ CREATE INDEX IF NOT EXISTS idx_symbols_path ON symbols(path);
 CREATE INDEX IF NOT EXISTS idx_symbols_file ON symbols(file_id);
 CREATE INDEX IF NOT EXISTS idx_symbols_name_kind ON symbols(name, kind);
 CREATE INDEX IF NOT EXISTS idx_symbols_parent ON symbols(parent_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_symbols_is_test ON symbols(is_test);
+CREATE INDEX IF NOT EXISTS idx_symbols_test_container ON symbols(test_container);
+CREATE INDEX IF NOT EXISTS idx_symbols_test_lifecycle ON symbols(test_lifecycle);
 CREATE INDEX IF NOT EXISTS idx_identifiers_path ON identifiers(path);
 CREATE INDEX IF NOT EXISTS idx_identifiers_file ON identifiers(file_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_name_kind ON identifiers(name, kind);
