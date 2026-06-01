@@ -202,6 +202,14 @@ fn validate_outputs_rejects_other_required_hard_gate_failures() {
         |fixture| fixture.write_rescan_report("no_change", 1, 1, 0, 0),
         "rescan report must include unchanged files and zero changed/deleted/failed files",
     );
+    assert_invalid_evidence(
+        |fixture| fixture.write_rescan_report_with_revision("no_change", Some("rev-2"), 0, 2, 0, 0),
+        "rescan report must not create a revision",
+    );
+    assert_invalid_evidence(
+        |fixture| fixture.write_rescan_report_with_rows_written("no_change", 0, 2, 0, 0, 1, 0),
+        "rescan report must write zero rows",
+    );
 }
 
 fn assert_invalid_evidence(setup: impl FnOnce(&DogfoodFixture), expected_error: &str) {
@@ -259,10 +267,78 @@ impl DogfoodFixture {
         files_deleted: i64,
         files_failed: i64,
     ) {
+        self.write_rescan_report_with_rows_written(
+            status,
+            files_changed,
+            files_unchanged,
+            files_deleted,
+            files_failed,
+            0,
+            0,
+        );
+    }
+
+    fn write_rescan_report_with_revision(
+        &self,
+        status: &str,
+        created_revision_id: Option<&str>,
+        files_changed: i64,
+        files_unchanged: i64,
+        files_deleted: i64,
+        files_failed: i64,
+    ) {
+        self.write_rescan_report_json(
+            status,
+            created_revision_id,
+            files_changed,
+            files_unchanged,
+            files_deleted,
+            files_failed,
+            0,
+            0,
+        );
+    }
+
+    fn write_rescan_report_with_rows_written(
+        &self,
+        status: &str,
+        files_changed: i64,
+        files_unchanged: i64,
+        files_deleted: i64,
+        files_failed: i64,
+        rows_files: i64,
+        rows_symbols: i64,
+    ) {
+        self.write_rescan_report_json(
+            status,
+            None,
+            files_changed,
+            files_unchanged,
+            files_deleted,
+            files_failed,
+            rows_files,
+            rows_symbols,
+        );
+    }
+
+    fn write_rescan_report_json(
+        &self,
+        status: &str,
+        created_revision_id: Option<&str>,
+        files_changed: i64,
+        files_unchanged: i64,
+        files_deleted: i64,
+        files_failed: i64,
+        rows_files: i64,
+        rows_symbols: i64,
+    ) {
+        let created_revision_id = created_revision_id
+            .map(|id| format!(r#""{id}""#))
+            .unwrap_or_else(|| "null".to_string());
         std::fs::write(
             &self.paths.rescan_report_path,
             format!(
-                r#"{{"report_schema_version":1,"status":"{status}","operation":"scan","mode":"incremental","revision":{{"created_revision_id":null}},"counts":{{"files_scanned":2,"files_changed":{files_changed},"files_unchanged":{files_unchanged},"files_deleted":{files_deleted},"files_failed":{files_failed},"rows_written":{{"files":0,"symbols":0}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
+                r#"{{"report_schema_version":1,"status":"{status}","operation":"scan","mode":"incremental","revision":{{"created_revision_id":{created_revision_id}}},"counts":{{"files_scanned":2,"files_changed":{files_changed},"files_unchanged":{files_unchanged},"files_deleted":{files_deleted},"files_failed":{files_failed},"rows_written":{{"files":{rows_files},"symbols":{rows_symbols}}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
             ),
         )
         .expect("write rescan report");

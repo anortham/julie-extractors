@@ -759,6 +759,20 @@ fn validate_rescan_report(path: &Path) -> Result<RescanCounts, DogfoodError> {
             "rescan report had nonempty errors array".to_string(),
         ));
     }
+    match value.pointer("/revision/created_revision_id") {
+        Some(Value::Null) => {}
+        Some(_) => {
+            return Err(DogfoodError::InvalidEvidence(
+                "rescan report must not create a revision".to_string(),
+            ));
+        }
+        None => {
+            return Err(DogfoodError::InvalidEvidence(
+                "rescan report is missing revision.created_revision_id".to_string(),
+            ));
+        }
+    }
+    validate_zero_rows_written(&value)?;
 
     let counts = RescanCounts {
         files_unchanged: report_count(&value, "/counts/files_unchanged", "files_unchanged")?,
@@ -778,6 +792,35 @@ fn validate_rescan_report(path: &Path) -> Result<RescanCounts, DogfoodError> {
     }
 
     Ok(counts)
+}
+
+fn validate_zero_rows_written(value: &Value) -> Result<(), DogfoodError> {
+    let rows_written = value
+        .pointer("/counts/rows_written")
+        .and_then(Value::as_object)
+        .ok_or_else(|| {
+            DogfoodError::InvalidEvidence(
+                "rescan report is missing counts.rows_written object".to_string(),
+            )
+        })?;
+    if rows_written.is_empty() {
+        return Err(DogfoodError::InvalidEvidence(
+            "rescan report is missing row counts".to_string(),
+        ));
+    }
+    for (table, count) in rows_written {
+        let count = count.as_i64().ok_or_else(|| {
+            DogfoodError::InvalidEvidence(format!(
+                "rescan report row count `{table}` is not an integer"
+            ))
+        })?;
+        if count != 0 {
+            return Err(DogfoodError::InvalidEvidence(
+                "rescan report must write zero rows".to_string(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn report_count(
