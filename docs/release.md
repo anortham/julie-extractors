@@ -104,7 +104,9 @@ The release job downloads all archives, copies
 `docs/release-notes/v{version}.md` into the GitHub Release notes, creates or
 updates `v{version}`, and uploads all archives with `gh release upload
 --clobber`. Manual dispatch creates the release tag at the workflow commit when
-the tag does not already exist; tag-triggered runs require the pushed tag.
+the tag does not already exist. If manual dispatch finds an existing tag that
+points at a different commit, the workflow fails before publishing assets.
+Tag-triggered runs require the pushed tag.
 
 ## Evidence
 

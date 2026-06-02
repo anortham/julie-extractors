@@ -68,6 +68,23 @@ jobs:
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Verify manual release tag target
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          EXPECTED_SHA="${{ github.sha }}"
+          TAG_SHA="$(git ls-remote --tags origin "refs/tags/${TAG}^{}" | cut -f1)"
+          if [[ -z "$TAG_SHA" ]]; then
+            TAG_SHA="$(git ls-remote --tags origin "refs/tags/${TAG}" | cut -f1)"
+          fi
+
+          if [[ -n "$TAG_SHA" && "$TAG_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "release tag ${TAG} points at ${TAG_SHA}, but this workflow is running ${EXPECTED_SHA}" >&2
+            echo "Move or delete ${TAG} before re-dispatching this release version." >&2
+            exit 1
+          fi
+
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }} -p julie-extract-cli --bin julie-extract
 
@@ -138,6 +155,23 @@ jobs:
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify manual release tag target
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          EXPECTED_SHA="${{ github.sha }}"
+          TAG_SHA="$(git ls-remote --tags origin "refs/tags/${TAG}^{}" | cut -f1)"
+          if [[ -z "$TAG_SHA" ]]; then
+            TAG_SHA="$(git ls-remote --tags origin "refs/tags/${TAG}" | cut -f1)"
+          fi
+
+          if [[ -n "$TAG_SHA" && "$TAG_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "release tag ${TAG} points at ${TAG_SHA}, but this workflow is running ${EXPECTED_SHA}" >&2
+            echo "Move or delete ${TAG} before re-dispatching this release version." >&2
+            exit 1
+          fi
 
       - name: Prepare release notes
         shell: bash
