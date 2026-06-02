@@ -241,6 +241,57 @@ func process(x: Int) -> Int {
         assert_eq!(structured_pending.target.receiver, None);
     }
 
+    #[test]
+    fn test_swift_known_framework_calls_do_not_create_pending_relationships() {
+        let code = r#"
+import Foundation
+import SwiftUI
+import XCTest
+import Other
+
+func render() {
+    Text("Hello")
+    VStack {
+        Text("Nested")
+    }
+    _ = Date()
+    _ = URL(string: "https://example.com")
+    XCTAssertEqual(1, 1)
+    ExternalWidget()
+    Other.thing()
+}
+"#;
+
+        let results = extract_full("Render.swift", code);
+
+        for external_call in ["Text", "VStack", "Date", "URL", "XCTAssertEqual"] {
+            assert!(
+                results
+                    .structured_pending_relationships
+                    .iter()
+                    .all(|pending| pending.target.terminal_name != external_call),
+                "Swift framework call {external_call} should not be cross-file pending: {:#?}",
+                results.structured_pending_relationships
+            );
+        }
+
+        results
+            .structured_pending_relationships
+            .iter()
+            .find(|pending| pending.target.terminal_name == "ExternalWidget")
+            .expect("project-local unresolved constructor should remain pending");
+
+        let module_call = results
+            .structured_pending_relationships
+            .iter()
+            .find(|pending| {
+                pending.target.receiver.as_deref() == Some("Other")
+                    && pending.target.terminal_name == "thing"
+            })
+            .expect("imported project module call should remain pending");
+        assert_eq!(module_call.target.display_name, "Other.thing");
+    }
+
     // ========================================================================
     // TEST: Same-file function calls should still work (regression test)
     // ========================================================================
@@ -351,15 +402,10 @@ class Calculator {
         );
     }
 
-    // ========================================================================
-    // TEST: Cross-file protocol conformance should create PendingRelationship
-    // ========================================================================
-
     #[test]
-    fn test_cross_file_protocol_conformance_creates_pending_relationship() {
-        // Codable is NOT defined in this file (it's a Swift stdlib protocol)
+    fn test_swift_standard_protocol_conformance_does_not_create_pending_relationship() {
         let code = r#"
-class UserModel: Codable {
+class UserModel: Codable, Sendable {
     var name: String = ""
     var age: Int = 0
 }
@@ -367,45 +413,27 @@ class UserModel: Codable {
 
         let results = extract_full("UserModel.swift", code);
 
-        let pending_inheritance: Vec<_> = results
-            .pending_relationships
-            .iter()
-            .filter(|p| {
-                p.kind == RelationshipKind::Extends || p.kind == RelationshipKind::Implements
-            })
-            .collect();
-
-        let codable_pending = pending_inheritance
-            .iter()
-            .find(|p| p.callee_name == "Codable");
-        assert!(
-            codable_pending.is_some(),
-            "Should create PendingRelationship for cross-file Codable protocol.\n\
-             Found pending: {:?}",
-            pending_inheritance
-                .iter()
-                .map(|p| (&p.callee_name, &p.kind))
-                .collect::<Vec<_>>()
-        );
-
         let user_model = results
             .symbols
             .iter()
             .find(|s| s.name == "UserModel")
             .expect("Should extract UserModel class");
-        assert_eq!(codable_pending.unwrap().kind, RelationshipKind::Extends);
-        assert_eq!(codable_pending.unwrap().from_symbol_id, user_model.id);
+        assert!(!user_model.id.is_empty());
 
-        let structured_pending = results
-            .structured_pending_relationships
-            .iter()
-            .find(|pending| pending.target.display_name == "Codable")
-            .expect("structured pending relationship should preserve Swift conformance targets");
-        assert_eq!(structured_pending.target.terminal_name, "Codable");
+        for external_protocol in ["Codable", "Sendable"] {
+            assert!(
+                results
+                    .structured_pending_relationships
+                    .iter()
+                    .all(|pending| pending.target.terminal_name != external_protocol),
+                "Swift standard protocol {external_protocol} should not be cross-file pending: {:#?}",
+                results.structured_pending_relationships
+            );
+        }
     }
 
     #[test]
-    fn test_cross_file_enum_conformance_creates_pending_relationship() {
+    fn test_swift_standard_enum_conformance_does_not_create_pending_relationship() {
         let code = r#"
 enum SyncState: Codable {
     case idle
@@ -415,20 +443,21 @@ enum SyncState: Codable {
 
         let results = extract_full("SyncState.swift", code);
 
-        let codable_pending = results
-            .pending_relationships
-            .iter()
-            .find(|p| p.callee_name == "Codable")
-            .expect("Should create pending relationship for cross-file Codable protocol");
-
-        assert_eq!(codable_pending.kind, RelationshipKind::Implements);
-
         let sync_state = results
             .symbols
             .iter()
             .find(|s| s.name == "SyncState")
             .expect("Should extract SyncState enum");
-        assert_eq!(codable_pending.from_symbol_id, sync_state.id);
+        assert!(!sync_state.id.is_empty());
+
+        assert!(
+            results
+                .structured_pending_relationships
+                .iter()
+                .all(|pending| pending.target.terminal_name != "Codable"),
+            "Swift standard Codable conformance should not be cross-file pending: {:#?}",
+            results.structured_pending_relationships
+        );
     }
 
     #[test]
@@ -486,7 +515,7 @@ class Circle: Drawable {
     #[test]
     fn test_cross_file_class_clause_preserves_entry_kind_for_pending_relationships() {
         let code = r#"
-class Foo: BaseModel, Codable {
+class Foo: BaseModel, Codable, ExternalProtocol {
     var id: String = ""
 }
 "#;
@@ -500,12 +529,21 @@ class Foo: BaseModel, Codable {
             .expect("Should create pending relationship for BaseModel");
         assert_eq!(base_model_pending.kind, RelationshipKind::Extends);
 
-        let codable_pending = results
+        let external_protocol_pending = results
             .pending_relationships
             .iter()
-            .find(|p| p.callee_name == "Codable")
-            .expect("Should create pending relationship for Codable");
-        assert_eq!(codable_pending.kind, RelationshipKind::Implements);
+            .find(|p| p.callee_name == "ExternalProtocol")
+            .expect("Should create pending relationship for ExternalProtocol");
+        assert_eq!(external_protocol_pending.kind, RelationshipKind::Implements);
+
+        assert!(
+            results
+                .pending_relationships
+                .iter()
+                .all(|p| p.callee_name != "Codable"),
+            "Swift standard Codable conformance should not be cross-file pending: {:#?}",
+            results.pending_relationships
+        );
     }
 
     #[test]

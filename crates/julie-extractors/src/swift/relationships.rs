@@ -7,6 +7,9 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::SwiftExtractor;
+use super::external_symbols::{
+    SwiftImportContext, is_external_call_target, is_external_inheritance_target,
+};
 
 /// Extracts inheritance, protocol conformance, and call relationships in Swift
 impl SwiftExtractor {
@@ -18,14 +21,24 @@ impl SwiftExtractor {
         symbols: &[Symbol],
     ) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships);
+        let symbol_index = ScopedSymbolIndex::new(symbols);
+        let import_context = SwiftImportContext::from_symbols(symbols);
+        self.visit_node_for_relationships(
+            tree.root_node(),
+            symbols,
+            &symbol_index,
+            &import_context,
+            &mut relationships,
+        );
         relationships
     }
 
-    fn visit_node_for_relationships(
+    fn visit_node_for_relationships<'a>(
         &mut self,
         node: Node,
-        symbols: &[Symbol],
+        symbols: &'a [Symbol],
+        symbol_index: &ScopedSymbolIndex<'a>,
+        import_context: &SwiftImportContext,
         relationships: &mut Vec<Relationship>,
     ) {
         match node.kind() {
@@ -33,10 +46,21 @@ impl SwiftExtractor {
             | "struct_declaration"
             | "enum_declaration"
             | "extension_declaration" => {
-                self.extract_inheritance_relationships(node, symbols, relationships);
+                self.extract_inheritance_relationships(
+                    node,
+                    symbols,
+                    import_context,
+                    relationships,
+                );
             }
             "call_expression" => {
-                self.extract_call_relationship(node, symbols, relationships);
+                self.extract_call_relationship(
+                    node,
+                    symbols,
+                    symbol_index,
+                    import_context,
+                    relationships,
+                );
             }
             _ => {}
         }
@@ -44,7 +68,13 @@ impl SwiftExtractor {
         // Recursively visit children
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node_for_relationships(child, symbols, relationships);
+            self.visit_node_for_relationships(
+                child,
+                symbols,
+                symbol_index,
+                import_context,
+                relationships,
+            );
         }
     }
 
@@ -53,6 +83,7 @@ impl SwiftExtractor {
         &mut self,
         node: Node,
         symbols: &[Symbol],
+        import_context: &SwiftImportContext,
         relationships: &mut Vec<Relationship>,
     ) {
         if let Some(type_symbol) = self.find_type_symbol(node, symbols) {
@@ -76,6 +107,7 @@ impl SwiftExtractor {
                             &base_type_name,
                             pending_kind,
                             symbols,
+                            import_context,
                             relationships,
                             node,
                         );
@@ -115,6 +147,7 @@ impl SwiftExtractor {
                         &base_type_name,
                         pending_kind,
                         symbols,
+                        import_context,
                         relationships,
                         node,
                     );
@@ -180,6 +213,7 @@ impl SwiftExtractor {
         base_type_name: &str,
         pending_kind: RelationshipKind,
         symbols: &[Symbol],
+        import_context: &SwiftImportContext,
         relationships: &mut Vec<Relationship>,
         node: Node,
     ) {
@@ -219,7 +253,7 @@ impl SwiftExtractor {
                 confidence: 1.0,
                 metadata: Some(metadata),
             });
-        } else {
+        } else if !is_external_inheritance_target(base_type_name, import_context) {
             let pending = self.base.create_pending_relationship(
                 type_symbol.id.clone(),
                 UnresolvedTarget::simple(base_type_name.to_string()),
@@ -329,10 +363,10 @@ impl SwiftExtractor {
         &mut self,
         node: Node,
         symbols: &[Symbol],
+        symbol_index: &ScopedSymbolIndex<'_>,
+        import_context: &SwiftImportContext,
         relationships: &mut Vec<Relationship>,
     ) {
-        let symbol_index = ScopedSymbolIndex::new(symbols);
-
         // Extract the function/method name being called
         let function_name = self.extract_call_target_name(node);
 
@@ -375,6 +409,10 @@ impl SwiftExtractor {
             | LocalTargetResolution::Ambiguous
             | LocalTargetResolution::ReceiverQualified
             | LocalTargetResolution::Missing => {
+                if is_external_call_target(&target, import_context) {
+                    return;
+                }
+
                 let pending = self.base.create_pending_relationship(
                     caller.id.clone(),
                     target,

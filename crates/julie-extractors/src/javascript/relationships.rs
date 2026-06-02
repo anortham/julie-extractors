@@ -9,6 +9,7 @@ use crate::base::{
     LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
     UnresolvedTarget,
 };
+use crate::ecmascript_imports::is_ecmascript_global_direct_target;
 use crate::javascript::JavaScriptExtractor;
 use tree_sitter::{Node, Tree};
 
@@ -55,29 +56,38 @@ fn extract_new_expression_relationships(
                     Some(&caller),
                     target.receiver.as_deref(),
                 );
-                if let LocalTargetResolution::Resolved(type_symbol) = &resolution {
-                    if matches!(
-                        type_symbol.kind,
-                        SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
-                    ) {
-                        relationships.push(Relationship {
-                            id: format!(
-                                "{}_{}_{:?}_{}",
-                                caller.id,
-                                type_symbol.id,
-                                RelationshipKind::Instantiates,
-                                node.start_position().row
-                            ),
-                            from_symbol_id: caller.id.clone(),
-                            to_symbol_id: type_symbol.id.clone(),
-                            kind: RelationshipKind::Instantiates,
-                            file_path: extractor.base().file_path.clone(),
-                            line_number: (node.start_position().row + 1) as u32,
-                            confidence: 1.0,
-                            metadata: None,
-                        });
+                let constructable_symbol = match &resolution {
+                    LocalTargetResolution::Resolved(type_symbol)
+                        if matches!(
+                            type_symbol.kind,
+                            SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
+                        ) =>
+                    {
+                        Some(*type_symbol)
                     }
-                } else {
+                    _ if target.receiver.is_none() => {
+                        unique_constructable_symbol(symbols, &target.terminal_name)
+                    }
+                    _ => None,
+                };
+                if let Some(type_symbol) = constructable_symbol {
+                    relationships.push(Relationship {
+                        id: format!(
+                            "{}_{}_{:?}_{}",
+                            caller.id,
+                            type_symbol.id,
+                            RelationshipKind::Instantiates,
+                            node.start_position().row
+                        ),
+                        from_symbol_id: caller.id.clone(),
+                        to_symbol_id: type_symbol.id.clone(),
+                        kind: RelationshipKind::Instantiates,
+                        file_path: extractor.base().file_path.clone(),
+                        line_number: (node.start_position().row + 1) as u32,
+                        confidence: 1.0,
+                        metadata: None,
+                    });
+                } else if !is_ecmascript_global_direct_target(&target.terminal_name) {
                     let pending = extractor.base().create_pending_relationship(
                         caller.id.clone(),
                         target,
@@ -102,6 +112,18 @@ fn extract_new_expression_relationships(
             relationships,
         );
     }
+}
+
+fn unique_constructable_symbol<'a>(symbols: &'a [Symbol], name: &str) -> Option<&'a Symbol> {
+    let mut matches = symbols.iter().filter(|symbol| {
+        symbol.name == name
+            && matches!(
+                symbol.kind,
+                SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
+            )
+    });
+    let symbol = matches.next()?;
+    matches.next().is_none().then_some(symbol)
 }
 
 /// Extract function call relationships

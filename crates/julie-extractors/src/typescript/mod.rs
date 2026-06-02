@@ -27,7 +27,10 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, RelationshipKind,
     StructuredPendingRelationship, Symbol, SymbolKind, UnresolvedTarget,
 };
-use crate::ecmascript_imports::{ImportSourceKind, import_source_from_symbol, import_source_kind};
+use crate::ecmascript_imports::{
+    ImportSourceKind, import_source_from_symbol, import_source_kind,
+    is_ecmascript_global_direct_target,
+};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::Tree;
 
@@ -290,14 +293,16 @@ impl TypeScriptExtractor {
         }
 
         let function_name = self.base.get_node_text(&function_node);
-        if matches!(
-            self.import_binding_source_kind(call_node, &function_name, symbol_map),
-            Some(ImportSourceKind::External)
-        ) {
+        let source_kind = self.import_binding_source_kind(call_node, &function_name, symbol_map);
+        if matches!(source_kind, Some(ImportSourceKind::External)) {
+            return None;
+        }
+        if source_kind.is_none() && is_ecmascript_global_direct_target(&function_name) {
             return None;
         }
 
-        let import_context = self.imported_binding_context(call_node, &function_name, symbol_map);
+        let import_context = matches!(source_kind, Some(ImportSourceKind::ProjectRelative))
+            .then_some(function_name.clone());
         Some(UnresolvedTarget {
             display_name: function_name.clone(),
             terminal_name: function_name,
@@ -901,6 +906,122 @@ mod tests {
                 .iter()
                 .any(|pending| pending.target.terminal_name == "toBe"),
             "matcher chains without an imported receiver should not be cross-file pending calls"
+        );
+    }
+
+    #[test]
+    fn ecmascript_globals_do_not_emit_pending_relationships() {
+        let source = r#"
+            function run(input: unknown) {
+                Error("bad");
+                String(input);
+                Boolean(input);
+                Number(input);
+                setTimeout(() => {}, 1);
+                clearTimeout(1 as unknown as number);
+                fetch("/health");
+                import("./lazy");
+                new Error("bad");
+                new Promise(resolve => resolve(1));
+                new Set([1]);
+                new Map();
+                new Date();
+                new URL("https://example.com");
+                new AbortController();
+                new Uint8Array();
+                projectGlobal();
+            }
+        "#;
+        let tree = parse_typescript(source);
+        let mut extractor = TypeScriptExtractor::new(
+            "typescript".to_string(),
+            "src/app.ts".to_string(),
+            source.to_string(),
+            Path::new("src"),
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+        extractor.extract_relationships(&tree, &symbols);
+
+        let pending = extractor.get_structured_pending_relationships();
+        for target_name in [
+            "Error",
+            "String",
+            "Boolean",
+            "Number",
+            "setTimeout",
+            "clearTimeout",
+            "fetch",
+            "import",
+            "Promise",
+            "Set",
+            "Map",
+            "Date",
+            "URL",
+            "AbortController",
+            "Uint8Array",
+        ] {
+            assert!(
+                !pending
+                    .iter()
+                    .any(|pending| pending.target.terminal_name == target_name),
+                "ECMAScript global {target_name} should not emit pending relationships: {pending:#?}"
+            );
+        }
+        assert!(
+            pending
+                .iter()
+                .any(|pending| pending.target.terminal_name == "projectGlobal"),
+            "unknown project-looking direct calls should still emit pending relationships"
+        );
+    }
+
+    #[test]
+    fn local_symbols_named_like_ecmascript_globals_still_resolve() {
+        let source = r#"
+            class Error {}
+            function fetch() {
+                return "local";
+            }
+
+            function run() {
+                fetch();
+                new Error();
+            }
+        "#;
+        let tree = parse_typescript(source);
+        let mut extractor = TypeScriptExtractor::new(
+            "typescript".to_string(),
+            "src/app.ts".to_string(),
+            source.to_string(),
+            Path::new("src"),
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+        let relationships = extractor.extract_relationships(&tree, &symbols);
+        let fetch_symbol = symbols
+            .iter()
+            .find(|symbol| symbol.name == "fetch" && symbol.kind == SymbolKind::Function)
+            .expect("local fetch function should be extracted");
+        let error_symbol = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Error" && symbol.kind == SymbolKind::Class)
+            .expect("local Error class should be extracted");
+
+        assert!(relationships.iter().any(|relationship| {
+            relationship.to_symbol_id == fetch_symbol.id
+                && relationship.kind == RelationshipKind::Calls
+        }));
+        assert!(relationships.iter().any(|relationship| {
+            relationship.to_symbol_id == error_symbol.id
+                && relationship.kind == RelationshipKind::Instantiates
+        }));
+        assert!(
+            extractor
+                .get_structured_pending_relationships()
+                .iter()
+                .all(|pending| !matches!(pending.target.terminal_name.as_str(), "fetch" | "Error")),
+            "same-file globals should resolve locally, not disappear as pending"
         );
     }
 

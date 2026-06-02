@@ -4,6 +4,7 @@
 pub(super) mod callables;
 pub(super) mod enum_cases;
 pub(super) mod extensions;
+pub(super) mod external_symbols;
 pub(super) mod identifiers;
 pub(super) mod properties;
 pub(super) mod protocol;
