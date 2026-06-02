@@ -20,6 +20,7 @@ use crate::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_sche
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
 
 const SQLITE_BULK_CACHE_SIZE_KIB: i64 = -131_072;
+const SQLITE_PREPARE_SAFE_VARIABLE_LIMIT: usize = 32_000;
 
 #[derive(Debug)]
 pub enum ArtifactWriteError {
@@ -1714,7 +1715,7 @@ fn load_symbol_lookup_for_requested_ids(
 
     let mut ids = HashSet::new();
     let bind_limit = tx.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)? as usize;
-    let chunk_size = bind_limit.max(1);
+    let chunk_size = symbol_lookup_chunk_size(bind_limit);
     let requested = requested.iter().map(String::as_str).collect::<Vec<_>>();
     for chunk in requested.chunks(chunk_size) {
         let bind_marks = std::iter::repeat_n("?", chunk.len())
@@ -1732,6 +1733,10 @@ fn load_symbol_lookup_for_requested_ids(
     }
 
     Ok(SymbolLookup { ids })
+}
+
+fn symbol_lookup_chunk_size(reported_bind_limit: usize) -> usize {
+    reported_bind_limit.clamp(1, SQLITE_PREPARE_SAFE_VARIABLE_LIMIT)
 }
 
 fn valid_symbol_id<'a>(
@@ -1779,5 +1784,31 @@ impl TypeArgumentUsageLookup {
 
     fn contains(&self, usage_id: &str) -> bool {
         self.ids.contains(usage_id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn symbol_lookup_chunks_above_sqlite_prepare_variable_limit() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        create_schema(&connection).unwrap();
+        let tx = connection.transaction().unwrap();
+        let requested = (0..36_241)
+            .map(|index| format!("symbol-{index}"))
+            .collect::<HashSet<_>>();
+
+        let lookup = load_symbol_lookup_for_requested_ids(&tx, &requested).unwrap();
+
+        assert!(lookup.ids.is_empty());
+    }
+
+    #[test]
+    fn symbol_lookup_chunk_size_clamps_reported_limit_to_prepare_safe_bound() {
+        assert_eq!(symbol_lookup_chunk_size(0), 1);
+        assert_eq!(symbol_lookup_chunk_size(64), 64);
+        assert_eq!(symbol_lookup_chunk_size(500_000), 32_000);
     }
 }
