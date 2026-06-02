@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize, ser::SerializeStruct};
 
 use crate::model::RowCounts;
@@ -35,6 +37,7 @@ pub struct Report {
     pub tool: ToolReport,
     pub revision: Option<ReportRevision>,
     pub counts: ReportCounts,
+    pub profile: Option<ReportProfile>,
     pub errors: Vec<ReportDiagnostic>,
     pub warnings: Vec<ReportDiagnostic>,
     pub languages: Option<serde_json::Value>,
@@ -45,7 +48,8 @@ impl Serialize for Report {
     where
         S: serde::Serializer,
     {
-        let field_count = if self.languages.is_some() { 12 } else { 11 };
+        let field_count =
+            11 + usize::from(self.profile.is_some()) + usize::from(self.languages.is_some());
         let mut state = serializer.serialize_struct("Report", field_count)?;
         state.serialize_field("report_schema_version", &REPORT_SCHEMA_VERSION)?;
         state.serialize_field("status", &self.status)?;
@@ -56,6 +60,9 @@ impl Serialize for Report {
         state.serialize_field("tool", &self.tool)?;
         state.serialize_field("revision", &self.revision)?;
         state.serialize_field("counts", &self.counts)?;
+        if let Some(profile) = &self.profile {
+            state.serialize_field("profile", profile)?;
+        }
         state.serialize_field("errors", &self.errors)?;
         state.serialize_field("warnings", &self.warnings)?;
         if let Some(languages) = &self.languages {
@@ -143,6 +150,25 @@ pub struct ToolReport {
 pub struct ReportRevision {
     pub latest_revision_id: Option<i64>,
     pub created_revision_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReportProfile {
+    pub total_duration_ms: u64,
+    pub phases: BTreeMap<String, u64>,
+    pub languages: BTreeMap<String, ReportLanguageProfile>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReportLanguageProfile {
+    pub files: i64,
+    pub changed_files: i64,
+    pub unchanged_files: i64,
+    pub failed_files: i64,
+    pub bytes: i64,
+    pub read_duration_ms: u64,
+    pub extract_duration_ms: u64,
+    pub spool_write_duration_ms: u64,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

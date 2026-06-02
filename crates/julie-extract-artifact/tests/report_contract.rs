@@ -1,8 +1,9 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use julie_extract_artifact::reports::{
-    ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
-    ReportOperation, ReportRevision, ReportStatus, RowDomainCounts, SQLITE_ROW_DOMAINS, ToolReport,
+    ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput,
+    ReportLanguageProfile, ReportMode, ReportOperation, ReportProfile, ReportRevision,
+    ReportStatus, RowDomainCounts, SQLITE_ROW_DOMAINS, ToolReport,
 };
 use serde_json::json;
 
@@ -22,8 +23,55 @@ fn report_serializes_schema_version_and_success_shape() {
     );
     assert_eq!(value["tool"]["binary_name"], "julie-extract");
     assert_eq!(value["revision"]["latest_revision_id"], 7);
+    assert!(value.get("profile").is_none());
     assert_eq!(value["errors"], json!([]));
     assert_eq!(value["warnings"], json!([]));
+}
+
+#[test]
+fn report_profile_serializes_phase_and_language_timings() {
+    let mut report = sample_report(ReportStatus::Ok);
+    report.profile = Some(ReportProfile {
+        total_duration_ms: 42,
+        phases: BTreeMap::from([
+            ("discovery".to_string(), 3),
+            ("extraction_spool".to_string(), 11),
+            ("artifact_write".to_string(), 17),
+        ]),
+        languages: BTreeMap::from([(
+            "rust".to_string(),
+            ReportLanguageProfile {
+                files: 2,
+                changed_files: 1,
+                unchanged_files: 1,
+                failed_files: 0,
+                bytes: 128,
+                read_duration_ms: 4,
+                extract_duration_ms: 7,
+                spool_write_duration_ms: 2,
+            },
+        )]),
+    });
+
+    let value = serde_json::to_value(report).unwrap();
+
+    assert_eq!(value["profile"]["total_duration_ms"], 42);
+    assert_eq!(value["profile"]["phases"]["discovery"], 3);
+    assert_eq!(value["profile"]["phases"]["extraction_spool"], 11);
+    assert_eq!(value["profile"]["phases"]["artifact_write"], 17);
+    assert_eq!(value["profile"]["languages"]["rust"]["files"], 2);
+    assert_eq!(value["profile"]["languages"]["rust"]["changed_files"], 1);
+    assert_eq!(value["profile"]["languages"]["rust"]["unchanged_files"], 1);
+    assert_eq!(value["profile"]["languages"]["rust"]["bytes"], 128);
+    assert_eq!(value["profile"]["languages"]["rust"]["read_duration_ms"], 4);
+    assert_eq!(
+        value["profile"]["languages"]["rust"]["extract_duration_ms"],
+        7
+    );
+    assert_eq!(
+        value["profile"]["languages"]["rust"]["spool_write_duration_ms"],
+        2
+    );
 }
 
 #[test]
@@ -212,6 +260,7 @@ fn sample_report(status: ReportStatus) -> Report {
         },
         errors: Vec::new(),
         warnings: Vec::new(),
+        profile: None,
         languages: None,
     }
 }

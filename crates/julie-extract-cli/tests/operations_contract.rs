@@ -114,6 +114,110 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
 }
 
 #[test]
+fn scan_report_includes_profile_phases_and_language_timings() {
+    let fixture = FixtureRoot::with_file("src/lib.rs", "pub fn alpha() {}\n");
+    std::fs::write(fixture.path("src/app.js"), "function run() { return 1; }\n").unwrap();
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]);
+
+    assert_success(output);
+    let report = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]));
+    let profile = report["profile"]
+        .as_object()
+        .expect("scan reports should include a profile object");
+    assert!(
+        profile["total_duration_ms"].as_u64().is_some(),
+        "profile should include total_duration_ms: {profile:#?}"
+    );
+    for phase in ["discovery", "extraction_spool", "artifact_write"] {
+        assert!(
+            profile["phases"][phase].as_u64().is_some(),
+            "profile phase {phase} should be present: {profile:#?}"
+        );
+    }
+
+    let languages = profile["languages"]
+        .as_object()
+        .expect("profile should include language timings");
+    for language in ["rust", "javascript"] {
+        let entry = languages
+            .get(language)
+            .and_then(|value| value.as_object())
+            .unwrap_or_else(|| panic!("profile should include {language}: {languages:#?}"));
+        assert_eq!(entry["files"].as_i64(), Some(1));
+        assert_eq!(entry["changed_files"].as_i64(), Some(1));
+        assert!(entry["bytes"].as_i64().unwrap_or_default() > 0);
+        assert!(
+            entry["read_duration_ms"].as_u64().is_some(),
+            "language profile should include read timing: {entry:#?}"
+        );
+        assert!(
+            entry["extract_duration_ms"].as_u64().is_some(),
+            "language profile should include extract timing: {entry:#?}"
+        );
+        assert!(
+            entry["spool_write_duration_ms"].as_u64().is_some(),
+            "language profile should include spool write timing: {entry:#?}"
+        );
+    }
+}
+
+#[test]
+fn scan_report_includes_profile_when_db_open_fails_after_extraction() {
+    let fixture = FixtureRoot::with_file("src/lib.rs", "pub fn alpha() {}\n");
+    let db = fixture.path("artifact.sqlite");
+    std::fs::create_dir_all(&db).unwrap();
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "db_open_failed");
+    let profile = report["profile"]
+        .as_object()
+        .expect("scan failure after extraction should include a profile");
+    assert!(
+        profile["phases"]["extraction_spool"].as_u64().is_some(),
+        "profile should include extraction_spool phase: {profile:#?}"
+    );
+    assert!(
+        profile["phases"]["writer_open"].as_u64().is_some(),
+        "profile should include writer_open phase: {profile:#?}"
+    );
+    assert_eq!(profile["languages"]["rust"]["files"].as_i64(), Some(1));
+    assert_eq!(
+        profile["languages"]["rust"]["changed_files"].as_i64(),
+        Some(1)
+    );
+}
+
+#[test]
 fn scan_promotes_test_role_metadata_to_indexed_sqlite_columns() {
     let fixture = FixtureRoot::with_file(
         "src/math.test.js",

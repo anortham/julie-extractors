@@ -96,6 +96,29 @@ part of this contract.
       "parse_diagnostics": 0
     }
   },
+  "profile": {
+    "total_duration_ms": 1234,
+    "phases": {
+      "existing_artifact": 4,
+      "discovery": 18,
+      "extraction_spool": 621,
+      "writer_open": 2,
+      "capability_sync": 8,
+      "artifact_write": 581
+    },
+    "languages": {
+      "rust": {
+        "files": 10,
+        "changed_files": 2,
+        "unchanged_files": 8,
+        "failed_files": 0,
+        "bytes": 42122,
+        "read_duration_ms": 5,
+        "extract_duration_ms": 509,
+        "spool_write_duration_ms": 7
+      }
+    }
+  },
   "errors": [],
   "warnings": []
 }
@@ -114,6 +137,8 @@ Fields:
 - `tool`: binary identity.
 - `revision`: latest and created revision IDs when known.
 - `counts`: command-local counts and artifact totals.
+- `profile`: optional command timing data. `scan` emits it once extraction
+  profiling is available.
 - `errors`: typed errors.
 - `warnings`: typed warnings that did not change the exit code.
 
@@ -123,6 +148,30 @@ Commands that do not use an artifact, such as `languages`, set `artifact` and
 `counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v1
 row domains. Commands must emit every key with `0` when that row kind is not
 written or not present.
+
+## Profile Shape
+
+`profile` is diagnostic data for performance investigation, not a pass/fail
+threshold.
+
+Fields:
+
+- `total_duration_ms`: wall-clock time in milliseconds for the profiled command
+  span.
+- `phases`: command-specific phase timings in milliseconds. `scan` phase keys
+  include `existing_artifact`, `discovery`, `extraction_spool`, `writer_open`,
+  `capability_sync`, and `artifact_write` when those phases run.
+- `languages`: per-language scan timing and volume data keyed by canonical
+  language name.
+- `languages.*.files`: supported files considered for that language.
+- `languages.*.changed_files`: files extracted and spooled as changed.
+- `languages.*.unchanged_files`: files spooled from the incremental unchanged
+  path without parser work.
+- `languages.*.failed_files`: files represented by failure rows.
+- `languages.*.bytes`: source bytes read for the language.
+- `languages.*.read_duration_ms`: source read, hash, and UTF-8 decode time.
+- `languages.*.extract_duration_ms`: parser and extraction time.
+- `languages.*.spool_write_duration_ms`: JSONL spool write time.
 
 ## Status Values
 
@@ -196,6 +245,8 @@ Warnings use the same shape and may use warning-only codes such as
 - `mode`: `incremental` or `force`
 - Must include file counts, row counts, totals, latest revision, and created
   revision when a mutation happened.
+- Must include `profile` on successful reports. Write failures after extraction
+  should include the partial scan profile available at the failure point.
 
 ### `update`
 

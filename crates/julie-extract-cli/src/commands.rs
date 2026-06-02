@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::ExitCode;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use julie_extract_artifact::jsonl::{JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION, export_jsonl};
@@ -14,8 +14,9 @@ use julie_extract_artifact::model::{
     WriteOperation, WriteResult,
 };
 use julie_extract_artifact::reports::{
-    ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
-    ReportOperation, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
+    ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput,
+    ReportLanguageProfile, ReportMode, ReportOperation, ReportProfile, ReportRevision,
+    ReportStatus, RowDomainCounts, ToolReport,
 };
 use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION};
 use julie_extract_artifact::writer::{
@@ -81,6 +82,8 @@ fn run(cli: Cli) -> CommandOutcome {
 }
 
 fn scan(args: ScanArgs) -> CommandOutcome {
+    let scan_started = Instant::now();
+    let mut profile_phases = BTreeMap::new();
     let mode = if args.force {
         ReportMode::Force
     } else {
@@ -100,6 +103,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     };
     let input = artifact_input(&db, Some(&root), None, None);
 
+    let existing_artifact_started = Instant::now();
     let existing_scan_artifact = if db.exists() && !args.force {
         match open_artifact_for_root(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION), &root) {
             Ok(artifact) => Some(artifact),
@@ -133,13 +137,25 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         }
     };
     let existing_scan_metadata = existing_scan_artifact.map(|artifact| artifact.write_metadata);
+    record_profile_phase(
+        &mut profile_phases,
+        "existing_artifact",
+        existing_artifact_started.elapsed(),
+    );
 
+    let discovery_started = Instant::now();
     let discovery = match DiscoveryPolicy::build(&root, &db, &ignore_files) {
         Ok(discovery) => discovery,
         Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
     };
     let discovered = discovery.discover();
+    record_profile_phase(
+        &mut profile_phases,
+        "discovery",
+        discovery_started.elapsed(),
+    );
 
+    let force_metadata_started = Instant::now();
     let force_existing_metadata = if args.force && db.exists() {
         match open_artifact(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
             Ok(artifact) if artifact.report.root_path == display_path(&root) => {
@@ -150,8 +166,14 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     } else {
         None
     };
+    record_profile_phase(
+        &mut profile_phases,
+        "force_metadata",
+        force_metadata_started.elapsed(),
+    );
     let should_rebuild_db = args.force && db.exists() && force_existing_metadata.is_none();
     let indexed_at = now_rfc3339();
+    let extraction_spool_started = Instant::now();
     let mut extracted = match spool_discovered_files(
         &root,
         &discovery,
@@ -165,7 +187,13 @@ fn scan(args: ScanArgs) -> CommandOutcome {
             return spool_error_outcome(error, ReportOperation::Scan, mode, input, args.json);
         }
     };
+    record_profile_phase(
+        &mut profile_phases,
+        "extraction_spool",
+        extraction_spool_started.elapsed(),
+    );
     debug_assert_eq!(extracted.files_spooled, extracted.snapshot_paths.len());
+    let profile_languages = extracted.profile.languages.clone();
 
     if should_rebuild_db {
         remove_artifact_files(&db);
@@ -177,20 +205,43 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         .map(refreshed_metadata)
         .unwrap_or_else(|| new_artifact_metadata(&root, None));
 
+    let writer_open_started = Instant::now();
     match ArtifactWriter::open_path(&db, metadata) {
         Ok(mut writer) => {
+            record_profile_phase(
+                &mut profile_phases,
+                "writer_open",
+                writer_open_started.elapsed(),
+            );
+            let capability_sync_started = Instant::now();
             let capability_rows_written = match sync_capability_snapshot(&mut writer) {
                 Ok(counts) => counts,
                 Err(error) => {
-                    return write_error_outcome(
+                    record_profile_phase(
+                        &mut profile_phases,
+                        "capability_sync",
+                        capability_sync_started.elapsed(),
+                    );
+                    return write_error_outcome_with_profile(
                         error,
                         ReportOperation::Scan,
                         mode,
                         input,
                         args.json,
+                        Some(scan_profile(
+                            scan_started,
+                            &profile_phases,
+                            &profile_languages,
+                        )),
                     );
                 }
             };
+            record_profile_phase(
+                &mut profile_phases,
+                "capability_sync",
+                capability_sync_started.elapsed(),
+            );
+            let artifact_write_started = Instant::now();
             match writer.write_scan_spooled(
                 revision_input(
                     WriteOperation::Scan,
@@ -205,6 +256,11 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                 &mut extracted.spool,
             ) {
                 Ok(write_result) => {
+                    record_profile_phase(
+                        &mut profile_phases,
+                        "artifact_write",
+                        artifact_write_started.elapsed(),
+                    );
                     let connection = writer.connection();
                     let artifact = match artifact_report_from_connection(&db, connection) {
                         Ok(artifact) => artifact,
@@ -216,7 +272,12 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                                     mode,
                                     input,
                                 )
-                                .with_error(error.diagnostic),
+                                .with_error(error.diagnostic)
+                                .with_profile(scan_profile(
+                                    scan_started,
+                                    &profile_phases,
+                                    &profile_languages,
+                                )),
                                 error.exit_code,
                                 args.json,
                                 ReportStream::Stdout,
@@ -240,7 +301,12 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                             latest_revision_id: latest_revision_id(connection),
                             created_revision_id: write_result.revision_id,
                         })
-                        .with_totals(table_totals(connection));
+                        .with_totals(table_totals(connection))
+                        .with_profile(scan_profile(
+                            scan_started,
+                            &profile_phases,
+                            &profile_languages,
+                        ));
                     report.counts.files_scanned =
                         (discovered.supported_files.len() + discovered.unsupported_files) as i64;
                     report.counts.files_changed = write_result
@@ -260,25 +326,52 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     outcome(report, exit_code, args.json, ReportStream::Stdout)
                 }
                 Err(error) => {
-                    write_error_outcome(error, ReportOperation::Scan, mode, input, args.json)
+                    record_profile_phase(
+                        &mut profile_phases,
+                        "artifact_write",
+                        artifact_write_started.elapsed(),
+                    );
+                    write_error_outcome_with_profile(
+                        error,
+                        ReportOperation::Scan,
+                        mode,
+                        input,
+                        args.json,
+                        Some(scan_profile(
+                            scan_started,
+                            &profile_phases,
+                            &profile_languages,
+                        )),
+                    )
                 }
             }
         }
-        Err(error) => outcome(
-            base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input).with_error(
-                diagnostic(
-                    ReportCode::DbOpenFailed,
-                    format!("could not create SQLite artifact: {error}"),
-                    Some(display_path(&db)),
-                    None,
-                    true,
-                    json!({}),
-                ),
-            ),
-            1,
-            args.json,
-            ReportStream::Stdout,
-        ),
+        Err(error) => {
+            record_profile_phase(
+                &mut profile_phases,
+                "writer_open",
+                writer_open_started.elapsed(),
+            );
+            outcome(
+                base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                    .with_error(diagnostic(
+                        ReportCode::DbOpenFailed,
+                        format!("could not create SQLite artifact: {error}"),
+                        Some(display_path(&db)),
+                        None,
+                        true,
+                        json!({}),
+                    ))
+                    .with_profile(scan_profile(
+                        scan_started,
+                        &profile_phases,
+                        &profile_languages,
+                    )),
+                1,
+                args.json,
+                ReportStream::Stdout,
+            )
+        }
     }
 }
 
@@ -800,6 +893,7 @@ struct SpooledExtractedFiles {
     snapshot_paths: Vec<String>,
     files_spooled: usize,
     errors: Vec<ExtractFileError>,
+    profile: ScanExtractionProfile,
 }
 
 impl SpooledExtractedFiles {
@@ -839,6 +933,56 @@ impl SupportedFileTarget {
             language: language.into(),
         }
     }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+struct ScanExtractionProfile {
+    languages: BTreeMap<String, ReportLanguageProfile>,
+}
+
+impl ScanExtractionProfile {
+    fn language_mut(&mut self, language: &str) -> &mut ReportLanguageProfile {
+        self.languages.entry(language.to_string()).or_default()
+    }
+}
+
+fn scan_profile(
+    started: Instant,
+    phases: &BTreeMap<String, u64>,
+    languages: &BTreeMap<String, ReportLanguageProfile>,
+) -> ReportProfile {
+    ReportProfile {
+        total_duration_ms: duration_ms(started.elapsed()),
+        phases: phases.clone(),
+        languages: languages.clone(),
+    }
+}
+
+fn record_profile_phase(phases: &mut BTreeMap<String, u64>, phase: &str, duration: Duration) {
+    add_duration_ms(phases.entry(phase.to_string()).or_insert(0), duration);
+}
+
+fn add_duration_ms(total: &mut u64, duration: Duration) {
+    *total = total.saturating_add(duration_ms(duration));
+}
+
+fn duration_ms(duration: Duration) -> u64 {
+    duration.as_millis().min(u128::from(u64::MAX)) as u64
+}
+
+fn push_profiled_spool(
+    spool: &mut ArtifactFileSpool,
+    profile: &mut ScanExtractionProfile,
+    language: &str,
+    file: &ArtifactFile,
+) -> Result<(), ArtifactSpoolError> {
+    let started = Instant::now();
+    spool.push(file)?;
+    add_duration_ms(
+        &mut profile.language_mut(language).spool_write_duration_ms,
+        started.elapsed(),
+    );
+    Ok(())
 }
 
 #[cfg(test)]
@@ -925,37 +1069,60 @@ fn extract_supported_files_to_spool(
     let mut spool = create_scan_spool()?;
     let mut snapshot_paths = Vec::with_capacity(targets.len());
     let mut errors = Vec::new();
+    let mut profile = ScanExtractionProfile::default();
     for supported in targets {
         snapshot_paths.push(supported.target.root_relative_path.clone());
+        let language = supported.language.as_str();
+        profile.language_mut(language).files += 1;
+
+        let read_started = Instant::now();
         let snapshot = match read_source_snapshot(&supported.target) {
             Ok(snapshot) => snapshot,
             Err(error) => {
+                {
+                    let language_profile = profile.language_mut(language);
+                    language_profile.failed_files += 1;
+                    add_duration_ms(
+                        &mut language_profile.read_duration_ms,
+                        read_started.elapsed(),
+                    );
+                }
                 let file = failed_artifact_file(
                     &supported.target,
                     supported.language.clone(),
                     indexed_at.clone(),
                     &error,
                 );
-                spool.push(&file)?;
+                push_profiled_spool(&mut spool, &mut profile, language, &file)?;
                 errors.push(error);
                 continue;
             }
         };
+        {
+            let language_profile = profile.language_mut(language);
+            language_profile.bytes += snapshot.content_bytes;
+            add_duration_ms(
+                &mut language_profile.read_duration_ms,
+                read_started.elapsed(),
+            );
+        }
         if !force
             && existing_content_hashes
                 .and_then(|hashes| hashes.get(&supported.target.root_relative_path))
                 .is_some_and(|existing_hash| existing_hash == &snapshot.content_hash)
         {
+            profile.language_mut(language).unchanged_files += 1;
             let file = unchanged_artifact_file(
                 &supported.target,
                 supported.language.clone(),
                 indexed_at.clone(),
                 &snapshot,
             );
-            spool.push(&file)?;
+            push_profiled_spool(&mut spool, &mut profile, language, &file)?;
             continue;
         }
 
+        let extract_started = Instant::now();
         match extract(
             root,
             &supported.target,
@@ -963,15 +1130,33 @@ fn extract_supported_files_to_spool(
             indexed_at.clone(),
             snapshot.clone(),
         ) {
-            Ok(file) => spool.push(&file)?,
+            Ok(file) => {
+                {
+                    let language_profile = profile.language_mut(language);
+                    language_profile.changed_files += 1;
+                    add_duration_ms(
+                        &mut language_profile.extract_duration_ms,
+                        extract_started.elapsed(),
+                    );
+                }
+                push_profiled_spool(&mut spool, &mut profile, language, &file)?;
+            }
             Err(error) => {
+                {
+                    let language_profile = profile.language_mut(language);
+                    language_profile.failed_files += 1;
+                    add_duration_ms(
+                        &mut language_profile.extract_duration_ms,
+                        extract_started.elapsed(),
+                    );
+                }
                 let file = failed_artifact_file(
                     &supported.target,
                     supported.language.clone(),
                     indexed_at.clone(),
                     &error,
                 );
-                spool.push(&file)?;
+                push_profiled_spool(&mut spool, &mut profile, language, &file)?;
                 errors.push(error);
             }
         }
@@ -982,6 +1167,7 @@ fn extract_supported_files_to_spool(
         snapshot_paths,
         files_spooled,
         errors,
+        profile,
     })
 }
 
@@ -1221,6 +1407,17 @@ fn write_error_outcome(
     input: ReportInput,
     json_report: bool,
 ) -> CommandOutcome {
+    write_error_outcome_with_profile(error, operation, mode, input, json_report, None)
+}
+
+fn write_error_outcome_with_profile(
+    error: ArtifactWriteError,
+    operation: ReportOperation,
+    mode: ReportMode,
+    input: ReportInput,
+    json_report: bool,
+    profile: Option<ReportProfile>,
+) -> CommandOutcome {
     let (code, report_code, message, details) = match error {
         ArtifactWriteError::Sqlite(error) => (
             1,
@@ -1251,19 +1448,10 @@ fn write_error_outcome(
             json!({"path": path}),
         ),
     };
-    outcome(
-        base_report(ReportStatus::Failed, operation, mode, input).with_error(diagnostic(
-            report_code,
-            message,
-            None,
-            None,
-            false,
-            details,
-        )),
-        code,
-        json_report,
-        ReportStream::Stdout,
-    )
+    let mut report = base_report(ReportStatus::Failed, operation, mode, input)
+        .with_error(diagnostic(report_code, message, None, None, false, details));
+    report.profile = profile;
+    outcome(report, code, json_report, ReportStream::Stdout)
 }
 
 fn spool_error_outcome(
@@ -1902,6 +2090,7 @@ fn base_report(
         },
         revision: None,
         counts: ReportCounts::default(),
+        profile: None,
         errors: Vec::new(),
         warnings: Vec::new(),
         languages: None,
@@ -2078,6 +2267,7 @@ trait ReportBuilder {
     fn with_artifact(self, artifact: ArtifactReport) -> Self;
     fn with_revision(self, revision: ReportRevision) -> Self;
     fn with_totals(self, totals: RowDomainCounts) -> Self;
+    fn with_profile(self, profile: ReportProfile) -> Self;
     fn with_error(self, error: ReportDiagnostic) -> Self;
     fn with_warning(self, warning: ReportDiagnostic) -> Self;
     fn with_languages(self, languages: Value) -> Self;
@@ -2096,6 +2286,11 @@ impl ReportBuilder for Report {
 
     fn with_totals(mut self, totals: RowDomainCounts) -> Self {
         self.counts.totals = totals;
+        self
+    }
+
+    fn with_profile(mut self, profile: ReportProfile) -> Self {
+        self.profile = Some(profile);
         self
     }
 
