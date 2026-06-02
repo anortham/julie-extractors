@@ -7,9 +7,30 @@ use julie_extract_artifact::model::{
     ArtifactSymbolAnnotation, ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact,
     FileStatus, RevisionInput, WriteMode, WriteOperation,
 };
-use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
-use rusqlite::Connection;
+use julie_extract_artifact::writer::{ArtifactFileSpool, ArtifactWriteError, ArtifactWriter};
+use rusqlite::{Connection, limits::Limit};
 use serde_json::json;
+use std::path::PathBuf;
+
+#[test]
+fn path_writer_uses_bulk_sqlite_pragmas() {
+    let temp_dir = unique_temp_dir("path-writer-pragmas");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+
+    assert_eq!(
+        pragma_text(writer.connection(), "journal_mode").to_lowercase(),
+        "wal"
+    );
+    assert_eq!(pragma_i64(writer.connection(), "synchronous"), 1);
+    assert_eq!(pragma_i64(writer.connection(), "temp_store"), 2);
+    assert_eq!(pragma_i64(writer.connection(), "cache_size"), -131_072);
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
 
 #[test]
 fn scan_batch_writes_multiple_files_in_one_transaction() {
@@ -237,6 +258,159 @@ fn scan_batch_allows_relationships_to_symbols_later_in_same_batch() {
 
     assert_eq!(result.rows_written.relationships, 1);
     assert_eq!(count(writer.connection(), "relationships"), 1);
+}
+
+#[test]
+fn spooled_scan_allows_relationships_to_symbols_later_in_spool() {
+    let mut writer = open_writer();
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    file_a.relationships.push(ArtifactRelationship {
+        relationship_id: "cross-file-relationship".to_string(),
+        from_symbol_id: "file-a-symbol-0".to_string(),
+        to_symbol_id: "file-b-symbol-0".to_string(),
+        kind: "calls".to_string(),
+        start_line: Some(1),
+        confidence: 1.0,
+        ..ArtifactRelationship::default()
+    });
+    let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
+    let snapshot_paths = vec![file_a.path.clone(), file_b.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-cross-file");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file_a).unwrap();
+    spool.push(&file_b).unwrap();
+
+    let result = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(result.transactions_committed, 1);
+    assert_eq!(result.files_changed, 2);
+    assert_eq!(result.rows_written.relationships, 1);
+    assert_eq!(count(writer.connection(), "relationships"), 1);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn spooled_scan_deletes_files_missing_from_snapshot_paths() {
+    let mut writer = open_writer();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[
+                file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]),
+                file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]),
+            ],
+        )
+        .unwrap();
+
+    let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["wrong"]);
+    let snapshot_paths = vec![file_b.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-deleted");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file_b).unwrap();
+
+    let result = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(result.transactions_committed, 1);
+    assert_eq!(result.files_changed, 1);
+    assert_eq!(result.files_deleted, 1);
+    assert_eq!(result.files_skipped, 1);
+    assert_eq!(result.rows_written.files, 0);
+    assert_eq!(result.rows_written.revision_file_changes, 1);
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/b.rs"),
+        vec!["beta"]
+    );
+    assert_eq!(
+        latest_change(writer.connection(), "src/a.rs"),
+        Some("deleted".to_string())
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn spooled_scan_rejects_spooled_files_missing_from_snapshot_paths() {
+    let mut writer = open_writer();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+
+    let file_a = file_with_symbols("file-a", "src/a.rs", "hash-a2", ["alpha_v2"]);
+    let temp_dir = unique_temp_dir("spooled-missing-snapshot-path");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file_a).unwrap();
+
+    let error = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[],
+            &mut spool,
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        ArtifactWriteError::SnapshotMissingSpooledPath { ref path } if path == "src/a.rs"
+    ));
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha"]
+    );
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn scan_batches_symbol_lookup_under_sqlite_variable_limit() {
+    let mut writer = open_writer();
+    writer
+        .connection()
+        .set_limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER, 64)
+        .unwrap();
+    let mut file = file_with_many_symbols("wide", "src/wide.rs", "hash-wide", 65);
+    file.relationships = (1..65)
+        .map(|index| ArtifactRelationship {
+            relationship_id: format!("wide-relationship-{index}"),
+            from_symbol_id: "wide-symbol-0".to_string(),
+            to_symbol_id: format!("wide-symbol-{index}"),
+            kind: "calls".to_string(),
+            start_line: Some(index as i64),
+            confidence: 1.0,
+            ..ArtifactRelationship::default()
+        })
+        .collect();
+
+    let result = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file],
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.symbols, 65);
+    assert_eq!(result.rows_written.relationships, 64);
+    assert_eq!(count(writer.connection(), "relationships"), 64);
 }
 
 #[test]
@@ -511,7 +685,11 @@ fn capability_snapshot_sync_writes_static_rows_once() {
 }
 
 fn open_writer() -> ArtifactWriter {
-    ArtifactWriter::open_in_memory(ArtifactMetadata {
+    ArtifactWriter::open_in_memory(artifact_metadata()).unwrap()
+}
+
+fn artifact_metadata() -> ArtifactMetadata {
+    ArtifactMetadata {
         artifact_id: "artifact-writer-test".to_string(),
         root_path: "/repo".to_string(),
         binary_version: "julie-extract 0.1.0".to_string(),
@@ -520,8 +698,27 @@ fn open_writer() -> ArtifactWriter {
         capability_snapshot_fingerprint: "sha256:cap".to_string(),
         created_at: "2026-05-31T19:20:00Z".to_string(),
         updated_at: "2026-05-31T19:20:00Z".to_string(),
-    })
-    .unwrap()
+    }
+}
+
+fn unique_temp_dir(name: &str) -> PathBuf {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    std::env::temp_dir().join(format!("{name}-{}-{nanos}", std::process::id()))
+}
+
+fn pragma_i64(connection: &Connection, name: &str) -> i64 {
+    connection
+        .query_row(&format!("PRAGMA {name}"), [], |row| row.get(0))
+        .unwrap()
+}
+
+fn pragma_text(connection: &Connection, name: &str) -> String {
+    connection
+        .query_row(&format!("PRAGMA {name}"), [], |row| row.get(0))
+        .unwrap()
 }
 
 fn one_language_capability_snapshot() -> ArtifactCapabilitySnapshot {
@@ -611,6 +808,47 @@ fn file_with_symbols<const N: usize>(
                 name: name.to_string(),
                 kind: "function".to_string(),
                 signature: Some(format!("fn {name}()")),
+                start_line: (index + 1) as i64,
+                end_line: (index + 1) as i64,
+                start_byte: (index * 10) as i64,
+                end_byte: (index * 10 + 5) as i64,
+                ..ArtifactSymbol::default()
+            })
+            .collect(),
+        symbol_annotations: Vec::new(),
+        identifiers: Vec::new(),
+        relationships: Vec::new(),
+        pending_relationships: Vec::new(),
+        type_facts: Vec::new(),
+        type_argument_usages: Vec::new(),
+        type_arguments: Vec::new(),
+        literals: Vec::new(),
+        parse_diagnostics: Vec::new(),
+    }
+}
+
+fn file_with_many_symbols(
+    file_id: &str,
+    path: &str,
+    hash: &str,
+    symbol_count: usize,
+) -> ArtifactFile {
+    ArtifactFile {
+        file_id: file_id.to_string(),
+        path: path.to_string(),
+        language: "rust".to_string(),
+        content_hash: hash.to_string(),
+        content_bytes: 32,
+        line_count: Some(symbol_count as i64),
+        indexed_at: "2026-05-31T19:20:00Z".to_string(),
+        status: FileStatus::Indexed,
+        metadata_json: None,
+        symbols: (0..symbol_count)
+            .map(|index| ArtifactSymbol {
+                symbol_id: format!("{file_id}-symbol-{index}"),
+                name: format!("symbol_{index}"),
+                kind: "function".to_string(),
+                signature: Some(format!("fn symbol_{index}()")),
                 start_line: (index + 1) as i64,
                 end_line: (index + 1) as i64,
                 start_byte: (index * 10) as i64,

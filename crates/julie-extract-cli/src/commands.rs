@@ -18,7 +18,9 @@ use julie_extract_artifact::reports::{
     ReportOperation, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
 };
 use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION};
-use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
+use julie_extract_artifact::writer::{
+    ArtifactFileSpool, ArtifactSpoolError, ArtifactWriteError, ArtifactWriter,
+};
 use julie_extractors::{CapabilityFlags, KindCoverage, capability_snapshot};
 use rusqlite::{Connection, OpenFlags};
 use serde_json::{Value, json};
@@ -150,14 +152,20 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     };
     let should_rebuild_db = args.force && db.exists() && force_existing_metadata.is_none();
     let indexed_at = now_rfc3339();
-    let extracted = extract_discovered_files(
+    let mut extracted = match spool_discovered_files(
         &root,
         &discovery,
         &discovered.supported_files,
         indexed_at,
         existing_content_hashes.as_ref(),
         args.force,
-    );
+    ) {
+        Ok(extracted) => extracted,
+        Err(error) => {
+            return spool_error_outcome(error, ReportOperation::Scan, mode, input, args.json);
+        }
+    };
+    debug_assert_eq!(extracted.files_spooled, extracted.snapshot_paths.len());
 
     if should_rebuild_db {
         remove_artifact_files(&db);
@@ -183,7 +191,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     );
                 }
             };
-            match writer.write_scan(
+            match writer.write_scan_spooled(
                 revision_input(
                     WriteOperation::Scan,
                     Some(if args.force {
@@ -193,7 +201,8 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     }),
                     &root,
                 ),
-                &extracted.files,
+                &extracted.snapshot_paths,
+                &mut extracted.spool,
             ) {
                 Ok(write_result) => {
                     let connection = writer.connection();
@@ -742,21 +751,21 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
     outcome(report, 0, args.json, ReportStream::Stdout)
 }
 
-fn extract_discovered_files(
+fn spool_discovered_files(
     root: &Path,
     discovery: &DiscoveryPolicy,
     targets: &[FileTarget],
     indexed_at: String,
     existing_content_hashes: Option<&BTreeMap<String, String>>,
     force: bool,
-) -> ExtractedFiles {
+) -> Result<SpooledExtractedFiles, ArtifactSpoolError> {
     let mut supported_targets = Vec::with_capacity(targets.len());
     for target in targets {
         if let FileSelection::Supported { language } = discovery.select_file(target) {
             supported_targets.push(SupportedFileTarget::new(target.clone(), language));
         }
     }
-    extract_supported_files(
+    extract_supported_files_to_spool(
         root,
         &supported_targets,
         indexed_at,
@@ -766,12 +775,14 @@ fn extract_discovered_files(
     )
 }
 
+#[cfg(test)]
 #[derive(Debug, Default, Clone, PartialEq)]
 struct ExtractedFiles {
     files: Vec<ArtifactFile>,
     errors: Vec<ExtractFileError>,
 }
 
+#[cfg(test)]
 impl ExtractedFiles {
     #[cfg(test)]
     fn unwrap(self) -> Vec<ArtifactFile> {
@@ -781,6 +792,37 @@ impl ExtractedFiles {
             self.errors
         );
         self.files
+    }
+}
+
+struct SpooledExtractedFiles {
+    spool: ArtifactFileSpool,
+    snapshot_paths: Vec<String>,
+    files_spooled: usize,
+    errors: Vec<ExtractFileError>,
+}
+
+impl SpooledExtractedFiles {
+    #[cfg(test)]
+    fn unwrap(mut self) -> Vec<ArtifactFile> {
+        assert!(
+            self.errors.is_empty(),
+            "expected extraction to succeed without per-file errors: {:?}",
+            self.errors
+        );
+        self.spool.finish().unwrap();
+        self.spool
+            .iter()
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    }
+}
+
+impl Drop for SpooledExtractedFiles {
+    fn drop(&mut self) {
+        let _ = self.spool.finish();
+        let _ = std::fs::remove_file(self.spool.path());
     }
 }
 
@@ -799,6 +841,7 @@ impl SupportedFileTarget {
     }
 }
 
+#[cfg(test)]
 fn extract_supported_files(
     root: &Path,
     targets: &[SupportedFileTarget],
@@ -863,6 +906,95 @@ fn extract_supported_files(
         }
     }
     ExtractedFiles { files, errors }
+}
+
+fn extract_supported_files_to_spool(
+    root: &Path,
+    targets: &[SupportedFileTarget],
+    indexed_at: String,
+    existing_content_hashes: Option<&BTreeMap<String, String>>,
+    force: bool,
+    mut extract: impl FnMut(
+        &Path,
+        &FileTarget,
+        String,
+        String,
+        SourceSnapshot,
+    ) -> Result<ArtifactFile, ExtractFileError>,
+) -> Result<SpooledExtractedFiles, ArtifactSpoolError> {
+    let mut spool = create_scan_spool()?;
+    let mut snapshot_paths = Vec::with_capacity(targets.len());
+    let mut errors = Vec::new();
+    for supported in targets {
+        snapshot_paths.push(supported.target.root_relative_path.clone());
+        let snapshot = match read_source_snapshot(&supported.target) {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                let file = failed_artifact_file(
+                    &supported.target,
+                    supported.language.clone(),
+                    indexed_at.clone(),
+                    &error,
+                );
+                spool.push(&file)?;
+                errors.push(error);
+                continue;
+            }
+        };
+        if !force
+            && existing_content_hashes
+                .and_then(|hashes| hashes.get(&supported.target.root_relative_path))
+                .is_some_and(|existing_hash| existing_hash == &snapshot.content_hash)
+        {
+            let file = unchanged_artifact_file(
+                &supported.target,
+                supported.language.clone(),
+                indexed_at.clone(),
+                &snapshot,
+            );
+            spool.push(&file)?;
+            continue;
+        }
+
+        match extract(
+            root,
+            &supported.target,
+            supported.language.clone(),
+            indexed_at.clone(),
+            snapshot.clone(),
+        ) {
+            Ok(file) => spool.push(&file)?,
+            Err(error) => {
+                let file = failed_artifact_file(
+                    &supported.target,
+                    supported.language.clone(),
+                    indexed_at.clone(),
+                    &error,
+                );
+                spool.push(&file)?;
+                errors.push(error);
+            }
+        }
+    }
+    let files_spooled = spool.len();
+    Ok(SpooledExtractedFiles {
+        spool,
+        snapshot_paths,
+        files_spooled,
+        errors,
+    })
+}
+
+fn create_scan_spool() -> Result<ArtifactFileSpool, ArtifactSpoolError> {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    let path = std::env::temp_dir().join(format!(
+        "julie-extract-scan-spool-{}-{nanos}.jsonl",
+        std::process::id()
+    ));
+    ArtifactFileSpool::create(path)
 }
 
 fn extract_error_outcome(
@@ -1096,6 +1228,12 @@ fn write_error_outcome(
             format!("SQLite artifact write failed: {error}"),
             json!({}),
         ),
+        ArtifactWriteError::Spool(error) => (
+            1,
+            ReportCode::InternalError,
+            format!("artifact file spool failed: {error}"),
+            json!({}),
+        ),
         ArtifactWriteError::DataLossGuard {
             path,
             existing_symbols,
@@ -1105,6 +1243,12 @@ fn write_error_outcome(
             ReportCode::DataLossGuard,
             format!("data-loss guard preserved existing rows for {path}"),
             json!({"path": path, "existing_symbols": existing_symbols, "reason": reason}),
+        ),
+        ArtifactWriteError::SnapshotMissingSpooledPath { path } => (
+            1,
+            ReportCode::InternalError,
+            format!("artifact file spool path was missing from scan snapshot: {path}"),
+            json!({"path": path}),
         ),
     };
     outcome(
@@ -1117,6 +1261,28 @@ fn write_error_outcome(
             details,
         )),
         code,
+        json_report,
+        ReportStream::Stdout,
+    )
+}
+
+fn spool_error_outcome(
+    error: ArtifactSpoolError,
+    operation: ReportOperation,
+    mode: ReportMode,
+    input: ReportInput,
+    json_report: bool,
+) -> CommandOutcome {
+    outcome(
+        base_report(ReportStatus::Failed, operation, mode, input).with_error(diagnostic(
+            ReportCode::InternalError,
+            format!("artifact file spool failed: {error}"),
+            None,
+            None,
+            false,
+            json!({}),
+        )),
+        1,
         json_report,
         ReportStream::Stdout,
     )
@@ -2090,6 +2256,78 @@ mod tests {
         .unwrap();
 
         assert_eq!(extracted_paths.into_inner(), vec!["src/changed.rs"]);
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.path.as_str())
+                .collect::<Vec<_>>(),
+            vec!["src/unchanged.rs", "src/changed.rs"]
+        );
+        assert!(
+            files
+                .iter()
+                .find(|file| file.path == "src/unchanged.rs")
+                .unwrap()
+                .symbols
+                .is_empty(),
+            "unchanged files must be represented in the snapshot without parser rows"
+        );
+        assert_eq!(
+            files
+                .iter()
+                .find(|file| file.path == "src/changed.rs")
+                .unwrap()
+                .symbols
+                .len(),
+            1,
+            "changed files must still use the extraction callback"
+        );
+    }
+
+    #[test]
+    fn incremental_scan_can_spool_supported_files_without_parser_work_for_unchanged_files() {
+        let fixture = ScanFixture::new();
+        let unchanged = fixture.write("src/unchanged.rs", "pub fn unchanged() {}\n");
+        let changed = fixture.write("src/changed.rs", "pub fn changed() {}\n");
+        let unchanged_snapshot = read_source_snapshot(&unchanged).unwrap();
+        let mut existing_hashes = BTreeMap::new();
+        existing_hashes.insert(
+            unchanged.root_relative_path.clone(),
+            unchanged_snapshot.content_hash.clone(),
+        );
+        existing_hashes.insert(
+            changed.root_relative_path.clone(),
+            "blake3:stale".to_string(),
+        );
+        let extracted_paths = RefCell::new(Vec::new());
+
+        let extracted = extract_supported_files_to_spool(
+            fixture.root(),
+            &[
+                SupportedFileTarget::new(unchanged.clone(), "rust"),
+                SupportedFileTarget::new(changed.clone(), "rust"),
+            ],
+            "2026-06-01T00:00:00Z".to_string(),
+            Some(&existing_hashes),
+            false,
+            |_, target, language, indexed_at, snapshot| {
+                extracted_paths
+                    .borrow_mut()
+                    .push(target.root_relative_path.clone());
+                Ok(extracted_artifact_file(
+                    target, language, indexed_at, snapshot,
+                ))
+            },
+        )
+        .unwrap();
+
+        assert_eq!(extracted_paths.into_inner(), vec!["src/changed.rs"]);
+        assert_eq!(
+            extracted.snapshot_paths,
+            vec!["src/unchanged.rs".to_string(), "src/changed.rs".to_string()]
+        );
+        assert_eq!(extracted.files_spooled, 2);
+        let files = extracted.unwrap();
         assert_eq!(
             files
                 .iter()

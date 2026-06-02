@@ -32,7 +32,7 @@ impl WriteMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FileStatus {
     Indexed,
     Unsupported,
@@ -200,7 +200,7 @@ pub struct ArtifactLanguageCapabilityGapRow {
     pub evidence: serde_json::Value,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactFile {
     pub file_id: String,
     pub path: String,
@@ -223,7 +223,7 @@ pub struct ArtifactFile {
     pub parse_diagnostics: Vec<ArtifactParseDiagnostic>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactSymbol {
     pub symbol_id: String,
     pub name: String,
@@ -288,7 +288,7 @@ impl Default for ArtifactSymbol {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactSymbolAnnotation {
     pub annotation_id: String,
     pub symbol_id: String,
@@ -299,7 +299,7 @@ pub struct ArtifactSymbolAnnotation {
     pub metadata_json: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactIdentifier {
     pub identifier_id: String,
     pub name: String,
@@ -338,7 +338,7 @@ impl Default for ArtifactIdentifier {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactRelationship {
     pub relationship_id: String,
     pub from_symbol_id: String,
@@ -373,7 +373,7 @@ impl Default for ArtifactRelationship {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactPendingRelationship {
     pub pending_relationship_id: String,
     pub from_symbol_id: String,
@@ -418,7 +418,7 @@ impl Default for ArtifactPendingRelationship {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactTypeFact {
     pub type_fact_id: String,
     pub symbol_id: String,
@@ -429,14 +429,14 @@ pub struct ArtifactTypeFact {
     pub metadata_json: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactTypeArgumentUsage {
     pub usage_id: String,
     pub identifier_id: String,
     pub metadata_json: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactTypeArgument {
     pub type_argument_id: String,
     pub usage_id: String,
@@ -445,7 +445,7 @@ pub struct ArtifactTypeArgument {
     pub type_name: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactLiteral {
     pub literal_id: String,
     pub literal_text: String,
@@ -484,7 +484,7 @@ impl Default for ArtifactLiteral {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactParseDiagnostic {
     pub diagnostic_id: String,
     pub kind: String,
@@ -497,3 +497,4 @@ pub struct ArtifactParseDiagnostic {
     pub end_byte: i64,
     pub metadata_json: Option<String>,
 }
+use serde::{Deserialize, Serialize};

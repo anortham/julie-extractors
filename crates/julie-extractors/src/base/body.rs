@@ -22,6 +22,7 @@ const BODY_NODE_KINDS: &[&str] = &[
 pub(crate) fn infer_body_span(
     node: &Node,
     content: &str,
+    line_starts: &[usize],
     declaration_span: NormalizedSpan,
 ) -> Option<BodySpan> {
     for field_name in BODY_FIELD_NAMES {
@@ -34,7 +35,9 @@ pub(crate) fn infer_body_span(
     node.children(&mut cursor)
         .find(|child| BODY_NODE_KINDS.contains(&child.kind()))
         .map(|child| NormalizedSpan::from_node(&child))
-        .or_else(|| infer_body_span_from_span(content, declaration_span))
+        .or_else(|| {
+            infer_body_span_from_span_with_line_starts(content, line_starts, declaration_span)
+        })
 }
 
 pub(crate) fn body_hash(content: &str, span: BodySpan) -> Option<String> {
@@ -112,19 +115,28 @@ pub(crate) fn infer_body_span_from_span(
     content: &str,
     declaration_span: NormalizedSpan,
 ) -> Option<BodySpan> {
+    infer_body_span_from_span_with_line_starts(content, &[], declaration_span)
+}
+
+fn infer_body_span_from_span_with_line_starts(
+    content: &str,
+    line_starts: &[usize],
+    declaration_span: NormalizedSpan,
+) -> Option<BodySpan> {
     let start = declaration_span.start_byte as usize;
     let end = declaration_span.end_byte as usize;
     let source = content.get(start..end)?;
 
-    brace_body_span(content, declaration_span, source)
-        .or_else(|| html_body_span(content, declaration_span, source))
-        .or_else(|| parenthesized_body_span(content, declaration_span, source))
-        .or_else(|| sql_as_body_span(content, declaration_span, source))
-        .or_else(|| keyword_body_span(content, declaration_span, source))
+    brace_body_span(content, line_starts, declaration_span, source)
+        .or_else(|| html_body_span(content, line_starts, declaration_span, source))
+        .or_else(|| parenthesized_body_span(content, line_starts, declaration_span, source))
+        .or_else(|| sql_as_body_span(content, line_starts, declaration_span, source))
+        .or_else(|| keyword_body_span(content, line_starts, declaration_span, source))
 }
 
 fn brace_body_span(
     content: &str,
+    line_starts: &[usize],
     declaration_span: NormalizedSpan,
     source: &str,
 ) -> Option<BodySpan> {
@@ -133,11 +145,12 @@ fn brace_body_span(
     if open >= close {
         return None;
     }
-    span_for_relative_range(content, declaration_span, open, close + 1)
+    span_for_relative_range(content, line_starts, declaration_span, open, close + 1)
 }
 
 fn html_body_span(
     content: &str,
+    line_starts: &[usize],
     declaration_span: NormalizedSpan,
     source: &str,
 ) -> Option<BodySpan> {
@@ -149,11 +162,18 @@ fn html_body_span(
     if open_end > close_start {
         return None;
     }
-    span_for_relative_range(content, declaration_span, open_end, close_start)
+    span_for_relative_range(
+        content,
+        line_starts,
+        declaration_span,
+        open_end,
+        close_start,
+    )
 }
 
 fn parenthesized_body_span(
     content: &str,
+    line_starts: &[usize],
     declaration_span: NormalizedSpan,
     source: &str,
 ) -> Option<BodySpan> {
@@ -162,11 +182,12 @@ fn parenthesized_body_span(
     if open >= close {
         return None;
     }
-    span_for_relative_range(content, declaration_span, open, close + 1)
+    span_for_relative_range(content, line_starts, declaration_span, open, close + 1)
 }
 
 fn sql_as_body_span(
     content: &str,
+    line_starts: &[usize],
     declaration_span: NormalizedSpan,
     source: &str,
 ) -> Option<BodySpan> {
@@ -176,11 +197,18 @@ fn sql_as_body_span(
     if body_start >= source.len() {
         return None;
     }
-    span_for_relative_range(content, declaration_span, body_start, source.len())
+    span_for_relative_range(
+        content,
+        line_starts,
+        declaration_span,
+        body_start,
+        source.len(),
+    )
 }
 
 fn keyword_body_span(
     content: &str,
+    line_starts: &[usize],
     declaration_span: NormalizedSpan,
     source: &str,
 ) -> Option<BodySpan> {
@@ -197,11 +225,18 @@ fn keyword_body_span(
     if body_start >= source.len() {
         return None;
     }
-    span_for_relative_range(content, declaration_span, body_start, source.len())
+    span_for_relative_range(
+        content,
+        line_starts,
+        declaration_span,
+        body_start,
+        source.len(),
+    )
 }
 
 fn span_for_relative_range(
     content: &str,
+    line_starts: &[usize],
     declaration_span: NormalizedSpan,
     relative_start: usize,
     relative_end: usize,
@@ -211,5 +246,10 @@ fn span_for_relative_range(
     if absolute_start > absolute_end {
         return None;
     }
-    NormalizedSpan::from_content_range(content, absolute_start, absolute_end)
+    NormalizedSpan::from_content_range_with_line_starts(
+        content,
+        line_starts,
+        absolute_start,
+        absolute_end,
+    )
 }

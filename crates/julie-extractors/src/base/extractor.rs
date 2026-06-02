@@ -32,6 +32,7 @@ pub struct BaseExtractor {
     /// Byte ranges of each line in `content`, cached at construction for
     /// `extract_code_context`. Invariant: derived from `content` in `new()`.
     line_ranges: Vec<Range<usize>>,
+    line_starts: Vec<usize>,
     pub symbol_map: HashMap<String, Symbol>,
     pub relationships: Vec<Relationship>,
     pub pending_relationships: Vec<PendingRelationship>,
@@ -64,6 +65,7 @@ impl BaseExtractor {
     ) -> Self {
         let relative_unix_path = normalize_file_path(&file_path, workspace_root);
         let line_ranges = content_line_ranges(&content);
+        let line_starts = content_line_starts(&content);
 
         debug!(
             "BaseExtractor path: '{}' -> '{}' (relative)",
@@ -75,6 +77,7 @@ impl BaseExtractor {
             file_path: relative_unix_path, // Phase 2: Store relative Unix-style path
             content,
             line_ranges,
+            line_starts,
             symbol_map: HashMap::new(),
             relationships: Vec::new(),
             pending_relationships: Vec::new(),
@@ -85,6 +88,10 @@ impl BaseExtractor {
             literals: Vec::new(),
             context_config: ContextConfig::default(),
         }
+    }
+
+    pub(crate) fn line_starts(&self) -> &[usize] {
+        &self.line_starts
     }
 
     /// Record ordered/nested generic type arguments for a use-site identifier.
@@ -427,6 +434,16 @@ fn content_line_ranges(content: &str) -> Vec<Range<usize>> {
     }
 
     ranges
+}
+
+fn content_line_starts(content: &str) -> Vec<usize> {
+    let mut starts = vec![0];
+    for (index, byte) in content.as_bytes().iter().enumerate() {
+        if *byte == b'\n' {
+            starts.push(index + 1);
+        }
+    }
+    starts
 }
 
 #[cfg(test)]

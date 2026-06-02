@@ -1,6 +1,11 @@
-use std::{collections::HashSet, path::Path};
+use std::{
+    collections::HashSet,
+    fs::File,
+    io::{self, BufRead, BufReader, BufWriter, Write},
+    path::{Path, PathBuf},
+};
 
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, limits::Limit, params};
 
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
@@ -14,13 +19,19 @@ use crate::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_sche
 
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
 
+const SQLITE_BULK_CACHE_SIZE_KIB: i64 = -131_072;
+
 #[derive(Debug)]
 pub enum ArtifactWriteError {
     Sqlite(rusqlite::Error),
+    Spool(ArtifactSpoolError),
     DataLossGuard {
         path: String,
         existing_symbols: i64,
         reason: String,
+    },
+    SnapshotMissingSpooledPath {
+        path: String,
     },
 }
 
@@ -28,6 +39,7 @@ impl std::fmt::Display for ArtifactWriteError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ArtifactWriteError::Sqlite(error) => write!(f, "{error}"),
+            ArtifactWriteError::Spool(error) => write!(f, "{error}"),
             ArtifactWriteError::DataLossGuard {
                 path,
                 existing_symbols,
@@ -35,6 +47,10 @@ impl std::fmt::Display for ArtifactWriteError {
             } => write!(
                 f,
                 "refusing to replace {path}: {reason}; existing symbol rows: {existing_symbols}"
+            ),
+            ArtifactWriteError::SnapshotMissingSpooledPath { path } => write!(
+                f,
+                "spooled scan file {path} was not present in the current snapshot path set"
             ),
         }
     }
@@ -45,6 +61,180 @@ impl std::error::Error for ArtifactWriteError {}
 impl From<rusqlite::Error> for ArtifactWriteError {
     fn from(value: rusqlite::Error) -> Self {
         ArtifactWriteError::Sqlite(value)
+    }
+}
+
+impl From<ArtifactSpoolError> for ArtifactWriteError {
+    fn from(value: ArtifactSpoolError) -> Self {
+        ArtifactWriteError::Spool(value)
+    }
+}
+
+pub type ArtifactSpoolResult<T> = Result<T, ArtifactSpoolError>;
+
+#[derive(Debug)]
+pub enum ArtifactSpoolError {
+    Io {
+        path: PathBuf,
+        source: io::Error,
+    },
+    Json {
+        path: PathBuf,
+        line: Option<usize>,
+        source: serde_json::Error,
+    },
+    Unfinished {
+        path: PathBuf,
+    },
+}
+
+impl std::fmt::Display for ArtifactSpoolError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArtifactSpoolError::Io { path, source } => {
+                write!(
+                    f,
+                    "artifact file spool I/O failed at {}: {source}",
+                    path.display()
+                )
+            }
+            ArtifactSpoolError::Json {
+                path,
+                line: Some(line),
+                source,
+            } => write!(
+                f,
+                "artifact file spool JSON decode failed at {}:{line}: {source}",
+                path.display()
+            ),
+            ArtifactSpoolError::Json {
+                path,
+                line: None,
+                source,
+            } => write!(
+                f,
+                "artifact file spool JSON encode failed at {}: {source}",
+                path.display()
+            ),
+            ArtifactSpoolError::Unfinished { path } => write!(
+                f,
+                "artifact file spool must be finished before reading: {}",
+                path.display()
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ArtifactSpoolError {}
+
+pub struct ArtifactFileSpool {
+    path: PathBuf,
+    writer: Option<BufWriter<File>>,
+    len: usize,
+}
+
+impl ArtifactFileSpool {
+    pub fn create(path: impl AsRef<Path>) -> ArtifactSpoolResult<Self> {
+        let path = path.as_ref().to_path_buf();
+        let file = File::create(&path).map_err(|source| ArtifactSpoolError::Io {
+            path: path.clone(),
+            source,
+        })?;
+        Ok(Self {
+            path,
+            writer: Some(BufWriter::new(file)),
+            len: 0,
+        })
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn push(&mut self, file: &ArtifactFile) -> ArtifactSpoolResult<()> {
+        let Some(writer) = self.writer.as_mut() else {
+            return Err(ArtifactSpoolError::Unfinished {
+                path: self.path.clone(),
+            });
+        };
+        serde_json::to_writer(&mut *writer, file).map_err(|source| ArtifactSpoolError::Json {
+            path: self.path.clone(),
+            line: None,
+            source,
+        })?;
+        writer
+            .write_all(b"\n")
+            .map_err(|source| ArtifactSpoolError::Io {
+                path: self.path.clone(),
+                source,
+            })?;
+        self.len += 1;
+        Ok(())
+    }
+
+    pub fn finish(&mut self) -> ArtifactSpoolResult<()> {
+        let Some(mut writer) = self.writer.take() else {
+            return Ok(());
+        };
+        writer.flush().map_err(|source| ArtifactSpoolError::Io {
+            path: self.path.clone(),
+            source,
+        })
+    }
+
+    pub fn iter(&self) -> ArtifactSpoolResult<ArtifactFileSpoolIter> {
+        if self.writer.is_some() {
+            return Err(ArtifactSpoolError::Unfinished {
+                path: self.path.clone(),
+            });
+        }
+        let file = File::open(&self.path).map_err(|source| ArtifactSpoolError::Io {
+            path: self.path.clone(),
+            source,
+        })?;
+        Ok(ArtifactFileSpoolIter {
+            path: self.path.clone(),
+            lines: BufReader::new(file).lines(),
+            line_number: 0,
+        })
+    }
+}
+
+pub struct ArtifactFileSpoolIter {
+    path: PathBuf,
+    lines: io::Lines<BufReader<File>>,
+    line_number: usize,
+}
+
+impl Iterator for ArtifactFileSpoolIter {
+    type Item = ArtifactSpoolResult<ArtifactFile>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let line = match self.lines.next()? {
+            Ok(line) => line,
+            Err(source) => {
+                return Some(Err(ArtifactSpoolError::Io {
+                    path: self.path.clone(),
+                    source,
+                }));
+            }
+        };
+        self.line_number += 1;
+        Some(
+            serde_json::from_str(&line).map_err(|source| ArtifactSpoolError::Json {
+                path: self.path.clone(),
+                line: Some(self.line_number),
+                source,
+            }),
+        )
     }
 }
 
@@ -69,6 +259,9 @@ impl ArtifactWriter {
         let existed = path.exists();
         let connection = Connection::open(path)?;
         connection.pragma_update(None, "journal_mode", "WAL")?;
+        connection.pragma_update(None, "synchronous", "NORMAL")?;
+        connection.pragma_update(None, "temp_store", "MEMORY")?;
+        connection.pragma_update(None, "cache_size", SQLITE_BULK_CACHE_SIZE_KIB)?;
         create_schema(&connection)?;
         if !existed || metadata_row_count(&connection)? == 0 {
             initialize_metadata(&connection, &metadata)?;
@@ -180,6 +373,17 @@ impl ArtifactWriter {
     ) -> ArtifactWriteResult<WriteResult> {
         debug_assert_eq!(revision.operation, WriteOperation::Scan);
         self.write_scan_snapshot(revision, files)
+    }
+
+    pub fn write_scan_spooled(
+        &mut self,
+        revision: RevisionInput,
+        snapshot_paths: &[String],
+        spool: &mut ArtifactFileSpool,
+    ) -> ArtifactWriteResult<WriteResult> {
+        debug_assert_eq!(revision.operation, WriteOperation::Scan);
+        spool.finish()?;
+        self.write_scan_spooled_snapshot(revision, snapshot_paths, spool)
     }
 
     pub fn write_update(
@@ -448,6 +652,138 @@ impl ArtifactWriter {
         Ok(WriteResult {
             revision_id: Some(revision_id),
             files_changed: planned.len() + deleted.len(),
+            files_deleted: deleted.len(),
+            files_skipped,
+            rows_written: row_counts,
+            transactions_committed: 1,
+        })
+    }
+
+    fn write_scan_spooled_snapshot(
+        &mut self,
+        revision: RevisionInput,
+        snapshot_paths: &[String],
+        spool: &ArtifactFileSpool,
+    ) -> ArtifactWriteResult<WriteResult> {
+        let tx = self.connection.transaction()?;
+        let snapshot_paths = snapshot_paths
+            .iter()
+            .map(String::as_str)
+            .collect::<HashSet<_>>();
+        let skip_unchanged_content = revision.mode != Some(WriteMode::Force);
+        let mut planned_paths = HashSet::new();
+        let mut files_skipped = 0;
+
+        for file in spool.iter()? {
+            let file = file?;
+            if !snapshot_paths.contains(file.path.as_str()) {
+                return Err(ArtifactWriteError::SnapshotMissingSpooledPath {
+                    path: file.path.clone(),
+                });
+            }
+            let existing = load_existing_file(&tx, &file.path)?;
+            if skip_unchanged_content
+                && existing
+                    .as_ref()
+                    .is_some_and(|row| row.content_hash == file.content_hash)
+            {
+                files_skipped += 1;
+                continue;
+            }
+
+            if file.status != FileStatus::FailedPreserved {
+                ensure_data_loss_guard(&tx, &file)?;
+            }
+            planned_paths.insert(file.path);
+        }
+
+        let deleted = load_existing_files(&tx)?
+            .into_iter()
+            .filter(|existing| !snapshot_paths.contains(existing.path.as_str()))
+            .collect::<Vec<_>>();
+
+        if planned_paths.is_empty() && deleted.is_empty() {
+            tx.commit()?;
+            return Ok(WriteResult {
+                files_skipped,
+                transactions_committed: 1,
+                ..WriteResult::default()
+            });
+        }
+
+        let parent_revision_id = current_revision_id(&tx)?;
+        let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
+        write_metadata(&tx, &self.metadata)?;
+        let mut row_counts = RowCounts::default();
+        let mut rewritten_file_ids = HashSet::new();
+
+        for file in spool.iter()? {
+            let file = file?;
+            if !planned_paths.contains(file.path.as_str()) {
+                continue;
+            }
+
+            let existing = load_existing_file(&tx, &file.path)?;
+            let change_kind = file_change_kind(&file, existing.as_ref());
+            if is_preserved_failure_update(&file, existing.as_ref()) {
+                if let Some(existing) = existing.as_ref() {
+                    update_failed_preserved_file(&tx, revision_id, &file, &existing.file_id)?;
+                    row_counts.files += 1;
+                    row_counts.parse_diagnostics += replace_parse_diagnostics(&tx, &file)?;
+                }
+            } else {
+                if let Some(existing) = existing.as_ref() {
+                    delete_file_rows(&tx, &existing.file_id, &file.path)?;
+                }
+                insert_file(&tx, revision_id, &file)?;
+                row_counts.files += 1;
+                row_counts.symbols += insert_symbols(&tx, &file)?;
+                rewritten_file_ids.insert(file.file_id.clone());
+            }
+            row_counts.revision_file_changes += insert_revision_file_change(
+                &tx,
+                revision_id,
+                &file.file_id,
+                &file.path,
+                change_kind,
+            )?;
+        }
+
+        for existing in &deleted {
+            delete_file_rows(&tx, &existing.file_id, &existing.path)?;
+            row_counts.revision_file_changes += insert_revision_file_change(
+                &tx,
+                revision_id,
+                &existing.file_id,
+                &existing.path,
+                RevisionChangeKind::Deleted,
+            )?;
+        }
+
+        let mut requested_symbol_ids = HashSet::new();
+        for file in spool.iter()? {
+            let file = file?;
+            if rewritten_file_ids.contains(&file.file_id) {
+                collect_requested_symbol_ids(&file, &mut requested_symbol_ids);
+            }
+        }
+        let symbol_lookup = load_symbol_lookup_for_requested_ids(&tx, &requested_symbol_ids)?;
+
+        for file in spool.iter()? {
+            let file = file?;
+            if !rewritten_file_ids.contains(&file.file_id) {
+                continue;
+            }
+            update_symbol_parents(&tx, std::iter::once(&file), &symbol_lookup)?;
+            insert_child_rows(&tx, &file, &symbol_lookup, &mut row_counts)?;
+        }
+
+        update_revision_counts(&tx, revision_id, &row_counts)?;
+        tx.commit()?;
+
+        Ok(WriteResult {
+            revision_id: Some(revision_id),
+            files_changed: planned_paths.len() + deleted.len(),
             files_deleted: deleted.len(),
             files_skipped,
             rows_written: row_counts,
@@ -819,6 +1155,19 @@ fn insert_revision_file_change(
         params![revision_id, file_id, path, change_kind.as_str()],
     )?;
     Ok(1)
+}
+
+fn file_change_kind(file: &ArtifactFile, existing: Option<&ExistingFile>) -> RevisionChangeKind {
+    match file.status {
+        FileStatus::Unsupported => RevisionChangeKind::Unsupported,
+        FileStatus::Indexed | FileStatus::FailedPreserved => {
+            if existing.is_some() {
+                RevisionChangeKind::Updated
+            } else {
+                RevisionChangeKind::Inserted
+            }
+        }
+    }
 }
 
 fn insert_child_rows(
@@ -1312,59 +1661,74 @@ fn load_symbol_lookup<'a>(
 ) -> rusqlite::Result<SymbolLookup> {
     let mut requested = HashSet::new();
     for file in files {
-        for symbol in &file.symbols {
-            if let Some(parent_symbol_id) = symbol.parent_symbol_id.as_deref() {
-                requested.insert(parent_symbol_id.to_string());
-            }
-        }
-        for annotation in &file.symbol_annotations {
-            requested.insert(annotation.symbol_id.clone());
-        }
-        for identifier in &file.identifiers {
-            if let Some(containing_symbol_id) = identifier.containing_symbol_id.as_deref() {
-                requested.insert(containing_symbol_id.to_string());
-            }
-            if let Some(target_symbol_id) = identifier.target_symbol_id.as_deref() {
-                requested.insert(target_symbol_id.to_string());
-            }
-        }
-        for relationship in &file.relationships {
-            requested.insert(relationship.from_symbol_id.clone());
-            requested.insert(relationship.to_symbol_id.clone());
-        }
-        for pending in &file.pending_relationships {
-            requested.insert(pending.from_symbol_id.clone());
-            if let Some(caller_scope_symbol_id) = pending.caller_scope_symbol_id.as_deref() {
-                requested.insert(caller_scope_symbol_id.to_string());
-            }
-        }
-        for fact in &file.type_facts {
-            requested.insert(fact.symbol_id.clone());
-        }
-        for literal in &file.literals {
-            if let Some(containing_symbol_id) = literal.containing_symbol_id.as_deref() {
-                requested.insert(containing_symbol_id.to_string());
-            }
-        }
+        collect_requested_symbol_ids(file, &mut requested);
     }
 
+    load_symbol_lookup_for_requested_ids(tx, &requested)
+}
+
+fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut HashSet<String>) {
+    for symbol in &file.symbols {
+        if let Some(parent_symbol_id) = symbol.parent_symbol_id.as_deref() {
+            requested.insert(parent_symbol_id.to_string());
+        }
+    }
+    for annotation in &file.symbol_annotations {
+        requested.insert(annotation.symbol_id.clone());
+    }
+    for identifier in &file.identifiers {
+        if let Some(containing_symbol_id) = identifier.containing_symbol_id.as_deref() {
+            requested.insert(containing_symbol_id.to_string());
+        }
+        if let Some(target_symbol_id) = identifier.target_symbol_id.as_deref() {
+            requested.insert(target_symbol_id.to_string());
+        }
+    }
+    for relationship in &file.relationships {
+        requested.insert(relationship.from_symbol_id.clone());
+        requested.insert(relationship.to_symbol_id.clone());
+    }
+    for pending in &file.pending_relationships {
+        requested.insert(pending.from_symbol_id.clone());
+        if let Some(caller_scope_symbol_id) = pending.caller_scope_symbol_id.as_deref() {
+            requested.insert(caller_scope_symbol_id.to_string());
+        }
+    }
+    for fact in &file.type_facts {
+        requested.insert(fact.symbol_id.clone());
+    }
+    for literal in &file.literals {
+        if let Some(containing_symbol_id) = literal.containing_symbol_id.as_deref() {
+            requested.insert(containing_symbol_id.to_string());
+        }
+    }
+}
+
+fn load_symbol_lookup_for_requested_ids(
+    tx: &Transaction<'_>,
+    requested: &HashSet<String>,
+) -> rusqlite::Result<SymbolLookup> {
     if requested.is_empty() {
         return Ok(SymbolLookup::default());
     }
 
-    let bind_marks = std::iter::repeat_n("?", requested.len())
-        .collect::<Vec<_>>()
-        .join(", ");
-    let sql = format!("SELECT symbol_id FROM symbols WHERE symbol_id IN ({bind_marks})");
-    let mut stmt = tx.prepare(&sql)?;
-    let rows = stmt.query_map(
-        rusqlite::params_from_iter(requested.iter().map(String::as_str)),
-        |row| row.get::<_, String>(0),
-    )?;
-
     let mut ids = HashSet::new();
-    for row in rows {
-        ids.insert(row?);
+    let bind_limit = tx.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)? as usize;
+    let chunk_size = bind_limit.max(1);
+    let requested = requested.iter().map(String::as_str).collect::<Vec<_>>();
+    for chunk in requested.chunks(chunk_size) {
+        let bind_marks = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!("SELECT symbol_id FROM symbols WHERE symbol_id IN ({bind_marks})");
+        let mut stmt = tx.prepare(&sql)?;
+        let rows = stmt.query_map(rusqlite::params_from_iter(chunk.iter().copied()), |row| {
+            row.get::<_, String>(0)
+        })?;
+
+        for row in rows {
+            ids.insert(row?);
+        }
     }
 
     Ok(SymbolLookup { ids })

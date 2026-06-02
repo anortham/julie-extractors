@@ -35,7 +35,7 @@ impl BaseExtractor {
         options: SymbolOptions,
     ) -> Symbol {
         let id = self.generate_id_for_span(&name, &span);
-        let body_span = infer_body_span(node, &self.content, span);
+        let body_span = infer_body_span(node, &self.content, self.line_starts(), span);
         let body_hash = body_span.and_then(|span| body_hash(&self.content, span));
 
         // Extract code context around the symbol

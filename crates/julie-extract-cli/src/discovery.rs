@@ -66,9 +66,16 @@ impl DiscoveryPolicy {
             };
         }
         match language_for_path(&target.absolute_path) {
-            Some(language) => FileSelection::Supported {
-                language: language.to_string(),
-            },
+            Some(language) => {
+                if is_oversized_source_file(&target.absolute_path) {
+                    return FileSelection::Unsupported {
+                        reason: UnsupportedReason::HardExcluded,
+                    };
+                }
+                FileSelection::Supported {
+                    language: language.to_string(),
+                }
+            }
             None => FileSelection::Unsupported {
                 reason: UnsupportedReason::UnsupportedExtension,
             },
@@ -243,7 +250,23 @@ const HARD_EXCLUDE_DIRS: &[&str] = &[
     ".cache",
 ];
 
-const HARD_EXCLUDE_SUFFIXES: &[&str] = &[".min.js", ".bundle.js"];
+const HARD_EXCLUDE_SUFFIXES: &[&str] = &[
+    ".min.js",
+    ".bundle.js",
+    ".generated.js",
+    ".generated.jsx",
+    ".generated.ts",
+    ".generated.tsx",
+    ".generated.d.ts",
+];
+
+const MAX_SOURCE_FILE_BYTES: usize = 1024 * 1024;
+
+fn is_oversized_source_file(path: &Path) -> bool {
+    path.metadata()
+        .map(|metadata| metadata.len() > MAX_SOURCE_FILE_BYTES as u64)
+        .unwrap_or(false)
+}
 
 const HARD_EXCLUDE_PATTERNS: &[&str] = &[
     ".git/",
@@ -258,4 +281,81 @@ const HARD_EXCLUDE_PATTERNS: &[&str] = &[
     ".cache/",
     "*.min.js",
     "*.bundle.js",
+    "*.generated.js",
+    "*.generated.jsx",
+    "*.generated.ts",
+    "*.generated.tsx",
+    "*.generated.d.ts",
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn generated_typescript_is_hard_excluded() {
+        let fixture = DiscoveryFixture::new();
+        let generated = fixture.write(
+            "src/config/schema.generated.ts",
+            "export const schema = {};\n",
+        );
+        let selection = fixture.policy().select_file(&generated);
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::HardExcluded
+            }
+        );
+    }
+
+    #[test]
+    fn oversized_javascript_is_hard_excluded() {
+        let fixture = DiscoveryFixture::new();
+        let oversized = fixture.write(
+            "assets/viewer-runtime.js",
+            &"x".repeat(MAX_SOURCE_FILE_BYTES + 1),
+        );
+        let selection = fixture.policy().select_file(&oversized);
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::HardExcluded
+            }
+        );
+    }
+
+    struct DiscoveryFixture {
+        temp: TempDir,
+    }
+
+    impl DiscoveryFixture {
+        fn new() -> Self {
+            Self {
+                temp: TempDir::new().unwrap(),
+            }
+        }
+
+        fn root(&self) -> &Path {
+            self.temp.path()
+        }
+
+        fn policy(&self) -> DiscoveryPolicy {
+            DiscoveryPolicy::build(self.root(), &self.root().join("artifact.sqlite"), &[]).unwrap()
+        }
+
+        fn write(&self, path: &str, contents: &str) -> FileTarget {
+            let absolute_path = self.root().join(path);
+            if let Some(parent) = absolute_path.parent() {
+                fs::create_dir_all(parent).unwrap();
+            }
+            fs::write(&absolute_path, contents).unwrap();
+            FileTarget {
+                absolute_path,
+                root_relative_path: path.to_string(),
+            }
+        }
+    }
+}
