@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fs::File,
     io::{self, BufRead, BufReader, BufWriter, Write},
     path::{Path, PathBuf},
@@ -722,7 +722,7 @@ impl ArtifactWriter {
             .map(String::as_str)
             .collect::<HashSet<_>>();
         let skip_unchanged_content = revision.mode != Some(WriteMode::Force);
-        let mut planned_paths = HashSet::new();
+        let mut planned_files: HashMap<String, Option<ExistingFile>> = HashMap::new();
         let mut files_skipped = 0;
 
         for file in spool.iter()? {
@@ -745,7 +745,10 @@ impl ArtifactWriter {
             if file.status != FileStatus::FailedPreserved {
                 ensure_data_loss_guard(&tx, &file)?;
             }
-            planned_paths.insert(file.path);
+            // Carry the existing-file lookup forward; pass B reuses it instead of re-SELECTing.
+            // Nothing mutates a planned path's `files` row between here and its insert in pass B,
+            // so the value stays valid (per-file deletes happen immediately before each re-insert).
+            planned_files.insert(file.path, existing);
         }
 
         let deleted = load_existing_files(&tx)?
@@ -753,7 +756,7 @@ impl ArtifactWriter {
             .filter(|existing| !snapshot_paths.contains(existing.path.as_str()))
             .collect::<Vec<_>>();
 
-        if planned_paths.is_empty() && deleted.is_empty() {
+        if planned_files.is_empty() && deleted.is_empty() {
             tx.commit()?;
             return Ok(WriteResult {
                 files_skipped,
@@ -772,20 +775,20 @@ impl ArtifactWriter {
             let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
             for file in spool.iter()? {
                 let file = file?;
-                if !planned_paths.contains(file.path.as_str()) {
+                let Some(existing) = planned_files.get(file.path.as_str()) else {
                     continue;
-                }
+                };
+                let existing = existing.as_ref();
 
-                let existing = load_existing_file(&tx, &file.path)?;
-                let change_kind = file_change_kind(&file, existing.as_ref());
-                if is_preserved_failure_update(&file, existing.as_ref()) {
-                    if let Some(existing) = existing.as_ref() {
+                let change_kind = file_change_kind(&file, existing);
+                if is_preserved_failure_update(&file, existing) {
+                    if let Some(existing) = existing {
                         update_failed_preserved_file(&tx, revision_id, &file, &existing.file_id)?;
                         row_counts.files += 1;
                         row_counts.parse_diagnostics += replace_parse_diagnostics(&tx, &file)?;
                     }
                 } else {
-                    if let Some(existing) = existing.as_ref() {
+                    if let Some(existing) = existing {
                         delete_file_rows(&tx, &existing.file_id, &file.path)?;
                     }
                     file_row_inserters.insert_file(revision_id, &file)?;
@@ -849,7 +852,7 @@ impl ArtifactWriter {
 
         Ok(WriteResult {
             revision_id: Some(revision_id),
-            files_changed: planned_paths.len() + deleted.len(),
+            files_changed: planned_files.len() + deleted.len(),
             files_deleted: deleted.len(),
             files_skipped,
             rows_written: row_counts,
