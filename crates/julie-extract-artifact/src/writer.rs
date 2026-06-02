@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rusqlite::{Connection, OptionalExtension, Transaction, limits::Limit, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
@@ -20,7 +20,13 @@ use crate::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_sche
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
 
 const SQLITE_BULK_CACHE_SIZE_KIB: i64 = -131_072;
-const SQLITE_PREPARE_SAFE_VARIABLE_LIMIT: usize = 32_000;
+const DROP_SYMBOL_LOOKUP_TEMP_TABLE_SQL: &str =
+    "DROP TABLE IF EXISTS temp.julie_symbol_lookup_requested";
+const CREATE_SYMBOL_LOOKUP_TEMP_TABLE_SQL: &str = "
+CREATE TEMP TABLE julie_symbol_lookup_requested (
+    symbol_id TEXT PRIMARY KEY
+) WITHOUT ROWID
+";
 
 #[derive(Debug)]
 pub enum ArtifactWriteError {
@@ -762,13 +768,16 @@ impl ArtifactWriter {
         }
 
         let mut requested_symbol_ids = HashSet::new();
+        let mut local_symbol_ids = HashSet::new();
         for file in spool.iter()? {
             let file = file?;
             if rewritten_file_ids.contains(&file.file_id) {
                 collect_requested_symbol_ids(&file, &mut requested_symbol_ids);
+                collect_file_symbol_ids(&file, &mut local_symbol_ids);
             }
         }
-        let symbol_lookup = load_symbol_lookup_for_requested_ids(&tx, &requested_symbol_ids)?;
+        let symbol_lookup =
+            load_symbol_lookup_for_requested_ids(&tx, &requested_symbol_ids, &local_symbol_ids)?;
 
         for file in spool.iter()? {
             let file = file?;
@@ -1661,11 +1670,17 @@ fn load_symbol_lookup<'a>(
     files: impl IntoIterator<Item = &'a ArtifactFile>,
 ) -> rusqlite::Result<SymbolLookup> {
     let mut requested = HashSet::new();
+    let mut local_symbols = HashSet::new();
     for file in files {
         collect_requested_symbol_ids(file, &mut requested);
+        collect_file_symbol_ids(file, &mut local_symbols);
     }
 
-    load_symbol_lookup_for_requested_ids(tx, &requested)
+    load_symbol_lookup_for_requested_ids(tx, &requested, &local_symbols)
+}
+
+fn collect_file_symbol_ids(file: &ArtifactFile, ids: &mut HashSet<String>) {
+    ids.extend(file.symbols.iter().map(|symbol| symbol.symbol_id.clone()));
 }
 
 fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut HashSet<String>) {
@@ -1708,35 +1723,62 @@ fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut HashSet<Str
 fn load_symbol_lookup_for_requested_ids(
     tx: &Transaction<'_>,
     requested: &HashSet<String>,
+    local_symbols: &HashSet<String>,
 ) -> rusqlite::Result<SymbolLookup> {
     if requested.is_empty() {
         return Ok(SymbolLookup::default());
     }
 
-    let mut ids = HashSet::new();
-    let bind_limit = tx.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)? as usize;
-    let chunk_size = symbol_lookup_chunk_size(bind_limit);
-    let requested = requested.iter().map(String::as_str).collect::<Vec<_>>();
-    for chunk in requested.chunks(chunk_size) {
-        let bind_marks = std::iter::repeat_n("?", chunk.len())
-            .collect::<Vec<_>>()
-            .join(", ");
-        let sql = format!("SELECT symbol_id FROM symbols WHERE symbol_id IN ({bind_marks})");
-        let mut stmt = tx.prepare(&sql)?;
-        let rows = stmt.query_map(rusqlite::params_from_iter(chunk.iter().copied()), |row| {
-            row.get::<_, String>(0)
-        })?;
-
-        for row in rows {
-            ids.insert(row?);
-        }
+    let mut ids = requested
+        .intersection(local_symbols)
+        .cloned()
+        .collect::<HashSet<_>>();
+    let unresolved = requested.difference(&ids).cloned().collect::<Vec<_>>();
+    if !unresolved.is_empty() {
+        load_existing_symbol_ids_for_requested_ids(tx, &unresolved, &mut ids)?;
     }
 
     Ok(SymbolLookup { ids })
 }
 
-fn symbol_lookup_chunk_size(reported_bind_limit: usize) -> usize {
-    reported_bind_limit.clamp(1, SQLITE_PREPARE_SAFE_VARIABLE_LIMIT)
+fn load_existing_symbol_ids_for_requested_ids(
+    tx: &Transaction<'_>,
+    requested: &[String],
+    ids: &mut HashSet<String>,
+) -> rusqlite::Result<()> {
+    tx.execute(DROP_SYMBOL_LOOKUP_TEMP_TABLE_SQL, [])?;
+    let lookup_result = (|| -> rusqlite::Result<()> {
+        tx.execute(CREATE_SYMBOL_LOOKUP_TEMP_TABLE_SQL, [])?;
+
+        {
+            let mut insert_requested = tx.prepare(
+                "INSERT OR IGNORE INTO temp.julie_symbol_lookup_requested(symbol_id) VALUES (?1)",
+            )?;
+            for symbol_id in requested {
+                insert_requested.execute(params![symbol_id])?;
+            }
+        }
+
+        {
+            let mut stmt = tx.prepare(
+                "SELECT symbols.symbol_id \
+                 FROM symbols \
+                 INNER JOIN temp.julie_symbol_lookup_requested AS requested \
+                    ON requested.symbol_id = symbols.symbol_id",
+            )?;
+            let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+            for row in rows {
+                ids.insert(row?);
+            }
+        }
+
+        Ok(())
+    })();
+    let cleanup_result = tx.execute(DROP_SYMBOL_LOOKUP_TEMP_TABLE_SQL, []);
+    match (lookup_result, cleanup_result) {
+        (Ok(()), Ok(_)) => Ok(()),
+        (Err(error), _) | (Ok(()), Err(error)) => Err(error),
+    }
 }
 
 fn valid_symbol_id<'a>(
@@ -1792,7 +1834,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn symbol_lookup_chunks_above_sqlite_prepare_variable_limit() {
+    fn symbol_lookup_uses_current_batch_symbols_without_sqlite_query() {
         let mut connection = Connection::open_in_memory().unwrap();
         create_schema(&connection).unwrap();
         let tx = connection.transaction().unwrap();
@@ -1800,15 +1842,23 @@ mod tests {
             .map(|index| format!("symbol-{index}"))
             .collect::<HashSet<_>>();
 
-        let lookup = load_symbol_lookup_for_requested_ids(&tx, &requested).unwrap();
+        let lookup = load_symbol_lookup_for_requested_ids(&tx, &requested, &requested).unwrap();
 
-        assert!(lookup.ids.is_empty());
+        assert_eq!(lookup.ids.len(), requested.len());
     }
 
     #[test]
-    fn symbol_lookup_chunk_size_clamps_reported_limit_to_prepare_safe_bound() {
-        assert_eq!(symbol_lookup_chunk_size(0), 1);
-        assert_eq!(symbol_lookup_chunk_size(64), 64);
-        assert_eq!(symbol_lookup_chunk_size(500_000), 32_000);
+    fn symbol_lookup_handles_large_unresolved_requests() {
+        let mut connection = Connection::open_in_memory().unwrap();
+        create_schema(&connection).unwrap();
+        let tx = connection.transaction().unwrap();
+        let requested = (0..36_241)
+            .map(|index| format!("symbol-{index}"))
+            .collect::<HashSet<_>>();
+
+        let lookup =
+            load_symbol_lookup_for_requested_ids(&tx, &requested, &HashSet::new()).unwrap();
+
+        assert!(lookup.ids.is_empty());
     }
 }
