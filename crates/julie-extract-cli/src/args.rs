@@ -37,6 +37,9 @@ pub struct ScanArgs {
     pub strict_schema: bool,
     #[arg(long)]
     pub json: bool,
+    /// Number of parallel extraction workers (0 = auto-detect from available cores).
+    #[arg(long, short = 'j', default_value_t = 0)]
+    pub jobs: usize,
 }
 
 #[derive(Debug, Args)]

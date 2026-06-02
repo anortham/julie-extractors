@@ -30,7 +30,7 @@ Contract version:
 ## Commands
 
 ```bash
-julie-extract scan --root <dir> --db <path> [--force] [--ignore-file <path>...] [--strict-schema] [--json]
+julie-extract scan --root <dir> --db <path> [--force] [--ignore-file <path>...] [--jobs <n>] [--strict-schema] [--json]
 julie-extract update --root <dir> --db <path> --file <path> [--ignore-file <path>...] [--strict-schema] [--json]
 julie-extract delete --root <dir> --db <path> --file <path> [--strict-schema] [--json]
 julie-extract info --db <path> [--strict-schema] [--json]
@@ -75,6 +75,12 @@ changes.
 
 `scan --force` rebuilds the artifact contents in one SQLite transaction. It is
 the explicit path for a moved root or full re-extraction.
+
+`--jobs <n>` (alias `-j`) sets the number of parallel extraction workers. `0`
+(the default) auto-detects from available cores. Parallelism only affects the
+file read + parse + map phase; the SQLite write stays single-writer. Output is
+independent of `--jobs`: the artifact, row ordering, report counts, and per-file
+failure handling are identical for any worker count.
 
 ### `update`
 
