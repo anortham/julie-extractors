@@ -50,7 +50,7 @@ fn child_row_batch_avoids_per_file_statement_prepare_overhead() {
     assert_eq!(result.rows_written.pending_relationships, 12_000);
     assert_eq!(result.rows_written.type_facts, 9_000);
     assert!(
-        elapsed < Duration::from_millis(1_250),
+        elapsed < Duration::from_millis(1_750),
         "child-row writer tripwire exceeded budget: {elapsed:?}"
     );
 }

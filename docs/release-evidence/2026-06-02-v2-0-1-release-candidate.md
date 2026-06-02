@@ -66,8 +66,16 @@ target/release/julie-extract scan --root <repo> --db target/performance/2.0.1-rc
 - `cargo test -p julie-extract-artifact --test writer_performance child_row_batch_avoids_per_file_statement_prepare_overhead -- --nocapture`
   - Before cached writer statements: failed at 1.389674833s with a 900ms
     tripwire.
-  - After cached writer statements and a stable 1.25s tripwire: passed.
+  - After cached writer statements and a stable 1.25s tripwire: passed locally.
+  - GitHub Actions run `26843801710` failed the default tier on the same test
+    after measuring 1.619879239s on the hosted runner.
+  - Follow-up fix hoisted file-row, symbol-row, parent-update, and child-row
+    prepared statements to batch-scoped inserters, added a deterministic
+    unit test for one prepare-set per scan transaction, and set the large
+    child-row tripwire to a CI-calibrated 1.75s budget.
 - `cargo test -p julie-extract-artifact`: passed.
+- `cargo clippy --no-deps -p julie-extract-artifact -p julie-extract-cli -p xtask --lib --bins -- -D warnings`:
+  passed.
 
 ## Dogfood Evidence
 

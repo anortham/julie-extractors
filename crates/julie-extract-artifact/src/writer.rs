@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use rusqlite::{CachedStatement, Connection, OptionalExtension, Transaction, params};
 
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
@@ -28,6 +28,35 @@ CREATE TEMP TABLE julie_symbol_lookup_requested (
     symbol_id TEXT PRIMARY KEY
 ) WITHOUT ROWID
 ";
+
+#[cfg(test)]
+mod writer_prepare_metrics {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static FILE_ROW_INSERTER_PREPARES: AtomicUsize = AtomicUsize::new(0);
+    static CHILD_ROW_INSERTER_PREPARES: AtomicUsize = AtomicUsize::new(0);
+
+    pub(super) fn reset() {
+        FILE_ROW_INSERTER_PREPARES.store(0, Ordering::SeqCst);
+        CHILD_ROW_INSERTER_PREPARES.store(0, Ordering::SeqCst);
+    }
+
+    pub(super) fn record_file_row_inserter_prepare() {
+        FILE_ROW_INSERTER_PREPARES.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(super) fn record_child_row_inserter_prepare() {
+        CHILD_ROW_INSERTER_PREPARES.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(super) fn file_row_inserter_prepares() -> usize {
+        FILE_ROW_INSERTER_PREPARES.load(Ordering::SeqCst)
+    }
+
+    pub(super) fn child_row_inserter_prepares() -> usize {
+        CHILD_ROW_INSERTER_PREPARES.load(Ordering::SeqCst)
+    }
+}
 
 #[derive(Debug)]
 pub enum ArtifactWriteError {
@@ -504,30 +533,34 @@ impl ArtifactWriter {
             }
         }
 
-        for (file, _, change_kind) in &planned {
-            insert_file(&tx, revision_id, file)?;
-            row_counts.files += 1;
-            row_counts.revision_file_changes += insert_revision_file_change(
-                &tx,
-                revision_id,
-                &file.file_id,
-                &file.path,
-                *change_kind,
-            )?;
-        }
+        let symbol_lookup = {
+            let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
+            for (file, _, change_kind) in &planned {
+                file_row_inserters.insert_file(revision_id, file)?;
+                row_counts.files += 1;
+                row_counts.revision_file_changes += file_row_inserters
+                    .insert_revision_file_change(
+                        revision_id,
+                        &file.file_id,
+                        &file.path,
+                        *change_kind,
+                    )?;
+            }
 
-        for (file, _, _) in &planned {
-            row_counts.symbols += insert_symbols(&tx, file)?;
-        }
-        let symbol_lookup = load_symbol_lookup(&tx, planned.iter().map(|(file, _, _)| *file))?;
-        update_symbol_parents(
-            &tx,
-            planned.iter().map(|(file, _, _)| *file),
-            &symbol_lookup,
-        )?;
+            for (file, _, _) in &planned {
+                row_counts.symbols += file_row_inserters.insert_symbols(file)?;
+            }
+            let symbol_lookup = load_symbol_lookup(&tx, planned.iter().map(|(file, _, _)| *file))?;
+            file_row_inserters
+                .update_symbol_parents(planned.iter().map(|(file, _, _)| *file), &symbol_lookup)?;
+            symbol_lookup
+        };
 
-        for (file, _, _) in &planned {
-            insert_child_rows(&tx, file, &symbol_lookup, &mut row_counts)?;
+        {
+            let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
+            for (file, _, _) in &planned {
+                child_row_inserters.insert_child_rows(file, &symbol_lookup, &mut row_counts)?;
+            }
         }
 
         update_revision_counts(&tx, revision_id, &row_counts)?;
@@ -611,49 +644,57 @@ impl ArtifactWriter {
             }
         }
 
-        for existing in &deleted {
-            delete_file_rows(&tx, &existing.file_id, &existing.path)?;
-            row_counts.revision_file_changes += insert_revision_file_change(
-                &tx,
-                revision_id,
-                &existing.file_id,
-                &existing.path,
-                RevisionChangeKind::Deleted,
-            )?;
-        }
-
-        for (file, existing, change_kind) in &planned {
-            if let Some(existing) = existing.as_ref().filter(|_| is_preserved_failure(file)) {
-                update_failed_preserved_file(&tx, revision_id, file, &existing.file_id)?;
-                row_counts.files += 1;
-                row_counts.parse_diagnostics += replace_parse_diagnostics(&tx, file)?;
-            } else {
-                insert_file(&tx, revision_id, file)?;
-                row_counts.files += 1;
-            }
-            row_counts.revision_file_changes += insert_revision_file_change(
-                &tx,
-                revision_id,
-                &file.file_id,
-                &file.path,
-                *change_kind,
-            )?;
-        }
-
         let rewritten_files = planned
             .iter()
             .filter(|(file, existing, _)| !is_preserved_failure_update(file, existing.as_ref()))
             .map(|(file, _, _)| *file)
             .collect::<Vec<_>>();
 
-        for file in &rewritten_files {
-            row_counts.symbols += insert_symbols(&tx, file)?;
-        }
-        let symbol_lookup = load_symbol_lookup(&tx, rewritten_files.iter().copied())?;
-        update_symbol_parents(&tx, rewritten_files.iter().copied(), &symbol_lookup)?;
+        let symbol_lookup = {
+            let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
+            for existing in &deleted {
+                delete_file_rows(&tx, &existing.file_id, &existing.path)?;
+                row_counts.revision_file_changes += file_row_inserters
+                    .insert_revision_file_change(
+                        revision_id,
+                        &existing.file_id,
+                        &existing.path,
+                        RevisionChangeKind::Deleted,
+                    )?;
+            }
 
-        for file in &rewritten_files {
-            insert_child_rows(&tx, file, &symbol_lookup, &mut row_counts)?;
+            for (file, existing, change_kind) in &planned {
+                if let Some(existing) = existing.as_ref().filter(|_| is_preserved_failure(file)) {
+                    update_failed_preserved_file(&tx, revision_id, file, &existing.file_id)?;
+                    row_counts.files += 1;
+                    row_counts.parse_diagnostics += replace_parse_diagnostics(&tx, file)?;
+                } else {
+                    file_row_inserters.insert_file(revision_id, file)?;
+                    row_counts.files += 1;
+                }
+                row_counts.revision_file_changes += file_row_inserters
+                    .insert_revision_file_change(
+                        revision_id,
+                        &file.file_id,
+                        &file.path,
+                        *change_kind,
+                    )?;
+            }
+
+            for file in &rewritten_files {
+                row_counts.symbols += file_row_inserters.insert_symbols(file)?;
+            }
+            let symbol_lookup = load_symbol_lookup(&tx, rewritten_files.iter().copied())?;
+            file_row_inserters
+                .update_symbol_parents(rewritten_files.iter().copied(), &symbol_lookup)?;
+            symbol_lookup
+        };
+
+        {
+            let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
+            for file in &rewritten_files {
+                child_row_inserters.insert_child_rows(file, &symbol_lookup, &mut row_counts)?;
+            }
         }
 
         update_revision_counts(&tx, revision_id, &row_counts)?;
@@ -727,47 +768,50 @@ impl ArtifactWriter {
         let mut row_counts = RowCounts::default();
         let mut rewritten_file_ids = HashSet::new();
 
-        for file in spool.iter()? {
-            let file = file?;
-            if !planned_paths.contains(file.path.as_str()) {
-                continue;
-            }
+        {
+            let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
+            for file in spool.iter()? {
+                let file = file?;
+                if !planned_paths.contains(file.path.as_str()) {
+                    continue;
+                }
 
-            let existing = load_existing_file(&tx, &file.path)?;
-            let change_kind = file_change_kind(&file, existing.as_ref());
-            if is_preserved_failure_update(&file, existing.as_ref()) {
-                if let Some(existing) = existing.as_ref() {
-                    update_failed_preserved_file(&tx, revision_id, &file, &existing.file_id)?;
+                let existing = load_existing_file(&tx, &file.path)?;
+                let change_kind = file_change_kind(&file, existing.as_ref());
+                if is_preserved_failure_update(&file, existing.as_ref()) {
+                    if let Some(existing) = existing.as_ref() {
+                        update_failed_preserved_file(&tx, revision_id, &file, &existing.file_id)?;
+                        row_counts.files += 1;
+                        row_counts.parse_diagnostics += replace_parse_diagnostics(&tx, &file)?;
+                    }
+                } else {
+                    if let Some(existing) = existing.as_ref() {
+                        delete_file_rows(&tx, &existing.file_id, &file.path)?;
+                    }
+                    file_row_inserters.insert_file(revision_id, &file)?;
                     row_counts.files += 1;
-                    row_counts.parse_diagnostics += replace_parse_diagnostics(&tx, &file)?;
+                    row_counts.symbols += file_row_inserters.insert_symbols(&file)?;
+                    rewritten_file_ids.insert(file.file_id.clone());
                 }
-            } else {
-                if let Some(existing) = existing.as_ref() {
-                    delete_file_rows(&tx, &existing.file_id, &file.path)?;
-                }
-                insert_file(&tx, revision_id, &file)?;
-                row_counts.files += 1;
-                row_counts.symbols += insert_symbols(&tx, &file)?;
-                rewritten_file_ids.insert(file.file_id.clone());
+                row_counts.revision_file_changes += file_row_inserters
+                    .insert_revision_file_change(
+                        revision_id,
+                        &file.file_id,
+                        &file.path,
+                        change_kind,
+                    )?;
             }
-            row_counts.revision_file_changes += insert_revision_file_change(
-                &tx,
-                revision_id,
-                &file.file_id,
-                &file.path,
-                change_kind,
-            )?;
-        }
 
-        for existing in &deleted {
-            delete_file_rows(&tx, &existing.file_id, &existing.path)?;
-            row_counts.revision_file_changes += insert_revision_file_change(
-                &tx,
-                revision_id,
-                &existing.file_id,
-                &existing.path,
-                RevisionChangeKind::Deleted,
-            )?;
+            for existing in &deleted {
+                delete_file_rows(&tx, &existing.file_id, &existing.path)?;
+                row_counts.revision_file_changes += file_row_inserters
+                    .insert_revision_file_change(
+                        revision_id,
+                        &existing.file_id,
+                        &existing.path,
+                        RevisionChangeKind::Deleted,
+                    )?;
+            }
         }
 
         let mut requested_symbol_ids = HashSet::new();
@@ -782,13 +826,22 @@ impl ArtifactWriter {
         let symbol_lookup =
             load_symbol_lookup_for_requested_ids(&tx, &requested_symbol_ids, &local_symbol_ids)?;
 
-        for file in spool.iter()? {
-            let file = file?;
-            if !rewritten_file_ids.contains(&file.file_id) {
-                continue;
+        {
+            let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
+            let mut parent_update =
+                tx.prepare_cached("UPDATE symbols SET parent_symbol_id = ?1 WHERE symbol_id = ?2")?;
+            for file in spool.iter()? {
+                let file = file?;
+                if !rewritten_file_ids.contains(&file.file_id) {
+                    continue;
+                }
+                update_symbol_parent_rows(
+                    &mut parent_update,
+                    std::iter::once(&file),
+                    &symbol_lookup,
+                )?;
+                child_row_inserters.insert_child_rows(&file, &symbol_lookup, &mut row_counts)?;
             }
-            update_symbol_parents(&tx, std::iter::once(&file), &symbol_lookup)?;
-            insert_child_rows(&tx, &file, &symbol_lookup, &mut row_counts)?;
         }
 
         update_revision_counts(&tx, revision_id, &row_counts)?;
@@ -1163,6 +1216,16 @@ fn insert_revision_file_change(
         "INSERT INTO revision_file_changes (revision_id, file_id, path, change_kind)
          VALUES (?1, ?2, ?3, ?4)",
     )?;
+    insert_revision_file_change_row(&mut stmt, revision_id, file_id, path, change_kind)
+}
+
+fn insert_revision_file_change_row(
+    stmt: &mut CachedStatement<'_>,
+    revision_id: i64,
+    file_id: &str,
+    path: &str,
+    change_kind: RevisionChangeKind,
+) -> rusqlite::Result<i64> {
     stmt.execute(params![revision_id, file_id, path, change_kind.as_str()])?;
     Ok(1)
 }
@@ -1180,37 +1243,204 @@ fn file_change_kind(file: &ArtifactFile, existing: Option<&ExistingFile>) -> Rev
     }
 }
 
-fn insert_child_rows(
-    tx: &Transaction<'_>,
-    file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
-    counts: &mut RowCounts,
-) -> rusqlite::Result<()> {
-    counts.symbol_annotations += insert_symbol_annotations(tx, file, symbol_lookup)?;
-    counts.identifiers += insert_identifiers(tx, file, symbol_lookup)?;
-    let identifier_lookup = IdentifierLookup::from_file(file);
-    counts.relationships += insert_relationships(tx, file, symbol_lookup)?;
-    counts.pending_relationships += insert_pending_relationships(tx, file, symbol_lookup)?;
-    counts.type_facts += insert_type_facts(tx, file, symbol_lookup)?;
-    counts.type_argument_usages += insert_type_argument_usages(tx, file, &identifier_lookup)?;
-    let usage_lookup = TypeArgumentUsageLookup::from_file(file, &identifier_lookup);
-    counts.type_arguments += insert_type_arguments(tx, &file.type_arguments, &usage_lookup)?;
-    counts.literals += insert_literals(tx, file, symbol_lookup)?;
-    counts.parse_diagnostics += insert_parse_diagnostics(tx, file)?;
-    Ok(())
+struct FileRowInserters<'tx> {
+    files: CachedStatement<'tx>,
+    revision_file_changes: CachedStatement<'tx>,
+    symbols: CachedStatement<'tx>,
+    symbol_parent_update: CachedStatement<'tx>,
 }
 
-fn insert_file(
-    tx: &Transaction<'_>,
+impl<'tx> FileRowInserters<'tx> {
+    fn prepare(tx: &'tx Transaction<'_>) -> rusqlite::Result<Self> {
+        let inserters = Self {
+            files: tx.prepare_cached(
+                "INSERT INTO files
+                 (file_id, path, language, content_hash, content_bytes, line_count, indexed_at,
+                  last_revision_id, status, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            )?,
+            revision_file_changes: tx.prepare_cached(
+                "INSERT INTO revision_file_changes (revision_id, file_id, path, change_kind)
+                 VALUES (?1, ?2, ?3, ?4)",
+            )?,
+            symbols: tx.prepare_cached(
+                "INSERT INTO symbols
+                 (symbol_id, file_id, path, language, name, kind, signature, doc_comment,
+                  visibility, parent_symbol_id, start_line, start_column, end_line, end_column,
+                  start_byte, end_byte, body_start_line, body_start_column, body_end_line,
+                  body_end_column, body_start_byte, body_end_byte, body_hash, semantic_group,
+                  confidence, content_type, is_test, test_container, test_lifecycle, metadata_json)
+                 VALUES
+                 (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                  ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29)",
+            )?,
+            symbol_parent_update: tx
+                .prepare_cached("UPDATE symbols SET parent_symbol_id = ?1 WHERE symbol_id = ?2")?,
+        };
+        #[cfg(test)]
+        writer_prepare_metrics::record_file_row_inserter_prepare();
+        Ok(inserters)
+    }
+
+    fn insert_file(&mut self, revision_id: i64, file: &ArtifactFile) -> rusqlite::Result<()> {
+        insert_file_row(&mut self.files, revision_id, file)
+    }
+
+    fn insert_revision_file_change(
+        &mut self,
+        revision_id: i64,
+        file_id: &str,
+        path: &str,
+        change_kind: RevisionChangeKind,
+    ) -> rusqlite::Result<i64> {
+        insert_revision_file_change_row(
+            &mut self.revision_file_changes,
+            revision_id,
+            file_id,
+            path,
+            change_kind,
+        )
+    }
+
+    fn insert_symbols(&mut self, file: &ArtifactFile) -> rusqlite::Result<i64> {
+        insert_symbol_rows(&mut self.symbols, file)
+    }
+
+    fn update_symbol_parents<'a>(
+        &mut self,
+        files: impl IntoIterator<Item = &'a ArtifactFile>,
+        symbol_lookup: &SymbolLookup,
+    ) -> rusqlite::Result<()> {
+        update_symbol_parent_rows(&mut self.symbol_parent_update, files, symbol_lookup)
+    }
+}
+
+struct ChildRowInserters<'tx> {
+    symbol_annotations: CachedStatement<'tx>,
+    identifiers: CachedStatement<'tx>,
+    identifier_references: CachedStatement<'tx>,
+    relationships: CachedStatement<'tx>,
+    pending_relationships: CachedStatement<'tx>,
+    type_facts: CachedStatement<'tx>,
+    type_argument_usages: CachedStatement<'tx>,
+    type_arguments: CachedStatement<'tx>,
+    literals: CachedStatement<'tx>,
+    parse_diagnostics: CachedStatement<'tx>,
+}
+
+impl<'tx> ChildRowInserters<'tx> {
+    fn prepare(tx: &'tx Transaction<'_>) -> rusqlite::Result<Self> {
+        let inserters = Self {
+            symbol_annotations: tx.prepare_cached(
+                "INSERT INTO symbol_annotations
+                 (annotation_id, symbol_id, annotation, annotation_key, raw_text, carrier,
+                  metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            )?,
+            identifiers: tx.prepare_cached(
+                "INSERT INTO identifiers
+                 (identifier_id, file_id, path, language, name, kind, containing_symbol_id,
+                  target_symbol_id, start_line, start_column, end_line, end_column, start_byte,
+                  end_byte, confidence, code_context, metadata_json)
+                 VALUES
+                 (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+            )?,
+            identifier_references: tx.prepare_cached(
+                "UPDATE identifiers
+                 SET containing_symbol_id = ?1, target_symbol_id = ?2
+                 WHERE identifier_id = ?3",
+            )?,
+            relationships: tx.prepare_cached(
+                "INSERT INTO relationships
+                 (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
+                  start_column, end_line, end_column, start_byte, end_byte, confidence,
+                  metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            )?,
+            pending_relationships: tx.prepare_cached(
+                "INSERT INTO pending_relationships
+                 (pending_relationship_id, from_symbol_id, caller_scope_symbol_id, file_id, path,
+                  kind, target_display_name, target_terminal_name, target_receiver,
+                  target_namespace_json, target_import_context, start_line, start_column,
+                  end_line, end_column, start_byte, end_byte, confidence, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                         ?17, ?18, ?19)",
+            )?,
+            type_facts: tx.prepare_cached(
+                "INSERT INTO type_facts
+                 (type_fact_id, symbol_id, language, resolved_type, generic_params_json,
+                  constraints_json, is_inferred, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            )?,
+            type_argument_usages: tx.prepare_cached(
+                "INSERT INTO type_argument_usages
+                 (usage_id, identifier_id, file_id, path, language, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            )?,
+            type_arguments: tx.prepare_cached(
+                "INSERT INTO type_arguments
+                 (type_argument_id, usage_id, parent_type_argument_id, ordinal, type_name)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+            )?,
+            literals: tx.prepare_cached(
+                "INSERT INTO literals
+                 (literal_id, file_id, path, language, literal_text, kind, carrier, arg_position,
+                  containing_symbol_id, start_line, start_column, end_line, end_column, start_byte,
+                  end_byte, confidence, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                         ?17)",
+            )?,
+            parse_diagnostics: tx.prepare_cached(
+                "INSERT INTO parse_diagnostics
+                 (diagnostic_id, file_id, path, language, kind, message, start_line, start_column,
+                  end_line, end_column, start_byte, end_byte, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            )?,
+        };
+        #[cfg(test)]
+        writer_prepare_metrics::record_child_row_inserter_prepare();
+        Ok(inserters)
+    }
+
+    fn insert_child_rows(
+        &mut self,
+        file: &ArtifactFile,
+        symbol_lookup: &SymbolLookup,
+        counts: &mut RowCounts,
+    ) -> rusqlite::Result<()> {
+        counts.symbol_annotations +=
+            insert_symbol_annotations(&mut self.symbol_annotations, file, symbol_lookup)?;
+        counts.identifiers += insert_identifiers(
+            &mut self.identifiers,
+            &mut self.identifier_references,
+            file,
+            symbol_lookup,
+        )?;
+        let identifier_lookup = IdentifierLookup::from_file(file);
+        counts.relationships += insert_relationships(&mut self.relationships, file, symbol_lookup)?;
+        counts.pending_relationships +=
+            insert_pending_relationships(&mut self.pending_relationships, file, symbol_lookup)?;
+        counts.type_facts += insert_type_facts(&mut self.type_facts, file, symbol_lookup)?;
+        counts.type_argument_usages +=
+            insert_type_argument_usages(&mut self.type_argument_usages, file, &identifier_lookup)?;
+        let usage_lookup = TypeArgumentUsageLookup::from_file(file, &identifier_lookup);
+        counts.type_arguments += insert_type_arguments(
+            &mut self.type_arguments,
+            &file.type_arguments,
+            &usage_lookup,
+        )?;
+        counts.literals += insert_literals(&mut self.literals, file, symbol_lookup)?;
+        counts.parse_diagnostics +=
+            insert_parse_diagnostics_rows(&mut self.parse_diagnostics, file)?;
+        Ok(())
+    }
+}
+
+fn insert_file_row(
+    stmt: &mut CachedStatement<'_>,
     revision_id: i64,
     file: &ArtifactFile,
 ) -> rusqlite::Result<()> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO files
-         (file_id, path, language, content_hash, content_bytes, line_count, indexed_at,
-          last_revision_id, status, metadata_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-    )?;
     stmt.execute(params![
         file.file_id,
         file.path,
@@ -1274,18 +1504,10 @@ fn replace_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusql
     insert_parse_diagnostics(tx, file)
 }
 
-fn insert_symbols(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO symbols
-	     (symbol_id, file_id, path, language, name, kind, signature, doc_comment, visibility,
-	      parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
-	      body_start_line, body_start_column, body_end_line, body_end_column, body_start_byte,
-	      body_end_byte, body_hash, semantic_group, confidence, content_type, is_test,
-	      test_container, test_lifecycle, metadata_json)
-	     VALUES
-	     (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-	      ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29)",
-    )?;
+fn insert_symbol_rows(
+    stmt: &mut CachedStatement<'_>,
+    file: &ArtifactFile,
+) -> rusqlite::Result<i64> {
     for symbol in &file.symbols {
         stmt.execute(params![
             symbol.symbol_id,
@@ -1319,18 +1541,15 @@ fn insert_symbols(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result
             symbol.metadata_json,
         ])?;
     }
-    drop(stmt);
 
     Ok(file.symbols.len() as i64)
 }
 
-fn update_symbol_parents<'a>(
-    tx: &Transaction<'_>,
+fn update_symbol_parent_rows<'a>(
+    parent_update: &mut CachedStatement<'_>,
     files: impl IntoIterator<Item = &'a ArtifactFile>,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<()> {
-    let mut parent_update =
-        tx.prepare_cached("UPDATE symbols SET parent_symbol_id = ?1 WHERE symbol_id = ?2")?;
     for file in files {
         for symbol in &file.symbols {
             if let Some(parent_symbol_id) = symbol.parent_symbol_id.as_deref()
@@ -1344,15 +1563,10 @@ fn update_symbol_parents<'a>(
 }
 
 fn insert_symbol_annotations(
-    tx: &Transaction<'_>,
+    stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO symbol_annotations
-         (annotation_id, symbol_id, annotation, annotation_key, raw_text, carrier, metadata_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-    )?;
     let mut inserted = 0;
     for annotation in &file.symbol_annotations {
         if !symbol_lookup.contains(&annotation.symbol_id) {
@@ -1373,17 +1587,11 @@ fn insert_symbol_annotations(
 }
 
 fn insert_identifiers(
-    tx: &Transaction<'_>,
+    stmt: &mut CachedStatement<'_>,
+    ref_update: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO identifiers
-         (identifier_id, file_id, path, language, name, kind, containing_symbol_id,
-          target_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
-          confidence, code_context, metadata_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
-    )?;
     for identifier in &file.identifiers {
         stmt.execute(params![
             identifier.identifier_id,
@@ -1403,13 +1611,7 @@ fn insert_identifiers(
             identifier.metadata_json,
         ])?;
     }
-    drop(stmt);
 
-    let mut ref_update = tx.prepare_cached(
-        "UPDATE identifiers
-         SET containing_symbol_id = ?1, target_symbol_id = ?2
-         WHERE identifier_id = ?3",
-    )?;
     for identifier in &file.identifiers {
         let containing = valid_symbol_id(symbol_lookup, identifier.containing_symbol_id.as_deref());
         let target = valid_symbol_id(symbol_lookup, identifier.target_symbol_id.as_deref());
@@ -1422,16 +1624,10 @@ fn insert_identifiers(
 }
 
 fn insert_relationships(
-    tx: &Transaction<'_>,
+    stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO relationships
-         (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
-          start_column, end_line, end_column, start_byte, end_byte, confidence, metadata_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
-    )?;
     let mut inserted = 0;
     for relationship in &file.relationships {
         if !symbol_lookup.contains(&relationship.from_symbol_id)
@@ -1461,19 +1657,10 @@ fn insert_relationships(
 }
 
 fn insert_pending_relationships(
-    tx: &Transaction<'_>,
+    stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO pending_relationships
-         (pending_relationship_id, from_symbol_id, caller_scope_symbol_id, file_id, path, kind,
-          target_display_name, target_terminal_name, target_receiver, target_namespace_json,
-          target_import_context, start_line, start_column, end_line, end_column, start_byte,
-          end_byte, confidence, metadata_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
-                 ?18, ?19)",
-    )?;
     let mut inserted = 0;
     for pending in &file.pending_relationships {
         if !symbol_lookup.contains(&pending.from_symbol_id) {
@@ -1506,16 +1693,10 @@ fn insert_pending_relationships(
 }
 
 fn insert_type_facts(
-    tx: &Transaction<'_>,
+    stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO type_facts
-         (type_fact_id, symbol_id, language, resolved_type, generic_params_json,
-          constraints_json, is_inferred, metadata_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-    )?;
     let mut inserted = 0;
     for fact in &file.type_facts {
         if !symbol_lookup.contains(&fact.symbol_id) {
@@ -1537,15 +1718,10 @@ fn insert_type_facts(
 }
 
 fn insert_type_argument_usages(
-    tx: &Transaction<'_>,
+    stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     identifier_lookup: &IdentifierLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO type_argument_usages
-         (usage_id, identifier_id, file_id, path, language, metadata_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-    )?;
     let mut inserted = 0;
     for usage in &file.type_argument_usages {
         if !identifier_lookup.contains(&usage.identifier_id) {
@@ -1565,15 +1741,10 @@ fn insert_type_argument_usages(
 }
 
 fn insert_type_arguments(
-    tx: &Transaction<'_>,
+    stmt: &mut CachedStatement<'_>,
     arguments: &[ArtifactTypeArgument],
     usage_lookup: &TypeArgumentUsageLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO type_arguments
-         (type_argument_id, usage_id, parent_type_argument_id, ordinal, type_name)
-         VALUES (?1, ?2, ?3, ?4, ?5)",
-    )?;
     let mut inserted = 0;
     for argument in arguments {
         if !usage_lookup.contains(&argument.usage_id) {
@@ -1592,17 +1763,10 @@ fn insert_type_arguments(
 }
 
 fn insert_literals(
-    tx: &Transaction<'_>,
+    stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare_cached(
-        "INSERT INTO literals
-         (literal_id, file_id, path, language, literal_text, kind, carrier, arg_position,
-          containing_symbol_id, start_line, start_column, end_line, end_column, start_byte,
-          end_byte, confidence, metadata_json)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
-    )?;
     for literal in &file.literals {
         stmt.execute(params![
             literal.literal_id,
@@ -1634,6 +1798,13 @@ fn insert_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqli
           end_line, end_column, start_byte, end_byte, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
     )?;
+    insert_parse_diagnostics_rows(&mut stmt, file)
+}
+
+fn insert_parse_diagnostics_rows(
+    stmt: &mut CachedStatement<'_>,
+    file: &ArtifactFile,
+) -> rusqlite::Result<i64> {
     for diagnostic in &file.parse_diagnostics {
         stmt.execute(params![
             diagnostic.diagnostic_id,
@@ -1832,6 +2003,27 @@ impl TypeArgumentUsageLookup {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::{
+        ArtifactIdentifier, ArtifactPendingRelationship, ArtifactSymbol, ArtifactTypeFact,
+    };
+
+    #[test]
+    fn scan_prepares_batch_statement_sets_once_per_transaction() {
+        writer_prepare_metrics::reset();
+        let mut writer = ArtifactWriter::open_in_memory(test_metadata()).unwrap();
+        let files = (0..5).map(test_file_with_child_rows).collect::<Vec<_>>();
+
+        let result = writer.write_scan(test_revision(), &files).unwrap();
+
+        assert_eq!(result.transactions_committed, 1);
+        assert_eq!(result.rows_written.files, 5);
+        assert_eq!(result.rows_written.symbols, 15);
+        assert_eq!(result.rows_written.identifiers, 10);
+        assert_eq!(result.rows_written.pending_relationships, 5);
+        assert_eq!(result.rows_written.type_facts, 5);
+        assert_eq!(writer_prepare_metrics::file_row_inserter_prepares(), 1);
+        assert_eq!(writer_prepare_metrics::child_row_inserter_prepares(), 1);
+    }
 
     #[test]
     fn symbol_lookup_uses_current_batch_symbols_without_sqlite_query() {
@@ -1860,5 +2052,100 @@ mod tests {
             load_symbol_lookup_for_requested_ids(&tx, &requested, &HashSet::new()).unwrap();
 
         assert!(lookup.ids.is_empty());
+    }
+
+    fn test_metadata() -> ArtifactMetadata {
+        ArtifactMetadata {
+            artifact_id: "artifact-writer-test".to_string(),
+            root_path: "/repo".to_string(),
+            binary_version: "julie-extract 0.1.0".to_string(),
+            hash_algorithm: "blake3".to_string(),
+            parser_inventory_fingerprint: "sha256:parser".to_string(),
+            capability_snapshot_fingerprint: "sha256:cap".to_string(),
+            created_at: "2026-05-31T19:20:00Z".to_string(),
+            updated_at: "2026-05-31T19:20:00Z".to_string(),
+        }
+    }
+
+    fn test_revision() -> RevisionInput {
+        RevisionInput {
+            operation: WriteOperation::Scan,
+            mode: Some(WriteMode::Incremental),
+            started_at: "2026-05-31T19:20:00Z".to_string(),
+            completed_at: "2026-05-31T19:20:01Z".to_string(),
+            binary_version: "julie-extract 0.1.0".to_string(),
+            input_root: Some("/repo".to_string()),
+        }
+    }
+
+    fn test_file_with_child_rows(index: usize) -> ArtifactFile {
+        let mut file = test_file_with_symbols(index, 3);
+        file.identifiers = (0..2)
+            .map(|identifier_index| ArtifactIdentifier {
+                identifier_id: format!("file-{index}-identifier-{identifier_index}"),
+                name: format!("identifier_{index}_{identifier_index}"),
+                containing_symbol_id: Some(format!("file-{index}-symbol-0")),
+                target_symbol_id: Some(format!("file-{index}-symbol-1")),
+                start_line: (identifier_index + 1) as i64,
+                end_line: (identifier_index + 1) as i64,
+                start_byte: (identifier_index * 8) as i64,
+                end_byte: (identifier_index * 8 + 4) as i64,
+                ..ArtifactIdentifier::default()
+            })
+            .collect();
+        file.pending_relationships = vec![ArtifactPendingRelationship {
+            pending_relationship_id: format!("file-{index}-pending"),
+            from_symbol_id: format!("file-{index}-symbol-0"),
+            caller_scope_symbol_id: Some(format!("file-{index}-symbol-0")),
+            target_display_name: "externalTarget".to_string(),
+            target_terminal_name: "externalTarget".to_string(),
+            start_line: 1,
+            ..ArtifactPendingRelationship::default()
+        }];
+        file.type_facts = vec![ArtifactTypeFact {
+            type_fact_id: format!("file-{index}-type"),
+            symbol_id: format!("file-{index}-symbol-0"),
+            resolved_type: "Type".to_string(),
+            generic_params_json: None,
+            constraints_json: None,
+            is_inferred: true,
+            metadata_json: None,
+        }];
+        file
+    }
+
+    fn test_file_with_symbols(index: usize, symbol_count: usize) -> ArtifactFile {
+        ArtifactFile {
+            file_id: format!("file-{index}"),
+            path: format!("src/file_{index}.rs"),
+            language: "rust".to_string(),
+            content_hash: format!("hash-{index}"),
+            content_bytes: 64,
+            line_count: Some(6),
+            indexed_at: "2026-05-31T19:20:00Z".to_string(),
+            status: FileStatus::Indexed,
+            metadata_json: None,
+            symbols: (0..symbol_count)
+                .map(|symbol_index| ArtifactSymbol {
+                    symbol_id: format!("file-{index}-symbol-{symbol_index}"),
+                    name: format!("symbol_{index}_{symbol_index}"),
+                    kind: "function".to_string(),
+                    start_line: (symbol_index + 1) as i64,
+                    end_line: (symbol_index + 1) as i64,
+                    start_byte: (symbol_index * 8) as i64,
+                    end_byte: (symbol_index * 8 + 4) as i64,
+                    ..ArtifactSymbol::default()
+                })
+                .collect(),
+            symbol_annotations: Vec::new(),
+            identifiers: Vec::new(),
+            relationships: Vec::new(),
+            pending_relationships: Vec::new(),
+            type_facts: Vec::new(),
+            type_argument_usages: Vec::new(),
+            type_arguments: Vec::new(),
+            literals: Vec::new(),
+            parse_diagnostics: Vec::new(),
+        }
     }
 }
