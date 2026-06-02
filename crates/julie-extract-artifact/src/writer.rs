@@ -1318,7 +1318,6 @@ impl<'tx> FileRowInserters<'tx> {
 struct ChildRowInserters<'tx> {
     symbol_annotations: CachedStatement<'tx>,
     identifiers: CachedStatement<'tx>,
-    identifier_references: CachedStatement<'tx>,
     relationships: CachedStatement<'tx>,
     pending_relationships: CachedStatement<'tx>,
     type_facts: CachedStatement<'tx>,
@@ -1343,12 +1342,7 @@ impl<'tx> ChildRowInserters<'tx> {
                   target_symbol_id, start_line, start_column, end_line, end_column, start_byte,
                   end_byte, confidence, code_context, metadata_json)
                  VALUES
-                 (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
-            )?,
-            identifier_references: tx.prepare_cached(
-                "UPDATE identifiers
-                 SET containing_symbol_id = ?1, target_symbol_id = ?2
-                 WHERE identifier_id = ?3",
+                 (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
             )?,
             relationships: tx.prepare_cached(
                 "INSERT INTO relationships
@@ -1410,12 +1404,7 @@ impl<'tx> ChildRowInserters<'tx> {
     ) -> rusqlite::Result<()> {
         counts.symbol_annotations +=
             insert_symbol_annotations(&mut self.symbol_annotations, file, symbol_lookup)?;
-        counts.identifiers += insert_identifiers(
-            &mut self.identifiers,
-            &mut self.identifier_references,
-            file,
-            symbol_lookup,
-        )?;
+        counts.identifiers += insert_identifiers(&mut self.identifiers, file, symbol_lookup)?;
         let identifier_lookup = IdentifierLookup::from_file(file);
         counts.relationships += insert_relationships(&mut self.relationships, file, symbol_lookup)?;
         counts.pending_relationships +=
@@ -1588,11 +1577,17 @@ fn insert_symbol_annotations(
 
 fn insert_identifiers(
     stmt: &mut CachedStatement<'_>,
-    ref_update: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
+    // Resolve the symbol FKs inline at INSERT time. symbol_lookup is fully populated before any
+    // child rows are written (all symbols for all files are inserted first), so the second
+    // UPDATE pass that older revisions used was pure overhead — one extra statement per
+    // identifier plus double index maintenance on idx_identifiers_containing/target. Unresolved
+    // references bind as SQL NULL via valid_symbol_id, identical to the prior NULL columns.
     for identifier in &file.identifiers {
+        let containing = valid_symbol_id(symbol_lookup, identifier.containing_symbol_id.as_deref());
+        let target = valid_symbol_id(symbol_lookup, identifier.target_symbol_id.as_deref());
         stmt.execute(params![
             identifier.identifier_id,
             file.file_id,
@@ -1600,6 +1595,8 @@ fn insert_identifiers(
             file.language,
             identifier.name,
             identifier.kind,
+            containing,
+            target,
             identifier.start_line,
             identifier.start_column,
             identifier.end_line,
@@ -1610,14 +1607,6 @@ fn insert_identifiers(
             identifier.code_context,
             identifier.metadata_json,
         ])?;
-    }
-
-    for identifier in &file.identifiers {
-        let containing = valid_symbol_id(symbol_lookup, identifier.containing_symbol_id.as_deref());
-        let target = valid_symbol_id(symbol_lookup, identifier.target_symbol_id.as_deref());
-        if containing.is_some() || target.is_some() {
-            ref_update.execute(params![containing, target, identifier.identifier_id])?;
-        }
     }
 
     Ok(file.identifiers.len() as i64)

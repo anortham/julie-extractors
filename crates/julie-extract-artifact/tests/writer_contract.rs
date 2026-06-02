@@ -297,6 +297,109 @@ fn spooled_scan_allows_relationships_to_symbols_later_in_spool() {
 }
 
 #[test]
+fn scan_resolves_identifier_containing_and_target_symbol_ids() {
+    // Guards the identifier FK write: containing/target must resolve to existing symbol ids
+    // (same-file AND cross-file within one scan), and references to symbols present in no file
+    // must persist as NULL — never a dangling id (which foreign_keys=ON would reject). This
+    // pins the resolved values, which the row-count tests never read back.
+    let mut writer = open_writer();
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-resolved".to_string(),
+        name: "beta".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("file-a-symbol-0".to_string()),
+        target_symbol_id: Some("file-b-symbol-0".to_string()),
+        ..ArtifactIdentifier::default()
+    });
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-dangling".to_string(),
+        name: "ghost".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("does-not-exist".to_string()),
+        target_symbol_id: Some("also-missing".to_string()),
+        ..ArtifactIdentifier::default()
+    });
+    let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
+
+    let result = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_a, file_b],
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.identifiers, 2);
+    assert_eq!(
+        identifier_refs(writer.connection(), "id-resolved"),
+        (
+            Some("file-a-symbol-0".to_string()),
+            Some("file-b-symbol-0".to_string())
+        ),
+        "valid containing/target must resolve, including cross-file within the same scan"
+    );
+    assert_eq!(
+        identifier_refs(writer.connection(), "id-dangling"),
+        (None, None),
+        "references to nonexistent symbols must persist as NULL, never a dangling id"
+    );
+}
+
+#[test]
+fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
+    // Same guard for the spooled production cold-scan path.
+    let mut writer = open_writer();
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-resolved".to_string(),
+        name: "beta".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("file-a-symbol-0".to_string()),
+        target_symbol_id: Some("file-b-symbol-0".to_string()),
+        ..ArtifactIdentifier::default()
+    });
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-dangling".to_string(),
+        name: "ghost".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("does-not-exist".to_string()),
+        target_symbol_id: None,
+        ..ArtifactIdentifier::default()
+    });
+    let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
+    let snapshot_paths = vec![file_a.path.clone(), file_b.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-identifier-refs");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file_a).unwrap();
+    spool.push(&file_b).unwrap();
+
+    let result = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.identifiers, 2);
+    assert_eq!(
+        identifier_refs(writer.connection(), "id-resolved"),
+        (
+            Some("file-a-symbol-0".to_string()),
+            Some("file-b-symbol-0".to_string())
+        ),
+        "spooled path must resolve containing/target, including cross-file within one spool"
+    );
+    assert_eq!(
+        identifier_refs(writer.connection(), "id-dangling"),
+        (None, None),
+        "spooled path must null references to nonexistent symbols"
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
 fn spooled_scan_deletes_files_missing_from_snapshot_paths() {
     let mut writer = open_writer();
     writer
@@ -972,6 +1075,15 @@ fn count(conn: &Connection, table: &str) -> i64 {
     conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
         row.get(0)
     })
+    .unwrap()
+}
+
+fn identifier_refs(conn: &Connection, identifier_id: &str) -> (Option<String>, Option<String>) {
+    conn.query_row(
+        "SELECT containing_symbol_id, target_symbol_id FROM identifiers WHERE identifier_id = ?1",
+        [identifier_id],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )
     .unwrap()
 }
 
