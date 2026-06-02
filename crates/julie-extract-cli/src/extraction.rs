@@ -85,18 +85,62 @@ pub(crate) fn extract_artifact_file_from_snapshot(
     indexed_at: String,
     snapshot: SourceSnapshot,
 ) -> Result<ArtifactFile, ExtractFileError> {
-    let mut results = extract_canonical(&target.root_relative_path, &snapshot.content, root)
-        .map_err(|error| ExtractFileError {
-            kind: ExtractFileErrorKind::Extract,
-            path: target.absolute_path.display().to_string(),
-            root_relative_path: target.root_relative_path.clone(),
-            message: error.to_string(),
-            content_hash: Some(snapshot.content_hash.clone()),
-            content_bytes: Some(snapshot.content_bytes),
-        })?;
+    let mut results = catch_extraction_panic(target, &snapshot, || {
+        extract_canonical(&target.root_relative_path, &snapshot.content, root)
+    })?;
     classify_literals_by_carrier(&mut results.literals);
 
     map_results(target, language, indexed_at, &snapshot, results)
+}
+
+/// Build the `Extract`-kind error for a file, carrying the snapshot's hash/byte
+/// context so a failed extraction still produces a faithful `FailedPreserved` row.
+fn extract_error(
+    target: &FileTarget,
+    snapshot: &SourceSnapshot,
+    message: String,
+) -> ExtractFileError {
+    ExtractFileError {
+        kind: ExtractFileErrorKind::Extract,
+        path: target.absolute_path.display().to_string(),
+        root_relative_path: target.root_relative_path.clone(),
+        message,
+        content_hash: Some(snapshot.content_hash.clone()),
+        content_bytes: Some(snapshot.content_bytes),
+    }
+}
+
+/// Run a single file's extraction, converting both a returned error AND a panic
+/// into an `ExtractFileError`. A panic in any extractor (e.g. an unguarded byte
+/// slice) must degrade to one `FailedPreserved` row, never abort a whole-tree scan.
+fn catch_extraction_panic<F, E>(
+    target: &FileTarget,
+    snapshot: &SourceSnapshot,
+    extract: F,
+) -> Result<ExtractionResults, ExtractFileError>
+where
+    F: FnOnce() -> Result<ExtractionResults, E>,
+    E: std::fmt::Display,
+{
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(extract)) {
+        Ok(Ok(results)) => Ok(results),
+        Ok(Err(error)) => Err(extract_error(target, snapshot, error.to_string())),
+        Err(panic) => Err(extract_error(
+            target,
+            snapshot,
+            format!("extractor panicked: {}", panic_message(panic)),
+        )),
+    }
+}
+
+fn panic_message(panic: Box<dyn std::any::Any + Send>) -> String {
+    if let Some(message) = panic.downcast_ref::<&str>() {
+        (*message).to_string()
+    } else if let Some(message) = panic.downcast_ref::<String>() {
+        message.clone()
+    } else {
+        "unknown panic".to_string()
+    }
 }
 
 pub(crate) fn failed_artifact_file(
@@ -707,5 +751,69 @@ fn failure_parse_diagnostic(
         start_byte: 0,
         end_byte: content_bytes,
         metadata_json: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_target() -> FileTarget {
+        FileTarget {
+            absolute_path: std::path::PathBuf::from("/tmp/test/x.rs"),
+            root_relative_path: "x.rs".to_string(),
+        }
+    }
+
+    fn sample_snapshot() -> SourceSnapshot {
+        SourceSnapshot {
+            content: String::new(),
+            content_hash: "blake3:deadbeef".to_string(),
+            content_bytes: 0,
+            line_count: Some(0),
+        }
+    }
+
+    #[test]
+    fn catch_extraction_panic_converts_panic_into_failed_extract_error() {
+        // Suppress the default panic hook so the deliberately-induced panic does not
+        // print a backtrace line to the test output.
+        let previous_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let result = catch_extraction_panic(
+            &sample_target(),
+            &sample_snapshot(),
+            || -> Result<ExtractionResults, String> { panic!("boom in extractor") },
+        );
+        std::panic::set_hook(previous_hook);
+
+        let error = result.expect_err("a panicking extractor must produce an error, not unwind");
+        assert_eq!(error.kind, ExtractFileErrorKind::Extract);
+        assert!(
+            error.message.contains("boom in extractor"),
+            "panic payload should be surfaced, got: {}",
+            error.message
+        );
+        assert_eq!(error.content_hash.as_deref(), Some("blake3:deadbeef"));
+        assert_eq!(error.root_relative_path, "x.rs");
+    }
+
+    #[test]
+    fn catch_extraction_panic_maps_returned_error() {
+        let error = catch_extraction_panic(&sample_target(), &sample_snapshot(), || {
+            Err::<ExtractionResults, String>("parse exploded".to_string())
+        })
+        .expect_err("a returned Err must map to an ExtractFileError");
+        assert_eq!(error.kind, ExtractFileErrorKind::Extract);
+        assert!(error.message.contains("parse exploded"));
+    }
+
+    #[test]
+    fn catch_extraction_panic_passes_through_success() {
+        let results = catch_extraction_panic(&sample_target(), &sample_snapshot(), || {
+            Ok::<ExtractionResults, String>(ExtractionResults::empty())
+        })
+        .expect("successful extraction must pass through unchanged");
+        assert!(results.symbols.is_empty());
     }
 }

@@ -43,6 +43,27 @@ multiply <- function(x, y) {
     }
 
     #[test]
+    fn function_with_long_multibyte_default_does_not_panic() {
+        // Regression: format_parameter truncated the default value with `&s[..30]`,
+        // guarded only by a byte-length check. When byte 30 landed inside a multibyte
+        // UTF-8 codepoint it panicked, aborting the entire scan. One adversarial-but-valid
+        // R file must degrade to (at worst) a failed file, never crash the process.
+        let r_code = "f <- function(x = \"あいうえおかきくけこさしすせそたちつてと\") {\n  x\n}\n";
+
+        let symbols = extract_symbols(r_code);
+
+        let function = symbols
+            .iter()
+            .find(|s| s.kind == SymbolKind::Function && s.name == "f")
+            .expect("function f should be extracted without panicking");
+        let signature = function.signature.as_deref().unwrap_or_default();
+        assert!(
+            signature.contains('x'),
+            "signature should include the parameter name, got {signature:?}"
+        );
+    }
+
+    #[test]
     fn test_function_with_default_parameters() {
         let r_code = r#"
 # Function with default parameters
