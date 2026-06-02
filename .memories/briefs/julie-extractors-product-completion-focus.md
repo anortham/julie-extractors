@@ -3,7 +3,7 @@ id: julie-extractors-product-completion-focus
 title: julie-extractors Product Completion Focus
 status: active
 created: 2026-06-01T13:24:06.835Z
-updated: 2026-06-01T21:12:41.587Z
+updated: 2026-06-02T19:39:28.214Z
 tags:
   - julie-extractors
   - product-bootstrap
@@ -16,28 +16,31 @@ tags:
 ## Current State
 
 - v2.0.0 is published: https://github.com/anortham/julie-extractors/releases/tag/v2.0.0.
-- Release Binaries workflow run `26781742834` passed from `main` commit `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
-- Remote tag `v2.0.0` points at `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
-- Four GitHub Release assets are published: Linux x86_64, macOS Apple Silicon, macOS Intel, and Windows x86_64.
-- Primary tracker: `docs/plans/2026-06-01-product-completion-tracker.md`.
-- Release evidence: `docs/release-evidence/2026-06-01-v2-0-0-release.md`.
+- v2.0.1 release candidate is prepared locally on `main` but not yet published.
+- v2.0.1 candidate scope fixes the Eros SQLite write-path blocker, adds report profiling, prunes noisy external pending relationships, and adds a small artifact-writer prepared-statement cache tune.
+- Primary v2.0.1 evidence: `docs/release-evidence/2026-06-02-v2-0-1-release-candidate.md`.
+- v2.0.1 release notes: `docs/release-notes/v2.0.1.md`.
+- Release Binaries workflow defaults now target `2.0.1`; README still points at the published v2.0.0 assets until v2.0.1 is actually published and asset checksums exist.
 - Product boundary remains: source tree -> versioned extraction artifact. SQLite primary, JSONL secondary, `julie-extract` CLI primary, Rust crate secondary.
 - Full source file contents are intentionally not stored in SQLite, JSONL, or JSON reports. Consumers read the matching source tree when complete file text is needed.
 
 ## Completed Release Scope
 
 - Standalone contracts, repo bootstrap, Julie code migration, release readiness, release blocker fixes, v2.0.0 version alignment, and test-role contract alignment are complete.
-- Release workflow publishing upgrade is complete: four platform-specific release archives are attached to the GitHub Release.
-- The v2.0.0 release decision has been executed. There is no active pre-release implementation branch.
+- v2.0.0 release workflow publishing upgrade is complete: four platform-specific release archives are attached to the GitHub Release.
+- v2.0.1 release-candidate verification is complete locally except the final commit/push/publish flow.
 
 ## Current Evidence
 
-- PR #9 merged as `94f1661` on 2026-06-01 after GitHub Fast Gates passed.
-- Post-merge status commit `e9d5601` passed GitHub Fast Gates in run `26776385538`.
-- Release workflow upgrade commit `a1f5069` passed local gates before push: `cargo fmt --all -- --check`, `cargo test -p xtask`, `cargo metadata --format-version 1`, scoped `cargo clippy`, `scripts/check-agent-doc-sync.sh`, `cargo xtask release package-list`, `cargo xtask test default`, and `cargo xtask test contract`.
-- GitHub Fast Gates passed for `a1f5069` before release in run `26781385166`.
-- Release Binaries workflow run `26781742834` passed and published `v2.0.0`.
-- GitHub release metadata confirms `v2.0.0` is published, non-draft, non-prerelease, and targets `a1f5069a36975e446c6a533e60bdcd3a9d3c11fa`.
+- v2.0.1 force-scan matrix with `julie-extract 2.0.1`:
+  - Eros: ok, 611 files, 80,494 symbols, 5.10s wall time.
+  - openclaw: ok, 12,781 supported files, 640,317 symbols, 87.88s wall time.
+  - hermes-agent: ok, 2,588 files, 261,296 symbols, 30.35s wall time.
+  - Newtonsoft.Json: ok, 981 files, 21,286 symbols, 6.62s wall time.
+  - julie-extractors: ok, 1,035 files, 33,686 symbols, 6.79s wall time.
+- v2.0.1 no-change rescans are cheap: openclaw 1.17s, hermes-agent 0.19s, Eros 0.05s.
+- Local v2.0.1 gates passed: format, diff check, agent-doc sync, metadata, xtask tests, package-list, local package staging, default, contract, changed-path with certification trigger, real-world smoke, dogfood repo.
+- Openclaw cold scan remains expensive because it extracts/writes roughly two million rows; defer deeper cold-scan optimization until after v2.0.1 unless the user reopens it as release-blocking.
 
 ## Hard Boundaries
 
@@ -48,4 +51,4 @@ tags:
 
 ## Operating Rule
 
-Do not keep rerunning broad tests for status checks. Use same-HEAD evidence after the merge unless code changes. Run focused tests after edits, and run default+contract branch gates before the next merge/push/PR.
+Do not keep rerunning broad tests for status checks. Use same-HEAD evidence after the v2.0.1 release-candidate commit unless code changes. Run focused tests after edits, and run default+contract branch gates before the next merge/push/PR.

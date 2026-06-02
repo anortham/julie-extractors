@@ -20,6 +20,7 @@ use crate::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_sche
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
 
 const SQLITE_BULK_CACHE_SIZE_KIB: i64 = -131_072;
+const SQLITE_STATEMENT_CACHE_CAPACITY: usize = 64;
 const DROP_SYMBOL_LOOKUP_TEMP_TABLE_SQL: &str =
     "DROP TABLE IF EXISTS temp.julie_symbol_lookup_requested";
 const CREATE_SYMBOL_LOOKUP_TEMP_TABLE_SQL: &str = "
@@ -253,6 +254,7 @@ pub struct ArtifactWriter {
 impl ArtifactWriter {
     pub fn open_in_memory(metadata: ArtifactMetadata) -> rusqlite::Result<Self> {
         let connection = Connection::open_in_memory()?;
+        connection.set_prepared_statement_cache_capacity(SQLITE_STATEMENT_CACHE_CAPACITY);
         create_schema(&connection)?;
         initialize_metadata(&connection, &metadata)?;
         Ok(Self {
@@ -265,6 +267,7 @@ impl ArtifactWriter {
         let path = path.as_ref();
         let existed = path.exists();
         let connection = Connection::open(path)?;
+        connection.set_prepared_statement_cache_capacity(SQLITE_STATEMENT_CACHE_CAPACITY);
         connection.pragma_update(None, "journal_mode", "WAL")?;
         connection.pragma_update(None, "synchronous", "NORMAL")?;
         connection.pragma_update(None, "temp_store", "MEMORY")?;
@@ -1013,22 +1016,19 @@ fn json_string<T: serde::Serialize + ?Sized>(value: &T) -> String {
 }
 
 fn load_existing_file(tx: &Transaction<'_>, path: &str) -> rusqlite::Result<Option<ExistingFile>> {
-    tx.query_row(
-        "SELECT file_id, content_hash FROM files WHERE path = ?1",
-        [path],
-        |row| {
-            Ok(ExistingFile {
-                file_id: row.get(0)?,
-                path: path.to_string(),
-                content_hash: row.get(1)?,
-            })
-        },
-    )
+    let mut stmt = tx.prepare_cached("SELECT file_id, content_hash FROM files WHERE path = ?1")?;
+    stmt.query_row([path], |row| {
+        Ok(ExistingFile {
+            file_id: row.get(0)?,
+            path: path.to_string(),
+            content_hash: row.get(1)?,
+        })
+    })
     .optional()
 }
 
 fn load_existing_files(tx: &Transaction<'_>) -> rusqlite::Result<Vec<ExistingFile>> {
-    let mut statement = tx.prepare("SELECT file_id, path, content_hash FROM files")?;
+    let mut statement = tx.prepare_cached("SELECT file_id, path, content_hash FROM files")?;
     statement
         .query_map([], |row| {
             Ok(ExistingFile {
@@ -1159,11 +1159,11 @@ fn insert_revision_file_change(
     path: &str,
     change_kind: RevisionChangeKind,
 ) -> rusqlite::Result<i64> {
-    tx.execute(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO revision_file_changes (revision_id, file_id, path, change_kind)
          VALUES (?1, ?2, ?3, ?4)",
-        params![revision_id, file_id, path, change_kind.as_str()],
     )?;
+    stmt.execute(params![revision_id, file_id, path, change_kind.as_str()])?;
     Ok(1)
 }
 
@@ -1205,24 +1205,24 @@ fn insert_file(
     revision_id: i64,
     file: &ArtifactFile,
 ) -> rusqlite::Result<()> {
-    tx.execute(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO files
          (file_id, path, language, content_hash, content_bytes, line_count, indexed_at,
           last_revision_id, status, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-        params![
-            file.file_id,
-            file.path,
-            file.language,
-            file.content_hash,
-            file.content_bytes,
-            file.line_count,
-            file.indexed_at,
-            revision_id,
-            file.status.as_str(),
-            file.metadata_json,
-        ],
     )?;
+    stmt.execute(params![
+        file.file_id,
+        file.path,
+        file.language,
+        file.content_hash,
+        file.content_bytes,
+        file.line_count,
+        file.indexed_at,
+        revision_id,
+        file.status.as_str(),
+        file.metadata_json,
+    ])?;
     Ok(())
 }
 
@@ -1275,7 +1275,7 @@ fn replace_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusql
 }
 
 fn insert_symbols(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO symbols
 	     (symbol_id, file_id, path, language, name, kind, signature, doc_comment, visibility,
 	      parent_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
@@ -1330,7 +1330,7 @@ fn update_symbol_parents<'a>(
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<()> {
     let mut parent_update =
-        tx.prepare("UPDATE symbols SET parent_symbol_id = ?1 WHERE symbol_id = ?2")?;
+        tx.prepare_cached("UPDATE symbols SET parent_symbol_id = ?1 WHERE symbol_id = ?2")?;
     for file in files {
         for symbol in &file.symbols {
             if let Some(parent_symbol_id) = symbol.parent_symbol_id.as_deref()
@@ -1348,7 +1348,7 @@ fn insert_symbol_annotations(
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO symbol_annotations
          (annotation_id, symbol_id, annotation, annotation_key, raw_text, carrier, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -1377,7 +1377,7 @@ fn insert_identifiers(
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO identifiers
          (identifier_id, file_id, path, language, name, kind, containing_symbol_id,
           target_symbol_id, start_line, start_column, end_line, end_column, start_byte, end_byte,
@@ -1405,7 +1405,7 @@ fn insert_identifiers(
     }
     drop(stmt);
 
-    let mut ref_update = tx.prepare(
+    let mut ref_update = tx.prepare_cached(
         "UPDATE identifiers
          SET containing_symbol_id = ?1, target_symbol_id = ?2
          WHERE identifier_id = ?3",
@@ -1426,7 +1426,7 @@ fn insert_relationships(
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO relationships
          (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
           start_column, end_line, end_column, start_byte, end_byte, confidence, metadata_json)
@@ -1465,7 +1465,7 @@ fn insert_pending_relationships(
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO pending_relationships
          (pending_relationship_id, from_symbol_id, caller_scope_symbol_id, file_id, path, kind,
           target_display_name, target_terminal_name, target_receiver, target_namespace_json,
@@ -1510,7 +1510,7 @@ fn insert_type_facts(
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO type_facts
          (type_fact_id, symbol_id, language, resolved_type, generic_params_json,
           constraints_json, is_inferred, metadata_json)
@@ -1541,7 +1541,7 @@ fn insert_type_argument_usages(
     file: &ArtifactFile,
     identifier_lookup: &IdentifierLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO type_argument_usages
          (usage_id, identifier_id, file_id, path, language, metadata_json)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -1569,7 +1569,7 @@ fn insert_type_arguments(
     arguments: &[ArtifactTypeArgument],
     usage_lookup: &TypeArgumentUsageLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO type_arguments
          (type_argument_id, usage_id, parent_type_argument_id, ordinal, type_name)
          VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -1596,7 +1596,7 @@ fn insert_literals(
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO literals
          (literal_id, file_id, path, language, literal_text, kind, carrier, arg_position,
           containing_symbol_id, start_line, start_column, end_line, end_column, start_byte,
@@ -1628,7 +1628,7 @@ fn insert_literals(
 }
 
 fn insert_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "INSERT INTO parse_diagnostics
          (diagnostic_id, file_id, path, language, kind, message, start_line, start_column,
           end_line, end_column, start_byte, end_byte, metadata_json)

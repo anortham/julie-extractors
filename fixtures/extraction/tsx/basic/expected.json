@@ -171,36 +171,8 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [
-    {
-      "from_key": "fixtures/extraction/tsx/basic/source.tsx:format:9:0",
-      "callee_name": "value.trim",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
-      "line_number": 10,
-      "confidence": "0.700"
-    }
-  ],
-  "structured_pending_relationships": [
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/tsx/basic/source.tsx:format:9:0",
-        "callee_name": "value.trim",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/tsx/basic/source.tsx",
-        "line_number": 10,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "value.trim",
-        "terminal_name": "trim",
-        "receiver": "value",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/tsx/basic/source.tsx:format:9:0"
-    }
-  ],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
   "identifiers": [
     {
       "key": "fixtures/extraction/tsx/basic/source.tsx:Props:type_usage:5:29",
