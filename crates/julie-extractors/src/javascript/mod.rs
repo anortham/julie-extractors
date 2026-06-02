@@ -96,29 +96,31 @@ impl JavaScriptExtractor {
                 match symbol_map.get(function_name.as_str()) {
                     Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
                         let target = self.build_unresolved_target(node, function_node, symbol_map);
-                        // This is a call to an imported function - create pending relationship
-                        let pending = self.base.create_pending_relationship(
-                            caller_symbol.id.clone(),
-                            target,
-                            crate::base::RelationshipKind::Calls,
-                            &node,
-                            Some(caller_symbol.id.clone()),
-                            Some(0.8),
-                        );
-                        self.add_structured_pending_relationship(pending);
+                        if Self::should_emit_pending_call(&target) {
+                            let pending = self.base.create_pending_relationship(
+                                caller_symbol.id.clone(),
+                                target,
+                                crate::base::RelationshipKind::Calls,
+                                &node,
+                                Some(caller_symbol.id.clone()),
+                                Some(0.8),
+                            );
+                            self.add_structured_pending_relationship(pending);
+                        }
                     }
                     None => {
                         let target = self.build_unresolved_target(node, function_node, symbol_map);
-                        // Unknown function - could be from another file
-                        let pending = self.base.create_pending_relationship(
-                            caller_symbol.id.clone(),
-                            target,
-                            crate::base::RelationshipKind::Calls,
-                            &node,
-                            Some(caller_symbol.id.clone()),
-                            Some(0.7),
-                        );
-                        self.add_structured_pending_relationship(pending);
+                        if Self::should_emit_pending_call(&target) {
+                            let pending = self.base.create_pending_relationship(
+                                caller_symbol.id.clone(),
+                                target,
+                                crate::base::RelationshipKind::Calls,
+                                &node,
+                                Some(caller_symbol.id.clone()),
+                                Some(0.7),
+                            );
+                            self.add_structured_pending_relationship(pending);
+                        }
                     }
                     _ => {}
                 }
@@ -241,6 +243,10 @@ impl JavaScriptExtractor {
         self.base.get_node_text(&function_node)
     }
 
+    fn should_emit_pending_call(target: &UnresolvedTarget) -> bool {
+        target.receiver.is_none() || target.import_context.is_some()
+    }
+
     fn build_unresolved_target(
         &mut self,
         call_node: tree_sitter::Node,
@@ -248,9 +254,8 @@ impl JavaScriptExtractor {
         symbol_map: &HashMap<String, &Symbol>,
     ) -> UnresolvedTarget {
         if function_node.kind() == "member_expression" {
-            let receiver = function_node
-                .child_by_field_name("object")
-                .map(|node| self.base.get_node_text(&node));
+            let receiver_node = function_node.child_by_field_name("object");
+            let receiver = receiver_node.map(|node| self.base.get_node_text(&node));
             let property = function_node
                 .child_by_field_name("property")
                 .map(|node| self.base.get_node_text(&node))
@@ -259,8 +264,8 @@ impl JavaScriptExtractor {
                 .as_ref()
                 .map(|receiver| format!("{receiver}.{property}"))
                 .unwrap_or_else(|| property.clone());
-            let import_context = receiver.as_deref().and_then(|receiver| {
-                self.find_receiver_import_context(call_node, receiver, symbol_map)
+            let import_context = receiver_node.and_then(|receiver_node| {
+                self.member_receiver_import_context(call_node, receiver_node, symbol_map)
             });
 
             return UnresolvedTarget {
@@ -273,13 +278,7 @@ impl JavaScriptExtractor {
         }
 
         let function_name = self.base.get_node_text(&function_node);
-        let import_context = symbol_map
-            .get(&function_name)
-            .and_then(|symbol| (symbol.kind == SymbolKind::Import).then(|| symbol.name.clone()))
-            .or_else(|| {
-                self.file_imports_binding(call_node, &function_name)
-                    .then_some(function_name.clone())
-            });
+        let import_context = self.imported_binding_context(call_node, &function_name, symbol_map);
         UnresolvedTarget {
             display_name: function_name.clone(),
             terminal_name: function_name,
@@ -287,6 +286,36 @@ impl JavaScriptExtractor {
             namespace_path: Vec::new(),
             import_context,
         }
+    }
+
+    fn member_receiver_import_context(
+        &mut self,
+        call_node: tree_sitter::Node,
+        receiver_node: tree_sitter::Node,
+        symbol_map: &HashMap<String, &Symbol>,
+    ) -> Option<String> {
+        if receiver_node.kind() != "identifier" {
+            return None;
+        }
+
+        let receiver_name = self.base.get_node_text(&receiver_node);
+        self.imported_binding_context(call_node, &receiver_name, symbol_map)
+            .or_else(|| self.find_receiver_import_context(call_node, &receiver_name, symbol_map))
+    }
+
+    fn imported_binding_context(
+        &mut self,
+        node: tree_sitter::Node,
+        binding_name: &str,
+        symbol_map: &HashMap<String, &Symbol>,
+    ) -> Option<String> {
+        symbol_map
+            .get(binding_name)
+            .and_then(|symbol| (symbol.kind == SymbolKind::Import).then(|| symbol.name.clone()))
+            .or_else(|| {
+                self.file_imports_binding(node, binding_name)
+                    .then_some(binding_name.to_string())
+            })
     }
 
     fn find_receiver_import_context(
@@ -769,6 +798,71 @@ mod tests {
             service_pending
                 .iter()
                 .all(|pending| { pending.target.import_context.as_deref() == Some("Service") })
+        );
+    }
+
+    #[test]
+    fn imported_receiver_member_calls_emit_pending_relationships() {
+        let source = r#"
+            import * as path from "node:path";
+
+            function run() {
+                path.join("a", "b");
+            }
+        "#;
+        let tree = parse_javascript(source);
+        let mut extractor = JavaScriptExtractor::new(
+            "javascript".to_string(),
+            "src/app.js".to_string(),
+            source.to_string(),
+            Path::new("src"),
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+        extractor.extract_relationships(&tree, &symbols);
+
+        let pending = extractor.get_structured_pending_relationships();
+        let path_join = pending
+            .iter()
+            .find(|pending| {
+                pending.target.receiver.as_deref() == Some("path")
+                    && pending.target.terminal_name == "join"
+            })
+            .expect("imported receiver member call should emit a pending relationship");
+        assert_eq!(path_join.target.import_context.as_deref(), Some("path"));
+    }
+
+    #[test]
+    fn unimported_member_calls_do_not_emit_pending_relationships() {
+        let source = r#"
+            function run(value, result) {
+                value.trim();
+                expect(result).toBe(1);
+            }
+        "#;
+        let tree = parse_javascript(source);
+        let mut extractor = JavaScriptExtractor::new(
+            "javascript".to_string(),
+            "src/app.js".to_string(),
+            source.to_string(),
+            Path::new("src"),
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+        extractor.extract_relationships(&tree, &symbols);
+
+        let pending = extractor.get_structured_pending_relationships();
+        assert!(
+            !pending
+                .iter()
+                .any(|pending| pending.target.terminal_name == "trim"),
+            "unimported local value methods should not be cross-file pending calls"
+        );
+        assert!(
+            !pending
+                .iter()
+                .any(|pending| pending.target.terminal_name == "toBe"),
+            "matcher chains without an imported receiver should not be cross-file pending calls"
         );
     }
 
