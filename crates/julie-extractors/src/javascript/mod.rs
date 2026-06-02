@@ -23,12 +23,14 @@ use crate::base::{
     BaseExtractor, PendingRelationship, Relationship, StructuredPendingRelationship, Symbol,
     SymbolKind, UnresolvedTarget,
 };
+use crate::ecmascript_imports::{ImportSourceKind, import_source_from_symbol, import_source_kind};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::Tree;
 
 pub struct JavaScriptExtractor {
     base: BaseExtractor,
     import_bindings: Option<HashSet<String>>,
+    import_binding_sources: Option<HashMap<String, String>>,
     receiver_import_contexts: HashMap<(usize, String), Option<String>>,
 }
 
@@ -42,6 +44,7 @@ impl JavaScriptExtractor {
         Self {
             base: BaseExtractor::new(language, file_path, content, workspace_root),
             import_bindings: None,
+            import_binding_sources: None,
             receiver_import_contexts: HashMap::new(),
         }
     }
@@ -95,31 +98,37 @@ impl JavaScriptExtractor {
                 // Check if this is a call to an import or unknown function
                 match symbol_map.get(function_name.as_str()) {
                     Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
-                        let target = self.build_unresolved_target(node, function_node, symbol_map);
-                        if Self::should_emit_pending_call(&target) {
-                            let pending = self.base.create_pending_relationship(
-                                caller_symbol.id.clone(),
-                                target,
-                                crate::base::RelationshipKind::Calls,
-                                &node,
-                                Some(caller_symbol.id.clone()),
-                                Some(0.8),
-                            );
-                            self.add_structured_pending_relationship(pending);
+                        if let Some(target) =
+                            self.build_unresolved_target(node, function_node, symbol_map)
+                        {
+                            if Self::should_emit_pending_call(&target) {
+                                let pending = self.base.create_pending_relationship(
+                                    caller_symbol.id.clone(),
+                                    target,
+                                    crate::base::RelationshipKind::Calls,
+                                    &node,
+                                    Some(caller_symbol.id.clone()),
+                                    Some(0.8),
+                                );
+                                self.add_structured_pending_relationship(pending);
+                            }
                         }
                     }
                     None => {
-                        let target = self.build_unresolved_target(node, function_node, symbol_map);
-                        if Self::should_emit_pending_call(&target) {
-                            let pending = self.base.create_pending_relationship(
-                                caller_symbol.id.clone(),
-                                target,
-                                crate::base::RelationshipKind::Calls,
-                                &node,
-                                Some(caller_symbol.id.clone()),
-                                Some(0.7),
-                            );
-                            self.add_structured_pending_relationship(pending);
+                        if let Some(target) =
+                            self.build_unresolved_target(node, function_node, symbol_map)
+                        {
+                            if Self::should_emit_pending_call(&target) {
+                                let pending = self.base.create_pending_relationship(
+                                    caller_symbol.id.clone(),
+                                    target,
+                                    crate::base::RelationshipKind::Calls,
+                                    &node,
+                                    Some(caller_symbol.id.clone()),
+                                    Some(0.7),
+                                );
+                                self.add_structured_pending_relationship(pending);
+                            }
                         }
                     }
                     _ => {}
@@ -252,7 +261,7 @@ impl JavaScriptExtractor {
         call_node: tree_sitter::Node,
         function_node: tree_sitter::Node,
         symbol_map: &HashMap<String, &Symbol>,
-    ) -> UnresolvedTarget {
+    ) -> Option<UnresolvedTarget> {
         if function_node.kind() == "member_expression" {
             let receiver_node = function_node.child_by_field_name("object");
             let receiver = receiver_node.map(|node| self.base.get_node_text(&node));
@@ -268,24 +277,31 @@ impl JavaScriptExtractor {
                 self.member_receiver_import_context(call_node, receiver_node, symbol_map)
             });
 
-            return UnresolvedTarget {
+            return Some(UnresolvedTarget {
                 display_name,
                 terminal_name: property,
                 receiver,
                 namespace_path: Vec::new(),
                 import_context,
-            };
+            });
         }
 
         let function_name = self.base.get_node_text(&function_node);
+        if matches!(
+            self.import_binding_source_kind(call_node, &function_name, symbol_map),
+            Some(ImportSourceKind::External)
+        ) {
+            return None;
+        }
+
         let import_context = self.imported_binding_context(call_node, &function_name, symbol_map);
-        UnresolvedTarget {
+        Some(UnresolvedTarget {
             display_name: function_name.clone(),
             terminal_name: function_name,
             receiver: None,
             namespace_path: Vec::new(),
             import_context,
-        }
+        })
     }
 
     fn member_receiver_import_context(
@@ -309,13 +325,29 @@ impl JavaScriptExtractor {
         binding_name: &str,
         symbol_map: &HashMap<String, &Symbol>,
     ) -> Option<String> {
-        symbol_map
+        matches!(
+            self.import_binding_source_kind(node, binding_name, symbol_map),
+            Some(ImportSourceKind::ProjectRelative)
+        )
+        .then_some(binding_name.to_string())
+    }
+
+    fn import_binding_source_kind(
+        &mut self,
+        node: tree_sitter::Node,
+        binding_name: &str,
+        symbol_map: &HashMap<String, &Symbol>,
+    ) -> Option<ImportSourceKind> {
+        if let Some(source_kind) = symbol_map
             .get(binding_name)
-            .and_then(|symbol| (symbol.kind == SymbolKind::Import).then(|| symbol.name.clone()))
-            .or_else(|| {
-                self.file_imports_binding(node, binding_name)
-                    .then_some(binding_name.to_string())
-            })
+            .filter(|symbol| symbol.kind == SymbolKind::Import)
+            .and_then(|symbol| import_source_from_symbol(symbol).map(import_source_kind))
+        {
+            return Some(source_kind);
+        }
+
+        self.file_import_binding_source(node, binding_name)
+            .map(|source| import_source_kind(&source))
     }
 
     fn find_receiver_import_context(
@@ -381,10 +413,9 @@ impl JavaScriptExtractor {
                 continue;
             };
             let constructor_name = self.base.get_node_text(&constructor_node);
-            if symbol_map
-                .get(&constructor_name)
-                .is_some_and(|symbol| symbol.kind == SymbolKind::Import)
-                || self.file_imports_binding(caller_scope, &constructor_name)
+            if self
+                .imported_binding_context(caller_scope, &constructor_name, symbol_map)
+                .is_some()
             {
                 return Some(constructor_name);
             }
@@ -410,16 +441,34 @@ impl JavaScriptExtractor {
         None
     }
 
+    #[cfg(test)]
     fn file_imports_binding(&mut self, node: tree_sitter::Node, binding_name: &str) -> bool {
         self.file_import_bindings(node).contains(binding_name)
     }
 
+    #[cfg(test)]
     fn file_import_bindings(&mut self, node: tree_sitter::Node) -> &HashSet<String> {
-        if self.import_bindings.is_some() {
-            return self
-                .import_bindings
-                .as_ref()
-                .expect("import binding cache is initialized");
+        self.ensure_import_binding_cache(node);
+        self.import_bindings
+            .as_ref()
+            .expect("import binding cache is initialized")
+    }
+
+    fn file_import_binding_source(
+        &mut self,
+        node: tree_sitter::Node,
+        binding_name: &str,
+    ) -> Option<String> {
+        self.ensure_import_binding_cache(node);
+        self.import_binding_sources
+            .as_ref()
+            .and_then(|sources| sources.get(binding_name))
+            .cloned()
+    }
+
+    fn ensure_import_binding_cache(&mut self, node: tree_sitter::Node) {
+        if self.import_bindings.is_some() && self.import_binding_sources.is_some() {
+            return;
         }
 
         let mut current = Some(node);
@@ -430,6 +479,7 @@ impl JavaScriptExtractor {
         }
 
         let mut bindings = HashSet::new();
+        let mut binding_sources = HashMap::new();
         let mut stack = vec![root];
         while let Some(candidate) = stack.pop() {
             let mut cursor = candidate.walk();
@@ -441,19 +491,37 @@ impl JavaScriptExtractor {
                 continue;
             }
 
-            self.collect_import_binding_names(candidate, &mut bindings);
+            let source = self.import_source_for_import_node(candidate);
+            self.collect_import_bindings(
+                candidate,
+                source.as_deref().unwrap_or_default(),
+                &mut bindings,
+                &mut binding_sources,
+            );
         }
 
         self.import_bindings = Some(bindings);
-        self.import_bindings
-            .as_ref()
-            .expect("import binding cache is initialized")
+        self.import_binding_sources = Some(binding_sources);
     }
 
-    fn collect_import_binding_names(
+    fn import_source_for_import_node(&self, import_node: tree_sitter::Node) -> Option<String> {
+        import_node
+            .child_by_field_name("source")
+            .map(|source| {
+                self.base
+                    .get_node_text(&source)
+                    .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+                    .to_string()
+            })
+            .filter(|source| !source.is_empty())
+    }
+
+    fn collect_import_bindings(
         &self,
         import_node: tree_sitter::Node,
+        source: &str,
         bindings: &mut HashSet<String>,
+        binding_sources: &mut HashMap<String, String>,
     ) {
         let Some(clause) = import_node
             .children(&mut import_node.walk())
@@ -466,15 +534,27 @@ impl JavaScriptExtractor {
         for child in clause.children(&mut cursor) {
             match child.kind() {
                 "identifier" => {
-                    bindings.insert(self.base.get_node_text(&child));
+                    self.record_import_binding(
+                        self.base.get_node_text(&child),
+                        source,
+                        bindings,
+                        binding_sources,
+                    );
                 }
-                "named_imports" => self.collect_named_import_bindings(child, bindings),
+                "named_imports" => {
+                    self.collect_named_import_bindings(child, source, bindings, binding_sources)
+                }
                 "namespace_import" => {
                     if let Some(local_node) = child
                         .children(&mut child.walk())
                         .find(|candidate| candidate.kind() == "identifier")
                     {
-                        bindings.insert(self.base.get_node_text(&local_node));
+                        self.record_import_binding(
+                            self.base.get_node_text(&local_node),
+                            source,
+                            bindings,
+                            binding_sources,
+                        );
                     }
                 }
                 _ => {}
@@ -485,7 +565,9 @@ impl JavaScriptExtractor {
     fn collect_named_import_bindings(
         &self,
         named_imports: tree_sitter::Node,
+        source: &str,
         bindings: &mut HashSet<String>,
+        binding_sources: &mut HashMap<String, String>,
     ) {
         let mut cursor = named_imports.walk();
         for specifier in named_imports.children(&mut cursor) {
@@ -499,7 +581,25 @@ impl JavaScriptExtractor {
             else {
                 continue;
             };
-            bindings.insert(self.base.get_node_text(&local_node));
+            self.record_import_binding(
+                self.base.get_node_text(&local_node),
+                source,
+                bindings,
+                binding_sources,
+            );
+        }
+    }
+
+    fn record_import_binding(
+        &self,
+        binding_name: String,
+        source: &str,
+        bindings: &mut HashSet<String>,
+        binding_sources: &mut HashMap<String, String>,
+    ) {
+        bindings.insert(binding_name.clone());
+        if !source.is_empty() {
+            binding_sources.insert(binding_name, source.to_string());
         }
     }
 
@@ -802,9 +902,9 @@ mod tests {
     }
 
     #[test]
-    fn imported_receiver_member_calls_emit_pending_relationships() {
+    fn project_relative_imported_receiver_member_calls_emit_pending_relationships() {
         let source = r#"
-            import * as path from "node:path";
+            import * as path from "./path";
 
             function run() {
                 path.join("a", "b");
@@ -828,8 +928,72 @@ mod tests {
                 pending.target.receiver.as_deref() == Some("path")
                     && pending.target.terminal_name == "join"
             })
-            .expect("imported receiver member call should emit a pending relationship");
+            .expect(
+                "project-relative imported receiver member call should emit a pending relationship",
+            );
         assert_eq!(path_join.target.import_context.as_deref(), Some("path"));
+    }
+
+    #[test]
+    fn external_imported_calls_do_not_emit_pending_relationships() {
+        let source = r#"
+            import { expect } from "vitest";
+            import * as path from "node:path";
+            import { helper } from "./helper";
+            import * as projectTools from "../tools";
+
+            function run(value) {
+                expect(value);
+                path.join("a", "b");
+                helper(value);
+                projectTools.doWork(value);
+            }
+        "#;
+        let tree = parse_javascript(source);
+        let mut extractor = JavaScriptExtractor::new(
+            "javascript".to_string(),
+            "src/app.js".to_string(),
+            source.to_string(),
+            Path::new("src"),
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+        extractor.extract_relationships(&tree, &symbols);
+
+        let pending = extractor.get_structured_pending_relationships();
+        assert!(
+            !pending
+                .iter()
+                .any(|pending| pending.target.terminal_name == "expect"),
+            "package imported direct calls should not be cross-file pending calls: {pending:#?}"
+        );
+        assert!(
+            !pending.iter().any(|pending| {
+                pending.target.receiver.as_deref() == Some("path")
+                    && pending.target.terminal_name == "join"
+            }),
+            "package imported receiver calls should not be cross-file pending calls: {pending:#?}"
+        );
+
+        let helper = pending
+            .iter()
+            .find(|pending| pending.target.terminal_name == "helper")
+            .expect("project-relative direct import calls should still emit pending relationships");
+        assert_eq!(helper.target.import_context.as_deref(), Some("helper"));
+
+        let project_tools = pending
+            .iter()
+            .find(|pending| {
+                pending.target.receiver.as_deref() == Some("projectTools")
+                    && pending.target.terminal_name == "doWork"
+            })
+            .expect(
+                "project-relative namespace import calls should still emit pending relationships",
+            );
+        assert_eq!(
+            project_tools.target.import_context.as_deref(),
+            Some("projectTools")
+        );
     }
 
     #[test]

@@ -42,6 +42,7 @@
 // Core infrastructure
 pub mod base;
 pub mod capability_snapshot;
+pub(crate) mod ecmascript_imports;
 mod factory;
 pub mod language;
 pub mod language_policy;
