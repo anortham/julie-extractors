@@ -770,6 +770,10 @@ impl ArtifactWriter {
         write_metadata(&tx, &self.metadata)?;
         let mut row_counts = RowCounts::default();
         let mut rewritten_file_ids = HashSet::new();
+        // Symbol-id sets for the cross-file symbol_lookup, accumulated during the insert pass so
+        // the spool is not deserialized a separate time just to collect them.
+        let mut requested_symbol_ids = HashSet::new();
+        let mut local_symbol_ids = HashSet::new();
 
         {
             let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
@@ -795,6 +799,8 @@ impl ArtifactWriter {
                     row_counts.files += 1;
                     row_counts.symbols += file_row_inserters.insert_symbols(&file)?;
                     rewritten_file_ids.insert(file.file_id.clone());
+                    collect_requested_symbol_ids(&file, &mut requested_symbol_ids);
+                    collect_file_symbol_ids(&file, &mut local_symbol_ids);
                 }
                 row_counts.revision_file_changes += file_row_inserters
                     .insert_revision_file_change(
@@ -817,15 +823,6 @@ impl ArtifactWriter {
             }
         }
 
-        let mut requested_symbol_ids = HashSet::new();
-        let mut local_symbol_ids = HashSet::new();
-        for file in spool.iter()? {
-            let file = file?;
-            if rewritten_file_ids.contains(&file.file_id) {
-                collect_requested_symbol_ids(&file, &mut requested_symbol_ids);
-                collect_file_symbol_ids(&file, &mut local_symbol_ids);
-            }
-        }
         let symbol_lookup =
             load_symbol_lookup_for_requested_ids(&tx, &requested_symbol_ids, &local_symbol_ids)?;
 
