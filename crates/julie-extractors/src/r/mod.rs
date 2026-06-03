@@ -276,8 +276,11 @@ impl RExtractor {
             let param_name = full_text[..eq_pos].trim();
             let default_val = full_text[eq_pos + 1..].trim();
 
-            if default_val.len() > 30 {
-                format!("{} = {}...", param_name, &default_val[..30])
+            // Truncate long defaults by character count, not byte index: slicing at a
+            // raw byte offset panics when it lands inside a multibyte UTF-8 codepoint.
+            let truncated: String = default_val.chars().take(30).collect();
+            if truncated.len() < default_val.len() {
+                format!("{param_name} = {truncated}...")
             } else {
                 full_text.to_string()
             }

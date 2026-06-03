@@ -69,6 +69,7 @@ fn contract_subcommands_parse_their_documented_flags() {
             "--ignore-file",
             "--strict-schema",
             "--json",
+            "--jobs",
         ],
     );
 

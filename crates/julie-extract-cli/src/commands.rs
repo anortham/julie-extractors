@@ -23,6 +23,7 @@ use julie_extract_artifact::writer::{
     ArtifactFileSpool, ArtifactSpoolError, ArtifactWriteError, ArtifactWriter,
 };
 use julie_extractors::{CapabilityFlags, KindCoverage, capability_snapshot};
+use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -181,6 +182,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         indexed_at,
         existing_content_hashes.as_ref(),
         args.force,
+        args.jobs,
     ) {
         Ok(extracted) => extracted,
         Err(error) => {
@@ -851,6 +853,7 @@ fn spool_discovered_files(
     indexed_at: String,
     existing_content_hashes: Option<&BTreeMap<String, String>>,
     force: bool,
+    jobs: usize,
 ) -> Result<SpooledExtractedFiles, ArtifactSpoolError> {
     let mut supported_targets = Vec::with_capacity(targets.len());
     for target in targets {
@@ -864,6 +867,7 @@ fn spool_discovered_files(
         indexed_at,
         existing_content_hashes,
         force,
+        jobs,
         extract_artifact_file_from_snapshot,
     )
 }
@@ -1052,115 +1056,240 @@ fn extract_supported_files(
     ExtractedFiles { files, errors }
 }
 
+/// Maximum number of files whose extracted rows are held in memory at once before
+/// being drained to the on-disk spool. Bounds peak RSS during parallel extraction
+/// while keeping enough work in flight to saturate the worker pool.
+const EXTRACT_SPOOL_CHUNK_SIZE: usize = 512;
+
+#[derive(Clone, Copy)]
+enum FileOutcomeKind {
+    ReadFailed,
+    Unchanged,
+    Changed,
+    ExtractFailed,
+}
+
+/// Self-contained result of extracting one file, computed off the main thread.
+/// Carries everything needed to update the profile, spool, and error list so the
+/// parallel phase touches no shared mutable state.
+struct FileOutcome {
+    snapshot_path: String,
+    language: String,
+    file: ArtifactFile,
+    kind: FileOutcomeKind,
+    read_duration: Duration,
+    extract_duration: Duration,
+    bytes: i64,
+    error: Option<ExtractFileError>,
+}
+
+fn compute_file_outcome(
+    root: &Path,
+    supported: &SupportedFileTarget,
+    indexed_at: &str,
+    existing_content_hashes: Option<&BTreeMap<String, String>>,
+    force: bool,
+    extract: &(
+         impl Fn(
+        &Path,
+        &FileTarget,
+        String,
+        String,
+        SourceSnapshot,
+    ) -> Result<ArtifactFile, ExtractFileError>
+         + Sync
+     ),
+) -> FileOutcome {
+    let language = supported.language.clone();
+    let snapshot_path = supported.target.root_relative_path.clone();
+
+    let read_started = Instant::now();
+    let snapshot = match read_source_snapshot(&supported.target) {
+        Ok(snapshot) => snapshot,
+        Err(error) => {
+            let read_duration = read_started.elapsed();
+            let file = failed_artifact_file(
+                &supported.target,
+                supported.language.clone(),
+                indexed_at.to_string(),
+                &error,
+            );
+            return FileOutcome {
+                snapshot_path,
+                language,
+                file,
+                kind: FileOutcomeKind::ReadFailed,
+                read_duration,
+                extract_duration: Duration::ZERO,
+                bytes: 0,
+                error: Some(error),
+            };
+        }
+    };
+    let read_duration = read_started.elapsed();
+    let bytes = snapshot.content_bytes;
+
+    if !force
+        && existing_content_hashes
+            .and_then(|hashes| hashes.get(&supported.target.root_relative_path))
+            .is_some_and(|existing_hash| existing_hash == &snapshot.content_hash)
+    {
+        let file = unchanged_artifact_file(
+            &supported.target,
+            supported.language.clone(),
+            indexed_at.to_string(),
+            &snapshot,
+        );
+        return FileOutcome {
+            snapshot_path,
+            language,
+            file,
+            kind: FileOutcomeKind::Unchanged,
+            read_duration,
+            extract_duration: Duration::ZERO,
+            bytes,
+            error: None,
+        };
+    }
+
+    let extract_started = Instant::now();
+    match extract(
+        root,
+        &supported.target,
+        supported.language.clone(),
+        indexed_at.to_string(),
+        snapshot,
+    ) {
+        Ok(file) => {
+            let extract_duration = extract_started.elapsed();
+            FileOutcome {
+                snapshot_path,
+                language,
+                file,
+                kind: FileOutcomeKind::Changed,
+                read_duration,
+                extract_duration,
+                bytes,
+                error: None,
+            }
+        }
+        Err(error) => {
+            let extract_duration = extract_started.elapsed();
+            let file = failed_artifact_file(
+                &supported.target,
+                supported.language.clone(),
+                indexed_at.to_string(),
+                &error,
+            );
+            FileOutcome {
+                snapshot_path,
+                language,
+                file,
+                kind: FileOutcomeKind::ExtractFailed,
+                read_duration,
+                extract_duration,
+                bytes,
+                error: Some(error),
+            }
+        }
+    }
+}
+
 fn extract_supported_files_to_spool(
     root: &Path,
     targets: &[SupportedFileTarget],
     indexed_at: String,
     existing_content_hashes: Option<&BTreeMap<String, String>>,
     force: bool,
-    mut extract: impl FnMut(
+    jobs: usize,
+    extract: impl Fn(
         &Path,
         &FileTarget,
         String,
         String,
         SourceSnapshot,
-    ) -> Result<ArtifactFile, ExtractFileError>,
+    ) -> Result<ArtifactFile, ExtractFileError>
+    + Sync,
 ) -> Result<SpooledExtractedFiles, ArtifactSpoolError> {
     let mut spool = create_scan_spool()?;
     let mut snapshot_paths = Vec::with_capacity(targets.len());
     let mut errors = Vec::new();
     let mut profile = ScanExtractionProfile::default();
-    for supported in targets {
-        snapshot_paths.push(supported.target.root_relative_path.clone());
-        let language = supported.language.as_str();
-        profile.language_mut(language).files += 1;
 
-        let read_started = Instant::now();
-        let snapshot = match read_source_snapshot(&supported.target) {
-            Ok(snapshot) => snapshot,
-            Err(error) => {
-                {
-                    let language_profile = profile.language_mut(language);
-                    language_profile.failed_files += 1;
-                    add_duration_ms(
-                        &mut language_profile.read_duration_ms,
-                        read_started.elapsed(),
-                    );
-                }
-                let file = failed_artifact_file(
-                    &supported.target,
-                    supported.language.clone(),
-                    indexed_at.clone(),
-                    &error,
-                );
-                push_profiled_spool(&mut spool, &mut profile, language, &file)?;
-                errors.push(error);
-                continue;
-            }
+    // `num_threads(0)` lets rayon pick from available parallelism. If the pool
+    // cannot be built we fall back to rayon's global pool rather than failing the scan.
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(jobs)
+        .build()
+        .ok();
+
+    for chunk in targets.chunks(EXTRACT_SPOOL_CHUNK_SIZE) {
+        // Extract every file in the chunk in parallel. `collect` into a Vec preserves
+        // chunk order, so the serial drain below stays byte-identical to a sequential scan.
+        let map_chunk = || {
+            chunk
+                .par_iter()
+                .map(|supported| {
+                    compute_file_outcome(
+                        root,
+                        supported,
+                        &indexed_at,
+                        existing_content_hashes,
+                        force,
+                        &extract,
+                    )
+                })
+                .collect::<Vec<FileOutcome>>()
         };
-        {
-            let language_profile = profile.language_mut(language);
-            language_profile.bytes += snapshot.content_bytes;
-            add_duration_ms(
-                &mut language_profile.read_duration_ms,
-                read_started.elapsed(),
-            );
-        }
-        if !force
-            && existing_content_hashes
-                .and_then(|hashes| hashes.get(&supported.target.root_relative_path))
-                .is_some_and(|existing_hash| existing_hash == &snapshot.content_hash)
-        {
-            profile.language_mut(language).unchanged_files += 1;
-            let file = unchanged_artifact_file(
-                &supported.target,
-                supported.language.clone(),
-                indexed_at.clone(),
-                &snapshot,
-            );
-            push_profiled_spool(&mut spool, &mut profile, language, &file)?;
-            continue;
-        }
+        let outcomes = match &pool {
+            Some(pool) => pool.install(map_chunk),
+            None => map_chunk(),
+        };
 
-        let extract_started = Instant::now();
-        match extract(
-            root,
-            &supported.target,
-            supported.language.clone(),
-            indexed_at.clone(),
-            snapshot.clone(),
-        ) {
-            Ok(file) => {
-                {
-                    let language_profile = profile.language_mut(language);
-                    language_profile.changed_files += 1;
-                    add_duration_ms(
-                        &mut language_profile.extract_duration_ms,
-                        extract_started.elapsed(),
-                    );
-                }
-                push_profiled_spool(&mut spool, &mut profile, language, &file)?;
-            }
-            Err(error) => {
-                {
-                    let language_profile = profile.language_mut(language);
-                    language_profile.failed_files += 1;
-                    add_duration_ms(
-                        &mut language_profile.extract_duration_ms,
-                        extract_started.elapsed(),
-                    );
-                }
-                let file = failed_artifact_file(
-                    &supported.target,
-                    supported.language.clone(),
-                    indexed_at.clone(),
-                    &error,
+        // Serial drain in target order: this owns all shared mutable state (spool,
+        // profile, errors) so output ordering and profile counts match a sequential scan.
+        for outcome in outcomes {
+            snapshot_paths.push(outcome.snapshot_path);
+            {
+                let language_profile = profile.language_mut(&outcome.language);
+                language_profile.files += 1;
+                add_duration_ms(
+                    &mut language_profile.read_duration_ms,
+                    outcome.read_duration,
                 );
-                push_profiled_spool(&mut spool, &mut profile, language, &file)?;
+                match outcome.kind {
+                    FileOutcomeKind::ReadFailed => {
+                        language_profile.failed_files += 1;
+                    }
+                    FileOutcomeKind::Unchanged => {
+                        language_profile.bytes += outcome.bytes;
+                        language_profile.unchanged_files += 1;
+                    }
+                    FileOutcomeKind::Changed => {
+                        language_profile.bytes += outcome.bytes;
+                        language_profile.changed_files += 1;
+                        add_duration_ms(
+                            &mut language_profile.extract_duration_ms,
+                            outcome.extract_duration,
+                        );
+                    }
+                    FileOutcomeKind::ExtractFailed => {
+                        language_profile.bytes += outcome.bytes;
+                        language_profile.failed_files += 1;
+                        add_duration_ms(
+                            &mut language_profile.extract_duration_ms,
+                            outcome.extract_duration,
+                        );
+                    }
+                }
+            }
+            push_profiled_spool(&mut spool, &mut profile, &outcome.language, &outcome.file)?;
+            if let Some(error) = outcome.error {
                 errors.push(error);
             }
         }
     }
+
     let files_spooled = spool.len();
     Ok(SpooledExtractedFiles {
         spool,
@@ -2494,7 +2623,7 @@ mod tests {
             changed.root_relative_path.clone(),
             "blake3:stale".to_string(),
         );
-        let extracted_paths = RefCell::new(Vec::new());
+        let extracted_paths = std::sync::Mutex::new(Vec::new());
 
         let extracted = extract_supported_files_to_spool(
             fixture.root(),
@@ -2505,9 +2634,11 @@ mod tests {
             "2026-06-01T00:00:00Z".to_string(),
             Some(&existing_hashes),
             false,
+            1,
             |_, target, language, indexed_at, snapshot| {
                 extracted_paths
-                    .borrow_mut()
+                    .lock()
+                    .unwrap()
                     .push(target.root_relative_path.clone());
                 Ok(extracted_artifact_file(
                     target, language, indexed_at, snapshot,
@@ -2516,7 +2647,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(extracted_paths.into_inner(), vec!["src/changed.rs"]);
+        assert_eq!(
+            extracted_paths.into_inner().unwrap(),
+            vec!["src/changed.rs"]
+        );
         assert_eq!(
             extracted.snapshot_paths,
             vec!["src/unchanged.rs".to_string(), "src/changed.rs".to_string()]
@@ -2549,6 +2683,186 @@ mod tests {
             1,
             "changed files must still use the extraction callback"
         );
+    }
+
+    #[test]
+    fn extraction_runs_supported_files_concurrently_when_jobs_allow() {
+        let fixture = ScanFixture::new();
+        let mut targets = Vec::new();
+        for i in 0..8 {
+            let file = fixture.write(&format!("src/f{i}.rs"), &format!("pub fn f{i}() {{}}\n"));
+            targets.push(SupportedFileTarget::new(file, "rust"));
+        }
+
+        let in_flight = std::sync::atomic::AtomicUsize::new(0);
+        let max_in_flight = std::sync::atomic::AtomicUsize::new(0);
+
+        let extracted = extract_supported_files_to_spool(
+            fixture.root(),
+            &targets,
+            "2026-06-01T00:00:00Z".to_string(),
+            None,
+            false,
+            4,
+            |_, target, language, indexed_at, snapshot| {
+                let current = in_flight.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                max_in_flight.fetch_max(current, std::sync::atomic::Ordering::SeqCst);
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(extracted_artifact_file(
+                    target, language, indexed_at, snapshot,
+                ))
+            },
+        )
+        .unwrap();
+
+        assert_eq!(extracted.snapshot_paths.len(), 8);
+        let observed = max_in_flight.load(std::sync::atomic::Ordering::SeqCst);
+        assert!(
+            observed >= 2,
+            "expected overlapping extraction with jobs=4, observed max concurrency {observed}"
+        );
+    }
+
+    #[test]
+    fn parallel_extraction_matches_single_threaded_reference() {
+        let fixture = ScanFixture::new();
+        let mut targets = Vec::new();
+        for i in 0..40 {
+            let file = fixture.write(
+                &format!("src/module_{i:02}.rs"),
+                &format!("pub struct S{i};\npub fn f{i}(x: i32) -> i32 {{ x + {i} }}\n"),
+            );
+            targets.push(SupportedFileTarget::new(file, "rust"));
+        }
+
+        let reference = extract_supported_files_to_spool(
+            fixture.root(),
+            &targets,
+            "2026-06-01T00:00:00Z".to_string(),
+            None,
+            false,
+            1,
+            extract_artifact_file_from_snapshot,
+        )
+        .unwrap()
+        .unwrap();
+
+        let parallel = extract_supported_files_to_spool(
+            fixture.root(),
+            &targets,
+            "2026-06-01T00:00:00Z".to_string(),
+            None,
+            false,
+            8,
+            extract_artifact_file_from_snapshot,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(
+            parallel, reference,
+            "parallel extraction must produce byte-identical artifacts to the single-threaded path"
+        );
+        assert_eq!(
+            parallel
+                .iter()
+                .map(|file| file.path.clone())
+                .collect::<Vec<_>>(),
+            targets
+                .iter()
+                .map(|target| target.target.root_relative_path.clone())
+                .collect::<Vec<_>>(),
+            "spooled files must follow input target order regardless of worker scheduling"
+        );
+    }
+
+    #[test]
+    fn parallel_spool_orders_failed_unchanged_and_changed_by_target() {
+        let fixture = ScanFixture::new();
+        let changed = fixture.write("src/a_changed.rs", "pub fn a() {}\n");
+        let unchanged = fixture.write("src/b_unchanged.rs", "pub fn b() {}\n");
+        let bad_path = fixture.root().join("src/c_bad.rs");
+        std::fs::write(&bad_path, [0xff, 0xfe, 0x00, 0x9f]).unwrap();
+        let bad = FileTarget {
+            absolute_path: bad_path,
+            root_relative_path: "src/c_bad.rs".to_string(),
+        };
+
+        let unchanged_snapshot = read_source_snapshot(&unchanged).unwrap();
+        let mut existing_hashes = BTreeMap::new();
+        existing_hashes.insert(
+            unchanged.root_relative_path.clone(),
+            unchanged_snapshot.content_hash.clone(),
+        );
+
+        let targets = vec![
+            SupportedFileTarget::new(changed.clone(), "rust"),
+            SupportedFileTarget::new(unchanged.clone(), "rust"),
+            SupportedFileTarget::new(bad.clone(), "rust"),
+        ];
+
+        let mut extracted = extract_supported_files_to_spool(
+            fixture.root(),
+            &targets,
+            "2026-06-01T00:00:00Z".to_string(),
+            Some(&existing_hashes),
+            false,
+            8,
+            extract_artifact_file_from_snapshot,
+        )
+        .unwrap();
+
+        assert_eq!(
+            extracted.snapshot_paths,
+            vec![
+                "src/a_changed.rs".to_string(),
+                "src/b_unchanged.rs".to_string(),
+                "src/c_bad.rs".to_string(),
+            ],
+            "snapshot paths must stay in input target order"
+        );
+        assert_eq!(
+            extracted.errors.len(),
+            1,
+            "only the unreadable file should error"
+        );
+        assert_eq!(extracted.errors[0].root_relative_path, "src/c_bad.rs");
+
+        extracted.spool.finish().unwrap();
+        let files = extracted
+            .spool
+            .iter()
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.path.clone())
+                .collect::<Vec<_>>(),
+            vec![
+                "src/a_changed.rs".to_string(),
+                "src/b_unchanged.rs".to_string(),
+                "src/c_bad.rs".to_string(),
+            ],
+            "spooled files must stay in input target order"
+        );
+        let changed_file = files.iter().find(|f| f.path == "src/a_changed.rs").unwrap();
+        assert!(
+            !changed_file.symbols.is_empty(),
+            "changed files must be extracted"
+        );
+        let unchanged_file = files
+            .iter()
+            .find(|f| f.path == "src/b_unchanged.rs")
+            .unwrap();
+        assert!(
+            unchanged_file.symbols.is_empty(),
+            "unchanged files must skip the parser"
+        );
+        let failed_file = files.iter().find(|f| f.path == "src/c_bad.rs").unwrap();
+        assert_eq!(failed_file.status, FileStatus::FailedPreserved);
     }
 
     #[test]
