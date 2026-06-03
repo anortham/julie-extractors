@@ -29,6 +29,32 @@ CREATE TEMP TABLE julie_symbol_lookup_requested (
 ) WITHOUT ROWID
 ";
 
+/// Disables SQLite foreign-key enforcement for the lifetime of a bulk write transaction and
+/// restores it on drop — including the early-`?`-return and unwind paths. The writer guarantees
+/// referential integrity itself: child rows are filtered through `SymbolLookup` / `valid_symbol_id`
+/// before insertion, and `delete_file_rows` removes children before parents in explicit order, so
+/// the per-row FK probes SQLite would run during the load are pure redundant work. `PRAGMA
+/// foreign_keys` is a no-op inside a transaction, so this must be constructed before the
+/// transaction begins; the matching restore in `Drop` runs after the transaction has ended. The
+/// pragma is connection-runtime state, not persisted, and the durable artifact is always left with
+/// enforcement ON for downstream consumers.
+struct ForeignKeysOff<'conn> {
+    connection: &'conn Connection,
+}
+
+impl<'conn> ForeignKeysOff<'conn> {
+    fn disable(connection: &'conn Connection) -> rusqlite::Result<Self> {
+        connection.pragma_update(None, "foreign_keys", "OFF")?;
+        Ok(Self { connection })
+    }
+}
+
+impl Drop for ForeignKeysOff<'_> {
+    fn drop(&mut self) {
+        let _ = self.connection.pragma_update(None, "foreign_keys", "ON");
+    }
+}
+
 #[cfg(test)]
 mod writer_prepare_metrics {
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -716,7 +742,11 @@ impl ArtifactWriter {
         snapshot_paths: &[String],
         spool: &ArtifactFileSpool,
     ) -> ArtifactWriteResult<WriteResult> {
-        let tx = self.connection.transaction()?;
+        // Integrity is enforced in Rust (SymbolLookup-validated child rows + explicit ordered
+        // deletes), so the bulk load skips SQLite's redundant per-row FK probes. The guard restores
+        // enforcement on every exit path, including the early returns below.
+        let _foreign_keys = ForeignKeysOff::disable(&self.connection)?;
+        let tx = self.connection.unchecked_transaction()?;
         let snapshot_paths = snapshot_paths
             .iter()
             .map(String::as_str)

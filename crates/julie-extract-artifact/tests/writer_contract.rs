@@ -400,6 +400,69 @@ fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
 }
 
 #[test]
+fn spooled_scan_restores_foreign_keys_enforcement_on_success() {
+    // The bulk write disables FK enforcement (integrity is guaranteed in Rust via SymbolLookup +
+    // explicit ordered deletes). It MUST restore foreign_keys=ON after committing so the durable
+    // artifact and any subsequent write stay enforced.
+    let mut writer = open_writer();
+    assert_eq!(pragma_i64(writer.connection(), "foreign_keys"), 1);
+
+    let file = file_with_all_rows("file-a", "src/a.rs", "hash-a");
+    let snapshot_paths = vec![file.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-fk-success");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file).unwrap();
+
+    writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(
+        pragma_i64(writer.connection(), "foreign_keys"),
+        1,
+        "foreign-key enforcement must be restored after a successful spooled write"
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn spooled_scan_restores_foreign_keys_enforcement_on_error() {
+    // The restore must also run on the early-return error path (here: a spooled file absent from
+    // the snapshot paths), or the connection would be left with enforcement disabled.
+    let mut writer = open_writer();
+    assert_eq!(pragma_i64(writer.connection(), "foreign_keys"), 1);
+
+    let file = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    let temp_dir = unique_temp_dir("spooled-fk-error");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file).unwrap();
+
+    let error = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[],
+            &mut spool,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        ArtifactWriteError::SnapshotMissingSpooledPath { .. }
+    ));
+    assert_eq!(
+        pragma_i64(writer.connection(), "foreign_keys"),
+        1,
+        "foreign-key enforcement must be restored even when the write returns an error"
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
 fn spooled_scan_deletes_files_missing_from_snapshot_paths() {
     let mut writer = open_writer();
     writer
