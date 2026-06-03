@@ -297,6 +297,219 @@ fn spooled_scan_allows_relationships_to_symbols_later_in_spool() {
 }
 
 #[test]
+fn scan_resolves_identifier_containing_and_target_symbol_ids() {
+    // Guards the identifier FK write: containing/target must resolve to existing symbol ids
+    // (same-file AND cross-file within one scan), and references to symbols present in no file
+    // must persist as NULL — never a dangling id (which foreign_keys=ON would reject). This
+    // pins the resolved values, which the row-count tests never read back.
+    let mut writer = open_writer();
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-resolved".to_string(),
+        name: "beta".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("file-a-symbol-0".to_string()),
+        target_symbol_id: Some("file-b-symbol-0".to_string()),
+        ..ArtifactIdentifier::default()
+    });
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-dangling".to_string(),
+        name: "ghost".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("does-not-exist".to_string()),
+        target_symbol_id: Some("also-missing".to_string()),
+        ..ArtifactIdentifier::default()
+    });
+    let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
+
+    let result = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_a, file_b],
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.identifiers, 2);
+    assert_eq!(
+        identifier_refs(writer.connection(), "id-resolved"),
+        (
+            Some("file-a-symbol-0".to_string()),
+            Some("file-b-symbol-0".to_string())
+        ),
+        "valid containing/target must resolve, including cross-file within the same scan"
+    );
+    assert_eq!(
+        identifier_refs(writer.connection(), "id-dangling"),
+        (None, None),
+        "references to nonexistent symbols must persist as NULL, never a dangling id"
+    );
+}
+
+#[test]
+fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
+    // Same guard for the spooled production cold-scan path.
+    let mut writer = open_writer();
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-resolved".to_string(),
+        name: "beta".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("file-a-symbol-0".to_string()),
+        target_symbol_id: Some("file-b-symbol-0".to_string()),
+        ..ArtifactIdentifier::default()
+    });
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-dangling".to_string(),
+        name: "ghost".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("does-not-exist".to_string()),
+        target_symbol_id: None,
+        ..ArtifactIdentifier::default()
+    });
+    let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
+    let snapshot_paths = vec![file_a.path.clone(), file_b.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-identifier-refs");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file_a).unwrap();
+    spool.push(&file_b).unwrap();
+
+    let result = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.identifiers, 2);
+    assert_eq!(
+        identifier_refs(writer.connection(), "id-resolved"),
+        (
+            Some("file-a-symbol-0".to_string()),
+            Some("file-b-symbol-0".to_string())
+        ),
+        "spooled path must resolve containing/target, including cross-file within one spool"
+    );
+    assert_eq!(
+        identifier_refs(writer.connection(), "id-dangling"),
+        (None, None),
+        "spooled path must null references to nonexistent symbols"
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn spooled_scan_resolves_symbol_parent_ids() {
+    // Guards parent_symbol_id resolution: a nested symbol whose parent exists must persist that
+    // parent, a symbol whose parent is present in no file must persist NULL, and a top-level
+    // symbol stays NULL. Pins the resolved values that the row-count tests never read back.
+    let mut writer = open_writer();
+    let mut file = file_with_symbols(
+        "file-a",
+        "src/a.rs",
+        "hash-a",
+        ["parent", "child", "orphan"],
+    );
+    file.symbols[1].parent_symbol_id = Some("file-a-symbol-0".to_string());
+    file.symbols[2].parent_symbol_id = Some("does-not-exist".to_string());
+    let snapshot_paths = vec![file.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-symbol-parent");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file).unwrap();
+
+    let result = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.symbols, 3);
+    assert_eq!(
+        symbol_parent(writer.connection(), "file-a-symbol-1"),
+        Some("file-a-symbol-0".to_string()),
+        "a nested symbol must resolve its parent"
+    );
+    assert_eq!(
+        symbol_parent(writer.connection(), "file-a-symbol-2"),
+        None,
+        "a parent present in no file must persist as NULL"
+    );
+    assert_eq!(
+        symbol_parent(writer.connection(), "file-a-symbol-0"),
+        None,
+        "a top-level symbol has no parent"
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn spooled_scan_restores_foreign_keys_enforcement_on_success() {
+    // The bulk write disables FK enforcement (integrity is guaranteed in Rust via SymbolLookup +
+    // explicit ordered deletes). It MUST restore foreign_keys=ON after committing so the durable
+    // artifact and any subsequent write stay enforced.
+    let mut writer = open_writer();
+    assert_eq!(pragma_i64(writer.connection(), "foreign_keys"), 1);
+
+    let file = file_with_all_rows("file-a", "src/a.rs", "hash-a");
+    let snapshot_paths = vec![file.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-fk-success");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file).unwrap();
+
+    writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(
+        pragma_i64(writer.connection(), "foreign_keys"),
+        1,
+        "foreign-key enforcement must be restored after a successful spooled write"
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn spooled_scan_restores_foreign_keys_enforcement_on_error() {
+    // The restore must also run on the early-return error path (here: a spooled file absent from
+    // the snapshot paths), or the connection would be left with enforcement disabled.
+    let mut writer = open_writer();
+    assert_eq!(pragma_i64(writer.connection(), "foreign_keys"), 1);
+
+    let file = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    let temp_dir = unique_temp_dir("spooled-fk-error");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file).unwrap();
+
+    let error = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[],
+            &mut spool,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        ArtifactWriteError::SnapshotMissingSpooledPath { .. }
+    ));
+    assert_eq!(
+        pragma_i64(writer.connection(), "foreign_keys"),
+        1,
+        "foreign-key enforcement must be restored even when the write returns an error"
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
 fn spooled_scan_deletes_files_missing_from_snapshot_paths() {
     let mut writer = open_writer();
     writer
@@ -972,6 +1185,24 @@ fn count(conn: &Connection, table: &str) -> i64 {
     conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
         row.get(0)
     })
+    .unwrap()
+}
+
+fn symbol_parent(conn: &Connection, symbol_id: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT parent_symbol_id FROM symbols WHERE symbol_id = ?1",
+        [symbol_id],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn identifier_refs(conn: &Connection, identifier_id: &str) -> (Option<String>, Option<String>) {
+    conn.query_row(
+        "SELECT containing_symbol_id, target_symbol_id FROM identifiers WHERE identifier_id = ?1",
+        [identifier_id],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )
     .unwrap()
 }
 
