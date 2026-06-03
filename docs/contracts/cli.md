@@ -160,8 +160,11 @@ under the root.
 ## Data-Loss Guard
 
 The CLI must not replace known-good rows for a parser-backed file with an empty
-result caused by parser failure, read failure, or extractor failure. That case
-returns `failed` with a typed error and leaves existing rows intact.
+result caused by parser failure, read failure, or extractor failure. When a
+scan can still commit useful rows for other files, the failing file is written
+as `failed_preserved`, its previous symbol rows stay intact, and the command
+returns `partial` with exit code `1`. If the failure prevents a useful artifact
+operation from committing, the command returns `failed`.
 
 An intentional empty supported file may still produce zero symbols when the file
 hash changed and extraction completed successfully.

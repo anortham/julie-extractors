@@ -447,10 +447,37 @@ fn spooled_scan_resolves_symbol_parent_ids() {
 }
 
 #[test]
+fn spooled_scan_allows_child_symbols_before_parent_symbols() {
+    let mut writer = open_writer();
+    let mut file = file_with_symbols("file-a", "src/a.rs", "hash-a", ["child", "parent"]);
+    file.symbols[0].parent_symbol_id = Some("file-a-symbol-1".to_string());
+
+    let snapshot_paths = vec![file.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-child-before-parent");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file).unwrap();
+
+    writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(
+        symbol_parent(writer.connection(), "file-a-symbol-0").as_deref(),
+        Some("file-a-symbol-1")
+    );
+    assert_eq!(foreign_key_violation_count(writer.connection()), 0);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
 fn spooled_scan_restores_foreign_keys_enforcement_on_success() {
-    // The bulk write disables FK enforcement (integrity is guaranteed in Rust via SymbolLookup +
-    // explicit ordered deletes). It MUST restore foreign_keys=ON after committing so the durable
-    // artifact and any subsequent write stay enforced.
+    // The spooled path may defer FK checks inside the transaction, but the connection-level FK
+    // enforcement setting must stay ON for the durable artifact and subsequent writes.
     let mut writer = open_writer();
     assert_eq!(pragma_i64(writer.connection(), "foreign_keys"), 1);
 
@@ -479,8 +506,7 @@ fn spooled_scan_restores_foreign_keys_enforcement_on_success() {
 
 #[test]
 fn spooled_scan_restores_foreign_keys_enforcement_on_error() {
-    // The restore must also run on the early-return error path (here: a spooled file absent from
-    // the snapshot paths), or the connection would be left with enforcement disabled.
+    // Early-return error paths must not leave the connection-level FK setting changed.
     let mut writer = open_writer();
     assert_eq!(pragma_i64(writer.connection(), "foreign_keys"), 1);
 
@@ -554,6 +580,61 @@ fn spooled_scan_deletes_files_missing_from_snapshot_paths() {
     assert_eq!(
         latest_change(writer.connection(), "src/a.rs"),
         Some("deleted".to_string())
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn spooled_scan_deleting_cross_file_symbol_keeps_references_valid() {
+    let mut writer = open_writer();
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "file-a-identifier-to-b".to_string(),
+        name: "beta".to_string(),
+        kind: "call".to_string(),
+        target_symbol_id: Some("file-b-symbol-0".to_string()),
+        ..ArtifactIdentifier::default()
+    });
+    file_a.relationships.push(ArtifactRelationship {
+        relationship_id: "file-a-relationship-to-b".to_string(),
+        from_symbol_id: "file-a-symbol-0".to_string(),
+        to_symbol_id: "file-b-symbol-0".to_string(),
+        kind: "calls".to_string(),
+        confidence: 1.0,
+        ..ArtifactRelationship::default()
+    });
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_a.clone(), file_b],
+        )
+        .unwrap();
+
+    let snapshot_paths = vec![file_a.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-cross-file-delete");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file_a).unwrap();
+
+    writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(foreign_key_violation_count(writer.connection()), 0);
+    assert_eq!(
+        identifier_refs(writer.connection(), "file-a-identifier-to-b"),
+        (None, None),
+        "deleted target symbols must be nulled on surviving identifiers"
+    );
+    assert_eq!(
+        count(writer.connection(), "relationships"),
+        0,
+        "relationships to deleted symbols must cascade away"
     );
     std::fs::remove_dir_all(temp_dir).unwrap();
 }
@@ -1186,6 +1267,14 @@ fn count(conn: &Connection, table: &str) -> i64 {
         row.get(0)
     })
     .unwrap()
+}
+
+fn foreign_key_violation_count(conn: &Connection) -> usize {
+    conn.prepare("PRAGMA foreign_key_check")
+        .unwrap()
+        .query_map([], |_| Ok(()))
+        .unwrap()
+        .count()
 }
 
 fn symbol_parent(conn: &Connection, symbol_id: &str) -> Option<String> {

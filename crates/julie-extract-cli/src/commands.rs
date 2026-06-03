@@ -775,6 +775,11 @@ fn export(args: ExportArgs) -> CommandOutcome {
                     )
                 }
                 Err(error) => {
+                    let report_stream = if args.out == Path::new("-") {
+                        ReportStream::Stderr
+                    } else {
+                        ReportStream::Stdout
+                    };
                     let report = base_report(
                         ReportStatus::Failed,
                         ReportOperation::Export,
@@ -789,7 +794,7 @@ fn export(args: ExportArgs) -> CommandOutcome {
                         true,
                         json!({}),
                     ));
-                    outcome(report, 1, args.json, ReportStream::Stdout)
+                    outcome(report, 1, args.json, report_stream)
                 }
             }
         }
@@ -1121,7 +1126,7 @@ fn compute_file_outcome(
                 kind: FileOutcomeKind::ReadFailed,
                 read_duration,
                 extract_duration: Duration::ZERO,
-                bytes: 0,
+                bytes: error.content_bytes.unwrap_or(0),
                 error: Some(error),
             };
         }
@@ -1259,6 +1264,7 @@ fn extract_supported_files_to_spool(
                 );
                 match outcome.kind {
                     FileOutcomeKind::ReadFailed => {
+                        language_profile.bytes += outcome.bytes;
                         language_profile.failed_files += 1;
                     }
                     FileOutcomeKind::Unchanged => {

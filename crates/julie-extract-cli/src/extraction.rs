@@ -757,6 +757,9 @@ fn failure_parse_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static PANIC_HOOK_LOCK: Mutex<()> = Mutex::new(());
 
     fn sample_target() -> FileTarget {
         FileTarget {
@@ -776,6 +779,7 @@ mod tests {
 
     #[test]
     fn catch_extraction_panic_converts_panic_into_failed_extract_error() {
+        let _hook_lock = PANIC_HOOK_LOCK.lock().unwrap();
         // Suppress the default panic hook so the deliberately-induced panic does not
         // print a backtrace line to the test output.
         let previous_hook = std::panic::take_hook();

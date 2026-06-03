@@ -25,6 +25,16 @@ fn json_report(output: &Output) -> Value {
     })
 }
 
+fn json_report_from_stderr(output: &Output) -> Value {
+    serde_json::from_slice(&output.stderr).unwrap_or_else(|err| {
+        panic!(
+            "stderr was not a JSON report: {err}\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    })
+}
+
 #[test]
 fn scan_creates_sqlite_artifact_with_expected_rows() {
     let fixture = FixtureRoot::new();
@@ -437,6 +447,7 @@ fn scan_commits_valid_files_and_reports_partial_when_one_supported_file_fails() 
     assert_eq!(report["counts"]["rows_written"]["parse_diagnostics"], 1);
     assert_eq!(report["errors"][0]["code"], "read_failed");
     assert_eq!(report["errors"][0]["root_relative_path"], "src/bad.rs");
+    assert_eq!(report["profile"]["languages"]["rust"]["bytes"], 20);
 
     assert_eq!(symbols_for_path(&db, "src/good.rs"), vec!["good"]);
     assert_eq!(file_status_for_path(&db, "src/good.rs"), "indexed");
@@ -802,6 +813,57 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
     );
     assert!(parsed.iter().any(|record| record["kind"] == "file"));
     assert!(parsed.iter().any(|record| record["kind"] == "symbol"));
+}
+
+#[test]
+fn failed_stdout_jsonl_export_writes_report_to_stderr() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+    let conn = Connection::open(&db).unwrap();
+    conn.execute(
+        "UPDATE files SET metadata_json = '{' WHERE path = 'src/a.rs'",
+        [],
+    )
+    .unwrap();
+
+    let output = julie_extract(&[
+        "export",
+        "--db",
+        path_str(&db),
+        "--format",
+        "jsonl",
+        "--out",
+        "-",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report = json_report_from_stderr(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["operation"], "export");
+    assert_eq!(report["errors"][0]["code"], "export_failed");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let records = stdout
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    assert!(
+        !records.is_empty(),
+        "export should have emitted partial JSONL before the corrupt row"
+    );
+    assert!(
+        records.iter().all(|record| record.get("kind").is_some()),
+        "stdout must contain only JSONL records, got:\n{stdout}"
+    );
 }
 
 #[test]
