@@ -9,9 +9,10 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
 use serde_json::Value;
 
-const SQLITE_SCHEMA_VERSION: i64 = 1;
-const EXTRACT_CONTRACT_VERSION: i64 = 1;
-const JSONL_SCHEMA_VERSION: i64 = 1;
+const REPORT_SCHEMA_VERSION: i64 = 2;
+const SQLITE_SCHEMA_VERSION: i64 = 2;
+const EXTRACT_CONTRACT_VERSION: i64 = 2;
+const JSONL_SCHEMA_VERSION: i64 = 2;
 const REQUIRED_METADATA_KEYS: &[&str] = &[
     "artifact_id",
     "root_path",
@@ -43,6 +44,7 @@ const ROW_DOMAIN_TABLES: &[&str] = &[
     "type_argument_usages",
     "type_arguments",
     "literals",
+    "source_regions",
     "parse_diagnostics",
 ];
 const JSONL_RECORD_KINDS: &[&str] = &[
@@ -63,6 +65,7 @@ const JSONL_RECORD_KINDS: &[&str] = &[
     "type_argument_usage",
     "type_argument",
     "literal",
+    "source_region",
     "parse_diagnostic",
 ];
 
@@ -587,9 +590,9 @@ fn validate_report(
                 expected_operation
             ))
         })?;
-    if report_schema_version != 1 {
+    if report_schema_version != REPORT_SCHEMA_VERSION {
         return Err(DogfoodError::InvalidEvidence(format!(
-            "{} report schema version was {report_schema_version}; expected 1",
+            "{} report schema version was {report_schema_version}; expected {REPORT_SCHEMA_VERSION}",
             expected_operation
         )));
     }
@@ -716,9 +719,9 @@ fn validate_rescan_report(path: &Path) -> Result<RescanCounts, DogfoodError> {
                 "rescan report is missing integer report_schema_version".to_string(),
             )
         })?;
-    if report_schema_version != 1 {
+    if report_schema_version != REPORT_SCHEMA_VERSION {
         return Err(DogfoodError::InvalidEvidence(format!(
-            "rescan report schema version was {report_schema_version}; expected 1"
+            "rescan report schema version was {report_schema_version}; expected {REPORT_SCHEMA_VERSION}"
         )));
     }
     let status = value.get("status").and_then(Value::as_str).ok_or_else(|| {

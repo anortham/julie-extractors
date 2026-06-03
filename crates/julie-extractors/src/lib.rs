@@ -2,9 +2,9 @@
 //!
 //! Tree-sitter-backed code extraction for 34 languages plus TSX/JSX variants.
 //! Produces a stable [`ExtractionResults`] shape: symbols, relationships,
-//! structured pending relationships, identifiers, type info, and parse
-//! diagnostics. Used by `julie-extract` and consumable from Rust callers that
-//! want in-process extraction.
+//! structured pending relationships, identifiers, type info, source regions,
+//! and parse diagnostics. Used by `julie-extract` and consumable from Rust
+//! callers that want in-process extraction.
 //!
 //! ## Quickstart
 //!
@@ -100,8 +100,9 @@ pub mod zig;
 pub use base::{
     AnnotationMarker, ContextConfig, ExtractionResults, Identifier, IdentifierKind, Literal,
     LiteralKind, ParseDiagnostic, ParseDiagnosticKind, PendingRelationship, Relationship,
-    RelationshipKind, Symbol, SymbolKind, SymbolOptions, TestRole, TypeArgument, TypeArgumentUsage,
-    TypeInfo, Visibility, extract_type_arguments, normalize_annotations,
+    RelationshipKind, SourceRegion, SourceRegionKind, Symbol, SymbolKind, SymbolOptions, TestRole,
+    TypeArgument, TypeArgumentUsage, TypeInfo, Visibility, extract_type_arguments,
+    normalize_annotations,
 };
 
 // Re-export the public API - canonical extraction functions
@@ -121,7 +122,8 @@ pub use capability_snapshot::{
 ///
 /// **Stable.** Bump the suffix after `v` when the canonical extraction shape
 /// changes in a way downstream consumers must observe.
-pub const EXTRACTION_CONTRACT_VERSION: &str = "2026-06-03.ecmascript-swift-shape-v3";
+pub const EXTRACTION_CONTRACT_VERSION: &str =
+    "2026-06-03.ecmascript-swift-shape-v3.source-regions-v1";
 
 // Re-export BaseExtractor for language implementors
 pub use base::BaseExtractor;

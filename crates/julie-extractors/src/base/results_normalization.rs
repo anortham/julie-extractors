@@ -48,6 +48,7 @@ impl ExtractionResults {
             identifiers: Vec::new(),
             type_argument_usages: Vec::new(),
             literals: Vec::new(),
+            source_regions: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }
@@ -64,6 +65,7 @@ impl ExtractionResults {
         self.type_argument_usages
             .append(&mut other.type_argument_usages);
         self.literals.append(&mut other.literals);
+        self.source_regions.append(&mut other.source_regions);
         self.parse_diagnostics.append(&mut other.parse_diagnostics);
     }
 
@@ -105,6 +107,19 @@ impl ExtractionResults {
             }
             .with_offset(offset);
             literal.apply_normalized_span(span);
+        }
+
+        for region in &mut self.source_regions {
+            let span = NormalizedSpan {
+                start_line: region.start_line,
+                start_column: region.start_column,
+                end_line: region.end_line,
+                end_column: region.end_column,
+                start_byte: region.start_byte,
+                end_byte: region.end_byte,
+            }
+            .with_offset(offset);
+            region.apply_normalized_span(span);
         }
 
         for relationship in &mut self.relationships {
@@ -166,6 +181,16 @@ impl ExtractionResults {
                 if let Some(new_symbol_id) = symbol_id_map.get(containing_symbol_id) {
                     *containing_symbol_id = new_symbol_id.clone();
                 }
+            }
+        }
+
+        for region in &mut self.source_regions {
+            region.refresh_id();
+
+            if let Some(containing_symbol_id) = region.containing_symbol_id.as_mut()
+                && let Some(new_symbol_id) = symbol_id_map.get(containing_symbol_id)
+            {
+                *containing_symbol_id = new_symbol_id.clone();
             }
         }
 

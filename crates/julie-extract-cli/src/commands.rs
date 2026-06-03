@@ -1921,6 +1921,7 @@ fn table_totals(connection: &Connection) -> RowDomainCounts {
         type_argument_usages: table_count(connection, "type_argument_usages"),
         type_arguments: table_count(connection, "type_arguments"),
         literals: table_count(connection, "literals"),
+        source_regions: table_count(connection, "source_regions"),
         parse_diagnostics: table_count(connection, "parse_diagnostics"),
     }
 }
@@ -1964,6 +1965,7 @@ fn jsonl_counts(records_by_kind: &BTreeMap<&'static str, usize>) -> RowDomainCou
             "type_argument_usage" => counts.type_argument_usages = count,
             "type_argument" => counts.type_arguments = count,
             "literal" => counts.literals = count,
+            "source_region" => counts.source_regions = count,
             "parse_diagnostic" => counts.parse_diagnostics = count,
             _ => {}
         }
@@ -3024,6 +3026,7 @@ mod tests {
             type_argument_usages: Vec::new(),
             type_arguments: Vec::new(),
             literals: Vec::new(),
+            source_regions: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }

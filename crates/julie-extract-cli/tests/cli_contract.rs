@@ -226,7 +226,7 @@ fn assert_help_contains(output: &Output, expected_flags: &[&str]) {
 }
 
 fn assert_common_report_shape(report: &Value, status: &str, operation: &str, mode: &str) {
-    assert_eq!(report["report_schema_version"], 1);
+    assert_eq!(report["report_schema_version"], 2);
     assert_eq!(report["status"], status);
     assert_eq!(report["operation"], operation);
     assert_eq!(report["mode"], mode);

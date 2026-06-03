@@ -5,14 +5,15 @@ use std::string::FromUtf8Error;
 
 use julie_extract_artifact::model::{
     ArtifactFile, ArtifactIdentifier, ArtifactLiteral, ArtifactParseDiagnostic,
-    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSymbol, ArtifactSymbolAnnotation,
-    ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
+    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSourceRegion, ArtifactSymbol,
+    ArtifactSymbolAnnotation, ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact,
+    FileStatus,
 };
 use julie_extractors::base::StructuredPendingRelationship;
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
-    ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship, TypeArgument,
-    TypeArgumentUsage, TypeInfo, extract_canonical,
+    ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship, SourceRegion,
+    TypeArgument, TypeArgumentUsage, TypeInfo, extract_canonical,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -173,6 +174,7 @@ pub(crate) fn failed_artifact_file(
         type_argument_usages: Vec::new(),
         type_arguments: Vec::new(),
         literals: Vec::new(),
+        source_regions: Vec::new(),
         parse_diagnostics: vec![failure_parse_diagnostic(target, error, content_bytes)],
     }
 }
@@ -203,6 +205,7 @@ pub(crate) fn unchanged_artifact_file(
         type_argument_usages: Vec::new(),
         type_arguments: Vec::new(),
         literals: Vec::new(),
+        source_regions: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }
@@ -320,6 +323,10 @@ fn map_results(
     let literals = dedupe_by_id(map_literals(&results.literals), |literal| {
         literal.literal_id.as_str()
     });
+    let source_regions = dedupe_by_id(
+        map_source_regions(&results.source_regions, target)?,
+        |region| region.source_region_id.as_str(),
+    );
     let parse_diagnostics = dedupe_by_id(map_parse_diagnostics(&results, target), |diagnostic| {
         diagnostic.diagnostic_id.as_str()
     });
@@ -345,6 +352,7 @@ fn map_results(
         type_argument_usages,
         type_arguments,
         literals,
+        source_regions,
         parse_diagnostics,
     })
 }
@@ -589,6 +597,29 @@ fn map_literals(literals: &[Literal]) -> Vec<ArtifactLiteral> {
             end_byte: i64::from(literal.end_byte),
             confidence: f64::from(literal.confidence),
             metadata_json: None,
+        })
+        .collect()
+}
+
+fn map_source_regions(
+    regions: &[SourceRegion],
+    target: &FileTarget,
+) -> Result<Vec<ArtifactSourceRegion>, ExtractFileError> {
+    regions
+        .iter()
+        .map(|region| {
+            Ok(ArtifactSourceRegion {
+                source_region_id: region.id.clone(),
+                kind: region.kind.as_str().to_string(),
+                containing_symbol_id: region.containing_symbol_id.clone(),
+                start_line: i64::from(region.start_line),
+                start_column: i64::from(region.start_column),
+                end_line: i64::from(region.end_line),
+                end_column: i64::from(region.end_column),
+                start_byte: i64::from(region.start_byte),
+                end_byte: i64::from(region.end_byte),
+                metadata_json: optional_json(&region.metadata, target)?,
+            })
         })
         .collect()
 }

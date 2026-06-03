@@ -108,7 +108,15 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/sqlite-schema-v2.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
             path_template: "docs/contracts/jsonl-v1.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/jsonl-v2.md",
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
@@ -117,6 +125,10 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
             path_template: "docs/contracts/extracted-data-v1.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/extracted-data-v2.md",
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,

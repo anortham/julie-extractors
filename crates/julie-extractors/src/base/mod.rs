@@ -19,6 +19,7 @@ pub mod extractor;
 pub mod kinds;
 pub mod relationship_resolution;
 mod results_normalization;
+pub mod source_regions;
 pub mod span;
 mod string_literals;
 pub mod tree_methods;
@@ -35,13 +36,15 @@ pub use kinds::{IdentifierKind, RelationshipKind, SymbolKind, TestRole, Visibili
 pub use relationship_resolution::{
     LocalTargetResolution, ScopedSymbolIndex, StructuredPendingRelationship, UnresolvedTarget,
 };
+pub use source_regions::collect_source_regions;
 pub use span::{NormalizedSpan, RecordOffset, normalize_file_path};
 pub use tree_methods::{find_child_by_type, find_child_by_types};
 pub use type_arguments::{TypeArgDecomposer, extract_type_arguments};
 pub use type_models::{Literal, LiteralKind, TypeArgument, TypeArgumentUsage};
 pub use types::{
     AnnotationMarker, ContextConfig, ExtractionResults, Identifier, ParseDiagnostic,
-    ParseDiagnosticKind, PendingRelationship, Relationship, Symbol, SymbolOptions, TypeInfo,
+    ParseDiagnosticKind, PendingRelationship, Relationship, SourceRegion, SourceRegionKind, Symbol,
+    SymbolOptions, TypeInfo,
 };
 
 pub(crate) fn containing_symbol_at_line(symbols: &[Symbol], line_number: u32) -> Option<&Symbol> {

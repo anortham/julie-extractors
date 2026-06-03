@@ -106,8 +106,8 @@ fn validate_outputs_accepts_ok_reports_sqlite_metadata_and_valid_jsonl() {
     )
     .expect("valid dogfood outputs");
 
-    assert_eq!(metrics.sqlite_schema_version, 1);
-    assert_eq!(metrics.extract_contract_version, 1);
+    assert_eq!(metrics.sqlite_schema_version, 2);
+    assert_eq!(metrics.extract_contract_version, 2);
     assert_eq!(metrics.files, 2);
     assert_eq!(metrics.symbols, 3);
     assert_eq!(metrics.jsonl_records, 4);
@@ -175,8 +175,8 @@ fn validate_outputs_rejects_other_required_hard_gate_failures() {
         "artifact metadata missing `hash_algorithm`",
     );
     assert_invalid_evidence(
-        |fixture| fixture.set_metadata("schema_version", "2"),
-        "artifact schema version was schema=2",
+        |fixture| fixture.set_metadata("schema_version", "999"),
+        "artifact schema version was schema=999",
     );
     assert_invalid_evidence(
         |fixture| fixture.clear_table("files"),
@@ -338,7 +338,7 @@ impl DogfoodFixture {
         std::fs::write(
             &self.paths.rescan_report_path,
             format!(
-                r#"{{"report_schema_version":1,"status":"{status}","operation":"scan","mode":"incremental","revision":{{"created_revision_id":{created_revision_id}}},"counts":{{"files_scanned":2,"files_changed":{files_changed},"files_unchanged":{files_unchanged},"files_deleted":{files_deleted},"files_failed":{files_failed},"rows_written":{{"files":{rows_files},"symbols":{rows_symbols}}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
+                r#"{{"report_schema_version":2,"status":"{status}","operation":"scan","mode":"incremental","revision":{{"created_revision_id":{created_revision_id}}},"counts":{{"files_scanned":2,"files_changed":{files_changed},"files_unchanged":{files_unchanged},"files_deleted":{files_deleted},"files_failed":{files_failed},"rows_written":{{"files":{rows_files},"symbols":{rows_symbols}}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
             ),
         )
         .expect("write rescan report");
@@ -354,7 +354,7 @@ impl DogfoodFixture {
         std::fs::write(
             path,
             format!(
-                r#"{{"report_schema_version":1,"status":"{status}","operation":"{operation}","mode":"{mode}","artifact":{{"jsonl_schema_version":1}},"counts":{{"files_scanned":2,"rows_written":{{"files":2,"symbols":3}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
+                r#"{{"report_schema_version":2,"status":"{status}","operation":"{operation}","mode":"{mode}","artifact":{{"jsonl_schema_version":2}},"counts":{{"files_scanned":2,"rows_written":{{"files":2,"symbols":3}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
             ),
         )
         .expect("write report");
@@ -381,15 +381,16 @@ impl DogfoodFixture {
             CREATE TABLE type_argument_usages (id TEXT);
             CREATE TABLE type_arguments (id TEXT);
             CREATE TABLE literals (id TEXT);
+            CREATE TABLE source_regions (id TEXT);
             CREATE TABLE parse_diagnostics (id TEXT);
             ",
         )
         .expect("schema");
         for (key, value) in [
             ("artifact_id", "artifact".to_string()),
-            ("schema_version", "1".to_string()),
-            ("extract_contract_version", "1".to_string()),
-            ("sqlite_schema_version", "1".to_string()),
+            ("schema_version", "2".to_string()),
+            ("extract_contract_version", "2".to_string()),
+            ("sqlite_schema_version", "2".to_string()),
             ("binary_version", "julie-extract 0.1.0".to_string()),
             ("hash_algorithm", "blake3".to_string()),
             ("parser_inventory_fingerprint", "sha256:parser".to_string()),
@@ -446,11 +447,11 @@ impl DogfoodFixture {
 
     fn write_jsonl_records(&self, records: usize) {
         let mut jsonl = String::new();
-        let kinds = ["artifact", "file", "file", "symbol"];
+        let kinds = ["artifact", "file", "file", "symbol", "source_region"];
         for index in 0..records {
             let kind = kinds.get(index).copied().unwrap_or("identifier");
             jsonl.push_str(&format!(
-                r#"{{"jsonl_schema_version":1,"extract_contract_version":1,"kind":"{kind}","op":"snapshot","artifact_id":"artifact","record_id":"{index}","record":{{}}}}"#
+                r#"{{"jsonl_schema_version":2,"extract_contract_version":2,"kind":"{kind}","op":"snapshot","artifact_id":"artifact","record_id":"{index}","record":{{}}}}"#
             ));
             jsonl.push('\n');
         }

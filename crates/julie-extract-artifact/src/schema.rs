@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 
-pub const SQLITE_SCHEMA_VERSION: i64 = 1;
-pub const EXTRACT_CONTRACT_VERSION: i64 = 1;
+pub const SQLITE_SCHEMA_VERSION: i64 = 2;
+pub const EXTRACT_CONTRACT_VERSION: i64 = 2;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute_batch(SCHEMA_SQL)
@@ -232,6 +232,24 @@ CREATE TABLE IF NOT EXISTS literals (
   FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS source_regions (
+  source_region_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  containing_symbol_id TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS parse_diagnostics (
   diagnostic_id TEXT PRIMARY KEY,
   file_id TEXT NOT NULL,
@@ -306,5 +324,8 @@ CREATE INDEX IF NOT EXISTS idx_relationships_to ON relationships(to_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_kind ON relationships(kind);
 CREATE INDEX IF NOT EXISTS idx_pending_terminal ON pending_relationships(target_terminal_name);
 CREATE INDEX IF NOT EXISTS idx_pending_file ON pending_relationships(file_id);
+CREATE INDEX IF NOT EXISTS idx_source_regions_file_span ON source_regions(file_id, start_byte, end_byte);
+CREATE INDEX IF NOT EXISTS idx_source_regions_kind_file ON source_regions(kind, file_id, start_byte);
+CREATE INDEX IF NOT EXISTS idx_source_regions_symbol ON source_regions(containing_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_diagnostics_path ON parse_diagnostics(path);
 "#;

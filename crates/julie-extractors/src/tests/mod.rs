@@ -55,6 +55,7 @@ pub mod review_regressions;
 pub mod ruby;
 pub mod rust;
 pub mod scala;
+pub mod source_regions;
 pub mod sql;
 pub mod swift;
 pub mod toml;

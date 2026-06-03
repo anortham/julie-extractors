@@ -12,9 +12,9 @@ and inspect extraction artifacts by spawning this binary only.
 Contract version:
 
 - CLI contract: `1`
-- Extraction contract: `1`
-- SQLite schema: `1`
-- JSONL schema: `1`
+- Extraction contract: `2`
+- SQLite schema: `2`
+- JSONL schema: `2`
 
 ## Invariants
 
@@ -118,9 +118,9 @@ and row totals.
 
 Exports canonical SQLite rows as JSONL.
 
-Only `--format jsonl` is part of v1. `--out -` writes JSONL records to stdout.
-When `--json` and `--out -` are both requested, JSONL uses stdout and the JSON
-report uses stderr.
+Only `--format jsonl` is part of this CLI contract. `--out -` writes JSONL
+records to stdout. When `--json` and `--out -` are both requested, JSONL uses
+stdout and the JSON report uses stderr.
 
 ### `languages`
 

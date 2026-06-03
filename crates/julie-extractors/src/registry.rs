@@ -1,4 +1,5 @@
 use crate::base::ExtractionResults;
+use crate::base::collect_source_regions;
 use crate::factory::convert_types_map;
 use crate::language;
 pub use crate::language::LanguageCapabilities;
@@ -46,6 +47,7 @@ macro_rules! define_structured_full_language_extractors {
                     identifiers,
                     type_argument_usages: ext.get_type_argument_usages(),
                     literals: ext.get_literals(),
+                    source_regions: Vec::new(),
                     types: convert_types_map(types, $language),
                     parse_diagnostics: Vec::new(),
                 })
@@ -82,6 +84,7 @@ macro_rules! define_structured_full_file_extractors {
                     identifiers,
                     type_argument_usages: ext.get_type_argument_usages(),
                     literals: ext.get_literals(),
+                    source_regions: Vec::new(),
                     types: convert_types_map(types, $language),
                     parse_diagnostics: Vec::new(),
                 })
@@ -117,6 +120,7 @@ macro_rules! define_no_pending_extractors {
                     identifiers,
                     type_argument_usages: ext.get_type_argument_usages(),
                     literals: ext.get_literals(),
+                    source_regions: Vec::new(),
                     types: convert_types_map(types, $language),
                     parse_diagnostics: Vec::new(),
                 })
@@ -151,6 +155,7 @@ macro_rules! define_relationship_data_extractors {
                     identifiers,
                     type_argument_usages: ext.get_type_argument_usages(),
                     literals: ext.get_literals(),
+                    source_regions: Vec::new(),
                     types: HashMap::new(),
                     parse_diagnostics: Vec::new(),
                 })
@@ -200,6 +205,7 @@ fn extract_java(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "java"),
         parse_diagnostics: Vec::new(),
     })
@@ -231,6 +237,7 @@ fn extract_csharp(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "csharp"),
         parse_diagnostics: Vec::new(),
     })
@@ -262,6 +269,7 @@ fn extract_kotlin(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "kotlin"),
         parse_diagnostics: Vec::new(),
     })
@@ -293,6 +301,7 @@ fn extract_swift(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "swift"),
         parse_diagnostics: Vec::new(),
     })
@@ -324,6 +333,7 @@ fn extract_php(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "php"),
         parse_diagnostics: Vec::new(),
     })
@@ -355,6 +365,7 @@ fn extract_scala(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "scala"),
         parse_diagnostics: Vec::new(),
     })
@@ -386,6 +397,7 @@ fn extract_typescript(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "typescript"),
         parse_diagnostics: Vec::new(),
     })
@@ -417,6 +429,7 @@ fn extract_tsx(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "tsx"),
         parse_diagnostics: Vec::new(),
     })
@@ -448,6 +461,7 @@ fn extract_javascript(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "javascript"),
         parse_diagnostics: Vec::new(),
     })
@@ -479,6 +493,7 @@ fn extract_jsx(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "jsx"),
         parse_diagnostics: Vec::new(),
     })
@@ -510,6 +525,7 @@ fn extract_bash(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "bash"),
         parse_diagnostics: Vec::new(),
     })
@@ -541,6 +557,7 @@ fn extract_powershell(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "powershell"),
         parse_diagnostics: Vec::new(),
     })
@@ -571,6 +588,7 @@ fn extract_lua(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
     })
@@ -601,6 +619,7 @@ fn extract_qml(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
     })
@@ -631,6 +650,7 @@ fn extract_r(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
     })
@@ -684,6 +704,7 @@ fn extract_html(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "html"),
         parse_diagnostics: Vec::new(),
     })
@@ -720,6 +741,7 @@ fn extract_sql(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "sql"),
         parse_diagnostics: Vec::new(),
     })
@@ -763,6 +785,7 @@ fn extract_toml(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
     })
@@ -796,6 +819,7 @@ fn extract_json(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
     })
@@ -831,6 +855,7 @@ fn extract_vue(
         identifiers,
         type_argument_usages: ext.get_type_argument_usages(),
         literals: ext.get_literals(),
+        source_regions: Vec::new(),
         types: convert_types_map(types, "vue"),
         parse_diagnostics: Vec::new(),
     })
@@ -923,7 +948,10 @@ pub fn extract_for_language(
             file_path
         )
     })?;
-    (entry.extract)(tree, file_path, content, workspace_root)
+    let mut results = (entry.extract)(tree, file_path, content, workspace_root)?;
+    results.source_regions =
+        collect_source_regions(language, tree, file_path, content, &results.symbols);
+    Ok(results)
 }
 
 pub fn capabilities_for_language(language: &str) -> Result<LanguageCapabilities, anyhow::Error> {

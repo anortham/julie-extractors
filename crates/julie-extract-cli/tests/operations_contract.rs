@@ -119,6 +119,23 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
 
     assert_eq!(table_count(&db, "files"), 2);
     assert!(table_count(&db, "symbols") >= 2);
+    let source_region_count = table_count(&db, "source_regions");
+    assert!(
+        source_region_count >= 3,
+        "scan should persist comment, doc-comment, and string-literal source regions"
+    );
+    assert_eq!(
+        report["counts"]["rows_written"]["source_regions"],
+        source_region_count
+    );
+    assert_eq!(
+        report["counts"]["totals"]["source_regions"],
+        source_region_count
+    );
+    let source_region_kinds = source_region_kinds_for_path(&db, "src/a.rs");
+    assert!(source_region_kinds.contains(&"comment".to_string()));
+    assert!(source_region_kinds.contains(&"doc_comment".to_string()));
+    assert!(source_region_kinds.contains(&"string_literal".to_string()));
     assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
 }
@@ -780,7 +797,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
     assert_eq!(report["status"], "ok");
     assert_eq!(report["operation"], "export");
     assert_eq!(report["mode"], "jsonl");
-    assert_eq!(report["artifact"]["jsonl_schema_version"], 1);
+    assert_eq!(report["artifact"]["jsonl_schema_version"], 2);
     assert_eq!(report["counts"]["rows_written"]["files"], 2);
     assert_eq!(report["counts"]["rows_written"]["symbols"], 3);
     let records = std::fs::read_to_string(&out).unwrap();
@@ -790,7 +807,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
         .collect::<Vec<_>>();
     assert_eq!(parsed[0]["kind"], "artifact");
     assert_eq!(parsed[0]["op"], "snapshot");
-    assert_eq!(parsed[0]["jsonl_schema_version"], 1);
+    assert_eq!(parsed[0]["jsonl_schema_version"], 2);
     assert!(
         parsed
             .iter()
@@ -813,6 +830,11 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
     );
     assert!(parsed.iter().any(|record| record["kind"] == "file"));
     assert!(parsed.iter().any(|record| record["kind"] == "symbol"));
+    assert!(
+        parsed
+            .iter()
+            .any(|record| record["kind"] == "source_region")
+    );
 }
 
 #[test]
@@ -927,7 +949,7 @@ impl FixtureRoot {
         std::fs::create_dir_all(root.join("src")).unwrap();
         std::fs::write(
             root.join("src/a.rs"),
-            "pub fn alpha() {}\npub fn helper() { alpha(); }\n",
+            "// module comment\n/// Alpha docs\npub fn alpha() { let message = \"hello\"; }\npub fn helper() { alpha(); }\n",
         )
         .unwrap();
         std::fs::write(root.join("src/b.rs"), "pub fn beta() {}\n").unwrap();
@@ -968,6 +990,17 @@ fn table_count(db: &Path, table: &str) -> i64 {
         row.get(0)
     })
     .unwrap()
+}
+
+fn source_region_kinds_for_path(db: &Path, path: &str) -> Vec<String> {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn
+        .prepare("SELECT kind FROM source_regions WHERE path = ?1 ORDER BY kind, source_region_id")
+        .unwrap();
+    stmt.query_map([path], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
 }
 
 fn scalar_i64(db: &Path, sql: &str) -> i64 {
@@ -1079,6 +1112,7 @@ fn artifact_fingerprint(db: &Path) -> Vec<(String, String)> {
         "type_argument_usages",
         "type_arguments",
         "literals",
+        "source_regions",
         "parse_diagnostics",
     ] {
         rows.push((format!("table:{table}"), table_count(db, table).to_string()));

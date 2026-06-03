@@ -26,8 +26,8 @@ fn full_export_emits_every_kind_in_contract_order_with_snapshot_envelope() {
     assert_eq!(records[0]["record_id"], "artifact-jsonl-test");
 
     for record in &records {
-        assert_eq!(record["jsonl_schema_version"], 1);
-        assert_eq!(record["extract_contract_version"], 1);
+        assert_eq!(record["jsonl_schema_version"], 2);
+        assert_eq!(record["extract_contract_version"], 2);
         assert_eq!(record["op"], "snapshot");
         assert_eq!(record["artifact_id"], "artifact-jsonl-test");
         assert!(
@@ -83,6 +83,10 @@ fn sqlite_json_text_columns_are_decoded_into_json_values() {
     assert_eq!(
         record(&records, "literal")["metadata"],
         json!({"literal": true})
+    );
+    assert_eq!(
+        record(&records, "source_region")["metadata"],
+        json!({"source_region": true})
     );
 }
 
@@ -329,6 +333,20 @@ fn every_record_kind_uses_exact_payload_keys() {
             "containing_symbol_id",
             "span",
             "confidence",
+            "metadata",
+        ],
+    );
+    assert_record_keys(
+        &records,
+        "source_region",
+        &[
+            "source_region_id",
+            "file_id",
+            "path",
+            "language",
+            "kind",
+            "containing_symbol_id",
+            "span",
             "metadata",
         ],
     );
@@ -647,6 +665,16 @@ fn insert_extraction_rows(conn: &Connection) {
          VALUES ('literal-route', 'file-a', 'src/a.rs', 'rust', '/api/users', 'route',
                  'route', 0, 'sym-alpha', 2, 10, 2, 22, 22, 34, 1.0, ?1)",
         [r#"{"literal":true}"#],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO source_regions
+         (source_region_id, file_id, path, language, kind, containing_symbol_id,
+          start_line, start_column, end_line, end_column, start_byte, end_byte,
+          metadata_json)
+         VALUES ('region-comment', 'file-a', 'src/a.rs', 'rust', 'comment',
+                 'sym-alpha', 1, 0, 1, 14, 0, 14, ?1)",
+        [r#"{"source_region":true}"#],
     )
     .unwrap();
     conn.execute(

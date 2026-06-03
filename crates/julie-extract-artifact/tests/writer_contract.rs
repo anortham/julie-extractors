@@ -3,9 +3,10 @@ use julie_extract_artifact::model::{
     ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactFile, ArtifactIdentifier,
     ArtifactLanguageCapabilityFixtureRow, ArtifactLanguageCapabilityGapRow,
     ArtifactLanguageCapabilityRow, ArtifactLiteral, ArtifactParseDiagnostic,
-    ArtifactParserInventoryRow, ArtifactPendingRelationship, ArtifactRelationship, ArtifactSymbol,
-    ArtifactSymbolAnnotation, ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact,
-    FileStatus, RevisionInput, WriteMode, WriteOperation,
+    ArtifactParserInventoryRow, ArtifactPendingRelationship, ArtifactRelationship,
+    ArtifactSourceRegion, ArtifactSymbol, ArtifactSymbolAnnotation, ArtifactTypeArgument,
+    ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus, RevisionInput, WriteMode,
+    WriteOperation,
 };
 use julie_extract_artifact::writer::{ArtifactFileSpool, ArtifactWriteError, ArtifactWriter};
 use rusqlite::{Connection, limits::Limit};
@@ -125,6 +126,7 @@ fn scan_persists_every_normalized_row_family_with_counts() {
     assert_eq!(result.rows_written.type_argument_usages, 1);
     assert_eq!(result.rows_written.type_arguments, 1);
     assert_eq!(result.rows_written.literals, 1);
+    assert_eq!(result.rows_written.source_regions, 1);
     assert_eq!(result.rows_written.parse_diagnostics, 1);
     assert_eq!(count(writer.connection(), "symbol_annotations"), 1);
     assert_eq!(count(writer.connection(), "identifiers"), 1);
@@ -134,6 +136,7 @@ fn scan_persists_every_normalized_row_family_with_counts() {
     assert_eq!(count(writer.connection(), "type_argument_usages"), 1);
     assert_eq!(count(writer.connection(), "type_arguments"), 1);
     assert_eq!(count(writer.connection(), "literals"), 1);
+    assert_eq!(count(writer.connection(), "source_regions"), 1);
     assert_eq!(count(writer.connection(), "parse_diagnostics"), 1);
 }
 
@@ -1117,6 +1120,7 @@ fn file_with_symbols<const N: usize>(
         type_argument_usages: Vec::new(),
         type_arguments: Vec::new(),
         literals: Vec::new(),
+        source_regions: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }
@@ -1158,6 +1162,7 @@ fn file_with_many_symbols(
         type_argument_usages: Vec::new(),
         type_arguments: Vec::new(),
         literals: Vec::new(),
+        source_regions: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }
@@ -1231,6 +1236,18 @@ fn file_with_all_rows(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
         containing_symbol_id: Some(format!("{file_id}-symbol-0")),
         ..ArtifactLiteral::default()
     });
+    file.source_regions.push(ArtifactSourceRegion {
+        source_region_id: format!("{file_id}-region-1"),
+        kind: "comment".to_string(),
+        containing_symbol_id: Some(format!("{file_id}-symbol-0")),
+        start_line: 1,
+        start_column: 0,
+        end_line: 1,
+        end_column: 12,
+        start_byte: 0,
+        end_byte: 12,
+        metadata_json: Some(r#"{"source_region":true}"#.to_string()),
+    });
     file.parse_diagnostics.push(ArtifactParseDiagnostic {
         diagnostic_id: format!("{file_id}-diagnostic-1"),
         kind: "error".to_string(),
@@ -1256,6 +1273,7 @@ fn assert_child_tables_empty(conn: &Connection) {
         "type_argument_usages",
         "type_arguments",
         "literals",
+        "source_regions",
         "parse_diagnostics",
     ] {
         assert_eq!(count(conn, table), 0, "{table} should be empty");

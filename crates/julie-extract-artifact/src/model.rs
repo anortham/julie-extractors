@@ -90,6 +90,7 @@ pub struct RowCounts {
     pub type_argument_usages: i64,
     pub type_arguments: i64,
     pub literals: i64,
+    pub source_regions: i64,
     pub parse_diagnostics: i64,
     pub revision_file_changes: i64,
 }
@@ -106,6 +107,7 @@ impl RowCounts {
             + self.type_argument_usages
             + self.type_arguments
             + self.literals
+            + self.source_regions
             + self.parse_diagnostics
     }
 
@@ -116,7 +118,7 @@ impl RowCounts {
                 r#""files":{},"symbols":{},"symbol_annotations":{},"identifiers":{},"#,
                 r#""relationships":{},"pending_relationships":{},"type_facts":{},"#,
                 r#""type_argument_usages":{},"type_arguments":{},"literals":{},"#,
-                r#""parse_diagnostics":{},"revision_file_changes":{}"#,
+                r#""source_regions":{},"parse_diagnostics":{},"revision_file_changes":{}"#,
                 "}}"
             ),
             self.files,
@@ -129,6 +131,7 @@ impl RowCounts {
             self.type_argument_usages,
             self.type_arguments,
             self.literals,
+            self.source_regions,
             self.parse_diagnostics,
             self.revision_file_changes
         )
@@ -220,6 +223,7 @@ pub struct ArtifactFile {
     pub type_argument_usages: Vec<ArtifactTypeArgumentUsage>,
     pub type_arguments: Vec<ArtifactTypeArgument>,
     pub literals: Vec<ArtifactLiteral>,
+    pub source_regions: Vec<ArtifactSourceRegion>,
     pub parse_diagnostics: Vec<ArtifactParseDiagnostic>,
 }
 
@@ -479,6 +483,37 @@ impl Default for ArtifactLiteral {
             start_byte: 0,
             end_byte: 0,
             confidence: 1.0,
+            metadata_json: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArtifactSourceRegion {
+    pub source_region_id: String,
+    pub kind: String,
+    pub containing_symbol_id: Option<String>,
+    pub start_line: i64,
+    pub start_column: i64,
+    pub end_line: i64,
+    pub end_column: i64,
+    pub start_byte: i64,
+    pub end_byte: i64,
+    pub metadata_json: Option<String>,
+}
+
+impl Default for ArtifactSourceRegion {
+    fn default() -> Self {
+        Self {
+            source_region_id: String::new(),
+            kind: "comment".to_string(),
+            containing_symbol_id: None,
+            start_line: 1,
+            start_column: 0,
+            end_line: 1,
+            end_column: 0,
+            start_byte: 0,
+            end_byte: 0,
             metadata_json: None,
         }
     }

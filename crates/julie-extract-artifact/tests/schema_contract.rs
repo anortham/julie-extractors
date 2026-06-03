@@ -9,7 +9,7 @@ use julie_extract_artifact::writer::ArtifactWriter;
 use rusqlite::Connection;
 
 #[test]
-fn schema_creates_every_sqlite_v1_public_table_with_contract_columns() {
+fn schema_creates_every_sqlite_v2_public_table_with_contract_columns() {
     let conn = open_schema();
 
     let table_names: BTreeSet<_> = conn
@@ -32,7 +32,7 @@ fn schema_creates_every_sqlite_v1_public_table_with_contract_columns() {
         assert_eq!(
             table_columns(&conn, table.name),
             table.columns,
-            "{} columns drifted from sqlite-schema-v1.md",
+            "{} columns drifted from sqlite-schema-v2.md",
             table.name
         );
     }
@@ -69,7 +69,7 @@ fn schema_creates_required_indexes_with_contract_columns() {
         assert_eq!(
             index_columns(&conn, index.name),
             index.columns,
-            "{} columns drifted from sqlite-schema-v1.md",
+            "{} columns drifted from sqlite-schema-v2.md",
             index.name
         );
     }
@@ -119,8 +119,8 @@ fn metadata_required_keys_are_inserted_and_readable() {
     }
     assert_eq!(rows["artifact_id"], "artifact-test-1");
     assert_eq!(rows["root_path"], "/repo");
-    assert_eq!(rows["schema_version"], "1");
-    assert_eq!(rows["extract_contract_version"], "1");
+    assert_eq!(rows["schema_version"], "2");
+    assert_eq!(rows["extract_contract_version"], "2");
     assert_eq!(
         rows["sqlite_schema_version"],
         SQLITE_SCHEMA_VERSION.to_string()
@@ -151,7 +151,7 @@ fn writer_initializes_schema_metadata_and_foreign_key_enforcement() {
 }
 
 #[test]
-fn report_row_domains_cover_every_sqlite_v1_public_table() {
+fn report_row_domains_cover_every_sqlite_v2_public_table() {
     let domains = SQLITE_ROW_DOMAINS.iter().copied().collect::<BTreeSet<_>>();
     assert_eq!(
         domains.len(),
@@ -467,6 +467,24 @@ fn expected_tables() -> Vec<ExpectedTable> {
         ],
     );
     tables.insert(
+        "source_regions",
+        vec![
+            "source_region_id TEXT",
+            "file_id TEXT",
+            "path TEXT",
+            "language TEXT",
+            "kind TEXT",
+            "containing_symbol_id TEXT",
+            "start_line INTEGER",
+            "start_column INTEGER",
+            "end_line INTEGER",
+            "end_column INTEGER",
+            "start_byte INTEGER",
+            "end_byte INTEGER",
+            "metadata_json TEXT",
+        ],
+    );
+    tables.insert(
         "parse_diagnostics",
         vec![
             "diagnostic_id TEXT",
@@ -628,6 +646,21 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_pending_file",
             table: "pending_relationships",
             columns: vec!["file_id"],
+        },
+        ExpectedIndex {
+            name: "idx_source_regions_file_span",
+            table: "source_regions",
+            columns: vec!["file_id", "start_byte", "end_byte"],
+        },
+        ExpectedIndex {
+            name: "idx_source_regions_kind_file",
+            table: "source_regions",
+            columns: vec!["kind", "file_id", "start_byte"],
+        },
+        ExpectedIndex {
+            name: "idx_source_regions_symbol",
+            table: "source_regions",
+            columns: vec!["containing_symbol_id"],
         },
         ExpectedIndex {
             name: "idx_diagnostics_path",

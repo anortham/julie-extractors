@@ -11,12 +11,12 @@ use serde_json::json;
 fn report_serializes_schema_version_and_success_shape() {
     let value = serde_json::to_value(sample_report(ReportStatus::Ok)).unwrap();
 
-    assert_eq!(value["report_schema_version"], 1);
+    assert_eq!(value["report_schema_version"], 2);
     assert_eq!(value["status"], "ok");
     assert_eq!(value["operation"], "scan");
     assert_eq!(value["mode"], "incremental");
     assert_eq!(value["input"]["db_path"], "/tmp/code.sqlite");
-    assert_eq!(value["artifact"]["schema_version"], 1);
+    assert_eq!(value["artifact"]["schema_version"], 2);
     assert_eq!(
         value["artifact"]["jsonl_schema_version"],
         serde_json::Value::Null
@@ -95,7 +95,7 @@ fn every_report_status_has_stable_serialized_spelling() {
 }
 
 #[test]
-fn every_v1_error_code_has_stable_serialized_spelling() {
+fn every_v2_error_code_has_stable_serialized_spelling() {
     let serialized = ReportCode::ERROR_CODES
         .iter()
         .map(|code| serde_json::to_value(code).unwrap())
@@ -160,7 +160,7 @@ fn single_file_success_reports_include_absolute_and_root_relative_paths() {
 }
 
 #[test]
-fn report_row_count_keys_are_exhaustive_for_sqlite_v1() {
+fn report_row_count_keys_are_exhaustive_for_sqlite_v2() {
     let value = serde_json::to_value(RowDomainCounts::default()).unwrap();
     let actual = value
         .as_object()
@@ -203,9 +203,9 @@ fn sample_report(status: ReportStatus) -> Report {
             db_path: "/tmp/code.sqlite".to_string(),
             root_path: "/repo".to_string(),
             artifact_id: "artifact-test-1".to_string(),
-            schema_version: 1,
-            extract_contract_version: 1,
-            sqlite_schema_version: 1,
+            schema_version: 2,
+            extract_contract_version: 2,
+            sqlite_schema_version: 2,
             jsonl_schema_version: None,
             hash_algorithm: "blake3".to_string(),
             parser_inventory_fingerprint: "sha256:parser".to_string(),
@@ -236,6 +236,7 @@ fn sample_report(status: ReportStatus) -> Report {
                 pending_relationships: 2,
                 type_facts: 3,
                 literals: 1,
+                source_regions: 4,
                 ..RowDomainCounts::default()
             },
             totals: RowDomainCounts {
@@ -255,6 +256,7 @@ fn sample_report(status: ReportStatus) -> Report {
                 type_argument_usages: 5,
                 type_arguments: 8,
                 literals: 6,
+                source_regions: 42,
                 ..RowDomainCounts::default()
             },
         },

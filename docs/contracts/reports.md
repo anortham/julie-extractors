@@ -16,7 +16,7 @@ part of this contract.
 
 ```json
 {
-  "report_schema_version": 1,
+  "report_schema_version": 2,
   "status": "ok",
   "operation": "scan",
   "mode": "incremental",
@@ -32,9 +32,9 @@ part of this contract.
     "db_path": "/tmp/code.sqlite",
     "root_path": "/repo",
     "artifact_id": "01hz...",
-    "schema_version": 1,
-    "extract_contract_version": 1,
-    "sqlite_schema_version": 1,
+    "schema_version": 2,
+    "extract_contract_version": 2,
+    "sqlite_schema_version": 2,
     "jsonl_schema_version": null,
     "hash_algorithm": "blake3",
     "parser_inventory_fingerprint": "sha256:...",
@@ -73,6 +73,7 @@ part of this contract.
       "type_argument_usages": 0,
       "type_arguments": 0,
       "literals": 1,
+      "source_regions": 4,
       "parse_diagnostics": 0
     },
     "totals": {
@@ -93,6 +94,7 @@ part of this contract.
       "type_argument_usages": 5,
       "type_arguments": 8,
       "literals": 6,
+      "source_regions": 300,
       "parse_diagnostics": 0
     }
   },
@@ -126,7 +128,7 @@ part of this contract.
 
 Fields:
 
-- `report_schema_version`: report shape version, always `1` for this draft.
+- `report_schema_version`: report shape version, always `2` for this contract.
 - `status`: one of the CLI status values.
 - `operation`: command name.
 - `mode`: operation-specific mode such as `incremental`, `force`, `single_file`,
@@ -145,7 +147,7 @@ Fields:
 Commands that do not use an artifact, such as `languages`, set `artifact` and
 `revision` to `null`.
 
-`counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v1
+`counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v2
 row domains. Commands must emit every key with `0` when that row kind is not
 written or not present.
 
@@ -213,7 +215,7 @@ Fields:
 
 ## Error Codes
 
-Stable v1 codes:
+Stable report codes:
 
 - `usage_error`: invalid CLI arguments.
 - `invalid_path`: path cannot be normalized.
@@ -277,7 +279,7 @@ Warnings use the same shape and may use warning-only codes such as
 - `operation`: `export`
 - `mode`: `jsonl`
 - Must include exported record counts by kind.
-- `artifact.jsonl_schema_version` is `1`.
+- `artifact.jsonl_schema_version` is `2`.
 
 ### `languages`
 

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize, ser::SerializeStruct};
 
 use crate::model::RowCounts;
 
-pub const REPORT_SCHEMA_VERSION: i64 = 1;
+pub const REPORT_SCHEMA_VERSION: i64 = 2;
 
 pub const SQLITE_ROW_DOMAINS: &[&str] = &[
     "artifact_metadata",
@@ -24,6 +24,7 @@ pub const SQLITE_ROW_DOMAINS: &[&str] = &[
     "type_argument_usages",
     "type_arguments",
     "literals",
+    "source_regions",
     "parse_diagnostics",
 ];
 
@@ -202,6 +203,7 @@ pub struct RowDomainCounts {
     pub type_argument_usages: i64,
     pub type_arguments: i64,
     pub literals: i64,
+    pub source_regions: i64,
     pub parse_diagnostics: i64,
 }
 
@@ -224,6 +226,7 @@ impl RowDomainCounts {
             || self.type_argument_usages != 0
             || self.type_arguments != 0
             || self.literals != 0
+            || self.source_regions != 0
             || self.parse_diagnostics != 0
     }
 
@@ -245,6 +248,7 @@ impl RowDomainCounts {
         self.type_argument_usages += other.type_argument_usages;
         self.type_arguments += other.type_arguments;
         self.literals += other.literals;
+        self.source_regions += other.source_regions;
         self.parse_diagnostics += other.parse_diagnostics;
     }
 
@@ -261,6 +265,7 @@ impl RowDomainCounts {
             type_argument_usages: row_counts.type_argument_usages,
             type_arguments: row_counts.type_arguments,
             literals: row_counts.literals,
+            source_regions: row_counts.source_regions,
             parse_diagnostics: row_counts.parse_diagnostics,
             ..Self::default()
         }

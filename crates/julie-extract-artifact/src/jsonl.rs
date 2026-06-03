@@ -9,7 +9,7 @@ use serde_json::{Map, Value, json};
 use crate::metadata::{REQUIRED_METADATA_KEYS, read_metadata};
 use crate::schema::EXTRACT_CONTRACT_VERSION;
 
-pub const JSONL_SCHEMA_VERSION: i64 = 1;
+pub const JSONL_SCHEMA_VERSION: i64 = 2;
 
 pub const JSONL_RECORD_KINDS: &[&str] = &[
     "artifact",
@@ -29,6 +29,7 @@ pub const JSONL_RECORD_KINDS: &[&str] = &[
     "type_argument_usage",
     "type_argument",
     "literal",
+    "source_region",
     "parse_diagnostic",
 ];
 
@@ -131,6 +132,7 @@ pub fn export_jsonl<W: Write>(
     export_type_argument_usages(conn, &mut writer, artifact_id, &mut summary)?;
     export_type_arguments(conn, &mut writer, artifact_id, &mut summary)?;
     export_literals(conn, &mut writer, artifact_id, &mut summary)?;
+    export_source_regions(conn, &mut writer, artifact_id, &mut summary)?;
     export_parse_diagnostics(conn, &mut writer, artifact_id, &mut summary)?;
 
     writer.flush()?;
@@ -1215,6 +1217,74 @@ fn export_literals<W: Write>(
             "metadata": optional_object("literals.metadata_json", metadata_json)?,
         });
         write_record(writer, artifact_id, "literal", &literal_id, record, summary)?;
+    }
+    Ok(())
+}
+
+fn export_source_regions<W: Write>(
+    conn: &Connection,
+    writer: &mut W,
+    artifact_id: &str,
+    summary: &mut JsonlExportSummary,
+) -> JsonlExportResult<()> {
+    let mut stmt = conn.prepare(
+        "SELECT source_region_id, file_id, path, language, kind, containing_symbol_id,
+                start_line, start_column, end_line, end_column, start_byte, end_byte,
+                metadata_json
+         FROM source_regions
+         ORDER BY path, start_byte, end_byte, kind, source_region_id",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
+            row.get::<_, Option<String>>(5)?,
+            row.get::<_, i64>(6)?,
+            row.get::<_, i64>(7)?,
+            row.get::<_, i64>(8)?,
+            row.get::<_, i64>(9)?,
+            row.get::<_, i64>(10)?,
+            row.get::<_, i64>(11)?,
+            row.get::<_, Option<String>>(12)?,
+        ))
+    })?;
+    for row in rows {
+        let (
+            source_region_id,
+            file_id,
+            path,
+            language,
+            kind,
+            containing_symbol_id,
+            start_line,
+            start_column,
+            end_line,
+            end_column,
+            start_byte,
+            end_byte,
+            metadata_json,
+        ) = row?;
+        let record = json!({
+            "source_region_id": source_region_id,
+            "file_id": file_id,
+            "path": path,
+            "language": language,
+            "kind": kind,
+            "containing_symbol_id": containing_symbol_id,
+            "span": span(start_line, start_column, end_line, end_column, start_byte, end_byte),
+            "metadata": optional_object("source_regions.metadata_json", metadata_json)?,
+        });
+        write_record(
+            writer,
+            artifact_id,
+            "source_region",
+            &source_region_id,
+            record,
+            summary,
+        )?;
     }
     Ok(())
 }

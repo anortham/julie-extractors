@@ -52,6 +52,7 @@ mod tests {
             identifiers,
             type_argument_usages: Vec::new(),
             literals: Vec::new(),
+            source_regions: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }
