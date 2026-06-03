@@ -574,7 +574,7 @@ impl ArtifactWriter {
             }
 
             for (file, _, _) in &planned {
-                row_counts.symbols += file_row_inserters.insert_symbols(file)?;
+                row_counts.symbols += file_row_inserters.insert_symbols(file, None)?;
             }
             let symbol_lookup = load_symbol_lookup(&tx, planned.iter().map(|(file, _, _)| *file))?;
             file_row_inserters
@@ -708,7 +708,7 @@ impl ArtifactWriter {
             }
 
             for file in &rewritten_files {
-                row_counts.symbols += file_row_inserters.insert_symbols(file)?;
+                row_counts.symbols += file_row_inserters.insert_symbols(file, None)?;
             }
             let symbol_lookup = load_symbol_lookup(&tx, rewritten_files.iter().copied())?;
             file_row_inserters
@@ -754,6 +754,12 @@ impl ArtifactWriter {
         let skip_unchanged_content = revision.mode != Some(WriteMode::Force);
         let mut planned_files: HashMap<String, Option<ExistingFile>> = HashMap::new();
         let mut files_skipped = 0;
+        let mut rewritten_file_ids = HashSet::new();
+        // Symbol-id sets for the cross-file symbol_lookup, accumulated in this planning pass (which
+        // already deserializes every file) so the lookup can be built before symbols are inserted —
+        // letting the insert resolve parent_symbol_id inline instead of in a second UPDATE pass.
+        let mut requested_symbol_ids = HashSet::new();
+        let mut local_symbol_ids = HashSet::new();
 
         for file in spool.iter()? {
             let file = file?;
@@ -774,6 +780,13 @@ impl ArtifactWriter {
 
             if file.status != FileStatus::FailedPreserved {
                 ensure_data_loss_guard(&tx, &file)?;
+            }
+            // Files that will be rewritten (everything except preserved-failure updates) contribute
+            // their symbols to the lookup. This mirrors pass B's else-branch selection exactly.
+            if !is_preserved_failure_update(&file, existing.as_ref()) {
+                rewritten_file_ids.insert(file.file_id.clone());
+                collect_requested_symbol_ids(&file, &mut requested_symbol_ids);
+                collect_file_symbol_ids(&file, &mut local_symbol_ids);
             }
             // Carry the existing-file lookup forward; pass B reuses it instead of re-SELECTing.
             // Nothing mutates a planned path's `files` row between here and its insert in pass B,
@@ -799,11 +812,10 @@ impl ArtifactWriter {
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
         write_metadata(&tx, &self.metadata)?;
         let mut row_counts = RowCounts::default();
-        let mut rewritten_file_ids = HashSet::new();
-        // Symbol-id sets for the cross-file symbol_lookup, accumulated during the insert pass so
-        // the spool is not deserialized a separate time just to collect them.
-        let mut requested_symbol_ids = HashSet::new();
-        let mut local_symbol_ids = HashSet::new();
+        // Built before the insert pass (the ids were gathered during planning) so symbols can be
+        // written with their parent resolved in one statement.
+        let symbol_lookup =
+            load_symbol_lookup_for_requested_ids(&tx, &requested_symbol_ids, &local_symbol_ids)?;
 
         {
             let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
@@ -827,10 +839,8 @@ impl ArtifactWriter {
                     }
                     file_row_inserters.insert_file(revision_id, &file)?;
                     row_counts.files += 1;
-                    row_counts.symbols += file_row_inserters.insert_symbols(&file)?;
-                    rewritten_file_ids.insert(file.file_id.clone());
-                    collect_requested_symbol_ids(&file, &mut requested_symbol_ids);
-                    collect_file_symbol_ids(&file, &mut local_symbol_ids);
+                    row_counts.symbols +=
+                        file_row_inserters.insert_symbols(&file, Some(&symbol_lookup))?;
                 }
                 row_counts.revision_file_changes += file_row_inserters
                     .insert_revision_file_change(
@@ -853,23 +863,13 @@ impl ArtifactWriter {
             }
         }
 
-        let symbol_lookup =
-            load_symbol_lookup_for_requested_ids(&tx, &requested_symbol_ids, &local_symbol_ids)?;
-
         {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
-            let mut parent_update =
-                tx.prepare_cached("UPDATE symbols SET parent_symbol_id = ?1 WHERE symbol_id = ?2")?;
             for file in spool.iter()? {
                 let file = file?;
                 if !rewritten_file_ids.contains(&file.file_id) {
                     continue;
                 }
-                update_symbol_parent_rows(
-                    &mut parent_update,
-                    std::iter::once(&file),
-                    &symbol_lookup,
-                )?;
                 child_row_inserters.insert_child_rows(&file, &symbol_lookup, &mut row_counts)?;
             }
         }
@@ -1301,8 +1301,8 @@ impl<'tx> FileRowInserters<'tx> {
                   body_end_column, body_start_byte, body_end_byte, body_hash, semantic_group,
                   confidence, content_type, is_test, test_container, test_lifecycle, metadata_json)
                  VALUES
-                 (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-                  ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29)",
+                 (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17,
+                  ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30)",
             )?,
             symbol_parent_update: tx
                 .prepare_cached("UPDATE symbols SET parent_symbol_id = ?1 WHERE symbol_id = ?2")?,
@@ -1332,8 +1332,12 @@ impl<'tx> FileRowInserters<'tx> {
         )
     }
 
-    fn insert_symbols(&mut self, file: &ArtifactFile) -> rusqlite::Result<i64> {
-        insert_symbol_rows(&mut self.symbols, file)
+    fn insert_symbols(
+        &mut self,
+        file: &ArtifactFile,
+        parent_lookup: Option<&SymbolLookup>,
+    ) -> rusqlite::Result<i64> {
+        insert_symbol_rows(&mut self.symbols, file, parent_lookup)
     }
 
     fn update_symbol_parents<'a>(
@@ -1526,8 +1530,14 @@ fn replace_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusql
 fn insert_symbol_rows(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
+    parent_lookup: Option<&SymbolLookup>,
 ) -> rusqlite::Result<i64> {
     for symbol in &file.symbols {
+        // When a lookup is supplied (spooled path), resolve parent_symbol_id inline so the
+        // separate parent UPDATE pass is unnecessary. Without one (in-memory path), bind NULL and
+        // let update_symbol_parents resolve it afterward — identical to the prior NULL literal.
+        let parent = parent_lookup
+            .and_then(|lookup| valid_symbol_id(lookup, symbol.parent_symbol_id.as_deref()));
         stmt.execute(params![
             symbol.symbol_id,
             file.file_id,
@@ -1538,6 +1548,7 @@ fn insert_symbol_rows(
             symbol.signature,
             symbol.doc_comment,
             symbol.visibility,
+            parent,
             symbol.start_line,
             symbol.start_column,
             symbol.end_line,

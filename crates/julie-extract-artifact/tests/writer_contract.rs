@@ -400,6 +400,53 @@ fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
 }
 
 #[test]
+fn spooled_scan_resolves_symbol_parent_ids() {
+    // Guards parent_symbol_id resolution: a nested symbol whose parent exists must persist that
+    // parent, a symbol whose parent is present in no file must persist NULL, and a top-level
+    // symbol stays NULL. Pins the resolved values that the row-count tests never read back.
+    let mut writer = open_writer();
+    let mut file = file_with_symbols(
+        "file-a",
+        "src/a.rs",
+        "hash-a",
+        ["parent", "child", "orphan"],
+    );
+    file.symbols[1].parent_symbol_id = Some("file-a-symbol-0".to_string());
+    file.symbols[2].parent_symbol_id = Some("does-not-exist".to_string());
+    let snapshot_paths = vec![file.path.clone()];
+    let temp_dir = unique_temp_dir("spooled-symbol-parent");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file).unwrap();
+
+    let result = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.symbols, 3);
+    assert_eq!(
+        symbol_parent(writer.connection(), "file-a-symbol-1"),
+        Some("file-a-symbol-0".to_string()),
+        "a nested symbol must resolve its parent"
+    );
+    assert_eq!(
+        symbol_parent(writer.connection(), "file-a-symbol-2"),
+        None,
+        "a parent present in no file must persist as NULL"
+    );
+    assert_eq!(
+        symbol_parent(writer.connection(), "file-a-symbol-0"),
+        None,
+        "a top-level symbol has no parent"
+    );
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
 fn spooled_scan_restores_foreign_keys_enforcement_on_success() {
     // The bulk write disables FK enforcement (integrity is guaranteed in Rust via SymbolLookup +
     // explicit ordered deletes). It MUST restore foreign_keys=ON after committing so the durable
@@ -1138,6 +1185,15 @@ fn count(conn: &Connection, table: &str) -> i64 {
     conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
         row.get(0)
     })
+    .unwrap()
+}
+
+fn symbol_parent(conn: &Connection, symbol_id: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT parent_symbol_id FROM symbols WHERE symbol_id = ?1",
+        [symbol_id],
+        |row| row.get(0),
+    )
     .unwrap()
 }
 
