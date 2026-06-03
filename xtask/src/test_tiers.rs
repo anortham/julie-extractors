@@ -357,9 +357,7 @@ fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
     if changed_paths
         .iter()
         .any(|path| is_golden_expected_output_path(path))
-        && !changed_paths
-            .iter()
-            .any(|path| *path == "crates/julie-extractors/src/lib.rs")
+        && !changed_paths.contains(&"crates/julie-extractors/src/lib.rs")
     {
         return Err(CliError::new(
             "golden expected output changed without extractor contract review; include \
