@@ -353,15 +353,40 @@ fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
         ));
     }
 
-    let mut commands = default_plan().commands;
-    if args
+    let changed_paths = args.iter().skip(2).map(String::as_str).collect::<Vec<_>>();
+    if changed_paths
         .iter()
-        .skip(2)
+        .any(|path| is_golden_expected_output_path(path))
+        && !changed_paths
+            .iter()
+            .any(|path| *path == "crates/julie-extractors/src/lib.rs")
+    {
+        return Err(CliError::new(
+            "golden expected output changed without extractor contract review; include \
+             crates/julie-extractors/src/lib.rs in the changed path set and update \
+             EXTRACTION_CONTRACT_VERSION if downstream-visible extraction output changed",
+        ));
+    }
+
+    let mut commands = default_plan().commands;
+    if changed_paths.iter().any(|path| is_xtask_path(path)) {
+        commands.push(CommandSpec::new("cargo", ["test", "-p", "xtask"]));
+    }
+    if changed_paths
+        .iter()
         .any(|path| is_parser_dependency_path(path))
     {
         commands.extend(certification_plan().commands);
     }
     Ok(TestPlan { commands })
+}
+
+fn is_golden_expected_output_path(path: &str) -> bool {
+    path.starts_with("fixtures/extraction/") && path.ends_with("/expected.json")
+}
+
+fn is_xtask_path(path: &str) -> bool {
+    path == "xtask/Cargo.toml" || path.starts_with("xtask/src/") || path.starts_with("xtask/tests/")
 }
 
 fn is_parser_dependency_path(path: &str) -> bool {

@@ -90,7 +90,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     let _version: &str = julie_extractors::EXTRACTION_CONTRACT_VERSION;
-    assert!(julie_extractors::EXTRACTION_CONTRACT_VERSION.contains("bridge-anchors-v2"));
+    assert!(julie_extractors::EXTRACTION_CONTRACT_VERSION.contains("ecmascript-swift-shape-v3"));
     Ok(())
 }
 "#,

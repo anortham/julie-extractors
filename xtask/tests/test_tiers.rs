@@ -345,7 +345,6 @@ fn test_changed_parser_dependency_paths_trigger_certification_gate() {
         "crates/julie-extractors/src/registry.rs",
         "fixtures/extraction/capabilities.json",
         "fixtures/extraction/rust/basic/source.rs",
-        "fixtures/extraction/rust/basic/expected.json",
         "crates/julie-extractors/src/tests/capability_matrix.rs",
     ] {
         let parser_change =
@@ -382,6 +381,29 @@ fn test_changed_parser_dependency_paths_trigger_certification_gate() {
         );
     }
 
+    let expected_output_change = plan_from_args([
+        "test",
+        "changed",
+        "fixtures/extraction/rust/basic/expected.json",
+        "crates/julie-extractors/src/lib.rs",
+    ])
+    .expect("changed golden expected output plan with contract review");
+    assert!(
+        expected_output_change.commands.contains(&CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-certification",
+                "--lib",
+                "parser_upgrade",
+            ]
+        )),
+        "golden expected output changes must run parser certification"
+    );
+
     let cli_change = plan_from_args(["test", "changed", "crates/julie-extract-cli/src/main.rs"])
         .expect("changed non-parser plan");
     assert!(
@@ -392,6 +414,59 @@ fn test_changed_parser_dependency_paths_trigger_certification_gate() {
             .any(|arg| arg == "test-certification"),
         "ordinary CLI changes should not trigger parser certification"
     );
+}
+
+#[test]
+fn test_changed_expected_golden_output_requires_extractor_contract_review() {
+    let error = plan_from_args([
+        "test",
+        "changed",
+        "fixtures/extraction/typescript/basic/expected.json",
+    ])
+    .expect_err("expected golden output change without contract path should fail");
+    assert!(
+        error
+            .message()
+            .contains("golden expected output changed without extractor contract review"),
+        "unexpected error: {error}"
+    );
+
+    let reviewed_change = plan_from_args([
+        "test",
+        "changed",
+        "fixtures/extraction/typescript/basic/expected.json",
+        "crates/julie-extractors/src/lib.rs",
+    ])
+    .expect("expected golden output change with contract path should plan gates");
+    assert!(
+        reviewed_change.commands.contains(&CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extractors",
+                "--features",
+                "test-certification",
+                "--lib",
+                "parser_upgrade",
+            ]
+        )),
+        "expected golden output changes should still run parser certification"
+    );
+}
+
+#[test]
+fn test_changed_xtask_paths_run_xtask_tests() {
+    for path in ["xtask/src/test_tiers.rs", "xtask/tests/test_tiers.rs"] {
+        let xtask_change =
+            plan_from_args(["test", "changed", path]).expect("changed xtask path plan");
+        assert!(
+            xtask_change
+                .commands
+                .contains(&CommandSpec::new("cargo", ["test", "-p", "xtask"])),
+            "xtask change `{path}` must run xtask tests"
+        );
+    }
 }
 
 #[test]
