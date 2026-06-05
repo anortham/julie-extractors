@@ -252,9 +252,49 @@ fn build_ignore_matcher(
 }
 
 fn root_ignore_files(root: &Path) -> Vec<PathBuf> {
-    let mut files = vec![root.join(".gitignore"), root.join(".julieignore")];
+    let mut files = ancestor_gitignore_files(root);
+    files.push(root.join(".gitignore"));
+    files.push(root.join(".julieignore"));
     collect_nested_gitignore(root, 8, &mut files);
     files
+}
+
+fn ancestor_gitignore_files(root: &Path) -> Vec<PathBuf> {
+    let Some(git_root) = find_git_root(root) else {
+        return Vec::new();
+    };
+    if git_root == root {
+        return Vec::new();
+    }
+
+    let mut files = Vec::new();
+    let mut current = root;
+    while let Some(parent) = current.parent() {
+        if !parent.starts_with(&git_root) {
+            break;
+        }
+        let candidate = parent.join(".gitignore");
+        if candidate.is_file() {
+            files.push(candidate);
+        }
+        if parent == git_root {
+            break;
+        }
+        current = parent;
+    }
+    files.reverse();
+    files
+}
+
+fn find_git_root(start: &Path) -> Option<PathBuf> {
+    let mut current = start;
+    loop {
+        let git_metadata = current.join(".git");
+        if git_metadata.is_dir() || git_metadata.is_file() {
+            return Some(current.to_path_buf());
+        }
+        current = current.parent()?;
+    }
 }
 
 fn collect_nested_gitignore(dir: &Path, depth: usize, files: &mut Vec<PathBuf>) {
@@ -303,6 +343,7 @@ const HARD_EXCLUDE_DIRS: &[&str] = &[
     ".julie",
     ".memories",
     "node_modules",
+    "vendor",
     "target",
     "dist",
     "build",
@@ -334,6 +375,7 @@ const HARD_EXCLUDE_PATTERNS: &[&str] = &[
     ".julie/",
     ".memories/",
     "node_modules/",
+    "vendor/",
     "target/",
     "dist/",
     "build/",
@@ -382,6 +424,73 @@ mod tests {
             selection,
             FileSelection::Unsupported {
                 reason: UnsupportedReason::HardExcluded
+            }
+        );
+    }
+
+    #[test]
+    fn vendor_directory_is_hard_excluded() {
+        let fixture = DiscoveryFixture::new();
+        let vendored = fixture.write("vendor/pkg/index.rs", "pub fn vendored() {}\n");
+        let selection = fixture.policy().select_file(&vendored);
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::HardExcluded
+            }
+        );
+    }
+
+    #[test]
+    fn nested_workspace_inherits_git_root_gitignore() {
+        let temp = TempDir::new().unwrap();
+        let repo = temp.path().join("repo");
+        let workspace = repo.join("packages").join("app");
+        fs::create_dir_all(repo.join(".git")).unwrap();
+        fs::create_dir_all(workspace.join("private_data")).unwrap();
+        fs::write(repo.join(".gitignore"), "private_data/\n").unwrap();
+        let ignored_path = workspace.join("private_data").join("secret.rs");
+        fs::write(&ignored_path, "pub fn secret() {}\n").unwrap();
+
+        let policy =
+            DiscoveryPolicy::build(&workspace, &workspace.join("artifact.sqlite"), &[]).unwrap();
+        let selection = policy.select_file(&FileTarget {
+            absolute_path: ignored_path,
+            root_relative_path: "private_data/secret.rs".to_string(),
+        });
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::Ignored
+            }
+        );
+    }
+
+    #[test]
+    fn nested_workspace_inherits_git_root_gitignore_when_git_metadata_is_file() {
+        let temp = TempDir::new().unwrap();
+        let repo = temp.path().join("repo");
+        let workspace = repo.join("packages").join("app");
+        fs::create_dir_all(repo.join(".git-dir")).unwrap();
+        fs::create_dir_all(workspace.join("private_data")).unwrap();
+        fs::write(repo.join(".git"), "gitdir: .git-dir\n").unwrap();
+        fs::write(repo.join(".gitignore"), "private_data/\n").unwrap();
+        let ignored_path = workspace.join("private_data").join("secret.rs");
+        fs::write(&ignored_path, "pub fn secret() {}\n").unwrap();
+
+        let policy =
+            DiscoveryPolicy::build(&workspace, &workspace.join("artifact.sqlite"), &[]).unwrap();
+        let selection = policy.select_file(&FileTarget {
+            absolute_path: ignored_path,
+            root_relative_path: "private_data/secret.rs".to_string(),
+        });
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::Ignored
             }
         );
     }
