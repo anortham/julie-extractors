@@ -26,7 +26,10 @@
 
 - `ExtractionResults` already carries symbols, relationships, identifiers, type facts, literals, and parse diagnostics.
 - `ArtifactFile` already persists child rows through `ArtifactWriter`, then exports them through JSONL.
-- Literals are currently semantic facts: useful strings such as routes, URLs, or SQL. They are not a complete map of every string literal span.
+- Literals are currently semantic facts: useful strings such as URLs, SQL, or
+  configured literal carrier facts. Route remains reserved unless route carriers
+  are explicitly configured. They are not a complete map of every string literal
+  span.
 - Parse diagnostics already prove the artifact can expose parser-derived span facts without owning search behavior.
 - There is no general row domain for "this byte range is a comment" or "this byte range is a string literal."
 

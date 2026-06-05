@@ -55,19 +55,19 @@ impl SqlExtractor {
             }
 
             "identifier" => {
-                if let Some(next_sibling) = node.next_sibling() {
-                    if next_sibling.kind() == "function_arguments" {
-                        let name = self.base.get_node_text(&node);
-                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                if let Some(next_sibling) = node.next_sibling()
+                    && next_sibling.kind() == "function_arguments"
+                {
+                    let name = self.base.get_node_text(&node);
+                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
 
-                        self.base.create_identifier(
-                            &node,
-                            name,
-                            IdentifierKind::Call,
-                            containing_symbol_id,
-                        );
-                        return;
-                    }
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                    );
+                    return;
                 }
 
                 if let Some(parent) = node.parent() {
@@ -90,10 +90,10 @@ impl SqlExtractor {
             }
 
             "field" => {
-                if let Some(parent) = node.parent() {
-                    if parent.kind() == "table_reference" || parent.kind() == "qualified_name" {
-                        return;
-                    }
+                if let Some(parent) = node.parent()
+                    && (parent.kind() == "table_reference" || parent.kind() == "qualified_name")
+                {
+                    return;
                 }
 
                 if let Some(name_node) = node.child_by_field_name("name") {

@@ -270,10 +270,10 @@ fn apply_embedded_offsets(symbols: &mut [Symbol], base: &BaseExtractor, byte_off
     }
 
     for symbol in symbols {
-        if let Some(parent_id) = symbol.parent_id.as_mut() {
-            if let Some(new_parent_id) = symbol_id_map.get(parent_id) {
-                *parent_id = new_parent_id.clone();
-            }
+        if let Some(parent_id) = symbol.parent_id.as_mut()
+            && let Some(new_parent_id) = symbol_id_map.get(parent_id)
+        {
+            *parent_id = new_parent_id.clone();
         }
     }
 }

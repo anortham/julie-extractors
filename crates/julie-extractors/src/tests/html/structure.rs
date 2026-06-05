@@ -361,7 +361,7 @@ mod tests {
         let charset_meta = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"charset="UTF-8""#))
+                .is_some_and(|sig| sig.contains(r#"charset="UTF-8""#))
         });
         assert!(charset_meta.is_some());
         assert_eq!(charset_meta.unwrap().kind, SymbolKind::Property);
@@ -369,28 +369,28 @@ mod tests {
         let viewport_meta = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"name="viewport""#))
+                .is_some_and(|sig| sig.contains(r#"name="viewport""#))
         });
         assert!(viewport_meta.is_some());
 
         let description_meta = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"name="description""#))
+                .is_some_and(|sig| sig.contains(r#"name="description""#))
         });
         assert!(description_meta.is_some());
 
         let og_title_meta = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"property="og:title""#))
+                .is_some_and(|sig| sig.contains(r#"property="og:title""#))
         });
         assert!(og_title_meta.is_some());
 
         let twitter_meta = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"name="twitter:card""#))
+                .is_some_and(|sig| sig.contains(r#"name="twitter:card""#))
         });
         assert!(twitter_meta.is_some());
 
@@ -408,9 +408,9 @@ mod tests {
 
         // Link elements
         let stylesheet_link = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
-                sig.contains(r#"rel="stylesheet""#) && sig.contains("main.css")
-            })
+            s.signature
+                .as_ref()
+                .is_some_and(|sig| sig.contains(r#"rel="stylesheet""#) && sig.contains("main.css"))
         });
         assert!(stylesheet_link.is_some());
         assert_eq!(stylesheet_link.unwrap().kind, SymbolKind::Import);
@@ -418,28 +418,28 @@ mod tests {
         let preconnect_link = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"rel="preconnect""#))
+                .is_some_and(|sig| sig.contains(r#"rel="preconnect""#))
         });
         assert!(preconnect_link.is_some());
 
         let preload_link = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"rel="preload""#))
+                .is_some_and(|sig| sig.contains(r#"rel="preload""#))
         });
         assert!(preload_link.is_some());
 
         let icon_link = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"rel="icon""#))
+                .is_some_and(|sig| sig.contains(r#"rel="icon""#))
         });
         assert!(icon_link.is_some());
 
         let manifest_link = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"rel="manifest""#))
+                .is_some_and(|sig| sig.contains(r#"rel="manifest""#))
         });
         assert!(manifest_link.is_some());
 
@@ -447,7 +447,7 @@ mod tests {
         let structured_data_script = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("application/ld+json"))
+                .is_some_and(|sig| sig.contains("application/ld+json"))
         });
         assert!(structured_data_script.is_some());
         assert_eq!(structured_data_script.unwrap().kind, SymbolKind::Variable);
@@ -520,14 +520,14 @@ mod tests {
         let skip_link = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("Skip to main content"))
+                .is_some_and(|sig| sig.contains("Skip to main content"))
         });
         assert!(skip_link.is_some());
 
         let logo_img = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"alt="Project Manager Pro""#))
+                .is_some_and(|sig| sig.contains(r#"alt="Project Manager Pro""#))
         });
         assert!(logo_img.is_some());
 
@@ -535,19 +535,19 @@ mod tests {
         let theme_button = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"data-action="toggle-theme""#))
+                .is_some_and(|sig| sig.contains(r#"data-action="toggle-theme""#))
         });
         assert!(theme_button.is_some());
 
         let notification_button = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"data-badge="3""#))
+                .is_some_and(|sig| sig.contains(r#"data-badge="3""#))
         });
         assert!(notification_button.is_some());
 
         let user_menu_button = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
+            s.signature.as_ref().is_some_and(|sig| {
                 sig.contains(r#"aria-expanded="false""#) && sig.contains(r#"aria-haspopup="true""#)
             })
         });
@@ -555,7 +555,7 @@ mod tests {
 
         // Form elements
         let search_input = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
+            s.signature.as_ref().is_some_and(|sig| {
                 sig.contains(r#"type="search""#) && sig.contains(r#"id="search-projects""#)
             })
         });
@@ -565,14 +565,14 @@ mod tests {
         let status_select = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"id="status-filter""#))
+                .is_some_and(|sig| sig.contains(r#"id="status-filter""#))
         });
         assert!(status_select.is_some());
 
         let team_select = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
-                sig.contains(r#"id="team-filter""#) && sig.contains("multiple")
-            })
+            s.signature
+                .as_ref()
+                .is_some_and(|sig| sig.contains(r#"id="team-filter""#) && sig.contains("multiple"))
         });
         assert!(team_select.is_some());
 
@@ -588,7 +588,7 @@ mod tests {
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains(r#"type="checkbox""#))
+                    .is_some_and(|sig| sig.contains(r#"type="checkbox""#))
             })
             .collect();
         assert!(checkbox_inputs.len() >= 4);
@@ -600,7 +600,7 @@ mod tests {
         let env_attribute = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"data-env="production""#))
+                .is_some_and(|sig| sig.contains(r#"data-env="production""#))
         });
         assert!(env_attribute.is_some());
 
@@ -608,7 +608,7 @@ mod tests {
         let aria_current_page = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"aria-current="page""#))
+                .is_some_and(|sig| sig.contains(r#"aria-current="page""#))
         });
         assert!(aria_current_page.is_some());
 
@@ -620,7 +620,7 @@ mod tests {
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("aria-label="))
+                    .is_some_and(|sig| sig.contains("aria-label="))
             })
             .collect();
         // Meaningful elements with aria-label: nav, aside, section, buttons, a tags
@@ -630,7 +630,7 @@ mod tests {
         let breadcrumb_nav = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"aria-label="Breadcrumb""#))
+                .is_some_and(|sig| sig.contains(r#"aria-label="Breadcrumb""#))
         });
         assert!(breadcrumb_nav.is_some());
 
@@ -642,9 +642,9 @@ mod tests {
         assert!(time_elements.len() >= 2);
 
         let datetime_attribute = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
-                sig.contains(r#"datetime="2024-01-15T14:30:00Z""#)
-            })
+            s.signature
+                .as_ref()
+                .is_some_and(|sig| sig.contains(r#"datetime="2024-01-15T14:30:00Z""#))
         });
         assert!(datetime_attribute.is_some());
 
@@ -654,9 +654,9 @@ mod tests {
 
         // Script elements
         let polyfills_script = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
-                sig.contains(r#"src="/js/vendor/polyfills.js""#)
-            })
+            s.signature
+                .as_ref()
+                .is_some_and(|sig| sig.contains(r#"src="/js/vendor/polyfills.js""#))
         });
         assert!(polyfills_script.is_some());
         assert_eq!(polyfills_script.unwrap().kind, SymbolKind::Import);
@@ -664,7 +664,7 @@ mod tests {
         let module_script = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"type="module""#))
+                .is_some_and(|sig| sig.contains(r#"type="module""#))
         });
         assert!(module_script.is_some());
     }

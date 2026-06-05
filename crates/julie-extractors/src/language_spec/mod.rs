@@ -272,9 +272,14 @@ pub fn get_tree_sitter_language(language: &str) -> Result<tree_sitter::Language>
 }
 
 pub fn detect_language_from_extension(extension: &str) -> Option<&'static str> {
+    let normalized = extension.to_ascii_lowercase();
     language_specs()
         .iter()
-        .find(|spec| spec.extensions.contains(&extension))
+        .find(|spec| {
+            spec.extensions
+                .iter()
+                .any(|candidate| candidate.eq_ignore_ascii_case(&normalized))
+        })
         .map(|spec| spec.name)
 }
 
@@ -298,21 +303,28 @@ fn header_contains_cpp_syntax(content: &str) -> bool {
         return false;
     }
 
-    match header_parse_prefers_cpp(content) {
-        Some(prefers_cpp) => return prefers_cpp,
-        None => tracing::warn!(
-            "Unable to compare C/C++ parser diagnostics for .h language detection; falling back to token heuristic"
-        ),
+    if let Some(prefers_cpp) = header_parse_prefers_cpp(content) {
+        return prefers_cpp;
     }
 
     let code = c_family_code_without_comments_and_strings(content);
     code.contains("::")
+        || code.contains("template <")
+        || code.contains("public:")
+        || code.contains("private:")
+        || code.contains("protected:")
 }
 
 fn header_parse_prefers_cpp(content: &str) -> Option<bool> {
     let c_errors = parse_error_count(parser_c(), content)?;
     let cpp_errors = parse_error_count(parser_cpp(), content)?;
-    Some(cpp_errors < c_errors)
+    if cpp_errors < c_errors {
+        Some(true)
+    } else if c_errors < cpp_errors {
+        Some(false)
+    } else {
+        None
+    }
 }
 
 fn parse_error_count(language: tree_sitter::Language, content: &str) -> Option<usize> {

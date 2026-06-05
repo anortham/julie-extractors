@@ -260,10 +260,10 @@ fn is_inline_function(base: &BaseExtractor, node: Node) -> bool {
     }
 
     // Also check for "inline" keyword before function (fallback)
-    if let Some(prev) = node.prev_sibling() {
-        if prev.kind() == "inline" || base.get_node_text(&prev) == "inline" {
-            return true;
-        }
+    if let Some(prev) = node.prev_sibling()
+        && (prev.kind() == "inline" || base.get_node_text(&prev) == "inline")
+    {
+        return true;
     }
 
     false

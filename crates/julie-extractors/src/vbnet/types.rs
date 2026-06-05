@@ -34,26 +34,24 @@ pub fn extract_imports(
     let alias_node = children.iter().find(|c| c.kind() == "identifier");
     let has_equals = children.iter().any(|c| c.kind() == "=");
 
-    if has_equals {
-        if let Some(alias_id) = alias_node {
-            let name = base.get_node_text(alias_id);
-            let ns_node = children.iter().find(|c| c.kind() == "namespace_name");
-            let full_path = ns_node
-                .map(|n| base.get_node_text(n))
-                .unwrap_or_else(|| name.clone());
-            let signature = format!("Imports {} = {}", name, full_path);
-            let doc_comment = base.find_doc_comment(&node);
+    if has_equals && let Some(alias_id) = alias_node {
+        let name = base.get_node_text(alias_id);
+        let ns_node = children.iter().find(|c| c.kind() == "namespace_name");
+        let full_path = ns_node
+            .map(|n| base.get_node_text(n))
+            .unwrap_or_else(|| name.clone());
+        let signature = format!("Imports {} = {}", name, full_path);
+        let doc_comment = base.find_doc_comment(&node);
 
-            let options = SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(Visibility::Public),
-                parent_id,
-                doc_comment,
-                ..Default::default()
-            };
+        let options = SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(Visibility::Public),
+            parent_id,
+            doc_comment,
+            ..Default::default()
+        };
 
-            return Some(base.create_symbol(&node, name, SymbolKind::Import, options));
-        }
+        return Some(base.create_symbol(&node, name, SymbolKind::Import, options));
     }
 
     let ns_node = children.iter().find(|c| c.kind() == "namespace_name")?;
@@ -308,10 +306,8 @@ pub fn extract_delegate(
         params
     );
 
-    if is_function {
-        if let Some(rt) = helpers::extract_return_type(base, &node) {
-            signature.push_str(&format!(" As {}", rt));
-        }
+    if is_function && let Some(rt) = helpers::extract_return_type(base, &node) {
+        signature.push_str(&format!(" As {}", rt));
     }
 
     let doc_comment = base.find_doc_comment(&node);

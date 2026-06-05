@@ -87,22 +87,22 @@ impl DartExtractor {
                 );
             }
             "function_signature" => {
-                if let Some(parent) = node.parent() {
-                    if parent.kind() != "method_signature" {
-                        symbol = if current_parent_id.is_some() {
-                            functions::extract_method(
-                                &mut self.base,
-                                &node,
-                                current_parent_id.as_deref(),
-                            )
-                        } else {
-                            functions::extract_function(
-                                &mut self.base,
-                                &node,
-                                current_parent_id.as_deref(),
-                            )
-                        };
-                    }
+                if let Some(parent) = node.parent()
+                    && parent.kind() != "method_signature"
+                {
+                    symbol = if current_parent_id.is_some() {
+                        functions::extract_method(
+                            &mut self.base,
+                            &node,
+                            current_parent_id.as_deref(),
+                        )
+                    } else {
+                        functions::extract_function(
+                            &mut self.base,
+                            &node,
+                            current_parent_id.as_deref(),
+                        )
+                    };
                 }
             }
             "method_signature" | "method_declaration" => {
@@ -134,38 +134,37 @@ impl DartExtractor {
                 // `sealed class AsyncValue<T>` — grammar sees the generic `<T>` as a relational
                 // expression, so `sealed` ends up as a standalone type_identifier at program
                 // level rather than inside an ERROR.  Detect the pattern here and recover.
-                if node.parent().map_or(false, |p| p.kind() == "program") {
-                    if let Some((class_sym, body_opt, container_start)) =
+                if node.parent().is_some_and(|p| p.kind() == "program")
+                    && let Some((class_sym, body_opt, container_start)) =
                         recover_dart3_generic_modifier_class(
                             &mut self.base,
                             &node,
                             current_parent_id.as_deref(),
                         )
-                    {
-                        let class_id = class_sym.id.clone();
-                        // Extract inheritance from source text before pushing symbol
-                        let source = self.base.get_node_text(&node.parent().unwrap());
-                        for (target_name, kind) in extract_inheritance_from_source(&source) {
-                            self.add_pending_relationship(PendingRelationship {
-                                from_symbol_id: class_id.clone(),
-                                callee_name: target_name,
-                                kind,
-                                file_path: self.base.file_path.clone(),
-                                line_number: node.start_position().row as u32 + 1,
-                                confidence: 0.8,
-                            });
-                        }
-                        symbols.push(class_sym);
-                        // Prevent the expression_statement/ERROR container from being double-visited
-                        self.consumed_blocks.insert(container_start);
-                        if let Some(body_node) = body_opt {
-                            let mut cursor = body_node.walk();
-                            for child in body_node.children(&mut cursor) {
-                                self.visit_node(child, symbols, Some(&class_id));
-                            }
-                        }
-                        return;
+                {
+                    let class_id = class_sym.id.clone();
+                    // Extract inheritance from source text before pushing symbol
+                    let source = self.base.get_node_text(&node.parent().unwrap());
+                    for (target_name, kind) in extract_inheritance_from_source(&source) {
+                        self.add_pending_relationship(PendingRelationship {
+                            from_symbol_id: class_id.clone(),
+                            callee_name: target_name,
+                            kind,
+                            file_path: self.base.file_path.clone(),
+                            line_number: node.start_position().row as u32 + 1,
+                            confidence: 0.8,
+                        });
                     }
+                    symbols.push(class_sym);
+                    // Prevent the expression_statement/ERROR container from being double-visited
+                    self.consumed_blocks.insert(container_start);
+                    if let Some(body_node) = body_opt {
+                        let mut cursor = body_node.walk();
+                        for child in body_node.children(&mut cursor) {
+                            self.visit_node(child, symbols, Some(&class_id));
+                        }
+                    }
+                    return;
                 }
             }
             "mixin_declaration" => {
@@ -244,58 +243,53 @@ impl DartExtractor {
                     current_parent_id.as_deref(),
                 );
             }
-            "ERROR" | "expression_statement" => {
-                if node.parent().map_or(false, |p| p.kind() == "program") {
-                    // Dart 3 class modifier recovery: some parser releases produce
-                    // ERROR nodes for base/sealed/final/interface classes. Recover
-                    // class symbols from the ERROR content.
-                    if let Some(class_sym) = recover_dart3_modifier_class(
-                        &mut self.base,
-                        &node,
-                        current_parent_id.as_deref(),
-                    ) {
-                        let class_id = class_sym.id.clone();
-                        // Extract inheritance from source text of the ERROR node
-                        let source = self.base.get_node_text(&node);
-                        for (target_name, kind) in extract_inheritance_from_source(&source) {
-                            self.add_pending_relationship(PendingRelationship {
-                                from_symbol_id: class_id.clone(),
-                                callee_name: target_name,
-                                kind,
-                                file_path: self.base.file_path.clone(),
-                                line_number: node.start_position().row as u32 + 1,
-                                confidence: 0.8,
-                            });
-                        }
-                        symbols.push(class_sym);
-
-                        // The class body is the sibling `block` node immediately after this ERROR.
-                        // Recurse into it with the class as parent so members are parented correctly.
-                        // Mark the block as consumed to prevent double-visiting during program iteration.
-                        if let Some(sibling) = node.next_sibling() {
-                            if sibling.kind() == "block" {
-                                self.consumed_blocks.insert(sibling.start_byte());
-                                let mut cursor = sibling.walk();
-                                for child in sibling.children(&mut cursor) {
-                                    self.visit_node(child, symbols, Some(&class_id));
-                                }
-                            }
-                        }
-                        // Skip normal child recursion for this ERROR node; we handled it.
-                        return;
+            "ERROR" | "expression_statement"
+                if node.parent().is_some_and(|p| p.kind() == "program") =>
+            {
+                // Dart 3 class modifier recovery: some parser releases produce
+                // ERROR nodes for base/sealed/final/interface classes. Recover
+                // class symbols from the ERROR content.
+                if let Some(class_sym) = recover_dart3_modifier_class(
+                    &mut self.base,
+                    &node,
+                    current_parent_id.as_deref(),
+                ) {
+                    let class_id = class_sym.id.clone();
+                    // Extract inheritance from source text of the ERROR node
+                    let source = self.base.get_node_text(&node);
+                    for (target_name, kind) in extract_inheritance_from_source(&source) {
+                        self.add_pending_relationship(PendingRelationship {
+                            from_symbol_id: class_id.clone(),
+                            callee_name: target_name,
+                            kind,
+                            file_path: self.base.file_path.clone(),
+                            line_number: node.start_position().row as u32 + 1,
+                            confidence: 0.8,
+                        });
                     }
+                    symbols.push(class_sym);
 
-                    // Some parser releases split enhanced enum bodies after the first
-                    // enum_constant into ERROR and expression_statement siblings at
-                    // program level. Recover symbols generically by detecting enum context.
-                    if let Some(enum_id) = find_enum_context_parent(&node, symbols) {
-                        recover_enum_symbols_from_error(
-                            &mut self.base,
-                            &node,
-                            Some(&enum_id),
-                            symbols,
-                        );
+                    // The class body is the sibling `block` node immediately after this ERROR.
+                    // Recurse into it with the class as parent so members are parented correctly.
+                    // Mark the block as consumed to prevent double-visiting during program iteration.
+                    if let Some(sibling) = node.next_sibling()
+                        && sibling.kind() == "block"
+                    {
+                        self.consumed_blocks.insert(sibling.start_byte());
+                        let mut cursor = sibling.walk();
+                        for child in sibling.children(&mut cursor) {
+                            self.visit_node(child, symbols, Some(&class_id));
+                        }
                     }
+                    // Skip normal child recursion for this ERROR node; we handled it.
+                    return;
+                }
+
+                // Some parser releases split enhanced enum bodies after the first
+                // enum_constant into ERROR and expression_statement siblings at
+                // program level. Recover symbols generically by detecting enum context.
+                if let Some(enum_id) = find_enum_context_parent(&node, symbols) {
+                    recover_enum_symbols_from_error(&mut self.base, &node, Some(&enum_id), symbols);
                 }
             }
             _ => {}
@@ -353,26 +347,25 @@ impl DartExtractor {
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
         let mut types = HashMap::new();
         for symbol in symbols {
-            if let Some(signature) = &symbol.signature {
-                if let Some(captures) = TYPE_SIGNATURE_RE.captures(signature) {
-                    if let Some(type_match) = captures.get(1) {
-                        types.insert(symbol.id.clone(), type_match.as_str().to_string());
-                    }
-                }
+            if let Some(signature) = &symbol.signature
+                && let Some(captures) = TYPE_SIGNATURE_RE.captures(signature)
+                && let Some(type_match) = captures.get(1)
+            {
+                types.insert(symbol.id.clone(), type_match.as_str().to_string());
             }
-            if let Some(is_final) = symbol.metadata.as_ref().and_then(|m| m.get("isFinal")) {
-                if is_final.as_bool() == Some(true) {
-                    types
-                        .entry(symbol.id.clone())
-                        .or_insert_with(|| "final".to_string());
-                }
+            if let Some(is_final) = symbol.metadata.as_ref().and_then(|m| m.get("isFinal"))
+                && is_final.as_bool() == Some(true)
+            {
+                types
+                    .entry(symbol.id.clone())
+                    .or_insert_with(|| "final".to_string());
             }
-            if let Some(is_const) = symbol.metadata.as_ref().and_then(|m| m.get("isConst")) {
-                if is_const.as_bool() == Some(true) {
-                    types
-                        .entry(symbol.id.clone())
-                        .or_insert_with(|| "const".to_string());
-                }
+            if let Some(is_const) = symbol.metadata.as_ref().and_then(|m| m.get("isConst"))
+                && is_const.as_bool() == Some(true)
+            {
+                types
+                    .entry(symbol.id.clone())
+                    .or_insert_with(|| "const".to_string());
             }
         }
         types
@@ -446,20 +439,20 @@ fn extract_inheritance_from_source(source: &str) -> Vec<(String, crate::base::Re
     // Only look at text before the opening brace (the class header)
     let header = source.split('{').next().unwrap_or(source);
 
-    if let Some(caps) = EXTENDS_RE.captures(header) {
-        if let Some(name) = caps.get(1) {
-            result.push((name.as_str().to_string(), RelationshipKind::Extends));
-        }
+    if let Some(caps) = EXTENDS_RE.captures(header)
+        && let Some(name) = caps.get(1)
+    {
+        result.push((name.as_str().to_string(), RelationshipKind::Extends));
     }
 
     for re in [&*IMPLEMENTS_RE, &*WITH_RE] {
-        if let Some(caps) = re.captures(header) {
-            if let Some(names) = caps.get(1) {
-                for name in names.as_str().split(',') {
-                    let name = name.trim();
-                    if !name.is_empty() && name.chars().next().map_or(false, |c| c.is_uppercase()) {
-                        result.push((name.to_string(), RelationshipKind::Implements));
-                    }
+        if let Some(caps) = re.captures(header)
+            && let Some(names) = caps.get(1)
+        {
+            for name in names.as_str().split(',') {
+                let name = name.trim();
+                if !name.is_empty() && name.chars().next().is_some_and(|c| c.is_uppercase()) {
+                    result.push((name.to_string(), RelationshipKind::Implements));
                 }
             }
         }
@@ -527,7 +520,7 @@ fn recover_dart3_modifier_class(
                 for grandchild in child.children(&mut inner_cursor) {
                     let gtext = get_node_text(&grandchild);
                     if (grandchild.kind() == "identifier" || grandchild.kind() == "type_identifier")
-                        && gtext.chars().next().map_or(false, |c| c.is_uppercase())
+                        && gtext.chars().next().is_some_and(|c| c.is_uppercase())
                     {
                         class_name = Some(gtext);
                         class_name_node = Some(grandchild);
@@ -625,7 +618,7 @@ fn recover_dart3_generic_modifier_class<'a>(
     // Extract class name: leftmost identifier inside relational_expression(s)
     let class_name_node = find_leftmost_identifier_in_relational(&body_container)?;
     let name = get_node_text(&class_name_node);
-    if !name.chars().next().map_or(false, |c| c.is_uppercase()) {
+    if !name.chars().next().is_some_and(|c| c.is_uppercase()) {
         return None;
     }
 

@@ -43,7 +43,7 @@ static VAR_ANNOTATION_RE: LazyLock<Regex> =
 
 /// Python extractor for extracting symbols and relationships from Python source code
 pub struct PythonExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl PythonExtractor {
@@ -110,19 +110,18 @@ impl PythonExtractor {
         let mut type_map = HashMap::new();
 
         for symbol in symbols {
-            if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
-                if let Some(return_type) = metadata_return_type(symbol) {
-                    type_map.insert(symbol.id.clone(), return_type);
-                    continue;
-                }
+            if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+                && let Some(return_type) = metadata_return_type(symbol)
+            {
+                type_map.insert(symbol.id.clone(), return_type);
+                continue;
             }
 
             // Infer types from Python-specific patterns
-            if let Some(ref signature) = symbol.signature {
-                if let Some(inferred_type) = self.infer_type_from_signature(signature, &symbol.kind)
-                {
-                    type_map.insert(symbol.id.clone(), inferred_type);
-                }
+            if let Some(ref signature) = symbol.signature
+                && let Some(inferred_type) = self.infer_type_from_signature(signature, &symbol.kind)
+            {
+                type_map.insert(symbol.id.clone(), inferred_type);
             }
         }
 

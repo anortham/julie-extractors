@@ -96,19 +96,17 @@ pub(super) fn extract_macro_name(base: &BaseExtractor, node: tree_sitter::Node) 
 /// Extract include path from an include directive signature
 pub(super) fn extract_include_path(signature: &str) -> Option<String> {
     // Extract include path from #include statement
-    if let Some(start) = signature.find('"') {
-        if let Some(end) = signature.rfind('"') {
-            if start < end {
-                return Some(signature[start + 1..end].to_string());
-            }
-        }
+    if let Some(start) = signature.find('"')
+        && let Some(end) = signature.rfind('"')
+        && start < end
+    {
+        return Some(signature[start + 1..end].to_string());
     }
-    if let Some(start) = signature.find('<') {
-        if let Some(end) = signature.rfind('>') {
-            if start < end {
-                return Some(signature[start + 1..end].to_string());
-            }
-        }
+    if let Some(start) = signature.find('<')
+        && let Some(end) = signature.rfind('>')
+        && start < end
+    {
+        return Some(signature[start + 1..end].to_string());
     }
     None
 }
@@ -126,19 +124,19 @@ pub(super) fn extract_function_name(
     // Look for function declarator
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "function_declarator" {
-            if let Some(identifier) = child.child_by_field_name("declarator") {
-                return Some(base.get_node_text(&identifier));
-            }
+        if child.kind() == "function_declarator"
+            && let Some(identifier) = child.child_by_field_name("declarator")
+        {
+            return Some(base.get_node_text(&identifier));
         }
         // For pointer return types, check pointer_declarator
         if child.kind() == "pointer_declarator" {
             let mut pointer_cursor = child.walk();
             for pointer_child in child.children(&mut pointer_cursor) {
-                if pointer_child.kind() == "function_declarator" {
-                    if let Some(identifier) = pointer_child.child_by_field_name("declarator") {
-                        return Some(base.get_node_text(&identifier));
-                    }
+                if pointer_child.kind() == "function_declarator"
+                    && let Some(identifier) = pointer_child.child_by_field_name("declarator")
+                {
+                    return Some(base.get_node_text(&identifier));
                 }
             }
         }

@@ -210,9 +210,8 @@ fn normalize_lua_string_literal(raw: &str) -> Option<String> {
 
 fn terminal_require_name(module_path: &str) -> String {
     module_path
-        .split(|ch| ch == '/' || ch == '.')
-        .filter(|segment| !segment.is_empty() && *segment != ".")
-        .last()
+        .split(['/', '.'])
+        .rfind(|segment| !segment.is_empty() && *segment != ".")
         .unwrap_or(module_path)
         .to_string()
 }

@@ -198,25 +198,24 @@ pub(super) fn process_impl_blocks(
                 .find(|c| c.kind() == "declaration_list")
             {
                 for child in declaration_list.children(&mut declaration_list.walk()) {
-                    if child.kind() == "function_item" {
-                        if let Some(mut method_symbol) =
+                    if child.kind() == "function_item"
+                        && let Some(mut method_symbol) =
                             extract_function(extractor, child, parent_id.clone())
-                        {
-                            method_symbol.kind = SymbolKind::Method;
+                    {
+                        method_symbol.kind = SymbolKind::Method;
 
-                            // Preserve the impl type name in metadata so cross-file methods stay discoverable
-                            let metadata = method_symbol.metadata.get_or_insert_with(HashMap::new);
-                            metadata.insert(
-                                "impl_type_name".to_string(),
-                                Value::String(impl_block.type_name.clone()),
-                            );
-                            metadata.insert(
-                                "impl_parent_id_resolved".to_string(),
-                                Value::Bool(parent_id.is_some()),
-                            );
+                        // Preserve the impl type name in metadata so cross-file methods stay discoverable
+                        let metadata = method_symbol.metadata.get_or_insert_with(HashMap::new);
+                        metadata.insert(
+                            "impl_type_name".to_string(),
+                            Value::String(impl_block.type_name.clone()),
+                        );
+                        metadata.insert(
+                            "impl_parent_id_resolved".to_string(),
+                            Value::Bool(parent_id.is_some()),
+                        );
 
-                            symbols.push(method_symbol);
-                        }
+                        symbols.push(method_symbol);
                     }
                 }
             }

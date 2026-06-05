@@ -20,14 +20,12 @@ pub(super) fn extract_function(
     let mut name = name_node.map(|n| extractor.base().get_node_text(&n));
 
     // Handle arrow functions assigned to variables
-    if node.kind() == "arrow_function" {
-        if let Some(parent) = node.parent() {
-            if parent.kind() == "variable_declarator" {
-                if let Some(var_name_node) = parent.child_by_field_name("name") {
-                    name = Some(extractor.base().get_node_text(&var_name_node));
-                }
-            }
-        }
+    if node.kind() == "arrow_function"
+        && let Some(parent) = node.parent()
+        && parent.kind() == "variable_declarator"
+        && let Some(var_name_node) = parent.child_by_field_name("name")
+    {
+        name = Some(extractor.base().get_node_text(&var_name_node));
     }
 
     let name = name?;
@@ -191,11 +189,11 @@ pub(super) fn extract_variable(
     let name = name_node.map(|n| extractor.base().get_node_text(&n))?;
 
     // Check if this variable contains an arrow function
-    if let Some(value_node) = node.child_by_field_name("value") {
-        if value_node.kind() == "arrow_function" {
-            // Extract as a function instead of a variable
-            return extract_function(extractor, value_node, parent_id);
-        }
+    if let Some(value_node) = node.child_by_field_name("value")
+        && value_node.kind() == "arrow_function"
+    {
+        // Extract as a function instead of a variable
+        return extract_function(extractor, value_node, parent_id);
     }
 
     // Extract JSDoc comment

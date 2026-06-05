@@ -27,34 +27,32 @@ pub(super) fn infer_types(
 
     for symbol in symbols {
         // Extract return type from method signatures
-        if symbol.kind == SymbolKind::Method {
-            if let Some(signature) = &symbol.signature {
-                // Regex pattern to match return type in method signature
-                if let Some(captures) = METHOD_RETURN_TYPE_RE.captures(signature) {
-                    if let Some(return_type_match) = captures.get(1) {
-                        let return_type = return_type_match.as_str().trim();
-                        // Clean up modifiers from return type
-                        let clean_return_type =
-                            METHOD_MODIFIER_RE.replace(return_type, "").to_string();
-                        types.insert(symbol.id.clone(), clean_return_type);
-                    }
-                }
+        if symbol.kind == SymbolKind::Method
+            && let Some(signature) = &symbol.signature
+        {
+            // Regex pattern to match return type in method signature
+            if let Some(captures) = METHOD_RETURN_TYPE_RE.captures(signature)
+                && let Some(return_type_match) = captures.get(1)
+            {
+                let return_type = return_type_match.as_str().trim();
+                // Clean up modifiers from return type
+                let clean_return_type = METHOD_MODIFIER_RE.replace(return_type, "").to_string();
+                types.insert(symbol.id.clone(), clean_return_type);
             }
         }
 
         // Extract field types from field signatures
-        if symbol.kind == SymbolKind::Property {
-            if let Some(signature) = &symbol.signature {
-                // Regex pattern to match field type
-                if let Some(captures) = FIELD_TYPE_RE.captures(signature) {
-                    if let Some(field_type_match) = captures.get(1) {
-                        let field_type = field_type_match.as_str().trim();
-                        // Clean up modifiers from field type
-                        let clean_field_type =
-                            FIELD_MODIFIER_RE.replace(field_type, "").to_string();
-                        types.insert(symbol.id.clone(), clean_field_type);
-                    }
-                }
+        if symbol.kind == SymbolKind::Property
+            && let Some(signature) = &symbol.signature
+        {
+            // Regex pattern to match field type
+            if let Some(captures) = FIELD_TYPE_RE.captures(signature)
+                && let Some(field_type_match) = captures.get(1)
+            {
+                let field_type = field_type_match.as_str().trim();
+                // Clean up modifiers from field type
+                let clean_field_type = FIELD_MODIFIER_RE.replace(field_type, "").to_string();
+                types.insert(symbol.id.clone(), clean_field_type);
             }
         }
     }

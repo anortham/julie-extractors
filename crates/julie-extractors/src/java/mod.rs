@@ -30,7 +30,7 @@ use tree_sitter::{Node, Tree};
 
 /// Java extractor for extracting symbols and relationships from Java source code
 pub struct JavaExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl JavaExtractor {

@@ -18,7 +18,7 @@ fn init_parser() -> Parser {
 }
 
 #[cfg(test)]
-mod cross_file_relationships {
+mod tests {
     use super::*;
 
     #[test]
@@ -102,7 +102,7 @@ class Calculator {
             r.kind == RelationshipKind::Calls
                 && symbols
                     .iter()
-                    .find(|s| &s.id == &r.to_symbol_id)
+                    .find(|s| s.id == r.to_symbol_id)
                     .map(|s| s.name.as_str())
                     == Some("helper")
         });
@@ -262,7 +262,7 @@ class App {
         assert_eq!(pending_rel.callee_name, "externalFunction");
         assert_eq!(pending_rel.kind, RelationshipKind::Calls);
         assert!(
-            pending_rel.from_symbol_id.len() > 0,
+            !pending_rel.from_symbol_id.is_empty(),
             "Should have from_symbol_id"
         );
     }
@@ -304,7 +304,7 @@ class Processor {
                 r.kind == RelationshipKind::Calls
                     && symbols
                         .iter()
-                        .find(|s| &s.id == &r.to_symbol_id)
+                        .find(|s| s.id == r.to_symbol_id)
                         .map(|s| s.name.as_str())
                         == Some("helper")
             }),
@@ -355,9 +355,7 @@ class Service {
         let pending_rel = pending_rel.unwrap();
 
         // from_symbol_id should point to the process method
-        let from_symbol = symbols
-            .iter()
-            .find(|s| &s.id == &pending_rel.from_symbol_id);
+        let from_symbol = symbols.iter().find(|s| s.id == pending_rel.from_symbol_id);
         assert!(from_symbol.is_some());
         assert_eq!(from_symbol.unwrap().name, "process");
     }

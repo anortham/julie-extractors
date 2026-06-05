@@ -103,18 +103,17 @@ impl super::JavaScriptExtractor {
                 if let Some(parent) = node.parent() {
                     if parent.kind() == "call_expression" {
                         // Check if this member_expression is the function being called
-                        if let Some(function_node) = parent.child_by_field_name("function") {
-                            if function_node.id() == node.id() {
-                                return; // Skip - handled by call_expression
-                            }
+                        if let Some(function_node) = parent.child_by_field_name("function")
+                            && function_node.id() == node.id()
+                        {
+                            return; // Skip - handled by call_expression
                         }
                     }
-                    if parent.kind() == "new_expression" {
-                        if let Some(constructor_node) = parent.child_by_field_name("constructor") {
-                            if constructor_node.id() == node.id() {
-                                return;
-                            }
-                        }
+                    if parent.kind() == "new_expression"
+                        && let Some(constructor_node) = parent.child_by_field_name("constructor")
+                        && constructor_node.id() == node.id()
+                    {
+                        return;
                     }
                 }
 

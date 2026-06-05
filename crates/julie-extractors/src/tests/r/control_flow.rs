@@ -33,7 +33,7 @@ result <- ifelse(x > 0, "positive", "negative")
             .filter(|s| s.kind == SymbolKind::Function)
             .collect();
 
-        assert!(functions.len() >= 1, "Should extract check_value function");
+        assert!(!functions.is_empty(), "Should extract check_value function");
     }
 
     #[test]
@@ -123,7 +123,7 @@ for (i in 1:10) {
             .filter(|s| s.kind == SymbolKind::Variable)
             .collect();
 
-        assert!(variables.len() >= 1, "Should extract counter variable");
+        assert!(!variables.is_empty(), "Should extract counter variable");
     }
 
     #[test]
@@ -215,7 +215,10 @@ value <- switch(2,
             .filter(|s| s.kind == SymbolKind::Function)
             .collect();
 
-        assert!(functions.len() >= 1, "Should extract get_greeting function");
+        assert!(
+            !functions.is_empty(),
+            "Should extract get_greeting function"
+        );
     }
 
     #[test]
@@ -256,6 +259,6 @@ logged_operation <- withCallingHandlers(
             .filter(|s| s.kind == SymbolKind::Function)
             .collect();
 
-        assert!(functions.len() >= 1, "Should extract safe_divide function");
+        assert!(!functions.is_empty(), "Should extract safe_divide function");
     }
 }

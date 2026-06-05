@@ -89,61 +89,61 @@ fn traverse_struct_fields(
 ) {
     let mut cursor = node.walk();
     for field_node in node.children(&mut cursor) {
-        if field_node.kind() == "container_field" {
-            if let Some(field_name_node) = base.find_child_by_type(&field_node, "identifier") {
-                let _field_name = base.get_node_text(&field_name_node);
+        if field_node.kind() == "container_field"
+            && let Some(field_name_node) = base.find_child_by_type(&field_node, "identifier")
+        {
+            let _field_name = base.get_node_text(&field_name_node);
 
-                // Look for type information
-                let type_node = base
-                    .find_child_by_type(&field_node, "type_expression")
-                    .or_else(|| base.find_child_by_type(&field_node, "builtin_type"))
-                    .or_else(|| base.find_child_by_type(&field_node, "slice_type"))
-                    .or_else(|| base.find_child_by_type(&field_node, "pointer_type"))
-                    .or_else(|| {
-                        // Look for identifier after colon
-                        let mut field_cursor = field_node.walk();
-                        let field_children: Vec<Node> =
-                            field_node.children(&mut field_cursor).collect();
-                        let colon_index = field_children.iter().position(|c| c.kind() == ":")?;
-                        field_children.get(colon_index + 1).copied()
+            // Look for type information
+            let type_node = base
+                .find_child_by_type(&field_node, "type_expression")
+                .or_else(|| base.find_child_by_type(&field_node, "builtin_type"))
+                .or_else(|| base.find_child_by_type(&field_node, "slice_type"))
+                .or_else(|| base.find_child_by_type(&field_node, "pointer_type"))
+                .or_else(|| {
+                    // Look for identifier after colon
+                    let mut field_cursor = field_node.walk();
+                    let field_children: Vec<Node> =
+                        field_node.children(&mut field_cursor).collect();
+                    let colon_index = field_children.iter().position(|c| c.kind() == ":")?;
+                    field_children.get(colon_index + 1).copied()
+                });
+
+            if let Some(type_node) = type_node {
+                let type_name = base.get_node_text(&type_node).trim().to_string();
+
+                // Look for referenced symbols that are struct types
+                let referenced_symbol = symbols.iter().find(|s| {
+                    s.name == type_name
+                        && matches!(
+                            s.kind,
+                            SymbolKind::Struct
+                                | SymbolKind::Union
+                                | SymbolKind::Type
+                                | SymbolKind::Enum
+                        )
+                });
+
+                if let Some(referenced_symbol) = referenced_symbol
+                    && referenced_symbol.id != target_symbol.id
+                {
+                    // Create composition relationship
+                    relationships.push(Relationship {
+                        id: format!(
+                            "{}_{}_{:?}_{}",
+                            target_symbol.id,
+                            referenced_symbol.id,
+                            RelationshipKind::Composition,
+                            field_node.start_position().row
+                        ),
+                        from_symbol_id: target_symbol.id.clone(),
+                        to_symbol_id: referenced_symbol.id.clone(),
+                        kind: RelationshipKind::Composition,
+                        file_path: base.file_path.clone(),
+                        line_number: (field_node.start_position().row + 1) as u32,
+                        confidence: 0.8,
+                        metadata: None,
                     });
-
-                if let Some(type_node) = type_node {
-                    let type_name = base.get_node_text(&type_node).trim().to_string();
-
-                    // Look for referenced symbols that are struct types
-                    let referenced_symbol = symbols.iter().find(|s| {
-                        s.name == type_name
-                            && matches!(
-                                s.kind,
-                                SymbolKind::Struct
-                                    | SymbolKind::Union
-                                    | SymbolKind::Type
-                                    | SymbolKind::Enum
-                            )
-                    });
-
-                    if let Some(referenced_symbol) = referenced_symbol {
-                        if referenced_symbol.id != target_symbol.id {
-                            // Create composition relationship
-                            relationships.push(Relationship {
-                                id: format!(
-                                    "{}_{}_{:?}_{}",
-                                    target_symbol.id,
-                                    referenced_symbol.id,
-                                    RelationshipKind::Composition,
-                                    field_node.start_position().row
-                                ),
-                                from_symbol_id: target_symbol.id.clone(),
-                                to_symbol_id: referenced_symbol.id.clone(),
-                                kind: RelationshipKind::Composition,
-                                file_path: base.file_path.clone(),
-                                line_number: (field_node.start_position().row + 1) as u32,
-                                confidence: 0.8,
-                                metadata: None,
-                            });
-                        }
-                    }
                 }
             }
         }

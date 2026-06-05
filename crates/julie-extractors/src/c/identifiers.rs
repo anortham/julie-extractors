@@ -111,10 +111,10 @@ fn extract_identifier_from_node(
         // Member/field access: p->x, obj.field
         "field_expression" => {
             // Skip if parent is a call_expression (will be handled as function call)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call_expression" {
-                    return;
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call_expression"
+            {
+                return;
             }
 
             // Extract field name from field_expression

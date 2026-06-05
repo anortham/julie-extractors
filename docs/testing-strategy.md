@@ -18,6 +18,7 @@ Use `cargo xtask test list` to print the tier names.
 - Real-world smoke fixtures: `cargo xtask test real-world-smoke`
 - Real-world release fixtures: `cargo xtask test real-world-release`
 - Release package manifest: `cargo xtask release package-list`
+- Dependency policy: `cargo deny check`
 - Dogfood this repo: `cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors`
 
 The default command expands to fast package tests for `julie-extractors`,

@@ -76,38 +76,37 @@ impl super::JavaScriptExtractor {
         let signature = self.build_property_signature(&node, &name);
 
         // If the value is a function, treat it as a method (reference logic)
-        if let Some(value) = &value_node {
-            if value.kind() == "arrow_function"
+        if let Some(value) = &value_node
+            && (value.kind() == "arrow_function"
                 || value.kind() == "function_expression"
-                || value.kind() == "generator_function"
-            {
-                let method_signature = self.build_method_signature(value, &name);
+                || value.kind() == "generator_function")
+        {
+            let method_signature = self.build_method_signature(value, &name);
 
-                let mut metadata = HashMap::new();
-                metadata.insert("isAsync".to_string(), json!(self.is_async(value)));
-                metadata.insert("isGenerator".to_string(), json!(self.is_generator(value)));
-                metadata.insert(
-                    "parameters".to_string(),
-                    json!(self.extract_parameters(value)),
-                );
+            let mut metadata = HashMap::new();
+            metadata.insert("isAsync".to_string(), json!(self.is_async(value)));
+            metadata.insert("isGenerator".to_string(), json!(self.is_generator(value)));
+            metadata.insert(
+                "parameters".to_string(),
+                json!(self.extract_parameters(value)),
+            );
 
-                // Extract JSDoc comment
-                let doc_comment = self.base.find_doc_comment(&node);
+            // Extract JSDoc comment
+            let doc_comment = self.base.find_doc_comment(&node);
 
-                return Some(self.base.create_symbol(
-                    &node,
-                    name,
-                    SymbolKind::Method,
-                    SymbolOptions {
-                        signature: Some(method_signature),
-                        visibility: Some(self.extract_visibility(&node)),
-                        parent_id,
-                        metadata: Some(metadata),
-                        doc_comment,
-                        annotations: Vec::new(),
-                    },
-                ));
-            }
+            return Some(self.base.create_symbol(
+                &node,
+                name,
+                SymbolKind::Method,
+                SymbolOptions {
+                    signature: Some(method_signature),
+                    visibility: Some(self.extract_visibility(&node)),
+                    parent_id,
+                    metadata: Some(metadata),
+                    doc_comment,
+                    annotations: Vec::new(),
+                },
+            ));
         }
 
         // Determine if this is a class field or regular property (reference logic)
@@ -192,10 +191,10 @@ impl super::JavaScriptExtractor {
                     let declarator = child
                         .children(&mut child.walk())
                         .find(|c| c.kind() == "variable_declarator");
-                    if let Some(decl) = declarator {
-                        if let Some(name_node) = decl.child_by_field_name("name") {
-                            return Some(self.base.get_node_text(&name_node));
-                        }
+                    if let Some(decl) = declarator
+                        && let Some(name_node) = decl.child_by_field_name("name")
+                    {
+                        return Some(self.base.get_node_text(&name_node));
                     }
                 }
                 "class_declaration" | "function_declaration" => {

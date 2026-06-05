@@ -1,7 +1,7 @@
-/// Tests for GDScript type extraction through the factory
-///
-/// GDScript has explicit type annotations: `var x: int`, `func foo() -> String:`
-/// These tests verify that infer_types() extracts them from signatures.
+// Tests for GDScript type extraction through the factory
+//
+// GDScript has explicit type annotations: `var x: int`, `func foo() -> String:`
+// These tests verify that infer_types() extracts them from signatures.
 
 #[cfg(test)]
 mod tests {
@@ -54,17 +54,17 @@ func _ready() -> void:
         println!("Extracted types: {:?}", type_strings);
 
         assert!(
-            type_strings.iter().any(|t| *t == "float"),
+            type_strings.contains(&"float"),
             "Expected 'float' return type, got: {:?}",
             type_strings
         );
         assert!(
-            type_strings.iter().any(|t| *t == "String"),
+            type_strings.contains(&"String"),
             "Expected 'String' return type, got: {:?}",
             type_strings
         );
         assert!(
-            type_strings.iter().any(|t| *t == "Color"),
+            type_strings.contains(&"Color"),
             "Expected 'Color' return type from static function, got: {:?}",
             type_strings
         );
@@ -112,7 +112,7 @@ const MAX_SPEED: float = 500.0
 
         // Should extract typed variables
         assert!(
-            type_strings.iter().any(|t| *t == "float"),
+            type_strings.contains(&"float"),
             "Expected 'float' type, got: {:?}",
             type_strings
         );

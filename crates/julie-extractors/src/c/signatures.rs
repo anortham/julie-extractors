@@ -162,17 +162,19 @@ pub(super) fn build_typedef_signature(
     let mut context_text = node_text.clone();
 
     // If this is an expression_statement (like "AtomicCounter;"), look at parent context
-    if node.kind() == "expression_statement" && node_text.trim().ends_with(';') {
-        if let Some(parent) = node.parent() {
-            context_text = base.get_node_text(&parent);
+    if node.kind() == "expression_statement"
+        && node_text.trim().ends_with(';')
+        && let Some(parent) = node.parent()
+    {
+        context_text = base.get_node_text(&parent);
 
-            // Also check grandparent if needed
-            if !context_text.contains("ALIGN(") && !context_text.contains("PACKED") {
-                if let Some(grandparent) = parent.parent() {
-                    let grandparent_text = base.get_node_text(&grandparent);
-                    context_text = grandparent_text;
-                }
-            }
+        // Also check grandparent if needed
+        if !context_text.contains("ALIGN(")
+            && !context_text.contains("PACKED")
+            && let Some(grandparent) = parent.parent()
+        {
+            let grandparent_text = base.get_node_text(&grandparent);
+            context_text = grandparent_text;
         }
     }
 
@@ -195,15 +197,14 @@ pub(super) fn build_typedef_signature(
     }
 
     // Fallback: look for any ALIGN attribute if we didn't find the specific one
-    if attributes.is_empty() {
-        if let Some(align_start) = context_text.find("ALIGN(") {
-            if let Some(align_end) = context_text[align_start..].find(')') {
-                let align_attr = &context_text[align_start..align_start + align_end + 1];
-                // Skip generic macro definitions like "ALIGN(n)"
-                if !align_attr.contains("n)") && !align_attr.contains("...") {
-                    attributes.push(align_attr.to_string());
-                }
-            }
+    if attributes.is_empty()
+        && let Some(align_start) = context_text.find("ALIGN(")
+        && let Some(align_end) = context_text[align_start..].find(')')
+    {
+        let align_attr = &context_text[align_start..align_start + align_end + 1];
+        // Skip generic macro definitions like "ALIGN(n)"
+        if !align_attr.contains("n)") && !align_attr.contains("...") {
+            attributes.push(align_attr.to_string());
         }
     }
 
@@ -326,15 +327,15 @@ pub(super) fn extract_enum_values(base: &BaseExtractor, node: tree_sitter::Node)
     if let Some(body) = node.child_by_field_name("body") {
         let mut cursor = body.walk();
         for child in body.children(&mut cursor) {
-            if child.kind() == "enumerator" {
-                if let Some(name_node) = child.child_by_field_name("name") {
-                    let name = base.get_node_text(&name_node);
-                    let value = child
-                        .child_by_field_name("value")
-                        .map(|v| base.get_node_text(&v));
+            if child.kind() == "enumerator"
+                && let Some(name_node) = child.child_by_field_name("name")
+            {
+                let name = base.get_node_text(&name_node);
+                let value = child
+                    .child_by_field_name("value")
+                    .map(|v| base.get_node_text(&v));
 
-                    values.push(EnumValue { name, value });
-                }
+                values.push(EnumValue { name, value });
             }
         }
     }

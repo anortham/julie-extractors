@@ -132,7 +132,9 @@ pub use base::BaseExtractor;
 pub use test_detection::is_test_symbol;
 
 // Re-export language detection utilities
-pub use language::{detect_language_from_extension, get_tree_sitter_language};
+pub use language::{
+    detect_language_for_source, detect_language_from_extension, get_tree_sitter_language,
+};
 
 // Tests module (only compiled during testing)
 #[cfg(test)]

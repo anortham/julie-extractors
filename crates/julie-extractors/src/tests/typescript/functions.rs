@@ -53,7 +53,7 @@ fn test_extract_async_function() {
     let func_symbol = symbols.iter().find(|s| s.name == "fetchData").unwrap();
     let metadata = func_symbol.metadata.as_ref().unwrap();
     assert_eq!(
-        metadata.get("isAsync").map(|v| v.as_bool()).flatten(),
+        metadata.get("isAsync").and_then(|v| v.as_bool()),
         Some(true)
     );
 }

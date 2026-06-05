@@ -1,4 +1,4 @@
-/// Tests for Bash type extraction through the factory
+// Tests for Bash type extraction through the factory
 
 #[cfg(test)]
 mod tests {
@@ -51,7 +51,7 @@ double_value() {
             );
         }
 
-        assert!(results.types.len() >= 1);
+        assert!(!results.types.is_empty());
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "bash");
             assert!(type_info.is_inferred);

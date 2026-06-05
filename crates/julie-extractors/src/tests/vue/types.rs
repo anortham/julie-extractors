@@ -1,4 +1,4 @@
-/// Tests for Vue type extraction through the factory
+// Tests for Vue type extraction through the factory
 
 #[cfg(test)]
 mod tests {

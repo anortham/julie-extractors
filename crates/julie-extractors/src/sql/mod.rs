@@ -39,7 +39,7 @@ use tree_sitter::Tree;
 /// - Indexes and foreign keys
 /// - Query patterns and table references
 pub struct SqlExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl SqlExtractor {

@@ -28,7 +28,7 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
 pub struct GDScriptExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
     pending_inheritance: HashMap<String, String>, // className -> baseClassName
     processed_positions: HashSet<String>,         // Track processed node positions
     current_class_context: Option<String>,        // Current class ID for scope tracking
@@ -62,55 +62,54 @@ impl GDScriptExtractor {
         // Check for top-level extends statement (creates implicit class)
         let mut implicit_class_id: Option<String> = None;
         for i in 0..root_node.child_count() {
-            if let Some(child) = root_node.child(i as u32) {
-                if child.kind() == "extends_statement" {
-                    if let Some(type_node) = helpers::find_child_by_type(&child, "type") {
-                        let base_class_name = self.base.get_node_text(&type_node);
+            if let Some(child) = root_node.child(i as u32)
+                && child.kind() == "extends_statement"
+                && let Some(type_node) = helpers::find_child_by_type(&child, "type")
+            {
+                let base_class_name = self.base.get_node_text(&type_node);
 
-                        // Create implicit class based on file name
-                        let file_name = self
-                            .base
-                            .file_path
-                            .split('/')
-                            .next_back()
-                            .unwrap_or("ImplicitClass")
-                            .replace(".gd", "");
+                // Create implicit class based on file name
+                let file_name = self
+                    .base
+                    .file_path
+                    .split('/')
+                    .next_back()
+                    .unwrap_or("ImplicitClass")
+                    .replace(".gd", "");
 
-                        let mut metadata = HashMap::new();
-                        metadata.insert(
-                            "baseClass".to_string(),
-                            serde_json::Value::String(base_class_name.clone()),
-                        );
-                        // Also emit the canonical `base_types` array. Artifact v1
-                        // preserves this metadata evidence without assigning old
-                        // Julie test-container roles. `baseClass` (a string) is kept
-                        // for existing consumers.
-                        metadata.insert(
-                            "base_types".to_string(),
-                            serde_json::Value::Array(vec![serde_json::Value::String(
-                                base_class_name.clone(),
-                            )]),
-                        );
+                let mut metadata = HashMap::new();
+                metadata.insert(
+                    "baseClass".to_string(),
+                    serde_json::Value::String(base_class_name.clone()),
+                );
+                // Also emit the canonical `base_types` array. Artifact v1
+                // preserves this metadata evidence without assigning old
+                // Julie test-container roles. `baseClass` (a string) is kept
+                // for existing consumers.
+                metadata.insert(
+                    "base_types".to_string(),
+                    serde_json::Value::Array(vec![serde_json::Value::String(
+                        base_class_name.clone(),
+                    )]),
+                );
 
-                        let implicit_class = self.base.create_symbol(
-                            &child,
-                            file_name,
-                            crate::base::SymbolKind::Class,
-                            crate::base::SymbolOptions {
-                                signature: Some(format!("extends {}", base_class_name)),
-                                visibility: Some(crate::base::Visibility::Public),
-                                parent_id: None,
-                                metadata: Some(metadata),
-                                doc_comment: None,
-                                annotations: Vec::new(),
-                            },
-                        );
+                let implicit_class = self.base.create_symbol(
+                    &child,
+                    file_name,
+                    crate::base::SymbolKind::Class,
+                    crate::base::SymbolOptions {
+                        signature: Some(format!("extends {}", base_class_name)),
+                        visibility: Some(crate::base::Visibility::Public),
+                        parent_id: None,
+                        metadata: Some(metadata),
+                        doc_comment: None,
+                        annotations: Vec::new(),
+                    },
+                );
 
-                        implicit_class_id = Some(implicit_class.id.clone());
-                        symbols.push(implicit_class);
-                        break;
-                    }
-                }
+                implicit_class_id = Some(implicit_class.id.clone());
+                symbols.push(implicit_class);
+                break;
             }
         }
 
@@ -142,10 +141,10 @@ impl GDScriptExtractor {
         let mut type_map = HashMap::new();
 
         for symbol in symbols {
-            if let Some(ref signature) = symbol.signature {
-                if let Some(inferred) = Self::infer_type_from_signature(signature, &symbol.kind) {
-                    type_map.insert(symbol.id.clone(), inferred);
-                }
+            if let Some(ref signature) = symbol.signature
+                && let Some(inferred) = Self::infer_type_from_signature(signature, &symbol.kind)
+            {
+                type_map.insert(symbol.id.clone(), inferred);
             }
         }
 
@@ -226,18 +225,18 @@ impl GDScriptExtractor {
             }
             "func" => {
                 // Skip if this func node is part of a function_definition
-                if let Some(parent) = node.parent() {
-                    if parent.kind() != "function_definition" {
-                        let effective_parent_id =
-                            self.determine_effective_parent_id(node, parent_id, symbols);
-                        if let Some(symbol) = functions::extract_function_definition(
-                            &mut self.base,
-                            node,
-                            effective_parent_id.as_ref(),
-                            symbols,
-                        ) {
-                            extracted_symbol = Some(symbol);
-                        }
+                if let Some(parent) = node.parent()
+                    && parent.kind() != "function_definition"
+                {
+                    let effective_parent_id =
+                        self.determine_effective_parent_id(node, parent_id, symbols);
+                    if let Some(symbol) = functions::extract_function_definition(
+                        &mut self.base,
+                        node,
+                        effective_parent_id.as_ref(),
+                        symbols,
+                    ) {
+                        extracted_symbol = Some(symbol);
                     }
                 }
             }
@@ -254,14 +253,12 @@ impl GDScriptExtractor {
             }
             "var" => {
                 // Skip if this var node is part of a variable_statement
-                if let Some(parent) = node.parent() {
-                    if parent.kind() != "variable_statement" {
-                        if let Some(symbol) =
-                            variables::extract_variable_statement(&mut self.base, node, parent_id)
-                        {
-                            extracted_symbol = Some(symbol);
-                        }
-                    }
+                if let Some(parent) = node.parent()
+                    && parent.kind() != "variable_statement"
+                    && let Some(symbol) =
+                        variables::extract_variable_statement(&mut self.base, node, parent_id)
+                {
+                    extracted_symbol = Some(symbol);
                 }
             }
             "variable_statement" => {

@@ -31,7 +31,7 @@ mod types;
 
 /// Main C extractor struct combining all extraction functionality
 pub struct CExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl CExtractor {
@@ -113,12 +113,11 @@ impl CExtractor {
         let mut type_map = std::collections::HashMap::new();
 
         for symbol in symbols {
-            if let Some(ref signature) = symbol.signature {
-                if let Some(inferred_type) =
+            if let Some(ref signature) = symbol.signature
+                && let Some(inferred_type) =
                     self.extract_type_from_signature(signature, &symbol.kind, &symbol.name)
-                {
-                    type_map.insert(symbol.id.clone(), inferred_type);
-                }
+            {
+                type_map.insert(symbol.id.clone(), inferred_type);
             }
         }
 
@@ -194,9 +193,7 @@ impl CExtractor {
                 symbol = structs::extract_struct(self, node, parent_id.as_deref());
                 // Extract struct fields as SymbolKind::Field children
                 // Skip if inside a type_definition — the type_definition handler already extracts fields
-                let inside_typedef = node
-                    .parent()
-                    .map_or(false, |p| p.kind() == "type_definition");
+                let inside_typedef = node.parent().is_some_and(|p| p.kind() == "type_definition");
                 if !inside_typedef {
                     let parent_id_for_fields = symbol.as_ref().map(|s| s.id.as_str()).unwrap_or("");
                     if !parent_id_for_fields.is_empty() {
@@ -210,9 +207,7 @@ impl CExtractor {
                 symbol = structs::extract_union(self, node, parent_id.as_deref());
                 // Extract union fields as SymbolKind::Field children
                 // Skip if inside a type_definition — the type_definition handler already extracts fields
-                let inside_typedef = node
-                    .parent()
-                    .map_or(false, |p| p.kind() == "type_definition");
+                let inside_typedef = node.parent().is_some_and(|p| p.kind() == "type_definition");
                 if !inside_typedef {
                     let parent_id_for_fields = symbol.as_ref().map(|s| s.id.as_str()).unwrap_or("");
                     if !parent_id_for_fields.is_empty() {
@@ -234,19 +229,19 @@ impl CExtractor {
                 symbol = typedefs::extract_type_definition(self, node, parent_id.as_deref());
                 // For typedef struct/union, extract fields from the inner specifier
                 // e.g., `typedef struct { int x; int y; } Point;`
-                if let Some(ref sym) = symbol {
-                    if sym.kind == SymbolKind::Struct || sym.kind == SymbolKind::Union {
-                        // Find the struct_specifier or union_specifier child inside the type_definition
-                        let mut td_cursor = node.walk();
-                        for td_child in node.children(&mut td_cursor) {
-                            if td_child.kind() == "struct_specifier"
-                                || td_child.kind() == "union_specifier"
-                            {
-                                let field_symbols =
-                                    structs::extract_struct_field_symbols(self, td_child, &sym.id);
-                                symbols.extend(field_symbols);
-                                break;
-                            }
+                if let Some(ref sym) = symbol
+                    && (sym.kind == SymbolKind::Struct || sym.kind == SymbolKind::Union)
+                {
+                    // Find the struct_specifier or union_specifier child inside the type_definition
+                    let mut td_cursor = node.walk();
+                    for td_child in node.children(&mut td_cursor) {
+                        if td_child.kind() == "struct_specifier"
+                            || td_child.kind() == "union_specifier"
+                        {
+                            let field_symbols =
+                                structs::extract_struct_field_symbols(self, td_child, &sym.id);
+                            symbols.extend(field_symbols);
+                            break;
                         }
                     }
                 }

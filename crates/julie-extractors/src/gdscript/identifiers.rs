@@ -40,10 +40,10 @@ fn extract_identifier_from_node(
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
                 if child.kind() == "identifier" {
-                    if let Some(parent) = node.parent() {
-                        if parent.kind() == "attribute" {
-                            continue;
-                        }
+                    if let Some(parent) = node.parent()
+                        && parent.kind() == "attribute"
+                    {
+                        continue;
                     }
 
                     let name = base.get_node_text(&child);
@@ -57,27 +57,25 @@ fn extract_identifier_from_node(
                     break;
                 }
 
-                if child.kind() == "attribute" {
-                    if let Some(name_node) = attribute_call_name_node(child)
+                if child.kind() == "attribute"
+                    && let Some(name_node) = attribute_call_name_node(child)
                         .or_else(|| rightmost_identifier_descendant(child))
+                {
+                    if let Some(parent) = node.parent()
+                        && parent.kind() == "attribute"
                     {
-                        if let Some(parent) = node.parent() {
-                            if parent.kind() == "attribute" {
-                                continue;
-                            }
-                        }
-
-                        let name = base.get_node_text(&name_node);
-                        let containing_symbol_id =
-                            find_containing_symbol_id(base, node, symbol_map);
-                        base.create_identifier(
-                            &name_node,
-                            name,
-                            IdentifierKind::Call,
-                            containing_symbol_id,
-                        );
-                        break;
+                        continue;
                     }
+
+                    let name = base.get_node_text(&name_node);
+                    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                    base.create_identifier(
+                        &name_node,
+                        name,
+                        IdentifierKind::Call,
+                        containing_symbol_id,
+                    );
+                    break;
                 }
             }
             // Phase 3b: capture string-literal call-arguments config-free; the
@@ -123,23 +121,23 @@ fn extract_identifier_from_node(
         }
 
         "subscript" => {
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call" {
-                    return;
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call"
+            {
+                return;
             }
 
-            if let Some(index_node) = node.child_by_field_name("index") {
-                if index_node.kind() == "identifier" {
-                    let name = base.get_node_text(&index_node);
-                    let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
-                    base.create_identifier(
-                        &index_node,
-                        name,
-                        IdentifierKind::MemberAccess,
-                        containing_symbol_id,
-                    );
-                }
+            if let Some(index_node) = node.child_by_field_name("index")
+                && index_node.kind() == "identifier"
+            {
+                let name = base.get_node_text(&index_node);
+                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(
+                    &index_node,
+                    name,
+                    IdentifierKind::MemberAccess,
+                    containing_symbol_id,
+                );
             }
         }
 

@@ -28,10 +28,10 @@ pub(super) fn extract_relationships_internal(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    if node.kind() == "pair" {
-        if let Some((value_text, value_node)) = ref_pair_value(base, node) {
-            handle_ref_pair(base, node, value_node, &value_text, symbols, relationships);
-        }
+    if node.kind() == "pair"
+        && let Some((value_text, value_node)) = ref_pair_value(base, node)
+    {
+        handle_ref_pair(base, node, value_node, &value_text, symbols, relationships);
     }
     for child in node.children(&mut node.walk()) {
         extract_relationships_internal(base, child, symbols, relationships);
@@ -88,25 +88,25 @@ fn handle_ref_pair(
     if let Some((file_part, fragment)) = split_external_ref(value_text) {
         emit_external_pending(
             base,
-            &from_symbol,
+            from_symbol,
             value_text,
             file_part,
             fragment,
             line_number,
         );
-    } else if let Some(fragment) = value_text.strip_prefix("#/") {
-        if let Some(target_symbol) = resolve_local_pointer(symbols, fragment) {
-            emit_local_relationship(
-                base,
-                &from_symbol,
-                target_symbol,
-                value_node,
-                line_number,
-                relationships,
-            );
-        }
-        // Unresolved local pointer = malformed; emit nothing.
+    } else if let Some(fragment) = value_text.strip_prefix("#/")
+        && let Some(target_symbol) = resolve_local_pointer(symbols, fragment)
+    {
+        emit_local_relationship(
+            base,
+            from_symbol,
+            target_symbol,
+            value_node,
+            line_number,
+            relationships,
+        );
     }
+    // Unresolved local pointer = malformed; emit nothing.
     // Other shapes (e.g., bare relative URIs, missing `#`) are out of scope.
 }
 

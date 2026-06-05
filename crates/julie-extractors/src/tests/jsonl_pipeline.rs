@@ -6,6 +6,7 @@ use md5;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+#[allow(clippy::too_many_arguments)]
 fn expected_id(
     file_path: &str,
     name: &str,

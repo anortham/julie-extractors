@@ -65,17 +65,17 @@ fn find_typedef_name(base: &BaseExtractor, node: Node) -> Option<String> {
     }
 
     // Strategy 2: Name inside pointer_declarator (typedef int* IntPtr;)
-    if let Some(ptr_decl) = children.iter().find(|c| c.kind() == "pointer_declarator") {
-        if let Some(name) = find_type_identifier_recursive(base, *ptr_decl) {
-            return Some(name);
-        }
+    if let Some(ptr_decl) = children.iter().find(|c| c.kind() == "pointer_declarator")
+        && let Some(name) = find_type_identifier_recursive(base, *ptr_decl)
+    {
+        return Some(name);
     }
 
     // Strategy 3: Name inside function_declarator (typedef void (*callback_t)(int, float);)
-    if let Some(func_decl) = children.iter().find(|c| c.kind() == "function_declarator") {
-        if let Some(name) = find_type_identifier_recursive(base, *func_decl) {
-            return Some(name);
-        }
+    if let Some(func_decl) = children.iter().find(|c| c.kind() == "function_declarator")
+        && let Some(name) = find_type_identifier_recursive(base, *func_decl)
+    {
+        return Some(name);
     }
 
     // Strategy 4: Last primitive_type child as fallback

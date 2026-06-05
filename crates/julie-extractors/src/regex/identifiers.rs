@@ -53,23 +53,22 @@ fn extract_identifier_from_node(
             let content_after = &base.content[start_byte..];
 
             // Try to extract \k<name> pattern manually
-            if content_after.starts_with("\\k<") {
-                if let Some(end_pos) = content_after.find('>') {
-                    // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
-                    if content_after.is_char_boundary(3) && content_after.is_char_boundary(end_pos)
-                    {
-                        let group_name = content_after[3..end_pos].to_string();
-                        if !group_name.is_empty() {
-                            let containing_symbol_id =
-                                find_containing_symbol_id(base, node, symbol_map);
+            if content_after.starts_with("\\k<")
+                && let Some(end_pos) = content_after.find('>')
+            {
+                // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
+                if content_after.is_char_boundary(3) && content_after.is_char_boundary(end_pos) {
+                    let group_name = content_after[3..end_pos].to_string();
+                    if !group_name.is_empty() {
+                        let containing_symbol_id =
+                            find_containing_symbol_id(base, node, symbol_map);
 
-                            base.create_identifier(
-                                &node,
-                                group_name,
-                                IdentifierKind::Call,
-                                containing_symbol_id,
-                            );
-                        }
+                        base.create_identifier(
+                            &node,
+                            group_name,
+                            IdentifierKind::Call,
+                            containing_symbol_id,
+                        );
                     }
                 }
             }

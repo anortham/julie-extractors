@@ -96,12 +96,7 @@ fn extract_identifier_from_node(
             let name = get_node_text(&node);
 
             // Skip single-letter generic type parameters (T, K, V, E, S, R, etc.)
-            if name.len() == 1
-                && name
-                    .chars()
-                    .next()
-                    .map_or(false, |c| c.is_ascii_uppercase())
-            {
+            if name.len() == 1 && name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
                 return;
             }
 
@@ -174,7 +169,7 @@ fn record_outermost_dart_type_arguments(
 
     match grandparent.kind() {
         // ── Nested arg: rides as child of outer usage ────────────────────────
-        "type_arguments" => return,
+        "type_arguments" => (),
 
         // ── Construction / Heritage ─────────────────────────────────────────
         // The arg list is the NEXT named sibling `type` node (the `<...>` part).
@@ -345,16 +340,16 @@ fn record_dart_call_arg_literals(
         } else {
             Some(arg)
         };
-        if let Some(value) = value {
-            if let Some(text) = base.decode_string_literal(&value) {
-                base.record_literal(
-                    &value,
-                    text,
-                    carrier.clone(),
-                    pos as u32,
-                    containing_symbol_id.clone(),
-                );
-            }
+        if let Some(value) = value
+            && let Some(text) = base.decode_string_literal(&value)
+        {
+            base.record_literal(
+                &value,
+                text,
+                carrier.clone(),
+                pos as u32,
+                containing_symbol_id.clone(),
+            );
         }
     }
 }

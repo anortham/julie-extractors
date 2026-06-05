@@ -325,16 +325,16 @@ pub fn extract_enum_member(
 
     let mut signature = name.clone();
     let children: Vec<Node> = node.children(&mut cursor).collect();
-    if let Some(equals_index) = children.iter().position(|c| c.kind() == "=") {
-        if equals_index + 1 < children.len() {
-            let value_nodes: Vec<String> = children[equals_index + 1..]
-                .iter()
-                .map(|n| base.get_node_text(n))
-                .collect();
-            let value = value_nodes.join("").trim().to_string();
-            if !value.is_empty() {
-                signature += &format!(" = {}", value);
-            }
+    if let Some(equals_index) = children.iter().position(|c| c.kind() == "=")
+        && equals_index + 1 < children.len()
+    {
+        let value_nodes: Vec<String> = children[equals_index + 1..]
+            .iter()
+            .map(|n| base.get_node_text(n))
+            .collect();
+        let value = value_nodes.join("").trim().to_string();
+        if !value.is_empty() {
+            signature += &format!(" = {}", value);
         }
     }
 

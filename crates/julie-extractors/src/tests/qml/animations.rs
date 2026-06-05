@@ -35,7 +35,7 @@ Rectangle {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Rectangle with NumberAnimation"
         );
     }
@@ -74,7 +74,7 @@ Item {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Item with PropertyAnimations"
         );
     }
@@ -117,7 +117,7 @@ Rectangle {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Rectangle with states"
         );
     }
@@ -167,7 +167,7 @@ Rectangle {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Rectangle with transitions"
         );
     }
@@ -196,7 +196,7 @@ Item {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Item with SequentialAnimation"
         );
     }
@@ -223,7 +223,7 @@ Item {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Item with ParallelAnimation"
         );
     }
@@ -255,7 +255,7 @@ Rectangle {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Rectangle with Behaviors"
         );
     }
@@ -330,7 +330,7 @@ Item {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Item with PathAnimation"
         );
     }

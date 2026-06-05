@@ -226,11 +226,11 @@ pub(super) fn extract_property_initializer(
     node: &Node,
 ) -> Option<String> {
     let children: Vec<Node> = node.children(&mut node.walk()).collect();
-    if let Some(assignment_index) = children.iter().position(|n| base.get_node_text(n) == "=") {
-        if assignment_index + 1 < children.len() {
-            let initializer_node = &children[assignment_index + 1];
-            return Some(base.get_node_text(initializer_node).trim().to_string());
-        }
+    if let Some(assignment_index) = children.iter().position(|n| base.get_node_text(n) == "=")
+        && assignment_index + 1 < children.len()
+    {
+        let initializer_node = &children[assignment_index + 1];
+        return Some(base.get_node_text(initializer_node).trim().to_string());
     }
 
     // Also check for property_initializer node type
@@ -246,11 +246,11 @@ pub(super) fn extract_property_delegation(
     node: &Node,
 ) -> Option<String> {
     let children: Vec<Node> = node.children(&mut node.walk()).collect();
-    if let Some(by_index) = children.iter().position(|n| base.get_node_text(n) == "by") {
-        if by_index + 1 < children.len() {
-            let delegate_node = &children[by_index + 1];
-            return Some(format!("by {}", base.get_node_text(delegate_node)));
-        }
+    if let Some(by_index) = children.iter().position(|n| base.get_node_text(n) == "by")
+        && by_index + 1 < children.len()
+    {
+        let delegate_node = &children[by_index + 1];
+        return Some(format!("by {}", base.get_node_text(delegate_node)));
     }
 
     // Also check for property_delegate node type

@@ -1,12 +1,12 @@
-/// Tests for Ruby class/constant deduplication
-///
-/// When Ruby's tree-sitter parser encounters `class Base < Object`, it produces
-/// both a `class` node AND nested `constant` nodes for the class name and superclass.
-/// The extractor should NOT create separate Constant symbols for names that are
-/// already represented by Class or Module symbols.
-///
-/// This prevents centrality score splitting where a redundant Constant symbol
-/// absorbs references that should go to the Class symbol.
+// Tests for Ruby class/constant deduplication
+//
+// When Ruby's tree-sitter parser encounters `class Base < Object`, it produces
+// both a `class` node AND nested `constant` nodes for the class name and superclass.
+// The extractor should NOT create separate Constant symbols for names that are
+// already represented by Class or Module symbols.
+//
+// This prevents centrality score splitting where a redundant Constant symbol
+// absorbs references that should go to the Class symbol.
 
 #[cfg(test)]
 mod tests {

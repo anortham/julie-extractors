@@ -31,7 +31,7 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::Tree;
 
 pub struct JavaScriptExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
     import_bindings: Option<HashSet<String>>,
     import_binding_sources: Option<HashMap<String, String>>,
     receiver_import_contexts: HashMap<(usize, String), Option<String>>,
@@ -92,50 +92,47 @@ impl JavaScriptExtractor {
             .or(current_caller);
 
         // Look for call expressions
-        if node.kind() == "call_expression" {
-            if let (Some(caller_symbol), Some(function_node)) =
+        if node.kind() == "call_expression"
+            && let (Some(caller_symbol), Some(function_node)) =
                 (current_caller, node.child_by_field_name("function"))
-            {
-                let function_name = self.call_terminal_name(function_node);
+        {
+            let function_name = self.call_terminal_name(function_node);
 
-                // Check if this is a call to an import or unknown function
-                match symbol_map.get(function_name.as_str()) {
-                    Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
-                        if let Some(target) =
-                            self.build_unresolved_target(node, function_node, symbol_map)
-                        {
-                            if Self::should_emit_pending_call(&target) {
-                                let pending = self.base.create_pending_relationship(
-                                    caller_symbol.id.clone(),
-                                    target,
-                                    crate::base::RelationshipKind::Calls,
-                                    &node,
-                                    Some(caller_symbol.id.clone()),
-                                    Some(0.8),
-                                );
-                                self.add_structured_pending_relationship(pending);
-                            }
-                        }
+            // Check if this is a call to an import or unknown function
+            match symbol_map.get(function_name.as_str()) {
+                Some(called_symbol) if called_symbol.kind == SymbolKind::Import => {
+                    if let Some(target) =
+                        self.build_unresolved_target(node, function_node, symbol_map)
+                        && Self::should_emit_pending_call(&target)
+                    {
+                        let pending = self.base.create_pending_relationship(
+                            caller_symbol.id.clone(),
+                            target,
+                            crate::base::RelationshipKind::Calls,
+                            &node,
+                            Some(caller_symbol.id.clone()),
+                            Some(0.8),
+                        );
+                        self.add_structured_pending_relationship(pending);
                     }
-                    None => {
-                        if let Some(target) =
-                            self.build_unresolved_target(node, function_node, symbol_map)
-                        {
-                            if Self::should_emit_pending_call(&target) {
-                                let pending = self.base.create_pending_relationship(
-                                    caller_symbol.id.clone(),
-                                    target,
-                                    crate::base::RelationshipKind::Calls,
-                                    &node,
-                                    Some(caller_symbol.id.clone()),
-                                    Some(0.7),
-                                );
-                                self.add_structured_pending_relationship(pending);
-                            }
-                        }
-                    }
-                    _ => {}
                 }
+                None => {
+                    if let Some(target) =
+                        self.build_unresolved_target(node, function_node, symbol_map)
+                        && Self::should_emit_pending_call(&target)
+                    {
+                        let pending = self.base.create_pending_relationship(
+                            caller_symbol.id.clone(),
+                            target,
+                            crate::base::RelationshipKind::Calls,
+                            &node,
+                            Some(caller_symbol.id.clone()),
+                            Some(0.7),
+                        );
+                        self.add_structured_pending_relationship(pending);
+                    }
+                }
+                _ => {}
             }
         }
 
@@ -185,13 +182,13 @@ impl JavaScriptExtractor {
                 // Get the function name
                 if let Some(name_node) = current_node.child_by_field_name("name") {
                     let func_name = self.base.get_node_text(&name_node);
-                    if let Some(symbol) = symbol_map.get(&func_name) {
-                        if matches!(
+                    if let Some(symbol) = symbol_map.get(&func_name)
+                        && matches!(
                             symbol.kind,
                             crate::base::SymbolKind::Function | crate::base::SymbolKind::Method
-                        ) {
-                            return Some(symbol);
-                        }
+                        )
+                    {
+                        return Some(symbol);
                     }
                 }
             }
@@ -199,41 +196,41 @@ impl JavaScriptExtractor {
             // Check for test call expressions (it, test, describe, beforeEach, etc.)
             // The arrow_function inside it("name", () => {...}) has no name field,
             // so we look at the parent call_expression and use the test name.
-            if current_node.kind() == "call_expression" {
-                if let Some(function_node) = current_node.child_by_field_name("function") {
-                    let callee = match function_node.kind() {
-                        "identifier" => self.base.get_node_text(&function_node),
-                        "member_expression" => {
-                            if let Some(obj) = function_node.child_by_field_name("object") {
-                                self.base.get_node_text(&obj)
-                            } else {
-                                String::new()
-                            }
+            if current_node.kind() == "call_expression"
+                && let Some(function_node) = current_node.child_by_field_name("function")
+            {
+                let callee = match function_node.kind() {
+                    "identifier" => self.base.get_node_text(&function_node),
+                    "member_expression" => {
+                        if let Some(obj) = function_node.child_by_field_name("object") {
+                            self.base.get_node_text(&obj)
+                        } else {
+                            String::new()
                         }
-                        _ => String::new(),
-                    };
+                    }
+                    _ => String::new(),
+                };
 
-                    if crate::test_calls::is_test_runner_call(&callee) {
-                        if let Some(args) = current_node.child_by_field_name("arguments") {
-                            let mut cursor = args.walk();
-                            if let Some(first_str) = args
-                                .children(&mut cursor)
-                                .find(|c| c.kind() == "string" || c.kind() == "template_string")
-                            {
-                                let name = self
-                                    .base
-                                    .get_node_text(&first_str)
-                                    .trim_matches(|c| c == '"' || c == '\'' || c == '`')
-                                    .to_string();
-                                if let Some(symbol) = symbol_map.get(&name) {
-                                    return Some(symbol);
-                                }
-                            }
-                            // For lifecycle (no string arg), look up by callee name
-                            if let Some(symbol) = symbol_map.get(&callee) {
-                                return Some(symbol);
-                            }
+                if crate::test_calls::is_test_runner_call(&callee)
+                    && let Some(args) = current_node.child_by_field_name("arguments")
+                {
+                    let mut cursor = args.walk();
+                    if let Some(first_str) = args
+                        .children(&mut cursor)
+                        .find(|c| c.kind() == "string" || c.kind() == "template_string")
+                    {
+                        let name = self
+                            .base
+                            .get_node_text(&first_str)
+                            .trim_matches(|c| c == '"' || c == '\'' || c == '`')
+                            .to_string();
+                        if let Some(symbol) = symbol_map.get(&name) {
+                            return Some(symbol);
                         }
+                    }
+                    // For lifecycle (no string arg), look up by callee name
+                    if let Some(symbol) = symbol_map.get(&callee) {
+                        return Some(symbol);
                     }
                 }
             }

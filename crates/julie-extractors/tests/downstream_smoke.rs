@@ -47,7 +47,6 @@ publish = false
 
 [dependencies]
 julie-extractors = {{ path = "{extractors_abs_str}" }}
-anyhow = "1.0"
 "#
         ),
     )
@@ -58,7 +57,7 @@ anyhow = "1.0"
         consumer.join("src/main.rs"),
         r#"use std::path::Path;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let source = "fn main() { println!(\"hi\"); }";
     let result = julie_extractors::extract_canonical("hello.rs", source, Path::new("."))?;
     assert!(!result.symbols.is_empty(), "expected at least one symbol");

@@ -57,8 +57,7 @@ impl MediaExtractor {
                 let mut query_parts = Vec::new();
 
                 // Get the query parts after @media
-                for j in (i + 1)..children.len() {
-                    let child = &children[j];
+                for child in children.iter().skip(i + 1) {
                     if child.kind() == "block" {
                         break; // Stop at the rule block
                     }

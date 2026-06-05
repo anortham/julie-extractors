@@ -108,11 +108,7 @@ fn extract_callback_attribute(
     let callback_text = extractor.base.get_node_text(&args);
 
     // Extract callback name (before `(` or `::`)
-    let callback_name = callback_text
-        .split(|c: char| c == '(' || c == ':')
-        .next()?
-        .trim()
-        .to_string();
+    let callback_name = callback_text.split(['(', ':']).next()?.trim().to_string();
     if callback_name.is_empty() {
         return None;
     }

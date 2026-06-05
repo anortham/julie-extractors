@@ -92,7 +92,6 @@ pub fn extract_method(
             Some(metadata)
         },
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Method, options))
@@ -154,7 +153,6 @@ pub fn extract_constructor(
             Some(metadata)
         },
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Constructor, options))
@@ -207,7 +205,6 @@ pub fn extract_destructor(
             Some(metadata)
         },
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Method, options))

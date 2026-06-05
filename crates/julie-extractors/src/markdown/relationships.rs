@@ -121,11 +121,9 @@ fn slugify_heading(text: &str) -> String {
         if ch.is_ascii_alphanumeric() {
             slug.push(ch);
             last_was_dash = false;
-        } else if ch.is_whitespace() || ch == '-' {
-            if !last_was_dash && !slug.is_empty() {
-                slug.push('-');
-                last_was_dash = true;
-            }
+        } else if (ch.is_whitespace() || ch == '-') && !last_was_dash && !slug.is_empty() {
+            slug.push('-');
+            last_was_dash = true;
         }
     }
 

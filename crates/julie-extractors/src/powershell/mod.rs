@@ -180,45 +180,43 @@ impl PowerShellExtractor {
         let node_text = self.base.get_node_text(&node);
 
         // Check if this ERROR node contains a DSC configuration
-        if node_text.contains("Configuration ") {
-            if let Some((name, signature)) =
+        if node_text.contains("Configuration ")
+            && let Some((name, signature)) =
                 commands::extract_configuration_from_error(&self.base, &node_text)
-            {
-                return Some(self.base.create_symbol(
-                    &node,
-                    name,
-                    crate::base::SymbolKind::Function,
-                    crate::base::SymbolOptions {
-                        signature: Some(signature),
-                        visibility: Some(crate::base::Visibility::Public),
-                        parent_id: parent_id.map(|s| s.to_string()),
-                        metadata: None,
-                        doc_comment: Some("PowerShell DSC Configuration".to_string()),
-                        annotations: Vec::new(),
-                    },
-                ));
-            }
+        {
+            return Some(self.base.create_symbol(
+                &node,
+                name,
+                crate::base::SymbolKind::Function,
+                crate::base::SymbolOptions {
+                    signature: Some(signature),
+                    visibility: Some(crate::base::Visibility::Public),
+                    parent_id: parent_id.map(|s| s.to_string()),
+                    metadata: None,
+                    doc_comment: Some("PowerShell DSC Configuration".to_string()),
+                    annotations: Vec::new(),
+                },
+            ));
         }
 
         // Also check for function definitions that might be in ERROR nodes
-        if node_text.contains("function ") {
-            if let Some((name, signature)) =
+        if node_text.contains("function ")
+            && let Some((name, signature)) =
                 commands::extract_function_from_error(&self.base, &node_text)
-            {
-                return Some(self.base.create_symbol(
-                    &node,
-                    name,
-                    crate::base::SymbolKind::Function,
-                    crate::base::SymbolOptions {
-                        signature: Some(signature),
-                        visibility: Some(crate::base::Visibility::Public),
-                        parent_id: parent_id.map(|s| s.to_string()),
-                        metadata: None,
-                        doc_comment: None,
-                        annotations: Vec::new(),
-                    },
-                ));
-            }
+        {
+            return Some(self.base.create_symbol(
+                &node,
+                name,
+                crate::base::SymbolKind::Function,
+                crate::base::SymbolOptions {
+                    signature: Some(signature),
+                    visibility: Some(crate::base::Visibility::Public),
+                    parent_id: parent_id.map(|s| s.to_string()),
+                    metadata: None,
+                    doc_comment: None,
+                    annotations: Vec::new(),
+                },
+            ));
         }
 
         None

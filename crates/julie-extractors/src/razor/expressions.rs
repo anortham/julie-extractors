@@ -37,23 +37,22 @@ impl super::RazorExtractor {
         let mut declarators = Vec::new();
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            if child.kind() == "variable_declarator" {
-                if let Some(identifier) = self.find_child_by_type(child, "identifier") {
-                    let name = self.base.get_node_text(&identifier);
+            if child.kind() == "variable_declarator"
+                && let Some(identifier) = self.find_child_by_type(child, "identifier")
+            {
+                let name = self.base.get_node_text(&identifier);
 
-                    // Look for initializer
-                    let mut initializer = None;
-                    let mut decl_cursor = child.walk();
-                    let decl_children: Vec<_> = child.children(&mut decl_cursor).collect();
-                    if let Some(equals_pos) = decl_children.iter().position(|c| c.kind() == "=") {
-                        if equals_pos + 1 < decl_children.len() {
-                            initializer =
-                                Some(self.base.get_node_text(&decl_children[equals_pos + 1]));
-                        }
-                    }
-
-                    declarators.push((name, initializer));
+                // Look for initializer
+                let mut initializer = None;
+                let mut decl_cursor = child.walk();
+                let decl_children: Vec<_> = child.children(&mut decl_cursor).collect();
+                if let Some(equals_pos) = decl_children.iter().position(|c| c.kind() == "=")
+                    && equals_pos + 1 < decl_children.len()
+                {
+                    initializer = Some(self.base.get_node_text(&decl_children[equals_pos + 1]));
                 }
+
+                declarators.push((name, initializer));
             }
         }
 

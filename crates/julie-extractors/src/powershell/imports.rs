@@ -71,17 +71,17 @@ pub(super) fn extract_import_command(
 
     if command_name == "Import-Module" {
         // Extract module name from "Import-Module Az.Accounts" or "Import-Module -Name 'Custom.Tools'"
-        if let Some(captures) = IMPORT_MODULE_RE.captures(&node_text) {
-            if let Some(m) = captures.get(1).or_else(|| captures.get(2)) {
-                module_name = m.as_str().to_string();
-            }
+        if let Some(captures) = IMPORT_MODULE_RE.captures(&node_text)
+            && let Some(m) = captures.get(1).or_else(|| captures.get(2))
+        {
+            module_name = m.as_str().to_string();
         }
     } else if command_name == "using" {
         // Extract from "using namespace System.Collections.Generic" or "using module Az.Storage"
-        if let Some(captures) = USING_RE.captures(&node_text) {
-            if let Some(m) = captures.get(1) {
-                module_name = m.as_str().to_string();
-            }
+        if let Some(captures) = USING_RE.captures(&node_text)
+            && let Some(m) = captures.get(1)
+        {
+            module_name = m.as_str().to_string();
         }
     } else if command_name == "Export-ModuleMember" {
         // Extract the type being exported (Function, Variable, Alias)

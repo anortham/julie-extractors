@@ -61,7 +61,7 @@ Item {
             .filter(|s| s.kind == SymbolKind::Class)
             .collect();
 
-        assert!(components.len() >= 1, "Should extract inline components");
+        assert!(!components.is_empty(), "Should extract inline components");
     }
 
     #[test]
@@ -197,7 +197,7 @@ QtObject {
             .filter(|s| s.kind == SymbolKind::Class)
             .collect();
 
-        assert!(components.len() >= 1, "Should extract QtObject");
+        assert!(!components.is_empty(), "Should extract QtObject");
     }
 
     #[test]
@@ -251,7 +251,7 @@ ListView {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract ListView with attached properties"
         );
     }
@@ -286,7 +286,7 @@ Window {
             .filter(|s| s.kind == SymbolKind::Class)
             .collect();
 
-        assert!(components.len() >= 1, "Should extract Qt 6 syntax");
+        assert!(!components.is_empty(), "Should extract Qt 6 syntax");
     }
 
     #[test]

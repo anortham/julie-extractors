@@ -119,7 +119,7 @@ Item {
             .collect();
 
         assert!(
-            signals.len() >= 1,
+            !signals.is_empty(),
             "Should extract signal from Connections block"
         );
     }

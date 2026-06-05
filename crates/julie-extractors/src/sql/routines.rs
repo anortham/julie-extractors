@@ -6,9 +6,32 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use crate::sql::helpers::{DECLARE_VAR_RE, VAR_DECL_RE};
 use crate::test_detection::is_test_symbol;
+use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use tree_sitter::Node;
+
+static DECLARE_VARIABLE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"DECLARE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(DECIMAL\([^)]+\)|JSONB|INT|BIGINT|VARCHAR\([^)]+\)|TEXT|BOOLEAN)").unwrap()
+});
+static ERROR_PROCEDURE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"CREATE\s+PROCEDURE\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
+static ERROR_FUNCTION_SIGNATURE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\([^)]*\)\s*RETURNS?\s+([A-Z0-9(),\s]+)",
+    )
+    .unwrap()
+});
+static ERROR_FUNCTION_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
+});
+static ERROR_AGGREGATE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"CREATE\s+AGGREGATE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)").unwrap()
+});
+static ERROR_PARAMETER_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(IN|OUT|INOUT)?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+(BIGINT|INT|VARCHAR|DECIMAL|DATE|BOOLEAN|TEXT|JSONB)").unwrap()
+});
 
 /// Extract stored procedure or function from CREATE PROCEDURE/FUNCTION statement
 pub(super) fn extract_stored_procedure(
@@ -265,8 +288,7 @@ pub(super) fn extract_declare_variables(
     }
 
     // Also extract DECLARE variables directly from function text using regex
-    let declare_regex = regex::Regex::new(r"DECLARE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(DECIMAL\([^)]+\)|JSONB|INT|BIGINT|VARCHAR\([^)]+\)|TEXT|BOOLEAN)").unwrap();
-    for captures in declare_regex.captures_iter(&function_text) {
+    for captures in DECLARE_VARIABLE_RE.captures_iter(&function_text) {
         let variable_name = captures.get(1).map_or("", |m| m.as_str());
         let variable_type = captures.get(2).map_or("", |m| m.as_str());
 
@@ -315,36 +337,34 @@ pub(super) fn extract_procedures_from_error(
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
 ) {
-    let procedure_regex =
-        regex::Regex::new(r"CREATE\s+PROCEDURE\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
-    if let Some(captures) = procedure_regex.captures(error_text) {
-        if let Some(procedure_name) = captures.get(1) {
-            let name = procedure_name.as_str().to_string();
+    if let Some(captures) = ERROR_PROCEDURE_RE.captures(error_text)
+        && let Some(procedure_name) = captures.get(1)
+    {
+        let name = procedure_name.as_str().to_string();
 
-            let mut metadata = HashMap::new();
-            metadata.insert(
-                "isStoredProcedure".to_string(),
-                serde_json::Value::Bool(true),
-            );
-            metadata.insert(
-                "extractedFromError".to_string(),
-                serde_json::Value::Bool(true),
-            );
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "isStoredProcedure".to_string(),
+            serde_json::Value::Bool(true),
+        );
+        metadata.insert(
+            "extractedFromError".to_string(),
+            serde_json::Value::Bool(true),
+        );
 
-            let options = SymbolOptions {
-                signature: Some(format!("CREATE PROCEDURE {}(...)", name)),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                doc_comment: None,
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
+        let options = SymbolOptions {
+            signature: Some(format!("CREATE PROCEDURE {}(...)", name)),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: parent_id.map(|s| s.to_string()),
+            doc_comment: None,
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
 
-            let procedure_symbol =
-                base.create_symbol(node, name.clone(), SymbolKind::Function, options);
-            symbols.push(procedure_symbol.clone());
-            extract_parameters_from_error_node(base, *node, symbols, &procedure_symbol.id);
-        }
+        let procedure_symbol =
+            base.create_symbol(node, name.clone(), SymbolKind::Function, options);
+        symbols.push(procedure_symbol.clone());
+        extract_parameters_from_error_node(base, *node, symbols, &procedure_symbol.id);
     }
 }
 
@@ -356,75 +376,69 @@ pub(super) fn extract_functions_from_error(
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
 ) {
-    let function_regex = regex::Regex::new(r"CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\([^)]*\)\s*RETURNS?\s+([A-Z0-9(),\s]+)").unwrap();
-    if let Some(captures) = function_regex.captures(error_text) {
-        if let Some(function_name) = captures.get(1) {
-            let name = function_name.as_str().to_string();
-            let return_type = captures
-                .get(2)
-                .map(|m| m.as_str().trim().to_string())
-                .unwrap_or_default();
+    if let Some(captures) = ERROR_FUNCTION_SIGNATURE_RE.captures(error_text)
+        && let Some(function_name) = captures.get(1)
+    {
+        let name = function_name.as_str().to_string();
+        let return_type = captures
+            .get(2)
+            .map(|m| m.as_str().trim().to_string())
+            .unwrap_or_default();
 
-            let mut metadata = HashMap::new();
-            metadata.insert("isFunction".to_string(), serde_json::Value::Bool(true));
-            metadata.insert(
-                "extractedFromError".to_string(),
-                serde_json::Value::Bool(true),
-            );
-            metadata.insert(
-                "returnType".to_string(),
-                serde_json::Value::String(return_type.clone()),
-            );
+        let mut metadata = HashMap::new();
+        metadata.insert("isFunction".to_string(), serde_json::Value::Bool(true));
+        metadata.insert(
+            "extractedFromError".to_string(),
+            serde_json::Value::Bool(true),
+        );
+        metadata.insert(
+            "returnType".to_string(),
+            serde_json::Value::String(return_type.clone()),
+        );
 
-            let options = SymbolOptions {
-                signature: Some(format!(
-                    "CREATE FUNCTION {}(...) RETURNS {}",
-                    name, return_type
-                )),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                doc_comment: None,
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
+        let options = SymbolOptions {
+            signature: Some(format!(
+                "CREATE FUNCTION {}(...) RETURNS {}",
+                name, return_type
+            )),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: parent_id.map(|s| s.to_string()),
+            doc_comment: None,
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
 
-            let function_symbol =
-                base.create_symbol(node, name.clone(), SymbolKind::Function, options);
-            symbols.push(function_symbol.clone());
-            extract_declare_variables(base, *node, symbols, &function_symbol.id);
-            return;
-        }
+        let function_symbol = base.create_symbol(node, name.clone(), SymbolKind::Function, options);
+        symbols.push(function_symbol.clone());
+        extract_declare_variables(base, *node, symbols, &function_symbol.id);
+        return;
     }
 
     // Fallback: Extract any CREATE FUNCTION
-    let simple_function_regex =
-        regex::Regex::new(r"CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([a-zA-Z_][a-zA-Z0-9_]*)")
-            .unwrap();
-    if let Some(captures) = simple_function_regex.captures(error_text) {
-        if let Some(function_name) = captures.get(1) {
-            let name = function_name.as_str().to_string();
+    if let Some(captures) = ERROR_FUNCTION_RE.captures(error_text)
+        && let Some(function_name) = captures.get(1)
+    {
+        let name = function_name.as_str().to_string();
 
-            let mut metadata = HashMap::new();
-            metadata.insert("isFunction".to_string(), serde_json::Value::Bool(true));
-            metadata.insert(
-                "extractedFromError".to_string(),
-                serde_json::Value::Bool(true),
-            );
+        let mut metadata = HashMap::new();
+        metadata.insert("isFunction".to_string(), serde_json::Value::Bool(true));
+        metadata.insert(
+            "extractedFromError".to_string(),
+            serde_json::Value::Bool(true),
+        );
 
-            let options = SymbolOptions {
-                signature: Some(format!("CREATE FUNCTION {}(...)", name)),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                doc_comment: None,
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
+        let options = SymbolOptions {
+            signature: Some(format!("CREATE FUNCTION {}(...)", name)),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: parent_id.map(|s| s.to_string()),
+            doc_comment: None,
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
 
-            let function_symbol =
-                base.create_symbol(node, name.clone(), SymbolKind::Function, options);
-            symbols.push(function_symbol.clone());
-            extract_declare_variables(base, *node, symbols, &function_symbol.id);
-        }
+        let function_symbol = base.create_symbol(node, name.clone(), SymbolKind::Function, options);
+        symbols.push(function_symbol.clone());
+        extract_declare_variables(base, *node, symbols, &function_symbol.id);
     }
 }
 
@@ -436,34 +450,32 @@ pub(super) fn extract_aggregates_from_error(
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
 ) {
-    let aggregate_regex =
-        regex::Regex::new(r"CREATE\s+AGGREGATE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)").unwrap();
-    if let Some(captures) = aggregate_regex.captures(error_text) {
-        if let Some(aggregate_name) = captures.get(1) {
-            let name = aggregate_name.as_str().to_string();
-            let parameters = captures.get(2).map_or("", |m| m.as_str());
+    if let Some(captures) = ERROR_AGGREGATE_RE.captures(error_text)
+        && let Some(aggregate_name) = captures.get(1)
+    {
+        let name = aggregate_name.as_str().to_string();
+        let parameters = captures.get(2).map_or("", |m| m.as_str());
 
-            let signature = format!("CREATE AGGREGATE {}({})", name, parameters);
+        let signature = format!("CREATE AGGREGATE {}({})", name, parameters);
 
-            let mut metadata = HashMap::new();
-            metadata.insert("isAggregate".to_string(), serde_json::Value::Bool(true));
-            metadata.insert(
-                "extractedFromError".to_string(),
-                serde_json::Value::Bool(true),
-            );
+        let mut metadata = HashMap::new();
+        metadata.insert("isAggregate".to_string(), serde_json::Value::Bool(true));
+        metadata.insert(
+            "extractedFromError".to_string(),
+            serde_json::Value::Bool(true),
+        );
 
-            let options = SymbolOptions {
-                signature: Some(signature),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                doc_comment: None,
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
+        let options = SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: parent_id.map(|s| s.to_string()),
+            doc_comment: None,
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
 
-            let aggregate_symbol = base.create_symbol(node, name, SymbolKind::Function, options);
-            symbols.push(aggregate_symbol);
-        }
+        let aggregate_symbol = base.create_symbol(node, name, SymbolKind::Function, options);
+        symbols.push(aggregate_symbol);
     }
 }
 
@@ -479,9 +491,7 @@ pub(super) fn extract_parameters_from_error_node(
 
     // Extract parameters from procedure/function definitions
     // Look for patterns like "IN p_user_id BIGINT", "OUT p_total_events INT"
-    let param_regex = regex::Regex::new(r"(IN|OUT|INOUT)?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+(BIGINT|INT|VARCHAR|DECIMAL|DATE|BOOLEAN|TEXT|JSONB)").unwrap();
-
-    for captures in param_regex.captures_iter(&error_text) {
+    for captures in ERROR_PARAMETER_RE.captures_iter(&error_text) {
         let direction = captures.get(1).map(|m| m.as_str()).unwrap_or("IN"); // Default to IN if not specified
         let param_name = captures.get(2).map_or("", |m| m.as_str());
         let param_type = captures.get(3).map_or("", |m| m.as_str());

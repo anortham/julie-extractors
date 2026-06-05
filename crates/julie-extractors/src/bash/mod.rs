@@ -47,31 +47,31 @@ impl BashExtractor {
         let mut symbols = Vec::new();
 
         // Detect shebang line
-        if let Some(first_line) = self.base.content.lines().next() {
-            if first_line.starts_with("#!") {
-                let interpreter = first_line.trim_start_matches("#!").trim();
-                // Handle "#!/usr/bin/env python3" -> "python3"
-                // Handle "#!/bin/bash" -> "bash"
-                let name = if interpreter.contains("env ") {
-                    interpreter
-                        .rsplit_once(' ')
-                        .map(|(_, cmd)| cmd)
-                        .unwrap_or(interpreter)
-                } else {
-                    interpreter.rsplit('/').next().unwrap_or(interpreter)
-                };
-                let root = tree.root_node();
-                let symbol = self.base.create_symbol(
-                    &root,
-                    name.to_string(),
-                    SymbolKind::Variable,
-                    crate::base::SymbolOptions {
-                        signature: Some(first_line.to_string()),
-                        ..Default::default()
-                    },
-                );
-                symbols.push(symbol);
-            }
+        if let Some(first_line) = self.base.content.lines().next()
+            && first_line.starts_with("#!")
+        {
+            let interpreter = first_line.trim_start_matches("#!").trim();
+            // Handle "#!/usr/bin/env python3" -> "python3"
+            // Handle "#!/bin/bash" -> "bash"
+            let name = if interpreter.contains("env ") {
+                interpreter
+                    .rsplit_once(' ')
+                    .map(|(_, cmd)| cmd)
+                    .unwrap_or(interpreter)
+            } else {
+                interpreter.rsplit('/').next().unwrap_or(interpreter)
+            };
+            let root = tree.root_node();
+            let symbol = self.base.create_symbol(
+                &root,
+                name.to_string(),
+                SymbolKind::Variable,
+                crate::base::SymbolOptions {
+                    signature: Some(first_line.to_string()),
+                    ..Default::default()
+                },
+            );
+            symbols.push(symbol);
         }
 
         self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None);

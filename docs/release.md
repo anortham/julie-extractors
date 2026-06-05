@@ -9,6 +9,8 @@
 - Real-world smoke gate: `cargo xtask test real-world-smoke`
 - Real-world release gate: `cargo xtask test real-world-release`
 - Release package manifest: `cargo xtask release package-list`
+- Release preflight:
+  `cargo xtask release preflight --version <version>`
 - Stage release package:
   `cargo xtask release package --version <version> --target <target> --out-dir <path> [--binary <path>]`
 
@@ -41,6 +43,7 @@ cargo xtask test certification
 cargo xtask test real-world-smoke
 cargo xtask test real-world-release
 cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
+cargo xtask release preflight --version <version>
 cargo xtask release package --version <version> --target <target> --out-dir <path> --binary <path>
 ```
 
@@ -66,14 +69,17 @@ Example:
 ```bash
 cargo build --release -p julie-extract-cli --bin julie-extract
 cargo xtask release package \
-  --version 2.0.0 \
+  --version 2.1.0 \
   --target x86_64-apple-darwin \
-  --out-dir target/release-package/v2.0.0-x86_64-apple-darwin \
+  --out-dir target/release-package/v2.1.0-x86_64-apple-darwin \
   --binary target/release/julie-extract
 ```
 
 Rules:
 
+- Run `cargo xtask release preflight --version <version>` before staging or
+  publishing. It verifies crate versions, release-note availability, and package
+  manifest paths.
 - `--out-dir` must be missing or empty so stale files cannot enter a package.
 - `docs/release-notes/v{version}.md` must exist before staging.
 - The checksum file is SHA-256 and uses this deterministic format:
@@ -120,5 +126,8 @@ Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
 
-Published v2.0.0 release evidence:
+Current v2.1.1 release evidence:
+`docs/release-evidence/2026-06-05-v2-1-1-release.md`.
+
+Historical v2.0.0 release evidence:
 `docs/release-evidence/2026-06-01-v2-0-0-release.md`.

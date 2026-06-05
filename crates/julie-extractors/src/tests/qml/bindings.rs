@@ -252,7 +252,7 @@ Item {
             .collect();
 
         assert!(
-            functions.len() >= 1,
+            !functions.is_empty(),
             "Should extract function with Qt.binding"
         );
     }
@@ -281,7 +281,7 @@ Rectangle {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Rectangle with Binding object"
         );
     }

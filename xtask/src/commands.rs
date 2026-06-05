@@ -19,6 +19,11 @@ pub fn run_from_env_args(args: impl IntoIterator<Item = OsString>) -> ExitCode {
         return ExitCode::SUCCESS;
     }
     if args.first().map(String::as_str) == Some("release")
+        && args.get(1).map(String::as_str) == Some("preflight")
+    {
+        return crate::release::run_preflight_from_args(&args[1..]);
+    }
+    if args.first().map(String::as_str) == Some("release")
         && args.get(1).map(String::as_str) == Some("package")
     {
         return crate::release::run_package_from_args(&args[1..]);

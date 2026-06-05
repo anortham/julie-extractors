@@ -274,7 +274,7 @@ Item {
             .filter(|s| s.kind == SymbolKind::Property)
             .collect();
 
-        assert!(properties.len() >= 1, "Should extract default property");
+        assert!(!properties.is_empty(), "Should extract default property");
     }
 
     #[test]

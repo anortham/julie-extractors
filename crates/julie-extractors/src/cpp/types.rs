@@ -216,12 +216,12 @@ pub(super) fn extract_enum(
 
     // Check for underlying type
     let children: Vec<Node> = node.children(&mut node.walk()).collect();
-    if let Some(colon_pos) = children.iter().position(|c| c.kind() == ":") {
-        if colon_pos + 1 < children.len() {
-            let type_node = &children[colon_pos + 1];
-            if type_node.kind() == "primitive_type" || type_node.kind() == "type_identifier" {
-                signature.push_str(&format!(" : {}", base.get_node_text(type_node)));
-            }
+    if let Some(colon_pos) = children.iter().position(|c| c.kind() == ":")
+        && colon_pos + 1 < children.len()
+    {
+        let type_node = &children[colon_pos + 1];
+        if type_node.kind() == "primitive_type" || type_node.kind() == "type_identifier" {
+            signature.push_str(&format!(" : {}", base.get_node_text(type_node)));
         }
     }
 
@@ -258,19 +258,19 @@ pub(super) fn extract_enum_member(
 
     // Check for initializer
     let children: Vec<Node> = node.children(&mut node.walk()).collect();
-    if let Some(equals_pos) = children.iter().position(|c| c.kind() == "=") {
-        if equals_pos + 1 < children.len() {
-            let value_nodes = &children[equals_pos + 1..];
-            let value: String = value_nodes
-                .iter()
-                .map(|n| base.get_node_text(n))
-                .collect::<Vec<_>>()
-                .join("")
-                .trim()
-                .to_string();
-            if !value.is_empty() {
-                signature.push_str(&format!(" = {}", value));
-            }
+    if let Some(equals_pos) = children.iter().position(|c| c.kind() == "=")
+        && equals_pos + 1 < children.len()
+    {
+        let value_nodes = &children[equals_pos + 1..];
+        let value: String = value_nodes
+            .iter()
+            .map(|n| base.get_node_text(n))
+            .collect::<Vec<_>>()
+            .join("")
+            .trim()
+            .to_string();
+        if !value.is_empty() {
+            signature.push_str(&format!(" = {}", value));
         }
     }
 

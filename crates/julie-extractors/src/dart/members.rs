@@ -84,7 +84,6 @@ pub(super) fn extract_field(
             metadata: Some(HashMap::new()),
             doc_comment: base.find_doc_comment(node),
             annotations,
-            ..Default::default()
         },
     );
 

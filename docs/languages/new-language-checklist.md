@@ -48,7 +48,8 @@ Implement every domain the language claims:
   uses when the language has them.
 - `symbol_annotations`: decorators, attributes, annotations, or equivalent
   markers.
-- `literals`: route, URL, SQL, or other configured literal carrier facts.
+- `literals`: URL, SQL, or other configured literal carrier facts. Route remains
+  reserved unless route carriers are explicitly configured.
 - `parse_diagnostics`: stable diagnostics for parse errors or missing nodes when
   they should be visible to downstream consumers.
 

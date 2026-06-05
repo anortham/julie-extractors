@@ -103,7 +103,6 @@ pub(super) fn extract_method(
             Some(metadata)
         },
         annotations,
-        ..Default::default()
     };
 
     Some(
@@ -174,7 +173,6 @@ pub(super) fn extract_constructor(
             Some(metadata)
         },
         annotations,
-        ..Default::default()
     };
 
     Some(

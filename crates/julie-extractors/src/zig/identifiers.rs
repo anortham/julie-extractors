@@ -98,10 +98,10 @@ fn extract_identifier_from_node(
         "field_expression" => {
             // Only extract if it's NOT part of a call_expression
             // (we handle those in the call_expression case above)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call_expression" {
-                    return; // Skip - handled by call_expression
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call_expression"
+            {
+                return; // Skip - handled by call_expression
             }
 
             // Extract the rightmost identifier (the member name)
@@ -227,23 +227,21 @@ fn record_zig_call_arg_literals(
     let func_id = func_node.id();
 
     let mut cursor = node.walk();
-    let mut pos: u32 = 0;
     // Collect args first to avoid borrowing `base` while the cursor borrows `node`.
     let args: Vec<Node> = node
         .named_children(&mut cursor)
         .filter(|c| c.id() != func_id)
         .collect();
-    for arg in args {
+    for (pos, arg) in args.into_iter().enumerate() {
         if let Some(text) = base.decode_string_literal(&arg) {
             base.record_literal(
                 &arg,
                 text,
                 carrier.clone(),
-                pos,
+                pos as u32,
                 containing_symbol_id.clone(),
             );
         }
-        pos += 1;
     }
 }
 
@@ -309,16 +307,14 @@ fn decompose_zig_type_arg<'a>(
     // Skip the `function` field identifier of the parent call_expression.
     // This fires for the outermost function name (e.g. `ArrayList` in `ArrayList(User)`)
     // and for each nested generic's own function name.
-    if let Some(parent) = node.parent() {
-        if parent.kind() == "call_expression" {
-            if parent
-                .child_by_field_name("function")
-                .map(|f| f.id() == node.id())
-                .unwrap_or(false)
-            {
-                return None;
-            }
-        }
+    if let Some(parent) = node.parent()
+        && parent.kind() == "call_expression"
+        && parent
+            .child_by_field_name("function")
+            .map(|f| f.id() == node.id())
+            .unwrap_or(false)
+    {
+        return None;
     }
 
     match node.kind() {

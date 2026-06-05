@@ -182,13 +182,13 @@ END
         );
 
         // If containing symbol IS set (it might be in some SQL dialects), verify it's correct
-        if let Some(containing_id) = &sum_call.containing_symbol_id {
-            if let Some(procedure) = procedure {
-                assert_eq!(
-                    containing_id, &procedure.id,
-                    "If containing symbol is set, it should be the ProcessOrder procedure"
-                );
-            }
+        if let Some(containing_id) = &sum_call.containing_symbol_id
+            && let Some(procedure) = procedure
+        {
+            assert_eq!(
+                containing_id, &procedure.id,
+                "If containing symbol is set, it should be the ProcessOrder procedure"
+            );
         }
     }
 

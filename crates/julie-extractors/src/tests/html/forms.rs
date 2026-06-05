@@ -201,7 +201,7 @@ mod tests {
         let contact_form = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"id="contact-form""#))
+                .is_some_and(|sig| sig.contains(r#"id="contact-form""#))
         });
         assert!(contact_form.is_some());
         assert!(
@@ -225,7 +225,7 @@ mod tests {
         let first_name_input = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"id="first-name""#))
+                .is_some_and(|sig| sig.contains(r#"id="first-name""#))
         });
         assert!(first_name_input.is_some());
         assert_eq!(first_name_input.unwrap().kind, SymbolKind::Field);
@@ -257,7 +257,7 @@ mod tests {
         let email_input = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"type="email""#))
+                .is_some_and(|sig| sig.contains(r#"type="email""#))
         });
         assert!(email_input.is_some());
         assert!(
@@ -275,13 +275,13 @@ mod tests {
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains(r#"type="radio""#))
+                    .is_some_and(|sig| sig.contains(r#"type="radio""#))
             })
             .collect();
         assert_eq!(radio_inputs.len(), 3);
 
         let email_radio = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
+            s.signature.as_ref().is_some_and(|sig| {
                 sig.contains(r#"name="contactMethod""#) && sig.contains(r#"value="email""#)
             })
         });
@@ -293,7 +293,7 @@ mod tests {
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains(r#"type="checkbox""#))
+                    .is_some_and(|sig| sig.contains(r#"type="checkbox""#))
             })
             .collect();
         assert!(checkbox_inputs.len() >= 4);
@@ -301,7 +301,7 @@ mod tests {
         let web_dev_checkbox = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"value="web-development""#))
+                .is_some_and(|sig| sig.contains(r#"value="web-development""#))
         });
         assert!(web_dev_checkbox.is_some());
 

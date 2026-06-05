@@ -145,15 +145,13 @@ fn extract_identifier_from_node(
         "field_expression" => {
             // Skip if this field_expression is the function of a call_expression
             // (e.g., self.method() - we want "method" as Call, not MemberAccess)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call_expression" {
-                    if let Some(func_child) = parent.child_by_field_name("function") {
-                        if func_child.id() == node.id() {
-                            // This field_expression IS the function being called, skip it
-                            return;
-                        }
-                    }
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call_expression"
+                && let Some(func_child) = parent.child_by_field_name("function")
+                && func_child.id() == node.id()
+            {
+                // This field_expression IS the function being called, skip it
+                return;
             }
 
             // object.field - extract the field name (not part of a call)
@@ -242,19 +240,19 @@ fn is_rust_declaration_type_name(node: tree_sitter::Node) -> bool {
         return false;
     };
 
-    if let Some(name_node) = parent.child_by_field_name("name") {
-        if name_node.id() == node.id() {
-            return matches!(
-                parent.kind(),
-                "struct_item"
-                    | "enum_item"
-                    | "union_item"
-                    | "trait_item"
-                    | "type_item"
-                    | "impl_item"
-                    | "type_parameter"
-            );
-        }
+    if let Some(name_node) = parent.child_by_field_name("name")
+        && name_node.id() == node.id()
+    {
+        return matches!(
+            parent.kind(),
+            "struct_item"
+                | "enum_item"
+                | "union_item"
+                | "trait_item"
+                | "type_item"
+                | "impl_item"
+                | "type_parameter"
+        );
     }
 
     matches!(parent.kind(), "type_parameters")
@@ -263,11 +261,11 @@ fn is_rust_declaration_type_name(node: tree_sitter::Node) -> bool {
 fn is_inside_call_function(node: tree_sitter::Node) -> bool {
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if parent.kind() == "call_expression" {
-            if let Some(function_node) = parent.child_by_field_name("function") {
-                return node.start_byte() >= function_node.start_byte()
-                    && node.end_byte() <= function_node.end_byte();
-            }
+        if parent.kind() == "call_expression"
+            && let Some(function_node) = parent.child_by_field_name("function")
+        {
+            return node.start_byte() >= function_node.start_byte()
+                && node.end_byte() <= function_node.end_byte();
         }
         current = parent;
     }

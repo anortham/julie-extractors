@@ -95,35 +95,34 @@ pub(super) fn extract_script_symbols(base: &BaseExtractor, section: &VueSection)
         }
 
         // Extract function definitions - following pattern
-        if let Some(captures) = FUNCTION_DEF_RE.captures(line) {
-            if let Some(func_name) = captures.get(1) {
-                let name = func_name.as_str();
-                let start_col = line.find(name).unwrap_or(0) + 1;
+        if let Some(captures) = FUNCTION_DEF_RE.captures(line)
+            && let Some(func_name) = captures.get(1)
+        {
+            let name = func_name.as_str();
+            let start_col = line.find(name).unwrap_or(0) + 1;
 
-                // Test detection (Category 3: name + path, empty annotation keys)
-                let metadata =
-                    if is_test_symbol("vue", name, &base.file_path, &SymbolKind::Method, &[], None)
-                    {
-                        let mut m = HashMap::new();
-                        m.insert("is_test".to_string(), Value::Bool(true));
-                        Some(m)
-                    } else {
-                        None
-                    };
+            // Test detection (Category 3: name + path, empty annotation keys)
+            let metadata =
+                if is_test_symbol("vue", name, &base.file_path, &SymbolKind::Method, &[], None) {
+                    let mut m = HashMap::new();
+                    m.insert("is_test".to_string(), Value::Bool(true));
+                    Some(m)
+                } else {
+                    None
+                };
 
-                symbols.push(create_symbol_manual(
-                    base,
-                    name,
-                    SymbolKind::Method,
-                    actual_line,
-                    start_col,
-                    actual_line,
-                    start_col + name.len(),
-                    Some(format!("{}()", name)),
-                    doc_comment.clone(),
-                    metadata,
-                ));
-            }
+            symbols.push(create_symbol_manual(
+                base,
+                name,
+                SymbolKind::Method,
+                actual_line,
+                start_col,
+                actual_line,
+                start_col + name.len(),
+                Some(format!("{}()", name)),
+                doc_comment.clone(),
+                metadata,
+            ));
         }
     }
 

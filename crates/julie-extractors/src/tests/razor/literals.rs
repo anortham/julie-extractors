@@ -1,12 +1,12 @@
-//! Razor string-literal call-argument capture (Miller bridge Phase 3).
-//!
-//! Razor embeds C# in `@code { }`, so this mirrors the C# reference leg:
-//! extractors capture string literals passed to calls **config-free** (carrier =
-//! method name with generics stripped, kind = Other). The carrier classification
-//! + gate are a later `src/` pass. These tests assert the raw capture across C#'s
-//! string forms (plain, verbatim `@"..."`, interpolated `$"...{x}..."` -> `{}`),
-//! carrier derivation (bare identifier and member callee), `arg_position`, and
-//! enclosing-symbol anchoring.
+// Razor string-literal call-argument capture (Miller bridge Phase 3).
+//
+// Razor embeds C# in `@code { }`, so this mirrors the C# reference leg:
+// extractors capture string literals passed to calls **config-free** (carrier =
+// method name with generics stripped, kind = Other). The carrier classification
+// + gate are a later `src/` pass. These tests assert the raw capture across C#'s
+// string forms (plain, verbatim `@"..."`, interpolated `$"...{x}..."` -> `{}`),
+// carrier derivation (bare identifier and member callee), `arg_position`, and
+// enclosing-symbol anchoring.
 
 use crate::base::{Literal, LiteralKind};
 use crate::razor::RazorExtractor;

@@ -23,10 +23,10 @@ pub(super) fn extract_decorator_names(node: Node, content: &str) -> Vec<String> 
     let mut decorators = Vec::new();
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "decorator" {
-            if let Some(name) = extract_single_decorator_name(child, content) {
-                decorators.push(name);
-            }
+        if child.kind() == "decorator"
+            && let Some(name) = extract_single_decorator_name(child, content)
+        {
+            decorators.push(name);
         }
     }
     decorators

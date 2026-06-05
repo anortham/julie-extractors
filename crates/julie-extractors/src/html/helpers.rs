@@ -45,10 +45,10 @@ impl HTMLHelpers {
 
         let mut tag_cursor = tag_container.walk();
         for child in tag_container.children(&mut tag_cursor) {
-            if child.kind() == "attribute" {
-                if let (Some(attr_name), attr_value) = extract_attribute_name_value(base, child) {
-                    attributes.insert(attr_name, attr_value.unwrap_or_default());
-                }
+            if child.kind() == "attribute"
+                && let (Some(attr_name), attr_value) = extract_attribute_name_value(base, child)
+            {
+                attributes.insert(attr_name, attr_value.unwrap_or_default());
             }
         }
 

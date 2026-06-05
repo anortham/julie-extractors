@@ -27,7 +27,7 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
 pub struct KotlinExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl KotlinExtractor {

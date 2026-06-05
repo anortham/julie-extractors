@@ -7,14 +7,13 @@ use tree_sitter::{Node, Tree};
 pub(super) fn extract_relationships(extractor: &mut LuaExtractor, tree: &Tree, symbols: &[Symbol]) {
     let symbol_map = crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
 
-    traverse_tree_for_relationships(extractor, tree.root_node(), &symbol_map, symbols);
+    traverse_tree_for_relationships(extractor, tree.root_node(), &symbol_map);
 }
 
 fn traverse_tree_for_relationships<'a>(
     extractor: &mut LuaExtractor,
     node: Node<'a>,
     symbol_map: &HashMap<String, &'a Symbol>,
-    symbols: &[Symbol],
 ) {
     if node.kind() == "function_call" {
         // `require(...)` is handled during symbol extraction as an import symbol.
@@ -42,7 +41,7 @@ fn traverse_tree_for_relationships<'a>(
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        traverse_tree_for_relationships(extractor, child, symbol_map, symbols);
+        traverse_tree_for_relationships(extractor, child, symbol_map);
     }
 }
 

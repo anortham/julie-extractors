@@ -234,14 +234,14 @@ impl SwiftExtractor {
         // Fallback: scan for any child containing "where"
         for child in node.children(&mut node.walk()) {
             let text = self.base.get_node_text(&child);
-            if text.contains("where ") {
-                if let Some(captures) = text.find("where ") {
-                    let where_part = &text[captures..];
-                    if let Some(end) = where_part.find('{') {
-                        return Some(where_part[..end].trim().to_string());
-                    } else {
-                        return Some(where_part.trim().to_string());
-                    }
+            if text.contains("where ")
+                && let Some(captures) = text.find("where ")
+            {
+                let where_part = &text[captures..];
+                if let Some(end) = where_part.find('{') {
+                    return Some(where_part[..end].trim().to_string());
+                } else {
+                    return Some(where_part.trim().to_string());
                 }
             }
         }
@@ -302,26 +302,22 @@ impl SwiftExtractor {
         if let Some(return_clause) = node
             .children(&mut node.walk())
             .find(|c| c.kind() == "function_type")
-        {
-            if let Some(type_node) = return_clause
+            && let Some(type_node) = return_clause
                 .children(&mut return_clause.walk())
                 .find(|c| c.kind() == "type")
-            {
-                return Some(self.base.get_node_text(&type_node));
-            }
+        {
+            return Some(self.base.get_node_text(&type_node));
         }
 
         // Try type_annotation
         if let Some(type_annotation) = node
             .children(&mut node.walk())
             .find(|c| c.kind() == "type_annotation")
-        {
-            if let Some(type_node) = type_annotation
+            && let Some(type_node) = type_annotation
                 .children(&mut type_annotation.walk())
                 .find(|c| matches!(c.kind(), "type" | "type_identifier" | "user_type"))
-            {
-                return Some(self.base.get_node_text(&type_node));
-            }
+        {
+            return Some(self.base.get_node_text(&type_node));
         }
 
         // Try direct type nodes (for simple cases)
@@ -348,8 +344,7 @@ impl SwiftExtractor {
         if let Some(type_annotation) = node
             .children(&mut node.walk())
             .find(|c| c.kind() == "type_annotation")
-        {
-            if let Some(type_node) =
+            && let Some(type_node) =
                 type_annotation
                     .children(&mut type_annotation.walk())
                     .find(|c| {
@@ -365,9 +360,8 @@ impl SwiftExtractor {
                                 | "array_type"
                         )
                     })
-            {
-                return Some(self.base.get_node_text(&type_node));
-            }
+        {
+            return Some(self.base.get_node_text(&type_node));
         }
         None
     }

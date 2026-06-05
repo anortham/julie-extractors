@@ -7,6 +7,7 @@ use md5;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+#[allow(clippy::too_many_arguments)]
 fn expected_id(
     file_path: &str,
     name: &str,
@@ -72,6 +73,7 @@ fn test_type_info(symbol_id: &str, resolved_type: &str) -> TypeInfo {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn test_symbol(
     id: &str,
     name: &str,
@@ -109,6 +111,7 @@ fn test_symbol(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn test_identifier(
     id: &str,
     name: &str,

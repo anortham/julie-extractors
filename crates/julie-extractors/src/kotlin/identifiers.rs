@@ -66,10 +66,10 @@ fn extract_identifier_from_node(
                 let containing = find_containing_symbol_id(base, node, symbol_map);
                 let identifier =
                     base.create_identifier(child, name, IdentifierKind::Call, containing);
-                if let Some(args) = arguments {
-                    if !args.is_empty() {
-                        base.record_type_arguments(&identifier, args);
-                    }
+                if let Some(args) = arguments
+                    && !args.is_empty()
+                {
+                    base.record_type_arguments(&identifier, args);
                 }
             } else if let Some(nav_expr) = children
                 .iter()
@@ -83,10 +83,10 @@ fn extract_identifier_from_node(
                 if let Some((name_node, name)) = nav_name {
                     let identifier =
                         base.create_identifier(&name_node, name, IdentifierKind::Call, containing);
-                    if let Some(args) = arguments {
-                        if !args.is_empty() {
-                            base.record_type_arguments(&identifier, args);
-                        }
+                    if let Some(args) = arguments
+                        && !args.is_empty()
+                    {
+                        base.record_type_arguments(&identifier, args);
                     }
                 }
             }
@@ -129,10 +129,10 @@ fn extract_identifier_from_node(
         // Member access: object.property
         "navigation_expression" => {
             // Only extract if it's NOT part of a call_expression
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call_expression" {
-                    return;
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call_expression"
+            {
+                return;
             }
 
             // Extract the rightmost identifier (the member name)
@@ -325,16 +325,16 @@ fn record_kotlin_call_arg_literals(
         value_args.named_children(&mut cursor).collect()
     };
     for (pos, arg) in args.into_iter().enumerate() {
-        if let Some(value) = kotlin_argument_value(arg) {
-            if let Some(text) = base.decode_string_literal(&value) {
-                base.record_literal(
-                    &value,
-                    text,
-                    carrier.clone(),
-                    pos as u32,
-                    containing_symbol_id.clone(),
-                );
-            }
+        if let Some(value) = kotlin_argument_value(arg)
+            && let Some(text) = base.decode_string_literal(&value)
+        {
+            base.record_literal(
+                &value,
+                text,
+                carrier.clone(),
+                pos as u32,
+                containing_symbol_id.clone(),
+            );
         }
     }
 }
@@ -387,12 +387,7 @@ fn kotlin_carrier(base: &BaseExtractor, callee: Node) -> Option<String> {
 /// - Kotlin/JVM primitive and base types — ubiquitous in every file
 fn is_kotlin_noise_type(name: &str) -> bool {
     // Single-letter uppercase names are almost always generic type parameters.
-    if name.len() == 1
-        && name
-            .chars()
-            .next()
-            .map_or(false, |c| c.is_ascii_uppercase())
-    {
+    if name.len() == 1 && name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
         return true;
     }
 

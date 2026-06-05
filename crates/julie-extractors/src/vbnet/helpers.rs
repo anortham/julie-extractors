@@ -134,10 +134,10 @@ pub fn extract_attributes(base: &BaseExtractor, node: &Node) -> Vec<String> {
         if child.kind() == "attribute_block" {
             let mut inner_cursor = child.walk();
             for attr in child.children(&mut inner_cursor) {
-                if attr.kind() == "attribute" {
-                    if let Some(name_node) = attr.child_by_field_name("name") {
-                        attrs.push(base.get_node_text(&name_node));
-                    }
+                if attr.kind() == "attribute"
+                    && let Some(name_node) = attr.child_by_field_name("name")
+                {
+                    attrs.push(base.get_node_text(&name_node));
                 }
             }
         }

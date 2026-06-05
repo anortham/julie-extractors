@@ -31,6 +31,17 @@ pub struct StagePackageResult {
     pub staged_files: Vec<PathBuf>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleasePreflightPlan {
+    pub version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleasePreflightResult {
+    pub checked_targets: Vec<String>,
+    pub checked_inputs: Vec<PathBuf>,
+}
+
 #[derive(Debug)]
 pub enum ReleasePackageError {
     Usage(String),
@@ -48,6 +59,11 @@ pub enum ReleasePackageError {
         path_template: String,
         rendered_path: PathBuf,
     },
+    VersionMismatch {
+        path: PathBuf,
+        expected: String,
+        actual: String,
+    },
 }
 
 impl ReleasePackageError {
@@ -57,7 +73,8 @@ impl ReleasePackageError {
             ReleasePackageError::Io { .. }
             | ReleasePackageError::MissingInput { .. }
             | ReleasePackageError::OutputDirectoryNotEmpty { .. }
-            | ReleasePackageError::ForbiddenPackagePath { .. } => 1,
+            | ReleasePackageError::ForbiddenPackagePath { .. }
+            | ReleasePackageError::VersionMismatch { .. } => 1,
         }
     }
 }
@@ -82,9 +99,31 @@ impl std::fmt::Display for ReleasePackageError {
                 path_template,
                 rendered_path.display()
             ),
+            ReleasePackageError::VersionMismatch {
+                path,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "{} version is {actual}, expected {expected}",
+                path.display()
+            ),
         }
     }
 }
+
+const RELEASE_TARGETS: &[(&str, &str)] = &[
+    ("x86_64-unknown-linux-gnu", ""),
+    ("aarch64-apple-darwin", ""),
+    ("x86_64-apple-darwin", ""),
+    ("x86_64-pc-windows-msvc", ".exe"),
+];
+
+const RELEASE_CRATE_MANIFESTS: &[&str] = &[
+    "crates/julie-extract-artifact/Cargo.toml",
+    "crates/julie-extract-cli/Cargo.toml",
+    "crates/julie-extractors/Cargo.toml",
+];
 
 impl std::error::Error for ReleasePackageError {}
 
@@ -223,7 +262,10 @@ where
         target.ok_or_else(|| ReleasePackageError::Usage("missing --target".to_string()))?;
     let out_dir =
         out_dir.ok_or_else(|| ReleasePackageError::Usage("missing --out-dir".to_string()))?;
-    let binary = binary.unwrap_or_else(default_release_binary_path);
+    let binary = match binary {
+        Some(path) => path,
+        None => default_release_binary_path(&target)?,
+    };
 
     Ok(StagePackagePlan {
         version,
@@ -231,6 +273,64 @@ where
         out_dir,
         binary,
     })
+}
+
+pub fn plan_preflight_from_args<I, S>(args: I) -> Result<ReleasePreflightPlan, ReleasePackageError>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args = args
+        .into_iter()
+        .map(|arg| arg.as_ref().to_string())
+        .collect::<Vec<_>>();
+
+    if args.first().map(String::as_str) != Some("preflight") {
+        return Err(ReleasePackageError::Usage(
+            "usage: cargo xtask release preflight --version <version>; expected `preflight`"
+                .to_string(),
+        ));
+    }
+
+    let mut version = None;
+    let mut index = 1;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--version" => {
+                index += 1;
+                version = Some(required_string(&args, index, "--version")?);
+            }
+            other => {
+                return Err(ReleasePackageError::Usage(format!(
+                    "unexpected release preflight argument `{other}`"
+                )));
+            }
+        }
+        index += 1;
+    }
+
+    let version =
+        version.ok_or_else(|| ReleasePackageError::Usage("missing --version".to_string()))?;
+    Ok(ReleasePreflightPlan { version })
+}
+
+pub fn run_preflight_from_args(args: &[String]) -> ExitCode {
+    match plan_preflight_from_args(args)
+        .and_then(|plan| preflight_release_from_root(&repo_root(), plan))
+    {
+        Ok(result) => {
+            println!(
+                "release preflight ok: {} targets, {} inputs",
+                result.checked_targets.len(),
+                result.checked_inputs.len()
+            );
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            ExitCode::from(error.exit_code())
+        }
+    }
 }
 
 pub fn run_package_from_args(args: &[String]) -> ExitCode {
@@ -249,11 +349,57 @@ pub fn run_package_from_args(args: &[String]) -> ExitCode {
     }
 }
 
+pub fn preflight_release_from_root(
+    repo_root: &Path,
+    plan: ReleasePreflightPlan,
+) -> Result<ReleasePreflightResult, ReleasePackageError> {
+    validate_release_version(&plan.version)?;
+    let mut checked_inputs = Vec::new();
+
+    for manifest in RELEASE_CRATE_MANIFESTS {
+        let path = repo_root.join(manifest);
+        let actual = cargo_manifest_version(&path)?;
+        if actual != plan.version {
+            return Err(ReleasePackageError::VersionMismatch {
+                path,
+                expected: plan.version,
+                actual,
+            });
+        }
+        checked_inputs.push(PathBuf::from(manifest));
+    }
+
+    for (target, exe_suffix) in RELEASE_TARGETS {
+        let items =
+            validate_package_manifest(&release_package_items(), &plan.version, target, exe_suffix)?;
+        for item in items {
+            if matches!(
+                item.kind,
+                ReleasePackageKind::Doc | ReleasePackageKind::ReleaseNote
+            ) {
+                let source = repo_root.join(&item.relative_path);
+                ensure_file_exists(&source)?;
+                checked_inputs.push(item.relative_path);
+            }
+        }
+    }
+    checked_inputs.sort();
+    checked_inputs.dedup();
+
+    Ok(ReleasePreflightResult {
+        checked_targets: RELEASE_TARGETS
+            .iter()
+            .map(|(target, _)| (*target).to_string())
+            .collect(),
+        checked_inputs,
+    })
+}
+
 pub fn stage_package_from_root(
     repo_root: &Path,
     plan: StagePackagePlan,
 ) -> Result<StagePackageResult, ReleasePackageError> {
-    let exe_suffix = exe_suffix();
+    let exe_suffix = exe_suffix_for_target(&plan.target)?;
     let items = validate_package_manifest(
         &release_package_items(),
         &plan.version,
@@ -355,13 +501,44 @@ fn required_path(
     required_string(args, index, flag).map(PathBuf::from)
 }
 
-fn default_release_binary_path() -> PathBuf {
+fn default_release_binary_path(target: &str) -> Result<PathBuf, ReleasePackageError> {
     let target_dir = std::env::var_os("CARGO_TARGET_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| repo_root().join("target"));
-    target_dir
+    Ok(target_dir
+        .join(target)
         .join("release")
-        .join(format!("julie-extract{}", exe_suffix()))
+        .join(format!("julie-extract{}", exe_suffix_for_target(target)?)))
+}
+
+fn validate_release_version(version: &str) -> Result<(), ReleasePackageError> {
+    if version.is_empty()
+        || !version
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '+'))
+    {
+        return Err(ReleasePackageError::Usage(format!(
+            "invalid release version `{version}`"
+        )));
+    }
+    Ok(())
+}
+
+fn cargo_manifest_version(path: &Path) -> Result<String, ReleasePackageError> {
+    let contents = fs::read_to_string(path).map_err(|source| ReleasePackageError::Io {
+        context: format!("failed to read Cargo manifest {}", path.display()),
+        source,
+    })?;
+    contents
+        .lines()
+        .find_map(|line| {
+            let line = line.trim();
+            line.strip_prefix("version = ")
+                .map(|value| value.trim().trim_matches('"').to_string())
+        })
+        .ok_or_else(|| ReleasePackageError::MissingInput {
+            path: path.to_path_buf(),
+        })
 }
 
 fn repo_root() -> PathBuf {
@@ -371,8 +548,20 @@ fn repo_root() -> PathBuf {
         .to_path_buf()
 }
 
-fn exe_suffix() -> &'static str {
-    if cfg!(windows) { ".exe" } else { "" }
+fn exe_suffix_for_target(target: &str) -> Result<&'static str, ReleasePackageError> {
+    RELEASE_TARGETS
+        .iter()
+        .find_map(|(candidate, suffix)| (*candidate == target).then_some(*suffix))
+        .ok_or_else(|| {
+            let supported = RELEASE_TARGETS
+                .iter()
+                .map(|(candidate, _)| *candidate)
+                .collect::<Vec<_>>()
+                .join(", ");
+            ReleasePackageError::Usage(format!(
+                "unsupported --target `{target}`; expected one of: {supported}"
+            ))
+        })
 }
 
 fn render_template(template: &str, version: &str, target: &str, exe_suffix: &str) -> PathBuf {

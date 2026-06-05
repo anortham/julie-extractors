@@ -105,7 +105,6 @@ part of this contract.
       "discovery": 18,
       "extraction_spool": 621,
       "writer_open": 2,
-      "capability_sync": 8,
       "artifact_write": 581
     },
     "languages": {
@@ -162,7 +161,7 @@ Fields:
   span.
 - `phases`: command-specific phase timings in milliseconds. `scan` phase keys
   include `existing_artifact`, `discovery`, `extraction_spool`, `writer_open`,
-  `capability_sync`, and `artifact_write` when those phases run.
+  and `artifact_write` when those phases run.
 - `languages`: per-language scan timing and volume data keyed by canonical
   language name.
 - `languages.*.files`: supported files considered for that language.

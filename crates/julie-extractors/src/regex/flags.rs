@@ -88,22 +88,22 @@ pub(crate) fn extract_group_number(backref_text: &str) -> Option<String> {
 
 /// Extract group name from a named backreference like \k<name> or (?P=name)
 pub(crate) fn extract_backref_group_name(backref_text: &str) -> Option<String> {
-    if let Some(start) = backref_text.find(r"\k<") {
-        if let Some(end) = backref_text[start + 3..].find('>') {
-            let end_idx = start + 3 + end;
-            // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
-            if backref_text.is_char_boundary(start + 3) && backref_text.is_char_boundary(end_idx) {
-                return Some(backref_text[start + 3..end_idx].to_string());
-            }
+    if let Some(start) = backref_text.find(r"\k<")
+        && let Some(end) = backref_text[start + 3..].find('>')
+    {
+        let end_idx = start + 3 + end;
+        // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
+        if backref_text.is_char_boundary(start + 3) && backref_text.is_char_boundary(end_idx) {
+            return Some(backref_text[start + 3..end_idx].to_string());
         }
     }
-    if let Some(start) = backref_text.find("(?P=") {
-        if let Some(end) = backref_text[start + 4..].find(')') {
-            let end_idx = start + 4 + end;
-            // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
-            if backref_text.is_char_boundary(start + 4) && backref_text.is_char_boundary(end_idx) {
-                return Some(backref_text[start + 4..end_idx].to_string());
-            }
+    if let Some(start) = backref_text.find("(?P=")
+        && let Some(end) = backref_text[start + 4..].find(')')
+    {
+        let end_idx = start + 4 + end;
+        // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
+        if backref_text.is_char_boundary(start + 4) && backref_text.is_char_boundary(end_idx) {
+            return Some(backref_text[start + 4..end_idx].to_string());
         }
     }
     None

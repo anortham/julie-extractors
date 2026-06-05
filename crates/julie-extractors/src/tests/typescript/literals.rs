@@ -7,12 +7,16 @@
 //! assert the raw capture: text decoding, carrier derivation (incl. dotted
 //! `axios.get`), `arg_position`, and enclosing-symbol anchoring.
 
-use crate::base::{Literal, LiteralKind};
+use crate::base::{Literal, LiteralKind, Symbol};
 use crate::typescript::TypeScriptExtractor;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
 fn capture(code: &str) -> Vec<Literal> {
+    capture_with_symbols(code).0
+}
+
+fn capture_with_symbols(code: &str) -> (Vec<Literal>, Vec<Symbol>) {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
@@ -26,7 +30,14 @@ fn capture(code: &str) -> Vec<Literal> {
     );
     let symbols = ext.extract_symbols(&tree);
     ext.extract_identifiers(&tree, &symbols);
-    ext.base().literals.clone()
+    (ext.base().literals.clone(), symbols)
+}
+
+fn symbol_name_for_id<'a>(symbols: &'a [Symbol], id: &str) -> Option<&'a str> {
+    symbols
+        .iter()
+        .find(|symbol| symbol.id == id)
+        .map(|symbol| symbol.name.as_str())
 }
 
 #[test]
@@ -109,6 +120,58 @@ function load() {
         "dotted callee carrier is object.property"
     );
     assert_eq!(lit.arg_position, 0);
+}
+
+#[test]
+fn generic_member_call_url_args_are_captured_with_carrier_and_container() {
+    let code = r##"
+import { BroadcastMessage, AppSetting, Parameter } from "@/models";
+import axios from "./apiConfig";
+
+export async function getActiveMessages() {
+    let response = await axios.get<BroadcastMessage[]>("/api/messages/active");
+    return response.data;
+}
+
+export async function getAppSetting(id: string) {
+    let response = await axios.get<AppSetting>(`/api/appsettings/${id}`);
+    return response.data;
+}
+
+export async function saveParameter(parameter: Parameter) {
+    let response = await axios.put<Parameter>("/api/parameter", parameter);
+    return response.data;
+}
+"##;
+    let (literals, symbols) = capture_with_symbols(code);
+
+    let active = literals
+        .iter()
+        .find(|l| l.literal_text == "/api/messages/active")
+        .unwrap_or_else(|| panic!("expected active-message URL literal, got {literals:?}"));
+    assert_eq!(active.carrier.as_deref(), Some("axios.get"));
+    assert_eq!(active.arg_position, 0);
+    assert_eq!(
+        active
+            .containing_symbol_id
+            .as_deref()
+            .and_then(|id| symbol_name_for_id(&symbols, id)),
+        Some("getActiveMessages")
+    );
+
+    let app_setting = literals
+        .iter()
+        .find(|l| l.literal_text == "/api/appsettings/{}")
+        .unwrap_or_else(|| panic!("expected app-setting template URL literal, got {literals:?}"));
+    assert_eq!(app_setting.carrier.as_deref(), Some("axios.get"));
+    assert_eq!(app_setting.arg_position, 0);
+
+    let parameter = literals
+        .iter()
+        .find(|l| l.literal_text == "/api/parameter")
+        .unwrap_or_else(|| panic!("expected parameter URL literal, got {literals:?}"));
+    assert_eq!(parameter.carrier.as_deref(), Some("axios.put"));
+    assert_eq!(parameter.arg_position, 0);
 }
 
 #[test]

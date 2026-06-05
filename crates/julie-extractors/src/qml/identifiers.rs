@@ -63,19 +63,16 @@ fn extract_identifier_from_node(
                 found_parent
             };
 
-            if is_nested {
-                if let Some(type_name_node) = node.child_by_field_name("type_name") {
-                    let name = extractor.base.get_node_text(&type_name_node);
-                    let containing_symbol_id =
-                        find_containing_symbol_id(extractor, node, symbol_map);
+            if is_nested && let Some(type_name_node) = node.child_by_field_name("type_name") {
+                let name = extractor.base.get_node_text(&type_name_node);
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
 
-                    extractor.base.create_identifier(
-                        &type_name_node,
-                        name,
-                        IdentifierKind::TypeUsage,
-                        containing_symbol_id,
-                    );
-                }
+                extractor.base.create_identifier(
+                    &type_name_node,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
             }
         }
 
@@ -124,14 +121,12 @@ fn extract_identifier_from_node(
         // Member access: object.property (not part of a call)
         "member_expression" => {
             // Only extract if NOT part of a call_expression
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call_expression" {
-                    if let Some(function_node) = parent.child_by_field_name("function") {
-                        if function_node.id() == node.id() {
-                            return; // Skip - handled by call_expression
-                        }
-                    }
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call_expression"
+                && let Some(function_node) = parent.child_by_field_name("function")
+                && function_node.id() == node.id()
+            {
+                return; // Skip - handled by call_expression
             }
 
             // Extract the property being accessed
@@ -158,8 +153,7 @@ fn extract_identifier_from_node(
                     | "function_declaration"
                     | "ui_object_definition"
                     | "ui_property"
-                    | "ui_signal" => {
-                        return; // Skip - handled elsewhere or is a definition
+                    | "ui_signal" => { // Skip - handled elsewhere or is a definition
                     }
                     _ => {
                         // This is a variable reference
@@ -408,13 +402,13 @@ fn is_qml_type_declaration_name(node: Node) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    if let Some(name_node) = parent.child_by_field_name("name") {
-        if name_node.id() == node.id() {
-            return matches!(
-                parent.kind(),
-                "type_parameter" | "type_alias_declaration" | "interface_declaration"
-            );
-        }
+    if let Some(name_node) = parent.child_by_field_name("name")
+        && name_node.id() == node.id()
+    {
+        return matches!(
+            parent.kind(),
+            "type_parameter" | "type_alias_declaration" | "interface_declaration"
+        );
     }
     false
 }

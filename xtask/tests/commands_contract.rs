@@ -111,6 +111,21 @@ fn commands_route_release_package_staging_before_test_tier_parser() {
 }
 
 #[test]
+fn commands_route_release_preflight_before_test_tier_parser() {
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args(["release", "preflight"])
+        .output()
+        .expect("run xtask release preflight");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("missing --version"),
+        "release preflight route must reach release preflight parser, stderr: {stderr}"
+    );
+}
+
+#[test]
 fn commands_route_performance_baseline_before_test_tier_parser() {
     let temp = TempDir::new().expect("tempdir");
     let out_dir = temp.path().join("baseline");
@@ -169,11 +184,9 @@ fn workflow_commands_keep_fast_and_specialist_gates_separate() {
     for command in [
         "cargo fmt --check",
         "cargo metadata --format-version 1",
-        "cargo clippy --no-deps",
-        "-p julie-extract-artifact",
-        "-p julie-extract-cli",
-        "-p xtask",
-        "--lib --bins -- -D warnings",
+        "cargo clippy --workspace --all-targets --all-features",
+        "--no-deps -- -D warnings",
+        "scripts/check-agent-doc-sync.sh",
         "cargo test -p xtask",
         "cargo xtask test default",
         "cargo xtask test contract",
@@ -186,6 +199,7 @@ fn workflow_commands_keep_fast_and_specialist_gates_separate() {
         "cargo xtask test real-world-smoke",
         "cargo xtask test real-world-release",
         "cargo xtask dogfood repo",
+        "cargo xtask release preflight --version",
         "cargo xtask release package --version",
         "cargo xtask performance baseline",
     ] {
@@ -200,6 +214,7 @@ fn workflow_commands_keep_fast_and_specialist_gates_separate() {
         "cargo xtask test real-world-smoke",
         "cargo xtask test real-world-release",
         "cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors",
+        "cargo xtask release preflight --version",
         "cargo xtask release package --version",
     ] {
         assert!(
@@ -234,6 +249,7 @@ fn workflow_commands_keep_release_binary_workflow_explicit() {
         "x86_64-apple-darwin",
         "x86_64-pc-windows-msvc",
         "targets: ${{ matrix.target }}",
+        "cargo xtask release preflight --version",
         "cargo build --release --target ${{ matrix.target }} -p julie-extract-cli --bin julie-extract",
         "cargo xtask release package",
         "actions/upload-artifact",

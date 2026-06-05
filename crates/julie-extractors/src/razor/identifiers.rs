@@ -83,10 +83,10 @@ impl super::RazorExtractor {
             "member_access_expression" => {
                 // Only extract if it's NOT part of an invocation_expression
                 // (we handle those in the invocation_expression case above)
-                if let Some(parent) = node.parent() {
-                    if parent.kind() == "invocation_expression" {
-                        return; // Skip - handled by invocation_expression
-                    }
+                if let Some(parent) = node.parent()
+                    && parent.kind() == "invocation_expression"
+                {
+                    return; // Skip - handled by invocation_expression
                 }
 
                 // Extract the rightmost identifier (the member name)
@@ -170,16 +170,16 @@ impl super::RazorExtractor {
             } else {
                 Some(arg)
             };
-            if let Some(value) = value {
-                if let Some(text) = self.base.decode_string_literal(&value) {
-                    self.base.record_literal(
-                        &value,
-                        text,
-                        carrier.clone(),
-                        pos as u32,
-                        containing_symbol_id.clone(),
-                    );
-                }
+            if let Some(value) = value
+                && let Some(text) = self.base.decode_string_literal(&value)
+            {
+                self.base.record_literal(
+                    &value,
+                    text,
+                    carrier.clone(),
+                    pos as u32,
+                    containing_symbol_id.clone(),
+                );
             }
         }
     }
@@ -294,19 +294,19 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
     }
     let mut current = node;
     while let Some(parent) = current.parent() {
-        if let Some(type_node) = parent.child_by_field_name("type") {
-            if contains_node(type_node, node) {
-                return true;
-            }
+        if let Some(type_node) = parent.child_by_field_name("type")
+            && contains_node(type_node, node)
+        {
+            return true;
         }
         match parent.kind() {
             "generic_name" | "qualified_name" | "array_type" | "nullable_type" | "pointer_type"
             | "tuple_type" | "type_argument_list" => return true,
             "object_creation_expression" => {
-                if let Some(type_node) = parent.child_by_field_name("type") {
-                    if contains_node(type_node, node) {
-                        return true;
-                    }
+                if let Some(type_node) = parent.child_by_field_name("type")
+                    && contains_node(type_node, node)
+                {
+                    return true;
                 }
             }
             "invocation_expression"
@@ -329,20 +329,20 @@ fn is_csharp_declaration_name(node: Node) -> bool {
     let Some(parent) = node.parent() else {
         return false;
     };
-    if let Some(name_node) = parent.child_by_field_name("name") {
-        if name_node.id() == node.id() {
-            return matches!(
-                parent.kind(),
-                "class_declaration"
-                    | "interface_declaration"
-                    | "struct_declaration"
-                    | "enum_declaration"
-                    | "method_declaration"
-                    | "property_declaration"
-                    | "namespace_declaration"
-                    | "type_parameter"
-            );
-        }
+    if let Some(name_node) = parent.child_by_field_name("name")
+        && name_node.id() == node.id()
+    {
+        return matches!(
+            parent.kind(),
+            "class_declaration"
+                | "interface_declaration"
+                | "struct_declaration"
+                | "enum_declaration"
+                | "method_declaration"
+                | "property_declaration"
+                | "namespace_declaration"
+                | "type_parameter"
+        );
     }
     false
 }

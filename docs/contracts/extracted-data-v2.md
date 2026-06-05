@@ -43,7 +43,7 @@ These row domains are part of the extraction product contract:
 | `type_facts` | Resolved or inferred types for symbols. | Languages with `types: true`. |
 | `type_argument_usages` | Generic or templated type argument usage sites attached to identifiers. | Languages with generic/type-argument syntax. |
 | `type_arguments` | Normalized nested type argument names for a usage. | Each `type_argument_usage` with one or more arguments. |
-| `literals` | String or scalar literals that carry routes, URLs, SQL, or configured language-specific facts. | Languages with configured literal carriers or useful literal semantics. |
+| `literals` | String or scalar literals that carry URLs, SQL, or configured language-specific facts. Route is reserved until route carriers are explicitly configured. | Languages with configured literal carriers or useful literal semantics. |
 | `source_regions` | Source spans for comments, doc comments, string literals, and embedded language regions. | Languages with supported source-region node kinds. |
 | `parse_diagnostics` | Tree-sitter parse errors and missing-node diagnostics in stable row form. | Supported files with parser diagnostics that should be exposed to consumers. |
 

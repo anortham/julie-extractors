@@ -21,7 +21,7 @@ mod stubs;
 mod type_inference;
 
 pub struct RazorExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl RazorExtractor {
@@ -175,23 +175,23 @@ impl RazorExtractor {
 
         // Look for @inherits directive
         let inherits_regex = Regex::new(r"@inherits\s+(\S+)").unwrap();
-        if let Some(captures) = inherits_regex.captures(&content) {
-            if let Some(base_class) = captures.get(1) {
-                let symbol = self.base.create_symbol(
-                    &node,
-                    format!("inherits {}", base_class.as_str()),
-                    SymbolKind::Import,
-                    SymbolOptions {
-                        signature: Some(format!("@inherits {}", base_class.as_str())),
-                        visibility: Some(Visibility::Public),
-                        parent_id: parent_id.map(|s| s.to_string()),
-                        metadata: None,
-                        doc_comment: None,
-                        annotations: Vec::new(),
-                    },
-                );
-                symbols.push(symbol);
-            }
+        if let Some(captures) = inherits_regex.captures(&content)
+            && let Some(base_class) = captures.get(1)
+        {
+            let symbol = self.base.create_symbol(
+                &node,
+                format!("inherits {}", base_class.as_str()),
+                SymbolKind::Import,
+                SymbolOptions {
+                    signature: Some(format!("@inherits {}", base_class.as_str())),
+                    visibility: Some(Visibility::Public),
+                    parent_id: parent_id.map(|s| s.to_string()),
+                    metadata: None,
+                    doc_comment: None,
+                    annotations: Vec::new(),
+                },
+            );
+            symbols.push(symbol);
         }
 
         // Look for @rendermode directives

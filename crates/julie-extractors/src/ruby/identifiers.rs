@@ -121,12 +121,11 @@ fn extract_identifier_from_node(
 /// Example: `class Foo` or `module Bar` — the `Foo`/`Bar` constant is a declaration,
 /// not a reference. All other constant positions are type references.
 fn is_constant_declaration_name(node: &Node) -> bool {
-    if let Some(parent) = node.parent() {
-        if let Some(name_node) = parent.child_by_field_name("name") {
-            if name_node.id() == node.id() {
-                return matches!(parent.kind(), "class" | "module");
-            }
-        }
+    if let Some(parent) = node.parent()
+        && let Some(name_node) = parent.child_by_field_name("name")
+        && name_node.id() == node.id()
+    {
+        return matches!(parent.kind(), "class" | "module");
     }
     false
 }

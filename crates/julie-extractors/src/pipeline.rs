@@ -87,18 +87,16 @@ where
 fn jsonl_records(content: &str) -> Vec<(u32, u32, &str)> {
     let mut records = Vec::new();
     let mut byte_offset = 0u32;
-    let mut line_offset = 0u32;
 
-    for chunk in content.split_inclusive('\n') {
+    for (line_offset, chunk) in content.split_inclusive('\n').enumerate() {
         let line = chunk.strip_suffix('\n').unwrap_or(chunk);
         let line = line.strip_suffix('\r').unwrap_or(line);
 
         if !line.trim().is_empty() {
-            records.push((line_offset, byte_offset, line));
+            records.push((line_offset as u32, byte_offset, line));
         }
 
         byte_offset += chunk.len() as u32;
-        line_offset += 1;
     }
 
     if !content.ends_with('\n') && !content.is_empty() {

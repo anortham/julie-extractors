@@ -103,6 +103,7 @@ pub(super) fn extract_call_relationships(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn resolve_call_relationship(
     extractor: &mut PhpExtractor,
     node: Node,
@@ -162,6 +163,7 @@ fn resolve_call_relationship(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn resolve_instantiates_relationship(
     extractor: &mut PhpExtractor,
     node: Node,

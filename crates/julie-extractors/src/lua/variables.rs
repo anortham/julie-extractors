@@ -40,25 +40,13 @@ fn infer_kind_and_type(
             };
             (kind, "function".to_string())
         }
-        "expression_list" => {
-            if helpers::contains_function_definition(expression) {
-                let kind = if is_field {
-                    SymbolKind::Method
-                } else {
-                    SymbolKind::Function
-                };
-                (kind, "function".to_string())
+        "expression_list" if helpers::contains_function_definition(expression) => {
+            let kind = if is_field {
+                SymbolKind::Method
             } else {
-                let data_type = helpers::infer_type_from_expression(base, expression);
-                let kind = if data_type == "import" {
-                    SymbolKind::Import
-                } else if is_field {
-                    SymbolKind::Field
-                } else {
-                    SymbolKind::Variable
-                };
-                (kind, data_type)
-            }
+                SymbolKind::Function
+            };
+            (kind, "function".to_string())
         }
         _ => {
             let data_type = helpers::infer_type_from_expression(base, expression);
@@ -98,6 +86,7 @@ fn resolve_dot_property(name: &str, symbols: &[Symbol]) -> Option<(String, Optio
 /// Build metadata HashMap with dataType and create + push a symbol.
 ///
 /// If the expression is a table constructor, also extracts table fields as children.
+#[allow(clippy::too_many_arguments)]
 fn push_variable_symbol(
     symbols: &mut Vec<Symbol>,
     base: &mut BaseExtractor,
@@ -127,11 +116,11 @@ fn push_variable_symbol(
     symbols.push(symbol);
 
     // If the expression is a table, extract its fields with this symbol as parent
-    if let Some(expr) = expression {
-        if expr.kind() == "table_constructor" || expr.kind() == "table" {
-            let parent_id = symbols.last().unwrap().id.clone();
-            tables::extract_table_fields(symbols, base, *expr, Some(&parent_id));
-        }
+    if let Some(expr) = expression
+        && (expr.kind() == "table_constructor" || expr.kind() == "table")
+    {
+        let parent_id = symbols.last().unwrap().id.clone();
+        tables::extract_table_fields(symbols, base, *expr, Some(&parent_id));
     }
 }
 
@@ -225,9 +214,7 @@ pub(super) fn extract_assignment_statement(
             .collect();
 
         for (i, var_node) in variables.iter().enumerate() {
-            let name_node = if var_node.kind() == "identifier" {
-                *var_node
-            } else if var_node.kind() == "dot_index_expression" {
+            let name_node = if matches!(var_node.kind(), "identifier" | "dot_index_expression") {
                 *var_node
             } else {
                 helpers::find_child_by_type(var_node, "identifier")?

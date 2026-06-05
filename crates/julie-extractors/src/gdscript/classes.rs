@@ -21,27 +21,26 @@ pub(super) fn extract_class_name_statement(
     if let Some(parent) = node.parent() {
         // Look for annotations before this class_name_statement
         for i in 0..parent.child_count() {
-            if let Some(child) = parent.child(i as u32) {
-                if child.kind() == "class_name_statement"
-                    && base.get_node_text(&child) == base.get_node_text(&node)
-                {
-                    // Found our node, now look backwards for annotations
-                    if i > 0 {
-                        for j in (0..i).rev() {
-                            if let Some(prev_child) = parent.child(j as u32) {
-                                if prev_child.kind() == "annotation" {
-                                    let annotation_text = base.get_node_text(&prev_child);
-                                    signature = format!("{}\n{}", annotation_text, signature);
-                                    break;
-                                }
-                                if prev_child.kind() == "class_name_statement" {
-                                    break;
-                                }
+            if let Some(child) = parent.child(i as u32)
+                && child.kind() == "class_name_statement"
+                && base.get_node_text(&child) == base.get_node_text(&node)
+            {
+                // Found our node, now look backwards for annotations
+                if i > 0 {
+                    for j in (0..i).rev() {
+                        if let Some(prev_child) = parent.child(j as u32) {
+                            if prev_child.kind() == "annotation" {
+                                let annotation_text = base.get_node_text(&prev_child);
+                                signature = format!("{}\n{}", annotation_text, signature);
+                                break;
+                            }
+                            if prev_child.kind() == "class_name_statement" {
+                                break;
                             }
                         }
                     }
-                    break;
                 }
+                break;
             }
         }
     }
@@ -89,22 +88,22 @@ pub(super) fn extract_class_definition(
     // Find the index of the current class node
     let mut class_index = None;
     for i in 0..parent_node.child_count() {
-        if let Some(child) = parent_node.child(i as u32) {
-            if child.id() == node.id() {
-                class_index = Some(i);
-                break;
-            }
+        if let Some(child) = parent_node.child(i as u32)
+            && child.id() == node.id()
+        {
+            class_index = Some(i);
+            break;
         }
     }
 
     // Look for 'name' node after the 'class' node
     if let Some(idx) = class_index {
         for i in (idx + 1)..parent_node.child_count() {
-            if let Some(child) = parent_node.child(i as u32) {
-                if child.kind() == "name" {
-                    name_node = Some(child);
-                    break;
-                }
+            if let Some(child) = parent_node.child(i as u32)
+                && child.kind() == "name"
+            {
+                name_node = Some(child);
+                break;
             }
         }
     }
@@ -149,32 +148,30 @@ pub(super) fn collect_inheritance_info(
             // Check for class_name followed by extends
             if current_child.kind() == "class_name_statement"
                 && next_child.kind() == "extends_statement"
-            {
-                if let (Some(name_node), Some(type_node)) = (
+                && let (Some(name_node), Some(type_node)) = (
                     find_child_by_type(&current_child, "name"),
                     find_child_by_type(&next_child, "type"),
-                ) {
-                    let class_name = base.get_node_text(&name_node);
-                    if let Some(identifier_node) = find_child_by_type(&type_node, "identifier") {
-                        let base_class_name = base.get_node_text(&identifier_node);
-                        pending_inheritance.insert(class_name, base_class_name);
-                    }
+                )
+            {
+                let class_name = base.get_node_text(&name_node);
+                if let Some(identifier_node) = find_child_by_type(&type_node, "identifier") {
+                    let base_class_name = base.get_node_text(&identifier_node);
+                    pending_inheritance.insert(class_name, base_class_name);
                 }
             }
 
             // Check for extends followed by class_name (reverse order)
             if current_child.kind() == "extends_statement"
                 && next_child.kind() == "class_name_statement"
-            {
-                if let (Some(type_node), Some(name_node)) = (
+                && let (Some(type_node), Some(name_node)) = (
                     find_child_by_type(&current_child, "type"),
                     find_child_by_type(&next_child, "name"),
-                ) {
-                    let class_name = base.get_node_text(&name_node);
-                    if let Some(identifier_node) = find_child_by_type(&type_node, "identifier") {
-                        let base_class_name = base.get_node_text(&identifier_node);
-                        pending_inheritance.insert(class_name, base_class_name);
-                    }
+                )
+            {
+                let class_name = base.get_node_text(&name_node);
+                if let Some(identifier_node) = find_child_by_type(&type_node, "identifier") {
+                    let base_class_name = base.get_node_text(&identifier_node);
+                    pending_inheritance.insert(class_name, base_class_name);
                 }
             }
         }

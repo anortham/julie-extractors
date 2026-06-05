@@ -30,10 +30,8 @@ pub fn extract_method(
         params
     );
 
-    if is_function {
-        if let Some(rt) = helpers::extract_return_type(base, &node) {
-            signature.push_str(&format!(" As {}", rt));
-        }
+    if is_function && let Some(rt) = helpers::extract_return_type(base, &node) {
+        signature.push_str(&format!(" As {}", rt));
     }
 
     let doc_comment = base.find_doc_comment(&node);
@@ -101,12 +99,12 @@ pub fn extract_constructor(
         metadata: Some(metadata),
         doc_comment,
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Constructor, options))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn extract_property(
     base: &mut BaseExtractor,
     node: Node,
@@ -142,7 +140,6 @@ pub fn extract_property(
         metadata: Some(metadata),
         doc_comment,
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Property, options))
@@ -186,7 +183,6 @@ pub fn extract_fields(
                 metadata: Some(metadata.clone()),
                 doc_comment: doc_comment.clone(),
                 annotations: annotations.clone(),
-                ..Default::default()
             };
 
             Some(base.create_symbol(&node, name, SymbolKind::Field, options))
@@ -221,7 +217,6 @@ pub fn extract_event(
         metadata: Some(metadata),
         doc_comment,
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Event, options))
@@ -261,7 +256,6 @@ pub fn extract_operator(
         metadata: Some(metadata),
         doc_comment,
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Operator, options))
@@ -318,7 +312,6 @@ pub fn extract_consts(
                 metadata: Some(metadata.clone()),
                 doc_comment: doc_comment.clone(),
                 annotations: annotations.clone(),
-                ..Default::default()
             };
 
             Some(base.create_symbol(&node, name, SymbolKind::Constant, options))
@@ -341,15 +334,16 @@ fn as_clause_type(base: &BaseExtractor, node: Node) -> Option<String> {
 
     let mut cursor = node.walk();
     let as_clause = node.children(&mut cursor).find(|c| c.kind() == "as_clause");
-    if let Some(as_clause) = as_clause {
-        if let Some(type_node) = as_clause.child_by_field_name("type") {
-            return Some(base.get_node_text(&type_node));
-        }
+    if let Some(as_clause) = as_clause
+        && let Some(type_node) = as_clause.child_by_field_name("type")
+    {
+        return Some(base.get_node_text(&type_node));
     }
 
     None
 }
 
+#[allow(clippy::too_many_arguments)]
 fn extract_flat_consts(
     base: &mut BaseExtractor,
     node: Node,
@@ -393,7 +387,6 @@ fn extract_flat_consts(
             metadata: Some(metadata.clone()),
             doc_comment: doc_comment.clone(),
             annotations: annotations.clone(),
-            ..Default::default()
         };
 
         constants.push(base.create_symbol(&node, name, SymbolKind::Constant, options));
@@ -446,10 +439,8 @@ pub fn extract_declare(
         params
     );
 
-    if is_function {
-        if let Some(rt) = helpers::extract_return_type(base, &node) {
-            signature.push_str(&format!(" As {}", rt));
-        }
+    if is_function && let Some(rt) = helpers::extract_return_type(base, &node) {
+        signature.push_str(&format!(" As {}", rt));
     }
 
     let doc_comment = base.find_doc_comment(&node);
@@ -463,7 +454,6 @@ pub fn extract_declare(
         metadata: Some(metadata),
         doc_comment,
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Function, options))

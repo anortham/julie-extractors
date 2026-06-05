@@ -154,14 +154,12 @@ pub(super) fn extract_function_signature(node: &Node, content: &str) -> Option<S
         .map(|n| get_node_text(&n))
         .unwrap_or_default();
 
-    if let Some(type_node) = return_type_node {
-        if type_node.kind() != "type" {
-            if let Some(type_args_node) = type_node.next_sibling() {
-                if type_args_node.kind() == "type_arguments" {
-                    return_type.push_str(&get_node_text(&type_args_node));
-                }
-            }
-        }
+    if let Some(type_node) = return_type_node
+        && type_node.kind() != "type"
+        && let Some(type_args_node) = type_node.next_sibling()
+        && type_args_node.kind() == "type_arguments"
+    {
+        return_type.push_str(&get_node_text(&type_args_node));
     }
 
     // Extract generic type parameters (e.g., <T extends Comparable<T>>)

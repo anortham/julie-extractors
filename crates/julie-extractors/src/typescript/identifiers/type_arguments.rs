@@ -71,18 +71,18 @@ pub(super) fn record_outermost_generic_type_arguments_ts(
 pub(super) fn is_type_declaration_name(node: &Node) -> bool {
     if let Some(parent) = node.parent() {
         // Check if this node is the `name` field of a declaration or type param
-        if let Some(name_node) = parent.child_by_field_name("name") {
-            if name_node.id() == node.id() {
-                return matches!(
-                    parent.kind(),
-                    "interface_declaration"
-                        | "type_alias_declaration"
-                        | "class_declaration"
-                        | "abstract_class_declaration"
-                        | "type_parameter"
-                        | "mapped_type_clause"
-                );
-            }
+        if let Some(name_node) = parent.child_by_field_name("name")
+            && name_node.id() == node.id()
+        {
+            return matches!(
+                parent.kind(),
+                "interface_declaration"
+                    | "type_alias_declaration"
+                    | "class_declaration"
+                    | "abstract_class_declaration"
+                    | "type_parameter"
+                    | "mapped_type_clause"
+            );
         }
     }
     false
@@ -93,12 +93,7 @@ pub(super) fn is_type_declaration_name(node: &Node) -> bool {
 pub(super) fn is_ts_noise_type(name: &str) -> bool {
     // Single-letter names are almost always generic type parameters used in scope.
     // Even when they appear as references (e.g. `: T`), they carry no cross-file signal.
-    if name.len() == 1
-        && name
-            .chars()
-            .next()
-            .map_or(false, |c| c.is_ascii_uppercase())
-    {
+    if name.len() == 1 && name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
         return true;
     }
 

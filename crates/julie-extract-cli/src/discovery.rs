@@ -30,6 +30,14 @@ pub struct DiscoveryPolicy {
 pub struct DiscoverySummary {
     pub supported_files: Vec<FileTarget>,
     pub unsupported_files: usize,
+    pub errors: Vec<DiscoveryError>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiscoveryError {
+    pub path: String,
+    pub root_relative_path: String,
+    pub message: String,
 }
 
 impl DiscoveryPolicy {
@@ -86,6 +94,7 @@ impl DiscoveryPolicy {
         let mut summary = DiscoverySummary {
             supported_files: Vec::new(),
             unsupported_files: 0,
+            errors: Vec::new(),
         };
         self.discover_dir(&self.root, &mut summary);
         summary
@@ -95,17 +104,48 @@ impl DiscoveryPolicy {
     }
 
     fn discover_dir(&self, dir: &Path, summary: &mut DiscoverySummary) {
-        let Ok(entries) = fs::read_dir(dir) else {
-            return;
-        };
-
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let Ok(relative) = crate::paths::root_relative_unix(&self.root, &path) else {
-                continue;
+        let entries =
+            match fs::read_dir(dir) {
+                Ok(entries) => entries,
+                Err(error) => {
+                    summary.errors.push(self.discovery_error(
+                        dir,
+                        format!("source directory could not be read: {error}"),
+                    ));
+                    return;
+                }
             };
-            let Ok(file_type) = entry.file_type() else {
-                continue;
+
+        for entry in entries {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(error) => {
+                    summary.errors.push(self.discovery_error(
+                        dir,
+                        format!("source directory entry could not be read: {error}"),
+                    ));
+                    continue;
+                }
+            };
+            let path = entry.path();
+            let relative = match crate::paths::root_relative_unix(&self.root, &path) {
+                Ok(relative) => relative,
+                Err(error) => {
+                    summary.errors.push(
+                        self.discovery_error(&path, format!("source path was invalid: {error:?}")),
+                    );
+                    continue;
+                }
+            };
+            let file_type = match entry.file_type() {
+                Ok(file_type) => file_type,
+                Err(error) => {
+                    summary.errors.push(self.discovery_error(
+                        &path,
+                        format!("source file type could not be read: {error}"),
+                    ));
+                    continue;
+                }
             };
             if file_type.is_symlink() {
                 continue;
@@ -133,6 +173,25 @@ impl DiscoveryPolicy {
                 FileSelection::Supported { .. } => summary.supported_files.push(target),
                 FileSelection::Unsupported { .. } => summary.unsupported_files += 1,
             }
+        }
+    }
+
+    fn discovery_error(&self, path: &Path, message: String) -> DiscoveryError {
+        let root_relative_path = if path == self.root {
+            ".".to_string()
+        } else {
+            crate::paths::root_relative_unix(&self.root, path).unwrap_or_else(|_| {
+                path.strip_prefix(&self.root)
+                    .ok()
+                    .and_then(|relative| relative.to_str())
+                    .unwrap_or("")
+                    .replace(std::path::MAIN_SEPARATOR, "/")
+            })
+        };
+        DiscoveryError {
+            path: path.display().to_string(),
+            root_relative_path,
+            message,
         }
     }
 }

@@ -1,10 +1,13 @@
 use std::process::{Command, ExitCode};
+use std::time::{Duration, Instant};
 
 const CAPABILITIES_JSON: &str = include_str!("../../fixtures/extraction/capabilities.json");
+const DEFAULT_TIER_MAX_DURATION: Duration = Duration::from_secs(90);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TestPlan {
     pub commands: Vec<CommandSpec>,
+    pub max_duration: Option<Duration>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -113,6 +116,7 @@ where
         }
         "list" => expect_no_extra_args(&args, 1).map(|()| TestPlan {
             commands: Vec::new(),
+            max_duration: None,
         }),
         other => Err(CliError::new(format!(
             "unsupported test tier `{other}`\n\n{}",
@@ -122,6 +126,7 @@ where
 }
 
 pub fn run_plan(plan: TestPlan) -> ExitCode {
+    let started = Instant::now();
     for command in plan.commands {
         println!("+ {}", command.display());
         let status = Command::new(&command.program).args(&command.args).status();
@@ -132,6 +137,15 @@ pub fn run_plan(plan: TestPlan) -> ExitCode {
                 eprintln!("failed to run `{}`: {err}", command.display());
                 return ExitCode::from(1);
             }
+        }
+        if let Some(max_duration) = plan.max_duration
+            && started.elapsed() > max_duration
+        {
+            eprintln!(
+                "test tier exceeded wall-clock budget of {}s",
+                max_duration.as_secs()
+            );
+            return ExitCode::from(1);
         }
     }
 
@@ -145,6 +159,7 @@ fn default_plan() -> TestPlan {
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-artifact"]),
             CommandSpec::new("cargo", ["test", "-p", "julie-extract-cli"]),
         ],
+        max_duration: Some(DEFAULT_TIER_MAX_DURATION),
     }
 }
 
@@ -175,6 +190,7 @@ fn language_plan(args: &[String]) -> Result<TestPlan, CliError> {
             "cargo",
             ["test", "-p", "julie-extractors", "--lib", &test_filter],
         )],
+        max_duration: None,
     })
 }
 
@@ -228,6 +244,7 @@ fn golden_plan() -> TestPlan {
                 "golden",
             ],
         )],
+        max_duration: None,
     }
 }
 
@@ -259,6 +276,7 @@ fn capability_plan() -> TestPlan {
                 ],
             ),
         ],
+        max_duration: None,
     }
 }
 
@@ -326,7 +344,10 @@ fn contract_plan() -> TestPlan {
             "operations_contract",
         ],
     ));
-    TestPlan { commands }
+    TestPlan {
+        commands,
+        max_duration: None,
+    }
 }
 
 fn certification_plan() -> TestPlan {
@@ -343,7 +364,10 @@ fn certification_plan() -> TestPlan {
             "parser_upgrade",
         ],
     ));
-    TestPlan { commands }
+    TestPlan {
+        commands,
+        max_duration: None,
+    }
 }
 
 fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
@@ -376,7 +400,10 @@ fn changed_plan(args: &[String]) -> Result<TestPlan, CliError> {
     {
         commands.extend(certification_plan().commands);
     }
-    Ok(TestPlan { commands })
+    Ok(TestPlan {
+        commands,
+        max_duration: None,
+    })
 }
 
 fn is_golden_expected_output_path(path: &str) -> bool {
@@ -412,6 +439,7 @@ fn real_world_smoke_plan() -> TestPlan {
                 "test_real_world_jsonl_memories_fixture",
             ],
         )],
+        max_duration: None,
     }
 }
 
@@ -467,6 +495,7 @@ fn real_world_release_plan() -> TestPlan {
                 ],
             ),
         ],
+        max_duration: None,
     }
 }
 

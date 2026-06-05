@@ -1,5 +1,5 @@
-/// Tests for Struct.new class detection and module_function handling
-/// TDD: RED phase - these tests should fail until implementation is complete
+// Tests for Struct.new class detection and module_function handling
+// TDD: RED phase - these tests should fail until implementation is complete
 
 #[cfg(test)]
 mod tests {

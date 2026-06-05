@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 use std::fs::{self, File};
 use std::io::{self, BufWriter, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::Connection;
 use serde_json::{Map, Value, json};
@@ -144,7 +145,7 @@ pub fn export_jsonl_to_path(
     output_path: impl AsRef<Path>,
 ) -> JsonlExportResult<JsonlExportSummary> {
     let output_path = output_path.as_ref();
-    let temp_path = output_path.with_extension("tmp");
+    let temp_path = unique_temp_output_path(output_path);
     let result = File::create(&temp_path)
         .map_err(JsonlExportError::Io)
         .and_then(|file| export_jsonl(conn, file));
@@ -162,6 +163,19 @@ pub fn export_jsonl_to_path(
             Err(error)
         }
     }
+}
+
+fn unique_temp_output_path(output_path: &Path) -> PathBuf {
+    let parent = output_path.parent().unwrap_or_else(|| Path::new("."));
+    let file_name = output_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("julie-extract-export");
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    parent.join(format!(".{file_name}.{}.{nanos}.tmp", std::process::id()))
 }
 
 fn load_required_metadata(conn: &Connection) -> JsonlExportResult<BTreeMap<String, String>> {

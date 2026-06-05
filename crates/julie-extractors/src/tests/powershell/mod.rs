@@ -290,7 +290,7 @@ Write-Host "Last exit code: $LASTEXITCODE"
                 })
                 .collect::<Vec<_>>();
             assert!(
-                env_vars.len() >= 1,
+                !env_vars.is_empty(),
                 "Should extract at least 1 environment variable"
             );
 
@@ -462,7 +462,7 @@ class ServerInfo : ComputerInfo {
                 .iter()
                 .filter(|s| s.kind == SymbolKind::Enum)
                 .collect::<Vec<_>>();
-            assert!(enums.len() >= 1, "Should extract at least 1 enum");
+            assert!(!enums.is_empty(), "Should extract at least 1 enum");
 
             let log_level = enums.iter().find(|e| e.name == "LogLevel");
             assert!(log_level.is_some(), "Should extract LogLevel enum");
@@ -1128,7 +1128,7 @@ Export-ModuleMember -Alias gcd
             // Should extract using statements
             let using_statements = imports
                 .iter()
-                .filter(|i| i.signature.as_ref().map_or(false, |s| s.contains("using")))
+                .filter(|i| i.signature.as_ref().is_some_and(|s| s.contains("using")))
                 .collect::<Vec<_>>();
             assert!(
                 using_statements.len() >= 2,
@@ -1138,7 +1138,7 @@ Export-ModuleMember -Alias gcd
             // Should extract dot sourcing
             let dot_sourcing = imports
                 .iter()
-                .filter(|i| i.signature.as_ref().map_or(false, |s| s.contains(". ")))
+                .filter(|i| i.signature.as_ref().is_some_and(|s| s.contains(". ")))
                 .collect::<Vec<_>>();
             assert!(
                 dot_sourcing.len() >= 2,

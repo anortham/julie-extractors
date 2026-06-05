@@ -34,7 +34,7 @@ use tree_sitter::Tree;
 
 /// C# extractor using tree-sitter-c-sharp parser
 pub struct CSharpExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl CSharpExtractor {

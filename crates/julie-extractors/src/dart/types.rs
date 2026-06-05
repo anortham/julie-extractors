@@ -28,7 +28,6 @@ pub(super) fn extract_enum(
             metadata: Some(HashMap::new()),
             doc_comment: base.find_doc_comment(node),
             annotations,
-            ..Default::default()
         },
     );
 
@@ -68,7 +67,6 @@ pub(super) fn extract_enum_constant(
             metadata: Some(HashMap::new()),
             doc_comment: base.find_doc_comment(node),
             annotations,
-            ..Default::default()
         },
     );
 
@@ -114,7 +112,6 @@ pub(super) fn extract_mixin(
             metadata: Some(HashMap::new()),
             doc_comment: base.find_doc_comment(node),
             annotations,
-            ..Default::default()
         },
     );
 
@@ -172,7 +169,6 @@ pub(super) fn extract_extension(
             metadata: Some(HashMap::new()),
             doc_comment: base.find_doc_comment(node),
             annotations,
-            ..Default::default()
         },
     );
 
@@ -245,7 +241,6 @@ pub(super) fn extract_typedef(
             metadata: Some(HashMap::new()),
             doc_comment: base.find_doc_comment(node),
             annotations,
-            ..Default::default()
         },
     );
 

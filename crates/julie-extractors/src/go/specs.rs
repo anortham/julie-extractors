@@ -21,11 +21,10 @@ impl super::GoExtractor {
                 "import_spec_list" => {
                     let mut nested_cursor = child.walk();
                     for nested_child in child.children(&mut nested_cursor) {
-                        if nested_child.kind() == "import_spec" {
-                            if let Some(symbol) = self.extract_import_spec(nested_child, parent_id)
-                            {
-                                symbols.push(symbol);
-                            }
+                        if nested_child.kind() == "import_spec"
+                            && let Some(symbol) = self.extract_import_spec(nested_child, parent_id)
+                        {
+                            symbols.push(symbol);
                         }
                     }
                 }

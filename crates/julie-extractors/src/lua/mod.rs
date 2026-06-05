@@ -28,7 +28,7 @@ use std::collections::HashMap;
 use tree_sitter::Tree;
 
 pub struct LuaExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
     symbols: Vec<Symbol>,
     pub(crate) relationships: Vec<Relationship>,
 }

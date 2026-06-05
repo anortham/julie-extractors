@@ -6,7 +6,7 @@ on:
       version:
         description: Release version for package staging
         required: true
-        default: 2.0.1
+        default: 2.1.0
       target:
         description: Release target name recorded in package paths
         required: true
@@ -79,13 +79,27 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ inputs.target }}
+
+      - name: Validate package target
+        shell: bash
+        run: |
+          if [[ "${{ inputs.target }}" != "x86_64-unknown-linux-gnu" ]]; then
+            echo "specialist package staging runs on ubuntu-latest and only stages x86_64-unknown-linux-gnu" >&2
+            echo "Use release-binaries.yml for multi-platform release assets." >&2
+            exit 1
+          fi
 
       - name: Build release binary
-        run: cargo build --release -p julie-extract-cli --bin julie-extract
+        run: cargo build --release --target ${{ inputs.target }} -p julie-extract-cli --bin julie-extract
+
+      - name: Run release preflight
+        run: cargo xtask release preflight --version ${{ inputs.version }}
 
       - name: Stage release package
         run: >-
           cargo xtask release package --version ${{ inputs.version }}
           --target ${{ inputs.target }}
           --out-dir target/release-package/v${{ inputs.version }}-${{ inputs.target }}
-          --binary target/release/julie-extract
+          --binary target/${{ inputs.target }}/release/julie-extract

@@ -1,10 +1,12 @@
 use std::path::PathBuf;
+use std::time::Duration;
 use xtask::test_tiers::{CommandSpec, plan_from_args, tier_names};
 
 #[test]
 fn test_default_tier_runs_plain_extractor_tests() {
     let plan = plan_from_args(["test", "default"]).expect("default plan");
 
+    assert_eq!(plan.max_duration, Some(Duration::from_secs(90)));
     assert_eq!(
         plan.commands,
         vec![

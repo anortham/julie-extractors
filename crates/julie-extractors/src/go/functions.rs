@@ -120,12 +120,11 @@ impl super::GoExtractor {
                 }
                 "type_identifier" | "primitive_type" | "pointer_type" | "slice_type"
                 | "channel_type" | "interface_type" | "function_type" | "map_type"
-                | "array_type" | "qualified_type" | "generic_type" => {
+                | "array_type" | "qualified_type" | "generic_type"
                     // Only treat as return type if we've seen parameters already
-                    if param_list_found {
+                    if param_list_found => {
                         return_type = Some(self.extract_type_from_node(child));
                     }
-                }
                 _ => {}
             }
         }
@@ -212,12 +211,11 @@ impl super::GoExtractor {
                 "type_parameter_list" => type_parameters = Some(self.get_node_text(child)),
                 "type_identifier" | "primitive_type" | "pointer_type" | "slice_type"
                 | "channel_type" | "interface_type" | "function_type" | "map_type"
-                | "array_type" | "qualified_type" | "generic_type" => {
+                | "array_type" | "qualified_type" | "generic_type"
                     // Only treat as return type if we've seen parameters already
-                    if param_lists_found >= 2 {
+                    if param_lists_found >= 2 => {
                         return_types.push(self.extract_type_from_node(child));
                     }
-                }
                 _ => {}
             }
         }

@@ -392,15 +392,14 @@ pub(super) fn extract_function_name(func_node: Node) -> Option<Node> {
 pub(super) fn is_constructor(base: &BaseExtractor, name: &str, node: Node) -> bool {
     let mut current = Some(node);
     while let Some(parent) = current {
-        if matches!(parent.kind(), "class_specifier" | "struct_specifier") {
-            if let Some(class_name_node) = parent
+        if matches!(parent.kind(), "class_specifier" | "struct_specifier")
+            && let Some(class_name_node) = parent
                 .children(&mut parent.walk())
                 .find(|c| c.kind() == "type_identifier")
-            {
-                let class_name = base.get_node_text(&class_name_node);
-                if class_name == name {
-                    return true;
-                }
+        {
+            let class_name = base.get_node_text(&class_name_node);
+            if class_name == name {
+                return true;
             }
         }
         current = parent.parent();

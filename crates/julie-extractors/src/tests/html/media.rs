@@ -327,7 +327,7 @@ mod tests {
         let hero_image = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"src="/images/hero-image.jpg""#))
+                .is_some_and(|sig| sig.contains(r#"src="/images/hero-image.jpg""#))
         });
         assert!(hero_image.is_some());
         assert_eq!(hero_image.unwrap().kind, SymbolKind::Variable); // Media elements as variables
@@ -367,7 +367,7 @@ mod tests {
         let data_uri_image = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("data:image/svg+xml;base64"))
+                .is_some_and(|sig| sig.contains("data:image/svg+xml;base64"))
         });
         assert!(data_uri_image.is_some());
 
@@ -390,14 +390,14 @@ mod tests {
         let webp_source = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"type="image/webp""#))
+                .is_some_and(|sig| sig.contains(r#"type="image/webp""#))
         });
         assert!(webp_source.is_some());
 
         let media_source = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"media="(min-width: 1200px)""#))
+                .is_some_and(|sig| sig.contains(r#"media="(min-width: 1200px)""#))
         });
         assert!(media_source.is_some());
 
@@ -434,7 +434,7 @@ mod tests {
         assert_eq!(track_elements.len(), 4);
 
         let subtitles_track = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
+            s.signature.as_ref().is_some_and(|sig| {
                 sig.contains(r#"kind="subtitles""#) && sig.contains(r#"srclang="en""#)
             })
         });
@@ -443,21 +443,21 @@ mod tests {
         let captions_track = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"kind="captions""#))
+                .is_some_and(|sig| sig.contains(r#"kind="captions""#))
         });
         assert!(captions_track.is_some());
 
         let descriptions_track = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"kind="descriptions""#))
+                .is_some_and(|sig| sig.contains(r#"kind="descriptions""#))
         });
         assert!(descriptions_track.is_some());
 
         let default_track = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("default"))
+                .is_some_and(|sig| sig.contains("default"))
                 && s.name == "track"
         });
         assert!(default_track.is_some());
@@ -477,14 +477,14 @@ mod tests {
         let mp3_source = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"type="audio/mpeg""#))
+                .is_some_and(|sig| sig.contains(r#"type="audio/mpeg""#))
         });
         assert!(mp3_source.is_some());
 
         let ogg_source = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains(r#"type="audio/ogg""#))
+                .is_some_and(|sig| sig.contains(r#"type="audio/ogg""#))
         });
         assert!(ogg_source.is_some());
 
@@ -512,7 +512,7 @@ mod tests {
             s.name == "title"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("Sales Data Chart"))
+                    .is_some_and(|sig| sig.contains("Sales Data Chart"))
         });
         assert!(title_element.is_some());
 
@@ -588,7 +588,7 @@ mod tests {
         let youtube_iframe = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("youtube-nocookie.com"))
+                .is_some_and(|sig| sig.contains("youtube-nocookie.com"))
         });
         assert!(youtube_iframe.is_some());
         assert!(
@@ -611,7 +611,7 @@ mod tests {
         let map_iframe = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("openstreetmap.org"))
+                .is_some_and(|sig| sig.contains("openstreetmap.org"))
         });
         assert!(map_iframe.is_some());
 
@@ -670,7 +670,7 @@ mod tests {
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains(r#"loading="lazy""#))
+                    .is_some_and(|sig| sig.contains(r#"loading="lazy""#))
             })
             .collect();
         assert!(loading_lazy.len() > 5);
@@ -680,7 +680,7 @@ mod tests {
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains(r#"decoding="async""#))
+                    .is_some_and(|sig| sig.contains(r#"decoding="async""#))
             })
             .collect();
         assert!(decoding_async.len() >= 3);
@@ -688,7 +688,7 @@ mod tests {
         let allow_attribute = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("allow=\"accelerometer; autoplay"))
+                .is_some_and(|sig| sig.contains("allow=\"accelerometer; autoplay"))
         });
         assert!(allow_attribute.is_some());
 

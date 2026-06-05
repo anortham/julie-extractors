@@ -39,10 +39,11 @@ pub struct TypeArgumentUsage {
 /// **config-free**: `carrier` is the verbatim callee text (`fetch`, `axios.get`,
 /// `QueryAsync`) and `kind` is always [`LiteralKind::Other`] at extraction time.
 /// [`crate::language_policy::classify_literals_by_carrier`] consults each
-/// language's `[literal_carriers]` TOML to set `kind` (`Url`/`Sql`/`Route`) on
-/// carrier matches and **drop** literals whose carrier is not recognized — that
-/// drop is the bloat gate. `kind` stays a read-time-reclassifiable hint among
-/// the stored set because `carrier` is persisted.
+/// language's `[literal_carriers]` TOML to set `kind` (`Url`/`Sql`, plus
+/// reserved `Route` when explicitly configured) on carrier matches and **drop**
+/// literals whose carrier is not recognized — that drop is the bloat gate.
+/// `kind` stays a read-time-reclassifiable hint among the stored set because
+/// `carrier` is persisted.
 ///
 /// `literal_text` is DECODED (delimiters stripped; interpolation holes replaced
 /// by `{}`; concatenations folded) so a resolver sees `/api/users/{}` or
@@ -123,7 +124,8 @@ pub enum LiteralKind {
     Url,
     /// SQL passed to a database query/execute call.
     Sql,
-    /// Route template (mostly sourced from annotations; reserved here).
+    /// Route template; reserved until a language policy explicitly configures
+    /// route carriers.
     Route,
     /// Captured but not (yet) classified as a recognized carrier kind.
     Other,

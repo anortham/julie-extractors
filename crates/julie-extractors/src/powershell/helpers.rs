@@ -217,10 +217,10 @@ fn extract_bracket_segments(text: &str) -> Vec<String> {
             }
             ']' if depth > 0 => {
                 depth -= 1;
-                if depth == 0 {
-                    if let Some(start_index) = start.take() {
-                        segments.push(text[start_index..index + ch.len_utf8()].to_string());
-                    }
+                if depth == 0
+                    && let Some(start_index) = start.take()
+                {
+                    segments.push(text[start_index..index + ch.len_utf8()].to_string());
                 }
             }
             _ => {}
@@ -381,10 +381,10 @@ pub(super) fn extract_function_name_from_param_block(
             if child.kind() == "ERROR" {
                 let text = base.get_node_text(&child);
                 // Extract function name from text like "\nfunction Set-CustomProperty {"
-                if let Some(captures) = function_name_re.captures(&text) {
-                    if let Some(func_name) = captures.get(1) {
-                        return Some(func_name.as_str().to_string());
-                    }
+                if let Some(captures) = function_name_re.captures(&text)
+                    && let Some(func_name) = captures.get(1)
+                {
+                    return Some(func_name.as_str().to_string());
                 }
             }
         }
@@ -395,10 +395,10 @@ pub(super) fn extract_function_name_from_param_block(
     while let Some(n) = current {
         if n.kind() == "ERROR" {
             let text = base.get_node_text(&n);
-            if let Some(captures) = function_name_re.captures(&text) {
-                if let Some(func_name) = captures.get(1) {
-                    return Some(func_name.as_str().to_string());
-                }
+            if let Some(captures) = function_name_re.captures(&text)
+                && let Some(func_name) = captures.get(1)
+            {
+                return Some(func_name.as_str().to_string());
             }
         }
         current = n.parent();

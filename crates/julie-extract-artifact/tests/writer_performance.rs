@@ -34,9 +34,7 @@ fn tiny_fixture_batch_uses_one_commit_and_stays_inside_tripwire_budget() {
 #[test]
 fn child_row_batch_avoids_per_file_statement_prepare_overhead() {
     let mut writer = ArtifactWriter::open_in_memory(metadata()).unwrap();
-    let files = (0..3_000)
-        .map(|index| file_with_child_rows(index))
-        .collect::<Vec<_>>();
+    let files = (0..3_000).map(file_with_child_rows).collect::<Vec<_>>();
 
     let started = std::time::Instant::now();
     let result = writer.write_scan(revision(), &files).unwrap();

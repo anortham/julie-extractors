@@ -25,19 +25,19 @@ pub(super) fn extract_relationships(base: &BaseExtractor, symbols: &[Symbol]) ->
         let scan_line = strip_css_comments(line, &mut in_block_comment);
 
         for captures in CUSTOM_PROPERTY_USE_RE.captures_iter(&scan_line) {
-            if let Some(name) = captures.get(1).map(|matched| matched.as_str()) {
-                if let Some(target) = custom_properties.get(name) {
-                    push_relationship(
-                        base,
-                        symbols,
-                        target,
-                        line_number,
-                        name,
-                        "custom-property",
-                        &mut seen,
-                        &mut relationships,
-                    );
-                }
+            if let Some(name) = captures.get(1).map(|matched| matched.as_str())
+                && let Some(target) = custom_properties.get(name)
+            {
+                push_relationship(
+                    base,
+                    symbols,
+                    target,
+                    line_number,
+                    name,
+                    "custom-property",
+                    &mut seen,
+                    &mut relationships,
+                );
             }
         }
 
@@ -79,6 +79,7 @@ fn symbols_by_metadata<'a>(symbols: &'a [Symbol], key: &str) -> HashMap<String, 
         .collect()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn push_relationship(
     base: &BaseExtractor,
     symbols: &[Symbol],

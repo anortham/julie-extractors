@@ -1,11 +1,11 @@
-/// Tests for Ruby identifier extraction — type_usage for centrality scoring
-///
-/// Ruby has no static type annotations, but constants serve as type references:
-/// - Superclass references: `class Foo < Bar`
-/// - Module includes: `include Helpers`
-/// - Scope resolution: `Sinatra::Base`
-/// These must produce TypeUsage identifiers so the centrality pipeline can
-/// boost well-connected classes/modules.
+// Tests for Ruby identifier extraction — type_usage for centrality scoring
+//
+// Ruby has no static type annotations, but constants serve as type references:
+// - Superclass references: `class Foo < Bar`
+// - Module includes: `include Helpers`
+// - Scope resolution: `Sinatra::Base`
+// These must produce TypeUsage identifiers so the centrality pipeline can
+// boost well-connected classes/modules.
 use crate::base::IdentifierKind;
 use crate::ruby::RubyExtractor;
 use std::path::PathBuf;

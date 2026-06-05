@@ -122,10 +122,10 @@ fn extract_identifier_from_node(
         "dot_index_expression" => {
             // Only extract if it's NOT part of a function_call or method_index_expression
             // (we handle those in the cases above)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "function_call" || parent.kind() == "method_index_expression" {
-                    return; // Skip - handled by function/method call
-                }
+            if let Some(parent) = node.parent()
+                && (parent.kind() == "function_call" || parent.kind() == "method_index_expression")
+            {
+                return; // Skip - handled by function/method call
             }
 
             // Extract the rightmost identifier (the member name)

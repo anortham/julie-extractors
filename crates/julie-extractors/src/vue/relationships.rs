@@ -160,6 +160,7 @@ fn import_sources_by_name(symbols: &[Symbol]) -> HashMap<String, String> {
     map
 }
 
+#[allow(clippy::too_many_arguments)]
 fn visit_script_pending_node(
     base: &BaseExtractor,
     node: Node,
@@ -171,29 +172,26 @@ fn visit_script_pending_node(
     pending: &mut Vec<StructuredPendingRelationship>,
     seen: &mut HashSet<(String, u32)>,
 ) {
-    if node.kind() == "call_expression" {
-        if let Some(function_node) = node.child_by_field_name("function") {
-            if let Some(name) = call_name(function_node, script_content) {
-                if !local_symbols.contains_key(&name) {
-                    let line_number =
-                        (function_node.start_position().row + start_line_offset + 1) as u32;
-                    if seen.insert((name.clone(), line_number)) {
-                        let mut target = UnresolvedTarget::simple(&name);
-                        if let Some(module) = imports.get(&name) {
-                            target.import_context = Some(module.clone());
-                        }
-                        pending.push(StructuredPendingRelationship::new(
-                            component.id.clone(),
-                            target,
-                            Some(component.id.clone()),
-                            RelationshipKind::Calls,
-                            base.file_path.clone(),
-                            line_number,
-                            0.8,
-                        ));
-                    }
-                }
+    if node.kind() == "call_expression"
+        && let Some(function_node) = node.child_by_field_name("function")
+        && let Some(name) = call_name(function_node, script_content)
+        && !local_symbols.contains_key(&name)
+    {
+        let line_number = (function_node.start_position().row + start_line_offset + 1) as u32;
+        if seen.insert((name.clone(), line_number)) {
+            let mut target = UnresolvedTarget::simple(&name);
+            if let Some(module) = imports.get(&name) {
+                target.import_context = Some(module.clone());
             }
+            pending.push(StructuredPendingRelationship::new(
+                component.id.clone(),
+                target,
+                Some(component.id.clone()),
+                RelationshipKind::Calls,
+                base.file_path.clone(),
+                line_number,
+                0.8,
+            ));
         }
     }
 
@@ -236,6 +234,7 @@ fn collect_script_relationships(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn visit_script_node(
     base: &BaseExtractor,
     node: Node,
@@ -246,23 +245,21 @@ fn visit_script_node(
     relationships: &mut Vec<Relationship>,
     seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
 ) {
-    if node.kind() == "call_expression" {
-        if let Some(function_node) = node.child_by_field_name("function") {
-            if let Some(name) = call_name(function_node, script_content) {
-                if let Some(target) = local_symbols.get(&name) {
-                    push_relationship(
-                        base,
-                        component,
-                        target,
-                        RelationshipKind::Calls,
-                        (function_node.start_position().row + start_line_offset + 1) as u32,
-                        &name,
-                        seen,
-                        relationships,
-                    );
-                }
-            }
-        }
+    if node.kind() == "call_expression"
+        && let Some(function_node) = node.child_by_field_name("function")
+        && let Some(name) = call_name(function_node, script_content)
+        && let Some(target) = local_symbols.get(&name)
+    {
+        push_relationship(
+            base,
+            component,
+            target,
+            RelationshipKind::Calls,
+            (function_node.start_position().row + start_line_offset + 1) as u32,
+            &name,
+            seen,
+            relationships,
+        );
     }
 
     let mut cursor = node.walk();
@@ -348,6 +345,7 @@ fn collect_template_expression_relationships(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn push_relationship(
     base: &BaseExtractor,
     source: &Symbol,

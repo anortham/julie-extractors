@@ -202,7 +202,7 @@ end
             s.name == "name"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("attr_reader"))
+                    .is_some_and(|sig| sig.contains("attr_reader"))
         });
         assert!(name_reader.is_some());
         assert_eq!(name_reader.unwrap().kind, SymbolKind::Property);
@@ -211,7 +211,7 @@ end
             s.name == "email"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("attr_writer"))
+                    .is_some_and(|sig| sig.contains("attr_writer"))
         });
         assert!(email_writer.is_some());
 
@@ -219,7 +219,7 @@ end
             s.name == "phone"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("attr_accessor"))
+                    .is_some_and(|sig| sig.contains("attr_accessor"))
         });
         assert!(phone_accessor.is_some());
 
@@ -269,7 +269,7 @@ end
             s.name == "population"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("self."))
+                    .is_some_and(|sig| sig.contains("self."))
         });
         assert!(population_method.is_some());
         assert!(
@@ -452,7 +452,7 @@ end
         let define_method_call = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("define_method"))
+                .is_some_and(|sig| sig.contains("define_method"))
         });
         assert!(define_method_call.is_some());
 
@@ -460,7 +460,7 @@ end
         let singleton_class = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("class << self"))
+                .is_some_and(|sig| sig.contains("class << self"))
         });
         assert!(singleton_class.is_some());
 
@@ -960,7 +960,7 @@ end
             s.name == "a"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("a, b, c = 1, 2, 3"))
+                    .is_some_and(|sig| sig.contains("a, b, c = 1, 2, 3"))
         });
         assert!(parallel_a.is_some());
 
@@ -1218,7 +1218,7 @@ end
         let def_delegator = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("def_delegator"))
+                .is_some_and(|sig| sig.contains("def_delegator"))
         });
         assert!(def_delegator.is_some());
 
@@ -1231,13 +1231,13 @@ end
 
         let v1_controller = symbols.iter().find(|s| {
             s.name == "UsersController"
-                && s.signature.as_ref().map_or(false, |sig| sig.contains("V1"))
+                && s.signature.as_ref().is_some_and(|sig| sig.contains("V1"))
         });
         assert!(v1_controller.is_some());
 
         let v2_controller = symbols.iter().find(|s| {
             s.name == "UsersController"
-                && s.signature.as_ref().map_or(false, |sig| sig.contains("V2"))
+                && s.signature.as_ref().is_some_and(|sig| sig.contains("V2"))
         });
         assert!(v2_controller.is_some());
 

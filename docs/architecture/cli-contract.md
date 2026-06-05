@@ -1,5 +1,9 @@
 # CLI Contract Draft
 
+This draft is superseded by the current public CLI contract in
+`docs/contracts/cli.md`. Keep this file as historical architecture context only;
+do not treat it as the active contract.
+
 The CLI is the primary integration surface. It must be stable, scriptable, and
 pleasant for non-Rust consumers.
 

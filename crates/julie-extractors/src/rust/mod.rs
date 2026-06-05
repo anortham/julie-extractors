@@ -33,7 +33,7 @@ use self::helpers::is_inside_impl;
 
 /// Rust extractor that handles Rust-specific constructs
 pub struct RustExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
     impl_blocks: Vec<ImplBlockInfo>,
     is_processing_impl_blocks: bool,
 }
@@ -171,24 +171,23 @@ impl RustExtractor {
         for symbol in symbols {
             // For functions/methods, try to extract return type from signature
             if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
-                if let Some(ref signature) = symbol.signature {
-                    if let Some(return_type) = extract_return_type_from_signature(signature) {
-                        type_map.insert(symbol.id.clone(), return_type);
-                    }
+                if let Some(ref signature) = symbol.signature
+                    && let Some(return_type) = extract_return_type_from_signature(signature)
+                {
+                    type_map.insert(symbol.id.clone(), return_type);
                 }
             }
             // For variables, properties, fields - extract type annotation
             else if matches!(
                 symbol.kind,
                 SymbolKind::Variable | SymbolKind::Property | SymbolKind::Field
-            ) {
-                if let Some(ref signature) = symbol.signature {
-                    // Extract type from annotations: "name: Type" or "name: Type ="
-                    if let Some(captures) = VAR_TYPE_RE.captures(signature) {
-                        let type_str = captures[1].trim().to_string();
-                        if !type_str.is_empty() {
-                            type_map.insert(symbol.id.clone(), type_str);
-                        }
+            ) && let Some(ref signature) = symbol.signature
+            {
+                // Extract type from annotations: "name: Type" or "name: Type ="
+                if let Some(captures) = VAR_TYPE_RE.captures(signature) {
+                    let type_str = captures[1].trim().to_string();
+                    if !type_str.is_empty() {
+                        type_map.insert(symbol.id.clone(), type_str);
                     }
                 }
             }

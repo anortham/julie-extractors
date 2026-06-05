@@ -181,6 +181,7 @@ pub(crate) fn find_containing_class<'a>(
 /// If the type is found in local symbols, creates a resolved Relationship.
 /// If not found, creates a PendingRelationship for cross-file resolution.
 /// Skips if a Uses relationship from this class to this type already exists.
+#[allow(clippy::too_many_arguments)]
 fn emit_uses_relationship(
     extractor: &mut CSharpExtractor,
     node: tree_sitter::Node,
@@ -199,7 +200,7 @@ fn emit_uses_relationship(
                 || symbols
                     .iter()
                     .find(|s| s.id == r.to_symbol_id)
-                    .map_or(false, |s| s.name == type_name))
+                    .is_some_and(|s| s.name == type_name))
     });
     if already_exists {
         return;

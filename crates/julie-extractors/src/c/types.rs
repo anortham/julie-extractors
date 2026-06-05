@@ -239,31 +239,29 @@ pub(super) fn extract_alignment_attributes(
     let node_text = base.get_node_text(&node);
 
     // Check for ALIGN(CACHE_LINE_SIZE) or similar patterns
-    if let Some(align_start) = node_text.find("ALIGN(") {
-        if let Some(align_end) = node_text[align_start..].find(')') {
-            let end_idx = align_start + align_end + 1;
-            // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
-            if node_text.is_char_boundary(align_start) && node_text.is_char_boundary(end_idx) {
-                let align_attr = &node_text[align_start..end_idx];
-                attributes.push(align_attr.to_string());
-            }
+    if let Some(align_start) = node_text.find("ALIGN(")
+        && let Some(align_end) = node_text[align_start..].find(')')
+    {
+        let end_idx = align_start + align_end + 1;
+        // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
+        if node_text.is_char_boundary(align_start) && node_text.is_char_boundary(end_idx) {
+            let align_attr = &node_text[align_start..end_idx];
+            attributes.push(align_attr.to_string());
         }
     }
 
     // Check parent node if this is a typedef struct
     if let Some(parent) = node.parent() {
         let parent_text = base.get_node_text(&parent);
-        if let Some(align_start) = parent_text.find("ALIGN(") {
-            if let Some(align_end) = parent_text[align_start..].find(')') {
-                let end_idx = align_start + align_end + 1;
-                // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
-                if parent_text.is_char_boundary(align_start)
-                    && parent_text.is_char_boundary(end_idx)
-                {
-                    let align_attr = &parent_text[align_start..end_idx];
-                    if !attributes.contains(&align_attr.to_string()) {
-                        attributes.push(align_attr.to_string());
-                    }
+        if let Some(align_start) = parent_text.find("ALIGN(")
+            && let Some(align_end) = parent_text[align_start..].find(')')
+        {
+            let end_idx = align_start + align_end + 1;
+            // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
+            if parent_text.is_char_boundary(align_start) && parent_text.is_char_boundary(end_idx) {
+                let align_attr = &parent_text[align_start..end_idx];
+                if !attributes.contains(&align_attr.to_string()) {
+                    attributes.push(align_attr.to_string());
                 }
             }
         }

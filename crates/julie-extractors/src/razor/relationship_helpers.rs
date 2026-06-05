@@ -169,53 +169,53 @@ impl super::RazorExtractor {
                 "component".to_string(),
                 serde_json::Value::String(component_symbol.name.clone()),
             );
-        } else if let Some(invocation) = invocation_symbol {
-            if let Some(invocation_meta) = invocation.metadata.as_ref() {
-                if let Some(arguments) = invocation_meta
-                    .get("arguments")
-                    .and_then(|value| value.as_str())
-                {
-                    metadata.insert(
-                        "arguments".to_string(),
-                        serde_json::Value::String(arguments.to_string()),
-                    );
-                }
-                if let Some(component_invocation) = invocation_meta
-                    .get("isComponentInvocation")
-                    .and_then(|value| value.as_bool())
-                {
-                    metadata.insert(
-                        "isComponentInvocation".to_string(),
-                        serde_json::Value::Bool(component_invocation),
-                    );
-                }
-                if let Some(html_helper) = invocation_meta
-                    .get("isHtmlHelper")
-                    .and_then(|value| value.as_bool())
-                {
-                    metadata.insert(
-                        "isHtmlHelper".to_string(),
-                        serde_json::Value::Bool(html_helper),
-                    );
-                }
-                if let Some(render_section) = invocation_meta
-                    .get("isRenderSection")
-                    .and_then(|value| value.as_bool())
-                {
-                    metadata.insert(
-                        "isRenderSection".to_string(),
-                        serde_json::Value::Bool(render_section),
-                    );
-                }
-                if let Some(render_body) = invocation_meta
-                    .get("isRenderBody")
-                    .and_then(|value| value.as_bool())
-                {
-                    metadata.insert(
-                        "isRenderBody".to_string(),
-                        serde_json::Value::Bool(render_body),
-                    );
-                }
+        } else if let Some(invocation) = invocation_symbol
+            && let Some(invocation_meta) = invocation.metadata.as_ref()
+        {
+            if let Some(arguments) = invocation_meta
+                .get("arguments")
+                .and_then(|value| value.as_str())
+            {
+                metadata.insert(
+                    "arguments".to_string(),
+                    serde_json::Value::String(arguments.to_string()),
+                );
+            }
+            if let Some(component_invocation) = invocation_meta
+                .get("isComponentInvocation")
+                .and_then(|value| value.as_bool())
+            {
+                metadata.insert(
+                    "isComponentInvocation".to_string(),
+                    serde_json::Value::Bool(component_invocation),
+                );
+            }
+            if let Some(html_helper) = invocation_meta
+                .get("isHtmlHelper")
+                .and_then(|value| value.as_bool())
+            {
+                metadata.insert(
+                    "isHtmlHelper".to_string(),
+                    serde_json::Value::Bool(html_helper),
+                );
+            }
+            if let Some(render_section) = invocation_meta
+                .get("isRenderSection")
+                .and_then(|value| value.as_bool())
+            {
+                metadata.insert(
+                    "isRenderSection".to_string(),
+                    serde_json::Value::Bool(render_section),
+                );
+            }
+            if let Some(render_body) = invocation_meta
+                .get("isRenderBody")
+                .and_then(|value| value.as_bool())
+            {
+                metadata.insert(
+                    "isRenderBody".to_string(),
+                    serde_json::Value::Bool(render_body),
+                );
             }
         }
 
@@ -235,12 +235,11 @@ impl super::RazorExtractor {
         symbols: &'a [Symbol],
     ) -> Option<&'a Symbol> {
         let mut current = self.base.find_containing_symbol(&node, symbols)?;
-        if is_invocation_symbol(current) {
-            if let Some(parent_id) = &current.parent_id {
-                if let Some(parent) = symbols.iter().find(|symbol| &symbol.id == parent_id) {
-                    current = parent;
-                }
-            }
+        if is_invocation_symbol(current)
+            && let Some(parent_id) = &current.parent_id
+            && let Some(parent) = symbols.iter().find(|symbol| &symbol.id == parent_id)
+        {
+            current = parent;
         }
         Some(current)
     }

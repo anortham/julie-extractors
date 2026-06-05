@@ -265,72 +265,65 @@ impl super::RazorExtractor {
         }
 
         // Check for data binding attributes (e.g., @bind-Value)
-        if element_text.contains("@bind") {
-            if let Some(from_symbol) = symbols.iter().find(|s| s.kind == SymbolKind::Class) {
-                // Extract property being bound
-                if let Some(captures) = regex::Regex::new(r"@bind-(\w+)")
-                    .unwrap()
-                    .captures(&element_text)
-                {
-                    if let Some(property_match) = captures.get(1) {
-                        let property_name = property_match.as_str().to_string();
+        if element_text.contains("@bind")
+            && let Some(from_symbol) = symbols.iter().find(|s| s.kind == SymbolKind::Class)
+        {
+            // Extract property being bound
+            if let Some(captures) = regex::Regex::new(r"@bind-(\w+)")
+                .unwrap()
+                .captures(&element_text)
+                && let Some(property_match) = captures.get(1)
+            {
+                let property_name = property_match.as_str().to_string();
 
-                        relationships.push(self.base.create_relationship(
-                            from_symbol.id.clone(),
-                            format!("property-{}", property_name), // Create synthetic ID for bound properties
-                            RelationshipKind::Uses,
-                            &node,
-                            Some(0.9),
-                            Some({
-                                let mut metadata = HashMap::new();
-                                metadata.insert(
-                                    "property".to_string(),
-                                    serde_json::Value::String(property_name),
-                                );
-                                metadata.insert(
-                                    "type".to_string(),
-                                    serde_json::Value::String("data-binding".to_string()),
-                                );
-                                metadata
-                            }),
-                        ));
-                    }
-                }
+                relationships.push(self.base.create_relationship(
+                    from_symbol.id.clone(),
+                    format!("property-{}", property_name), // Create synthetic ID for bound properties
+                    RelationshipKind::Uses,
+                    &node,
+                    Some(0.9),
+                    Some({
+                        let mut metadata = HashMap::new();
+                        metadata.insert(
+                            "property".to_string(),
+                            serde_json::Value::String(property_name),
+                        );
+                        metadata.insert(
+                            "type".to_string(),
+                            serde_json::Value::String("data-binding".to_string()),
+                        );
+                        metadata
+                    }),
+                ));
             }
         }
 
         // Check for event binding attributes (e.g., @onclick)
-        if element_text.contains("@on") {
-            if let Some(from_symbol) = symbols.iter().find(|s| s.kind == SymbolKind::Class) {
-                if let Some(captures) = regex::Regex::new(r"@on(\w+)")
-                    .unwrap()
-                    .captures(&element_text)
-                {
-                    if let Some(event_match) = captures.get(1) {
-                        let event_name = event_match.as_str().to_string();
+        if element_text.contains("@on")
+            && let Some(from_symbol) = symbols.iter().find(|s| s.kind == SymbolKind::Class)
+            && let Some(captures) = regex::Regex::new(r"@on(\w+)")
+                .unwrap()
+                .captures(&element_text)
+            && let Some(event_match) = captures.get(1)
+        {
+            let event_name = event_match.as_str().to_string();
 
-                        relationships.push(self.base.create_relationship(
-                            from_symbol.id.clone(),
-                            format!("event-{}", event_name), // Create synthetic ID for events
-                            RelationshipKind::Uses,
-                            &node,
-                            Some(0.9),
-                            Some({
-                                let mut metadata = HashMap::new();
-                                metadata.insert(
-                                    "event".to_string(),
-                                    serde_json::Value::String(event_name),
-                                );
-                                metadata.insert(
-                                    "type".to_string(),
-                                    serde_json::Value::String("event-binding".to_string()),
-                                );
-                                metadata
-                            }),
-                        ));
-                    }
-                }
-            }
+            relationships.push(self.base.create_relationship(
+                from_symbol.id.clone(),
+                format!("event-{}", event_name), // Create synthetic ID for events
+                RelationshipKind::Uses,
+                &node,
+                Some(0.9),
+                Some({
+                    let mut metadata = HashMap::new();
+                    metadata.insert("event".to_string(), serde_json::Value::String(event_name));
+                    metadata.insert(
+                        "type".to_string(),
+                        serde_json::Value::String("event-binding".to_string()),
+                    );
+                    metadata
+                }),
+            ));
         }
     }
 }

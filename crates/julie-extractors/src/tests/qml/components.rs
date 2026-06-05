@@ -191,7 +191,7 @@ GridView {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract GridView with delegate"
         );
     }
@@ -231,7 +231,7 @@ Item {
             .filter(|s| s.kind == SymbolKind::Class)
             .collect();
 
-        assert!(components.len() >= 1, "Should extract inline component");
+        assert!(!components.is_empty(), "Should extract inline component");
     }
 
     #[test]
@@ -259,7 +259,7 @@ Item {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Instantiator with delegate"
         );
     }

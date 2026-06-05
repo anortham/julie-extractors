@@ -376,12 +376,11 @@ fn source_symbol_for_type_use<'a>(symbols: &'a [Symbol], node: Node<'_>) -> Opti
         .iter()
         .filter(|symbol| symbol_contains_node(symbol, node))
         .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))?;
-    if matches!(containing.kind, SymbolKind::Field | SymbolKind::Property) {
-        if let Some(parent_id) = containing.parent_id.as_deref() {
-            if let Some(parent) = symbols.iter().find(|symbol| symbol.id == parent_id) {
-                return Some(parent);
-            }
-        }
+    if matches!(containing.kind, SymbolKind::Field | SymbolKind::Property)
+        && let Some(parent_id) = containing.parent_id.as_deref()
+        && let Some(parent) = symbols.iter().find(|symbol| symbol.id == parent_id)
+    {
+        return Some(parent);
     }
     Some(containing)
 }

@@ -38,8 +38,8 @@ fn extract_identifier_from_node(
     match node.kind() {
         "call" => {
             // Check if this is a definition macro — skip those
-            if let Some(target) = node.child_by_field_name("target") {
-                if target.kind() == "identifier" {
+            if let Some(target) = node.child_by_field_name("target")
+                && target.kind() == "identifier" {
                     let name = base.get_node_text(&target);
                     if is_definition_keyword(&name) {
                         return;
@@ -48,7 +48,6 @@ fn extract_identifier_from_node(
                     let containing = find_containing_symbol_id(base, node, symbol_map);
                     base.create_identifier(&target, name, IdentifierKind::Call, containing);
                 }
-            }
             // Phase 3b: capture string-literal call-arguments config-free; the
             // carrier classification + bloat gate run later in the artifact language-policy pass.
             record_elixir_call_arg_literals(base, node, symbol_map);
@@ -84,14 +83,13 @@ fn extract_identifier_from_node(
                 }
             }
         }
-        "alias" => {
+        "alias"
             // Standalone module reference (not part of a definition)
-            if !is_in_definition_context(&node) {
+            if !is_in_definition_context(&node) => {
                 let name = base.get_node_text(&node);
                 let containing = find_containing_symbol_id(base, node, symbol_map);
                 base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
             }
-        }
         _ => {}
     }
 }
@@ -122,17 +120,16 @@ fn is_definition_keyword(name: &str) -> bool {
 fn is_in_definition_context(node: &Node) -> bool {
     let mut current = Some(*node);
     while let Some(n) = current {
-        if n.kind() == "call" {
-            if let Some(target) = n.child_by_field_name("target") {
-                if target.kind() == "identifier" {
-                    // Check if the alias is a direct argument of a definition call
-                    let parent_is_args = node.parent().is_some_and(|p| {
-                        p.kind() == "arguments" && p.parent().is_some_and(|pp| pp.id() == n.id())
-                    });
-                    if parent_is_args {
-                        return true;
-                    }
-                }
+        if n.kind() == "call"
+            && let Some(target) = n.child_by_field_name("target")
+            && target.kind() == "identifier"
+        {
+            // Check if the alias is a direct argument of a definition call
+            let parent_is_args = node.parent().is_some_and(|p| {
+                p.kind() == "arguments" && p.parent().is_some_and(|pp| pp.id() == n.id())
+            });
+            if parent_is_args {
+                return true;
             }
         }
         current = n.parent();

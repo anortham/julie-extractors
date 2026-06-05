@@ -205,12 +205,10 @@ pub(super) fn extract_constructor_parameters(
                         let children: Vec<Node> = child.children(&mut child.walk()).collect();
                         if let Some(equal_index) =
                             children.iter().position(|n| base.get_node_text(n) == "=")
+                            && equal_index + 1 < children.len()
                         {
-                            if equal_index + 1 < children.len() {
-                                let value_node = &children[equal_index + 1];
-                                signature
-                                    .push_str(&format!(" = {}", base.get_node_text(value_node)));
-                            }
+                            let value_node = &children[equal_index + 1];
+                            signature.push_str(&format!(" = {}", base.get_node_text(value_node)));
                         }
                     }
 

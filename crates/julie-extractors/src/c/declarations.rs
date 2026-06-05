@@ -103,21 +103,20 @@ pub(super) fn extract_declaration(
     let mut symbols = Vec::new();
 
     // Check if this is a typedef declaration
-    if helpers::is_typedef_declaration(&extractor.base, node) {
-        if let Some(typedef_symbol) =
+    if helpers::is_typedef_declaration(&extractor.base, node)
+        && let Some(typedef_symbol) =
             typedefs::extract_typedef_from_declaration(extractor, node, parent_id)
-        {
-            symbols.push(typedef_symbol);
-            return symbols;
-        }
+    {
+        symbols.push(typedef_symbol);
+        return symbols;
     }
 
     // Check if this is a function declaration
-    if let Some(_function_declarator) = helpers::find_function_declarator(node) {
-        if let Some(function_symbol) = extract_function_declaration(extractor, node, parent_id) {
-            symbols.push(function_symbol);
-            return symbols;
-        }
+    if let Some(_function_declarator) = helpers::find_function_declarator(node)
+        && let Some(function_symbol) = extract_function_declaration(extractor, node, parent_id)
+    {
+        symbols.push(function_symbol);
+        return symbols;
     }
 
     // Extract variable declarations

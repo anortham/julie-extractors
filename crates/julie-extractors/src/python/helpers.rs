@@ -46,16 +46,14 @@ pub fn extract_argument_list(extractor: &PythonExtractor, node: &Node) -> Vec<St
                 let mut child_cursor = child.walk();
                 let children: Vec<_> = child.children(&mut child_cursor).collect();
                 if let (Some(keyword_node), Some(value_node)) = (children.first(), children.last())
+                    && keyword_node.kind() == "identifier"
+                    && base.get_node_text(keyword_node) == "metaclass"
                 {
-                    if keyword_node.kind() == "identifier"
-                        && base.get_node_text(keyword_node) == "metaclass"
-                    {
-                        args.push(format!(
-                            "{}={}",
-                            base.get_node_text(keyword_node),
-                            base.get_node_text(value_node)
-                        ));
-                    }
+                    args.push(format!(
+                        "{}={}",
+                        base.get_node_text(keyword_node),
+                        base.get_node_text(value_node)
+                    ));
                 }
             }
             _ => {}

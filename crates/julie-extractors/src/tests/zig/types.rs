@@ -1,4 +1,4 @@
-/// Tests for Zig type extraction through the factory
+// Tests for Zig type extraction through the factory
 
 #[cfg(test)]
 mod tests {
@@ -49,7 +49,7 @@ pub fn getUserScores() std.StringHashMap(i32) {
             );
         }
 
-        assert!(results.types.len() >= 1);
+        assert!(!results.types.is_empty());
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "zig");
             assert!(type_info.is_inferred);

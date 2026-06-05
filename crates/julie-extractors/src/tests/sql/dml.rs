@@ -104,7 +104,7 @@ DO UPDATE SET
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("OVER ("))
+                    .is_some_and(|sig| sig.contains("OVER ("))
             })
             .collect::<Vec<_>>();
         assert!(!window_functions.is_empty());

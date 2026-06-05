@@ -265,7 +265,7 @@ Employee <- R6Class("Employee",
             .filter(|s| s.kind == SymbolKind::Variable)
             .collect();
 
-        assert!(variables.len() >= 1, "Should extract Employee class");
+        assert!(!variables.is_empty(), "Should extract Employee class");
     }
 
     #[test]

@@ -62,16 +62,16 @@ impl FallbackExtractor {
 
     /// Find DOCTYPE declaration in content
     fn find_doctype(content: &str) -> Option<String> {
-        if let Some(start) = content.find("<!DOCTYPE") {
-            if let Some(end) = content[start..].find('>') {
-                let total_len = start + end + 1;
-                // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
-                if content.is_char_boundary(total_len) {
-                    return Some(content[start..total_len].to_string());
-                } else {
-                    // Fallback: return complete DOCTYPE up to found end, or full content if boundary check fails
-                    return Some(content.to_string());
-                }
+        if let Some(start) = content.find("<!DOCTYPE")
+            && let Some(end) = content[start..].find('>')
+        {
+            let total_len = start + end + 1;
+            // SAFETY: Check char boundary before slicing to prevent UTF-8 panic
+            if content.is_char_boundary(total_len) {
+                return Some(content[start..total_len].to_string());
+            } else {
+                // Fallback: return complete DOCTYPE up to found end, or full content if boundary check fails
+                return Some(content.to_string());
             }
         }
         None
@@ -133,13 +133,13 @@ impl FallbackExtractor {
                     );
                 }
 
-                if let Some(content) = text_content {
-                    if !content.trim().is_empty() {
-                        metadata.insert(
-                            "textContent".to_string(),
-                            serde_json::Value::String(content.trim().to_string()),
-                        );
-                    }
+                if let Some(content) = text_content
+                    && !content.trim().is_empty()
+                {
+                    metadata.insert(
+                        "textContent".to_string(),
+                        serde_json::Value::String(content.trim().to_string()),
+                    );
                 }
 
                 // Extract HTML comment (if any)

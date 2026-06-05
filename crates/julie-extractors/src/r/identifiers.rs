@@ -86,10 +86,10 @@ fn extract_identifier_from_node(
         // Member access: object$property, object@slot
         "extract_operator" => {
             // Skip if this is part of a call expression (handled above)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call" {
-                    return;
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call"
+            {
+                return;
             }
 
             // Extract the member being accessed
@@ -112,21 +112,13 @@ fn extract_identifier_from_node(
             if let Some(parent) = node.parent() {
                 match parent.kind() {
                     // Skip if this is the function being called
-                    "call" if parent.child(0).map(|c| c.id()) == Some(node.id()) => {
-                        return;
-                    }
+                    "call" if parent.child(0).map(|c| c.id()) == Some(node.id()) => {}
                     // Skip if this is in an extract operator (handled separately)
-                    "extract_operator" => {
-                        return;
-                    }
+                    "extract_operator" => {}
                     // Skip if this is in a namespace operator
-                    "namespace_operator" => {
-                        return;
-                    }
+                    "namespace_operator" => {}
                     // Skip if this is a parameter name
-                    "parameter" => {
-                        return;
-                    }
+                    "parameter" => {}
                     // Check if this is the left side of an assignment
                     "binary_operator" => {
                         if let Some(operator) = parent.child(1) {

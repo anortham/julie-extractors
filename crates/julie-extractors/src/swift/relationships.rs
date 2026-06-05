@@ -207,6 +207,7 @@ impl SwiftExtractor {
     }
 
     /// Implementation of addInheritanceRelationship method
+    #[allow(clippy::too_many_arguments)]
     fn add_inheritance_relationship(
         &mut self,
         type_symbol: &Symbol,
@@ -274,30 +275,27 @@ impl SwiftExtractor {
             if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
                 if let Some(return_type) =
                     symbol.metadata.as_ref().and_then(|m| m.get("returnType"))
+                    && let Some(return_type_str) = return_type.as_str()
                 {
-                    if let Some(return_type_str) = return_type.as_str() {
-                        types.insert(symbol.id.clone(), return_type_str.to_string());
-                        continue;
-                    }
+                    types.insert(symbol.id.clone(), return_type_str.to_string());
+                    continue;
                 }
             }
             // For properties/variables, prefer propertyType or variableType
             else if matches!(symbol.kind, SymbolKind::Property | SymbolKind::Variable) {
                 if let Some(property_type) =
                     symbol.metadata.as_ref().and_then(|m| m.get("propertyType"))
+                    && let Some(property_type_str) = property_type.as_str()
                 {
-                    if let Some(property_type_str) = property_type.as_str() {
-                        types.insert(symbol.id.clone(), property_type_str.to_string());
-                        continue;
-                    }
+                    types.insert(symbol.id.clone(), property_type_str.to_string());
+                    continue;
                 }
                 if let Some(variable_type) =
                     symbol.metadata.as_ref().and_then(|m| m.get("variableType"))
+                    && let Some(variable_type_str) = variable_type.as_str()
                 {
-                    if let Some(variable_type_str) = variable_type.as_str() {
-                        types.insert(symbol.id.clone(), variable_type_str.to_string());
-                        continue;
-                    }
+                    types.insert(symbol.id.clone(), variable_type_str.to_string());
+                    continue;
                 }
             }
 
@@ -308,10 +306,9 @@ impl SwiftExtractor {
                 }
             } else if let Some(return_type) =
                 symbol.metadata.as_ref().and_then(|m| m.get("returnType"))
+                && let Some(return_type_str) = return_type.as_str()
             {
-                if let Some(return_type_str) = return_type.as_str() {
-                    types.insert(symbol.id.clone(), return_type_str.to_string());
-                }
+                types.insert(symbol.id.clone(), return_type_str.to_string());
             }
         }
         types

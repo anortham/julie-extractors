@@ -29,7 +29,7 @@ pub(super) fn extract_relationships(
         &symbol_index,
         &mut relationships,
     );
-    extract_member_access_relationships(extractor, tree.root_node(), symbols, &mut relationships);
+    extract_member_access_relationships(extractor, tree.root_node(), symbols);
     relationships
 }
 
@@ -136,70 +136,69 @@ fn extract_pipe_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     // Pipe operators in R are binary operators
-    if node.kind() == "binary_operator" {
-        if let Some(operator) = node.child(1) {
-            let op_text = extractor.base.get_node_text(&operator);
+    if node.kind() == "binary_operator"
+        && let Some(operator) = node.child(1)
+    {
+        let op_text = extractor.base.get_node_text(&operator);
 
-            // Check if this is a pipe operator
-            if op_text == "%>%" || op_text == "|>" {
-                // The right side of the pipe is typically a function call
-                if let Some(right_child) = node.child(2) {
-                    if right_child.kind() == "call" {
-                        // Extract the function being called
-                        if let Some(function_node) = right_child.child(0) {
-                            let function_name = extractor.base.get_node_text(&function_node);
-                            let target =
-                                unresolved_call_target(extractor, function_node, &function_name);
+        // Check if this is a pipe operator
+        if op_text == "%>%" || op_text == "|>" {
+            // The right side of the pipe is typically a function call
+            if let Some(right_child) = node.child(2)
+                && right_child.kind() == "call"
+            {
+                // Extract the function being called
+                if let Some(function_node) = right_child.child(0) {
+                    let function_name = extractor.base.get_node_text(&function_node);
+                    let target = unresolved_call_target(extractor, function_node, &function_name);
 
-                            // Find containing function
-                            if let Some(containing_symbol) =
-                                find_containing_function(extractor, node, symbols)
-                            {
-                                let local_target = if target.namespace_path.is_empty() {
-                                    symbol_index
-                                        .resolve_call_target(
-                                            &target.terminal_name,
-                                            Some(containing_symbol),
-                                            target.receiver.as_deref(),
-                                        )
-                                        .as_symbol()
-                                        .filter(|symbol| symbol.kind == SymbolKind::Function)
-                                } else {
-                                    None
-                                };
+                    // Find containing function
+                    if let Some(containing_symbol) =
+                        find_containing_function(extractor, node, symbols)
+                    {
+                        let local_target = if target.namespace_path.is_empty() {
+                            symbol_index
+                                .resolve_call_target(
+                                    &target.terminal_name,
+                                    Some(containing_symbol),
+                                    target.receiver.as_deref(),
+                                )
+                                .as_symbol()
+                                .filter(|symbol| symbol.kind == SymbolKind::Function)
+                        } else {
+                            None
+                        };
 
-                                // Check if the piped function is defined locally
-                                if let Some(called_symbol) = local_target {
-                                    let relationship = Relationship {
-                                        id: format!(
-                                            "{}_{}_{:?}_{}",
-                                            containing_symbol.id,
-                                            called_symbol.id,
-                                            RelationshipKind::Calls,
-                                            node.start_position().row
-                                        ),
-                                        from_symbol_id: containing_symbol.id.clone(),
-                                        to_symbol_id: called_symbol.id.clone(),
-                                        kind: RelationshipKind::Calls,
-                                        file_path: extractor.base.file_path.clone(),
-                                        line_number: (node.start_position().row + 1) as u32,
-                                        confidence: 1.0,
-                                        metadata: None,
-                                    };
-                                    relationships.push(relationship);
-                                } else {
-                                    // Not found locally - create PendingRelationship
-                                    let pending = extractor.base.create_pending_relationship(
-                                        containing_symbol.id.clone(),
-                                        target,
-                                        RelationshipKind::Calls,
-                                        &node,
-                                        Some(containing_symbol.id.clone()),
-                                        Some(0.7),
-                                    );
-                                    extractor.add_structured_pending_relationship(pending);
-                                }
-                            }
+                        // Check if the piped function is defined locally
+                        if let Some(called_symbol) = local_target {
+                            let relationship = Relationship {
+                                id: format!(
+                                    "{}_{}_{:?}_{}",
+                                    containing_symbol.id,
+                                    called_symbol.id,
+                                    RelationshipKind::Calls,
+                                    node.start_position().row
+                                ),
+                                from_symbol_id: containing_symbol.id.clone(),
+                                to_symbol_id: called_symbol.id.clone(),
+                                kind: RelationshipKind::Calls,
+                                file_path: extractor.base.file_path.clone(),
+                                line_number: (node.start_position().row + 1) as u32,
+                                confidence: 1.0,
+                                metadata: None,
+                            };
+                            relationships.push(relationship);
+                        } else {
+                            // Not found locally - create PendingRelationship
+                            let pending = extractor.base.create_pending_relationship(
+                                containing_symbol.id.clone(),
+                                target,
+                                RelationshipKind::Calls,
+                                &node,
+                                Some(containing_symbol.id.clone()),
+                                Some(0.7),
+                            );
+                            extractor.add_structured_pending_relationship(pending);
                         }
                     }
                 }
@@ -215,12 +214,7 @@ fn extract_pipe_relationships(
 }
 
 /// Extract member access relationships ($ operator)
-fn extract_member_access_relationships(
-    extractor: &mut RExtractor,
-    node: Node,
-    symbols: &[Symbol],
-    relationships: &mut Vec<Relationship>,
-) {
+fn extract_member_access_relationships(extractor: &mut RExtractor, node: Node, symbols: &[Symbol]) {
     // R uses extract_operator for $ and @
     if node.kind() == "extract_operator" {
         // The member being accessed is the third child (index 2)
@@ -260,7 +254,7 @@ fn extract_member_access_relationships(
     // Recursively process children
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_member_access_relationships(extractor, child, symbols, relationships);
+        extract_member_access_relationships(extractor, child, symbols);
     }
 }
 

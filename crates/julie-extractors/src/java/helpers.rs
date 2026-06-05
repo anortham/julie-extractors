@@ -65,17 +65,16 @@ pub(super) fn extract_implemented_interfaces(base: &BaseExtractor, node: Node) -
         .children(&mut node.walk())
         .find(|c| c.kind() == "super_interfaces");
 
-    if let Some(interfaces_node) = interfaces_node {
-        if let Some(type_list_node) = interfaces_node
+    if let Some(interfaces_node) = interfaces_node
+        && let Some(type_list_node) = interfaces_node
             .children(&mut interfaces_node.walk())
             .find(|c| c.kind() == "type_list")
-        {
-            return type_list_node
-                .children(&mut type_list_node.walk())
-                .filter(|c| matches!(c.kind(), "type_identifier" | "generic_type"))
-                .map(|c| base.get_node_text(&c))
-                .collect();
-        }
+    {
+        return type_list_node
+            .children(&mut type_list_node.walk())
+            .filter(|c| matches!(c.kind(), "type_identifier" | "generic_type"))
+            .map(|c| base.get_node_text(&c))
+            .collect();
     }
 
     Vec::new()
@@ -87,17 +86,16 @@ pub(super) fn extract_extended_interfaces(base: &BaseExtractor, node: Node) -> V
         .children(&mut node.walk())
         .find(|c| c.kind() == "extends_interfaces");
 
-    if let Some(extends_node) = extends_node {
-        if let Some(type_list_node) = extends_node
+    if let Some(extends_node) = extends_node
+        && let Some(type_list_node) = extends_node
             .children(&mut extends_node.walk())
             .find(|c| c.kind() == "type_list")
-        {
-            return type_list_node
-                .children(&mut type_list_node.walk())
-                .filter(|c| matches!(c.kind(), "type_identifier" | "generic_type"))
-                .map(|c| base.get_node_text(&c))
-                .collect();
-        }
+    {
+        return type_list_node
+            .children(&mut type_list_node.walk())
+            .filter(|c| matches!(c.kind(), "type_identifier" | "generic_type"))
+            .map(|c| base.get_node_text(&c))
+            .collect();
     }
 
     Vec::new()

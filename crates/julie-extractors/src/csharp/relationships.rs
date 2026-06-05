@@ -208,12 +208,12 @@ fn extract_constructor_parameter_relationships(
             .children(&mut param_cursor)
             .filter(|c| c.kind() == "parameter")
         {
-            if let Some(type_name) = extract_parameter_type_name(base, param) {
-                if !type_name.is_empty() {
-                    let line_number = param.start_position().row as u32 + 1;
-                    let row = param.start_position().row;
-                    types.push((type_name, line_number, row));
-                }
+            if let Some(type_name) = extract_parameter_type_name(base, param)
+                && !type_name.is_empty()
+            {
+                let line_number = param.start_position().row as u32 + 1;
+                let row = param.start_position().row;
+                types.push((type_name, line_number, row));
             }
         }
 
@@ -317,29 +317,29 @@ fn extract_object_creation_relationships(
     let symbol_index = ScopedSymbolIndex::new(symbols);
     let resolution = symbol_index.resolve_call_target(&target.terminal_name, Some(&caller), None);
 
-    if let LocalTargetResolution::Resolved(type_symbol) = resolution {
-        if matches!(
+    if let LocalTargetResolution::Resolved(type_symbol) = resolution
+        && matches!(
             type_symbol.kind,
             SymbolKind::Class | SymbolKind::Struct | SymbolKind::Type
-        ) {
-            relationships.push(Relationship {
-                id: format!(
-                    "{}_{}_{:?}_{}",
-                    caller.id,
-                    type_symbol.id,
-                    RelationshipKind::Instantiates,
-                    node.start_position().row
-                ),
-                from_symbol_id: caller.id.clone(),
-                to_symbol_id: type_symbol.id.clone(),
-                kind: RelationshipKind::Instantiates,
-                file_path: extractor.get_base().file_path.clone(),
-                line_number: node.start_position().row as u32 + 1,
-                confidence: 0.9,
-                metadata: None,
-            });
-            return;
-        }
+        )
+    {
+        relationships.push(Relationship {
+            id: format!(
+                "{}_{}_{:?}_{}",
+                caller.id,
+                type_symbol.id,
+                RelationshipKind::Instantiates,
+                node.start_position().row
+            ),
+            from_symbol_id: caller.id.clone(),
+            to_symbol_id: type_symbol.id.clone(),
+            kind: RelationshipKind::Instantiates,
+            file_path: extractor.get_base().file_path.clone(),
+            line_number: node.start_position().row as u32 + 1,
+            confidence: 0.9,
+            metadata: None,
+        });
+        return;
     }
 
     let pending = extractor.get_base().create_pending_relationship(

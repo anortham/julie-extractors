@@ -350,7 +350,7 @@ impl MarkdownExtractor {
         let text = self.base.get_node_text(&node);
 
         // Count leading # characters
-        text.chars().take_while(|&c| c == '#').count().max(1).min(6)
+        text.chars().take_while(|&c| c == '#').count().clamp(1, 6)
     }
 
     pub fn get_type_argument_usages(&self) -> Vec<crate::base::TypeArgumentUsage> {

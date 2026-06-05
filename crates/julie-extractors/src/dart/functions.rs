@@ -322,50 +322,50 @@ pub(super) fn extract_variable(
 
     // Look for initialized_variable_definition directly in children
     for child in node.children(&mut cursor) {
-        if child.kind() == "initialized_variable_definition" {
-            if let Some(name_node) = find_child_by_type(&child, "identifier") {
-                let name = get_node_text(&name_node);
-                let is_private = name.starts_with('_');
-                let is_final = is_final_variable(&child);
-                let is_const = is_const_variable(&child);
-                let annotations = extract_annotation_markers(node);
+        if child.kind() == "initialized_variable_definition"
+            && let Some(name_node) = find_child_by_type(&child, "identifier")
+        {
+            let name = get_node_text(&name_node);
+            let is_private = name.starts_with('_');
+            let is_final = is_final_variable(&child);
+            let is_const = is_const_variable(&child);
+            let annotations = extract_annotation_markers(node);
 
-                let symbol_kind = if is_final || is_const {
-                    SymbolKind::Constant
-                } else {
-                    SymbolKind::Variable
-                };
+            let symbol_kind = if is_final || is_const {
+                SymbolKind::Constant
+            } else {
+                SymbolKind::Variable
+            };
 
-                let mut symbol = base.create_symbol(
-                    &child,
-                    name,
-                    symbol_kind,
-                    SymbolOptions {
-                        signature: signatures::extract_variable_signature(&child),
-                        visibility: Some(if is_private {
-                            Visibility::Private
-                        } else {
-                            Visibility::Public
-                        }),
-                        parent_id: parent_id.map(|id| id.to_string()),
-                        metadata: Some(HashMap::new()),
-                        annotations,
-                        doc_comment: base.find_doc_comment(node),
-                    },
-                );
+            let mut symbol = base.create_symbol(
+                &child,
+                name,
+                symbol_kind,
+                SymbolOptions {
+                    signature: signatures::extract_variable_signature(&child),
+                    visibility: Some(if is_private {
+                        Visibility::Private
+                    } else {
+                        Visibility::Public
+                    }),
+                    parent_id: parent_id.map(|id| id.to_string()),
+                    metadata: Some(HashMap::new()),
+                    annotations,
+                    doc_comment: base.find_doc_comment(node),
+                },
+            );
 
-                // Add metadata
-                symbol
-                    .metadata
-                    .get_or_insert_with(HashMap::new)
-                    .insert("isFinal".to_string(), serde_json::Value::Bool(is_final));
-                symbol
-                    .metadata
-                    .get_or_insert_with(HashMap::new)
-                    .insert("isConst".to_string(), serde_json::Value::Bool(is_const));
+            // Add metadata
+            symbol
+                .metadata
+                .get_or_insert_with(HashMap::new)
+                .insert("isFinal".to_string(), serde_json::Value::Bool(is_final));
+            symbol
+                .metadata
+                .get_or_insert_with(HashMap::new)
+                .insert("isConst".to_string(), serde_json::Value::Bool(is_const));
 
-                return Some(symbol);
-            }
+            return Some(symbol);
         }
     }
 

@@ -174,6 +174,7 @@ mod tests {
         None
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn test_symbol(
         id: &str,
         kind: SymbolKind,

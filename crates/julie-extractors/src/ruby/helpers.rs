@@ -177,15 +177,14 @@ fn find_includes_and_extends_recursive(
     base_get_text: impl Fn(&Node) -> String + Copy,
 ) {
     // Check if this node itself is a call node for include/extend/prepend
-    if node.kind() == "call" {
-        if let Some(method_name) = extract_method_name(node) {
-            if matches!(
-                method_name.as_str(),
-                "include" | "extend" | "prepend" | "using"
-            ) {
-                includes.push(base_get_text(&node));
-            }
-        }
+    if node.kind() == "call"
+        && let Some(method_name) = extract_method_name(node)
+        && matches!(
+            method_name.as_str(),
+            "include" | "extend" | "prepend" | "using"
+        )
+    {
+        includes.push(base_get_text(&node));
     }
 
     // Recursively search children

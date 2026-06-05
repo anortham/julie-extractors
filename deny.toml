@@ -1,0 +1,50 @@
+[graph]
+all-features = true
+
+[advisories]
+ignore = []
+
+[licenses]
+allow = [
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "CC0-1.0",
+    "MIT",
+    "MIT-0",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+confidence-threshold = 0.8
+exceptions = []
+
+[licenses.private]
+ignore = false
+registries = []
+
+[bans]
+multiple-versions = "warn"
+wildcards = "warn"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+allow = []
+deny = []
+skip = []
+skip-tree = []
+
+# `md5@0.7.0` is intentionally retained as a compatibility dependency. Its
+# output is part of stable legacy extraction IDs and body hashes; path-identity
+# and contract tests guard those values.
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = [
+    "https://github.com/LuisCarreras/tree-sitter-vb-dotnet",
+    "https://github.com/airbus-cert/tree-sitter-powershell",
+    "https://github.com/tris203/tree-sitter-razor",
+    "https://github.com/yuja/tree-sitter-qmljs",
+]
+unused-allowed-source = "deny"

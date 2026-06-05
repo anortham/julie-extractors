@@ -41,7 +41,7 @@ namespace MyProject
         let symbols = extractor.extract_symbols(&tree);
         let relationships = extractor.extract_relationships(&tree, &symbols);
 
-        assert!(relationships.len() >= 1);
+        assert!(!relationships.is_empty());
 
         let inheritance = relationships.iter().find(|r| {
             r.kind.to_string() == "extends"

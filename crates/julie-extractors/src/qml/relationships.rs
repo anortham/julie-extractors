@@ -40,58 +40,56 @@ fn extract_call_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     // Match JavaScript call expressions (QML uses TypeScript/JavaScript grammar)
-    if node.kind() == "call_expression" {
-        if let Some(function_node) = node.child_by_field_name("function") {
-            let (function_name, receiver) = match function_node.kind() {
-                "identifier" => (extractor.base.get_node_text(&function_node), None),
-                "member_expression" => {
-                    // For member_expression like object.method(), extract just the method name
-                    if let Some(property) = function_node.child_by_field_name("property") {
-                        (
-                            extractor.base.get_node_text(&property),
-                            function_node
-                                .child_by_field_name("object")
-                                .map(|node| extractor.base.get_node_text(&node)),
-                        )
-                    } else {
-                        (extractor.base.get_node_text(&function_node), None)
-                    }
-                }
-                _ => (extractor.base.get_node_text(&function_node), None),
-            };
-
-            // Find the containing function (caller)
-            if let Some(caller_symbol) = find_containing_function(node, symbols) {
-                if let Some(called_symbol) = symbol_map
-                    .get(function_name.as_str())
-                    .filter(|s| s.kind == SymbolKind::Function || s.kind == SymbolKind::Event)
-                {
-                    if receiver_can_resolve_locally(
-                        receiver.as_deref(),
-                        caller_symbol,
-                        called_symbol,
-                        symbols,
-                    ) {
-                        let relationship = Relationship {
-                            id: format!(
-                                "{}_{}_{:?}_{}",
-                                caller_symbol.id,
-                                called_symbol.id,
-                                RelationshipKind::Calls,
-                                node.start_position().row
-                            ),
-                            from_symbol_id: caller_symbol.id.clone(),
-                            to_symbol_id: called_symbol.id.clone(),
-                            kind: RelationshipKind::Calls,
-                            file_path: extractor.base.file_path.clone(),
-                            line_number: (node.start_position().row + 1) as u32,
-                            confidence: 1.0,
-                            metadata: None,
-                        };
-                        relationships.push(relationship);
-                    }
+    if node.kind() == "call_expression"
+        && let Some(function_node) = node.child_by_field_name("function")
+    {
+        let (function_name, receiver) = match function_node.kind() {
+            "identifier" => (extractor.base.get_node_text(&function_node), None),
+            "member_expression" => {
+                // For member_expression like object.method(), extract just the method name
+                if let Some(property) = function_node.child_by_field_name("property") {
+                    (
+                        extractor.base.get_node_text(&property),
+                        function_node
+                            .child_by_field_name("object")
+                            .map(|node| extractor.base.get_node_text(&node)),
+                    )
+                } else {
+                    (extractor.base.get_node_text(&function_node), None)
                 }
             }
+            _ => (extractor.base.get_node_text(&function_node), None),
+        };
+
+        // Find the containing function (caller)
+        if let Some(caller_symbol) = find_containing_function(node, symbols)
+            && let Some(called_symbol) = symbol_map
+                .get(function_name.as_str())
+                .filter(|s| s.kind == SymbolKind::Function || s.kind == SymbolKind::Event)
+            && receiver_can_resolve_locally(
+                receiver.as_deref(),
+                caller_symbol,
+                called_symbol,
+                symbols,
+            )
+        {
+            let relationship = Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    caller_symbol.id,
+                    called_symbol.id,
+                    RelationshipKind::Calls,
+                    node.start_position().row
+                ),
+                from_symbol_id: caller_symbol.id.clone(),
+                to_symbol_id: called_symbol.id.clone(),
+                kind: RelationshipKind::Calls,
+                file_path: extractor.base.file_path.clone(),
+                line_number: (node.start_position().row + 1) as u32,
+                confidence: 1.0,
+                metadata: None,
+            };
+            relationships.push(relationship);
         }
     }
 
@@ -143,38 +141,38 @@ fn extract_instantiation_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     // QML component definitions are ui_object_definition nodes
-    if node.kind() == "ui_object_definition" {
-        if let Some(type_name_node) = node.child_by_field_name("type_name") {
-            let component_type = extractor.base.get_node_text(&type_name_node);
+    if node.kind() == "ui_object_definition"
+        && let Some(type_name_node) = node.child_by_field_name("type_name")
+    {
+        let component_type = extractor.base.get_node_text(&type_name_node);
 
-            // Find the containing QML component (parent)
-            if let Some(parent_symbol) = find_containing_component(node, symbols) {
-                // The instantiated component is the symbol we created for this node
-                // Find it by matching the node position
-                let node_line = node.start_position().row + 1;
-                if let Some(instantiated_symbol) = symbols.iter().find(|s| {
-                    s.start_line == node_line as u32
-                        && s.kind == SymbolKind::Class
-                        && s.name.contains(&component_type)
-                }) {
-                    let relationship = Relationship {
-                        id: format!(
-                            "{}_{}_{:?}_{}",
-                            parent_symbol.id,
-                            instantiated_symbol.id,
-                            RelationshipKind::Instantiates,
-                            node.start_position().row
-                        ),
-                        from_symbol_id: parent_symbol.id.clone(),
-                        to_symbol_id: instantiated_symbol.id.clone(),
-                        kind: RelationshipKind::Instantiates,
-                        file_path: extractor.base.file_path.clone(),
-                        line_number: node_line as u32,
-                        confidence: 1.0,
-                        metadata: None,
-                    };
-                    relationships.push(relationship);
-                }
+        // Find the containing QML component (parent)
+        if let Some(parent_symbol) = find_containing_component(node, symbols) {
+            // The instantiated component is the symbol we created for this node
+            // Find it by matching the node position
+            let node_line = node.start_position().row + 1;
+            if let Some(instantiated_symbol) = symbols.iter().find(|s| {
+                s.start_line == node_line as u32
+                    && s.kind == SymbolKind::Class
+                    && s.name.contains(&component_type)
+            }) {
+                let relationship = Relationship {
+                    id: format!(
+                        "{}_{}_{:?}_{}",
+                        parent_symbol.id,
+                        instantiated_symbol.id,
+                        RelationshipKind::Instantiates,
+                        node.start_position().row
+                    ),
+                    from_symbol_id: parent_symbol.id.clone(),
+                    to_symbol_id: instantiated_symbol.id.clone(),
+                    kind: RelationshipKind::Instantiates,
+                    file_path: extractor.base.file_path.clone(),
+                    line_number: node_line as u32,
+                    confidence: 1.0,
+                    metadata: None,
+                };
+                relationships.push(relationship);
             }
         }
     }
@@ -194,37 +192,37 @@ fn extract_property_binding_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     // Look for member expressions anywhere (they represent property access)
-    if node.kind() == "member_expression" {
-        if let Some(property_node) = node.child_by_field_name("property") {
-            let property_name = extractor.base.get_node_text(&property_node);
+    if node.kind() == "member_expression"
+        && let Some(property_node) = node.child_by_field_name("property")
+    {
+        let property_name = extractor.base.get_node_text(&property_node);
 
-            // Find containing component
-            if let Some(container_symbol) = find_containing_component(node, symbols) {
-                let Some(target_symbol) =
-                    find_property_target(&property_name, container_symbol, symbols)
-                else {
-                    return;
-                };
+        // Find containing component
+        if let Some(container_symbol) = find_containing_component(node, symbols) {
+            let Some(target_symbol) =
+                find_property_target(&property_name, container_symbol, symbols)
+            else {
+                return;
+            };
 
-                // Create a Uses relationship for the property access
-                let relationship = Relationship {
-                    id: format!(
-                        "{}_{:?}_{}_{}",
-                        container_symbol.id,
-                        RelationshipKind::Uses,
-                        property_name,
-                        node.start_position().row
-                    ),
-                    from_symbol_id: container_symbol.id.clone(),
-                    to_symbol_id: target_symbol.id.clone(),
-                    kind: RelationshipKind::Uses,
-                    file_path: extractor.base.file_path.clone(),
-                    line_number: (node.start_position().row + 1) as u32,
-                    confidence: 0.8,
-                    metadata: None,
-                };
-                relationships.push(relationship);
-            }
+            // Create a Uses relationship for the property access
+            let relationship = Relationship {
+                id: format!(
+                    "{}_{:?}_{}_{}",
+                    container_symbol.id,
+                    RelationshipKind::Uses,
+                    property_name,
+                    node.start_position().row
+                ),
+                from_symbol_id: container_symbol.id.clone(),
+                to_symbol_id: target_symbol.id.clone(),
+                kind: RelationshipKind::Uses,
+                file_path: extractor.base.file_path.clone(),
+                line_number: (node.start_position().row + 1) as u32,
+                confidence: 0.8,
+                metadata: None,
+            };
+            relationships.push(relationship);
         }
     }
 

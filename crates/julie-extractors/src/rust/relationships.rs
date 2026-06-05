@@ -175,27 +175,26 @@ fn extract_impl_relationships(
     let base = extractor.get_base_mut();
     let targets = extract_impl_target_names(base, node);
 
-    if let (Some(trait_name), Some(type_name)) = (targets.trait_name, targets.type_name) {
-        if let (Some(trait_symbol), Some(type_symbol)) =
+    if let (Some(trait_name), Some(type_name)) = (targets.trait_name, targets.type_name)
+        && let (Some(trait_symbol), Some(type_symbol)) =
             (symbol_map.get(&trait_name), symbol_map.get(&type_name))
-        {
-            relationships.push(Relationship {
-                id: format!(
-                    "{}_{}_{:?}_{}",
-                    type_symbol.id,
-                    trait_symbol.id,
-                    RelationshipKind::Implements,
-                    node.start_position().row
-                ),
-                from_symbol_id: type_symbol.id.clone(),
-                to_symbol_id: trait_symbol.id.clone(),
-                kind: RelationshipKind::Implements,
-                file_path: base.file_path.clone(),
-                line_number: node.start_position().row as u32 + 1,
-                confidence: 0.95,
-                metadata: None,
-            });
-        }
+    {
+        relationships.push(Relationship {
+            id: format!(
+                "{}_{}_{:?}_{}",
+                type_symbol.id,
+                trait_symbol.id,
+                RelationshipKind::Implements,
+                node.start_position().row
+            ),
+            from_symbol_id: type_symbol.id.clone(),
+            to_symbol_id: trait_symbol.id.clone(),
+            kind: RelationshipKind::Implements,
+            file_path: base.file_path.clone(),
+            line_number: node.start_position().row as u32 + 1,
+            confidence: 0.95,
+            metadata: None,
+        });
     }
 }
 
@@ -246,25 +245,25 @@ fn extract_field_type_references(
     for child in field_node.children(&mut field_node.walk()) {
         if child.kind() == "type_identifier" {
             let referenced_type_name = base.get_node_text(&child);
-            if let Some(referenced_symbol) = symbol_map.get(&referenced_type_name) {
-                if referenced_symbol.id != container_symbol.id {
-                    relationships.push(Relationship {
-                        id: format!(
-                            "{}_{}_{:?}_{}",
-                            container_symbol.id,
-                            referenced_symbol.id,
-                            RelationshipKind::Uses,
-                            field_node.start_position().row
-                        ),
-                        from_symbol_id: container_symbol.id.clone(),
-                        to_symbol_id: referenced_symbol.id.clone(),
-                        kind: RelationshipKind::Uses,
-                        file_path: base.file_path.clone(),
-                        line_number: field_node.start_position().row as u32 + 1,
-                        confidence: 0.8,
-                        metadata: None,
-                    });
-                }
+            if let Some(referenced_symbol) = symbol_map.get(&referenced_type_name)
+                && referenced_symbol.id != container_symbol.id
+            {
+                relationships.push(Relationship {
+                    id: format!(
+                        "{}_{}_{:?}_{}",
+                        container_symbol.id,
+                        referenced_symbol.id,
+                        RelationshipKind::Uses,
+                        field_node.start_position().row
+                    ),
+                    from_symbol_id: container_symbol.id.clone(),
+                    to_symbol_id: referenced_symbol.id.clone(),
+                    kind: RelationshipKind::Uses,
+                    file_path: base.file_path.clone(),
+                    line_number: field_node.start_position().row as u32 + 1,
+                    confidence: 0.8,
+                    metadata: None,
+                });
             }
         }
     }
@@ -327,19 +326,19 @@ fn extract_call_relationships(
             );
         }
         // Handle qualified/scoped calls: crate::module::function()
-        else if func_node.kind() == "scoped_identifier" {
-            if let Some(target) = scoped_identifier_to_unresolved_target(extractor, func_node) {
-                let function_name = target.terminal_name.clone();
-                handle_call_target(
-                    extractor,
-                    node,
-                    &function_name,
-                    target,
-                    symbols,
-                    symbol_index,
-                    relationships,
-                );
-            }
+        else if func_node.kind() == "scoped_identifier"
+            && let Some(target) = scoped_identifier_to_unresolved_target(extractor, func_node)
+        {
+            let function_name = target.terminal_name.clone();
+            handle_call_target(
+                extractor,
+                node,
+                &function_name,
+                target,
+                symbols,
+                symbol_index,
+                relationships,
+            );
         }
     }
 }

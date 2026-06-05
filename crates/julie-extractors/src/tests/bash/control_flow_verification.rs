@@ -4,7 +4,7 @@
 // This test confirms the fix for the extractor audit issue #4.
 
 #[cfg(test)]
-mod control_flow_verification {
+mod tests {
     use crate::base::SymbolKind;
     use crate::bash::BashExtractor;
     use std::path::PathBuf;

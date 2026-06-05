@@ -70,15 +70,15 @@ impl super::GoExtractor {
                     }
                 }
                 // Record type arguments for generic function calls: fn[T](args)
-                if let Some(ref identifier) = call_id {
-                    if let Some(type_args_node) = node.child_by_field_name("type_arguments") {
-                        let arguments = crate::base::extract_type_arguments(
-                            &self.base,
-                            type_args_node,
-                            decompose_go_type_arg,
-                        );
-                        self.base.record_type_arguments(identifier, arguments);
-                    }
+                if let Some(ref identifier) = call_id
+                    && let Some(type_args_node) = node.child_by_field_name("type_arguments")
+                {
+                    let arguments = crate::base::extract_type_arguments(
+                        &self.base,
+                        type_args_node,
+                        decompose_go_type_arg,
+                    );
+                    self.base.record_type_arguments(identifier, arguments);
                 }
                 // Phase 3b: capture string-literal call-arguments (config-free;
                 // carrier classification + gate run later in the artifact language-policy pass).
@@ -89,10 +89,10 @@ impl super::GoExtractor {
             "selector_expression" => {
                 // Only extract if it's NOT part of a call_expression
                 // (we handle those in the call_expression case above)
-                if let Some(parent) = node.parent() {
-                    if parent.kind() == "call_expression" {
-                        return; // Skip - handled by call_expression
-                    }
+                if let Some(parent) = node.parent()
+                    && parent.kind() == "call_expression"
+                {
+                    return; // Skip - handled by call_expression
                 }
 
                 // Extract the rightmost identifier (the field name)
@@ -306,10 +306,10 @@ fn is_go_type_usage_identifier(base: &BaseExtractor, node: Node) -> bool {
             return false;
         }
 
-        if let Some(type_node) = parent.child_by_field_name("type") {
-            if contains_node(type_node, node) {
-                return true;
-            }
+        if let Some(type_node) = parent.child_by_field_name("type")
+            && contains_node(type_node, node)
+        {
+            return true;
         }
 
         match parent.kind() {
@@ -374,19 +374,19 @@ fn is_go_declaration_type_name(node: Node) -> bool {
         return false;
     };
 
-    if let Some(name_node) = parent.child_by_field_name("name") {
-        if name_node.id() == node.id() {
-            return matches!(
-                parent.kind(),
-                "type_spec"
-                    | "type_parameter_declaration"
-                    | "field_declaration"
-                    | "function_declaration"
-                    | "method_declaration"
-                    | "parameter_declaration"
-                    | "variadic_parameter_declaration"
-            );
-        }
+    if let Some(name_node) = parent.child_by_field_name("name")
+        && name_node.id() == node.id()
+    {
+        return matches!(
+            parent.kind(),
+            "type_spec"
+                | "type_parameter_declaration"
+                | "field_declaration"
+                | "function_declaration"
+                | "method_declaration"
+                | "parameter_declaration"
+                | "variadic_parameter_declaration"
+        );
     }
 
     matches!(parent.kind(), "type_parameter_list")

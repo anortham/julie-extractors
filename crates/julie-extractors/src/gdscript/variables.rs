@@ -20,19 +20,19 @@ pub(super) fn extract_variable_statement(
 
     // Find var index and look for name after it
     for i in 0..parent_node.child_count() {
-        if let Some(child) = parent_node.child(i as u32) {
-            if child.id() == node.id() {
-                // Found var node, look for name after it
-                for j in (i + 1)..parent_node.child_count() {
-                    if let Some(sibling) = parent_node.child(j as u32) {
-                        if sibling.kind() == "name" {
-                            name_node = Some(sibling);
-                            break;
-                        }
-                    }
+        if let Some(child) = parent_node.child(i as u32)
+            && child.id() == node.id()
+        {
+            // Found var node, look for name after it
+            for j in (i + 1)..parent_node.child_count() {
+                if let Some(sibling) = parent_node.child(j as u32)
+                    && sibling.kind() == "name"
+                {
+                    name_node = Some(sibling);
+                    break;
                 }
-                break;
             }
+            break;
         }
     }
 
@@ -98,19 +98,19 @@ pub(super) fn extract_constant_statement(
 
     // Find const index and look for name after it
     for i in 0..parent_node.child_count() {
-        if let Some(child) = parent_node.child(i as u32) {
-            if child.kind() == "const" {
-                // Found const node, look for name after it
-                for j in (i + 1)..parent_node.child_count() {
-                    if let Some(sibling) = parent_node.child(j as u32) {
-                        if sibling.kind() == "name" {
-                            name_node = Some(sibling);
-                            break;
-                        }
-                    }
+        if let Some(child) = parent_node.child(i as u32)
+            && child.kind() == "const"
+        {
+            // Found const node, look for name after it
+            for j in (i + 1)..parent_node.child_count() {
+                if let Some(sibling) = parent_node.child(j as u32)
+                    && sibling.kind() == "name"
+                {
+                    name_node = Some(sibling);
+                    break;
                 }
-                break;
             }
+            break;
         }
     }
 
@@ -205,14 +205,13 @@ pub(super) fn find_closest_class_name_parent(
     // Find variable's position in source children
     let mut var_index = None;
     for i in 0..source_parent.child_count() {
-        if let Some(child) = source_parent.child(i as u32) {
-            if child.kind() == "variable_statement"
-                && child.start_position().row == node.start_position().row
-                && child.start_position().column == node.start_position().column
-            {
-                var_index = Some(i);
-                break;
-            }
+        if let Some(child) = source_parent.child(i as u32)
+            && child.kind() == "variable_statement"
+            && child.start_position().row == node.start_position().row
+            && child.start_position().column == node.start_position().column
+        {
+            var_index = Some(i);
+            break;
         }
     }
 
@@ -220,16 +219,13 @@ pub(super) fn find_closest_class_name_parent(
 
     // Find the last class_name_statement before this variable
     for i in (0..var_index).rev() {
-        if let Some(child) = source_parent.child(i as u32) {
-            if child.kind() == "class_name_statement" {
-                if let Some(name_node) = find_child_by_type(&child, "name") {
-                    let class_name = base.get_node_text(&name_node);
-                    if let Some(matching_class) =
-                        class_name_classes.iter().find(|c| c.name == class_name)
-                    {
-                        return Some(matching_class.id.clone());
-                    }
-                }
+        if let Some(child) = source_parent.child(i as u32)
+            && child.kind() == "class_name_statement"
+            && let Some(name_node) = find_child_by_type(&child, "name")
+        {
+            let class_name = base.get_node_text(&name_node);
+            if let Some(matching_class) = class_name_classes.iter().find(|c| c.name == class_name) {
+                return Some(matching_class.id.clone());
             }
         }
     }

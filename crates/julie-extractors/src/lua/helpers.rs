@@ -34,10 +34,10 @@ pub(crate) fn infer_type_from_expression(base: &BaseExtractor, node: Node) -> St
         "table_constructor" | "table" => "table".to_string(),
         "function_call" => {
             // Check if this is a require() call
-            if let Some(identifier) = find_child_by_type(&node, "identifier") {
-                if base.get_node_text(&identifier) == "require" {
-                    return "import".to_string();
-                }
+            if let Some(identifier) = find_child_by_type(&node, "identifier")
+                && base.get_node_text(&identifier) == "require"
+            {
+                return "import".to_string();
             }
             String::new()
         }

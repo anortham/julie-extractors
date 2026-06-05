@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use tree_sitter::Tree;
 
 pub struct VbNetExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl VbNetExtractor {

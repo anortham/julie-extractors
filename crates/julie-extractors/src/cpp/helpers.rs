@@ -228,25 +228,24 @@ pub(super) fn collect_modifiers_recursive(
 /// Check if a `type_identifier` node is a declaration name rather than a type reference.
 pub(super) fn is_type_declaration_name(node: &Node) -> bool {
     if let Some(parent) = node.parent() {
-        if let Some(name_node) = parent.child_by_field_name("name") {
-            if name_node.id() == node.id() {
-                return matches!(
-                    parent.kind(),
-                    "class_specifier"
-                        | "struct_specifier"
-                        | "union_specifier"
-                        | "enum_specifier"
-                        | "type_definition"
-                        | "template_type_parameter"
-                );
-            }
+        if let Some(name_node) = parent.child_by_field_name("name")
+            && name_node.id() == node.id()
+        {
+            return matches!(
+                parent.kind(),
+                "class_specifier"
+                    | "struct_specifier"
+                    | "union_specifier"
+                    | "enum_specifier"
+                    | "type_definition"
+                    | "template_type_parameter"
+            );
         }
-        if parent.kind() == "type_definition" {
-            if let Some(declarator) = parent.child_by_field_name("declarator") {
-                if declarator.id() == node.id() {
-                    return true;
-                }
-            }
+        if parent.kind() == "type_definition"
+            && let Some(declarator) = parent.child_by_field_name("declarator")
+            && declarator.id() == node.id()
+        {
+            return true;
         }
     }
     false
@@ -254,9 +253,5 @@ pub(super) fn is_type_declaration_name(node: &Node) -> bool {
 
 /// Returns true for C++ type names that are too common to be meaningful references.
 pub(super) fn is_noise_type(name: &str) -> bool {
-    name.len() == 1
-        && name
-            .chars()
-            .next()
-            .map_or(false, |c| c.is_ascii_uppercase())
+    name.len() == 1 && name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
 }

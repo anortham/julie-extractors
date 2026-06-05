@@ -20,7 +20,7 @@ static EXTEND_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\w+):extend\(
 ///
 /// This post-processes all symbols to identify Lua class patterns and upgrades
 /// Variable symbols to Class symbols when they match class creation patterns.
-pub(crate) fn detect_lua_classes(symbols: &mut Vec<Symbol>) {
+pub(crate) fn detect_lua_classes(symbols: &mut [Symbol]) {
     // Collect upgrades to apply (can't mutate while iterating)
     let mut class_upgrades = Vec::new();
 
@@ -99,56 +99,54 @@ pub(crate) fn detect_lua_classes(symbols: &mut Vec<Symbol>) {
         symbols[index].kind = SymbolKind::Class;
 
         // Extract inheritance information from setmetatable pattern
-        if is_setmetatable {
-            if let Some(captures) = signature.as_ref().and_then(|s| SETMETATABLE_RE.captures(s)) {
-                if let Some(parent_class_name) = captures.get(1) {
-                    let parent_class_name = parent_class_name.as_str();
-                    // Verify the parent class exists in our symbols
-                    let parent_exists = symbols.iter().any(|s| {
-                        s.name == parent_class_name
-                            && (s.kind == SymbolKind::Class
-                                || s.metadata
-                                    .as_ref()
-                                    .and_then(|m| m.get("dataType"))
-                                    .map(|dt| dt.as_str() == Some("table"))
-                                    .unwrap_or(false))
-                    });
+        if is_setmetatable
+            && let Some(captures) = signature.as_ref().and_then(|s| SETMETATABLE_RE.captures(s))
+            && let Some(parent_class_name) = captures.get(1)
+        {
+            let parent_class_name = parent_class_name.as_str();
+            // Verify the parent class exists in our symbols
+            let parent_exists = symbols.iter().any(|s| {
+                s.name == parent_class_name
+                    && (s.kind == SymbolKind::Class
+                        || s.metadata
+                            .as_ref()
+                            .and_then(|m| m.get("dataType"))
+                            .map(|dt| dt.as_str() == Some("table"))
+                            .unwrap_or(false))
+            });
 
-                    if parent_exists {
-                        let metadata = symbols[index]
-                            .metadata
-                            .get_or_insert_with(std::collections::HashMap::new);
-                        metadata.insert("baseClass".to_string(), parent_class_name.into());
-                    }
-                }
+            if parent_exists {
+                let metadata = symbols[index]
+                    .metadata
+                    .get_or_insert_with(std::collections::HashMap::new);
+                metadata.insert("baseClass".to_string(), parent_class_name.into());
             }
         }
 
         // Extract inheritance information from :extend() pattern
         // e.g., "local Doc = Object:extend()" -> parent is "Object"
-        if is_extend {
-            if let Some(captures) = signature.as_ref().and_then(|s| EXTEND_RE.captures(s)) {
-                if let Some(parent_class_name) = captures.get(1) {
-                    let parent_class_name = parent_class_name.as_str();
-                    // Verify the parent class exists in our symbols
-                    let parent_exists = symbols.iter().any(|s| {
-                        s.name == parent_class_name
-                            && (s.kind == SymbolKind::Class
-                                || s.kind == SymbolKind::Variable
-                                || s.metadata
-                                    .as_ref()
-                                    .and_then(|m| m.get("dataType"))
-                                    .map(|dt| dt.as_str() == Some("table"))
-                                    .unwrap_or(false))
-                    });
+        if is_extend
+            && let Some(captures) = signature.as_ref().and_then(|s| EXTEND_RE.captures(s))
+            && let Some(parent_class_name) = captures.get(1)
+        {
+            let parent_class_name = parent_class_name.as_str();
+            // Verify the parent class exists in our symbols
+            let parent_exists = symbols.iter().any(|s| {
+                s.name == parent_class_name
+                    && (s.kind == SymbolKind::Class
+                        || s.kind == SymbolKind::Variable
+                        || s.metadata
+                            .as_ref()
+                            .and_then(|m| m.get("dataType"))
+                            .map(|dt| dt.as_str() == Some("table"))
+                            .unwrap_or(false))
+            });
 
-                    if parent_exists {
-                        let metadata = symbols[index]
-                            .metadata
-                            .get_or_insert_with(std::collections::HashMap::new);
-                        metadata.insert("baseClass".to_string(), parent_class_name.into());
-                    }
-                }
+            if parent_exists {
+                let metadata = symbols[index]
+                    .metadata
+                    .get_or_insert_with(std::collections::HashMap::new);
+                metadata.insert("baseClass".to_string(), parent_class_name.into());
             }
         }
     }

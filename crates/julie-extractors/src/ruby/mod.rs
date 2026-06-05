@@ -26,7 +26,7 @@ mod symbols;
 
 /// Ruby extractor that handles Ruby-specific constructs
 pub struct RubyExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
     current_visibility: Visibility,
 }
 
@@ -81,10 +81,10 @@ impl RubyExtractor {
         let mut type_map = HashMap::new();
 
         for symbol in symbols {
-            if let Some(ref signature) = symbol.signature {
-                if let Some(inferred) = Self::infer_type_from_signature(signature, &symbol.kind) {
-                    type_map.insert(symbol.id.clone(), inferred);
-                }
+            if let Some(ref signature) = symbol.signature
+                && let Some(inferred) = Self::infer_type_from_signature(signature, &symbol.kind)
+            {
+                type_map.insert(symbol.id.clone(), inferred);
             }
         }
 

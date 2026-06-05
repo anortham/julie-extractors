@@ -25,20 +25,18 @@ pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
             .as_ref()
             .and_then(|m| m.get("isErrorType"))
             .and_then(|v| v.as_bool())
+            && is_error
         {
-            if is_error {
-                types.insert(symbol.id.clone(), "error".to_string());
-            }
+            types.insert(symbol.id.clone(), "error".to_string());
         }
         if let Some(is_type_alias) = symbol
             .metadata
             .as_ref()
             .and_then(|m| m.get("isTypeAlias"))
             .and_then(|v| v.as_bool())
+            && is_type_alias
         {
-            if is_type_alias {
-                types.insert(symbol.id.clone(), "type".to_string());
-            }
+            types.insert(symbol.id.clone(), "type".to_string());
         }
 
         use crate::base::SymbolKind;

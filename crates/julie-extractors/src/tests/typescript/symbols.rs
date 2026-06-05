@@ -146,7 +146,7 @@ fn test_class_signature_with_extends() {
     assert!(
         dog.signature
             .as_ref()
-            .map_or(false, |sig| sig.contains("extends Animal")),
+            .is_some_and(|sig| sig.contains("extends Animal")),
         "Dog class signature should contain 'extends Animal', got: {:?}",
         dog.signature
     );

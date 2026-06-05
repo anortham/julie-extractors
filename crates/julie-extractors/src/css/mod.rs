@@ -25,7 +25,7 @@ use rules::RuleExtractor;
 use tree_sitter::Tree;
 
 pub struct CSSExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl CSSExtractor {
@@ -123,14 +123,14 @@ impl CSSExtractor {
             "property_name" => {
                 // CSS custom properties (variables)
                 let property_text = self.base.get_node_text(&node);
-                if property_text.starts_with("--") {
-                    if let Some(custom_prop) = PropertyExtractor::extract_custom_property(
+                if property_text.starts_with("--")
+                    && let Some(custom_prop) = PropertyExtractor::extract_custom_property(
                         &mut self.base,
                         node,
                         current_parent_id.as_deref(),
-                    ) {
-                        symbols.push(custom_prop);
-                    }
+                    )
+                {
+                    symbols.push(custom_prop);
                 }
             }
             _ => {}

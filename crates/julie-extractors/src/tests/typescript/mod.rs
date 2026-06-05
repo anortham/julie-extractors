@@ -237,7 +237,7 @@ mod typescript_extractor_tests {
             .iter()
             .filter(|r| r.kind.to_string() == "calls")
             .collect();
-        assert!(call_relationships.len() > 0);
+        assert!(!call_relationships.is_empty());
 
         // Check helper function call
         let helper_call = call_relationships.iter().find(|r| {
@@ -326,27 +326,27 @@ mod typescript_extractor_tests {
         let symbols = extractor.extract_symbols(&tree);
         let types = extractor.infer_types(&symbols);
 
-        assert!(types.len() > 0);
+        assert!(!types.is_empty());
 
         // Check some basic type inferences
         let name_symbol = symbols.iter().find(|s| s.name == "name");
         let age_symbol = symbols.iter().find(|s| s.name == "age");
         let is_active_symbol = symbols.iter().find(|s| s.name == "isActive");
 
-        if let Some(name_sym) = name_symbol {
-            if let Some(name_type) = types.get(&name_sym.id) {
-                assert!(name_type.contains("string"));
-            }
+        if let Some(name_sym) = name_symbol
+            && let Some(name_type) = types.get(&name_sym.id)
+        {
+            assert!(name_type.contains("string"));
         }
-        if let Some(age_sym) = age_symbol {
-            if let Some(age_type) = types.get(&age_sym.id) {
-                assert!(age_type.contains("number"));
-            }
+        if let Some(age_sym) = age_symbol
+            && let Some(age_type) = types.get(&age_sym.id)
+        {
+            assert!(age_type.contains("number"));
         }
-        if let Some(is_active_sym) = is_active_symbol {
-            if let Some(is_active_type) = types.get(&is_active_sym.id) {
-                assert!(is_active_type.contains("boolean"));
-            }
+        if let Some(is_active_sym) = is_active_symbol
+            && let Some(is_active_type) = types.get(&is_active_sym.id)
+        {
+            assert!(is_active_type.contains("boolean"));
         }
     }
 

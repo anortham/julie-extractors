@@ -197,11 +197,11 @@ impl super::RazorExtractor {
         let mut interface_qualification = String::new();
 
         // Handle explicit interface implementations
-        if let Some(explicit_impl) = self.find_child_by_type(node, "explicit_interface_specifier") {
-            if let Some(interface_node) = self.find_child_by_type(explicit_impl, "identifier") {
-                let interface_name = self.base.get_node_text(&interface_node);
-                interface_qualification = format!("{}.", interface_name);
-            }
+        if let Some(explicit_impl) = self.find_child_by_type(node, "explicit_interface_specifier")
+            && let Some(interface_node) = self.find_child_by_type(explicit_impl, "identifier")
+        {
+            let interface_name = self.base.get_node_text(&interface_node);
+            interface_qualification = format!("{}.", interface_name);
         }
 
         // Find method name - should be the identifier immediately before parameter_list
@@ -393,11 +393,11 @@ impl super::RazorExtractor {
         if self.find_child_by_type(node, "=").is_some() {
             let mut cursor = node.walk();
             let children: Vec<_> = node.children(&mut cursor).collect();
-            if let Some(equals_idx) = children.iter().position(|c| c.kind() == "=") {
-                if equals_idx + 1 < children.len() {
-                    let initializer = self.base.get_node_text(&children[equals_idx + 1]);
-                    signature_parts.push(format!("= {}", initializer));
-                }
+            if let Some(equals_idx) = children.iter().position(|c| c.kind() == "=")
+                && equals_idx + 1 < children.len()
+            {
+                let initializer = self.base.get_node_text(&children[equals_idx + 1]);
+                signature_parts.push(format!("= {}", initializer));
             }
         }
 

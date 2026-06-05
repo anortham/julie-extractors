@@ -53,10 +53,10 @@ fn decorator_name_from_text(mut decorator_text: String) -> String {
     }
 
     // Extract name without parameters: "lru_cache(maxsize=128)" -> "lru_cache"
-    if let Some(paren_index) = decorator_text.find('(') {
-        if decorator_text.is_char_boundary(paren_index) {
-            decorator_text = decorator_text[..paren_index].to_string();
-        }
+    if let Some(paren_index) = decorator_text.find('(')
+        && decorator_text.is_char_boundary(paren_index)
+    {
+        decorator_text = decorator_text[..paren_index].to_string();
     }
 
     decorator_text

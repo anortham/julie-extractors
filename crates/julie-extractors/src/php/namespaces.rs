@@ -57,10 +57,10 @@ pub(super) fn extract_use(
 
             // Non-grouped: `use App\Models\User;`
             // AST: namespace_use_declaration -> namespace_use_clause -> qualified_name
-            if let Some(clause) = find_child(extractor, &node, "namespace_use_clause") {
-                if let Some(sym) = extract_single_use_clause(extractor, &node, &clause, parent_id) {
-                    return vec![sym];
-                }
+            if let Some(clause) = find_child(extractor, &node, "namespace_use_clause")
+                && let Some(sym) = extract_single_use_clause(extractor, &node, &clause, parent_id)
+            {
+                return vec![sym];
             }
 
             Vec::new()

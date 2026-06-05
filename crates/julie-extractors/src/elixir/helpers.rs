@@ -119,10 +119,10 @@ fn extract_keyword_from_keywords(
                 let key_text = base.get_node_text(&pair_key);
                 // Keywords in Elixir: "for:" or "for: " — strip colon and whitespace
                 let cleaned = key_text.trim().trim_end_matches(':').trim();
-                if cleaned == key {
-                    if let Some(pair_val) = pair.child_by_field_name("value") {
-                        return Some(base.get_node_text(&pair_val));
-                    }
+                if cleaned == key
+                    && let Some(pair_val) = pair.child_by_field_name("value")
+                {
+                    return Some(base.get_node_text(&pair_val));
                 }
             }
         }

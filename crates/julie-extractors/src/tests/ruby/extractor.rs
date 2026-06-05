@@ -1,7 +1,7 @@
-/// Inline tests extracted from extractors/ruby/mod.rs
-///
-/// These tests verify the Ruby extractor creation and basic functionality.
-/// Ported from the inline test module for centralized test organization.
+// Inline tests extracted from extractors/ruby/mod.rs
+//
+// These tests verify the Ruby extractor creation and basic functionality.
+// Ported from the inline test module for centralized test organization.
 
 #[cfg(test)]
 mod ruby_extractor_tests {

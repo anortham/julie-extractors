@@ -1,7 +1,7 @@
-/// Tests for Java type extraction through the factory
-///
-/// These tests validate that the factory properly calls infer_types()
-/// and returns TypeInfo in the ExtractionResults.
+// Tests for Java type extraction through the factory
+//
+// These tests validate that the factory properly calls infer_types()
+// and returns TypeInfo in the ExtractionResults.
 
 #[cfg(test)]
 mod tests {
@@ -55,7 +55,7 @@ public class Calculator {
         }
 
         assert!(
-            results.types.len() >= 1,
+            !results.types.is_empty(),
             "Expected at least 1 type, got {}",
             results.types.len()
         );

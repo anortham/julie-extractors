@@ -117,6 +117,10 @@ impl BaseExtractor {
         self.type_argument_usages.clone()
     }
 
+    pub(crate) fn take_type_argument_usages(&mut self) -> Vec<TypeArgumentUsage> {
+        std::mem::take(&mut self.type_argument_usages)
+    }
+
     /// Record a string literal captured at a call-argument site (Phase 3).
     ///
     /// Config-free: `kind` is always [`LiteralKind::Other`] here; the artifact
@@ -157,6 +161,10 @@ impl BaseExtractor {
     /// Clone the accumulated call-argument literals.
     pub fn get_literals(&self) -> Vec<Literal> {
         self.literals.clone()
+    }
+
+    pub(crate) fn take_literals(&mut self) -> Vec<Literal> {
+        std::mem::take(&mut self.literals)
     }
 
     /// Decode a string-literal node's contents for capture: strip delimiters and
@@ -203,6 +211,16 @@ impl BaseExtractor {
 
     pub fn get_structured_pending_relationships(&self) -> Vec<StructuredPendingRelationship> {
         self.structured_pending_relationships.clone()
+    }
+
+    pub(crate) fn take_pending_relationships(&mut self) -> Vec<PendingRelationship> {
+        std::mem::take(&mut self.pending_relationships)
+    }
+
+    pub(crate) fn take_structured_pending_relationships(
+        &mut self,
+    ) -> Vec<StructuredPendingRelationship> {
+        std::mem::take(&mut self.structured_pending_relationships)
     }
 
     pub fn clear_pending_relationships(&mut self) {
@@ -361,8 +379,6 @@ impl BaseExtractor {
     pub fn get_context_config(&self) -> &ContextConfig {
         &self.context_config
     }
-
-    /// Create a symbol - exact port of createSymbol method
 
     /// Safely truncate a string to a maximum number of characters (not bytes)
     /// This handles UTF-8 multi-byte characters correctly by truncating at character boundaries

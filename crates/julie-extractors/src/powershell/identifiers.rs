@@ -86,19 +86,19 @@ fn extract_identifier_from_node(
                     // For member access in invocation (e.g., $obj.Method())
                     // Extract the rightmost identifier (the method name)
                     let text = base.get_node_text(&child);
-                    if let Some(last_dot_pos) = text.rfind('.') {
-                        if last_dot_pos + 1 < text.len() {
-                            let method_name = &text[last_dot_pos + 1..];
-                            let containing_symbol_id =
-                                find_containing_symbol_id(base, node, symbol_map);
+                    if let Some(last_dot_pos) = text.rfind('.')
+                        && last_dot_pos + 1 < text.len()
+                    {
+                        let method_name = &text[last_dot_pos + 1..];
+                        let containing_symbol_id =
+                            find_containing_symbol_id(base, node, symbol_map);
 
-                            base.create_identifier(
-                                &child,
-                                method_name.to_string(),
-                                IdentifierKind::Call,
-                                containing_symbol_id,
-                            );
-                        }
+                        base.create_identifier(
+                            &child,
+                            method_name.to_string(),
+                            IdentifierKind::Call,
+                            containing_symbol_id,
+                        );
                     }
                     break;
                 }
@@ -110,10 +110,10 @@ fn extract_identifier_from_node(
         "member_access" => {
             // Only extract if it's NOT part of an invocation_expression or command
             // (we handle method calls separately)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "invocation_expression" || parent.kind() == "command" {
-                    return; // Skip - handled by invocation/command
-                }
+            if let Some(parent) = node.parent()
+                && (parent.kind() == "invocation_expression" || parent.kind() == "command")
+            {
+                return; // Skip - handled by invocation/command
             }
 
             // Extract member name from member_access node

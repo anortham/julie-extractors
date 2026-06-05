@@ -69,29 +69,26 @@ impl super::BashExtractor {
 
         for node in param_nodes {
             let param_text = self.base.get_node_text(&node);
-            if let Some(captures) = PARAM_NUMBER_RE.captures(&param_text) {
-                if let Some(param_number) = captures.get(1) {
-                    let param_name = format!("${}", param_number.as_str());
+            if let Some(captures) = PARAM_NUMBER_RE.captures(&param_text)
+                && let Some(param_number) = captures.get(1)
+            {
+                let param_name = format!("${}", param_number.as_str());
 
-                    if !seen_params.contains(&param_name) {
-                        seen_params.insert(param_name.clone());
+                if !seen_params.contains(&param_name) {
+                    seen_params.insert(param_name.clone());
 
-                        let options = SymbolOptions {
-                            signature: Some(format!("{} (positional parameter)", param_name)),
-                            visibility: Some(Visibility::Public),
-                            parent_id: Some(parent_id.to_string()),
-                            doc_comment: self.base.find_doc_comment(&node),
-                            ..Default::default()
-                        };
+                    let options = SymbolOptions {
+                        signature: Some(format!("{} (positional parameter)", param_name)),
+                        visibility: Some(Visibility::Public),
+                        parent_id: Some(parent_id.to_string()),
+                        doc_comment: self.base.find_doc_comment(&node),
+                        ..Default::default()
+                    };
 
-                        let param_symbol = self.base.create_symbol(
-                            &node,
-                            param_name,
-                            SymbolKind::Variable,
-                            options,
-                        );
-                        parameters.push(param_symbol);
-                    }
+                    let param_symbol =
+                        self.base
+                            .create_symbol(&node, param_name, SymbolKind::Variable, options);
+                    parameters.push(param_symbol);
                 }
             }
         }

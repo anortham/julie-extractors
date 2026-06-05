@@ -16,15 +16,15 @@ pub(super) fn extract_variable_annotations(
 
     // Check for annotations as children
     for i in 0..parent_node.child_count() {
-        if let Some(child) = parent_node.child(i as u32) {
-            if child.kind() == "annotations" {
-                for j in 0..child.child_count() {
-                    if let Some(annotation_child) = child.child(j as u32) {
-                        if annotation_child.kind() == "annotation" {
-                            let annotation_text = base.get_node_text(&annotation_child);
-                            annotations.push(annotation_text);
-                        }
-                    }
+        if let Some(child) = parent_node.child(i as u32)
+            && child.kind() == "annotations"
+        {
+            for j in 0..child.child_count() {
+                if let Some(annotation_child) = child.child(j as u32)
+                    && annotation_child.kind() == "annotation"
+                {
+                    let annotation_text = base.get_node_text(&annotation_child);
+                    annotations.push(annotation_text);
                 }
             }
         }
@@ -35,11 +35,11 @@ pub(super) fn extract_variable_annotations(
         // Find parent node index
         let mut node_index = None;
         for i in 0..grandparent.child_count() {
-            if let Some(child) = grandparent.child(i as u32) {
-                if child.id() == parent_node.id() {
-                    node_index = Some(i);
-                    break;
-                }
+            if let Some(child) = grandparent.child(i as u32)
+                && child.id() == parent_node.id()
+            {
+                node_index = Some(i);
+                break;
             }
         }
 
@@ -51,12 +51,12 @@ pub(super) fn extract_variable_annotations(
                 if let Some(child) = grandparent.child(i as u32) {
                     if child.kind() == "annotations" {
                         for j in 0..child.child_count() {
-                            if let Some(annotation_child) = child.child(j as u32) {
-                                if annotation_child.kind() == "annotation" {
-                                    let annotation_text = base.get_node_text(&annotation_child);
-                                    annotations.push(annotation_text.clone());
-                                    annotation_texts.insert(0, annotation_text);
-                                }
+                            if let Some(annotation_child) = child.child(j as u32)
+                                && annotation_child.kind() == "annotation"
+                            {
+                                let annotation_text = base.get_node_text(&annotation_child);
+                                annotations.push(annotation_text.clone());
+                                annotation_texts.insert(0, annotation_text);
                             }
                         }
                     } else if child.kind() == "annotation" {

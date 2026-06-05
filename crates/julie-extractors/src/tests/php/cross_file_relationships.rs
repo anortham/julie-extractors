@@ -352,8 +352,7 @@ class Helper {
         // At minimum, we shouldn't get many pending relationships for local calls
         let _pending_calls: Vec<String> = symbols
             .iter()
-            .filter(|s| s.name == "caller")
-            .next()
+            .find(|s| s.name == "caller")
             .map(|_| vec![])
             .unwrap_or_default();
 

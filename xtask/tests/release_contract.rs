@@ -4,8 +4,9 @@ use std::process::Command;
 use sha2::{Digest, Sha256};
 use tempfile::TempDir;
 use xtask::release::{
-    ReleasePackageItem, ReleasePackageKind, StagePackagePlan, collect_staged_files,
-    plan_package_from_args, release_package_items, render_release_package_list,
+    ReleasePackageItem, ReleasePackageKind, ReleasePreflightPlan, StagePackagePlan,
+    collect_staged_files, plan_package_from_args, plan_preflight_from_args,
+    preflight_release_from_root, release_package_items, render_release_package_list,
     stage_package_from_root, validate_package_manifest,
 };
 
@@ -210,10 +211,91 @@ fn release_package_args_plan_host_binary_and_paths() {
     assert_eq!(plan.out_dir, out_dir);
     assert_eq!(plan.binary, binary);
 
+    let windows_plan = plan_package_from_args([
+        "package",
+        "--version",
+        "0.1.0",
+        "--target",
+        "x86_64-pc-windows-msvc",
+        "--out-dir",
+        path_str(&out_dir),
+    ])
+    .expect("default release package binary path");
+    assert!(
+        windows_plan
+            .binary
+            .ends_with("x86_64-pc-windows-msvc/release/julie-extract.exe"),
+        "default binary path must use the target-specific executable suffix: {}",
+        windows_plan.binary.display()
+    );
+
     let error = plan_package_from_args(["package", "--version", "0.1.0"])
         .expect_err("missing target and out-dir must fail");
     assert!(
         error.to_string().contains("missing --target"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn release_preflight_args_plan_version() {
+    let plan = plan_preflight_from_args(["preflight", "--version", "0.1.0"])
+        .expect("release preflight plan");
+
+    assert_eq!(
+        plan,
+        ReleasePreflightPlan {
+            version: "0.1.0".to_string()
+        }
+    );
+
+    let error = plan_preflight_from_args(["preflight"]).expect_err("missing version must fail");
+    assert!(
+        error.to_string().contains("missing --version"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn release_preflight_checks_manifest_inputs_and_crate_versions() {
+    let fixture = ReleaseFixture::new();
+    fixture.write_manifest_inputs("0.1.0");
+    fixture.write_crate_manifests("0.1.0");
+
+    let result = preflight_release_from_root(
+        &fixture.repo_root,
+        ReleasePreflightPlan {
+            version: "0.1.0".to_string(),
+        },
+    )
+    .expect("release preflight");
+
+    assert!(
+        result
+            .checked_targets
+            .contains(&"x86_64-pc-windows-msvc".to_string())
+    );
+    assert!(
+        result
+            .checked_inputs
+            .contains(&PathBuf::from("docs/release-notes/v0.1.0.md"))
+    );
+    assert!(
+        result
+            .checked_inputs
+            .contains(&PathBuf::from("crates/julie-extract-cli/Cargo.toml"))
+    );
+
+    fixture.write_crate_manifests("0.2.0");
+    let error = preflight_release_from_root(
+        &fixture.repo_root,
+        ReleasePreflightPlan {
+            version: "0.1.0".to_string(),
+        },
+    )
+    .expect_err("version mismatch must fail");
+    assert!(
+        error.to_string().contains("expected 0.1.0"),
         "unexpected error: {error}"
     );
 }
@@ -258,6 +340,45 @@ fn release_package_staging_copies_only_manifest_items_and_writes_checksum() {
         result.staged_files
     );
     assert_eq!(result.staged_files, expected_staged_files("0.1.0"));
+}
+
+#[test]
+fn release_package_staging_uses_windows_suffix_for_windows_target() {
+    let fixture = ReleaseFixture::new();
+    fixture.write_manifest_inputs("0.1.0");
+    fixture.write_binary(b"windows binary");
+
+    let result = stage_package_from_root(
+        &fixture.repo_root,
+        fixture.plan_for_target("0.1.0", "x86_64-pc-windows-msvc"),
+    )
+    .expect("stage windows release package");
+
+    let binary_path = fixture
+        .out_dir
+        .join("dist/x86_64-pc-windows-msvc/julie-extract.exe");
+    let checksum_path = fixture
+        .out_dir
+        .join("dist/x86_64-pc-windows-msvc/julie-extract.exe.sha256");
+    assert_eq!(
+        std::fs::read(&binary_path).expect("windows binary"),
+        b"windows binary"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&checksum_path).expect("windows checksum"),
+        format!(
+            "{}  dist/x86_64-pc-windows-msvc/julie-extract.exe\n",
+            hex_sha256(b"windows binary")
+        )
+    );
+    assert_eq!(
+        collect_staged_files(&fixture.out_dir).expect("staged files"),
+        result.staged_files
+    );
+    assert_eq!(
+        result.staged_files,
+        expected_staged_files_for_target("0.1.0", "x86_64-pc-windows-msvc", ".exe")
+    );
 }
 
 #[test]
@@ -338,9 +459,13 @@ impl ReleaseFixture {
     }
 
     fn plan(&self, version: &str) -> StagePackagePlan {
+        self.plan_for_target(version, "x86_64-apple-darwin")
+    }
+
+    fn plan_for_target(&self, version: &str, target: &str) -> StagePackagePlan {
         StagePackagePlan {
             version: version.to_string(),
-            target: "x86_64-apple-darwin".to_string(),
+            target: target.to_string(),
             out_dir: self.out_dir.clone(),
             binary: self.binary.clone(),
         }
@@ -370,6 +495,22 @@ impl ReleaseFixture {
         }
     }
 
+    fn write_crate_manifests(&self, version: &str) {
+        for relative in [
+            "crates/julie-extract-artifact/Cargo.toml",
+            "crates/julie-extract-cli/Cargo.toml",
+            "crates/julie-extractors/Cargo.toml",
+        ] {
+            let path = self.repo_root.join(relative);
+            std::fs::create_dir_all(path.parent().expect("parent")).expect("manifest dir");
+            std::fs::write(
+                path,
+                format!("[package]\nname = \"test\"\nversion = \"{version}\"\n"),
+            )
+            .expect("crate manifest");
+        }
+    }
+
     fn write_binary(&self, bytes: &[u8]) {
         std::fs::create_dir_all(self.binary.parent().expect("parent")).expect("binary dir");
         std::fs::write(&self.binary, bytes).expect("binary");
@@ -377,14 +518,18 @@ impl ReleaseFixture {
 }
 
 fn expected_staged_files(version: &str) -> Vec<PathBuf> {
+    expected_staged_files_for_target(version, "x86_64-apple-darwin", "")
+}
+
+fn expected_staged_files_for_target(version: &str, target: &str, exe_suffix: &str) -> Vec<PathBuf> {
     let mut files = release_package_items()
         .into_iter()
         .map(|item| {
             PathBuf::from(
                 item.path_template
                     .replace("{version}", version)
-                    .replace("{target}", "x86_64-apple-darwin")
-                    .replace("{exe_suffix}", ""),
+                    .replace("{target}", target)
+                    .replace("{exe_suffix}", exe_suffix),
             )
         })
         .collect::<Vec<_>>();

@@ -11,6 +11,14 @@ mod bash_extractor_tests {
     use std::path::PathBuf;
     use tree_sitter::Parser;
 
+    type FullExtraction = (
+        Vec<Symbol>,
+        Vec<crate::base::Relationship>,
+        Vec<crate::base::Identifier>,
+        Vec<crate::base::PendingRelationship>,
+        Vec<crate::base::StructuredPendingRelationship>,
+    );
+
     fn init_parser() -> Parser {
         let mut parser = Parser::new();
         parser
@@ -32,15 +40,7 @@ mod bash_extractor_tests {
         extractor.extract_symbols(&tree)
     }
 
-    fn extract_full(
-        code: &str,
-    ) -> (
-        Vec<Symbol>,
-        Vec<crate::base::Relationship>,
-        Vec<crate::base::Identifier>,
-        Vec<crate::base::PendingRelationship>,
-        Vec<crate::base::StructuredPendingRelationship>,
-    ) {
+    fn extract_full(code: &str) -> FullExtraction {
         let workspace_root = PathBuf::from("/tmp/test");
         let mut parser = init_parser();
         let tree = parser.parse(code, None).expect("Failed to parse code");
@@ -827,7 +827,7 @@ helper_function() {
             s.name == "bash"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("#!/bin/bash"))
+                    .is_some_and(|sig| sig.contains("#!/bin/bash"))
         });
         assert!(
             shebang.is_some(),
@@ -853,7 +853,7 @@ helper_function() {
             s.name == "bash"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("#!/bin/bash"))
+                    .is_some_and(|sig| sig.contains("#!/bin/bash"))
         });
         assert!(
             shebang.is_some(),

@@ -69,10 +69,10 @@ fn extract_identifier_from_node(
             record_vbnet_call_arg_literals(base, node, symbol_map);
         }
         "member_access_expression" | "member_access" => {
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "invocation_expression" || parent.kind() == "invocation" {
-                    return;
-                }
+            if let Some(parent) = node.parent()
+                && (parent.kind() == "invocation_expression" || parent.kind() == "invocation")
+            {
+                return;
             }
 
             let mut cursor = node.walk();
@@ -197,16 +197,16 @@ fn record_vbnet_call_arg_literals(
         } else {
             Some(arg)
         };
-        if let Some(value) = value {
-            if let Some(text) = decode_vbnet_literal(base, &value) {
-                base.record_literal(
-                    &value,
-                    text,
-                    carrier.clone(),
-                    pos as u32,
-                    containing_symbol_id.clone(),
-                );
-            }
+        if let Some(value) = value
+            && let Some(text) = decode_vbnet_literal(base, &value)
+        {
+            base.record_literal(
+                &value,
+                text,
+                carrier.clone(),
+                pos as u32,
+                containing_symbol_id.clone(),
+            );
         }
     }
 }

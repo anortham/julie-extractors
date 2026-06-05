@@ -24,13 +24,19 @@ jobs:
       - name: Check workspace metadata
         run: cargo metadata --format-version 1
 
+      - name: Check dependency policy
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --all-features
+
       - name: Check clippy
         run: >-
-          cargo clippy --no-deps
-          -p julie-extract-artifact
-          -p julie-extract-cli
-          -p xtask
-          --lib --bins -- -D warnings
+          cargo clippy --workspace --all-targets --all-features
+          --no-deps -- -D warnings
+
+      - name: Check agent guidance sync
+        run: scripts/check-agent-doc-sync.sh
 
       - name: Test xtask
         run: cargo test -p xtask

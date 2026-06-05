@@ -375,8 +375,9 @@ CREATE TABLE type_arguments (
 
 ### `literals`
 
-String or scalar literals that carry useful extracted facts such as routes,
-URLs, SQL, or other configured carriers.
+String or scalar literals that carry useful extracted facts such as URLs, SQL,
+or other configured carriers. Route is reserved until route carriers are
+explicitly configured.
 
 ```sql
 CREATE TABLE literals (

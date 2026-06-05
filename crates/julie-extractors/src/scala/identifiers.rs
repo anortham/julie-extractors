@@ -123,10 +123,10 @@ fn extract_identifier_from_node(
         // Member access: obj.field
         "field_expression" => {
             // Only extract if NOT part of a call_expression
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call_expression" {
-                    return;
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call_expression"
+            {
+                return;
             }
 
             if let Some((name_node, name)) = extract_rightmost_identifier(base, &node) {
@@ -236,12 +236,11 @@ fn scala_carrier(base: &BaseExtractor, func: Node) -> Option<String> {
 /// Class/trait/object names use `identifier`, not `type_identifier`, so they
 /// don't need to be filtered here.
 fn is_type_declaration_name(node: &Node) -> bool {
-    if let Some(parent) = node.parent() {
-        if let Some(name_node) = parent.child_by_field_name("name") {
-            if name_node.id() == node.id() {
-                return parent.kind() == "type_definition";
-            }
-        }
+    if let Some(parent) = node.parent()
+        && let Some(name_node) = parent.child_by_field_name("name")
+        && name_node.id() == node.id()
+    {
+        return parent.kind() == "type_definition";
     }
     false
 }
@@ -254,12 +253,7 @@ fn is_type_declaration_name(node: &Node) -> bool {
 /// - Scala primitive/base types — ubiquitous in every file
 fn is_scala_noise_type(name: &str) -> bool {
     // Single-letter uppercase names are almost always generic type parameters.
-    if name.len() == 1
-        && name
-            .chars()
-            .next()
-            .map_or(false, |c| c.is_ascii_uppercase())
-    {
+    if name.len() == 1 && name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
         return true;
     }
 

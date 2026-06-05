@@ -1,7 +1,7 @@
-/// Tests for Ruby type extraction through the factory
-///
-/// Ruby is dynamically typed, so type inference is limited to literal
-/// assignments in constants and variables.
+// Tests for Ruby type extraction through the factory
+//
+// Ruby is dynamically typed, so type inference is limited to literal
+// assignments in constants and variables.
 
 #[cfg(test)]
 mod tests {
@@ -47,7 +47,7 @@ end
         println!("Ruby constant types: {:?}", type_strings);
 
         assert!(
-            type_strings.iter().any(|t| *t == "String"),
+            type_strings.contains(&"String"),
             "Expected 'String' from VERSION constant, got: {:?}",
             type_strings
         );

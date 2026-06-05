@@ -172,43 +172,43 @@ pub(super) fn extract_enum_value_symbols(
         if child.kind() == "enumerator_list" {
             let mut enum_cursor = child.walk();
             for enum_child in child.children(&mut enum_cursor) {
-                if enum_child.kind() == "enumerator" {
-                    if let Some(name_node) = enum_child.child_by_field_name("name") {
-                        let name = extractor.base.get_node_text(&name_node);
-                        let value = enum_child
-                            .child_by_field_name("value")
-                            .map(|v| extractor.base.get_node_text(&v));
+                if enum_child.kind() == "enumerator"
+                    && let Some(name_node) = enum_child.child_by_field_name("name")
+                {
+                    let name = extractor.base.get_node_text(&name_node);
+                    let value = enum_child
+                        .child_by_field_name("value")
+                        .map(|v| extractor.base.get_node_text(&v));
 
-                        let mut signature = name.clone();
-                        if let Some(ref val) = value {
-                            signature = format!("{} = {}", signature, val);
-                        }
-
-                        let doc_comment = extractor.base.find_doc_comment(&enum_child);
-
-                        let enum_value_symbol = extractor.base.create_symbol(
-                            &enum_child,
-                            name,
-                            SymbolKind::Constant,
-                            SymbolOptions {
-                                signature: Some(signature),
-                                visibility: Some(Visibility::Public),
-                                parent_id: Some(parent_enum_id.to_string()),
-                                metadata: if value.is_some() {
-                                    Some(HashMap::from([(
-                                        "value".to_string(),
-                                        Value::String(value.unwrap_or_default()),
-                                    )]))
-                                } else {
-                                    None
-                                },
-                                doc_comment,
-                                annotations: Vec::new(),
-                            },
-                        );
-
-                        enum_value_symbols.push(enum_value_symbol);
+                    let mut signature = name.clone();
+                    if let Some(ref val) = value {
+                        signature = format!("{} = {}", signature, val);
                     }
+
+                    let doc_comment = extractor.base.find_doc_comment(&enum_child);
+
+                    let enum_value_symbol = extractor.base.create_symbol(
+                        &enum_child,
+                        name,
+                        SymbolKind::Constant,
+                        SymbolOptions {
+                            signature: Some(signature),
+                            visibility: Some(Visibility::Public),
+                            parent_id: Some(parent_enum_id.to_string()),
+                            metadata: if value.is_some() {
+                                Some(HashMap::from([(
+                                    "value".to_string(),
+                                    Value::String(value.unwrap_or_default()),
+                                )]))
+                            } else {
+                                None
+                            },
+                            doc_comment,
+                            annotations: Vec::new(),
+                        },
+                    );
+
+                    enum_value_symbols.push(enum_value_symbol);
                 }
             }
         }

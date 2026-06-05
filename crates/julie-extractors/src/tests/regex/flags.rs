@@ -1,13 +1,13 @@
-/// Inline tests extracted from extractors/regex/flags.rs
-///
-/// This module contains all tests for regex flag utility functions including:
-/// - Anchor type detection (start, end, word-boundary, etc.)
-/// - Lookaround direction and polarity (lookahead/lookbehind, positive/negative)
-/// - Alternation option extraction
-/// - Predefined character class categorization
-/// - Unicode property extraction
-/// - Backreference extraction
-/// - Conditional pattern extraction
+// Inline tests extracted from extractors/regex/flags.rs
+//
+// This module contains all tests for regex flag utility functions including:
+// - Anchor type detection (start, end, word-boundary, etc.)
+// - Lookaround direction and polarity (lookahead/lookbehind, positive/negative)
+// - Alternation option extraction
+// - Predefined character class categorization
+// - Unicode property extraction
+// - Backreference extraction
+// - Conditional pattern extraction
 
 #[cfg(test)]
 mod tests {

@@ -28,12 +28,12 @@ impl AttributeHandler {
         signature.push('>');
 
         // Include text content for certain elements
-        if let Some(content) = text_content {
-            if Self::should_include_text_content(tag_name) {
-                // Safely truncate UTF-8 string at character boundary
-                let truncated_content = BaseExtractor::truncate_string(&content, 100);
-                signature.push_str(&truncated_content);
-            }
+        if let Some(content) = text_content
+            && Self::should_include_text_content(tag_name)
+        {
+            // Safely truncate UTF-8 string at character boundary
+            let truncated_content = BaseExtractor::truncate_string(content, 100);
+            signature.push_str(&truncated_content);
         }
 
         signature

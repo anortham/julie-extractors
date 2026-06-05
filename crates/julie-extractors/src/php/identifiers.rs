@@ -69,12 +69,11 @@ pub(super) fn extract_identifier_from_node(
         // Member access: $obj->property
         "member_access_expression" => {
             // Skip if parent is a call expression (handled above)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "function_call_expression"
-                    || parent.kind() == "member_call_expression"
-                {
-                    return; // Skip - handled by call expressions
-                }
+            if let Some(parent) = node.parent()
+                && (parent.kind() == "function_call_expression"
+                    || parent.kind() == "member_call_expression")
+            {
+                return; // Skip - handled by call expressions
             }
 
             // Extract the member name (rightmost identifier)

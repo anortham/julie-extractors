@@ -22,7 +22,7 @@ use tree_sitter::{Node, Tree};
 /// - Goroutines and channels
 /// - Interface implementations and embedding
 pub struct GoExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl GoExtractor {

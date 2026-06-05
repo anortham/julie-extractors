@@ -139,24 +139,21 @@ pub(super) fn member_metadata(
     parent_id: &Option<String>,
 ) -> HashMap<String, serde_json::Value> {
     let mut metadata = HashMap::new();
-    if let Some(parent_id) = parent_id {
-        if let Some(parent) = extractor
+    if let Some(parent_id) = parent_id
+        && let Some(parent) = extractor
             .symbols
             .iter()
             .find(|symbol| symbol.id == *parent_id)
-        {
-            if let Some(class_system) = parent
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.get("r_class_system"))
-                .and_then(|value| value.as_str())
-            {
-                metadata.insert(
-                    "r_class_system".to_string(),
-                    serde_json::Value::String(class_system.to_string()),
-                );
-            }
-        }
+        && let Some(class_system) = parent
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("r_class_system"))
+            .and_then(|value| value.as_str())
+    {
+        metadata.insert(
+            "r_class_system".to_string(),
+            serde_json::Value::String(class_system.to_string()),
+        );
     }
     if let Some(visibility) = enclosing_member_visibility(extractor, node) {
         metadata.insert(
@@ -314,12 +311,12 @@ fn enclosing_member_visibility(extractor: &RExtractor, node: Node) -> Option<Str
     let mut current = node.parent();
     for _ in 0..8 {
         let parent = current?;
-        if parent.kind() == "binary_operator" {
-            if let Some(left) = parent.child(0) {
-                let text = assignment_name(extractor, left)?;
-                if text == "public" || text == "private" {
-                    return Some(text);
-                }
+        if parent.kind() == "binary_operator"
+            && let Some(left) = parent.child(0)
+        {
+            let text = assignment_name(extractor, left)?;
+            if text == "public" || text == "private" {
+                return Some(text);
             }
         }
         current = parent.parent();

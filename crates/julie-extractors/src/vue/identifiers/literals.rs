@@ -118,10 +118,11 @@ fn strip_vue_string_delimiters(raw: &str) -> String {
     if count >= 2 {
         let first = s.chars().next();
         let last = s.chars().last();
-        if let (Some(f), Some(l)) = (first, last) {
-            if f == l && matches!(f, '"' | '\'' | '`') {
-                return s.chars().skip(1).take(count - 2).collect();
-            }
+        if let (Some(f), Some(l)) = (first, last)
+            && f == l
+            && matches!(f, '"' | '\'' | '`')
+        {
+            return s.chars().skip(1).take(count - 2).collect();
         }
     }
     s.to_string()

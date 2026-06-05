@@ -491,21 +491,21 @@ mod tests {
         let socket_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <sys/socket.h>"))
+                .is_some_and(|sig| sig.contains("#include <sys/socket.h>"))
         });
         assert!(socket_include.is_some());
 
         let stdatomic_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <stdatomic.h>"))
+                .is_some_and(|sig| sig.contains("#include <stdatomic.h>"))
         });
         assert!(stdatomic_include.is_some());
 
         let threads_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <threads.h>"))
+                .is_some_and(|sig| sig.contains("#include <threads.h>"))
         });
         assert!(threads_include.is_some());
     }

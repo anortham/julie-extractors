@@ -296,16 +296,16 @@ pub(super) fn extract_type_alias(
     // Find the aliased type (after =) - may consist of multiple nodes
     let mut aliased_type = String::new();
     let children: Vec<Node> = node.children(&mut node.walk()).collect();
-    if let Some(equal_index) = children.iter().position(|n| base.get_node_text(n) == "=") {
-        if equal_index + 1 < children.len() {
-            // Concatenate all nodes after the = (e.g., "suspend" + "(T) -> Unit")
-            let type_nodes = &children[equal_index + 1..];
-            aliased_type = type_nodes
-                .iter()
-                .map(|n| base.get_node_text(n))
-                .collect::<Vec<String>>()
-                .join(" ");
-        }
+    if let Some(equal_index) = children.iter().position(|n| base.get_node_text(n) == "=")
+        && equal_index + 1 < children.len()
+    {
+        // Concatenate all nodes after the = (e.g., "suspend" + "(T) -> Unit")
+        let type_nodes = &children[equal_index + 1..];
+        aliased_type = type_nodes
+            .iter()
+            .map(|n| base.get_node_text(n))
+            .collect::<Vec<String>>()
+            .join(" ");
     }
 
     let mut signature = format!("typealias {}", name);

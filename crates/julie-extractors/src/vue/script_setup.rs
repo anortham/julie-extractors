@@ -159,10 +159,10 @@ fn extract_lexical_declaration(
 ) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "variable_declarator" {
-            if let Some(sym) = extract_variable_declarator(base, child, section) {
-                symbols.push(sym);
-            }
+        if child.kind() == "variable_declarator"
+            && let Some(sym) = extract_variable_declarator(base, child, section)
+        {
+            symbols.push(sym);
         }
     }
 }
@@ -232,25 +232,25 @@ fn extract_variable_declarator(
         let mut metadata = HashMap::new();
 
         // Check if the value is a call_expression to classify it
-        if value_node.kind() == "call_expression" {
-            if let Some(callee) = value_node.child_by_field_name("function") {
-                let callee_name = get_node_text(&callee, &section.content);
-                metadata.insert(
-                    "compositionApi".to_string(),
-                    Value::String(callee_name.clone()),
-                );
+        if value_node.kind() == "call_expression"
+            && let Some(callee) = value_node.child_by_field_name("function")
+        {
+            let callee_name = get_node_text(&callee, &section.content);
+            metadata.insert(
+                "compositionApi".to_string(),
+                Value::String(callee_name.clone()),
+            );
 
-                // Classify based on the call
-                let var_type = match callee_name.as_str() {
-                    "ref" => "ref",
-                    "reactive" => "reactive",
-                    "computed" => "computed",
-                    "defineProps" => "props",
-                    "defineEmits" => "emits",
-                    _ => "variable",
-                };
-                metadata.insert("type".to_string(), Value::String(var_type.to_string()));
-            }
+            // Classify based on the call
+            let var_type = match callee_name.as_str() {
+                "ref" => "ref",
+                "reactive" => "reactive",
+                "computed" => "computed",
+                "defineProps" => "props",
+                "defineEmits" => "emits",
+                _ => "variable",
+            };
+            metadata.insert("type".to_string(), Value::String(var_type.to_string()));
         }
 
         Some(with_zero_based_columns(create_symbol_manual(
@@ -282,47 +282,43 @@ fn extract_import_statement(
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        match child.kind() {
-            "import_clause" => {
-                // Walk into import clause for named imports, default imports, etc.
-                let mut clause_cursor = child.walk();
-                for clause_child in child.children(&mut clause_cursor) {
-                    match clause_child.kind() {
-                        "identifier" => {
-                            // Default import: `import MyComponent from './MyComponent.vue'`
-                            let name = get_node_text(&clause_child, &section.content);
-                            let start_line =
-                                section.start_line + clause_child.start_position().row + 1;
-                            let start_col = clause_child.start_position().column + 1;
+        if child.kind() == "import_clause" {
+            // Walk into import clause for named imports, default imports, etc.
+            let mut clause_cursor = child.walk();
+            for clause_child in child.children(&mut clause_cursor) {
+                match clause_child.kind() {
+                    "identifier" => {
+                        // Default import: `import MyComponent from './MyComponent.vue'`
+                        let name = get_node_text(&clause_child, &section.content);
+                        let start_line = section.start_line + clause_child.start_position().row + 1;
+                        let start_col = clause_child.start_position().column + 1;
 
-                            let mut metadata = HashMap::new();
-                            metadata.insert("source".to_string(), Value::String(source.clone()));
-                            metadata.insert(
-                                "importKind".to_string(),
-                                Value::String("default".to_string()),
-                            );
+                        let mut metadata = HashMap::new();
+                        metadata.insert("source".to_string(), Value::String(source.clone()));
+                        metadata.insert(
+                            "importKind".to_string(),
+                            Value::String("default".to_string()),
+                        );
 
-                            symbols.push(with_zero_based_columns(create_symbol_manual(
-                                base,
-                                &name,
-                                SymbolKind::Import,
-                                start_line,
-                                start_col,
-                                start_line,
-                                start_col + name.len(),
-                                Some(format!("import {} from {}", name, source)),
-                                None,
-                                Some(metadata),
-                            )));
-                        }
-                        "named_imports" => {
-                            extract_named_imports(base, clause_child, section, &source, symbols);
-                        }
-                        _ => {}
+                        symbols.push(with_zero_based_columns(create_symbol_manual(
+                            base,
+                            &name,
+                            SymbolKind::Import,
+                            start_line,
+                            start_col,
+                            start_line,
+                            start_col + name.len(),
+                            Some(format!("import {} from {}", name, source)),
+                            None,
+                            Some(metadata),
+                        )));
                     }
+                    "named_imports" => {
+                        extract_named_imports(base, clause_child, section, &source, symbols);
+                    }
+                    _ => {}
                 }
             }
-            _ => {}
         }
     }
 }
@@ -378,35 +374,35 @@ fn extract_standalone_call(
 ) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "call_expression" {
-            if let Some(callee) = child.child_by_field_name("function") {
-                let callee_name = get_node_text(&callee, &section.content);
-                // Only extract Vue compiler macros as standalone symbols
-                if matches!(
-                    callee_name.as_str(),
-                    "defineExpose" | "defineProps" | "defineEmits" | "defineOptions"
-                ) {
-                    let start_line = section.start_line + callee.start_position().row + 1;
-                    let start_col = callee.start_position().column + 1;
-                    let end_line = section.start_line + child.end_position().row + 1;
-                    let end_col = child.end_position().column + 1;
+        if child.kind() == "call_expression"
+            && let Some(callee) = child.child_by_field_name("function")
+        {
+            let callee_name = get_node_text(&callee, &section.content);
+            // Only extract Vue compiler macros as standalone symbols
+            if matches!(
+                callee_name.as_str(),
+                "defineExpose" | "defineProps" | "defineEmits" | "defineOptions"
+            ) {
+                let start_line = section.start_line + callee.start_position().row + 1;
+                let start_col = callee.start_position().column + 1;
+                let end_line = section.start_line + child.end_position().row + 1;
+                let end_col = child.end_position().column + 1;
 
-                    let mut metadata = HashMap::new();
-                    metadata.insert("type".to_string(), Value::String("vue-macro".to_string()));
+                let mut metadata = HashMap::new();
+                metadata.insert("type".to_string(), Value::String("vue-macro".to_string()));
 
-                    symbols.push(with_zero_based_columns(create_symbol_manual(
-                        base,
-                        &callee_name,
-                        SymbolKind::Function,
-                        start_line,
-                        start_col,
-                        end_line,
-                        end_col,
-                        Some(format!("{}()", callee_name)),
-                        None,
-                        Some(metadata),
-                    )));
-                }
+                symbols.push(with_zero_based_columns(create_symbol_manual(
+                    base,
+                    &callee_name,
+                    SymbolKind::Function,
+                    start_line,
+                    start_col,
+                    end_line,
+                    end_col,
+                    Some(format!("{}()", callee_name)),
+                    None,
+                    Some(metadata),
+                )));
             }
         }
     }

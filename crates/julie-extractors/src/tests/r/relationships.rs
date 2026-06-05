@@ -37,7 +37,7 @@ sum_values <- function(arr) {
             .collect();
 
         assert!(
-            call_relationships.len() >= 1,
+            !call_relationships.is_empty(),
             "Should extract at least one call relationship"
         );
 

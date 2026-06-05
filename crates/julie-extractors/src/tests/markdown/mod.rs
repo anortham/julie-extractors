@@ -372,7 +372,7 @@ Content here.
 
         // Depending on parser, quoted headings may or may not be extracted
         // At minimum, should handle this without crashing
-        assert!(symbols.len() >= 1, "Should handle headings in blockquotes");
+        assert!(!symbols.is_empty(), "Should handle headings in blockquotes");
     }
 
     // ========================================================================
@@ -567,7 +567,7 @@ This comprehensive approach ensures quality.
         let symbols = extract_symbols(markdown);
 
         // Should extract the section
-        assert!(symbols.len() >= 1, "Should extract CASCADE section");
+        assert!(!symbols.is_empty(), "Should extract CASCADE section");
 
         let cascade_section = symbols.iter().find(|s| s.name.contains("CASCADE"));
         assert!(

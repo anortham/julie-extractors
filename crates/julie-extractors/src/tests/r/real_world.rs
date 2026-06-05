@@ -80,7 +80,7 @@ GeomPoint <- ggproto("GeomPoint", Geom,
             .collect();
 
         assert!(
-            functions.len() >= 1,
+            !functions.is_empty(),
             "Should extract geom_point and GeomPoint functions"
         );
 
@@ -367,8 +367,8 @@ shinyApp(ui = ui, server = server)
             .filter(|s| s.kind == SymbolKind::Function)
             .collect();
 
-        assert!(variables.len() >= 1, "Should extract ui");
-        assert!(functions.len() >= 1, "Should extract server function");
+        assert!(!variables.is_empty(), "Should extract ui");
+        assert!(!functions.is_empty(), "Should extract server function");
 
         let var_names: Vec<&str> = variables.iter().map(|v| v.name.as_str()).collect();
         assert!(var_names.contains(&"ui"), "Should find ui definition");

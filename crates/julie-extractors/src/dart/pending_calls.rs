@@ -59,12 +59,12 @@ impl super::DartExtractor {
 
         if let Some(called_symbol) = symbol_map.get(target.terminal_name.as_str()) {
             // Same-file call
-            if let Some(caller) = self.find_containing_function(node, symbol_map) {
-                if caller.id != called_symbol.id {
-                    let line = node.start_position().row as u32 + 1;
-                    self.same_file_calls
-                        .push((caller.id.clone(), called_symbol.id.clone(), line));
-                }
+            if let Some(caller) = self.find_containing_function(node, symbol_map)
+                && caller.id != called_symbol.id
+            {
+                let line = node.start_position().row as u32 + 1;
+                self.same_file_calls
+                    .push((caller.id.clone(), called_symbol.id.clone(), line));
             }
         } else if let Some(caller) = self.find_containing_function(node, symbol_map) {
             // Cross-file call
@@ -111,18 +111,18 @@ impl super::DartExtractor {
             return None;
         }
         if let Some(obj) = node.child_by_field_name("object") {
-            if let Some(sel) = node.child_by_field_name("selector") {
-                if let Some(id) = find_child_by_type(&sel, "identifier") {
-                    let terminal_name = self.base.get_node_text(&id);
-                    let receiver = self.base.get_node_text(&obj);
-                    return Some(UnresolvedTarget {
-                        display_name: format!("{receiver}.{terminal_name}"),
-                        terminal_name,
-                        receiver: Some(receiver),
-                        namespace_path: Vec::new(),
-                        import_context: None,
-                    });
-                }
+            if let Some(sel) = node.child_by_field_name("selector")
+                && let Some(id) = find_child_by_type(&sel, "identifier")
+            {
+                let terminal_name = self.base.get_node_text(&id);
+                let receiver = self.base.get_node_text(&obj);
+                return Some(UnresolvedTarget {
+                    display_name: format!("{receiver}.{terminal_name}"),
+                    terminal_name,
+                    receiver: Some(receiver),
+                    namespace_path: Vec::new(),
+                    import_context: None,
+                });
             }
             let node_text = self.base.get_node_text(node);
             let call_head = node_text.split('(').next().unwrap_or(node_text.as_str());
@@ -139,10 +139,10 @@ impl super::DartExtractor {
                 return Some(UnresolvedTarget::simple(self.base.get_node_text(&obj)));
             }
         }
-        if let Some(sel) = node.child_by_field_name("selector") {
-            if let Some(id) = find_child_by_type(&sel, "identifier") {
-                return Some(UnresolvedTarget::simple(self.base.get_node_text(&id)));
-            }
+        if let Some(sel) = node.child_by_field_name("selector")
+            && let Some(id) = find_child_by_type(&sel, "identifier")
+        {
+            return Some(UnresolvedTarget::simple(self.base.get_node_text(&id)));
         }
         None
     }
@@ -155,25 +155,24 @@ impl super::DartExtractor {
     ) -> Option<&'a Symbol> {
         let mut current = node.parent();
         while let Some(cur) = current {
-            if cur.kind() == "function_body" || cur.kind() == "lambda_expression" {
-                if let Some(parent) = cur.parent() {
-                    let mut cursor = parent.walk();
-                    for sibling in parent.children(&mut cursor) {
-                        if sibling.kind() == "function_signature" {
-                            if let Some(sym) = self.lookup_func_symbol(&sibling, symbol_map) {
-                                return Some(sym);
-                            }
-                        }
+            if (cur.kind() == "function_body" || cur.kind() == "lambda_expression")
+                && let Some(parent) = cur.parent()
+            {
+                let mut cursor = parent.walk();
+                for sibling in parent.children(&mut cursor) {
+                    if sibling.kind() == "function_signature"
+                        && let Some(sym) = self.lookup_func_symbol(&sibling, symbol_map)
+                    {
+                        return Some(sym);
                     }
                 }
             }
             if matches!(
                 cur.kind(),
                 "function_declaration" | "method_signature" | "function_signature"
-            ) {
-                if let Some(sym) = self.lookup_func_symbol(&cur, symbol_map) {
-                    return Some(sym);
-                }
+            ) && let Some(sym) = self.lookup_func_symbol(&cur, symbol_map)
+            {
+                return Some(sym);
             }
             current = cur.parent();
         }

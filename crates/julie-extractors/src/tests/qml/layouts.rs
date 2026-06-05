@@ -149,7 +149,7 @@ ColumnLayout {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract ColumnLayout with text elements"
         );
     }
@@ -183,7 +183,7 @@ GridLayout {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract GridLayout with items"
         );
     }
@@ -220,7 +220,7 @@ StackLayout {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract StackLayout with pages"
         );
     }
@@ -253,7 +253,7 @@ Flow {
             .collect();
 
         assert!(
-            components.len() >= 1,
+            !components.is_empty(),
             "Should extract Flow layout with repeater"
         );
     }

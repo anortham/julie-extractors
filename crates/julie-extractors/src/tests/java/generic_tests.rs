@@ -12,7 +12,7 @@ use crate::tests::helpers::init_parser;
 use std::path::PathBuf;
 
 #[cfg(test)]
-mod generic_tests {
+mod tests {
     use super::*;
 
     #[test]

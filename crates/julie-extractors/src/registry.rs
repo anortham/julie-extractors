@@ -37,16 +37,16 @@ macro_rules! define_structured_full_language_extractors {
                 let relationships = ext.extract_relationships(tree, &symbols);
                 let identifiers = ext.extract_identifiers(tree, &symbols);
                 let types = ext.infer_types(&symbols);
-                let pending_relationships = ext.get_pending_relationships();
-                let structured_pending_relationships = ext.get_structured_pending_relationships();
+                let pending_relationships = ext.base.take_pending_relationships();
+                let structured_pending_relationships = ext.base.take_structured_pending_relationships();
                 Ok(ExtractionResults {
                     symbols,
                     relationships,
                     pending_relationships,
                     structured_pending_relationships,
                     identifiers,
-                    type_argument_usages: ext.get_type_argument_usages(),
-                    literals: ext.get_literals(),
+                    type_argument_usages: ext.base.take_type_argument_usages(),
+                    literals: ext.base.take_literals(),
                     source_regions: Vec::new(),
                     types: convert_types_map(types, $language),
                     parse_diagnostics: Vec::new(),
@@ -74,16 +74,16 @@ macro_rules! define_structured_full_file_extractors {
                 let relationships = ext.extract_relationships(tree, &symbols);
                 let identifiers = ext.extract_identifiers(tree, &symbols);
                 let types = ext.infer_types(&symbols);
-                let pending_relationships = ext.get_pending_relationships();
-                let structured_pending_relationships = ext.get_structured_pending_relationships();
+                let pending_relationships = ext.base.take_pending_relationships();
+                let structured_pending_relationships = ext.base.take_structured_pending_relationships();
                 Ok(ExtractionResults {
                     symbols,
                     relationships,
                     pending_relationships,
                     structured_pending_relationships,
                     identifiers,
-                    type_argument_usages: ext.get_type_argument_usages(),
-                    literals: ext.get_literals(),
+                    type_argument_usages: ext.base.take_type_argument_usages(),
+                    literals: ext.base.take_literals(),
                     source_regions: Vec::new(),
                     types: convert_types_map(types, $language),
                     parse_diagnostics: Vec::new(),
@@ -118,8 +118,8 @@ macro_rules! define_no_pending_extractors {
                     pending_relationships: Vec::new(),
                     structured_pending_relationships: Vec::new(),
                     identifiers,
-                    type_argument_usages: ext.get_type_argument_usages(),
-                    literals: ext.get_literals(),
+                    type_argument_usages: ext.base.take_type_argument_usages(),
+                    literals: ext.base.take_literals(),
                     source_regions: Vec::new(),
                     types: convert_types_map(types, $language),
                     parse_diagnostics: Vec::new(),
@@ -153,8 +153,8 @@ macro_rules! define_relationship_data_extractors {
                     pending_relationships: Vec::new(),
                     structured_pending_relationships: Vec::new(),
                     identifiers,
-                    type_argument_usages: ext.get_type_argument_usages(),
-                    literals: ext.get_literals(),
+                    type_argument_usages: ext.base.take_type_argument_usages(),
+                    literals: ext.base.take_literals(),
                     source_regions: Vec::new(),
                     types: HashMap::new(),
                     parse_diagnostics: Vec::new(),
@@ -195,16 +195,16 @@ fn extract_java(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "java"),
         parse_diagnostics: Vec::new(),
@@ -227,16 +227,16 @@ fn extract_csharp(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "csharp"),
         parse_diagnostics: Vec::new(),
@@ -259,16 +259,16 @@ fn extract_kotlin(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "kotlin"),
         parse_diagnostics: Vec::new(),
@@ -291,16 +291,16 @@ fn extract_swift(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "swift"),
         parse_diagnostics: Vec::new(),
@@ -323,16 +323,16 @@ fn extract_php(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "php"),
         parse_diagnostics: Vec::new(),
@@ -355,16 +355,16 @@ fn extract_scala(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "scala"),
         parse_diagnostics: Vec::new(),
@@ -387,16 +387,16 @@ fn extract_typescript(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "typescript"),
         parse_diagnostics: Vec::new(),
@@ -419,16 +419,16 @@ fn extract_tsx(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "tsx"),
         parse_diagnostics: Vec::new(),
@@ -451,16 +451,16 @@ fn extract_javascript(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "javascript"),
         parse_diagnostics: Vec::new(),
@@ -483,16 +483,16 @@ fn extract_jsx(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "jsx"),
         parse_diagnostics: Vec::new(),
@@ -515,16 +515,16 @@ fn extract_bash(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "bash"),
         parse_diagnostics: Vec::new(),
@@ -547,16 +547,16 @@ fn extract_powershell(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "powershell"),
         parse_diagnostics: Vec::new(),
@@ -578,16 +578,16 @@ fn extract_lua(
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
@@ -609,16 +609,16 @@ fn extract_qml(
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
@@ -640,16 +640,16 @@ fn extract_r(
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
@@ -702,8 +702,8 @@ fn extract_html(
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "html"),
         parse_diagnostics: Vec::new(),
@@ -731,16 +731,16 @@ fn extract_sql(
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     let types = ext.infer_types(&symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "sql"),
         parse_diagnostics: Vec::new(),
@@ -783,8 +783,8 @@ fn extract_toml(
         pending_relationships: Vec::new(),
         structured_pending_relationships: Vec::new(),
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
@@ -809,16 +809,16 @@ fn extract_json(
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
-    let pending_relationships = ext.get_pending_relationships();
-    let structured_pending_relationships = ext.get_structured_pending_relationships();
+    let pending_relationships = ext.base.take_pending_relationships();
+    let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
         symbols,
         relationships,
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: HashMap::new(),
         parse_diagnostics: Vec::new(),
@@ -853,8 +853,8 @@ fn extract_vue(
         pending_relationships,
         structured_pending_relationships,
         identifiers,
-        type_argument_usages: ext.get_type_argument_usages(),
-        literals: ext.get_literals(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
         source_regions: Vec::new(),
         types: convert_types_map(types, "vue"),
         parse_diagnostics: Vec::new(),

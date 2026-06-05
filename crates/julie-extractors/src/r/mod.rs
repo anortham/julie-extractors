@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 pub struct RExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
     symbols: Vec<Symbol>,
 }
 
@@ -108,8 +108,7 @@ impl RExtractor {
                         ..Default::default()
                     };
                     let kind = if idioms::member_metadata(self, node, parent_id)
-                        .get("member_visibility")
-                        .is_some()
+                        .contains_key("member_visibility")
                     {
                         SymbolKind::Field
                     } else {
@@ -157,19 +156,17 @@ impl RExtractor {
         // Detect S3 method pattern: method.class (but not common dot-functions)
         let (kind, s3_detected) = self.classify_s3(&name, non_s3);
 
-        if s3_detected {
-            if let Some(dot_pos) = name.find('.') {
-                let method_name = &name[..dot_pos];
-                let class_name = &name[dot_pos + 1..];
-                metadata.insert(
-                    "s3_method".to_string(),
-                    serde_json::Value::String(method_name.to_string()),
-                );
-                metadata.insert(
-                    "s3_class".to_string(),
-                    serde_json::Value::String(class_name.to_string()),
-                );
-            }
+        if s3_detected && let Some(dot_pos) = name.find('.') {
+            let method_name = &name[..dot_pos];
+            let class_name = &name[dot_pos + 1..];
+            metadata.insert(
+                "s3_method".to_string(),
+                serde_json::Value::String(method_name.to_string()),
+            );
+            metadata.insert(
+                "s3_class".to_string(),
+                serde_json::Value::String(class_name.to_string()),
+            );
         }
 
         // Check for UseMethod() in body -> mark as S3 generic

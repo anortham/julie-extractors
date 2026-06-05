@@ -13,7 +13,7 @@ use julie_extractors::base::StructuredPendingRelationship;
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
     ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship, SourceRegion,
-    TypeArgument, TypeArgumentUsage, TypeInfo, extract_canonical,
+    TypeArgument, TypeArgumentUsage, TypeInfo, detect_language_for_source, extract_canonical,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -86,6 +86,9 @@ pub(crate) fn extract_artifact_file_from_snapshot(
     indexed_at: String,
     snapshot: SourceSnapshot,
 ) -> Result<ArtifactFile, ExtractFileError> {
+    let language = detect_language_for_source(&target.root_relative_path, &snapshot.content)
+        .unwrap_or(language.as_str())
+        .to_string();
     let mut results = catch_extraction_panic(target, &snapshot, || {
         extract_canonical(&target.root_relative_path, &snapshot.content, root)
     })?;

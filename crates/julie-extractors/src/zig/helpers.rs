@@ -12,10 +12,10 @@ pub(super) fn is_public_function(base: &BaseExtractor, node: Node) -> bool {
     }
 
     // Also check for "pub" keyword before function (fallback)
-    if let Some(prev) = node.prev_sibling() {
-        if prev.kind() == "pub" || base.get_node_text(&prev) == "pub" {
-            return true;
-        }
+    if let Some(prev) = node.prev_sibling()
+        && (prev.kind() == "pub" || base.get_node_text(&prev) == "pub")
+    {
+        return true;
     }
 
     false
@@ -31,10 +31,10 @@ pub(super) fn is_export_function(base: &BaseExtractor, node: Node) -> bool {
     }
 
     // Also check for "export" keyword before function (fallback)
-    if let Some(prev) = node.prev_sibling() {
-        if prev.kind() == "export" || base.get_node_text(&prev) == "export" {
-            return true;
-        }
+    if let Some(prev) = node.prev_sibling()
+        && (prev.kind() == "export" || base.get_node_text(&prev) == "export")
+    {
+        return true;
     }
 
     false
@@ -42,10 +42,10 @@ pub(super) fn is_export_function(base: &BaseExtractor, node: Node) -> bool {
 
 pub(super) fn is_public_declaration(base: &BaseExtractor, node: Node) -> bool {
     // Check for "pub" keyword before declaration
-    if let Some(prev) = node.prev_sibling() {
-        if prev.kind() == "pub" || base.get_node_text(&prev) == "pub" {
-            return true;
-        }
+    if let Some(prev) = node.prev_sibling()
+        && (prev.kind() == "pub" || base.get_node_text(&prev) == "pub")
+    {
+        return true;
     }
     false
 }

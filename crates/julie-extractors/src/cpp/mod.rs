@@ -33,7 +33,7 @@ use tree_sitter::{Node, Tree};
 /// C++ extractor for extracting symbols and relationships from C++ source code
 /// Direct Implementation of CppExtractor with all advanced C++ features
 pub struct CppExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
     processed_nodes: HashSet<String>,
     additional_symbols: Vec<Symbol>,
 }

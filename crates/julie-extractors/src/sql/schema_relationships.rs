@@ -173,12 +173,8 @@ pub(super) fn extract_error_relationships(
 }
 
 fn first_child_by_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
-    for child in node.children(&mut node.walk()) {
-        if child.kind() == kind {
-            return Some(child);
-        }
-    }
-    None
+    node.children(&mut node.walk())
+        .find(|&child| child.kind() == kind)
 }
 
 fn table_symbol_from_relation<'a>(
@@ -310,6 +306,7 @@ fn push_table_relationship_at_byte(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn push_table_relationship_at_line(
     base: &BaseExtractor,
     relationships: &mut Vec<Relationship>,

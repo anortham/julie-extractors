@@ -13,6 +13,8 @@ use crate::ecmascript_imports::is_ecmascript_global_direct_target;
 use crate::javascript::JavaScriptExtractor;
 use tree_sitter::{Node, Tree};
 
+type HeritageData = (String, Vec<(UnresolvedTarget, u32)>, String);
+
 /// Extract all relationships from the syntax tree
 pub(crate) fn extract_relationships(
     extractor: &mut JavaScriptExtractor,
@@ -46,58 +48,58 @@ fn extract_new_expression_relationships(
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
 ) {
-    if node.kind() == "new_expression" {
-        if let Some(constructor_node) = node.child_by_field_name("constructor") {
-            let target = extract_call_target(extractor, constructor_node);
-            let caller = find_containing_callable_symbol(node, symbols).cloned();
-            if let Some(caller) = caller {
-                let resolution = symbol_index.resolve_call_target(
-                    &target.terminal_name,
-                    Some(&caller),
-                    target.receiver.as_deref(),
-                );
-                let constructable_symbol = match &resolution {
-                    LocalTargetResolution::Resolved(type_symbol)
-                        if matches!(
-                            type_symbol.kind,
-                            SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
-                        ) =>
-                    {
-                        Some(*type_symbol)
-                    }
-                    _ if target.receiver.is_none() => {
-                        unique_constructable_symbol(symbols, &target.terminal_name)
-                    }
-                    _ => None,
-                };
-                if let Some(type_symbol) = constructable_symbol {
-                    relationships.push(Relationship {
-                        id: format!(
-                            "{}_{}_{:?}_{}",
-                            caller.id,
-                            type_symbol.id,
-                            RelationshipKind::Instantiates,
-                            node.start_position().row
-                        ),
-                        from_symbol_id: caller.id.clone(),
-                        to_symbol_id: type_symbol.id.clone(),
-                        kind: RelationshipKind::Instantiates,
-                        file_path: extractor.base().file_path.clone(),
-                        line_number: (node.start_position().row + 1) as u32,
-                        confidence: 1.0,
-                        metadata: None,
-                    });
-                } else if !is_ecmascript_global_direct_target(&target.terminal_name) {
-                    let pending = extractor.base().create_pending_relationship(
-                        caller.id.clone(),
-                        target,
-                        RelationshipKind::Instantiates,
-                        &node,
-                        Some(caller.id.clone()),
-                        Some(0.9),
-                    );
-                    extractor.add_structured_pending_relationship(pending);
+    if node.kind() == "new_expression"
+        && let Some(constructor_node) = node.child_by_field_name("constructor")
+    {
+        let target = extract_call_target(extractor, constructor_node);
+        let caller = find_containing_callable_symbol(node, symbols).cloned();
+        if let Some(caller) = caller {
+            let resolution = symbol_index.resolve_call_target(
+                &target.terminal_name,
+                Some(&caller),
+                target.receiver.as_deref(),
+            );
+            let constructable_symbol = match &resolution {
+                LocalTargetResolution::Resolved(type_symbol)
+                    if matches!(
+                        type_symbol.kind,
+                        SymbolKind::Class | SymbolKind::Type | SymbolKind::Interface
+                    ) =>
+                {
+                    Some(*type_symbol)
                 }
+                _ if target.receiver.is_none() => {
+                    unique_constructable_symbol(symbols, &target.terminal_name)
+                }
+                _ => None,
+            };
+            if let Some(type_symbol) = constructable_symbol {
+                relationships.push(Relationship {
+                    id: format!(
+                        "{}_{}_{:?}_{}",
+                        caller.id,
+                        type_symbol.id,
+                        RelationshipKind::Instantiates,
+                        node.start_position().row
+                    ),
+                    from_symbol_id: caller.id.clone(),
+                    to_symbol_id: type_symbol.id.clone(),
+                    kind: RelationshipKind::Instantiates,
+                    file_path: extractor.base().file_path.clone(),
+                    line_number: (node.start_position().row + 1) as u32,
+                    confidence: 1.0,
+                    metadata: None,
+                });
+            } else if !is_ecmascript_global_direct_target(&target.terminal_name) {
+                let pending = extractor.base().create_pending_relationship(
+                    caller.id.clone(),
+                    target,
+                    RelationshipKind::Instantiates,
+                    &node,
+                    Some(caller.id.clone()),
+                    Some(0.9),
+                );
+                extractor.add_structured_pending_relationship(pending);
             }
         }
     }
@@ -135,43 +137,43 @@ fn extract_call_relationships(
     relationships: &mut Vec<Relationship>,
 ) {
     // Look for call expressions
-    if node.kind() == "call_expression" {
-        if let Some(function_node) = node.child_by_field_name("function") {
-            let target = extract_call_target(extractor, function_node);
+    if node.kind() == "call_expression"
+        && let Some(function_node) = node.child_by_field_name("function")
+    {
+        let target = extract_call_target(extractor, function_node);
 
-            // Find the calling function (containing function)
-            if let Some(caller_symbol) = find_containing_callable_symbol(node, symbols) {
-                let resolved_symbol = match symbol_index.resolve_call_target(
-                    &target.terminal_name,
-                    Some(caller_symbol),
-                    target.receiver.as_deref(),
-                ) {
-                    LocalTargetResolution::Resolved(symbol) => Some(symbol),
-                    _ if target.receiver.is_none() => {
-                        unique_callable_symbol(symbols, &target.terminal_name)
-                    }
-                    _ => None,
-                };
-
-                if let Some(called_symbol) = resolved_symbol {
-                    let relationship = Relationship {
-                        id: format!(
-                            "{}_{}_{:?}_{}",
-                            caller_symbol.id,
-                            called_symbol.id,
-                            RelationshipKind::Calls,
-                            node.start_position().row
-                        ),
-                        from_symbol_id: caller_symbol.id.clone(),
-                        to_symbol_id: called_symbol.id.clone(),
-                        kind: RelationshipKind::Calls,
-                        file_path: extractor.base().file_path.clone(),
-                        line_number: (node.start_position().row + 1) as u32,
-                        confidence: 1.0,
-                        metadata: None,
-                    };
-                    relationships.push(relationship);
+        // Find the calling function (containing function)
+        if let Some(caller_symbol) = find_containing_callable_symbol(node, symbols) {
+            let resolved_symbol = match symbol_index.resolve_call_target(
+                &target.terminal_name,
+                Some(caller_symbol),
+                target.receiver.as_deref(),
+            ) {
+                LocalTargetResolution::Resolved(symbol) => Some(symbol),
+                _ if target.receiver.is_none() => {
+                    unique_callable_symbol(symbols, &target.terminal_name)
                 }
+                _ => None,
+            };
+
+            if let Some(called_symbol) = resolved_symbol {
+                let relationship = Relationship {
+                    id: format!(
+                        "{}_{}_{:?}_{}",
+                        caller_symbol.id,
+                        called_symbol.id,
+                        RelationshipKind::Calls,
+                        node.start_position().row
+                    ),
+                    from_symbol_id: caller_symbol.id.clone(),
+                    to_symbol_id: called_symbol.id.clone(),
+                    kind: RelationshipKind::Calls,
+                    file_path: extractor.base().file_path.clone(),
+                    line_number: (node.start_position().row + 1) as u32,
+                    confidence: 1.0,
+                    metadata: None,
+                };
+                relationships.push(relationship);
             }
         }
     }
@@ -302,7 +304,7 @@ fn collect_heritage_data(
     extractor: &JavaScriptExtractor,
     node: Node,
     symbols: &[Symbol],
-) -> Option<(String, Vec<(UnresolvedTarget, u32)>, String)> {
+) -> Option<HeritageData> {
     let mut parent = node.parent()?;
     while parent.kind() != "class_declaration" {
         parent = parent.parent()?;

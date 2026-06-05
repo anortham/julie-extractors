@@ -20,21 +20,21 @@ impl super::JavaScriptExtractor {
         let mut name = name_node.map(|n| self.base.get_node_text(&n));
 
         // Handle arrow functions assigned to variables (reference logic)
-        if node.kind() == "arrow_function" || node.kind() == "function_expression" {
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "variable_declarator" {
-                    if let Some(var_name_node) = parent.child_by_field_name("name") {
-                        name = Some(self.base.get_node_text(&var_name_node));
-                    }
-                } else if parent.kind() == "assignment_expression" {
-                    if let Some(left_node) = parent.child_by_field_name("left") {
-                        name = Some(self.base.get_node_text(&left_node));
-                    }
-                } else if parent.kind() == "pair" {
-                    if let Some(key_node) = parent.child_by_field_name("key") {
-                        name = Some(self.base.get_node_text(&key_node));
-                    }
+        if (node.kind() == "arrow_function" || node.kind() == "function_expression")
+            && let Some(parent) = node.parent()
+        {
+            if parent.kind() == "variable_declarator" {
+                if let Some(var_name_node) = parent.child_by_field_name("name") {
+                    name = Some(self.base.get_node_text(&var_name_node));
                 }
+            } else if parent.kind() == "assignment_expression" {
+                if let Some(left_node) = parent.child_by_field_name("left") {
+                    name = Some(self.base.get_node_text(&left_node));
+                }
+            } else if parent.kind() == "pair"
+                && let Some(key_node) = parent.child_by_field_name("key")
+            {
+                name = Some(self.base.get_node_text(&key_node));
             }
         }
 
@@ -179,14 +179,14 @@ impl super::JavaScriptExtractor {
             .map(|child| self.base.get_node_text(&child))
             .collect();
 
-        if raw_decorators.is_empty() {
-            if let Some(parent) = node.parent() {
-                raw_decorators = parent
-                    .children(&mut parent.walk())
-                    .filter(|child| child.kind() == "decorator")
-                    .map(|child| self.base.get_node_text(&child))
-                    .collect();
-            }
+        if raw_decorators.is_empty()
+            && let Some(parent) = node.parent()
+        {
+            raw_decorators = parent
+                .children(&mut parent.walk())
+                .filter(|child| child.kind() == "decorator")
+                .map(|child| self.base.get_node_text(&child))
+                .collect();
         }
 
         normalize_annotations(&raw_decorators, "javascript")

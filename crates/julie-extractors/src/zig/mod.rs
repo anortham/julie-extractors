@@ -16,7 +16,7 @@ mod types;
 mod variables;
 
 pub struct ZigExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl ZigExtractor {

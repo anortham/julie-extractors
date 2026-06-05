@@ -1,13 +1,13 @@
-//! Scala ScalaTest / MUnit call-style test detection (Miller bridge, Wave-3).
-//!
-//! ScalaTest and MUnit express tests as CALL expressions, not named methods:
-//!   - FunSuite / MUnit: `test("name") { ... }`
-//!   - FunSpec:          `describe("subject") { it("behaves") { ... } }`
-//!   - FlatSpec:         `"subject" should "behave" in { ... }`  (infix form)
-//! The declaration-walking extractor only flags `def` methods via a path
-//! heuristic, so these are invisible today. The adapter (`scala/test_calls.rs`)
-//! walks the grammar locally and delegates to the shared `crate::test_calls`
-//! core for classification + symbol construction.
+// Scala ScalaTest / MUnit call-style test detection (Miller bridge, Wave-3).
+//
+// ScalaTest and MUnit express tests as CALL expressions, not named methods:
+//   - FunSuite / MUnit: `test("name") { ... }`
+//   - FunSpec:          `describe("subject") { it("behaves") { ... } }`
+//   - FlatSpec:         `"subject" should "behave" in { ... }`  (infix form)
+// The declaration-walking extractor only flags `def` methods via a path
+// heuristic, so these are invisible today. The adapter (`scala/test_calls.rs`)
+// walks the grammar locally and delegates to the shared `crate::test_calls`
+// core for classification + symbol construction.
 
 use crate::base::SymbolKind;
 use crate::scala::ScalaExtractor;

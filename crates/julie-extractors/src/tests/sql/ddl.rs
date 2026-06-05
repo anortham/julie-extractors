@@ -156,7 +156,7 @@ CREATE TABLE analytics_events (
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("INDEX"))
+                    .is_some_and(|sig| sig.contains("INDEX"))
             })
             .collect::<Vec<_>>();
         assert!(indexes.len() >= 3);

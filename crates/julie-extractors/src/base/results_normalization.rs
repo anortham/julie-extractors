@@ -151,36 +151,36 @@ impl ExtractionResults {
         }
 
         for symbol in &mut self.symbols {
-            if let Some(parent_id) = symbol.parent_id.as_mut() {
-                if let Some(new_parent_id) = symbol_id_map.get(parent_id) {
-                    *parent_id = new_parent_id.clone();
-                }
+            if let Some(parent_id) = symbol.parent_id.as_mut()
+                && let Some(new_parent_id) = symbol_id_map.get(parent_id)
+            {
+                *parent_id = new_parent_id.clone();
             }
         }
 
         for identifier in &mut self.identifiers {
             identifier.refresh_id();
 
-            if let Some(containing_symbol_id) = identifier.containing_symbol_id.as_mut() {
-                if let Some(new_symbol_id) = symbol_id_map.get(containing_symbol_id) {
-                    *containing_symbol_id = new_symbol_id.clone();
-                }
+            if let Some(containing_symbol_id) = identifier.containing_symbol_id.as_mut()
+                && let Some(new_symbol_id) = symbol_id_map.get(containing_symbol_id)
+            {
+                *containing_symbol_id = new_symbol_id.clone();
             }
 
-            if let Some(target_symbol_id) = identifier.target_symbol_id.as_mut() {
-                if let Some(new_symbol_id) = symbol_id_map.get(target_symbol_id) {
-                    *target_symbol_id = new_symbol_id.clone();
-                }
+            if let Some(target_symbol_id) = identifier.target_symbol_id.as_mut()
+                && let Some(new_symbol_id) = symbol_id_map.get(target_symbol_id)
+            {
+                *target_symbol_id = new_symbol_id.clone();
             }
         }
 
         for literal in &mut self.literals {
             literal.refresh_id();
 
-            if let Some(containing_symbol_id) = literal.containing_symbol_id.as_mut() {
-                if let Some(new_symbol_id) = symbol_id_map.get(containing_symbol_id) {
-                    *containing_symbol_id = new_symbol_id.clone();
-                }
+            if let Some(containing_symbol_id) = literal.containing_symbol_id.as_mut()
+                && let Some(new_symbol_id) = symbol_id_map.get(containing_symbol_id)
+            {
+                *containing_symbol_id = new_symbol_id.clone();
             }
         }
 

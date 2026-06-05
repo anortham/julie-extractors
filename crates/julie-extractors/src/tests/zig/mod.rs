@@ -1177,7 +1177,7 @@ const Container(comptime T: type) = struct {
         let relationships = extract_relationships(zig_code, &symbols);
 
         // Should extract composition relationships
-        assert!(relationships.len() > 0);
+        assert!(!relationships.is_empty());
 
         let rectangle_composition = relationships.iter().find(|r| {
             r.kind.to_string() == "composition"

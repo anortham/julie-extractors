@@ -278,6 +278,8 @@ impl Iterator for ArtifactFileSpoolIter {
 pub struct ArtifactWriter {
     connection: Connection,
     metadata: ArtifactMetadata,
+    staged_capability_snapshot: Option<ArtifactCapabilitySnapshot>,
+    last_capability_rows_written: RowDomainCounts,
 }
 
 impl ArtifactWriter {
@@ -289,6 +291,8 @@ impl ArtifactWriter {
         Ok(Self {
             connection,
             metadata,
+            staged_capability_snapshot: None,
+            last_capability_rows_written: RowDomainCounts::default(),
         })
     }
 
@@ -308,6 +312,8 @@ impl ArtifactWriter {
         Ok(Self {
             connection,
             metadata,
+            staged_capability_snapshot: None,
+            last_capability_rows_written: RowDomainCounts::default(),
         })
     }
 
@@ -319,90 +325,29 @@ impl ArtifactWriter {
         self.connection
     }
 
+    pub fn stage_capability_snapshot(&mut self, snapshot: ArtifactCapabilitySnapshot) {
+        self.staged_capability_snapshot = Some(snapshot);
+        self.last_capability_rows_written = RowDomainCounts::default();
+    }
+
+    pub fn last_capability_rows_written(&self) -> RowDomainCounts {
+        self.last_capability_rows_written.clone()
+    }
+
     pub fn sync_capability_snapshot(
         &mut self,
         snapshot: &ArtifactCapabilitySnapshot,
     ) -> ArtifactWriteResult<RowDomainCounts> {
         let tx = self.connection.transaction()?;
-        let mut counts = RowDomainCounts::default();
-
-        let parser_keys = snapshot
-            .parser_inventory
-            .iter()
-            .map(|row| (row.language.clone(), row.parser_package.clone()))
-            .collect::<HashSet<_>>();
-        for (language, parser_package) in load_parser_inventory_keys(&tx)? {
-            if !parser_keys.contains(&(language.clone(), parser_package.clone())) {
-                counts.parser_inventory += tx.execute(
-                    "DELETE FROM parser_inventory WHERE language = ?1 AND parser_package = ?2",
-                    params![language, parser_package],
-                )? as i64;
-            }
-        }
-
-        let language_keys = snapshot
-            .languages
-            .iter()
-            .map(|row| row.language.clone())
-            .collect::<HashSet<_>>();
-        let fixture_keys = snapshot
-            .languages
-            .iter()
-            .flat_map(|row| {
-                row.fixtures
-                    .iter()
-                    .map(|fixture| (row.language.clone(), fixture.fixture_name.clone()))
-            })
-            .collect::<HashSet<_>>();
-        let gap_keys = snapshot
-            .languages
-            .iter()
-            .flat_map(|row| row.gaps.iter().map(|gap| gap.gap_id.clone()))
-            .collect::<HashSet<_>>();
-
-        for (language, fixture_name) in load_language_capability_fixture_keys(&tx)? {
-            if !fixture_keys.contains(&(language.clone(), fixture_name.clone())) {
-                counts.language_capability_fixtures += tx.execute(
-                    "DELETE FROM language_capability_fixtures
-                     WHERE language = ?1 AND fixture_name = ?2",
-                    params![language, fixture_name],
-                )? as i64;
-            }
-        }
-        for gap_id in load_language_capability_gap_keys(&tx)? {
-            if !gap_keys.contains(&gap_id) {
-                counts.language_capability_gaps += tx.execute(
-                    "DELETE FROM language_capability_gaps WHERE gap_id = ?1",
-                    [gap_id],
-                )? as i64;
-            }
-        }
-        for language in load_language_capability_keys(&tx)? {
-            if !language_keys.contains(&language) {
-                counts.language_capabilities += tx.execute(
-                    "DELETE FROM language_capabilities WHERE language = ?1",
-                    [language],
-                )? as i64;
-            }
-        }
-
-        for row in &snapshot.parser_inventory {
-            counts.parser_inventory += upsert_parser_inventory(&tx, row)? as i64;
-        }
-        for row in &snapshot.languages {
-            counts.language_capabilities += upsert_language_capability(&tx, row)? as i64;
-            for fixture in &row.fixtures {
-                counts.language_capability_fixtures +=
-                    upsert_language_capability_fixture(&tx, &row.language, fixture)? as i64;
-            }
-            for gap in &row.gaps {
-                counts.language_capability_gaps +=
-                    upsert_language_capability_gap(&tx, &row.language, gap)? as i64;
-            }
-        }
-
+        let counts = sync_capability_snapshot_in_tx(&tx, snapshot)?;
         tx.commit()?;
+        self.last_capability_rows_written = counts.clone();
         Ok(counts)
+    }
+
+    fn staged_capability_snapshot(&mut self) -> Option<ArtifactCapabilitySnapshot> {
+        self.last_capability_rows_written = RowDomainCounts::default();
+        self.staged_capability_snapshot.take()
     }
 
     pub fn write_scan(
@@ -422,7 +367,19 @@ impl ArtifactWriter {
     ) -> ArtifactWriteResult<WriteResult> {
         debug_assert_eq!(revision.operation, WriteOperation::Scan);
         spool.finish()?;
-        self.write_scan_spooled_snapshot(revision, snapshot_paths, spool)
+        self.write_scan_spooled_snapshot(revision, snapshot_paths, &[], spool)
+    }
+
+    pub fn write_scan_spooled_preserving_missing_paths(
+        &mut self,
+        revision: RevisionInput,
+        snapshot_paths: &[String],
+        preserved_missing_paths: &[String],
+        spool: &mut ArtifactFileSpool,
+    ) -> ArtifactWriteResult<WriteResult> {
+        debug_assert_eq!(revision.operation, WriteOperation::Scan);
+        spool.finish()?;
+        self.write_scan_spooled_snapshot(revision, snapshot_paths, preserved_missing_paths, spool)
     }
 
     pub fn write_update(
@@ -440,15 +397,37 @@ impl ArtifactWriter {
         path: &str,
     ) -> ArtifactWriteResult<WriteResult> {
         debug_assert_eq!(revision.operation, WriteOperation::Delete);
+        self.remove_file_rows(revision, path, RevisionChangeKind::Deleted)
+    }
+
+    pub fn remove_unsupported_file(
+        &mut self,
+        revision: RevisionInput,
+        path: &str,
+    ) -> ArtifactWriteResult<WriteResult> {
+        debug_assert_eq!(revision.operation, WriteOperation::Update);
+        self.remove_file_rows(revision, path, RevisionChangeKind::Unsupported)
+    }
+
+    fn remove_file_rows(
+        &mut self,
+        revision: RevisionInput,
+        path: &str,
+        change_kind: RevisionChangeKind,
+    ) -> ArtifactWriteResult<WriteResult> {
+        let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
         let existing = load_existing_file(&tx, path)?;
         let Some(existing) = existing else {
             tx.commit()?;
+            self.last_capability_rows_written = RowDomainCounts::default();
             return Ok(WriteResult {
                 transactions_committed: 1,
                 ..WriteResult::default()
             });
         };
+        let capability_rows_written =
+            sync_optional_capability_snapshot_in_tx(&tx, capability_snapshot.as_ref())?;
 
         let parent_revision_id = current_revision_id(&tx)?;
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
@@ -461,12 +440,15 @@ impl ArtifactWriter {
                 revision_id,
                 &existing.file_id,
                 path,
-                RevisionChangeKind::Deleted,
+                change_kind,
             )?,
             ..RowCounts::default()
         };
-        update_revision_counts(&tx, revision_id, &row_counts)?;
+        let revision_counts =
+            revision_counts_with_capabilities(&row_counts, &capability_rows_written);
+        update_revision_counts(&tx, revision_id, &revision_counts)?;
         tx.commit()?;
+        self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
             revision_id: Some(revision_id),
@@ -483,7 +465,10 @@ impl ArtifactWriter {
         revision: RevisionInput,
         files: &[ArtifactFile],
     ) -> ArtifactWriteResult<WriteResult> {
+        let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
+        let capability_rows_written =
+            sync_optional_capability_snapshot_in_tx(&tx, capability_snapshot.as_ref())?;
         let mut planned = Vec::new();
         let mut files_skipped = 0;
         let skip_unchanged_content = revision.mode != Some(WriteMode::Force);
@@ -513,8 +498,9 @@ impl ArtifactWriter {
             planned.push((file, existing, change_kind));
         }
 
-        if planned.is_empty() {
+        if planned.is_empty() && !capability_rows_written.has_rows() {
             tx.commit()?;
+            self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
                 transactions_committed: 1,
@@ -563,8 +549,11 @@ impl ArtifactWriter {
             }
         }
 
-        update_revision_counts(&tx, revision_id, &row_counts)?;
+        let revision_counts =
+            revision_counts_with_capabilities(&row_counts, &capability_rows_written);
+        update_revision_counts(&tx, revision_id, &revision_counts)?;
         tx.commit()?;
+        self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
             revision_id: Some(revision_id),
@@ -581,7 +570,10 @@ impl ArtifactWriter {
         revision: RevisionInput,
         files: &[ArtifactFile],
     ) -> ArtifactWriteResult<WriteResult> {
+        let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
+        let capability_rows_written =
+            sync_optional_capability_snapshot_in_tx(&tx, capability_snapshot.as_ref())?;
         let mut planned = Vec::new();
         let mut files_skipped = 0;
         let skip_unchanged_content = revision.mode != Some(WriteMode::Force);
@@ -621,8 +613,9 @@ impl ArtifactWriter {
             planned.push((file, existing, change_kind));
         }
 
-        if planned.is_empty() && deleted.is_empty() {
+        if planned.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
             tx.commit()?;
+            self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
                 transactions_committed: 1,
@@ -697,8 +690,11 @@ impl ArtifactWriter {
             }
         }
 
-        update_revision_counts(&tx, revision_id, &row_counts)?;
+        let revision_counts =
+            revision_counts_with_capabilities(&row_counts, &capability_rows_written);
+        update_revision_counts(&tx, revision_id, &revision_counts)?;
         tx.commit()?;
+        self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
             revision_id: Some(revision_id),
@@ -714,13 +710,17 @@ impl ArtifactWriter {
         &mut self,
         revision: RevisionInput,
         snapshot_paths: &[String],
+        preserved_missing_paths: &[String],
         spool: &ArtifactFileSpool,
     ) -> ArtifactWriteResult<WriteResult> {
+        let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.unchecked_transaction()?;
         // Symbol parent FKs can point to symbols inserted later in the same spooled transaction.
         // Defer validation until commit while keeping connection-level foreign_keys ON so
         // ON DELETE CASCADE/SET NULL actions still run during rewrites and snapshot deletes.
         tx.pragma_update(None, "defer_foreign_keys", "ON")?;
+        let capability_rows_written =
+            sync_optional_capability_snapshot_in_tx(&tx, capability_snapshot.as_ref())?;
         let snapshot_paths = snapshot_paths
             .iter()
             .map(String::as_str)
@@ -770,11 +770,15 @@ impl ArtifactWriter {
 
         let deleted = load_existing_files(&tx)?
             .into_iter()
-            .filter(|existing| !snapshot_paths.contains(existing.path.as_str()))
+            .filter(|existing| {
+                !snapshot_paths.contains(existing.path.as_str())
+                    && !path_is_preserved_missing(&existing.path, preserved_missing_paths)
+            })
             .collect::<Vec<_>>();
 
-        if planned_files.is_empty() && deleted.is_empty() {
+        if planned_files.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
             tx.commit()?;
+            self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
                 transactions_committed: 1,
@@ -848,8 +852,11 @@ impl ArtifactWriter {
             }
         }
 
-        update_revision_counts(&tx, revision_id, &row_counts)?;
+        let revision_counts =
+            revision_counts_with_capabilities(&row_counts, &capability_rows_written);
+        update_revision_counts(&tx, revision_id, &revision_counts)?;
         tx.commit()?;
+        self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
             revision_id: Some(revision_id),
@@ -912,6 +919,100 @@ fn load_language_capability_fixture_keys(
 fn load_language_capability_gap_keys(tx: &Transaction<'_>) -> rusqlite::Result<HashSet<String>> {
     let mut statement = tx.prepare("SELECT gap_id FROM language_capability_gaps")?;
     statement.query_map([], |row| row.get(0))?.collect()
+}
+
+fn sync_optional_capability_snapshot_in_tx(
+    tx: &Transaction<'_>,
+    snapshot: Option<&ArtifactCapabilitySnapshot>,
+) -> rusqlite::Result<RowDomainCounts> {
+    match snapshot {
+        Some(snapshot) => sync_capability_snapshot_in_tx(tx, snapshot),
+        None => Ok(RowDomainCounts::default()),
+    }
+}
+
+fn sync_capability_snapshot_in_tx(
+    tx: &Transaction<'_>,
+    snapshot: &ArtifactCapabilitySnapshot,
+) -> rusqlite::Result<RowDomainCounts> {
+    let mut counts = RowDomainCounts::default();
+
+    let parser_keys = snapshot
+        .parser_inventory
+        .iter()
+        .map(|row| (row.language.clone(), row.parser_package.clone()))
+        .collect::<HashSet<_>>();
+    for (language, parser_package) in load_parser_inventory_keys(tx)? {
+        if !parser_keys.contains(&(language.clone(), parser_package.clone())) {
+            counts.parser_inventory += tx.execute(
+                "DELETE FROM parser_inventory WHERE language = ?1 AND parser_package = ?2",
+                params![language, parser_package],
+            )? as i64;
+        }
+    }
+
+    let language_keys = snapshot
+        .languages
+        .iter()
+        .map(|row| row.language.clone())
+        .collect::<HashSet<_>>();
+    let fixture_keys = snapshot
+        .languages
+        .iter()
+        .flat_map(|row| {
+            row.fixtures
+                .iter()
+                .map(|fixture| (row.language.clone(), fixture.fixture_name.clone()))
+        })
+        .collect::<HashSet<_>>();
+    let gap_keys = snapshot
+        .languages
+        .iter()
+        .flat_map(|row| row.gaps.iter().map(|gap| gap.gap_id.clone()))
+        .collect::<HashSet<_>>();
+
+    for (language, fixture_name) in load_language_capability_fixture_keys(tx)? {
+        if !fixture_keys.contains(&(language.clone(), fixture_name.clone())) {
+            counts.language_capability_fixtures += tx.execute(
+                "DELETE FROM language_capability_fixtures
+                 WHERE language = ?1 AND fixture_name = ?2",
+                params![language, fixture_name],
+            )? as i64;
+        }
+    }
+    for gap_id in load_language_capability_gap_keys(tx)? {
+        if !gap_keys.contains(&gap_id) {
+            counts.language_capability_gaps += tx.execute(
+                "DELETE FROM language_capability_gaps WHERE gap_id = ?1",
+                [gap_id],
+            )? as i64;
+        }
+    }
+    for language in load_language_capability_keys(tx)? {
+        if !language_keys.contains(&language) {
+            counts.language_capabilities += tx.execute(
+                "DELETE FROM language_capabilities WHERE language = ?1",
+                [language],
+            )? as i64;
+        }
+    }
+
+    for row in &snapshot.parser_inventory {
+        counts.parser_inventory += upsert_parser_inventory(tx, row)? as i64;
+    }
+    for row in &snapshot.languages {
+        counts.language_capabilities += upsert_language_capability(tx, row)? as i64;
+        for fixture in &row.fixtures {
+            counts.language_capability_fixtures +=
+                upsert_language_capability_fixture(tx, &row.language, fixture)? as i64;
+        }
+        for gap in &row.gaps {
+            counts.language_capability_gaps +=
+                upsert_language_capability_gap(tx, &row.language, gap)? as i64;
+        }
+    }
+
+    Ok(counts)
 }
 
 fn upsert_parser_inventory(
@@ -1097,6 +1198,17 @@ fn load_existing_files(tx: &Transaction<'_>) -> rusqlite::Result<Vec<ExistingFil
         .collect()
 }
 
+fn path_is_preserved_missing(path: &str, preserved_missing_paths: &[String]) -> bool {
+    preserved_missing_paths.iter().any(|prefix| {
+        prefix == "."
+            || prefix.is_empty()
+            || path == prefix
+            || path
+                .strip_prefix(prefix)
+                .is_some_and(|suffix| suffix.starts_with('/'))
+    })
+}
+
 fn current_revision_id(tx: &Transaction<'_>) -> rusqlite::Result<Option<i64>> {
     tx.query_row(
         "SELECT MAX(revision_id) FROM extraction_revisions",
@@ -1133,13 +1245,24 @@ fn insert_revision(
 fn update_revision_counts(
     tx: &Transaction<'_>,
     revision_id: i64,
-    row_counts: &RowCounts,
+    row_counts: &RowDomainCounts,
 ) -> rusqlite::Result<()> {
+    let counts_json = serde_json::to_string(row_counts)
+        .expect("RowDomainCounts serialization should be infallible");
     tx.execute(
         "UPDATE extraction_revisions SET counts_json = ?1 WHERE revision_id = ?2",
-        params![row_counts.counts_json(), revision_id],
+        params![counts_json, revision_id],
     )?;
     Ok(())
+}
+
+fn revision_counts_with_capabilities(
+    row_counts: &RowCounts,
+    capability_rows_written: &RowDomainCounts,
+) -> RowDomainCounts {
+    let mut counts = RowDomainCounts::from(row_counts);
+    counts.add_counts(capability_rows_written);
+    counts
 }
 
 fn ensure_data_loss_guard(tx: &Transaction<'_>, file: &ArtifactFile) -> ArtifactWriteResult<()> {

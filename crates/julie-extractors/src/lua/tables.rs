@@ -20,11 +20,10 @@ pub(super) fn extract_table_fields(
     // Extract fields from table constructor: { field = value, method = function() end }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "field" {
-            if let Some(field_symbol) = extract_table_field_symbol(symbols, base, child, parent_id)
-            {
-                symbols.push(field_symbol);
-            }
+        if child.kind() == "field"
+            && let Some(field_symbol) = extract_table_field_symbol(symbols, base, child, parent_id)
+        {
+            symbols.push(field_symbol);
         }
     }
 }

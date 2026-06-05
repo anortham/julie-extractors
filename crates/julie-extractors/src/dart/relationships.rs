@@ -113,10 +113,10 @@ fn extract_class_header_targets(node: &Node) -> Vec<(String, RelationshipKind)> 
     if let Some(superclass_clause) = find_child_by_type(node, "superclass") {
         let type_root = find_child_by_type(&superclass_clause, "type")
             .or_else(|| find_child_by_type(&superclass_clause, "type_identifier"));
-        if let Some(type_node) = type_root {
-            if let Some(target_name) = normalize_type_name(&get_node_text(&type_node)) {
-                targets.push((target_name, RelationshipKind::Extends));
-            }
+        if let Some(type_node) = type_root
+            && let Some(target_name) = normalize_type_name(&get_node_text(&type_node))
+        {
+            targets.push((target_name, RelationshipKind::Extends));
         }
 
         if let Some(mixin_clause) = find_child_by_type(&superclass_clause, "mixins") {

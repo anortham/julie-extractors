@@ -84,10 +84,10 @@ impl SwiftExtractor {
 
         // Check for raw values
         let children: Vec<_> = node.children(&mut node.walk()).collect();
-        if let Some(equal_index) = children.iter().position(|c| c.kind() == "=") {
-            if let Some(raw_value_node) = children.get(equal_index + 1) {
-                signature.push_str(&format!(" = {}", self.base.get_node_text(raw_value_node)));
-            }
+        if let Some(equal_index) = children.iter().position(|c| c.kind() == "=")
+            && let Some(raw_value_node) = children.get(equal_index + 1)
+        {
+            signature.push_str(&format!(" = {}", self.base.get_node_text(raw_value_node)));
         }
 
         let annotations = self.extract_annotations(node);

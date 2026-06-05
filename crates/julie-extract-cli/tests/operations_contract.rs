@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::process::{Command, Output};
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 use serde_json::Value;
 use tempfile::TempDir;
 
@@ -97,6 +97,20 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
     );
     assert_eq!(
         report["counts"]["rows_written"]["language_capability_gaps"],
+        language_capability_gaps
+    );
+    let revision_counts = latest_revision_counts(&db);
+    assert_eq!(revision_counts["parser_inventory"], parser_inventory);
+    assert_eq!(
+        revision_counts["language_capabilities"],
+        language_capabilities
+    );
+    assert_eq!(
+        revision_counts["language_capability_fixtures"],
+        language_capability_fixtures
+    );
+    assert_eq!(
+        revision_counts["language_capability_gaps"],
         language_capability_gaps
     );
     assert_eq!(
@@ -358,6 +372,55 @@ fn scan_with_no_changes_returns_no_change_without_new_revision() {
 }
 
 #[test]
+fn scan_records_revision_when_only_capability_snapshot_changes() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+    let conn = Connection::open(&db).unwrap();
+    conn.execute(
+        "UPDATE parser_inventory SET source = 'stale' WHERE language = 'rust'",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["revision"]["created_revision_id"], 2);
+    assert!(
+        report["counts"]["rows_written"]["parser_inventory"]
+            .as_i64()
+            .unwrap()
+            >= 1
+    );
+    assert_eq!(table_count(&db, "extraction_revisions"), 2);
+    let revision_counts = latest_revision_counts(&db);
+    assert!(
+        revision_counts["parser_inventory"].as_i64().unwrap() >= 1,
+        "capability-only revisions must record capability row counts: {revision_counts:#?}"
+    );
+    assert_eq!(revision_counts["files"], 0);
+    assert_ne!(parser_inventory_source(&db, "rust"), "stale");
+}
+
+#[test]
 fn scan_deletes_rows_for_source_files_missing_from_the_snapshot() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -387,6 +450,51 @@ fn scan_deletes_rows_for_source_files_missing_from_the_snapshot() {
     assert_eq!(report["counts"]["files_deleted"], 1);
     assert_eq!(report["counts"]["files_unchanged"], 1);
     assert_eq!(symbols_for_path(&db, "src/a.rs"), Vec::<String>::new());
+    assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+}
+
+#[cfg(unix)]
+#[test]
+fn scan_preserves_existing_rows_when_discovery_cannot_read_directory() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    let src = fixture.path("src");
+    let original_permissions = std::fs::metadata(&src).unwrap().permissions();
+    std::fs::set_permissions(&src, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+    std::fs::set_permissions(&src, original_permissions).unwrap();
+
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "partial");
+    assert_eq!(report["counts"]["files_deleted"], 0);
+    assert_eq!(report["errors"][0]["code"], "read_failed");
+    assert_eq!(report["errors"][0]["root_relative_path"], "src");
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
 }
 
@@ -692,6 +800,95 @@ fn update_changes_one_file_and_preserves_other_files() {
 }
 
 #[test]
+fn update_ignored_file_records_update_revision_with_unsupported_change() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+    std::fs::write(fixture.path(".gitignore"), "src/a.rs\n").unwrap();
+
+    let output = julie_extract(&[
+        "update",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--file",
+        "src/a.rs",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "unsupported");
+    assert_eq!(report["operation"], "update");
+    assert_eq!(report["counts"]["files_deleted"], 1);
+    assert_eq!(
+        latest_revision_operation_and_change(&db),
+        Some(("update".to_string(), "unsupported".to_string()))
+    );
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), Vec::<String>::new());
+    assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+}
+
+#[test]
+fn update_ignored_missing_row_reports_no_artifact_rows_removed() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+    assert_success(julie_extract(&[
+        "delete",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--file",
+        "src/a.rs",
+        "--json",
+    ]));
+    let revisions_after_delete = table_count(&db, "extraction_revisions");
+    std::fs::write(fixture.path(".gitignore"), "src/a.rs\n").unwrap();
+
+    let output = julie_extract(&[
+        "update",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--file",
+        "src/a.rs",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "unsupported");
+    assert_eq!(report["revision"]["created_revision_id"], Value::Null);
+    assert_eq!(report["counts"]["files_deleted"], 0);
+    assert_eq!(
+        report["warnings"][0]["message"],
+        "file is ignored or unsupported and no artifact rows exist"
+    );
+    assert_eq!(
+        table_count(&db, "extraction_revisions"),
+        revisions_after_delete
+    );
+}
+
+#[test]
 fn delete_removes_one_file_and_missing_rows_return_not_found() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -726,6 +923,7 @@ fn delete_removes_one_file_and_missing_rows_return_not_found() {
     assert_eq!(report["counts"]["files_deleted"], 1);
     assert_eq!(symbols_for_path(&db, "src/a.rs"), Vec::<String>::new());
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+    let revisions_after_delete = table_count(&db, "extraction_revisions");
 
     let missing = julie_extract(&[
         "delete",
@@ -740,6 +938,40 @@ fn delete_removes_one_file_and_missing_rows_return_not_found() {
     assert_eq!(missing.status.code(), Some(0));
     let report = json_report(&missing);
     assert_eq!(report["status"], "not_found");
+    assert_eq!(report["revision"]["created_revision_id"], Value::Null);
+    assert_eq!(report["counts"]["files_deleted"], 0);
+    assert_eq!(
+        table_count(&db, "extraction_revisions"),
+        revisions_after_delete
+    );
+}
+
+#[test]
+fn delete_missing_artifact_reports_not_found_without_creating_sqlite_file() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("missing.sqlite");
+
+    let output = julie_extract(&[
+        "delete",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--file",
+        "src/a.rs",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "not_found");
+    assert_eq!(report["operation"], "delete");
+    assert_eq!(report["counts"]["files_deleted"], 0);
+    assert!(
+        !db.exists(),
+        "delete against a missing artifact must not create {}",
+        db.display()
+    );
 }
 
 #[test]
@@ -765,6 +997,49 @@ fn info_is_read_only_for_artifact_metadata_and_revisions() {
     assert_eq!(report["counts"]["totals"]["files"], 2);
     assert_eq!(report["counts"]["totals"]["symbols"], 3);
     assert_eq!(artifact_fingerprint(&db), before);
+}
+
+#[test]
+fn info_reports_missing_noncritical_metadata_as_warning() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+    let before = artifact_fingerprint(&db);
+    let conn = Connection::open(&db).unwrap();
+    conn.execute("DELETE FROM artifact_metadata WHERE key = 'updated_at'", [])
+        .unwrap();
+    drop(conn);
+
+    let output = julie_extract(&["info", "--db", path_str(&db), "--json"]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["operation"], "info");
+    assert_eq!(report["warnings"][0]["code"], "metadata_missing");
+    assert_eq!(
+        report["warnings"][0]["details"]["missing_key"],
+        "updated_at"
+    );
+    assert_eq!(report["counts"]["totals"]["files"], 2);
+    assert_eq!(table_count(&db, "extraction_revisions"), 1);
+    assert_eq!(table_count(&db, "files"), 2);
+    assert_eq!(table_count(&db, "symbols"), 3);
+    assert_eq!(table_count(&db, "artifact_metadata"), 10);
+    assert_eq!(before.len(), artifact_fingerprint(&db).len() + 1);
 }
 
 #[test]
@@ -838,6 +1113,46 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
 }
 
 #[test]
+fn failed_file_jsonl_export_preserves_existing_output_file() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    let out = fixture.path("artifact.jsonl");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+    std::fs::write(&out, "previous export\n").unwrap();
+    let conn = Connection::open(&db).unwrap();
+    conn.execute(
+        "UPDATE files SET metadata_json = '{' WHERE path = 'src/a.rs'",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+
+    let output = julie_extract(&[
+        "export",
+        "--db",
+        path_str(&db),
+        "--format",
+        "jsonl",
+        "--out",
+        path_str(&out),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "export_failed");
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "previous export\n");
+}
+
+#[test]
 fn failed_stdout_jsonl_export_writes_report_to_stderr() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -886,6 +1201,147 @@ fn failed_stdout_jsonl_export_writes_report_to_stderr() {
         records.iter().all(|record| record.get("kind").is_some()),
         "stdout must contain only JSONL records, got:\n{stdout}"
     );
+}
+
+#[test]
+fn scan_treats_supported_extensions_case_insensitively() {
+    let fixture = FixtureRoot::with_file("src/A.TS", "export function alpha() { return 1; }\n");
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["counts"]["files_unsupported"], 0);
+    assert_eq!(file_language_for_path(&db, "src/A.TS"), "typescript");
+    assert!(symbols_for_path(&db, "src/A.TS").contains(&"alpha".to_string()));
+}
+
+#[test]
+fn scan_persists_typescript_generic_client_call_url_literals() {
+    let fixture = FixtureRoot::with_file(
+        "src/messagesService.ts",
+        r#"
+import { BroadcastMessage, AppSetting, Parameter } from "@/models"
+import axios from "./apiConfig"
+
+export async function getActiveMessages() {
+    let response = await axios.get<BroadcastMessage[]>("/api/messages/active")
+    return response.data
+}
+
+export async function getAppSetting(id: string) {
+    let response = await axios.get<AppSetting>(`/api/appsettings/${id}`)
+    return response.data
+}
+
+export async function saveParameter(parameter: Parameter) {
+    let response = await axios.put<Parameter>("/api/parameter", parameter)
+    return response.data
+}
+"#,
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    let literals = literals_for_path(&db, "src/messagesService.ts");
+    let active = literals
+        .iter()
+        .find(|literal| literal.literal_text == "/api/messages/active")
+        .unwrap_or_else(|| panic!("expected active-message URL literal, got {literals:?}"));
+    assert_eq!(active.kind, "url");
+    assert_eq!(active.carrier.as_deref(), Some("axios.get"));
+    assert_eq!(active.arg_position, 0);
+    assert_eq!(
+        active.containing_symbol_name.as_deref(),
+        Some("getActiveMessages")
+    );
+
+    let app_setting = literals
+        .iter()
+        .find(|literal| literal.literal_text == "/api/appsettings/{}")
+        .unwrap_or_else(|| panic!("expected app-setting URL literal, got {literals:?}"));
+    assert_eq!(app_setting.kind, "url");
+    assert_eq!(app_setting.carrier.as_deref(), Some("axios.get"));
+    assert_eq!(app_setting.arg_position, 0);
+
+    let parameter = literals
+        .iter()
+        .find(|literal| literal.literal_text == "/api/parameter")
+        .unwrap_or_else(|| panic!("expected parameter URL literal, got {literals:?}"));
+    assert_eq!(parameter.kind, "url");
+    assert_eq!(parameter.carrier.as_deref(), Some("axios.put"));
+    assert_eq!(parameter.arg_position, 0);
+}
+
+#[test]
+fn scan_records_content_based_language_for_cpp_headers() {
+    let fixture = FixtureRoot::with_file(
+        "src/widget.h",
+        "namespace demo { class Widget { public: void run(); }; }\n",
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(file_language_for_path(&db, "src/widget.h"), "cpp");
+}
+
+#[test]
+fn scan_persists_parser_inventory_versions() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    let missing_versions = scalar_i64(
+        &db,
+        "SELECT COUNT(*) FROM parser_inventory WHERE parser_version IS NULL OR parser_version = ''",
+    );
+    assert_eq!(missing_versions, 0);
 }
 
 #[test]
@@ -1003,6 +1459,40 @@ fn source_region_kinds_for_path(db: &Path, path: &str) -> Vec<String> {
         .unwrap()
 }
 
+#[derive(Debug)]
+struct LiteralRow {
+    literal_text: String,
+    kind: String,
+    carrier: Option<String>,
+    arg_position: i64,
+    containing_symbol_name: Option<String>,
+}
+
+fn literals_for_path(db: &Path, path: &str) -> Vec<LiteralRow> {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT l.literal_text, l.kind, l.carrier, l.arg_position, s.name
+             FROM literals l
+             LEFT JOIN symbols s ON s.symbol_id = l.containing_symbol_id
+             WHERE l.path = ?1
+             ORDER BY l.literal_text, l.carrier",
+        )
+        .unwrap();
+    stmt.query_map([path], |row| {
+        Ok(LiteralRow {
+            literal_text: row.get(0)?,
+            kind: row.get(1)?,
+            carrier: row.get(2)?,
+            arg_position: row.get(3)?,
+            containing_symbol_name: row.get(4)?,
+        })
+    })
+    .unwrap()
+    .collect::<Result<_, _>>()
+    .unwrap()
+}
+
 fn scalar_i64(db: &Path, sql: &str) -> i64 {
     let conn = Connection::open(db).unwrap();
     conn.query_row(sql, [], |row| row.get(0)).unwrap()
@@ -1047,6 +1537,26 @@ fn file_status_for_path(db: &Path, path: &str) -> String {
     .unwrap()
 }
 
+fn file_language_for_path(db: &Path, path: &str) -> String {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT language FROM files WHERE path = ?1",
+        [path],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn parser_inventory_source(db: &Path, language: &str) -> String {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT source FROM parser_inventory WHERE language = ?1",
+        [language],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
 fn diagnostics_for_path(db: &Path, path: &str) -> Vec<String> {
     let conn = Connection::open(db).unwrap();
     let mut stmt = conn
@@ -1058,6 +1568,21 @@ fn diagnostics_for_path(db: &Path, path: &str) -> Vec<String> {
         .unwrap()
 }
 
+fn latest_revision_operation_and_change(db: &Path) -> Option<(String, String)> {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT r.operation, c.change_kind
+         FROM extraction_revisions r
+         JOIN revision_file_changes c ON c.revision_id = r.revision_id
+         ORDER BY r.revision_id DESC, c.path
+         LIMIT 1",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )
+    .optional()
+    .unwrap()
+}
+
 fn metadata_value(db: &Path, key: &str) -> String {
     let conn = Connection::open(db).unwrap();
     conn.query_row(
@@ -1066,6 +1591,18 @@ fn metadata_value(db: &Path, key: &str) -> String {
         |row| row.get(0),
     )
     .unwrap()
+}
+
+fn latest_revision_counts(db: &Path) -> Value {
+    let conn = Connection::open(db).unwrap();
+    let counts_json: String = conn
+        .query_row(
+            "SELECT counts_json FROM extraction_revisions ORDER BY revision_id DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    serde_json::from_str(&counts_json).unwrap()
 }
 
 fn assert_sha256_fingerprint(value: &str) {

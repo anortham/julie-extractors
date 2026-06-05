@@ -299,6 +299,7 @@ impl DogfoodFixture {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn write_rescan_report_with_rows_written(
         &self,
         status: &str,
@@ -321,6 +322,7 @@ impl DogfoodFixture {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn write_rescan_report_json(
         &self,
         status: &str,

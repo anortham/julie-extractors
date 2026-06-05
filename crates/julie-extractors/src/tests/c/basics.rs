@@ -238,7 +238,7 @@ mod tests {
         let stdio_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <stdio.h>"))
+                .is_some_and(|sig| sig.contains("#include <stdio.h>"))
         });
         assert!(stdio_include.is_some());
         assert_eq!(stdio_include.unwrap().kind, SymbolKind::Import);
@@ -246,7 +246,7 @@ mod tests {
         let custom_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include \"custom_header.h\""))
+                .is_some_and(|sig| sig.contains("#include \"custom_header.h\""))
         });
         assert!(custom_include.is_some());
 
@@ -316,7 +316,7 @@ mod tests {
                 && s.kind == SymbolKind::Struct
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("struct Point"))
+                    .is_some_and(|sig| sig.contains("struct Point"))
         });
         assert!(point_struct.is_some());
         assert_eq!(point_struct.unwrap().kind, SymbolKind::Struct);
@@ -324,7 +324,7 @@ mod tests {
         let rectangle_struct = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("struct Rectangle"))
+                .is_some_and(|sig| sig.contains("struct Rectangle"))
         });
         assert!(rectangle_struct.is_some());
 
@@ -537,7 +537,7 @@ mod tests {
         assert!(symbols.iter().any(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("CompareFn"))
+                .is_some_and(|sig| sig.contains("CompareFn"))
         }));
 
         // Function with function pointer parameter - Tests complex parameter types

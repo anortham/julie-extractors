@@ -695,7 +695,7 @@ class CustomButton extends StatelessWidget {
             let home_page_build = build_methods.iter().find(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("Widget build"))
+                    .is_some_and(|sig| sig.contains("Widget build"))
             });
             assert!(home_page_build.is_some());
 
@@ -823,12 +823,12 @@ class Container<T> {
             let types = extractor.infer_types(&symbols);
 
             // Should extract inheritance relationships
-            assert!(relationships.len() > 0);
+            assert!(!relationships.is_empty());
 
             let rectangle_inheritance = relationships.iter().find(|r| {
                 r.kind == crate::base::RelationshipKind::Extends && {
                     let from_symbol = symbols.iter().find(|s| s.id == r.from_symbol_id);
-                    from_symbol.map_or(false, |s| s.name == "Rectangle")
+                    from_symbol.is_some_and(|s| s.name == "Rectangle")
                 }
             });
             assert!(rectangle_inheritance.is_some());
@@ -836,7 +836,7 @@ class Container<T> {
             let circle_inheritance = relationships.iter().find(|r| {
                 r.kind == crate::base::RelationshipKind::Extends && {
                     let from_symbol = symbols.iter().find(|s| s.id == r.from_symbol_id);
-                    from_symbol.map_or(false, |s| s.name == "Circle")
+                    from_symbol.is_some_and(|s| s.name == "Circle")
                 }
             });
             assert!(circle_inheritance.is_some());
@@ -845,13 +845,13 @@ class Container<T> {
             let mixin_relationship = relationships.iter().find(|r| {
                 r.kind == crate::base::RelationshipKind::Uses && {
                     let from_symbol = symbols.iter().find(|s| s.id == r.from_symbol_id);
-                    from_symbol.map_or(false, |s| s.name == "ColoredRectangle")
+                    from_symbol.is_some_and(|s| s.name == "ColoredRectangle")
                 }
             });
             assert!(mixin_relationship.is_some());
 
             // Should infer types
-            assert!(types.len() > 0);
+            assert!(!types.is_empty());
 
             // Should identify generic types
             let container_class = symbols.iter().find(|s| s.name == "Container");
@@ -866,18 +866,12 @@ class Container<T> {
 
             // Should handle getter/setter pairs
             let value_getter = symbols.iter().find(|s| {
-                s.name == "value"
-                    && s.signature
-                        .as_ref()
-                        .map_or(false, |sig| sig.contains("get"))
+                s.name == "value" && s.signature.as_ref().is_some_and(|sig| sig.contains("get"))
             });
             assert!(value_getter.is_some());
 
             let value_setter = symbols.iter().find(|s| {
-                s.name == "value"
-                    && s.signature
-                        .as_ref()
-                        .map_or(false, |sig| sig.contains("set"))
+                s.name == "value" && s.signature.as_ref().is_some_and(|sig| sig.contains("set"))
             });
             assert!(value_setter.is_some());
         }

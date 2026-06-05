@@ -119,14 +119,14 @@ fn extract_identifier_from_node(
 
             // Only extract if it's NOT part of a call
             // (we handle those in the call case above)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call" {
-                    // Check if this attribute is the function being called
-                    if let Some(function_node) = parent.child_by_field_name("function") {
-                        if function_node.id() == node.id() {
-                            return; // Skip - handled by call
-                        }
-                    }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call"
+            {
+                // Check if this attribute is the function being called
+                if let Some(function_node) = parent.child_by_field_name("function")
+                    && function_node.id() == node.id()
+                {
+                    return; // Skip - handled by call
                 }
             }
 
@@ -144,25 +144,22 @@ fn extract_identifier_from_node(
             }
         }
 
-        "identifier" => {
-            if is_python_type_usage_identifier(node) {
-                let name = extractor.base_mut().get_node_text(&node);
-                if !is_python_builtin_type(&name) {
-                    let containing_symbol_id =
-                        find_containing_symbol_id(extractor, node, symbol_map);
+        "identifier" if is_python_type_usage_identifier(node) => {
+            let name = extractor.base_mut().get_node_text(&node);
+            if !is_python_builtin_type(&name) {
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
 
-                    let identifier = extractor.base_mut().create_identifier(
-                        &node,
-                        name,
-                        IdentifierKind::TypeUsage,
-                        containing_symbol_id,
-                    );
-                    // If this identifier is the `value` of an outermost subscript
-                    // (e.g. `Optional` in `Optional[User]`), record the ordered
-                    // type arguments.  Nested generics are skipped here — their
-                    // args ride along as `children` of the enclosing usage.
-                    record_outermost_python_type_arguments(extractor, node, &identifier);
-                }
+                let identifier = extractor.base_mut().create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
+                // If this identifier is the `value` of an outermost subscript
+                // (e.g. `Optional` in `Optional[User]`), record the ordered
+                // type arguments.  Nested generics are skipped here — their
+                // args ride along as `children` of the enclosing usage.
+                record_outermost_python_type_arguments(extractor, node, &identifier);
             }
         }
 
@@ -171,10 +168,10 @@ fn extract_identifier_from_node(
 }
 
 fn is_python_type_usage_identifier(node: Node) -> bool {
-    if let Some(parent) = node.parent() {
-        if parent.kind() == "attribute" {
-            return false;
-        }
+    if let Some(parent) = node.parent()
+        && parent.kind() == "attribute"
+    {
+        return false;
     }
 
     is_python_type_usage_node(node)
@@ -291,16 +288,16 @@ fn record_python_call_arg_literals(
         } else {
             Some(arg)
         };
-        if let Some(value) = value {
-            if let Some(text) = extractor.base().decode_string_literal(&value) {
-                extractor.base_mut().record_literal(
-                    &value,
-                    text,
-                    carrier.clone(),
-                    pos as u32,
-                    containing_symbol_id.clone(),
-                );
-            }
+        if let Some(value) = value
+            && let Some(text) = extractor.base().decode_string_literal(&value)
+        {
+            extractor.base_mut().record_literal(
+                &value,
+                text,
+                carrier.clone(),
+                pos as u32,
+                containing_symbol_id.clone(),
+            );
         }
     }
 }

@@ -950,10 +950,10 @@ fn test_create_identifier_basic_call() {
             for inner in child.children(&mut inner_cursor) {
                 if inner.kind() == "call_expression" {
                     // The function being called is the first named child
-                    if let Some(callee) = inner.named_child(0) {
-                        if callee.kind() == "identifier" {
-                            bar_node = Some(callee);
-                        }
+                    if let Some(callee) = inner.named_child(0)
+                        && callee.kind() == "identifier"
+                    {
+                        bar_node = Some(callee);
                     }
                 }
             }
@@ -999,12 +999,11 @@ fn test_create_identifier_with_containing_symbol_id() {
         if child.kind() == "expression_statement" {
             let mut inner_cursor = child.walk();
             for inner in child.children(&mut inner_cursor) {
-                if inner.kind() == "call_expression" {
-                    if let Some(callee) = inner.named_child(0) {
-                        if callee.kind() == "identifier" {
-                            bar_node = Some(callee);
-                        }
-                    }
+                if inner.kind() == "call_expression"
+                    && let Some(callee) = inner.named_child(0)
+                    && callee.kind() == "identifier"
+                {
+                    bar_node = Some(callee);
                 }
             }
         }
@@ -1318,6 +1317,7 @@ fn test_find_doc_comment_function_first_in_file() {
 // ---------------------------------------------------------------------------
 
 /// Helper: build a minimal Symbol with the position fields needed for containment checks.
+#[allow(clippy::too_many_arguments)]
 fn make_symbol(
     name: &str,
     kind: SymbolKind,
@@ -1381,10 +1381,10 @@ fn test_find_containing_symbol_node_inside_function() {
         if child.kind() == "expression_statement" {
             let mut inner = child.walk();
             for c in child.children(&mut inner) {
-                if c.kind() == "call_expression" {
-                    if let Some(callee) = c.named_child(0) {
-                        call_node = Some(callee);
-                    }
+                if c.kind() == "call_expression"
+                    && let Some(callee) = c.named_child(0)
+                {
+                    call_node = Some(callee);
                 }
             }
         }

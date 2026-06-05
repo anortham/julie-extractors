@@ -138,18 +138,18 @@ pub(super) fn extract_derived_traits(base: &BaseExtractor, attributes: &[Node]) 
                 .children(&mut attr_node.walk())
                 .find(|c| c.kind() == "identifier");
 
-            if let Some(ident) = identifier_node {
-                if base.get_node_text(&ident) == "derive" {
-                    // Find the token tree with the trait list
-                    let token_tree = attr_node
-                        .children(&mut attr_node.walk())
-                        .find(|c| c.kind() == "token_tree");
+            if let Some(ident) = identifier_node
+                && base.get_node_text(&ident) == "derive"
+            {
+                // Find the token tree with the trait list
+                let token_tree = attr_node
+                    .children(&mut attr_node.walk())
+                    .find(|c| c.kind() == "token_tree");
 
-                    if let Some(tree) = token_tree {
-                        for child in tree.children(&mut tree.walk()) {
-                            if child.kind() == "identifier" {
-                                traits.push(base.get_node_text(&child));
-                            }
+                if let Some(tree) = token_tree {
+                    for child in tree.children(&mut tree.walk()) {
+                        if child.kind() == "identifier" {
+                            traits.push(base.get_node_text(&child));
                         }
                     }
                 }
@@ -376,10 +376,9 @@ pub(super) fn extract_doc_from_attribute(base: &BaseExtractor, node: Node) -> Op
     if let Some(captures) = regex::Regex::new(r#"#\[doc\s*=\s*"([^"]+)"\]"#)
         .ok()
         .and_then(|re| re.captures(&attr_text))
+        && let Some(doc_match) = captures.get(1)
     {
-        if let Some(doc_match) = captures.get(1) {
-            return Some(doc_match.as_str().to_string());
-        }
+        return Some(doc_match.as_str().to_string());
     }
     None
 }

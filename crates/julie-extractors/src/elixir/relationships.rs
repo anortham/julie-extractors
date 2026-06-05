@@ -321,38 +321,32 @@ fn find_containing_module<'a>(
 ) -> Option<&'a Symbol> {
     let mut current = Some(*node);
     while let Some(n) = current {
-        if n.kind() == "call" {
-            if let Some(target_name) = helpers::extract_call_target_name(&extractor.base, &n) {
-                if target_name == "defmodule" {
-                    if let Some(mod_name) = helpers::extract_module_name(&extractor.base, &n) {
-                        return symbols.iter().find(|s| s.name == mod_name);
-                    }
-                }
-            }
+        if n.kind() == "call"
+            && let Some(target_name) = helpers::extract_call_target_name(&extractor.base, &n)
+            && target_name == "defmodule"
+            && let Some(mod_name) = helpers::extract_module_name(&extractor.base, &n)
+        {
+            return symbols.iter().find(|s| s.name == mod_name);
         }
         current = n.parent();
     }
     None
 }
 
-fn find_containing_function<'a>(
+fn find_containing_function(
     extractor: &super::ElixirExtractor,
     node: &Node,
-    symbol_map: &'a HashMap<String, &Symbol>,
+    symbol_map: &HashMap<String, &Symbol>,
 ) -> Option<Symbol> {
     let mut current = Some(*node);
     while let Some(n) = current {
-        if n.kind() == "call" {
-            if let Some(target_name) = helpers::extract_call_target_name(&extractor.base, &n) {
-                if matches!(target_name.as_str(), "def" | "defp") {
-                    if let Some((fn_name, _)) = helpers::extract_function_head(&extractor.base, &n)
-                    {
-                        if let Some(sym) = symbol_map.get(&fn_name) {
-                            return Some((*sym).clone());
-                        }
-                    }
-                }
-            }
+        if n.kind() == "call"
+            && let Some(target_name) = helpers::extract_call_target_name(&extractor.base, &n)
+            && matches!(target_name.as_str(), "def" | "defp")
+            && let Some((fn_name, _)) = helpers::extract_function_head(&extractor.base, &n)
+            && let Some(sym) = symbol_map.get(&fn_name)
+        {
+            return Some((*sym).clone());
         }
         current = n.parent();
     }

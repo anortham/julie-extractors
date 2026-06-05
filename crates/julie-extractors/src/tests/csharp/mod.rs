@@ -46,7 +46,7 @@ pub(crate) fn get_csharp_visibility(symbol: &Symbol) -> String {
     symbol
         .visibility
         .as_ref()
-        .map_or("private".to_string(), |v| VisibilityExt::to_string(v))
+        .map_or("private".to_string(), VisibilityExt::to_string)
 }
 
 pub mod annotations;

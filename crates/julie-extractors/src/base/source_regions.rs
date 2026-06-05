@@ -89,18 +89,17 @@ fn collect_node(
             SourceRegionKind::StringLiteral,
             None,
         ));
-    } else if config.quoted_string_literal_node_kinds.contains(&node_kind) {
-        if let Some(text) = node_text(content, node)
-            && is_quoted_string_literal(text)
-        {
-            regions.push(region_for_node(
-                file_path,
-                language,
-                node,
-                SourceRegionKind::StringLiteral,
-                None,
-            ));
-        }
+    } else if config.quoted_string_literal_node_kinds.contains(&node_kind)
+        && let Some(text) = node_text(content, node)
+        && is_quoted_string_literal(text)
+    {
+        regions.push(region_for_node(
+            file_path,
+            language,
+            node,
+            SourceRegionKind::StringLiteral,
+            None,
+        ));
     }
 
     let mut cursor = node.walk();

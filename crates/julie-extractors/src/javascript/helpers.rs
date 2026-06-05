@@ -18,12 +18,11 @@ impl super::JavaScriptExtractor {
         }
 
         // For arrow functions: check if first child is async (reference logic)
-        if node.kind() == "arrow_function" {
-            if let Some(first_child) = node.child(0) {
-                if self.base.get_node_text(&first_child) == "async" {
-                    return true;
-                }
-            }
+        if node.kind() == "arrow_function"
+            && let Some(first_child) = node.child(0)
+            && self.base.get_node_text(&first_child) == "async"
+        {
+            return true;
         }
 
         // For function expressions and arrow functions assigned to variables, check parent (reference logic)
@@ -72,10 +71,10 @@ impl super::JavaScriptExtractor {
                     let name_node = member
                         .child_by_field_name("name")
                         .or_else(|| member.child_by_field_name("property"));
-                    if let Some(name) = name_node {
-                        if self.base.get_node_text(&name).starts_with('#') {
-                            return true;
-                        }
+                    if let Some(name) = name_node
+                        && self.base.get_node_text(&name).starts_with('#')
+                    {
+                        return true;
                     }
                 }
             }
@@ -169,26 +168,26 @@ impl super::JavaScriptExtractor {
 
     /// Check if node is require call - direct Implementation of isRequireCall
     pub(super) fn is_require_call(&self, node: &Node) -> bool {
-        if node.kind() == "call_expression" {
-            if let Some(function_node) = node.child_by_field_name("function") {
-                return self.base.get_node_text(&function_node) == "require";
-            }
+        if node.kind() == "call_expression"
+            && let Some(function_node) = node.child_by_field_name("function")
+        {
+            return self.base.get_node_text(&function_node) == "require";
         }
         false
     }
 
     /// Extract require source - direct Implementation of extractRequireSource
     pub(super) fn extract_require_source(&self, node: &Node) -> Option<String> {
-        if node.kind() == "call_expression" {
-            if let Some(args) = node.child_by_field_name("arguments") {
-                for child in args.children(&mut args.walk()) {
-                    if child.kind() == "string" {
-                        return Some(
-                            self.base
-                                .get_node_text(&child)
-                                .replace(&['\'', '"', '`'][..], ""),
-                        );
-                    }
+        if node.kind() == "call_expression"
+            && let Some(args) = node.child_by_field_name("arguments")
+        {
+            for child in args.children(&mut args.walk()) {
+                if child.kind() == "string" {
+                    return Some(
+                        self.base
+                            .get_node_text(&child)
+                            .replace(&['\'', '"', '`'][..], ""),
+                    );
                 }
             }
         }

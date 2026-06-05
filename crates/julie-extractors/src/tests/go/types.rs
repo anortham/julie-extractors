@@ -1,4 +1,4 @@
-/// Tests for Go type extraction through the factory
+// Tests for Go type extraction through the factory
 
 #[cfg(test)]
 mod tests {

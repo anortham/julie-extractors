@@ -16,10 +16,10 @@ pub(super) fn extract_component_name(file_path: &str, sections: &[VueSection]) -
     for section in sections {
         if section.section_type == "script" {
             // Look for: name: 'ComponentName' or name: "ComponentName"
-            if let Some(name_match) = COMPONENT_NAME_RE.captures(&section.content) {
-                if let Some(name) = name_match.get(1) {
-                    return Some(name.as_str().to_string());
-                }
+            if let Some(name_match) = COMPONENT_NAME_RE.captures(&section.content)
+                && let Some(name) = name_match.get(1)
+            {
+                return Some(name.as_str().to_string());
             }
         }
     }

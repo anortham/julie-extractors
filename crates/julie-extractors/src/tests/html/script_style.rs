@@ -4,6 +4,46 @@
 
 use super::*;
 
+fn line_column_for_byte(content: &str, target: usize) -> (u32, u32) {
+    let prefix = &content[..target];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() as u32 + 1;
+    let column = prefix
+        .rsplit_once('\n')
+        .map(|(_, tail)| tail.len())
+        .unwrap_or(prefix.len()) as u32;
+    (line, column)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn expected_id(
+    file_path: &str,
+    name: &str,
+    start_line: u32,
+    start_column: u32,
+    end_line: u32,
+    end_column: u32,
+    start_byte: u32,
+    end_byte: u32,
+) -> String {
+    let input = format!(
+        "{file_path}:{name}:{start_line}:{start_column}:{end_line}:{end_column}:{start_byte}:{end_byte}"
+    );
+    format!("{:x}", md5::compute(input.as_bytes()))
+}
+
+fn expected_symbol_id(symbol: &crate::base::Symbol) -> String {
+    expected_id(
+        symbol.file_path.as_str(),
+        symbol.name.as_str(),
+        symbol.start_line,
+        symbol.start_column,
+        symbol.end_line,
+        symbol.end_column,
+        symbol.start_byte,
+        symbol.end_byte,
+    )
+}
+
 #[cfg(test)]
 mod script_style_tests {
     use super::*;
@@ -324,43 +364,4 @@ mod script_style_tests {
             Some("second.js")
         );
     }
-}
-
-fn line_column_for_byte(content: &str, target: usize) -> (u32, u32) {
-    let prefix = &content[..target];
-    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() as u32 + 1;
-    let column = prefix
-        .rsplit_once('\n')
-        .map(|(_, tail)| tail.len())
-        .unwrap_or(prefix.len()) as u32;
-    (line, column)
-}
-
-fn expected_id(
-    file_path: &str,
-    name: &str,
-    start_line: u32,
-    start_column: u32,
-    end_line: u32,
-    end_column: u32,
-    start_byte: u32,
-    end_byte: u32,
-) -> String {
-    let input = format!(
-        "{file_path}:{name}:{start_line}:{start_column}:{end_line}:{end_column}:{start_byte}:{end_byte}"
-    );
-    format!("{:x}", md5::compute(input.as_bytes()))
-}
-
-fn expected_symbol_id(symbol: &crate::base::Symbol) -> String {
-    expected_id(
-        symbol.file_path.as_str(),
-        symbol.name.as_str(),
-        symbol.start_line,
-        symbol.start_column,
-        symbol.end_line,
-        symbol.end_column,
-        symbol.start_byte,
-        symbol.end_byte,
-    )
 }

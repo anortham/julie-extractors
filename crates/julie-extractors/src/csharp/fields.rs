@@ -157,16 +157,16 @@ pub fn extract_events(
 
 fn extract_declarator_initializer(base: &BaseExtractor, declarator: Node) -> String {
     let children: Vec<Node> = declarator.children(&mut declarator.walk()).collect();
-    if let Some(equals_index) = children.iter().position(|c| c.kind() == "=") {
-        if equals_index + 1 < children.len() {
-            let init_nodes: Vec<String> = children[equals_index + 1..]
-                .iter()
-                .map(|n| base.get_node_text(n))
-                .collect();
-            let init_text = init_nodes.join("").trim().to_string();
-            if !init_text.is_empty() {
-                return format!(" = {}", init_text);
-            }
+    if let Some(equals_index) = children.iter().position(|c| c.kind() == "=")
+        && equals_index + 1 < children.len()
+    {
+        let init_nodes: Vec<String> = children[equals_index + 1..]
+            .iter()
+            .map(|n| base.get_node_text(n))
+            .collect();
+        let init_text = init_nodes.join("").trim().to_string();
+        if !init_text.is_empty() {
+            return format!(" = {}", init_text);
         }
     }
 

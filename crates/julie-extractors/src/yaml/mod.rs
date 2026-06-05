@@ -290,7 +290,7 @@ pub(super) fn resolve_alias_anchor_target<'a>(
     })
 }
 
-fn symbol_anchor_name<'a>(symbol: &'a Symbol) -> Option<&'a str> {
+fn symbol_anchor_name(symbol: &Symbol) -> Option<&str> {
     symbol
         .metadata
         .as_ref()

@@ -6,11 +6,19 @@
 //! - View columns from ERROR nodes containing CREATE VIEW
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use tree_sitter::Node;
 
 use super::SqlExtractor;
 use crate::sql::helpers::CREATE_VIEW_RE;
+
+static VIEW_FROM_ALIAS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\bFROM\s+[a-zA-Z_][a-zA-Z0-9_]*\s+[a-zA-Z_]").unwrap());
+static VIEW_SELECT_ALIAS_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?:^|,|\s)\s*(.+?)\s+(?:[Aa][Ss]\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:,|$)").unwrap()
+});
 
 impl SqlExtractor {
     /// Extract SELECT query aliases as fields
@@ -166,8 +174,7 @@ impl SqlExtractor {
         };
 
         // Find the FROM clause to limit our search to the SELECT list only
-        let from_regex = regex::Regex::new(r"\bFROM\s+[a-zA-Z_][a-zA-Z0-9_]*\s+[a-zA-Z_]").unwrap();
-        let from_index = from_regex
+        let from_index = VIEW_FROM_ALIAS_RE
             .find(&error_text[select_index..])
             .map(|from_match| select_index + from_match.start());
 
@@ -189,12 +196,7 @@ impl SqlExtractor {
         };
 
         // Extract SELECT aliases using regex patterns
-        let alias_regex = regex::Regex::new(
-            r"(?:^|,|\s)\s*(.+?)\s+(?:[Aa][Ss]\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:,|$)",
-        )
-        .unwrap();
-
-        for captures in alias_regex.captures_iter(select_section) {
+        for captures in VIEW_SELECT_ALIAS_RE.captures_iter(select_section) {
             // Safe: if regex matched, capture groups should exist, but handle gracefully
             let full_expression = captures.get(1).map_or("", |m| m.as_str()).trim();
             let alias_name = captures.get(2).map_or("", |m| m.as_str());
@@ -259,29 +261,28 @@ pub(super) fn extract_views_from_error(
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
 ) {
-    if let Some(captures) = CREATE_VIEW_RE.captures(error_text) {
-        if let Some(view_name) = captures.get(1) {
-            let name = view_name.as_str().to_string();
+    if let Some(captures) = CREATE_VIEW_RE.captures(error_text)
+        && let Some(view_name) = captures.get(1)
+    {
+        let name = view_name.as_str().to_string();
 
-            let mut metadata = HashMap::new();
-            metadata.insert("isView".to_string(), serde_json::Value::Bool(true));
-            metadata.insert(
-                "extractedFromError".to_string(),
-                serde_json::Value::Bool(true),
-            );
+        let mut metadata = HashMap::new();
+        metadata.insert("isView".to_string(), serde_json::Value::Bool(true));
+        metadata.insert(
+            "extractedFromError".to_string(),
+            serde_json::Value::Bool(true),
+        );
 
-            let options = SymbolOptions {
-                signature: Some(format!("CREATE VIEW {}", name)),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                doc_comment: None,
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
+        let options = SymbolOptions {
+            signature: Some(format!("CREATE VIEW {}", name)),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: parent_id.map(|s| s.to_string()),
+            doc_comment: None,
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
 
-            let view_symbol =
-                base.create_symbol(node, name.clone(), SymbolKind::Interface, options);
-            symbols.push(view_symbol.clone());
-        }
+        let view_symbol = base.create_symbol(node, name.clone(), SymbolKind::Interface, options);
+        symbols.push(view_symbol.clone());
     }
 }

@@ -19,10 +19,9 @@ pub fn normalize_annotations<S: AsRef<str>>(
         for fragment in expand_fragments(inner, language.as_str()) {
             if let Some(marker) =
                 build_marker(fragment.raw_text, language.as_str(), fragment.carrier)
+                && seen_keys.insert(marker.annotation_key.clone())
             {
-                if seen_keys.insert(marker.annotation_key.clone()) {
-                    markers.push(marker);
-                }
+                markers.push(marker);
             }
         }
     }
@@ -163,7 +162,7 @@ fn display_annotation<'a>(annotation: &'a str, language: &str) -> &'a str {
     trimmed
 }
 
-fn key_annotation<'a>(annotation: &'a str, language: &str) -> String {
+fn key_annotation(annotation: &str, language: &str) -> String {
     let key_source = if language == "php" {
         rightmost_segment(annotation)
     } else {

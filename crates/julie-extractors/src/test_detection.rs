@@ -209,10 +209,10 @@ fn detect_php(
         return true;
     }
     // @test annotation in doc comment — genuine test marker regardless of path
-    if let Some(doc) = doc_comment {
-        if doc.contains("@test") {
-            return true;
-        }
+    if let Some(doc) = doc_comment
+        && doc.contains("@test")
+    {
+        return true;
     }
     // Name prefix — requires test path to avoid false positives on production code
     // (e.g. testConnection() in a service class)

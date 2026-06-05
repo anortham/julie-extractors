@@ -32,7 +32,7 @@ data %>%
             .filter(|s| s.kind == SymbolKind::Variable)
             .collect();
 
-        assert!(variables.len() >= 1, "Should extract result variable");
+        assert!(!variables.is_empty(), "Should extract result variable");
     }
 
     #[test]
@@ -245,7 +245,7 @@ analysis_result <- raw_data %>%
             .filter(|s| s.kind == SymbolKind::Variable)
             .collect();
 
-        assert!(variables.len() >= 1, "Should extract analysis_result");
+        assert!(!variables.is_empty(), "Should extract analysis_result");
     }
 
     #[test]

@@ -82,10 +82,10 @@ impl SwiftExtractor {
             "navigation_expression" => {
                 // Only extract if it's NOT part of a call_expression
                 // (we handle those in the call_expression case above)
-                if let Some(parent) = node.parent() {
-                    if parent.kind() == "call_expression" {
-                        return; // Skip - handled by call_expression
-                    }
+                if let Some(parent) = node.parent()
+                    && parent.kind() == "call_expression"
+                {
+                    return; // Skip - handled by call_expression
                 }
 
                 // Extract the rightmost identifier (the member name)
@@ -141,15 +141,15 @@ impl SwiftExtractor {
 
         // Get the suffix (navigation_suffix node) from the CURRENT node
         // This handles chained access correctly by always taking the rightmost part
-        if let Some(suffix_node) = node.child_by_field_name("suffix") {
-            if suffix_node.kind() == "navigation_suffix" {
-                // Get the suffix field of navigation_suffix (the identifier)
-                if let Some(identifier_node) = suffix_node.child_by_field_name("suffix") {
-                    if identifier_node.kind() == "simple_identifier" {
-                        let name = self.base.get_node_text(&identifier_node);
-                        return Some((identifier_node, name));
-                    }
-                }
+        if let Some(suffix_node) = node.child_by_field_name("suffix")
+            && suffix_node.kind() == "navigation_suffix"
+        {
+            // Get the suffix field of navigation_suffix (the identifier)
+            if let Some(identifier_node) = suffix_node.child_by_field_name("suffix")
+                && identifier_node.kind() == "simple_identifier"
+            {
+                let name = self.base.get_node_text(&identifier_node);
+                return Some((identifier_node, name));
             }
         }
 
@@ -207,16 +207,16 @@ impl SwiftExtractor {
             } else {
                 Some(arg)
             };
-            if let Some(value) = value {
-                if let Some(text) = self.base.decode_string_literal(&value) {
-                    self.base.record_literal(
-                        &value,
-                        text,
-                        carrier.clone(),
-                        pos as u32,
-                        containing_symbol_id.clone(),
-                    );
-                }
+            if let Some(value) = value
+                && let Some(text) = self.base.decode_string_literal(&value)
+            {
+                self.base.record_literal(
+                    &value,
+                    text,
+                    carrier.clone(),
+                    pos as u32,
+                    containing_symbol_id.clone(),
+                );
             }
         }
     }
@@ -375,20 +375,20 @@ fn is_swift_declaration_name(node: Node) -> bool {
         return false;
     };
 
-    if let Some(name_node) = parent.child_by_field_name("name") {
-        if name_node.id() == node.id() {
-            return matches!(
-                parent.kind(),
-                "class_declaration"
-                    | "struct_declaration"
-                    | "enum_declaration"
-                    | "protocol_declaration"
-                    | "function_declaration"
-                    | "property_declaration"
-                    | "typealias_declaration"
-                    | "generic_parameter"
-            );
-        }
+    if let Some(name_node) = parent.child_by_field_name("name")
+        && name_node.id() == node.id()
+    {
+        return matches!(
+            parent.kind(),
+            "class_declaration"
+                | "struct_declaration"
+                | "enum_declaration"
+                | "protocol_declaration"
+                | "function_declaration"
+                | "property_declaration"
+                | "typealias_declaration"
+                | "generic_parameter"
+        );
     }
 
     matches!(parent.kind(), "generic_parameter_clause")

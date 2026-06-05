@@ -103,7 +103,7 @@ void helper(void) {
         "tests/test_suite.c",
     );
     assert!(
-        !syms.iter().any(|s| is_test(s)),
+        !syms.iter().any(is_test),
         "no call inside a plain helper should be flagged is_test, got {syms:?}"
     );
     // The helper function itself is a normal symbol, not a Criterion test.

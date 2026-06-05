@@ -57,13 +57,13 @@ impl super::RazorExtractor {
                 ];
 
                 for pattern in &type_patterns {
-                    if let Some(captures) = pattern.captures(signature) {
-                        if let Some(type_match) = captures.get(1) {
-                            let matched_type = type_match.as_str();
-                            if matched_type != symbol.name {
-                                inferred_type = matched_type.to_string();
-                                break;
-                            }
+                    if let Some(captures) = pattern.captures(signature)
+                        && let Some(type_match) = captures.get(1)
+                    {
+                        let matched_type = type_match.as_str();
+                        if matched_type != symbol.name {
+                            inferred_type = matched_type.to_string();
+                            break;
                         }
                     }
                 }
@@ -79,13 +79,13 @@ impl super::RazorExtractor {
                 inferred_type = "bool".to_string();
             }
 
-            if symbol.kind == SymbolKind::Method {
-                if let Some(signature) = &symbol.signature {
-                    if signature.contains("async Task") {
-                        inferred_type = "Task".to_string();
-                    } else if signature.contains("void") {
-                        inferred_type = "void".to_string();
-                    }
+            if symbol.kind == SymbolKind::Method
+                && let Some(signature) = &symbol.signature
+            {
+                if signature.contains("async Task") {
+                    inferred_type = "Task".to_string();
+                } else if signature.contains("void") {
+                    inferred_type = "void".to_string();
                 }
             }
 

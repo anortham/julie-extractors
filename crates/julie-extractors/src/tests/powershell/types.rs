@@ -1,4 +1,4 @@
-/// Tests for PowerShell type extraction through the factory
+// Tests for PowerShell type extraction through the factory
 
 #[cfg(test)]
 mod tests {
@@ -60,7 +60,7 @@ function Get-AllUsers {
             );
         }
 
-        assert!(results.types.len() >= 1);
+        assert!(!results.types.is_empty());
         for type_info in results.types.values() {
             assert_eq!(type_info.language, "powershell");
             assert!(type_info.is_inferred);

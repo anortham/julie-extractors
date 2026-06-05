@@ -56,14 +56,12 @@ pub(super) fn is_async_function(node: &Node, _content: &str) -> bool {
     }
 
     // For function_signature nodes, check the sibling function_body for async keyword
-    if node.kind() == "function_signature" {
-        if let Some(function_body) = node.next_sibling() {
-            if function_body.kind() == "function_body"
-                && find_child_by_type(&function_body, "async").is_some()
-            {
-                return true;
-            }
-        }
+    if node.kind() == "function_signature"
+        && let Some(function_body) = node.next_sibling()
+        && function_body.kind() == "function_body"
+        && find_child_by_type(&function_body, "async").is_some()
+    {
+        return true;
     }
 
     false

@@ -5,13 +5,15 @@ use std::process::ExitCode;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
-use julie_extract_artifact::jsonl::{JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION, export_jsonl};
-use julie_extract_artifact::metadata::{ArtifactMetadata, read_metadata};
+use julie_extract_artifact::jsonl::{
+    JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION, export_jsonl, export_jsonl_to_path,
+};
+use julie_extract_artifact::metadata::{ArtifactMetadata, REQUIRED_METADATA_KEYS, read_metadata};
 use julie_extract_artifact::model::{
     ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactFile,
     ArtifactLanguageCapabilityFixtureRow, ArtifactLanguageCapabilityGapRow,
-    ArtifactLanguageCapabilityRow, ArtifactParserInventoryRow, RevisionInput, WriteMode,
-    WriteOperation, WriteResult,
+    ArtifactLanguageCapabilityRow, ArtifactParserInventoryRow, RevisionChangeKind, RevisionInput,
+    WriteMode, WriteOperation, WriteResult,
 };
 use julie_extract_artifact::reports::{
     ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput,
@@ -22,7 +24,9 @@ use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VER
 use julie_extract_artifact::writer::{
     ArtifactFileSpool, ArtifactSpoolError, ArtifactWriteError, ArtifactWriter,
 };
-use julie_extractors::{CapabilityFlags, KindCoverage, capability_snapshot};
+use julie_extractors::{
+    CapabilityFlags, KindCoverage, capability_snapshot, detect_language_for_source,
+};
 use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags};
 use serde_json::{Value, json};
@@ -32,7 +36,7 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use crate::args::{
     Cli, Command, DeleteArgs, ExportArgs, InfoArgs, LanguagesArgs, ScanArgs, UpdateArgs,
 };
-use crate::discovery::{DiscoveryPolicy, FileSelection, canonicalize_ignore_files};
+use crate::discovery::{DiscoveryError, DiscoveryPolicy, FileSelection, canonicalize_ignore_files};
 use crate::extraction::{
     ExtractFileError, ExtractFileErrorKind, SourceSnapshot, extract_artifact_file,
     extract_artifact_file_from_snapshot, failed_artifact_file, read_source_snapshot,
@@ -42,6 +46,8 @@ use crate::paths::{
     FileTarget, PathPolicyError, canonicalize_db_path, canonicalize_root, canonicalize_update_file,
     normalize_delete_file,
 };
+
+const CARGO_LOCK: &str = include_str!("../../../Cargo.lock");
 
 pub fn run_from_env() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -150,6 +156,11 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
     };
     let discovered = discovery.discover();
+    let preserved_missing_paths = discovered
+        .errors
+        .iter()
+        .map(|error| error.root_relative_path.clone())
+        .collect::<Vec<_>>();
     record_profile_phase(
         &mut profile_phases,
         "discovery",
@@ -215,36 +226,9 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                 "writer_open",
                 writer_open_started.elapsed(),
             );
-            let capability_sync_started = Instant::now();
-            let capability_rows_written = match sync_capability_snapshot(&mut writer) {
-                Ok(counts) => counts,
-                Err(error) => {
-                    record_profile_phase(
-                        &mut profile_phases,
-                        "capability_sync",
-                        capability_sync_started.elapsed(),
-                    );
-                    return write_error_outcome_with_profile(
-                        error,
-                        ReportOperation::Scan,
-                        mode,
-                        input,
-                        args.json,
-                        Some(scan_profile(
-                            scan_started,
-                            &profile_phases,
-                            &profile_languages,
-                        )),
-                    );
-                }
-            };
-            record_profile_phase(
-                &mut profile_phases,
-                "capability_sync",
-                capability_sync_started.elapsed(),
-            );
+            writer.stage_capability_snapshot(artifact_capability_snapshot());
             let artifact_write_started = Instant::now();
-            match writer.write_scan_spooled(
+            match writer.write_scan_spooled_preserving_missing_paths(
                 revision_input(
                     WriteOperation::Scan,
                     Some(if args.force {
@@ -255,6 +239,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     &root,
                 ),
                 &extracted.snapshot_paths,
+                &preserved_missing_paths,
                 &mut extracted.spool,
             ) {
                 Ok(write_result) => {
@@ -263,6 +248,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                         "artifact_write",
                         artifact_write_started.elapsed(),
                     );
+                    let capability_rows_written = writer.last_capability_rows_written();
                     let connection = writer.connection();
                     let artifact = match artifact_report_from_connection(&db, connection) {
                         Ok(artifact) => artifact,
@@ -286,7 +272,8 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                             );
                         }
                     };
-                    let status = if !extracted.errors.is_empty() {
+                    let has_errors = !extracted.errors.is_empty() || !discovered.errors.is_empty();
+                    let status = if has_errors {
                         ReportStatus::Partial
                     } else if write_result.revision_id.is_some()
                         || should_rebuild_db
@@ -318,13 +305,17 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     report.counts.files_unchanged = write_result.files_skipped as i64;
                     report.counts.files_unsupported = discovered.unsupported_files as i64;
                     report.counts.files_deleted = write_result.files_deleted as i64;
-                    report.counts.files_failed = extracted.errors.len() as i64;
+                    report.counts.files_failed =
+                        (extracted.errors.len() + discovered.errors.len()) as i64;
                     report.counts.rows_written =
                         rows_written_with_capabilities(&capability_rows_written, &write_result);
                     report
                         .errors
+                        .extend(discovered.errors.iter().map(discovery_error_diagnostic));
+                    report
+                        .errors
                         .extend(extracted.errors.iter().map(extract_error_diagnostic));
-                    let exit_code = if extracted.errors.is_empty() { 0 } else { 1 };
+                    let exit_code = if has_errors { 1 } else { 0 };
                     outcome(report, exit_code, args.json, ReportStream::Stdout)
                 }
                 Err(error) => {
@@ -507,23 +498,13 @@ fn update(args: UpdateArgs) -> CommandOutcome {
 
     match ArtifactWriter::open_path(&db, metadata) {
         Ok(mut writer) => {
-            let capability_rows_written = match sync_capability_snapshot(&mut writer) {
-                Ok(counts) => counts,
-                Err(error) => {
-                    return write_error_outcome(
-                        error,
-                        ReportOperation::Update,
-                        ReportMode::SingleFile,
-                        input,
-                        args.json,
-                    );
-                }
-            };
+            writer.stage_capability_snapshot(artifact_capability_snapshot());
             match writer.write_update(
                 revision_input(WriteOperation::Update, Some(WriteMode::SingleFile), &root),
                 &file,
             ) {
                 Ok(write_result) => {
+                    let capability_rows_written = writer.last_capability_rows_written();
                     let connection = writer.connection();
                     let artifact = match artifact_report_from_connection(&db, connection) {
                         Ok(artifact) => artifact,
@@ -682,9 +663,9 @@ fn info(args: InfoArgs) -> CommandOutcome {
         output_path: None,
     };
 
-    match open_artifact(&args.db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
+    match open_artifact_for_info(&args.db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
         Ok(artifact) => {
-            let report = base_report(
+            let mut report = base_report(
                 ReportStatus::Ok,
                 ReportOperation::Info,
                 ReportMode::ReadOnly,
@@ -696,6 +677,7 @@ fn info(args: InfoArgs) -> CommandOutcome {
                 created_revision_id: None,
             })
             .with_totals(table_totals(&artifact.connection));
+            report.warnings.extend(artifact.warnings);
             outcome(report, 0, args.json, ReportStream::Stdout)
         }
         Err(error) => outcome(
@@ -748,8 +730,7 @@ fn export(args: ExportArgs) -> CommandOutcome {
                 let mut lock = stdout.lock();
                 export_jsonl(&artifact.connection, &mut lock)
             } else {
-                let file = std::fs::File::create(&args.out).map_err(Into::into);
-                file.and_then(|mut file| export_jsonl(&artifact.connection, &mut file))
+                export_jsonl_to_path(&artifact.connection, &args.out)
             };
 
             match export_result {
@@ -1133,6 +1114,10 @@ fn compute_file_outcome(
     };
     let read_duration = read_started.elapsed();
     let bytes = snapshot.content_bytes;
+    let language =
+        detect_language_for_source(&supported.target.root_relative_path, &snapshot.content)
+            .unwrap_or(supported.language.as_str())
+            .to_string();
 
     if !force
         && existing_content_hashes
@@ -1141,7 +1126,7 @@ fn compute_file_outcome(
     {
         let file = unchanged_artifact_file(
             &supported.target,
-            supported.language.clone(),
+            language.clone(),
             indexed_at.to_string(),
             &snapshot,
         );
@@ -1161,7 +1146,7 @@ fn compute_file_outcome(
     match extract(
         root,
         &supported.target,
-        supported.language.clone(),
+        language.clone(),
         indexed_at.to_string(),
         snapshot,
     ) {
@@ -1182,7 +1167,7 @@ fn compute_file_outcome(
             let extract_duration = extract_started.elapsed();
             let file = failed_artifact_file(
                 &supported.target,
-                supported.language.clone(),
+                language.clone(),
                 indexed_at.to_string(),
                 &error,
             );
@@ -1350,6 +1335,17 @@ fn extract_error_diagnostic(error: &ExtractFileError) -> ReportDiagnostic {
     )
 }
 
+fn discovery_error_diagnostic(error: &DiscoveryError) -> ReportDiagnostic {
+    diagnostic(
+        ReportCode::ReadFailed,
+        error.message.clone(),
+        Some(error.path.clone()),
+        Some(error.root_relative_path.clone()),
+        true,
+        json!({}),
+    )
+}
+
 fn cleanup_unsupported_update(
     db: &Path,
     root: &Path,
@@ -1363,13 +1359,34 @@ fn cleanup_unsupported_update(
         Some(&target.absolute_path),
         Some(&target.root_relative_path),
     );
+    if existing_artifact.is_none() {
+        let mut report = base_report(
+            ReportStatus::Unsupported,
+            ReportOperation::Update,
+            ReportMode::SingleFile,
+            input,
+        )
+        .with_warning(diagnostic(
+            ReportCode::UnsupportedFile,
+            "file is ignored or unsupported and no artifact rows exist",
+            Some(display_path(&target.absolute_path)),
+            Some(target.root_relative_path),
+            true,
+            json!({}),
+        ));
+        report.counts.files_scanned = 1;
+        report.counts.files_unsupported = 1;
+        return outcome(report, 0, json_report, ReportStream::Stdout);
+    }
+
     let root_relative_path = target.root_relative_path.clone();
     match delete_artifact_rows(
         db,
         root,
         &root_relative_path,
         existing_artifact,
-        WriteOperation::Delete,
+        WriteOperation::Update,
+        RevisionChangeKind::Unsupported,
     ) {
         Ok((writer, write_result, capability_rows_written)) => {
             let connection = writer.connection();
@@ -1404,7 +1421,11 @@ fn cleanup_unsupported_update(
             .with_totals(table_totals(connection))
             .with_warning(diagnostic(
                 ReportCode::UnsupportedFile,
-                "file is ignored or unsupported; stale artifact rows were removed",
+                if write_result.files_changed > 0 {
+                    "file is ignored or unsupported; stale artifact rows were removed"
+                } else {
+                    "file is ignored or unsupported and no artifact rows exist"
+                },
                 Some(display_path(&target.absolute_path)),
                 Some(root_relative_path),
                 true,
@@ -1440,12 +1461,23 @@ fn cleanup_delete(
         Some(&target.absolute_path),
         Some(&target.root_relative_path),
     );
+    if existing_artifact.is_none() {
+        let report = base_report(
+            ReportStatus::NotFound,
+            ReportOperation::Delete,
+            ReportMode::SingleFile,
+            input,
+        );
+        return outcome(report, 0, json_report, ReportStream::Stdout);
+    }
+
     match delete_artifact_rows(
         db,
         root,
         &target.root_relative_path,
         existing_artifact,
         WriteOperation::Delete,
+        RevisionChangeKind::Deleted,
     ) {
         Ok((writer, write_result, capability_rows_written)) => {
             let connection = writer.connection();
@@ -1504,16 +1536,24 @@ fn delete_artifact_rows(
     root_relative_path: &str,
     existing_artifact: Option<ExistingArtifact>,
     operation: WriteOperation,
+    change_kind: RevisionChangeKind,
 ) -> Result<(ArtifactWriter, WriteResult, RowDomainCounts), ArtifactWriteError> {
     let metadata = existing_artifact
         .map(|artifact| refreshed_metadata(artifact.write_metadata))
         .unwrap_or_else(|| new_artifact_metadata(root, None));
     let mut writer = ArtifactWriter::open_path(db, metadata)?;
-    let capability_rows_written = sync_capability_snapshot(&mut writer)?;
-    let result = writer.delete_file(
-        revision_input(operation, Some(WriteMode::SingleFile), root),
-        root_relative_path,
-    )?;
+    writer.stage_capability_snapshot(artifact_capability_snapshot());
+    let revision = revision_input(operation, Some(WriteMode::SingleFile), root);
+    let result = match change_kind {
+        RevisionChangeKind::Unsupported => {
+            writer.remove_unsupported_file(revision, root_relative_path)?
+        }
+        RevisionChangeKind::Deleted => writer.delete_file(revision, root_relative_path)?,
+        RevisionChangeKind::Inserted | RevisionChangeKind::Updated => {
+            unreachable!("row removal does not support inserted/updated change kinds")
+        }
+    };
+    let capability_rows_written = writer.last_capability_rows_written();
     Ok((writer, result, capability_rows_written))
 }
 
@@ -1617,6 +1657,12 @@ struct OpenArtifact {
     write_metadata: ArtifactMetadata,
 }
 
+struct OpenInfoArtifact {
+    connection: Connection,
+    report: ArtifactReport,
+    warnings: Vec<ReportDiagnostic>,
+}
+
 struct ExistingArtifact {
     write_metadata: ArtifactMetadata,
 }
@@ -1661,6 +1707,44 @@ fn open_artifact(
         connection,
         report,
         write_metadata,
+    })
+}
+
+fn open_artifact_for_info(
+    db_path: &Path,
+    strict_schema: bool,
+    jsonl_schema_version: Option<i64>,
+) -> Result<OpenInfoArtifact, CommandError> {
+    let connection = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|error| {
+            command_error(
+                1,
+                ReportCode::DbOpenFailed,
+                format!("could not open SQLite artifact: {error}"),
+                Some(display_path(db_path)),
+                None,
+                true,
+                json!({}),
+            )
+        })?;
+    let metadata = read_metadata(&connection).map_err(|error| {
+        command_error(
+            3,
+            ReportCode::SchemaIncompatible,
+            format!("artifact metadata could not be read: {error}"),
+            Some(display_path(db_path)),
+            None,
+            false,
+            json!({}),
+        )
+    })?;
+    check_versions(&metadata, strict_schema)?;
+    let report = artifact_report(db_path, &metadata, jsonl_schema_version)?;
+    let warnings = missing_metadata_warnings(&metadata);
+    Ok(OpenInfoArtifact {
+        connection,
+        report,
+        warnings,
     })
 }
 
@@ -1867,6 +1951,23 @@ fn artifact_metadata_from_rows(
     })
 }
 
+fn missing_metadata_warnings(metadata: &BTreeMap<String, String>) -> Vec<ReportDiagnostic> {
+    REQUIRED_METADATA_KEYS
+        .iter()
+        .filter(|key| !metadata.contains_key(**key))
+        .map(|key| {
+            diagnostic(
+                ReportCode::MetadataMissing,
+                format!("artifact is missing metadata key {key}"),
+                None,
+                None,
+                true,
+                json!({"missing_key": key}),
+            )
+        })
+        .collect()
+}
+
 fn metadata_string(
     metadata: &BTreeMap<String, String>,
     key: &'static str,
@@ -1973,12 +2074,6 @@ fn jsonl_counts(records_by_kind: &BTreeMap<&'static str, usize>) -> RowDomainCou
     counts
 }
 
-fn sync_capability_snapshot(
-    writer: &mut ArtifactWriter,
-) -> Result<RowDomainCounts, ArtifactWriteError> {
-    writer.sync_capability_snapshot(&artifact_capability_snapshot())
-}
-
 fn current_capability_fingerprints() -> (String, String) {
     let snapshot = artifact_capability_snapshot();
     (
@@ -1989,6 +2084,7 @@ fn current_capability_fingerprints() -> (String, String) {
 
 fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
     let snapshot = capability_snapshot();
+    let lock_packages = cargo_lock_packages();
     let languages = snapshot
         .languages()
         .map(|row| ArtifactLanguageCapabilityRow {
@@ -2029,15 +2125,22 @@ fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
         .collect::<Vec<_>>();
     let parser_inventory = languages
         .iter()
-        .map(|row| ArtifactParserInventoryRow {
-            language: row.language.clone(),
-            parser_package: row.parser_package.clone(),
-            parser_version: None,
-            grammar_version: None,
-            source: Some("capability_snapshot".to_string()),
-            metadata: Some(json!({
-                "dependency_status": row.dependency_status,
-            })),
+        .map(|row| {
+            let lock_package = lock_packages.get(&row.parser_package);
+            let parser_version = lock_package.map(|package| package.version.clone());
+            ArtifactParserInventoryRow {
+                language: row.language.clone(),
+                parser_package: row.parser_package.clone(),
+                parser_version: parser_version.clone(),
+                grammar_version: parser_version,
+                source: lock_package
+                    .and_then(|package| package.source.clone())
+                    .or_else(|| Some("cargo_lock".to_string())),
+                metadata: Some(json!({
+                    "dependency_status": row.dependency_status,
+                    "cargo_lock_source": lock_package.and_then(|package| package.source.as_ref()),
+                })),
+            }
         })
         .collect();
 
@@ -2045,6 +2148,67 @@ fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
         parser_inventory,
         languages,
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CargoLockPackage {
+    version: String,
+    source: Option<String>,
+}
+
+fn cargo_lock_packages() -> BTreeMap<String, CargoLockPackage> {
+    #[derive(Default)]
+    struct PartialPackage {
+        name: Option<String>,
+        version: Option<String>,
+        source: Option<String>,
+    }
+
+    fn push_package(packages: &mut BTreeMap<String, CargoLockPackage>, package: PartialPackage) {
+        let (Some(name), Some(version)) = (package.name, package.version) else {
+            return;
+        };
+        packages.insert(
+            name,
+            CargoLockPackage {
+                version,
+                source: package.source,
+            },
+        );
+    }
+
+    let mut packages = BTreeMap::new();
+    let mut current: Option<PartialPackage> = None;
+
+    for line in CARGO_LOCK.lines() {
+        if line == "[[package]]" {
+            if let Some(package) = current.take() {
+                push_package(&mut packages, package);
+            }
+            current = Some(PartialPackage::default());
+            continue;
+        }
+
+        let Some(package) = current.as_mut() else {
+            continue;
+        };
+        let Some((key, value)) = line.split_once(" = ") else {
+            continue;
+        };
+        let value = value.trim().trim_matches('"').to_string();
+        match key {
+            "name" => package.name = Some(value),
+            "version" => package.version = Some(value),
+            "source" => package.source = Some(value),
+            _ => {}
+        }
+    }
+
+    if let Some(package) = current {
+        push_package(&mut packages, package);
+    }
+
+    packages
 }
 
 fn parser_inventory_fingerprint(rows: &[ArtifactParserInventoryRow]) -> String {

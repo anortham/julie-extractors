@@ -283,13 +283,13 @@ end
         assert!(parse_csv.is_some());
 
         let validator = symbols.iter().find(|s| s.name == "Validator");
-        if validator.is_some() {
-            assert_eq!(validator.unwrap().kind, SymbolKind::Class);
+        if let Some(validator) = validator {
+            assert_eq!(validator.kind, SymbolKind::Class);
         }
 
         let text_utils = symbols.iter().find(|s| s.name == "TextUtils");
-        if text_utils.is_some() {
-            assert_eq!(text_utils.unwrap().kind, SymbolKind::Variable);
+        if let Some(text_utils) = text_utils {
+            assert_eq!(text_utils.kind, SymbolKind::Variable);
         }
 
         let escape_pattern = symbols.iter().find(|s| s.name == "escapePattern");

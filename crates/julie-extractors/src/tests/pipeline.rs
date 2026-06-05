@@ -394,3 +394,24 @@ void namespace_init(namespace_t *namespace);
         "C identifiers named like C++ keywords must not force .h detection to cpp"
     );
 }
+
+#[test]
+fn test_detect_language_for_source_preserves_c_headers_when_parser_prefers_c() {
+    let c_header = r#"
+#ifndef TEMPLATE_EXPR_H
+#define TEMPLATE_EXPR_H
+
+static inline int less_than_limit(int value) {
+    int template = value;
+    return template < 5;
+}
+
+#endif
+"#;
+
+    assert_eq!(
+        crate::language::detect_language_for_source("include/labels.h", c_header),
+        Some("c"),
+        "parser comparison that prefers C must not fall through to C++ token heuristics"
+    );
+}

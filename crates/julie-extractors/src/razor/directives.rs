@@ -92,11 +92,11 @@ impl super::RazorExtractor {
                 let text = self.base.get_node_text(&node);
                 if text.contains("@addTagHelper") {
                     Some("addTagHelper".to_string())
-                } else if let Some(captures) = regex::Regex::new(r"@(\w+)").unwrap().captures(&text)
-                {
-                    Some(captures[1].to_string())
                 } else {
-                    None
+                    regex::Regex::new(r"@(\w+)")
+                        .unwrap()
+                        .captures(&text)
+                        .map(|captures| captures[1].to_string())
                 }
             }
         }

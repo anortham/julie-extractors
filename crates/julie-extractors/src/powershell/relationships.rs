@@ -104,26 +104,26 @@ fn extract_inheritance_relationships(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    if let Some(inheritance) = extract_inheritance(base, node) {
-        if let Some(class_name_node) = find_class_name_node(node) {
-            let class_name = base.get_node_text(&class_name_node);
-            let child_class = symbols
-                .iter()
-                .find(|s| s.name == class_name && s.kind == SymbolKind::Class);
-            let parent_class = symbols
-                .iter()
-                .find(|s| s.name == inheritance && s.kind == SymbolKind::Class);
+    if let Some(inheritance) = extract_inheritance(base, node)
+        && let Some(class_name_node) = find_class_name_node(node)
+    {
+        let class_name = base.get_node_text(&class_name_node);
+        let child_class = symbols
+            .iter()
+            .find(|s| s.name == class_name && s.kind == SymbolKind::Class);
+        let parent_class = symbols
+            .iter()
+            .find(|s| s.name == inheritance && s.kind == SymbolKind::Class);
 
-            if let (Some(child), Some(parent)) = (child_class, parent_class) {
-                relationships.push(base.create_relationship(
-                    child.id.clone(),
-                    parent.id.clone(),
-                    RelationshipKind::Extends,
-                    &node,
-                    None,
-                    None,
-                ));
-            }
+        if let (Some(child), Some(parent)) = (child_class, parent_class) {
+            relationships.push(base.create_relationship(
+                child.id.clone(),
+                parent.id.clone(),
+                RelationshipKind::Extends,
+                &node,
+                None,
+                None,
+            ));
         }
     }
 }

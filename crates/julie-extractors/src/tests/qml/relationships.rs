@@ -44,7 +44,7 @@ Item {
             .collect();
 
         assert!(
-            call_relationships.len() >= 1,
+            !call_relationships.is_empty(),
             "Should extract at least one call relationship"
         );
 
@@ -292,7 +292,7 @@ Rectangle {
             .collect();
 
         assert!(
-            uses_relationships.len() >= 1,
+            !uses_relationships.is_empty(),
             "Should extract property binding relationships"
         );
     }

@@ -2063,7 +2063,7 @@ class Configuration
                 && s.kind == SymbolKind::Property
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("private"))
+                    .is_some_and(|sig| sig.contains("private"))
         });
         assert!(
             name_prop.is_some(),
@@ -2424,7 +2424,7 @@ class Processor {
                 s.kind == SymbolKind::Function
                     && s.signature
                         .as_ref()
-                        .map_or(false, |sig| sig.contains("fn($item) => $item * 2"))
+                        .is_some_and(|sig| sig.contains("fn($item) => $item * 2"))
             })
             .collect();
         assert!(

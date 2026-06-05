@@ -29,10 +29,10 @@ impl super::RazorExtractor {
             }
 
             // Find variable declarator(s)
-            if let Some(var_declarator) = self.find_child_by_type(var_decl, "variable_declarator") {
-                if let Some(identifier) = self.find_child_by_type(var_declarator, "identifier") {
-                    field_name = Some(self.base.get_node_text(&identifier));
-                }
+            if let Some(var_declarator) = self.find_child_by_type(var_decl, "variable_declarator")
+                && let Some(identifier) = self.find_child_by_type(var_declarator, "identifier")
+            {
+                field_name = Some(self.base.get_node_text(&identifier));
             }
         }
 
@@ -216,16 +216,16 @@ impl super::RazorExtractor {
             // Look for initializer (= expression)
             let mut cursor = var_declarator.walk();
             let children: Vec<_> = var_declarator.children(&mut cursor).collect();
-            if let Some(equals_pos) = children.iter().position(|c| c.kind() == "=") {
-                if equals_pos + 1 < children.len() {
-                    initializer = Some(self.base.get_node_text(&children[equals_pos + 1]));
-                }
+            if let Some(equals_pos) = children.iter().position(|c| c.kind() == "=")
+                && equals_pos + 1 < children.len()
+            {
+                initializer = Some(self.base.get_node_text(&children[equals_pos + 1]));
             }
         }
 
         // Find variable type declaration
-        if let Some(var_decl) = self.find_child_by_type(node, "variable_declaration") {
-            if let Some(type_node) = self.find_child_by_types(
+        if let Some(var_decl) = self.find_child_by_type(node, "variable_declaration")
+            && let Some(type_node) = self.find_child_by_types(
                 var_decl,
                 &[
                     "predefined_type",
@@ -235,9 +235,9 @@ impl super::RazorExtractor {
                     "nullable_type",
                     "array_type",
                 ],
-            ) {
-                variable_type = Some(self.base.get_node_text(&type_node));
-            }
+            )
+        {
+            variable_type = Some(self.base.get_node_text(&type_node));
         }
 
         // If we couldn't resolve the variable name, skip this symbol

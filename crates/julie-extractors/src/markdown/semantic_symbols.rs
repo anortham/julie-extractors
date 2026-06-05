@@ -248,33 +248,32 @@ pub(super) fn extract_line_based_symbols(
             ));
         }
 
-        if let Some(captures) = FOOTNOTE_DEFINITION_RE.captures(line) {
-            if let (Some(matched), Some(label), Some(body)) =
+        if let Some(captures) = FOOTNOTE_DEFINITION_RE.captures(line)
+            && let (Some(matched), Some(label), Some(body)) =
                 (captures.get(0), captures.get(1), captures.get(2))
-            {
-                let mut metadata = HashMap::new();
-                metadata.insert("markdown_kind".to_string(), json!("footnote_definition"));
-                metadata.insert(
-                    "reference_label".to_string(),
-                    json!(format!("^{}", label.as_str())),
-                );
-                metadata.insert("destination".to_string(), json!(body.as_str().trim()));
+        {
+            let mut metadata = HashMap::new();
+            metadata.insert("markdown_kind".to_string(), json!("footnote_definition"));
+            metadata.insert(
+                "reference_label".to_string(),
+                json!(format!("^{}", label.as_str())),
+            );
+            metadata.insert("destination".to_string(), json!(body.as_str().trim()));
 
-                symbols.push(line_symbol(
-                    base,
-                    label.as_str().to_string(),
-                    SymbolKind::Property,
-                    line,
-                    line_number,
-                    byte_offset,
-                    matched.start() as u32,
-                    matched.end() as u32,
-                    parent_id.clone(),
-                    Some(matched.as_str().to_string()),
-                    Some(body.as_str().trim().to_string()),
-                    metadata,
-                ));
-            }
+            symbols.push(line_symbol(
+                base,
+                label.as_str().to_string(),
+                SymbolKind::Property,
+                line,
+                line_number,
+                byte_offset,
+                matched.start() as u32,
+                matched.end() as u32,
+                parent_id.clone(),
+                Some(matched.as_str().to_string()),
+                Some(body.as_str().trim().to_string()),
+                metadata,
+            ));
         }
 
         if !is_footnote_definition {

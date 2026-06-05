@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use tree_sitter::Tree;
 
 pub struct QmlExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
     symbols: Vec<Symbol>,
 }
 
@@ -74,47 +74,44 @@ impl QmlExtractor {
             // In QML, the file name IS the component name (e.g., ScrollablePage.qml
             // defines "ScrollablePage"). The root element is the base type it extends.
             "ui_object_definition" => {
-                if let Some(type_name) = node.child_by_field_name("type_name") {
-                    if parent_id.is_none() {
-                        let base_type = self.base.get_node_text(&type_name);
+                if let Some(type_name) = node.child_by_field_name("type_name")
+                    && parent_id.is_none()
+                {
+                    let base_type = self.base.get_node_text(&type_name);
 
-                        // Derive the component name from the file path stem
-                        let component_name = std::path::Path::new(&self.base.file_path)
-                            .file_stem()
-                            .and_then(|s| s.to_str())
-                            .map(|s| s.to_string())
-                            .unwrap_or_else(|| base_type.clone());
+                    // Derive the component name from the file path stem
+                    let component_name = std::path::Path::new(&self.base.file_path)
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| base_type.clone());
 
-                        let signature = Some(format!("extends {}", base_type));
-                        // Emit the root component's base type under the canonical
-                        // `base_types` key. Artifact v1 preserves this metadata
-                        // evidence without assigning old Julie test-container roles.
-                        let mut metadata = HashMap::new();
-                        metadata.insert(
-                            "base_types".to_string(),
-                            serde_json::Value::Array(vec![serde_json::Value::String(
-                                base_type.clone(),
-                            )]),
-                        );
-                        let options = SymbolOptions {
-                            parent_id: parent_id.clone(),
-                            signature,
-                            visibility: Some(crate::base::Visibility::Public),
-                            metadata: Some(metadata),
-                            doc_comment: semantics::extract_qml_doc_comment(self, &node),
-                            ..Default::default()
-                        };
-                        let symbol = self.base.create_symbol(
-                            &node,
-                            component_name,
-                            SymbolKind::Class,
-                            options,
-                        );
-                        self.symbols.push(symbol.clone());
-                        current_symbol = Some(symbol);
-                    }
-                    // Nested objects: skip Class symbol, still recurse into children
+                    let signature = Some(format!("extends {}", base_type));
+                    // Emit the root component's base type under the canonical
+                    // `base_types` key. Artifact v1 preserves this metadata
+                    // evidence without assigning old Julie test-container roles.
+                    let mut metadata = HashMap::new();
+                    metadata.insert(
+                        "base_types".to_string(),
+                        serde_json::Value::Array(vec![serde_json::Value::String(
+                            base_type.clone(),
+                        )]),
+                    );
+                    let options = SymbolOptions {
+                        parent_id: parent_id.clone(),
+                        signature,
+                        visibility: Some(crate::base::Visibility::Public),
+                        metadata: Some(metadata),
+                        doc_comment: semantics::extract_qml_doc_comment(self, &node),
+                        ..Default::default()
+                    };
+                    let symbol =
+                        self.base
+                            .create_symbol(&node, component_name, SymbolKind::Class, options);
+                    self.symbols.push(symbol.clone());
+                    current_symbol = Some(symbol);
                 }
+                // Nested objects: skip Class symbol, still recurse into children
             }
 
             // QML properties (property int age: 42, property alias foo: bar.baz)
@@ -362,44 +359,41 @@ impl QmlExtractor {
         symbol_map: &std::collections::HashMap<String, &Symbol>,
     ) {
         // Look for call expressions
-        if node.kind() == "call_expression" {
-            if let Some(function_node) = node.child_by_field_name("function") {
-                // Extract function name - handle both direct calls and member access
-                let function_name = if function_node.kind() == "member_expression" {
-                    // For obj.method(), get just "method"
-                    if let Some(property) = function_node.child_by_field_name("property") {
-                        self.base.get_node_text(&property)
-                    } else {
-                        self.base.get_node_text(&function_node)
-                    }
+        if node.kind() == "call_expression"
+            && let Some(function_node) = node.child_by_field_name("function")
+        {
+            // Extract function name - handle both direct calls and member access
+            let function_name = if function_node.kind() == "member_expression" {
+                // For obj.method(), get just "method"
+                if let Some(property) = function_node.child_by_field_name("property") {
+                    self.base.get_node_text(&property)
                 } else {
                     self.base.get_node_text(&function_node)
-                };
+                }
+            } else {
+                self.base.get_node_text(&function_node)
+            };
 
-                // Check if this is a call to a function not in our symbol map
-                match symbol_map.get(function_name.as_str()) {
-                    None => {
-                        // Unknown function - could be from another file
-                        // Check if it's being called from within a function
-                        if let Some(caller_symbol) =
-                            self.find_containing_function_in_symbols(node, symbol_map)
-                        {
-                            let pending = self.base.create_pending_relationship(
-                                caller_symbol.id.clone(),
-                                semantics::build_unresolved_target(
-                                    &self.base,
-                                    function_node,
-                                    &function_name,
-                                ),
-                                crate::base::RelationshipKind::Calls,
-                                &node,
-                                Some(caller_symbol.id.clone()),
-                                Some(0.7),
-                            );
-                            self.add_structured_pending_relationship(pending);
-                        }
-                    }
-                    _ => {}
+            // Check if this is a call to a function not in our symbol map
+            if !symbol_map.contains_key(function_name.as_str()) {
+                // Unknown function - could be from another file
+                // Check if it's being called from within a function
+                if let Some(caller_symbol) =
+                    self.find_containing_function_in_symbols(node, symbol_map)
+                {
+                    let pending = self.base.create_pending_relationship(
+                        caller_symbol.id.clone(),
+                        semantics::build_unresolved_target(
+                            &self.base,
+                            function_node,
+                            &function_name,
+                        ),
+                        crate::base::RelationshipKind::Calls,
+                        &node,
+                        Some(caller_symbol.id.clone()),
+                        Some(0.7),
+                    );
+                    self.add_structured_pending_relationship(pending);
                 }
             }
         }
@@ -425,13 +419,13 @@ impl QmlExtractor {
                 // Get the function name
                 if let Some(name_node) = current_node.child_by_field_name("name") {
                     let func_name = self.base.get_node_text(&name_node);
-                    if let Some(symbol) = symbol_map.get(&func_name) {
-                        if matches!(
+                    if let Some(symbol) = symbol_map.get(&func_name)
+                        && matches!(
                             symbol.kind,
                             crate::base::SymbolKind::Function | crate::base::SymbolKind::Event
-                        ) {
-                            return Some(symbol);
-                        }
+                        )
+                    {
+                        return Some(symbol);
                     }
                 }
             }

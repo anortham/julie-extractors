@@ -609,7 +609,7 @@ mod json_extractor_tests {
             ));
         }
 
-        json.push_str("}");
+        json.push('}');
 
         let symbols = extract_symbols(&json);
 
@@ -632,10 +632,10 @@ mod json_extractor_tests {
         json.push_str("\"value\": 42");
 
         for _ in 1..=20 {
-            json.push_str("}");
+            json.push('}');
         }
 
-        json.push_str("}");
+        json.push('}');
 
         let symbols = extract_symbols(&json);
 

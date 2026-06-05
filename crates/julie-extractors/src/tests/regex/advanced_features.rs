@@ -38,11 +38,9 @@ mod atomic_group_tests {
         assert!(!symbols.is_empty(), "Should extract symbols from pattern");
 
         // Verify the pattern is captured
-        let has_atomic_syntax = symbols.iter().any(|s| {
-            s.signature
-                .as_ref()
-                .map_or(false, |sig| sig.contains("(?>"))
-        });
+        let has_atomic_syntax = symbols
+            .iter()
+            .any(|s| s.signature.as_ref().is_some_and(|sig| sig.contains("(?>")));
 
         assert!(
             has_atomic_syntax,
@@ -66,11 +64,9 @@ mod atomic_group_tests {
 
         let symbols = extractor.extract_symbols(&tree);
 
-        let atomic_group = symbols.iter().find(|s| {
-            s.signature
-                .as_ref()
-                .map_or(false, |sig| sig.contains("(?>"))
-        });
+        let atomic_group = symbols
+            .iter()
+            .find(|s| s.signature.as_ref().is_some_and(|sig| sig.contains("(?>")));
 
         assert!(
             atomic_group.is_some(),
@@ -97,11 +93,7 @@ mod atomic_group_tests {
         // Should find at least one atomic group
         let atomic_groups: Vec<_> = symbols
             .iter()
-            .filter(|s| {
-                s.signature
-                    .as_ref()
-                    .map_or(false, |sig| sig.contains("(?>"))
-            })
+            .filter(|s| s.signature.as_ref().is_some_and(|sig| sig.contains("(?>")))
             .collect();
 
         assert!(
@@ -344,7 +336,7 @@ mod literal_tests {
         let has_pattern = symbols.iter().any(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("hello") && sig.contains("\\s"))
+                .is_some_and(|sig| sig.contains("hello") && sig.contains("\\s"))
         });
 
         assert!(

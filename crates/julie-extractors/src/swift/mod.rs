@@ -19,7 +19,7 @@ use tree_sitter::{Node, Tree};
 /// Swift extractor for extracting symbols and relationships from Swift source code
 /// Implementation of comprehensive Swift extractor with full Swift language support
 pub struct SwiftExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl SwiftExtractor {

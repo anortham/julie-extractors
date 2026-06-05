@@ -55,11 +55,11 @@ pub(super) fn extract_local_function(
         )
     };
 
-    if let Some(body) = node.child_by_field_name("body") {
-        if body.kind() == "arrow_expression_clause" {
-            signature.push(' ');
-            signature.push_str(&base.get_node_text(&body));
-        }
+    if let Some(body) = node.child_by_field_name("body")
+        && body.kind() == "arrow_expression_clause"
+    {
+        signature.push(' ');
+        signature.push_str(&base.get_node_text(&body));
     }
 
     let mut cursor = node.walk();
@@ -174,7 +174,6 @@ fn stable_member_name(base: &BaseExtractor, node: Node) -> Option<String> {
 
 fn terminal_identifier_from_text(text: &str) -> Option<String> {
     text.split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
-        .filter(|part| !part.is_empty())
-        .next_back()
+        .rfind(|part| !part.is_empty())
         .map(|part| part.to_string())
 }

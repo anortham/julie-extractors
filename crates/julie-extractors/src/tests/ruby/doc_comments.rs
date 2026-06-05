@@ -1,5 +1,5 @@
-/// Ruby RDoc/YARD documentation comment extraction tests
-/// Tests for extracting RDoc and YARD-style comments from Ruby code
+// Ruby RDoc/YARD documentation comment extraction tests
+// Tests for extracting RDoc and YARD-style comments from Ruby code
 
 #[cfg(test)]
 mod doc_comment_tests {

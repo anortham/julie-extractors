@@ -125,9 +125,9 @@ describe("UserService", () => {
     let test_call_symbols: Vec<_> = symbols
         .iter()
         .filter(|s| {
-            s.metadata.as_ref().map_or(false, |m| {
-                m.contains_key("is_test") || m.contains_key("test_container")
-            })
+            s.metadata
+                .as_ref()
+                .is_some_and(|m| m.contains_key("is_test") || m.contains_key("test_container"))
         })
         .collect();
     assert_eq!(

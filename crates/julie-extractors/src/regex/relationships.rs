@@ -37,38 +37,36 @@ fn visit_node(
     relationships: &mut Vec<Relationship>,
     seen: &mut HashSet<(String, String, u32, usize)>,
 ) {
-    if let Some(group_name) = named_backreference_name(base, node) {
-        if let Some(target) = named_groups.get(&group_name) {
-            if let Some(source) = base.find_containing_symbol(&node, symbols) {
-                push_backreference_relationship(
-                    base,
-                    source,
-                    target,
-                    node,
-                    seen,
-                    relationships,
-                    "named-backreference",
-                    Some(("name", Value::String(group_name))),
-                );
-            }
-        }
+    if let Some(group_name) = named_backreference_name(base, node)
+        && let Some(target) = named_groups.get(&group_name)
+        && let Some(source) = base.find_containing_symbol(&node, symbols)
+    {
+        push_backreference_relationship(
+            base,
+            source,
+            target,
+            node,
+            seen,
+            relationships,
+            "named-backreference",
+            Some(("name", Value::String(group_name))),
+        );
     }
 
-    if let Some(group_number) = numeric_backreference_number(base, node) {
-        if let Some(target) = numbered_groups.get(&group_number) {
-            if let Some(source) = base.find_containing_symbol(&node, symbols) {
-                push_backreference_relationship(
-                    base,
-                    source,
-                    target,
-                    node,
-                    seen,
-                    relationships,
-                    "numeric-backreference",
-                    Some(("captureIndex", Value::Number((group_number as u64).into()))),
-                );
-            }
-        }
+    if let Some(group_number) = numeric_backreference_number(base, node)
+        && let Some(target) = numbered_groups.get(&group_number)
+        && let Some(source) = base.find_containing_symbol(&node, symbols)
+    {
+        push_backreference_relationship(
+            base,
+            source,
+            target,
+            node,
+            seen,
+            relationships,
+            "numeric-backreference",
+            Some(("captureIndex", Value::Number((group_number as u64).into()))),
+        );
     }
 
     let mut cursor = node.walk();
@@ -113,6 +111,7 @@ fn numbered_group_symbols(symbols: &[Symbol]) -> HashMap<usize, &Symbol> {
         .collect()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn push_backreference_relationship(
     base: &BaseExtractor,
     source: &Symbol,

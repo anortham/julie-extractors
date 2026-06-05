@@ -284,17 +284,13 @@ fn find_lookaround_texts(content: &str) -> Vec<(String, NormalizedSpan)> {
             || rest.starts_with("(?<=")
             || rest.starts_with("(?<!");
 
-        if is_lookaround {
-            if let Some(end) = find_group_end(content, index) {
-                let end_exclusive = end + 1;
-                if let Some(span) =
-                    NormalizedSpan::from_content_range(content, index, end_exclusive)
-                {
-                    lookarounds.push((content[index..end_exclusive].to_string(), span));
-                }
-                index = end_exclusive;
-                continue;
+        if is_lookaround && let Some(end) = find_group_end(content, index) {
+            let end_exclusive = end + 1;
+            if let Some(span) = NormalizedSpan::from_content_range(content, index, end_exclusive) {
+                lookarounds.push((content[index..end_exclusive].to_string(), span));
             }
+            index = end_exclusive;
+            continue;
         }
 
         index += rest
@@ -343,17 +339,15 @@ fn find_unicode_property_texts(content: &str) -> Vec<(String, NormalizedSpan)> {
 
     while index < content.len() {
         let rest = &content[index..];
-        if rest.starts_with(r"\p{") || rest.starts_with(r"\P{") {
-            if let Some(end_offset) = rest.find('}') {
-                let end_exclusive = index + end_offset + 1;
-                if let Some(span) =
-                    NormalizedSpan::from_content_range(content, index, end_exclusive)
-                {
-                    properties.push((content[index..end_exclusive].to_string(), span));
-                }
-                index = end_exclusive;
-                continue;
+        if (rest.starts_with(r"\p{") || rest.starts_with(r"\P{"))
+            && let Some(end_offset) = rest.find('}')
+        {
+            let end_exclusive = index + end_offset + 1;
+            if let Some(span) = NormalizedSpan::from_content_range(content, index, end_exclusive) {
+                properties.push((content[index..end_exclusive].to_string(), span));
             }
+            index = end_exclusive;
+            continue;
         }
 
         index += rest

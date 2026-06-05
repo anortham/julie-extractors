@@ -256,12 +256,11 @@ fn source_symbol_for_type_use<'a>(
     symbols: &'a [Symbol],
 ) -> Option<&'a Symbol> {
     let containing = extractor.base.find_containing_symbol(&node, symbols)?;
-    if matches!(containing.kind, SymbolKind::Field | SymbolKind::Property) {
-        if let Some(parent_id) = containing.parent_id.as_deref() {
-            if let Some(parent) = symbols.iter().find(|symbol| symbol.id == parent_id) {
-                return Some(parent);
-            }
-        }
+    if matches!(containing.kind, SymbolKind::Field | SymbolKind::Property)
+        && let Some(parent_id) = containing.parent_id.as_deref()
+        && let Some(parent) = symbols.iter().find(|symbol| symbol.id == parent_id)
+    {
+        return Some(parent);
     }
     Some(containing)
 }

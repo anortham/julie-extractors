@@ -64,7 +64,7 @@ export default {
         let mut extractor = create_extractor("test-component.vue", vue_code);
         let symbols = extractor.extract_symbols(None); // Vue doesn't use tree-sitter
 
-        assert!(symbols.len() > 0);
+        assert!(!symbols.is_empty());
 
         // Check component symbol
         let component = symbols.iter().find(|s| s.name == "HelloWorld");
@@ -435,7 +435,7 @@ export default {
         let symbols = extractor.extract_symbols(None);
         let relationships = extractor.extract_relationships(None, &symbols);
 
-        assert!(relationships.len() == 0);
+        assert!(relationships.is_empty());
     }
 }
 
@@ -1574,6 +1574,7 @@ fn line_column_for_byte(content: &str, target: usize) -> (u32, u32) {
     (line, column)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn expected_id(
     file_path: &str,
     name: &str,

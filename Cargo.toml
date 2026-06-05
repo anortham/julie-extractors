@@ -10,7 +10,7 @@ resolver = "2"
 [workspace.package]
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/murphy/julie-extractors"
+repository = "https://github.com/anortham/julie-extractors"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

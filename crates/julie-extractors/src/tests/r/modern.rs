@@ -54,7 +54,7 @@ result <- dt[
             .filter(|s| s.kind == SymbolKind::Variable)
             .collect();
 
-        assert!(variables.len() >= 1, "Should extract result");
+        assert!(!variables.is_empty(), "Should extract result");
     }
 
     #[test]
@@ -253,7 +253,7 @@ NULL
             .filter(|s| s.kind == SymbolKind::Function)
             .collect();
 
-        assert!(functions.len() >= 1, "Should extract documented function");
+        assert!(!functions.is_empty(), "Should extract documented function");
     }
 
     #[test]

@@ -139,7 +139,7 @@ Item {
 
         // Should extract outer function, inner might or might not be extracted
         assert!(
-            functions.len() >= 1,
+            !functions.is_empty(),
             "Should extract at least outer function"
         );
     }

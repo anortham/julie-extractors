@@ -11,9 +11,32 @@
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use crate::sql::helpers::{CREATE_VIEW_RE, INCLUDE_CLAUSE_RE, INDEX_COLUMN_RE};
+use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use tree_sitter::Node;
+
+static INDEX_ON_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"ON\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
+static INDEX_USING_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"USING\s+([A-Z]+)").unwrap());
+static INDEX_WHERE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"WHERE\s+(.+?)(?:;|$)").unwrap());
+static CREATE_SCHEMA_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"CREATE\s+SCHEMA\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
+static DOMAIN_AS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"AS\s+([A-Za-z]+(?:\(\d+(?:,\s*\d+)?\))?)").unwrap());
+static DOMAIN_CHECK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"CHECK\s*\(([^)]+(?:\([^)]*\)[^)]*)*)\)").unwrap());
+static SEQUENCE_START_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"START\s+WITH\s+(\d+)").unwrap());
+static SEQUENCE_INCREMENT_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"INCREMENT\s+BY\s+(\d+)").unwrap());
+static SEQUENCE_MIN_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"MINVALUE\s+(\d+)").unwrap());
+static SEQUENCE_MAX_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"MAXVALUE\s+(\d+)").unwrap());
+static SEQUENCE_CACHE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"CACHE\s+(\d+)").unwrap());
 
 /// Extract table definition from CREATE TABLE statement
 pub(super) fn extract_table_definition(
@@ -87,28 +110,28 @@ pub(super) fn extract_view(
     let node_text = base.get_node_text(&node);
 
     // Extract views from ERROR nodes
-    if let Some(captures) = CREATE_VIEW_RE.captures(&node_text) {
-        if let Some(view_name) = captures.get(1) {
-            let name = view_name.as_str().to_string();
+    if let Some(captures) = CREATE_VIEW_RE.captures(&node_text)
+        && let Some(view_name) = captures.get(1)
+    {
+        let name = view_name.as_str().to_string();
 
-            let mut metadata = HashMap::new();
-            metadata.insert("isView".to_string(), serde_json::Value::Bool(true));
-            metadata.insert(
-                "extractedFromError".to_string(),
-                serde_json::Value::Bool(true),
-            );
+        let mut metadata = HashMap::new();
+        metadata.insert("isView".to_string(), serde_json::Value::Bool(true));
+        metadata.insert(
+            "extractedFromError".to_string(),
+            serde_json::Value::Bool(true),
+        );
 
-            let options = SymbolOptions {
-                signature: Some(format!("CREATE VIEW {}", name)),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                doc_comment: base.find_doc_comment(&node),
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
+        let options = SymbolOptions {
+            signature: Some(format!("CREATE VIEW {}", name)),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: parent_id.map(|s| s.to_string()),
+            doc_comment: base.find_doc_comment(&node),
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
 
-            return Some(base.create_symbol(&node, name, SymbolKind::Interface, options));
-        }
+        return Some(base.create_symbol(&node, name, SymbolKind::Interface, options));
     }
 
     None
@@ -139,8 +162,7 @@ pub(super) fn extract_index(
     };
 
     // Add table and column information if found
-    let on_regex = regex::Regex::new(r"ON\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
-    if let Some(on_captures) = on_regex.captures(&node_text) {
+    if let Some(on_captures) = INDEX_ON_RE.captures(&node_text) {
         let table_name = on_captures.get(1).map_or("", |m| m.as_str());
         if !table_name.is_empty() {
             signature.push_str(&format!(" ON {}", table_name));
@@ -148,8 +170,7 @@ pub(super) fn extract_index(
     }
 
     // Add USING clause if present (before columns)
-    let using_regex = regex::Regex::new(r"USING\s+([A-Z]+)").unwrap();
-    if let Some(using_captures) = using_regex.captures(&node_text) {
+    if let Some(using_captures) = INDEX_USING_RE.captures(&node_text) {
         let using_method = using_captures.get(1).map_or("", |m| m.as_str());
         if !using_method.is_empty() {
             signature.push_str(&format!(" USING {}", using_method));
@@ -173,8 +194,7 @@ pub(super) fn extract_index(
     }
 
     // Add WHERE clause if present
-    let where_regex = regex::Regex::new(r"WHERE\s+(.+?)(?:;|$)").unwrap();
-    if let Some(where_captures) = where_regex.captures(&node_text) {
+    if let Some(where_captures) = INDEX_WHERE_RE.captures(&node_text) {
         let where_condition = where_captures.get(1).map_or("", |m| m.as_str()).trim();
         if !where_condition.is_empty() {
             signature.push_str(&format!(" WHERE {}", where_condition));
@@ -235,30 +255,28 @@ pub(super) fn extract_schema(
     let node_text = base.get_node_text(&node);
 
     // Extract schemas from ERROR nodes
-    let schema_regex = regex::Regex::new(r"CREATE\s+SCHEMA\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
+    if let Some(captures) = CREATE_SCHEMA_RE.captures(&node_text)
+        && let Some(schema_name) = captures.get(1)
+    {
+        let name = schema_name.as_str().to_string();
 
-    if let Some(captures) = schema_regex.captures(&node_text) {
-        if let Some(schema_name) = captures.get(1) {
-            let name = schema_name.as_str().to_string();
+        let mut metadata = HashMap::new();
+        metadata.insert("isSchema".to_string(), serde_json::Value::Bool(true));
+        metadata.insert(
+            "extractedFromError".to_string(),
+            serde_json::Value::Bool(true),
+        );
 
-            let mut metadata = HashMap::new();
-            metadata.insert("isSchema".to_string(), serde_json::Value::Bool(true));
-            metadata.insert(
-                "extractedFromError".to_string(),
-                serde_json::Value::Bool(true),
-            );
+        let options = SymbolOptions {
+            signature: Some(format!("CREATE SCHEMA {}", name)),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: parent_id.map(|s| s.to_string()),
+            doc_comment: base.find_doc_comment(&node),
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
 
-            let options = SymbolOptions {
-                signature: Some(format!("CREATE SCHEMA {}", name)),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                doc_comment: base.find_doc_comment(&node),
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
-
-            return Some(base.create_symbol(&node, name, SymbolKind::Namespace, options));
-        }
+        return Some(base.create_symbol(&node, name, SymbolKind::Namespace, options));
     }
 
     None
@@ -287,18 +305,12 @@ pub(super) fn extract_domain(
     let mut signature = format!("CREATE DOMAIN {}", name);
 
     // Extract the base type (AS datatype)
-    if let Some(as_match) = regex::Regex::new(r"AS\s+([A-Za-z]+(?:\(\d+(?:,\s*\d+)?\))?)")
-        .unwrap()
-        .captures(&node_text)
-    {
+    if let Some(as_match) = DOMAIN_AS_RE.captures(&node_text) {
         signature.push_str(&format!(" AS {}", as_match.get(1).unwrap().as_str()));
     }
 
     // Add CHECK constraint if present
-    if let Some(check_match) = regex::Regex::new(r"CHECK\s*\(([^)]+(?:\([^)]*\)[^)]*)*)\)")
-        .unwrap()
-        .captures(&node_text)
-    {
+    if let Some(check_match) = DOMAIN_CHECK_RE.captures(&node_text) {
         signature.push_str(&format!(
             " CHECK ({})",
             check_match.get(1).unwrap().as_str().trim()
@@ -446,44 +458,29 @@ pub(super) fn extract_sequence(
     // Add sequence options if present
     let mut options_vec = Vec::new();
 
-    if let Some(start_match) = regex::Regex::new(r"START\s+WITH\s+(\d+)")
-        .unwrap()
-        .captures(&node_text)
-    {
+    if let Some(start_match) = SEQUENCE_START_RE.captures(&node_text) {
         options_vec.push(format!(
             "START WITH {}",
             start_match.get(1).unwrap().as_str()
         ));
     }
 
-    if let Some(inc_match) = regex::Regex::new(r"INCREMENT\s+BY\s+(\d+)")
-        .unwrap()
-        .captures(&node_text)
-    {
+    if let Some(inc_match) = SEQUENCE_INCREMENT_RE.captures(&node_text) {
         options_vec.push(format!(
             "INCREMENT BY {}",
             inc_match.get(1).unwrap().as_str()
         ));
     }
 
-    if let Some(min_match) = regex::Regex::new(r"MINVALUE\s+(\d+)")
-        .unwrap()
-        .captures(&node_text)
-    {
+    if let Some(min_match) = SEQUENCE_MIN_RE.captures(&node_text) {
         options_vec.push(format!("MINVALUE {}", min_match.get(1).unwrap().as_str()));
     }
 
-    if let Some(max_match) = regex::Regex::new(r"MAXVALUE\s+(\d+)")
-        .unwrap()
-        .captures(&node_text)
-    {
+    if let Some(max_match) = SEQUENCE_MAX_RE.captures(&node_text) {
         options_vec.push(format!("MAXVALUE {}", max_match.get(1).unwrap().as_str()));
     }
 
-    if let Some(cache_match) = regex::Regex::new(r"CACHE\s+(\d+)")
-        .unwrap()
-        .captures(&node_text)
-    {
+    if let Some(cache_match) = SEQUENCE_CACHE_RE.captures(&node_text) {
         options_vec.push(format!("CACHE {}", cache_match.get(1).unwrap().as_str()));
     }
 

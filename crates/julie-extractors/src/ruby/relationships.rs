@@ -184,48 +184,46 @@ fn process_include_extend_call(
     relationships: &mut Vec<Relationship>,
 ) {
     let base = extractor.base();
-    if let Some(method_name) = extract_method_name_from_call(child, |n| base.get_node_text(n)) {
-        if matches!(
+    if let Some(method_name) = extract_method_name_from_call(child, |n| base.get_node_text(n))
+        && matches!(
             method_name.as_str(),
             "include" | "extend" | "prepend" | "using"
-        ) {
-            if let Some(arg_node) = child.child_by_field_name("arguments") {
-                if let Some(module_node) = arg_node.children(&mut arg_node.walk()).next() {
-                    let module_name = base.get_node_text(&module_node);
+        )
+        && let Some(arg_node) = child.child_by_field_name("arguments")
+        && let Some(module_node) = arg_node.children(&mut arg_node.walk()).next()
+    {
+        let module_name = base.get_node_text(&module_node);
 
-                    let from_symbol = symbols.iter().find(|s| s.name == class_or_module_name);
-                    let to_symbol = symbols.iter().find(|s| s.name == module_name);
+        let from_symbol = symbols.iter().find(|s| s.name == class_or_module_name);
+        let to_symbol = symbols.iter().find(|s| s.name == module_name);
 
-                    if let (Some(from_symbol), Some(to_symbol)) = (from_symbol, to_symbol) {
-                        relationships.push(Relationship {
-                            id: format!(
-                                "{}_{}_{:?}_{}",
-                                from_symbol.id,
-                                to_symbol.id,
-                                RelationshipKind::Implements,
-                                child.start_position().row
-                            ),
-                            from_symbol_id: from_symbol.id.clone(),
-                            to_symbol_id: to_symbol.id.clone(),
-                            kind: RelationshipKind::Implements,
-                            file_path: base.file_path.clone(),
-                            line_number: child.start_position().row as u32 + 1,
-                            confidence: 1.0,
-                            metadata: None,
-                        });
-                    } else if let Some(from_symbol) = from_symbol {
-                        let pending = extractor.base().create_pending_relationship(
-                            from_symbol.id.clone(),
-                            unresolved_ruby_constant(module_name),
-                            RelationshipKind::Implements,
-                            &child,
-                            Some(from_symbol.id.clone()),
-                            Some(0.9),
-                        );
-                        extractor.add_structured_pending_relationship(pending);
-                    }
-                }
-            }
+        if let (Some(from_symbol), Some(to_symbol)) = (from_symbol, to_symbol) {
+            relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    from_symbol.id,
+                    to_symbol.id,
+                    RelationshipKind::Implements,
+                    child.start_position().row
+                ),
+                from_symbol_id: from_symbol.id.clone(),
+                to_symbol_id: to_symbol.id.clone(),
+                kind: RelationshipKind::Implements,
+                file_path: base.file_path.clone(),
+                line_number: child.start_position().row as u32 + 1,
+                confidence: 1.0,
+                metadata: None,
+            });
+        } else if let Some(from_symbol) = from_symbol {
+            let pending = extractor.base().create_pending_relationship(
+                from_symbol.id.clone(),
+                unresolved_ruby_constant(module_name),
+                RelationshipKind::Implements,
+                &child,
+                Some(from_symbol.id.clone()),
+                Some(0.9),
+            );
+            extractor.add_structured_pending_relationship(pending);
         }
     }
 }
@@ -241,53 +239,53 @@ fn extract_call_relationships(
     let base = extractor.base();
 
     // For a call node, extract the method being called
-    if let Some(method_name_opt) = extract_method_name_from_call(node, |n| base.get_node_text(n)) {
-        if !method_name_opt.is_empty() {
-            let target = extract_pending_target(base, node, &method_name_opt);
-            // Find the enclosing function/method that contains this call
-            if let Some(caller_symbol) = base.find_containing_symbol(&node, symbols) {
-                let line_number = (node.start_position().row + 1) as u32;
-                let file_path = base.file_path.clone();
+    if let Some(method_name_opt) = extract_method_name_from_call(node, |n| base.get_node_text(n))
+        && !method_name_opt.is_empty()
+    {
+        let target = extract_pending_target(base, node, &method_name_opt);
+        // Find the enclosing function/method that contains this call
+        if let Some(caller_symbol) = base.find_containing_symbol(&node, symbols) {
+            let line_number = (node.start_position().row + 1) as u32;
+            let file_path = base.file_path.clone();
 
-                match symbol_index.resolve_call_target(
-                    &method_name_opt,
-                    Some(caller_symbol),
-                    target.receiver.as_deref(),
-                ) {
-                    LocalTargetResolution::Resolved(called_symbol) => {
-                        let relationship = Relationship {
-                            id: format!(
-                                "{}_{}_{:?}_{}",
-                                caller_symbol.id,
-                                called_symbol.id,
-                                RelationshipKind::Calls,
-                                node.start_position().row
-                            ),
-                            from_symbol_id: caller_symbol.id.clone(),
-                            to_symbol_id: called_symbol.id.clone(),
-                            kind: RelationshipKind::Calls,
-                            file_path,
-                            line_number,
-                            confidence: 0.9,
-                            metadata: None,
-                        };
-
-                        relationships.push(relationship);
-                    }
-                    LocalTargetResolution::Import(_)
-                    | LocalTargetResolution::Ambiguous
-                    | LocalTargetResolution::ReceiverQualified
-                    | LocalTargetResolution::Missing => {
-                        let pending = base.create_pending_relationship(
-                            caller_symbol.id.clone(),
-                            target,
+            match symbol_index.resolve_call_target(
+                &method_name_opt,
+                Some(caller_symbol),
+                target.receiver.as_deref(),
+            ) {
+                LocalTargetResolution::Resolved(called_symbol) => {
+                    let relationship = Relationship {
+                        id: format!(
+                            "{}_{}_{:?}_{}",
+                            caller_symbol.id,
+                            called_symbol.id,
                             RelationshipKind::Calls,
-                            &node,
-                            Some(caller_symbol.id.clone()),
-                            Some(0.7),
-                        );
-                        extractor.add_structured_pending_relationship(pending);
-                    }
+                            node.start_position().row
+                        ),
+                        from_symbol_id: caller_symbol.id.clone(),
+                        to_symbol_id: called_symbol.id.clone(),
+                        kind: RelationshipKind::Calls,
+                        file_path,
+                        line_number,
+                        confidence: 0.9,
+                        metadata: None,
+                    };
+
+                    relationships.push(relationship);
+                }
+                LocalTargetResolution::Import(_)
+                | LocalTargetResolution::Ambiguous
+                | LocalTargetResolution::ReceiverQualified
+                | LocalTargetResolution::Missing => {
+                    let pending = base.create_pending_relationship(
+                        caller_symbol.id.clone(),
+                        target,
+                        RelationshipKind::Calls,
+                        &node,
+                        Some(caller_symbol.id.clone()),
+                        Some(0.7),
+                    );
+                    extractor.add_structured_pending_relationship(pending);
                 }
             }
         }
@@ -324,16 +322,16 @@ fn extract_pending_target(
     let call_text = base.get_node_text(&node);
     let call_head = call_text.split('(').next().unwrap_or(call_text.as_str());
 
-    if let Some((receiver, terminal_name)) = call_head.rsplit_once('.') {
-        if !receiver.is_empty() {
-            return UnresolvedTarget {
-                display_name: call_head.to_string(),
-                terminal_name: terminal_name.to_string(),
-                receiver: Some(receiver.to_string()),
-                namespace_path: Vec::new(),
-                import_context: None,
-            };
-        }
+    if let Some((receiver, terminal_name)) = call_head.rsplit_once('.')
+        && !receiver.is_empty()
+    {
+        return UnresolvedTarget {
+            display_name: call_head.to_string(),
+            terminal_name: terminal_name.to_string(),
+            receiver: Some(receiver.to_string()),
+            namespace_path: Vec::new(),
+            import_context: None,
+        };
     }
 
     UnresolvedTarget::simple(method_name.to_string())

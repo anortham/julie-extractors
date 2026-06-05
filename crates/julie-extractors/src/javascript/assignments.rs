@@ -61,31 +61,31 @@ impl super::JavaScriptExtractor {
                         ));
                     }
                     // Check if this is a static method assignment (reference logic)
-                    else if let Some(right) = right_node {
-                        if right.kind() == "function_expression" || right.kind() == "arrow_function"
-                        {
-                            let mut metadata = HashMap::new();
-                            metadata.insert("isStaticMethod".to_string(), json!(true));
-                            metadata.insert("isFunction".to_string(), json!(true));
-                            metadata.insert("className".to_string(), json!(object_text));
+                    else if let Some(right) = right_node
+                        && (right.kind() == "function_expression"
+                            || right.kind() == "arrow_function")
+                    {
+                        let mut metadata = HashMap::new();
+                        metadata.insert("isStaticMethod".to_string(), json!(true));
+                        metadata.insert("isFunction".to_string(), json!(true));
+                        metadata.insert("className".to_string(), json!(object_text));
 
-                            // Extract JSDoc comment
-                            let doc_comment = self.base.find_doc_comment(&node);
+                        // Extract JSDoc comment
+                        let doc_comment = self.base.find_doc_comment(&node);
 
-                            return Some(self.base.create_symbol(
-                                &node,
-                                property_name,
-                                SymbolKind::Method,
-                                SymbolOptions {
-                                    signature: Some(signature),
-                                    visibility: Some(Visibility::Public),
-                                    parent_id,
-                                    metadata: Some(metadata),
-                                    doc_comment,
-                                    annotations: Vec::new(),
-                                },
-                            ));
-                        }
+                        return Some(self.base.create_symbol(
+                            &node,
+                            property_name,
+                            SymbolKind::Method,
+                            SymbolOptions {
+                                signature: Some(signature),
+                                visibility: Some(Visibility::Public),
+                                parent_id,
+                                metadata: Some(metadata),
+                                doc_comment,
+                                annotations: Vec::new(),
+                            },
+                        ));
                     }
                 }
             }

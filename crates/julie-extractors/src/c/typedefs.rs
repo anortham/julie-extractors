@@ -191,12 +191,12 @@ fn extract_function_pointer_typedef_name(
     let signature = base.get_node_text(&node);
     let re = Regex::new(r"typedef\s+[^(]*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)").ok()?;
 
-    if let Some(captures) = re.captures(&signature) {
-        if let Some(name_match) = captures.get(1) {
-            let name = name_match.as_str().to_string();
-            if helpers::is_valid_typedef_name(&name) {
-                return Some(name);
-            }
+    if let Some(captures) = re.captures(&signature)
+        && let Some(name_match) = captures.get(1)
+    {
+        let name = name_match.as_str().to_string();
+        if helpers::is_valid_typedef_name(&name) {
+            return Some(name);
         }
     }
 
@@ -208,26 +208,21 @@ pub(super) fn fix_function_pointer_typedef_names(symbols: &mut [Symbol]) {
     let re = Regex::new(r"typedef\s+[^(]*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)").unwrap();
 
     for symbol in symbols.iter_mut() {
-        if symbol.kind == SymbolKind::Type {
-            if let Some(signature) = &symbol.signature {
-                if let Some(captures) = re.captures(signature) {
-                    if let Some(name_match) = captures.get(1) {
-                        let correct_name = name_match.as_str();
+        if symbol.kind == SymbolKind::Type
+            && let Some(signature) = &symbol.signature
+            && let Some(captures) = re.captures(signature)
+            && let Some(name_match) = captures.get(1)
+        {
+            let correct_name = name_match.as_str();
 
-                        let should_fix = (symbol.name.len() <= 2
-                            && symbol.name.chars().all(|c| c.is_ascii_lowercase()))
-                            || symbol.name != correct_name;
+            let should_fix = (symbol.name.len() <= 2
+                && symbol.name.chars().all(|c| c.is_ascii_lowercase()))
+                || symbol.name != correct_name;
 
-                        if should_fix {
-                            symbol.name = correct_name.to_string();
-                            if let Some(metadata) = &mut symbol.metadata {
-                                metadata.insert(
-                                    "name".to_string(),
-                                    Value::String(correct_name.to_string()),
-                                );
-                            }
-                        }
-                    }
+            if should_fix {
+                symbol.name = correct_name.to_string();
+                if let Some(metadata) = &mut symbol.metadata {
+                    metadata.insert("name".to_string(), Value::String(correct_name.to_string()));
                 }
             }
         }
@@ -242,18 +237,15 @@ pub(super) fn fix_struct_alignment_attributes(symbols: &mut [Symbol]) {
         if matches!(
             symbol.kind,
             SymbolKind::Type | SymbolKind::Struct | SymbolKind::Union
-        ) {
-            if let Some(signature) = &symbol.signature {
-                if let Some(captures) = re.captures(signature) {
-                    if let Some(align_match) = captures.get(1) {
-                        let align_attr = align_match.as_str();
-                        if !signature.contains(&format!("struct {}", align_attr)) {
-                            let fixed_signature =
-                                signature.replace("struct", &format!("struct {}", align_attr));
-                            symbol.signature = Some(fixed_signature);
-                        }
-                    }
-                }
+        ) && let Some(signature) = &symbol.signature
+            && let Some(captures) = re.captures(signature)
+            && let Some(align_match) = captures.get(1)
+        {
+            let align_attr = align_match.as_str();
+            if !signature.contains(&format!("struct {}", align_attr)) {
+                let fixed_signature =
+                    signature.replace("struct", &format!("struct {}", align_attr));
+                symbol.signature = Some(fixed_signature);
             }
         }
     }

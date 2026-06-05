@@ -6,7 +6,7 @@ on:
       version:
         description: Release version to publish
         required: true
-        default: 2.0.1
+        default: 2.1.0
   push:
     tags:
       - 'v*'
@@ -84,6 +84,9 @@ jobs:
             echo "Move or delete ${TAG} before re-dispatching this release version." >&2
             exit 1
           fi
+
+      - name: Run release preflight
+        run: cargo xtask release preflight --version "${{ steps.version.outputs.version }}"
 
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }} -p julie-extract-cli --bin julie-extract
@@ -172,6 +175,9 @@ jobs:
             echo "Move or delete ${TAG} before re-dispatching this release version." >&2
             exit 1
           fi
+
+      - name: Run release preflight
+        run: cargo xtask release preflight --version "${{ steps.version.outputs.version }}"
 
       - name: Prepare release notes
         shell: bash

@@ -19,96 +19,96 @@ impl RelationshipExtractor {
         let attributes = HTMLHelpers::extract_attributes(base, node);
 
         // Extract href relationships (links)
-        if let Some(href) = attributes.get("href") {
-            if let Some(element) = Self::find_element_symbol(base, node, symbols) {
-                let to_id = format!("url:{}", href);
-                relationships.push(Relationship {
-                    id: format!(
-                        "{}_{}_{:?}_{}",
-                        element.id,
-                        to_id,
-                        RelationshipKind::References,
-                        node.start_position().row
-                    ),
-                    from_symbol_id: element.id.clone(),
-                    to_symbol_id: to_id,
-                    kind: RelationshipKind::References,
-                    file_path: base.file_path.clone(),
-                    line_number: (node.start_position().row + 1) as u32,
-                    confidence: 1.0,
-                    metadata: Some({
-                        let mut meta = HashMap::new();
-                        meta.insert("href".to_string(), serde_json::Value::String(href.clone()));
-                        meta
-                    }),
-                });
-            }
+        if let Some(href) = attributes.get("href")
+            && let Some(element) = Self::find_element_symbol(base, node, symbols)
+        {
+            let to_id = format!("url:{}", href);
+            relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    element.id,
+                    to_id,
+                    RelationshipKind::References,
+                    node.start_position().row
+                ),
+                from_symbol_id: element.id.clone(),
+                to_symbol_id: to_id,
+                kind: RelationshipKind::References,
+                file_path: base.file_path.clone(),
+                line_number: (node.start_position().row + 1) as u32,
+                confidence: 1.0,
+                metadata: Some({
+                    let mut meta = HashMap::new();
+                    meta.insert("href".to_string(), serde_json::Value::String(href.clone()));
+                    meta
+                }),
+            });
         }
 
         // Extract src relationships (images, scripts, etc.)
-        if let Some(src) = attributes.get("src") {
-            if let Some(element) = Self::find_element_symbol(base, node, symbols) {
-                let to_id = format!("resource:{}", src);
-                relationships.push(Relationship {
-                    id: format!(
-                        "{}_{}_{:?}_{}",
-                        element.id,
-                        to_id,
-                        RelationshipKind::Uses,
-                        node.start_position().row
-                    ),
-                    from_symbol_id: element.id.clone(),
-                    to_symbol_id: to_id,
-                    kind: RelationshipKind::Uses,
-                    file_path: base.file_path.clone(),
-                    line_number: (node.start_position().row + 1) as u32,
-                    confidence: 1.0,
-                    metadata: Some({
-                        let mut meta = HashMap::new();
-                        meta.insert("src".to_string(), serde_json::Value::String(src.clone()));
-                        meta
-                    }),
-                });
-            }
+        if let Some(src) = attributes.get("src")
+            && let Some(element) = Self::find_element_symbol(base, node, symbols)
+        {
+            let to_id = format!("resource:{}", src);
+            relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    element.id,
+                    to_id,
+                    RelationshipKind::Uses,
+                    node.start_position().row
+                ),
+                from_symbol_id: element.id.clone(),
+                to_symbol_id: to_id,
+                kind: RelationshipKind::Uses,
+                file_path: base.file_path.clone(),
+                line_number: (node.start_position().row + 1) as u32,
+                confidence: 1.0,
+                metadata: Some({
+                    let mut meta = HashMap::new();
+                    meta.insert("src".to_string(), serde_json::Value::String(src.clone()));
+                    meta
+                }),
+            });
         }
 
         // Extract form relationships
-        if let Some(action) = attributes.get("action") {
-            if let Some(element) = Self::find_element_symbol(base, node, symbols) {
-                let to_id = format!("endpoint:{}", action);
-                relationships.push(Relationship {
-                    id: format!(
-                        "{}_{}_{:?}_{}",
-                        element.id,
-                        to_id,
-                        RelationshipKind::Calls,
-                        node.start_position().row
-                    ),
-                    from_symbol_id: element.id.clone(),
-                    to_symbol_id: to_id,
-                    kind: RelationshipKind::Calls,
-                    file_path: base.file_path.clone(),
-                    line_number: (node.start_position().row + 1) as u32,
-                    confidence: 1.0,
-                    metadata: Some({
-                        let mut meta = HashMap::new();
-                        meta.insert(
-                            "action".to_string(),
-                            serde_json::Value::String(action.clone()),
-                        );
-                        meta.insert(
-                            "method".to_string(),
-                            serde_json::Value::String(
-                                attributes
-                                    .get("method")
-                                    .cloned()
-                                    .unwrap_or_else(|| "GET".to_string()),
-                            ),
-                        );
-                        meta
-                    }),
-                });
-            }
+        if let Some(action) = attributes.get("action")
+            && let Some(element) = Self::find_element_symbol(base, node, symbols)
+        {
+            let to_id = format!("endpoint:{}", action);
+            relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    element.id,
+                    to_id,
+                    RelationshipKind::Calls,
+                    node.start_position().row
+                ),
+                from_symbol_id: element.id.clone(),
+                to_symbol_id: to_id,
+                kind: RelationshipKind::Calls,
+                file_path: base.file_path.clone(),
+                line_number: (node.start_position().row + 1) as u32,
+                confidence: 1.0,
+                metadata: Some({
+                    let mut meta = HashMap::new();
+                    meta.insert(
+                        "action".to_string(),
+                        serde_json::Value::String(action.clone()),
+                    );
+                    meta.insert(
+                        "method".to_string(),
+                        serde_json::Value::String(
+                            attributes
+                                .get("method")
+                                .cloned()
+                                .unwrap_or_else(|| "GET".to_string()),
+                        ),
+                    );
+                    meta
+                }),
+            });
         }
     }
 
@@ -121,8 +121,8 @@ impl RelationshipExtractor {
     ) {
         let attributes = HTMLHelpers::extract_attributes(base, node);
 
-        if let Some(src) = attributes.get("src") {
-            if let Some(script_symbol) = symbols.iter().find(|s| {
+        if let Some(src) = attributes.get("src")
+            && let Some(script_symbol) = symbols.iter().find(|s| {
                 s.metadata
                     .as_ref()
                     .and_then(|m| m.get("type"))
@@ -135,35 +135,35 @@ impl RelationshipExtractor {
                         .and_then(|attrs| attrs.get("src"))
                         .and_then(|value| value.as_str())
                         == Some(src.as_str())
-            }) {
-                let to_id = format!("script:{}", src);
-                relationships.push(Relationship {
-                    id: format!(
-                        "{}_{}_{:?}_{}",
-                        script_symbol.id,
-                        to_id,
-                        RelationshipKind::Imports,
-                        node.start_position().row
-                    ),
-                    from_symbol_id: script_symbol.id.clone(),
-                    to_symbol_id: to_id,
-                    kind: RelationshipKind::Imports,
-                    file_path: base.file_path.clone(),
-                    line_number: (node.start_position().row + 1) as u32,
-                    confidence: 1.0,
-                    metadata: Some({
-                        let mut meta = HashMap::new();
-                        meta.insert("src".to_string(), serde_json::Value::String(src.clone()));
-                        if let Some(script_type) = attributes.get("type") {
-                            meta.insert(
-                                "type".to_string(),
-                                serde_json::Value::String(script_type.clone()),
-                            );
-                        }
-                        meta
-                    }),
-                });
-            }
+            })
+        {
+            let to_id = format!("script:{}", src);
+            relationships.push(Relationship {
+                id: format!(
+                    "{}_{}_{:?}_{}",
+                    script_symbol.id,
+                    to_id,
+                    RelationshipKind::Imports,
+                    node.start_position().row
+                ),
+                from_symbol_id: script_symbol.id.clone(),
+                to_symbol_id: to_id,
+                kind: RelationshipKind::Imports,
+                file_path: base.file_path.clone(),
+                line_number: (node.start_position().row + 1) as u32,
+                confidence: 1.0,
+                metadata: Some({
+                    let mut meta = HashMap::new();
+                    meta.insert("src".to_string(), serde_json::Value::String(src.clone()));
+                    if let Some(script_type) = attributes.get("type") {
+                        meta.insert(
+                            "type".to_string(),
+                            serde_json::Value::String(script_type.clone()),
+                        );
+                    }
+                    meta
+                }),
+            });
         }
     }
 

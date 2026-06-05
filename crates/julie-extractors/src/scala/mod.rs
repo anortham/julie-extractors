@@ -24,7 +24,7 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
 pub struct ScalaExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl ScalaExtractor {

@@ -62,18 +62,17 @@ pub(crate) fn infer_types_from_tree(
         }
     }
     // Look for function declarations
-    else if node.kind() == "function_declaration"
+    else if (node.kind() == "function_declaration"
         || node.kind() == "arrow_function"
-        || node.kind() == "function_expression"
+        || node.kind() == "function_expression")
+        && let Some(name_node) = node.child_by_field_name("name")
     {
-        if let Some(name_node) = node.child_by_field_name("name") {
-            let func_name = extractor.base().get_node_text(&name_node);
+        let func_name = extractor.base().get_node_text(&name_node);
 
-            // Find the function symbol
-            if let Some(symbol) = symbols.iter().find(|s| s.name == func_name) {
-                let return_type = infer_function_return_type(extractor, &node);
-                types.insert(symbol.id.clone(), return_type);
-            }
+        // Find the function symbol
+        if let Some(symbol) = symbols.iter().find(|s| s.name == func_name) {
+            let return_type = infer_function_return_type(extractor, &node);
+            types.insert(symbol.id.clone(), return_type);
         }
     }
 
@@ -157,11 +156,11 @@ pub(crate) fn collect_return_types(
     node: &Node,
     return_types: &mut Vec<String>,
 ) {
-    if node.kind() == "return_statement" {
-        if let Some(value_node) = node.child_by_field_name("argument") {
-            let return_type = infer_type_from_value(extractor, &value_node);
-            return_types.push(return_type);
-        }
+    if node.kind() == "return_statement"
+        && let Some(value_node) = node.child_by_field_name("argument")
+    {
+        let return_type = infer_type_from_value(extractor, &value_node);
+        return_types.push(return_type);
     }
 
     // Recursively search children

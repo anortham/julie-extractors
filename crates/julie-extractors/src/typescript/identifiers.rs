@@ -104,27 +104,23 @@ fn extract_identifier_from_node(
         // optional separate `type_arguments` field. Unlike type annotations, this does NOT
         // produce a `generic_type` node, so the `type_identifier` arm cannot hook here.
         "extends_clause" => {
-            if let Some(value_node) = node.child_by_field_name("value") {
-                if let Some((name_node, name)) = terminal_identifier(extractor, value_node) {
-                    let containing_symbol_id =
-                        find_containing_symbol_id(extractor, node, symbol_map);
-                    let identifier = extractor.base_mut().create_identifier(
-                        &name_node,
-                        name,
-                        IdentifierKind::TypeUsage,
-                        containing_symbol_id,
-                    );
-                    // Capture type arguments if the base class is generic
-                    if let Some(arg_list) = node.child_by_field_name("type_arguments") {
-                        let arguments = extract_type_arguments(
-                            extractor.base(),
-                            arg_list,
-                            decompose_ts_type_arg,
-                        );
-                        extractor
-                            .base_mut()
-                            .record_type_arguments(&identifier, arguments);
-                    }
+            if let Some(value_node) = node.child_by_field_name("value")
+                && let Some((name_node, name)) = terminal_identifier(extractor, value_node)
+            {
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                let identifier = extractor.base_mut().create_identifier(
+                    &name_node,
+                    name,
+                    IdentifierKind::TypeUsage,
+                    containing_symbol_id,
+                );
+                // Capture type arguments if the base class is generic
+                if let Some(arg_list) = node.child_by_field_name("type_arguments") {
+                    let arguments =
+                        extract_type_arguments(extractor.base(), arg_list, decompose_ts_type_arg);
+                    extractor
+                        .base_mut()
+                        .record_type_arguments(&identifier, arguments);
                 }
             }
         }
@@ -175,18 +171,17 @@ fn extract_identifier_from_node(
             if let Some(parent) = node.parent() {
                 if parent.kind() == "call_expression" {
                     // Check if this member_expression is the function being called
-                    if let Some(function_node) = parent.child_by_field_name("function") {
-                        if function_node.id() == node.id() {
-                            return; // Skip - handled by call_expression
-                        }
+                    if let Some(function_node) = parent.child_by_field_name("function")
+                        && function_node.id() == node.id()
+                    {
+                        return; // Skip - handled by call_expression
                     }
                 }
-                if parent.kind() == "new_expression" {
-                    if let Some(constructor_node) = parent.child_by_field_name("constructor") {
-                        if constructor_node.id() == node.id() {
-                            return;
-                        }
-                    }
+                if parent.kind() == "new_expression"
+                    && let Some(constructor_node) = parent.child_by_field_name("constructor")
+                    && constructor_node.id() == node.id()
+                {
+                    return;
                 }
             }
 
@@ -295,7 +290,7 @@ fn terminal_identifier<'tree>(
 fn is_component_name(name: &str) -> bool {
     name.chars()
         .next()
-        .map_or(false, |first| first.is_ascii_uppercase())
+        .is_some_and(|first| first.is_ascii_uppercase())
 }
 
 /// Find the ID of the symbol that contains this node
@@ -371,6 +366,7 @@ fn callee_text(extractor: &TypeScriptExtractor, function_node: Node) -> Option<S
         }
         _ => {
             let text = extractor.base().get_node_text(&function_node);
+            let text = text.strip_prefix("await ").unwrap_or(&text).to_string();
             if text.is_empty() { None } else { Some(text) }
         }
     }

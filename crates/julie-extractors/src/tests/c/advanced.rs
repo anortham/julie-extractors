@@ -346,7 +346,7 @@ mod tests {
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("extern \"C\""))
+                    .is_some_and(|sig| sig.contains("extern \"C\""))
             })
             .count();
         assert!(extern_c >= 1);
@@ -355,35 +355,35 @@ mod tests {
         let stdint_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <stdint.h>"))
+                .is_some_and(|sig| sig.contains("#include <stdint.h>"))
         });
         assert!(stdint_include.is_some());
 
         let stdbool_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <stdbool.h>"))
+                .is_some_and(|sig| sig.contains("#include <stdbool.h>"))
         });
         assert!(stdbool_include.is_some());
 
         let complex_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <complex.h>"))
+                .is_some_and(|sig| sig.contains("#include <complex.h>"))
         });
         assert!(complex_include.is_some());
 
         let signal_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <signal.h>"))
+                .is_some_and(|sig| sig.contains("#include <signal.h>"))
         });
         assert!(signal_include.is_some());
 
         let unistd_include = symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("#include <unistd.h>"))
+                .is_some_and(|sig| sig.contains("#include <unistd.h>"))
         });
         assert!(unistd_include.is_some());
     }

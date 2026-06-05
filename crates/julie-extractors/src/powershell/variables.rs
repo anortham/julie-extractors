@@ -123,10 +123,10 @@ fn extract_variable_signature(base: &BaseExtractor, node: Node) -> Option<String
     let full_text = base.get_node_text(&node);
     let equal_index = full_text.find('=');
 
-    if let Some(pos) = equal_index {
-        if pos < full_text.len() - 1 {
-            return Some(full_text.trim().to_string());
-        }
+    if let Some(pos) = equal_index
+        && pos < full_text.len() - 1
+    {
+        return Some(full_text.trim().to_string());
     }
 
     find_variable_name_node(node).map(|n| base.get_node_text(&n))

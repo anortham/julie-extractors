@@ -33,7 +33,7 @@ use types::{
 };
 
 pub struct PhpExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl PhpExtractor {
@@ -77,12 +77,11 @@ impl PhpExtractor {
                 if let Some(type_str) = property_type.as_str() {
                     types.insert(symbol.id.clone(), type_str.to_string());
                 }
-            } else if let Some(type_val) = metadata.as_ref().and_then(|m| m.get("type")) {
-                if let Some(type_str) = type_val.as_str() {
-                    if !matches!(type_str, "function" | "property") {
-                        types.insert(symbol.id.clone(), type_str.to_string());
-                    }
-                }
+            } else if let Some(type_val) = metadata.as_ref().and_then(|m| m.get("type"))
+                && let Some(type_str) = type_val.as_str()
+                && !matches!(type_str, "function" | "property")
+            {
+                types.insert(symbol.id.clone(), type_str.to_string());
             }
         }
         types

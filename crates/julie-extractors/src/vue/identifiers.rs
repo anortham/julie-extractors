@@ -151,10 +151,10 @@ fn extract_identifier_from_node_with_content(
         "member_expression" => {
             // Only extract if it's NOT part of a call_expression
             // (we handle those in the call_expression case above)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "call_expression" {
-                    return; // Skip - handled by call_expression
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "call_expression"
+            {
+                return; // Skip - handled by call_expression
             }
 
             // Extract the rightmost identifier (the property name)
@@ -448,20 +448,19 @@ fn symbol_containment_priority(kind: &SymbolKind) -> u32 {
 /// - `type_parameter` → `<T extends Base>` (T is a declaration)
 /// - `mapped_type_clause` → `[K in keyof T]` (K is a declaration)
 fn is_ts_type_declaration_name(node: &Node) -> bool {
-    if let Some(parent) = node.parent() {
-        if let Some(name_node) = parent.child_by_field_name("name") {
-            if name_node.id() == node.id() {
-                return matches!(
-                    parent.kind(),
-                    "interface_declaration"
-                        | "type_alias_declaration"
-                        | "class_declaration"
-                        | "abstract_class_declaration"
-                        | "type_parameter"
-                        | "mapped_type_clause"
-                );
-            }
-        }
+    if let Some(parent) = node.parent()
+        && let Some(name_node) = parent.child_by_field_name("name")
+        && name_node.id() == node.id()
+    {
+        return matches!(
+            parent.kind(),
+            "interface_declaration"
+                | "type_alias_declaration"
+                | "class_declaration"
+                | "abstract_class_declaration"
+                | "type_parameter"
+                | "mapped_type_clause"
+        );
     }
     false
 }
@@ -469,12 +468,7 @@ fn is_ts_type_declaration_name(node: &Node) -> bool {
 /// Returns true for TypeScript types too common to produce useful type-usage signals:
 /// single-letter generic type parameters (T, K, V…) and TS compiler utility types.
 fn is_ts_noise_type(name: &str) -> bool {
-    if name.len() == 1
-        && name
-            .chars()
-            .next()
-            .map_or(false, |c| c.is_ascii_uppercase())
-    {
+    if name.len() == 1 && name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
         return true;
     }
     matches!(

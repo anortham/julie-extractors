@@ -301,12 +301,12 @@ mod razor_extractor_tests {
 
         // ViewData assignment is a USAGE, not a definition — should NOT produce a symbol
         let view_data_assignment = symbols.iter().find(|s| {
-            s.metadata.as_ref().map_or(false, |m| {
-                m.get("type").map_or(false, |t| t == "assignment")
-            }) && s
-                .signature
+            s.metadata
                 .as_ref()
-                .map_or(false, |sig| sig.contains("ViewData[\"Title\"]"))
+                .is_some_and(|m| m.get("type").is_some_and(|t| t == "assignment"))
+                && s.signature
+                    .as_ref()
+                    .is_some_and(|sig| sig.contains("ViewData[\"Title\"]"))
         });
         assert!(
             view_data_assignment.is_none(),
@@ -614,7 +614,7 @@ mod razor_extractor_tests {
             s.name == "DisplayName"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("[Parameter]"))
+                    .is_some_and(|sig| sig.contains("[Parameter]"))
         });
         assert!(display_name_param.is_some());
         assert_eq!(display_name_param.unwrap().kind, SymbolKind::Property);
@@ -631,7 +631,7 @@ mod razor_extractor_tests {
             s.name == "Email"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("[Parameter]"))
+                    .is_some_and(|sig| sig.contains("[Parameter]"))
         });
         assert!(email_param.is_some());
 
@@ -992,12 +992,12 @@ mod razor_extractor_tests {
 
         // Assignment expressions are USAGES, not definitions — should NOT produce symbols
         let layout_assignment = symbols.iter().find(|s| {
-            s.metadata.as_ref().map_or(false, |m| {
-                m.get("type").map_or(false, |t| t == "assignment")
-            }) && s
-                .signature
+            s.metadata
                 .as_ref()
-                .map_or(false, |sig| sig.contains("Layout = \"_Layout\""))
+                .is_some_and(|m| m.get("type").is_some_and(|t| t == "assignment"))
+                && s.signature
+                    .as_ref()
+                    .is_some_and(|sig| sig.contains("Layout = \"_Layout\""))
         });
         assert!(
             layout_assignment.is_none(),
@@ -1005,12 +1005,12 @@ mod razor_extractor_tests {
         );
 
         let title_assignment = symbols.iter().find(|s| {
-            s.metadata.as_ref().map_or(false, |m| {
-                m.get("type").map_or(false, |t| t == "assignment")
-            }) && s
-                .signature
+            s.metadata
                 .as_ref()
-                .map_or(false, |sig| sig.contains("ViewData[\"Title\"]"))
+                .is_some_and(|m| m.get("type").is_some_and(|t| t == "assignment"))
+                && s.signature
+                    .as_ref()
+                    .is_some_and(|sig| sig.contains("ViewData[\"Title\"]"))
         });
         assert!(
             title_assignment.is_none(),
@@ -1018,12 +1018,12 @@ mod razor_extractor_tests {
         );
 
         let meta_description_assignment = symbols.iter().find(|s| {
-            s.metadata.as_ref().map_or(false, |m| {
-                m.get("type").map_or(false, |t| t == "assignment")
-            }) && s
-                .signature
+            s.metadata
                 .as_ref()
-                .map_or(false, |sig| sig.contains("ViewBag.MetaDescription"))
+                .is_some_and(|m| m.get("type").is_some_and(|t| t == "assignment"))
+                && s.signature
+                    .as_ref()
+                    .is_some_and(|sig| sig.contains("ViewBag.MetaDescription"))
         });
         assert!(
             meta_description_assignment.is_none(),
@@ -1032,9 +1032,9 @@ mod razor_extractor_tests {
 
         // Component invocations are usages, NOT definitions — should not be extracted
         let component_invoke = symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
-                sig.contains("Component.InvokeAsync(\"FeaturedProducts\"")
-            })
+            s.signature
+                .as_ref()
+                .is_some_and(|sig| sig.contains("Component.InvokeAsync(\"FeaturedProducts\""))
         });
         assert!(
             component_invoke.is_none(),
@@ -1046,7 +1046,7 @@ mod razor_extractor_tests {
             s.name == "MetaTags"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("@section MetaTags"))
+                    .is_some_and(|sig| sig.contains("@section MetaTags"))
         });
         assert!(meta_tags_section.is_some());
         assert_eq!(meta_tags_section.unwrap().kind, SymbolKind::Module);
@@ -1055,7 +1055,7 @@ mod razor_extractor_tests {
             s.name == "Scripts"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("@section Scripts"))
+                    .is_some_and(|sig| sig.contains("@section Scripts"))
         });
         assert!(scripts_section.is_some());
 
@@ -1063,7 +1063,7 @@ mod razor_extractor_tests {
             s.name == "Styles"
                 && s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("@section Styles"))
+                    .is_some_and(|sig| sig.contains("@section Styles"))
         });
         assert!(styles_section.is_some());
 
@@ -1111,7 +1111,7 @@ mod razor_extractor_tests {
         );
 
         let add_tag_helper = layout_symbols.iter().find(|s| {
-            s.signature.as_ref().map_or(false, |sig| {
+            s.signature.as_ref().is_some_and(|sig| {
                 sig.contains("@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers")
             })
         });
@@ -1121,7 +1121,7 @@ mod razor_extractor_tests {
         let render_section_async = layout_symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("RenderSectionAsync(\"MetaTags\""))
+                .is_some_and(|sig| sig.contains("RenderSectionAsync(\"MetaTags\""))
         });
         assert!(
             render_section_async.is_none(),
@@ -1131,7 +1131,7 @@ mod razor_extractor_tests {
         let render_body = layout_symbols.iter().find(|s| {
             s.signature
                 .as_ref()
-                .map_or(false, |sig| sig.contains("RenderBody()"))
+                .is_some_and(|sig| sig.contains("RenderBody()"))
         });
         assert!(
             render_body.is_none(),
@@ -1423,7 +1423,7 @@ mod razor_extractor_tests {
             .filter(|s| {
                 s.signature
                     .as_ref()
-                    .map_or(false, |sig| sig.contains("@bind-Value"))
+                    .is_some_and(|sig| sig.contains("@bind-Value"))
             })
             .collect();
         assert!(
@@ -2413,9 +2413,9 @@ mod blazor_extraction_tests {
         let assignment_symbols: Vec<_> = symbols
             .iter()
             .filter(|s| {
-                s.metadata.as_ref().map_or(false, |m| {
+                s.metadata.as_ref().is_some_and(|m| {
                     m.get("type")
-                        .map_or(false, |t| t == "assignment" || t == "element-access")
+                        .is_some_and(|t| t == "assignment" || t == "element-access")
                 })
             })
             .collect();
@@ -2438,9 +2438,9 @@ mod blazor_extraction_tests {
         let layout_var = symbols.iter().find(|s| {
             s.name == "Layout"
                 && s.kind == SymbolKind::Variable
-                && s.metadata.as_ref().map_or(false, |m| {
-                    m.get("type").map_or(false, |t| t == "assignment")
-                })
+                && s.metadata
+                    .as_ref()
+                    .is_some_and(|m| m.get("type").is_some_and(|t| t == "assignment"))
         });
         assert!(
             layout_var.is_none(),

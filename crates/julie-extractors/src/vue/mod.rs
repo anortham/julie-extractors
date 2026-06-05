@@ -34,7 +34,7 @@ use script::create_symbol_manual;
 /// Parses .vue files by extracting template, script, and style sections
 /// and delegating to appropriate existing parsers.
 pub struct VueExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl VueExtractor {
@@ -146,12 +146,12 @@ impl VueExtractor {
                 }
             }
             // Check for type field (generic type info)
-            else if let Some(type_val) = metadata.as_ref().and_then(|m| m.get("type")) {
-                if let Some(type_str) = type_val.as_str() {
-                    // Only include if it's an actual type, not a kind descriptor
-                    if !matches!(type_str, "function" | "property" | "method") {
-                        types.insert(symbol.id.clone(), type_str.to_string());
-                    }
+            else if let Some(type_val) = metadata.as_ref().and_then(|m| m.get("type"))
+                && let Some(type_str) = type_val.as_str()
+            {
+                // Only include if it's an actual type, not a kind descriptor
+                if !matches!(type_str, "function" | "property" | "method") {
+                    types.insert(symbol.id.clone(), type_str.to_string());
                 }
             }
         }

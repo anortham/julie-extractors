@@ -21,7 +21,7 @@ mod types;
 pub use crate::base::{IdentifierKind, RelationshipKind};
 
 pub struct HTMLExtractor {
-    base: BaseExtractor,
+    pub(crate) base: BaseExtractor,
 }
 
 impl HTMLExtractor {

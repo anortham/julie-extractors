@@ -45,7 +45,7 @@ fn test_convert_types_map_language_propagation() {
 
     let result = convert_types_map(types, "python");
 
-    for (_key, info) in &result {
+    for info in result.values() {
         assert_eq!(
             info.language, "python",
             "All entries should have language='python', got '{}'",

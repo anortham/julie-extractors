@@ -97,10 +97,10 @@ fn extract_identifier_from_node(
         "field_access" => {
             // Only extract if it's NOT part of a method_invocation
             // (we handle those in the method_invocation case above)
-            if let Some(parent) = node.parent() {
-                if parent.kind() == "method_invocation" {
-                    return; // Skip - handled by method_invocation
-                }
+            if let Some(parent) = node.parent()
+                && parent.kind() == "method_invocation"
+            {
+                return; // Skip - handled by method_invocation
             }
 
             // Extract the rightmost identifier (the field name)
@@ -166,17 +166,17 @@ fn extract_identifier_from_node(
 fn is_type_declaration_name(node: &Node) -> bool {
     if let Some(parent) = node.parent() {
         // Check if this node is the `name` field of a declaration or type param
-        if let Some(name_node) = parent.child_by_field_name("name") {
-            if name_node.id() == node.id() {
-                return matches!(
-                    parent.kind(),
-                    "class_declaration"
-                        | "interface_declaration"
-                        | "enum_declaration"
-                        | "annotation_type_declaration"
-                        | "type_parameter"
-                );
-            }
+        if let Some(name_node) = parent.child_by_field_name("name")
+            && name_node.id() == node.id()
+        {
+            return matches!(
+                parent.kind(),
+                "class_declaration"
+                    | "interface_declaration"
+                    | "enum_declaration"
+                    | "annotation_type_declaration"
+                    | "type_parameter"
+            );
         }
     }
     false
@@ -194,11 +194,7 @@ fn is_type_declaration_name(node: &Node) -> bool {
 fn is_java_noise_type(name: &str) -> bool {
     // Single-letter names are almost always generic type parameters used in scope.
     // Even when they appear as references (e.g. `: T`), they carry no cross-file signal.
-    name.len() == 1
-        && name
-            .chars()
-            .next()
-            .map_or(false, |c| c.is_ascii_uppercase())
+    name.len() == 1 && name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
 }
 
 /// Record outermost generic type arguments for a `type_identifier` node.
