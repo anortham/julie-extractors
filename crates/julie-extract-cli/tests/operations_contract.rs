@@ -1,9 +1,9 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::process::{Command, Output};
 
 use rusqlite::{Connection, OptionalExtension};
-use serde_json::Value;
+use serde_json::{Value, json};
 use tempfile::TempDir;
 
 const CAPABILITIES_JSON: &str = include_str!("../../../fixtures/extraction/capabilities.json");
@@ -82,6 +82,12 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
     assert!(
         language_capability_gaps > 0,
         "known capability gaps should be persisted instead of hidden"
+    );
+    let rust_kind_coverage = language_kind_coverage(&db, "rust");
+    assert_eq!(
+        rust_kind_coverage["structural_facts"]["supported"],
+        json!(["rust.unsafe_block.v1"]),
+        "language_capabilities.kind_coverage_json must persist structural fact pattern claims"
     );
     assert_eq!(
         report["counts"]["rows_written"]["parser_inventory"],
@@ -1377,6 +1383,7 @@ fn languages_json_emits_capability_snapshot_data() {
     assert_eq!(report["status"], "ok");
     assert_eq!(report["operation"], "languages");
     let emitted = report["languages"]["languages"].as_array().unwrap();
+    let expected_kind_coverage = expected_kind_coverage_by_language();
     let expected_names = expected_capability_languages();
     let emitted_names = emitted
         .iter()
@@ -1403,6 +1410,15 @@ fn languages_json_emits_capability_snapshot_data() {
         );
         assert!(language["target_capabilities"].is_object());
         assert!(language["actual_capabilities"].is_object());
+        let language_name = language["language"].as_str().unwrap();
+        assert_eq!(
+            language["kind_coverage"], expected_kind_coverage[language_name],
+            "languages --json must expose exact kind_coverage for {language_name}"
+        );
+        assert!(
+            language["kind_coverage"]["structural_facts"]["supported"].is_array(),
+            "languages --json must expose structural fact pattern coverage for {language_name}"
+        );
         assert!(language["fixtures"].as_i64().unwrap() > 0);
     }
 }
@@ -1414,6 +1430,21 @@ fn expected_capability_languages() -> BTreeSet<String> {
         .unwrap()
         .iter()
         .map(|language| language["language"].as_str().unwrap().to_string())
+        .collect()
+}
+
+fn expected_kind_coverage_by_language() -> BTreeMap<String, Value> {
+    let snapshot: Value = serde_json::from_str(CAPABILITIES_JSON).unwrap();
+    snapshot["languages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|language| {
+            (
+                language["language"].as_str().unwrap().to_string(),
+                language["kind_coverage"].clone(),
+            )
+        })
         .collect()
 }
 
@@ -1497,6 +1528,18 @@ fn structural_facts_for_path(db: &Path, path: &str) -> Vec<(String, String, Stri
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap()
+}
+
+fn language_kind_coverage(db: &Path, language: &str) -> Value {
+    let conn = Connection::open(db).unwrap();
+    let json: String = conn
+        .query_row(
+            "SELECT kind_coverage_json FROM language_capabilities WHERE language = ?1",
+            [language],
+            |row| row.get(0),
+        )
+        .unwrap();
+    serde_json::from_str(&json).unwrap()
 }
 
 #[derive(Debug)]

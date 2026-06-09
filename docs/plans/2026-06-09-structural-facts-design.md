@@ -127,16 +127,16 @@ future slice.
 - [x] Current-schema writer performance workload includes structural facts.
 - [x] Contract docs describe the row shape, JSONL shape, and initial pattern.
 - [x] Focused default and contract-surface tests remain fast.
-- [ ] Extractor tests prove every supported completion-slice pattern through
+- [x] Extractor tests prove every supported completion-slice pattern through
       `extract_canonical`.
-- [ ] `capabilities.json`, the Rust capability snapshot, SQLite artifacts, and
+- [x] `capabilities.json`, the Rust capability snapshot, SQLite artifacts, and
       `languages --json` publish `kind_coverage.structural_facts`.
-- [ ] Capability-matrix tests verify every advertised structural pattern has
+- [x] Capability-matrix tests verify every advertised structural pattern has
       fixture-backed extraction evidence and every extracted supported pattern
       is advertised.
-- [ ] Contract docs enumerate the completed supported pattern set and explain
+- [x] Contract docs enumerate the completed supported pattern set and explain
       that this repo only emits facts, not downstream query/search behavior.
-- [ ] TODO #7 is marked complete after the representative pattern set and
+- [x] TODO #7 is marked complete after the representative pattern set and
       capability metadata pass focused and contract test suites.
 
 ## Out Of Scope

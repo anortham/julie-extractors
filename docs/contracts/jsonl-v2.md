@@ -238,8 +238,8 @@ Fields:
 - `dependency_status`: string
 - `target_capabilities`: capability flag object
 - `actual_capabilities`: capability flag object
-- `kind_coverage`: object with `symbols`, `relationships`, `identifiers`, and
-  `body_spans` domains
+- `kind_coverage`: object with `symbols`, `relationships`, `identifiers`,
+  `body_spans`, and `structural_facts` domains
 
 Each `kind_coverage` domain has `supported`, `not_applicable`, and `open_gaps`.
 
@@ -465,11 +465,21 @@ Fields:
 - `confidence`: number
 - `metadata`: object or `null`
 
-Initial supported pattern:
+Supported patterns are advertised in `language_capability` records under
+`kind_coverage.structural_facts.supported`.
 
-| Pattern ID | Language | Capture | Node Kind | Metadata |
+| Pattern ID | Language | Capture | Node Kind(s) | Metadata |
 | --- | --- | --- | --- | --- |
 | `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | `{"pattern_version":1,"query_family":"safety"}` |
+| `go.goroutine_launch.v1` | `go` | `go_statement` | `go_statement` | `{"pattern_version":1,"query_family":"concurrency"}` |
+| `go.defer_statement.v1` | `go` | `defer_statement` | `defer_statement` | `{"pattern_version":1,"query_family":"lifecycle"}` |
+| `python.decorated_definition.v1` | `python` | `decorated_definition` | `decorated_definition` | `{"pattern_version":1,"query_family":"metadata"}` |
+| `javascript.await_expression.v1` | `javascript` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
+| `jsx.await_expression.v1` | `jsx` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
+| `typescript.await_expression.v1` | `typescript` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
+| `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
+| `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
+| `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
 
 ### `parse_diagnostic`
 

@@ -1,0 +1,99 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/javascript/structural_facts/source.js:load:1:0",
+      "name": "load",
+      "kind": "export",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/structural_facts/source.js",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 64,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 29,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 29,
+        "end_byte": 64
+      },
+      "body_hash": "d92175c6ae710a13bee7650285952dad",
+      "signature": "export async function load() {\n    return await fetch(\"/api\");\n}",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "load",
+        "isDefault": false,
+        "isNamed": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/structural_facts/source.js:load:1:7",
+      "name": "load",
+      "kind": "function",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/structural_facts/source.js",
+      "start_line": 1,
+      "start_column": 7,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 7,
+      "end_byte": 64,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 29,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 29,
+        "end_byte": 64
+      },
+      "body_hash": "d92175c6ae710a13bee7650285952dad",
+      "signature": "async function load()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/javascript/structural_facts/source.js:load:1:0",
+      "metadata": {
+        "isArrowFunction": false,
+        "isAsync": true,
+        "isExpression": false,
+        "isGenerator": false,
+        "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/javascript/structural_facts/source.js:fetch:call:2:17",
+      "name": "fetch",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/structural_facts/source.js",
+      "start_line": 2,
+      "start_column": 17,
+      "end_line": 2,
+      "end_column": 22,
+      "start_byte": 48,
+      "end_byte": 53,
+      "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:load:1:7",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": []
+}

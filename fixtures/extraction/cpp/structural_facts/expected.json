@@ -1,0 +1,96 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0",
+      "name": "readValue",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/structural_facts/source.cpp",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 1,
+      "start_byte": 45,
+      "end_byte": 90,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 16,
+        "end_line": 6,
+        "end_column": 1,
+        "start_byte": 61,
+        "end_byte": 90
+      },
+      "body_hash": "9e0253557c420bc052d10c1779b6f3df",
+      "signature": "int readValue()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0",
+      "callee_name": "DOUBLE",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/structural_facts/source.cpp",
+      "line_number": 5,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0",
+        "callee_name": "DOUBLE",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/structural_facts/source.cpp",
+        "line_number": 5,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "DOUBLE",
+        "terminal_name": "DOUBLE",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/cpp/structural_facts/source.cpp:DOUBLE:call:5:11",
+      "name": "DOUBLE",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/structural_facts/source.cpp",
+      "start_line": 5,
+      "start_column": 11,
+      "end_line": 5,
+      "end_column": 17,
+      "start_byte": 74,
+      "end_byte": 80,
+      "containing_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": []
+}

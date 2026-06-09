@@ -1,0 +1,99 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
+      "name": "read_flag",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 99,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 37,
+        "end_line": 5,
+        "end_column": 1,
+        "start_byte": 37,
+        "end_byte": 99
+      },
+      "body_hash": "0760aa9b20479036a4db4d3ef312ed1a",
+      "signature": "pub fn read_flag(value: &i32) -> i32",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
+      "callee_name": "read_volatile",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+      "line_number": 3,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
+        "callee_name": "read_volatile",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+        "line_number": 3,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "core::ptr::read_volatile",
+        "terminal_name": "read_volatile",
+        "receiver": null,
+        "namespace_path": [
+          "core",
+          "ptr"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/rust/structural_facts/source.rs:read_volatile:call:3:19",
+      "name": "read_volatile",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+      "start_line": 3,
+      "start_column": 19,
+      "end_line": 3,
+      "end_column": 32,
+      "start_byte": 71,
+      "end_byte": 84,
+      "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": []
+}

@@ -483,16 +483,27 @@ CREATE TABLE structural_facts (
 );
 ```
 
-Initial supported pattern:
+Supported patterns are advertised in
+`language_capabilities.kind_coverage_json` under
+`kind_coverage.structural_facts.supported`.
 
-| Pattern ID | Language | Capture | Node Kind | Meaning |
-| --- | --- | --- | --- | --- |
-| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | A Rust `unsafe { ... }` block. |
+| Pattern ID | Language | Capture | Node Kind(s) | Query Family | Meaning |
+| --- | --- | --- | --- | --- | --- |
+| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | `safety` | A Rust `unsafe { ... }` block. |
+| `go.goroutine_launch.v1` | `go` | `go_statement` | `go_statement` | `concurrency` | A Go `go call()` launch. |
+| `go.defer_statement.v1` | `go` | `defer_statement` | `defer_statement` | `lifecycle` | A Go `defer call()` statement. |
+| `python.decorated_definition.v1` | `python` | `decorated_definition` | `decorated_definition` | `metadata` | A Python decorated function or class definition. |
+| `javascript.await_expression.v1` | `javascript` | `await_expression` | `await_expression` | `async` | A JavaScript `await` expression. |
+| `jsx.await_expression.v1` | `jsx` | `await_expression` | `await_expression` | `async` | A JSX file `await` expression. |
+| `typescript.await_expression.v1` | `typescript` | `await_expression` | `await_expression` | `async` | A TypeScript `await` expression. |
+| `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `async` | A TSX file `await` expression. |
+| `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C preprocessor definition. |
+| `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
 
-Initial metadata:
+Metadata:
 
 - `pattern_version`: integer, currently `1`.
-- `query_family`: string, currently `safety` for `rust.unsafe_block.v1`.
+- `query_family`: string matching the table above.
 
 ## Diagnostics
 

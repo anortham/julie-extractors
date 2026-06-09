@@ -1,0 +1,172 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:1:0",
+      "name": "View",
+      "kind": "export",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/structural_facts/source.tsx",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 93,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 29,
+        "end_line": 4,
+        "end_column": 1,
+        "start_byte": 29,
+        "end_byte": 93
+      },
+      "body_hash": "d5bfc42b027e7ea80f731e96775a392b",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:1:7",
+      "name": "View",
+      "kind": "function",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/structural_facts/source.tsx",
+      "start_line": 1,
+      "start_column": 7,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 7,
+      "end_byte": 93,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 29,
+        "end_line": 4,
+        "end_column": 1,
+        "start_byte": 29,
+        "end_byte": 93
+      },
+      "body_hash": "d5bfc42b027e7ea80f731e96775a392b",
+      "signature": "View()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": true,
+        "isGenerator": false,
+        "parameters": [],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/structural_facts/source.tsx:data:2:10",
+      "name": "data",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/structural_facts/source.tsx",
+      "start_line": 2,
+      "start_column": 10,
+      "end_line": 2,
+      "end_column": 29,
+      "start_byte": 41,
+      "end_byte": 60,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 27,
+        "end_line": 2,
+        "end_column": 29,
+        "start_byte": 58,
+        "end_byte": 60
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:1:7",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:1:7",
+      "callee_name": "load",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/tsx/structural_facts/source.tsx",
+      "line_number": 2,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:1:7",
+        "callee_name": "load",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/tsx/structural_facts/source.tsx",
+        "line_number": 2,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "load",
+        "terminal_name": "load",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:1:7"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/tsx/structural_facts/source.tsx:load:call:2:23",
+      "name": "load",
+      "kind": "call",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/structural_facts/source.tsx",
+      "start_line": 2,
+      "start_column": 23,
+      "end_line": 2,
+      "end_column": 27,
+      "start_byte": 54,
+      "end_byte": 58,
+      "containing_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:1:7",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:1:0",
+      "resolved_type": "Promise<any>",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/structural_facts/source.tsx:data:2:10",
+      "resolved_type": "any",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": []
+}

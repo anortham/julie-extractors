@@ -1,0 +1,88 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/python/structural_facts/source.py:run:6:0",
+      "name": "run",
+      "kind": "function",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 12,
+      "start_byte": 38,
+      "end_byte": 61,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 4,
+        "end_line": 7,
+        "end_column": 12,
+        "start_byte": 53,
+        "end_byte": 61
+      },
+      "body_hash": "b0c5f2490e3673c97c10a7e3335d6cf4",
+      "signature": "@timed def run()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "decorators": [
+          "timed"
+        ],
+        "isAsync": false,
+        "returnType": ""
+      },
+      "annotations": [
+        {
+          "annotation": "timed",
+          "annotation_key": "timed",
+          "raw_text": "timed"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/structural_facts/source.py:timed:1:0",
+      "name": "timed",
+      "kind": "function",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 13,
+      "start_byte": 0,
+      "end_byte": 28,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 4,
+        "end_line": 2,
+        "end_column": 13,
+        "start_byte": 19,
+        "end_byte": 28
+      },
+      "body_hash": "d0a6c4e773200bea85ac38b85a59fa3f",
+      "signature": "def timed(fn)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "decorators": [],
+        "isAsync": false,
+        "returnType": ""
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": []
+}

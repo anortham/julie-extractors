@@ -1,3 +1,5 @@
+use crate::base::structural_facts::structural_fact_pattern_ids_for_language;
+use crate::extract_canonical;
 use crate::language::language_spec;
 use crate::registry::{capabilities_for_language, supported_languages};
 use crate::{IdentifierKind, RelationshipKind, SymbolKind};
@@ -882,6 +884,89 @@ fn capability_matrix_body_span_hash_has_no_open_gaps() {
 }
 
 #[test]
+fn capability_matrix_requires_structural_facts_coverage_domain() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        if row["kind_coverage"].get("structural_facts").is_none() {
+            errors.push(format!(
+                "{language} is missing kind_coverage.structural_facts for structural pattern claims"
+            ));
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
+fn capability_matrix_structural_fact_claims_have_fixture_evidence() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let Some(coverage) = row["kind_coverage"].get("structural_facts") else {
+            errors.push(format!(
+                "{language} is missing kind_coverage.structural_facts for structural pattern claims"
+            ));
+            continue;
+        };
+        let claimed = structural_fact_claims(language, coverage);
+        let observed = observed_structural_fact_patterns(&root, row);
+
+        for pattern_id in &claimed {
+            if !observed.contains(pattern_id) {
+                errors.push(format!(
+                    "{language} claims structural fact pattern `{pattern_id}` but no fixture source emits it"
+                ));
+            }
+        }
+        for pattern_id in &observed {
+            if !claimed.contains(pattern_id) {
+                errors.push(format!(
+                    "{language} fixture source emits structural fact pattern `{pattern_id}` but kind_coverage.structural_facts.supported does not advertise it"
+                ));
+            }
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
+fn capability_matrix_structural_fact_claims_match_registry() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let Some(coverage) = row["kind_coverage"].get("structural_facts") else {
+            errors.push(format!(
+                "{language} is missing kind_coverage.structural_facts for structural pattern claims"
+            ));
+            continue;
+        };
+        let claimed = structural_fact_claims(language, coverage);
+        let registry = structural_fact_pattern_ids_for_language(language)
+            .into_iter()
+            .map(str::to_string)
+            .collect::<BTreeSet<_>>();
+        if claimed != registry {
+            errors.push(format!(
+                "{language} structural_facts coverage does not match registry: claimed={claimed:?} registry={registry:?}"
+            ));
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
 fn capability_matrix_supported_kind_claims_have_fixture_evidence() {
     let root = workspace_root();
     let matrix = load_matrix(&root);
@@ -1089,6 +1174,24 @@ pub(crate) fn load_matrix(root: &Path) -> CapabilityMatrix {
     })
 }
 
+fn load_matrix_json(root: &Path) -> Value {
+    let matrix_path = root.join("fixtures/extraction/capabilities.json");
+    let json = fs::read_to_string(&matrix_path).unwrap_or_else(|err| {
+        panic!(
+            "failed to read capability matrix at {}: {}",
+            matrix_path.display(),
+            err
+        )
+    });
+    serde_json::from_str(&json).unwrap_or_else(|err| {
+        panic!(
+            "failed to parse capability matrix at {}: {}",
+            matrix_path.display(),
+            err
+        )
+    })
+}
+
 fn validate_target_capability(row: &CapabilityRow, capability: &str, target_enabled: bool) {
     let implemented = implemented_capability(row, capability);
     let gap = row
@@ -1168,6 +1271,49 @@ fn observed_kind_coverage(root: &Path, row: &CapabilityRow) -> ObservedKindCover
         );
     }
     observed
+}
+
+fn observed_structural_fact_patterns(root: &Path, row: &Value) -> BTreeSet<String> {
+    let language = row["language"].as_str().unwrap();
+    let fixtures = row["fixtures"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{language} fixtures must be an array"));
+    let mut observed = BTreeSet::new();
+
+    for fixture in fixtures {
+        let source_path = fixture["source"].as_str().unwrap_or_else(|| {
+            panic!("{language} fixture entries must include string source paths")
+        });
+        let source = fs::read_to_string(root.join(source_path))
+            .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
+        let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
+            panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
+        });
+        observed.extend(
+            results
+                .structural_facts
+                .iter()
+                .map(|fact| fact.pattern_id.clone()),
+        );
+    }
+
+    observed
+}
+
+fn structural_fact_claims(language: &str, coverage: &Value) -> BTreeSet<String> {
+    coverage["supported"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{language} structural_facts.supported must be an array"))
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .unwrap_or_else(|| {
+                    panic!("{language} structural_facts.supported values must be strings")
+                })
+                .to_string()
+        })
+        .collect()
 }
 
 fn collect_kinds<F>(into: &mut BTreeSet<String>, expected: &Value, fields: &[&str], get_kind: F)

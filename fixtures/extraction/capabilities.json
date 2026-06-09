@@ -24,6 +24,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/rust/cross_file/source.rs",
           "expected": "fixtures/extraction/rust/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/rust/structural_facts/source.rs",
+          "expected": "fixtures/extraction/rust/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -76,6 +81,13 @@
             "import"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "rust.unsafe_block.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -104,6 +116,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/c/cross_file/source.c",
           "expected": "fixtures/extraction/c/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/c/structural_facts/source.c",
+          "expected": "fixtures/extraction/c/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -153,6 +170,13 @@
             "import"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "c.preprocessor_definition.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -187,6 +211,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/cpp/cross_file/source.cpp",
           "expected": "fixtures/extraction/cpp/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/cpp/structural_facts/source.cpp",
+          "expected": "fixtures/extraction/cpp/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -237,6 +266,13 @@
             "field"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "cpp.preprocessor_definition.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -269,6 +305,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/go/cross_file/source.go",
           "expected": "fixtures/extraction/go/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/go/structural_facts/source.go",
+          "expected": "fixtures/extraction/go/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -320,6 +361,14 @@
             "import",
             "module"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "go.goroutine_launch.v1",
+            "go.defer_statement.v1"
+          ],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -398,6 +447,11 @@
             "field"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -427,6 +481,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/typescript/cross_file/source.ts",
           "expected": "fixtures/extraction/typescript/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/typescript/structural_facts/source.ts",
+          "expected": "fixtures/extraction/typescript/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -483,6 +542,13 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "typescript.await_expression.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -510,6 +576,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/tsx/cross_file/source.tsx",
           "expected": "fixtures/extraction/tsx/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/tsx/structural_facts/source.tsx",
+          "expected": "fixtures/extraction/tsx/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -561,6 +632,13 @@
             "property"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "tsx.await_expression.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -590,6 +668,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/javascript/cross_file/source.js",
           "expected": "fixtures/extraction/javascript/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/javascript/structural_facts/source.js",
+          "expected": "fixtures/extraction/javascript/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -639,6 +722,13 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "javascript.await_expression.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -666,6 +756,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/jsx/cross_file/source.jsx",
           "expected": "fixtures/extraction/jsx/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/jsx/structural_facts/source.jsx",
+          "expected": "fixtures/extraction/jsx/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -707,6 +802,13 @@
             "function",
             "import",
             "variable"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "jsx.await_expression.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -786,6 +888,11 @@
           "not_applicable": [
             "namespace"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -882,6 +989,11 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -957,6 +1069,11 @@
             "import"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -986,6 +1103,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/python/cross_file/source.py",
           "expected": "fixtures/extraction/python/cross_file/expected.json"
+        },
+        {
+          "name": "structural_facts",
+          "source": "fixtures/extraction/python/structural_facts/source.py",
+          "expected": "fixtures/extraction/python/structural_facts/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1035,6 +1157,13 @@
             "import",
             "property"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [
+            "python.decorated_definition.v1"
+          ],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -1115,6 +1244,11 @@
             "property"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1194,6 +1328,11 @@
             "import"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1272,6 +1411,11 @@
           "not_applicable": [
             "import"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -1356,6 +1500,11 @@
             "property"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1432,6 +1581,11 @@
             "import",
             "variable"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -1513,6 +1667,11 @@
             "property"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1592,6 +1751,11 @@
             "property"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1668,6 +1832,11 @@
             "import",
             "namespace"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -1747,6 +1916,11 @@
             "import"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1819,6 +1993,11 @@
           "not_applicable": [
             "import"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -1906,6 +2085,11 @@
             "field",
             "import"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -1997,6 +2181,11 @@
             "import"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2081,6 +2270,11 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2151,6 +2345,11 @@
           "not_applicable": [
             "import"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -2231,6 +2430,11 @@
             "variable"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2307,6 +2511,11 @@
             "class",
             "field"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -2392,6 +2601,11 @@
             "import"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2461,6 +2675,11 @@
             "interface",
             "method"
           ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -2545,6 +2764,11 @@
           "not_applicable": [
             "class"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -2654,6 +2878,11 @@
             "module"
           ],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2759,6 +2988,11 @@
           "not_applicable": [
             "variable"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }
@@ -2875,6 +3109,11 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2965,6 +3204,11 @@
             "module",
             "variable"
           ],
+          "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
           "open_gaps": []
         }
       }

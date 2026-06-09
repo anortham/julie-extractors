@@ -94,6 +94,11 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
           "supported": ["call"],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "structural_facts": {
+          "supported": ["new.await_expression.v1"],
+          "not_applicable": [],
+          "open_gaps": []
         }
       },
       "fixtures": []
@@ -112,4 +117,8 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
     assert_eq!(new.kind_coverage.symbols.supported, vec!["function"]);
     assert_eq!(new.kind_coverage.relationships.supported, vec!["calls"]);
     assert_eq!(new.kind_coverage.identifiers.supported, vec!["call"]);
+    assert_eq!(
+        new.kind_coverage.structural_facts.supported,
+        vec!["new.await_expression.v1"]
+    );
 }

@@ -9,9 +9,80 @@ use super::types::{StructuralFact, Symbol, stable_location_id};
 struct StructuralPattern {
     pattern_id: &'static str,
     capture_name: &'static str,
-    node_kind: &'static str,
+    node_kinds: &'static [&'static str],
     query_family: &'static str,
 }
+
+const RUST_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "rust.unsafe_block.v1",
+    capture_name: "unsafe_block",
+    node_kinds: &["unsafe_block"],
+    query_family: "safety",
+}];
+
+const GO_PATTERNS: &[StructuralPattern] = &[
+    StructuralPattern {
+        pattern_id: "go.goroutine_launch.v1",
+        capture_name: "go_statement",
+        node_kinds: &["go_statement"],
+        query_family: "concurrency",
+    },
+    StructuralPattern {
+        pattern_id: "go.defer_statement.v1",
+        capture_name: "defer_statement",
+        node_kinds: &["defer_statement"],
+        query_family: "lifecycle",
+    },
+];
+
+const PYTHON_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "python.decorated_definition.v1",
+    capture_name: "decorated_definition",
+    node_kinds: &["decorated_definition"],
+    query_family: "metadata",
+}];
+
+const JAVASCRIPT_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "javascript.await_expression.v1",
+    capture_name: "await_expression",
+    node_kinds: &["await_expression"],
+    query_family: "async",
+}];
+
+const JSX_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "jsx.await_expression.v1",
+    capture_name: "await_expression",
+    node_kinds: &["await_expression"],
+    query_family: "async",
+}];
+
+const TYPESCRIPT_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "typescript.await_expression.v1",
+    capture_name: "await_expression",
+    node_kinds: &["await_expression"],
+    query_family: "async",
+}];
+
+const TSX_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "tsx.await_expression.v1",
+    capture_name: "await_expression",
+    node_kinds: &["await_expression"],
+    query_family: "async",
+}];
+
+const C_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "c.preprocessor_definition.v1",
+    capture_name: "preprocessor_definition",
+    node_kinds: &["preproc_def", "preproc_function_def"],
+    query_family: "preprocessor",
+}];
+
+const CPP_PATTERNS: &[StructuralPattern] = &[StructuralPattern {
+    pattern_id: "cpp.preprocessor_definition.v1",
+    capture_name: "preprocessor_definition",
+    node_kinds: &["preproc_def", "preproc_function_def"],
+    query_family: "preprocessor",
+}];
 
 pub fn collect_structural_facts(
     language: &str,
@@ -38,6 +109,14 @@ pub fn collect_structural_facts(
     facts
 }
 
+#[cfg(all(test, feature = "test-capability-matrix"))]
+pub(crate) fn structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'static str> {
+    patterns_for_language(language)
+        .iter()
+        .map(|pattern| pattern.pattern_id)
+        .collect()
+}
+
 fn collect_node(
     node: Node<'_>,
     language: &str,
@@ -46,7 +125,7 @@ fn collect_node(
     facts: &mut Vec<StructuralFact>,
 ) {
     for pattern in patterns {
-        if node.kind() == pattern.node_kind {
+        if pattern.node_kinds.contains(&node.kind()) {
             facts.push(fact_for_node(file_path, language, node, *pattern));
         }
     }
@@ -114,12 +193,15 @@ fn containing_symbol_id(fact: &StructuralFact, symbols: &[Symbol]) -> Option<Str
 
 fn patterns_for_language(language: &str) -> &'static [StructuralPattern] {
     match language {
-        "rust" => &[StructuralPattern {
-            pattern_id: "rust.unsafe_block.v1",
-            capture_name: "unsafe_block",
-            node_kind: "unsafe_block",
-            query_family: "safety",
-        }],
+        "c" => C_PATTERNS,
+        "cpp" => CPP_PATTERNS,
+        "go" => GO_PATTERNS,
+        "javascript" => JAVASCRIPT_PATTERNS,
+        "jsx" => JSX_PATTERNS,
+        "python" => PYTHON_PATTERNS,
+        "rust" => RUST_PATTERNS,
+        "tsx" => TSX_PATTERNS,
+        "typescript" => TYPESCRIPT_PATTERNS,
         _ => &[],
     }
 }

@@ -50,6 +50,9 @@ Implement every domain the language claims:
   markers.
 - `literals`: URL, SQL, or other configured literal carrier facts. Route remains
   reserved unless route carriers are explicitly configured.
+- `structural_facts`: versioned parser-backed pattern facts when the language
+  has supported structural patterns. Advertise exact pattern ids in
+  `kind_coverage.structural_facts.supported`.
 - `parse_diagnostics`: stable diagnostics for parse errors or missing nodes when
   they should be visible to downstream consumers.
 
@@ -66,7 +69,8 @@ Update `fixtures/extraction/capabilities.json`:
 - Set `capabilities` to the current tested extractor behavior.
 - Add fixture entries for every advertised capability.
 - Fill `kind_coverage.symbols`, `kind_coverage.relationships`,
-  `kind_coverage.identifiers`, and `kind_coverage.body_spans`.
+  `kind_coverage.identifiers`, `kind_coverage.body_spans`, and
+  `kind_coverage.structural_facts`.
 - Add `capability_gaps` only for real open gaps or true domain/parser
   exceptions. Every row needs typed evidence.
 

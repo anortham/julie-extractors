@@ -806,6 +806,13 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
                 "dependency_status": row.dependency_status,
                 "target_capabilities": flags(row.target_capabilities),
                 "actual_capabilities": flags(row.capabilities),
+                "kind_coverage": json!({
+                    "symbols": kind_coverage_domain(&row.kind_coverage.symbols),
+                    "relationships": kind_coverage_domain(&row.kind_coverage.relationships),
+                    "identifiers": kind_coverage_domain(&row.kind_coverage.identifiers),
+                    "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
+                    "structural_facts": kind_coverage_domain(&row.kind_coverage.structural_facts),
+                }),
                 "fixtures": row.fixtures.len(),
                 "capability_gaps": row.capability_gaps.len(),
             })
@@ -2101,6 +2108,7 @@ fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
                 "relationships": kind_coverage_domain(&row.kind_coverage.relationships),
                 "identifiers": kind_coverage_domain(&row.kind_coverage.identifiers),
                 "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
+                "structural_facts": kind_coverage_domain(&row.kind_coverage.structural_facts),
             }),
             fixtures: row
                 .fixtures

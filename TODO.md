@@ -94,29 +94,32 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   Branch-gate verification passes with `cargo test -p xtask`,
   `cargo xtask test default`, and `cargo xtask test contract`.
 
-## 7. Structural tree-sitter query facts for downstream tools — partial
+## 7. Structural tree-sitter query facts for downstream tools — complete
 
 - **Where:** New contract/design under `docs/contracts/` and/or `docs/plans/`;
   likely extractor surfaces under `crates/julie-extractors/src/base/`,
   `crates/julie-extractors/src/language_spec/`, and per-language modules;
   artifact surfaces under `crates/julie-extract-artifact/src/{schema.rs,writer.rs,jsonl.rs,model.rs}`.
-- **Implemented slice:** The current v2 artifact now has a `structural_facts`
-  SQLite table, `structural_fact` JSONL records, report row counts, writer
-  coverage, CLI scan coverage, and current-schema performance coverage. The
-  extractor emits `rust.unsafe_block.v1` facts for Rust `unsafe { ... }`
-  blocks with capture name, matched node kind, span, optional containing
-  symbol, confidence, and pattern metadata.
-- **Remaining scope:** Expand from the Rust unsafe-block starter pattern into a
-  representative parser-backed language/pattern set, then add explicit
-  capability metadata once the matrix is meaningful. Candidate next patterns
-  should be chosen contract-first and fixture-backed.
+- **Done:** The current v2 artifact has a `structural_facts` SQLite table,
+  `structural_fact` JSONL records, report row counts, writer coverage, CLI scan
+  coverage, and current-schema performance coverage. The extractor now emits a
+  representative fixture-backed pattern set: Rust unsafe blocks, Go goroutine
+  launches and defer statements, Python decorated definitions,
+  JavaScript/JSX/TypeScript/TSX await expressions, and C/C++ preprocessor
+  definitions.
+- **Capability metadata:** `fixtures/extraction/capabilities.json`, Rust
+  capability snapshot APIs, persisted SQLite `language_capabilities`, and
+  `julie-extract languages --json` now publish exact
+  `kind_coverage.structural_facts.supported` pattern ids.
 - **Guardrail:** Do not add a generic downstream search engine or a Miller/Eros
   query DSL here. This repo should emit versioned extraction facts. Interactive
   querying, ranking, dashboards, and commercial workflows belong downstream.
 - **Verification:** Contract tests prove SQLite/JSONL/report shape, writer tests
-  prove row persistence and counts, extractor tests prove the Rust unsafe-block
-  capture, the CLI operations contract proves non-empty scan output, and
-  `cargo xtask performance writer-current-schema` exercises the row family.
+  prove row persistence and counts, extractor tests prove every advertised
+  structural pattern, capability-matrix tests prove fixture-backed evidence,
+  the CLI operations contract proves non-empty scan output and metadata
+  publication, and `cargo xtask performance writer-current-schema` exercises
+  the row family.
 
 ## 8. Cross-language AST/code complexity metrics — open
 
