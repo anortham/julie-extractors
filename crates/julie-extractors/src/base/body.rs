@@ -40,14 +40,14 @@ pub(crate) fn infer_body_span(
         })
 }
 
-pub(crate) fn body_hash(content: &str, span: BodySpan) -> Option<String> {
+pub(crate) fn body_hash(content: &str, span: BodySpan, language: &str) -> Option<String> {
     let source = content.get(span.start_byte as usize..span.end_byte as usize)?;
-    let tokens = normalized_body_tokens(source);
+    let tokens = normalized_body_tokens(source, comment_syntax(language));
     let input = tokens.join("\u{1f}");
     Some(format!("{:x}", md5::compute(input.as_bytes())))
 }
 
-fn normalized_body_tokens(source: &str) -> Vec<String> {
+fn normalized_body_tokens(source: &str, comments: CommentSyntax) -> Vec<String> {
     let mut tokens = Vec::new();
     let chars: Vec<char> = source.chars().collect();
     let mut index = 0;
@@ -62,6 +62,11 @@ fn normalized_body_tokens(source: &str) -> Vec<String> {
         if ch == '"' || ch == '\'' || ch == '`' {
             let (token, next_index) = quoted_token(&chars, index, ch);
             tokens.push(token);
+            index = next_index;
+            continue;
+        }
+
+        if let Some(next_index) = comment_end(&chars, index, comments) {
             index = next_index;
             continue;
         }
@@ -81,6 +86,86 @@ fn normalized_body_tokens(source: &str) -> Vec<String> {
     }
 
     tokens
+}
+
+#[derive(Clone, Copy)]
+struct CommentSyntax {
+    line: &'static [&'static str],
+    block: &'static [(&'static str, &'static str)],
+}
+
+fn comment_syntax(language: &str) -> CommentSyntax {
+    match language {
+        "bash" | "elixir" | "gdscript" | "powershell" | "python" | "r" | "ruby" | "toml"
+        | "yaml" => CommentSyntax {
+            line: &["#"],
+            block: &[],
+        },
+        "css" => CommentSyntax {
+            line: &[],
+            block: &[("/*", "*/")],
+        },
+        "html" | "markdown" | "razor" => CommentSyntax {
+            line: &[],
+            block: &[("<!--", "-->")],
+        },
+        "lua" => CommentSyntax {
+            line: &["--"],
+            block: &[("--[[", "]]")],
+        },
+        "php" => CommentSyntax {
+            line: &["//", "#"],
+            block: &[("/*", "*/")],
+        },
+        "sql" => CommentSyntax {
+            line: &["--"],
+            block: &[("/*", "*/")],
+        },
+        "c" | "cpp" | "csharp" | "dart" | "go" | "java" | "javascript" | "json" | "jsonc"
+        | "jsx" | "kotlin" | "qml" | "rust" | "scala" | "swift" | "tsx" | "typescript"
+        | "vbnet" | "vue" | "zig" => CommentSyntax {
+            line: &["//"],
+            block: &[("/*", "*/")],
+        },
+        _ => CommentSyntax {
+            line: &[],
+            block: &[],
+        },
+    }
+}
+
+fn comment_end(chars: &[char], index: usize, comments: CommentSyntax) -> Option<usize> {
+    for (start, end) in comments.block {
+        if starts_with(chars, index, start) {
+            let mut next = index + start.chars().count();
+            while next < chars.len() {
+                if starts_with(chars, next, end) {
+                    return Some(next + end.chars().count());
+                }
+                next += 1;
+            }
+            return Some(chars.len());
+        }
+    }
+
+    for start in comments.line {
+        if starts_with(chars, index, start) {
+            let mut next = index + start.chars().count();
+            while next < chars.len() && chars[next] != '\n' && chars[next] != '\r' {
+                next += 1;
+            }
+            return Some(next);
+        }
+    }
+
+    None
+}
+
+fn starts_with(chars: &[char], index: usize, pattern: &str) -> bool {
+    let pattern_len = pattern.chars().count();
+    chars
+        .get(index..index + pattern_len)
+        .is_some_and(|candidate| candidate.iter().copied().eq(pattern.chars()))
 }
 
 fn quoted_token(chars: &[char], start: usize, quote: char) -> (String, usize) {

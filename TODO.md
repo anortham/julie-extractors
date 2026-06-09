@@ -154,7 +154,7 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   rows for supported and open-gap languages, and one real-repo dogfood report
   showing row counts by language and metric scope.
 
-## 9. Clone-ready body fingerprints beyond current `body_hash` — partial
+## 9. Clone-ready body fingerprints beyond current `body_hash` — exact-hash contract complete
 
 - **Where:** Existing normalized body hash logic in
   `crates/julie-extractors/src/base/body.rs`; symbol model fields in
@@ -163,23 +163,23 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   `crates/julie-extract-artifact/src/{schema.rs,writer.rs,jsonl.rs}`;
   docs in `docs/contracts/{sqlite-schema-v2.md,jsonl-v2.md}`.
 - **Finding:** Symbols already expose `body_hash` when body spans are available.
-  That hash is useful for exact normalized-body matches, but the contract does
-  not yet say enough for downstream clone or near-duplicate detection to rely on
-  it across languages, algorithms, and future migrations.
+  That hash is useful for exact normalized-body matches. The exact-hash contract
+  now has a documented algorithm id, normalization rules, and guardrails in the
+  SQLite/JSONL contracts.
 - **Why it matters:** Miller can consume exact duplicate facts cheaply, and Eros
   can build higher-level clone/risk workflows, but only if the extractor emits
   stable, documented fingerprints instead of forcing downstream tools to
   re-tokenize source.
-- **Proposed fix:** Clarify the existing `body_hash` contract and add a
-  clone-ready v1 fingerprint surface if needed: algorithm id, normalized token
-  count, body span, exact normalized hash, and optionally a locality-sensitive
-  fingerprint such as token n-gram hashes or SimHash for near-duplicate
-  candidates. Preserve existing `body_hash` compatibility unless a contract
-  migration is explicitly planned.
+- **Completed slice:** Kept the existing `body_hash` field, defined algorithm
+  id `julie-normalized-body-md5-v1`, made normalization ignore whitespace and
+  language-appropriate comments, and added tests for exact-match stability and
+  contract wording.
+- **Deferred slice:** Add a separate machine-readable fingerprint surface only
+  if downstream consumers need token counts, SimHash, token n-grams, or other
+  near-duplicate candidate signals beyond exact normalized-body matches.
 - **Guardrail:** Do not make the extractor decide product-level duplicate
   severity. Emit stable fingerprints and counts; Miller/Eros can group, rank,
   threshold, and present duplicates downstream.
-- **Verification target:** Fixture tests should prove whitespace/comment-stable
-  exact hashes, intentional non-matches when semantics differ, coverage across
-  body-span-capable languages, and SQLite/JSONL contract stability. A dogfood
-  report should include duplicate candidate counts by language and symbol kind.
+- **Verification:** Focused tests now prove whitespace/comment-stable exact
+  hashes, intentional non-matches when executable tokens differ, quoted string
+  preservation, and SQLite/JSONL v2 contract stability.

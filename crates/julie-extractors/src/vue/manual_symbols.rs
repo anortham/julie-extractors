@@ -41,7 +41,7 @@ pub(super) fn create_symbol_manual(
     };
     let id = base.generate_id_for_span(name, &span);
     let body_span = infer_body_span_from_span(&base.content, span);
-    let body_hash = body_span.and_then(|span| body_hash(&base.content, span));
+    let body_hash = body_span.and_then(|span| body_hash(&base.content, span, &base.language));
 
     Symbol {
         id,

@@ -168,6 +168,39 @@ fn report_row_domains_cover_every_sqlite_v2_public_table() {
     }
 }
 
+#[test]
+fn v2_contract_docs_define_body_hash_algorithm_and_limits() {
+    const SQLITE_V2: &str = include_str!("../../../docs/contracts/sqlite-schema-v2.md");
+    const JSONL_V2: &str = include_str!("../../../docs/contracts/jsonl-v2.md");
+
+    for (name, doc) in [
+        ("sqlite-schema-v2.md", SQLITE_V2),
+        ("jsonl-v2.md", JSONL_V2),
+    ] {
+        let searchable = compact_whitespace(doc);
+        assert!(
+            searchable.contains("julie-normalized-body-md5-v1"),
+            "{name} must name the body_hash algorithm"
+        );
+        assert!(
+            searchable.contains("exact normalized-body fingerprint"),
+            "{name} must define body_hash as an exact normalized-body fingerprint"
+        );
+        assert!(
+            searchable.contains("ignores whitespace and comments"),
+            "{name} must document body_hash normalization inputs"
+        );
+        assert!(
+            searchable.contains("does not encode duplicate severity"),
+            "{name} must keep clone ranking out of the extractor contract"
+        );
+    }
+}
+
+fn compact_whitespace(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 fn open_schema() -> Connection {
     let conn = Connection::open_in_memory().unwrap();
     create_schema(&conn).unwrap();

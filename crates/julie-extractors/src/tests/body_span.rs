@@ -36,6 +36,42 @@ fn body_hash_ignores_whitespace_only_formatting_changes() {
     assert_eq!(compact.body_hash, spaced.body_hash);
 }
 
+#[test]
+fn body_hash_ignores_comment_only_changes() {
+    let plain = symbol_for_rust_function("fn hello() {\n    let value = 1;\n}\n");
+    let commented = symbol_for_rust_function(
+        "fn hello() {\n    // only a comment\n    let value = 1; /* also only a comment */\n}\n",
+    );
+
+    assert_eq!(plain.body_hash, commented.body_hash);
+}
+
+#[test]
+fn body_hash_changes_when_executable_tokens_change() {
+    let one = symbol_for_rust_function("fn hello() {\n    let value = 1;\n}\n");
+    let two = symbol_for_rust_function("fn hello() {\n    let value = 2;\n}\n");
+
+    assert_ne!(one.body_hash, two.body_hash);
+}
+
+#[test]
+fn body_hash_keeps_comment_markers_inside_strings() {
+    let slash = symbol_for_rust_function(
+        r#"fn hello() {
+    let value = "// not a comment";
+}
+"#,
+    );
+    let block = symbol_for_rust_function(
+        r#"fn hello() {
+    let value = "/* not a comment */";
+}
+"#,
+    );
+
+    assert_ne!(slash.body_hash, block.body_hash);
+}
+
 fn symbol_for_rust_function(content: &str) -> crate::base::Symbol {
     let mut extractor = rust_extractor(content);
     let tree = parse_rust(content);

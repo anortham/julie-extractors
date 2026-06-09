@@ -189,7 +189,14 @@ CREATE TABLE symbols (
 );
 ```
 
-`body_hash` is present only when all body span columns are present.
+`body_hash` is present only when all body span columns are present. It is an exact normalized-body fingerprint. The algorithm id is
+`julie-normalized-body-md5-v1`: take the source bytes covered by the body span,
+tokenize them while preserving quoted string-like tokens, join normalized tokens
+with U+001F, and store the lowercase MD5 hex digest. The normalization ignores
+whitespace and comments for the symbol language. Equal `body_hash` values are
+exact normalized-body match candidates. `body_hash` does not encode duplicate severity,
+near-duplicate similarity, or product-level clone ranking; consumers own those
+thresholds and presentation choices.
 
 `is_test`, `test_container`, and `test_lifecycle` are integer booleans (`0` or
 `1`) derived from extractor test-role metadata.

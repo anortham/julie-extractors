@@ -188,6 +188,15 @@ keys are part of the v1 contract.
 }
 ```
 
+`body_hash` is present only when `body_span` is present. It is an exact normalized-body fingerprint. The algorithm id is
+`julie-normalized-body-md5-v1`: take the source bytes covered by the body span,
+tokenize them while preserving quoted string-like tokens, join normalized tokens
+with U+001F, and emit the lowercase MD5 hex digest. The normalization ignores
+whitespace and comments for the symbol language. Equal `body_hash` values are
+exact normalized-body match candidates. `body_hash` does not encode duplicate severity,
+near-duplicate similarity, or product-level clone ranking; consumers own those
+thresholds and presentation choices.
+
 Reserved symbol test-role fields:
 
 - `is_test`: boolean. `true` means the extractor identified the symbol as a test
