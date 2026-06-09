@@ -6,14 +6,17 @@ Add a small, versioned structural fact contract that lets downstream tools
 consume parser-backed facts without owning tree-sitter policy or language
 coverage.
 
-This slice proves the contract with one useful Rust pattern:
-`rust.unsafe_block.v1`.
+The first slice proved the contract with one useful Rust pattern:
+`rust.unsafe_block.v1`. The completion slice expands the contract into a
+representative parser-backed pattern set and publishes exact capability
+metadata once there is enough coverage to make the matrix meaningful.
 
 ## Architecture Quality
 
-**Affected modules:** extractor base types and registry, CLI extraction mapping,
-artifact model/schema/writer/JSONL/report surfaces, current-schema performance
-workload, and contract docs.
+**Affected modules:** extractor base types and registry, capability snapshot,
+capability matrix tests, CLI extraction/capability mapping, artifact
+model/schema/writer/JSONL/report surfaces, current-schema performance workload,
+and contract docs.
 
 **Caller-facing interface:** `ExtractionResults.structural_facts`,
 `ArtifactFile.structural_facts`, the SQLite `structural_facts` table, the JSONL
@@ -24,9 +27,10 @@ workload, and contract docs.
 persists and exports normalized rows. Miller and Eros get facts, not a search
 engine or query DSL.
 
-**Test surface:** tests exercise the public extraction pipeline, CLI scan output,
-artifact schema, writer behavior, JSONL export, reports, and the synthetic
-current-schema workload.
+**Test surface:** tests exercise the public extraction pipeline, capability
+snapshot, capability matrix fixture evidence, CLI `languages --json`, CLI scan
+output, artifact schema, writer behavior, JSONL export, reports, and the
+synthetic current-schema workload.
 
 **Seams/adapters:** the CLI mapping is the adapter from extractor facts to
 artifact rows. No downstream product-specific adapter is added here.
@@ -71,24 +75,35 @@ Reports include `structural_facts` in row-domain counts.
 
 ## Pattern Metadata
 
-This slice records coverage in contract docs and in each emitted row's metadata:
+Every emitted row records normalized metadata:
 
 ```json
 {
   "pattern_version": 1,
-  "query_family": "safety"
+  "query_family": "<family>"
 }
 ```
 
-The first supported pattern is:
+The supported completion-slice patterns are:
 
-| Pattern ID | Language | Capture | Node Kind | Meaning |
-| --- | --- | --- | --- | --- |
-| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | A Rust `unsafe { ... }` block. |
+| Pattern ID | Language | Capture | Node Kind(s) | Family | Meaning |
+| --- | --- | --- | --- | --- | --- |
+| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | `safety` | A Rust `unsafe { ... }` block. |
+| `go.goroutine_launch.v1` | `go` | `go_statement` | `go_statement` | `concurrency` | A Go `go call()` launch. |
+| `go.defer_statement.v1` | `go` | `defer_statement` | `defer_statement` | `lifecycle` | A Go `defer call()` statement. |
+| `python.decorated_definition.v1` | `python` | `decorated_definition` | `decorated_definition` | `metadata` | A Python decorated function or class definition. |
+| `javascript.await_expression.v1` | `javascript` | `await_expression` | `await_expression` | `async` | A JavaScript `await` expression. |
+| `jsx.await_expression.v1` | `jsx` | `await_expression` | `await_expression` | `async` | A JSX file `await` expression. |
+| `typescript.await_expression.v1` | `typescript` | `await_expression` | `await_expression` | `async` | A TypeScript `await` expression. |
+| `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `async` | A TSX file `await` expression. |
+| `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C preprocessor definition. |
+| `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
 
-Language-wide capability-matrix coverage remains out of this slice. That should
-be added after more patterns and languages exist, so the capability contract can
-describe a meaningful matrix instead of one starter row.
+`fixtures/extraction/capabilities.json` publishes these exact ids under
+`kind_coverage.structural_facts.supported`. Languages with no current structural
+patterns publish an empty `supported` list, which means "no structural pattern
+claims yet"; it does not imply the parser cannot support structural facts in a
+future slice.
 
 ## Extraction Flow
 
@@ -112,6 +127,17 @@ describe a meaningful matrix instead of one starter row.
 - [x] Current-schema writer performance workload includes structural facts.
 - [x] Contract docs describe the row shape, JSONL shape, and initial pattern.
 - [x] Focused default and contract-surface tests remain fast.
+- [ ] Extractor tests prove every supported completion-slice pattern through
+      `extract_canonical`.
+- [ ] `capabilities.json`, the Rust capability snapshot, SQLite artifacts, and
+      `languages --json` publish `kind_coverage.structural_facts`.
+- [ ] Capability-matrix tests verify every advertised structural pattern has
+      fixture-backed extraction evidence and every extracted supported pattern
+      is advertised.
+- [ ] Contract docs enumerate the completed supported pattern set and explain
+      that this repo only emits facts, not downstream query/search behavior.
+- [ ] TODO #7 is marked complete after the representative pattern set and
+      capability metadata pass focused and contract test suites.
 
 ## Out Of Scope
 
@@ -119,5 +145,7 @@ describe a meaningful matrix instead of one starter row.
 - Miller/Eros-specific workflows.
 - Raw tree-sitter query source storage.
 - Raw AST serialization.
-- Broad language coverage claims.
-- A public pattern registry table before multiple patterns justify it.
+- Exhaustive language coverage beyond the representative parser-backed pattern
+  set above.
+- A public pattern registry table in SQLite; the JSON capability snapshot is the
+  public metadata surface for this slice.
