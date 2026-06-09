@@ -6,9 +6,10 @@ use std::time::Instant;
 use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
     ArtifactFile, ArtifactIdentifier, ArtifactLiteral, ArtifactParseDiagnostic,
-    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSourceRegion, ArtifactSymbol,
-    ArtifactSymbolAnnotation, ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact,
-    FileStatus, RevisionInput, RowCounts, WriteMode, WriteOperation,
+    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSourceRegion,
+    ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation, ArtifactTypeArgument,
+    ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus, RevisionInput, RowCounts, WriteMode,
+    WriteOperation,
 };
 use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
 use serde::Serialize;
@@ -107,6 +108,7 @@ pub struct WriterCurrentSchemaRowCounts {
     pub type_arguments: i64,
     pub literals: i64,
     pub source_regions: i64,
+    pub structural_facts: i64,
     pub parse_diagnostics: i64,
     pub revision_file_changes: i64,
 }
@@ -124,6 +126,7 @@ impl WriterCurrentSchemaRowCounts {
             + self.type_arguments
             + self.literals
             + self.source_regions
+            + self.structural_facts
             + self.parse_diagnostics
     }
 }
@@ -142,6 +145,7 @@ impl From<&RowCounts> for WriterCurrentSchemaRowCounts {
             type_arguments: rows.type_arguments,
             literals: rows.literals,
             source_regions: rows.source_regions,
+            structural_facts: rows.structural_facts,
             parse_diagnostics: rows.parse_diagnostics,
             revision_file_changes: rows.revision_file_changes,
         }
@@ -746,6 +750,7 @@ fn writer_current_schema_file(file_index: usize, plan: &WriterCurrentSchemaPlan)
         type_arguments: Vec::new(),
         literals: Vec::new(),
         source_regions: Vec::new(),
+        structural_facts: Vec::new(),
         parse_diagnostics: Vec::new(),
     };
 
@@ -774,6 +779,8 @@ fn writer_current_schema_file(file_index: usize, plan: &WriterCurrentSchemaPlan)
     file.source_regions = (0..plan.source_regions_per_file)
         .map(|region_index| writer_current_schema_source_region(&file_id, region_index))
         .collect();
+    file.structural_facts
+        .push(writer_current_schema_structural_fact(&file_id));
     file.parse_diagnostics
         .push(writer_current_schema_parse_diagnostic(&file_id));
     file
@@ -966,6 +973,24 @@ fn writer_current_schema_source_region(file_id: &str, region_index: usize) -> Ar
         start_byte: (region_index * 40) as i64,
         end_byte: (region_index * 40 + 16) as i64,
         metadata_json: Some(r#"{"synthetic":true}"#.to_string()),
+    }
+}
+
+fn writer_current_schema_structural_fact(file_id: &str) -> ArtifactStructuralFact {
+    ArtifactStructuralFact {
+        structural_fact_id: format!("{file_id}-structural-fact-0"),
+        pattern_id: "rust.unsafe_block.v1".to_string(),
+        capture_name: "unsafe_block".to_string(),
+        node_kind: "unsafe_block".to_string(),
+        containing_symbol_id: Some(format!("{file_id}-symbol-0")),
+        start_line: 4,
+        start_column: 4,
+        end_line: 6,
+        end_column: 5,
+        start_byte: 96,
+        end_byte: 160,
+        confidence: 1.0,
+        metadata_json: Some(r#"{"pattern_version":1,"query_family":"safety"}"#.to_string()),
     }
 }
 

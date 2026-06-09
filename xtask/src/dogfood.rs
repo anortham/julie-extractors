@@ -45,6 +45,7 @@ const ROW_DOMAIN_TABLES: &[&str] = &[
     "type_arguments",
     "literals",
     "source_regions",
+    "structural_facts",
     "parse_diagnostics",
 ];
 const JSONL_RECORD_KINDS: &[&str] = &[
@@ -66,6 +67,7 @@ const JSONL_RECORD_KINDS: &[&str] = &[
     "type_argument",
     "literal",
     "source_region",
+    "structural_fact",
     "parse_diagnostic",
 ];
 

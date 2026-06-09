@@ -217,8 +217,9 @@ The command writes `artifact.sqlite` and
 `writer-current-schema-summary.json` under the requested output directory. The
 summary records input dimensions, row totals by domain, write elapsed time,
 rows per second, and artifact size. Successful artifact creation and non-empty
-current-schema child-row domains are hard evidence; timing, rows per second,
-and artifact size are report-only metrics. This guard is local
+current-schema child-row domains, including `source_regions` and
+`structural_facts`, are hard evidence; timing, rows per second, and artifact
+size are report-only metrics. This guard is local
 release-evidence tooling, not part of regular CI or the default/contract tiers.
 
 ## CI Policy

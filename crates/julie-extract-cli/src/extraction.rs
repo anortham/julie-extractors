@@ -5,11 +5,11 @@ use std::string::FromUtf8Error;
 
 use julie_extract_artifact::model::{
     ArtifactFile, ArtifactIdentifier, ArtifactLiteral, ArtifactParseDiagnostic,
-    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSourceRegion, ArtifactSymbol,
-    ArtifactSymbolAnnotation, ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact,
-    FileStatus,
+    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSourceRegion,
+    ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation, ArtifactTypeArgument,
+    ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
 };
-use julie_extractors::base::StructuredPendingRelationship;
+use julie_extractors::base::{StructuralFact, StructuredPendingRelationship};
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
     ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship, SourceRegion,
@@ -178,6 +178,7 @@ pub(crate) fn failed_artifact_file(
         type_arguments: Vec::new(),
         literals: Vec::new(),
         source_regions: Vec::new(),
+        structural_facts: Vec::new(),
         parse_diagnostics: vec![failure_parse_diagnostic(target, error, content_bytes)],
     }
 }
@@ -209,6 +210,7 @@ pub(crate) fn unchanged_artifact_file(
         type_arguments: Vec::new(),
         literals: Vec::new(),
         source_regions: Vec::new(),
+        structural_facts: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }
@@ -330,6 +332,10 @@ fn map_results(
         map_source_regions(&results.source_regions, target)?,
         |region| region.source_region_id.as_str(),
     );
+    let structural_facts = dedupe_by_id(
+        map_structural_facts(&results.structural_facts, target)?,
+        |fact| fact.structural_fact_id.as_str(),
+    );
     let parse_diagnostics = dedupe_by_id(map_parse_diagnostics(&results, target), |diagnostic| {
         diagnostic.diagnostic_id.as_str()
     });
@@ -356,6 +362,7 @@ fn map_results(
         type_arguments,
         literals,
         source_regions,
+        structural_facts,
         parse_diagnostics,
     })
 }
@@ -622,6 +629,32 @@ fn map_source_regions(
                 start_byte: i64::from(region.start_byte),
                 end_byte: i64::from(region.end_byte),
                 metadata_json: optional_json(&region.metadata, target)?,
+            })
+        })
+        .collect()
+}
+
+fn map_structural_facts(
+    facts: &[StructuralFact],
+    target: &FileTarget,
+) -> Result<Vec<ArtifactStructuralFact>, ExtractFileError> {
+    facts
+        .iter()
+        .map(|fact| {
+            Ok(ArtifactStructuralFact {
+                structural_fact_id: fact.id.clone(),
+                pattern_id: fact.pattern_id.clone(),
+                capture_name: fact.capture_name.clone(),
+                node_kind: fact.node_kind.clone(),
+                containing_symbol_id: fact.containing_symbol_id.clone(),
+                start_line: i64::from(fact.start_line),
+                start_column: i64::from(fact.start_column),
+                end_line: i64::from(fact.end_line),
+                end_column: i64::from(fact.end_column),
+                start_byte: i64::from(fact.start_byte),
+                end_byte: i64::from(fact.end_byte),
+                confidence: f64::from(fact.confidence),
+                metadata_json: optional_json(&fact.metadata, target)?,
             })
         })
         .collect()

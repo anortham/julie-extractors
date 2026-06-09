@@ -384,6 +384,7 @@ impl DogfoodFixture {
             CREATE TABLE type_arguments (id TEXT);
             CREATE TABLE literals (id TEXT);
             CREATE TABLE source_regions (id TEXT);
+            CREATE TABLE structural_facts (id TEXT);
             CREATE TABLE parse_diagnostics (id TEXT);
             ",
         )
@@ -449,7 +450,14 @@ impl DogfoodFixture {
 
     fn write_jsonl_records(&self, records: usize) {
         let mut jsonl = String::new();
-        let kinds = ["artifact", "file", "file", "symbol", "source_region"];
+        let kinds = [
+            "artifact",
+            "file",
+            "file",
+            "symbol",
+            "source_region",
+            "structural_fact",
+        ];
         for index in 0..records {
             let kind = kinds.get(index).copied().unwrap_or("identifier");
             jsonl.push_str(&format!(

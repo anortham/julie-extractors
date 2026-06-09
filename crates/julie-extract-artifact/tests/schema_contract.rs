@@ -518,6 +518,27 @@ fn expected_tables() -> Vec<ExpectedTable> {
         ],
     );
     tables.insert(
+        "structural_facts",
+        vec![
+            "structural_fact_id TEXT",
+            "file_id TEXT",
+            "path TEXT",
+            "language TEXT",
+            "pattern_id TEXT",
+            "capture_name TEXT",
+            "node_kind TEXT",
+            "containing_symbol_id TEXT",
+            "start_line INTEGER",
+            "start_column INTEGER",
+            "end_line INTEGER",
+            "end_column INTEGER",
+            "start_byte INTEGER",
+            "end_byte INTEGER",
+            "confidence REAL",
+            "metadata_json TEXT",
+        ],
+    );
+    tables.insert(
         "parse_diagnostics",
         vec![
             "diagnostic_id TEXT",
@@ -693,6 +714,21 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
         ExpectedIndex {
             name: "idx_source_regions_symbol",
             table: "source_regions",
+            columns: vec!["containing_symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_structural_facts_file_span",
+            table: "structural_facts",
+            columns: vec!["file_id", "start_byte", "end_byte"],
+        },
+        ExpectedIndex {
+            name: "idx_structural_facts_pattern_language_path",
+            table: "structural_facts",
+            columns: vec!["pattern_id", "language", "path"],
+        },
+        ExpectedIndex {
+            name: "idx_structural_facts_symbol",
+            table: "structural_facts",
             columns: vec!["containing_symbol_id"],
         },
         ExpectedIndex {

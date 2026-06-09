@@ -74,6 +74,7 @@ part of this contract.
       "type_arguments": 0,
       "literals": 1,
       "source_regions": 4,
+      "structural_facts": 1,
       "parse_diagnostics": 0
     },
     "totals": {
@@ -95,6 +96,7 @@ part of this contract.
       "type_arguments": 8,
       "literals": 6,
       "source_regions": 300,
+      "structural_facts": 12,
       "parse_diagnostics": 0
     }
   },

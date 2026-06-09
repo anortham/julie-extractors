@@ -227,6 +227,7 @@ fn writer_current_schema_execution_writes_every_current_child_domain() {
     assert_eq!(summary.rows_written.type_arguments, 8);
     assert_eq!(summary.rows_written.literals, 2);
     assert_eq!(summary.rows_written.source_regions, 6);
+    assert_eq!(summary.rows_written.structural_facts, 2);
     assert_eq!(summary.rows_written.parse_diagnostics, 2);
     assert_eq!(summary.rows_written.revision_file_changes, 2);
     assert!(summary.sqlite_bytes > 0);
@@ -264,6 +265,7 @@ fn writer_current_schema_summary_serializes_stable_fields() {
     assert_eq!(value["input"]["source_regions_per_file"], 3);
     assert_eq!(value["rows_written"]["files"], 1);
     assert_eq!(value["rows_written"]["source_regions"], 3);
+    assert_eq!(value["rows_written"]["structural_facts"], 1);
     assert!(value["elapsed_write_ms"].is_number());
     assert!(value["sqlite_bytes"].is_number());
     assert!(

@@ -22,6 +22,7 @@ mod results_normalization;
 pub mod source_regions;
 pub mod span;
 mod string_literals;
+pub mod structural_facts;
 pub mod tree_methods;
 pub mod type_arguments;
 pub mod type_models;
@@ -38,13 +39,14 @@ pub use relationship_resolution::{
 };
 pub use source_regions::collect_source_regions;
 pub use span::{NormalizedSpan, RecordOffset, normalize_file_path};
+pub use structural_facts::collect_structural_facts;
 pub use tree_methods::{find_child_by_type, find_child_by_types};
 pub use type_arguments::{TypeArgDecomposer, extract_type_arguments};
 pub use type_models::{Literal, LiteralKind, TypeArgument, TypeArgumentUsage};
 pub use types::{
     AnnotationMarker, ContextConfig, ExtractionResults, Identifier, ParseDiagnostic,
-    ParseDiagnosticKind, PendingRelationship, Relationship, SourceRegion, SourceRegionKind, Symbol,
-    SymbolOptions, TypeInfo,
+    ParseDiagnosticKind, PendingRelationship, Relationship, SourceRegion, SourceRegionKind,
+    StructuralFact, Symbol, SymbolOptions, TypeInfo,
 };
 
 pub(crate) fn containing_symbol_at_line(symbols: &[Symbol], line_number: u32) -> Option<&Symbol> {

@@ -149,6 +149,7 @@ fn file_with_symbol(index: usize, symbol_count: usize) -> ArtifactFile {
         type_arguments: Vec::new(),
         literals: Vec::new(),
         source_regions: Vec::new(),
+        structural_facts: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }

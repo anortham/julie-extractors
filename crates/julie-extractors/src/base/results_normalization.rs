@@ -49,6 +49,7 @@ impl ExtractionResults {
             type_argument_usages: Vec::new(),
             literals: Vec::new(),
             source_regions: Vec::new(),
+            structural_facts: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }
@@ -66,6 +67,7 @@ impl ExtractionResults {
             .append(&mut other.type_argument_usages);
         self.literals.append(&mut other.literals);
         self.source_regions.append(&mut other.source_regions);
+        self.structural_facts.append(&mut other.structural_facts);
         self.parse_diagnostics.append(&mut other.parse_diagnostics);
     }
 
@@ -120,6 +122,19 @@ impl ExtractionResults {
             }
             .with_offset(offset);
             region.apply_normalized_span(span);
+        }
+
+        for fact in &mut self.structural_facts {
+            let span = NormalizedSpan {
+                start_line: fact.start_line,
+                start_column: fact.start_column,
+                end_line: fact.end_line,
+                end_column: fact.end_column,
+                start_byte: fact.start_byte,
+                end_byte: fact.end_byte,
+            }
+            .with_offset(offset);
+            fact.apply_normalized_span(span);
         }
 
         for relationship in &mut self.relationships {
@@ -188,6 +203,16 @@ impl ExtractionResults {
             region.refresh_id();
 
             if let Some(containing_symbol_id) = region.containing_symbol_id.as_mut()
+                && let Some(new_symbol_id) = symbol_id_map.get(containing_symbol_id)
+            {
+                *containing_symbol_id = new_symbol_id.clone();
+            }
+        }
+
+        for fact in &mut self.structural_facts {
+            fact.refresh_id();
+
+            if let Some(containing_symbol_id) = fact.containing_symbol_id.as_mut()
                 && let Some(new_symbol_id) = symbol_id_map.get(containing_symbol_id)
             {
                 *containing_symbol_id = new_symbol_id.clone();

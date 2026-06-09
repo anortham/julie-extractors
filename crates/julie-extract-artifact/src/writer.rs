@@ -1305,6 +1305,7 @@ fn delete_file_rows(tx: &Transaction<'_>, file_id: &str, path: &str) -> rusqlite
     )?;
     tx.execute("DELETE FROM literals WHERE file_id = ?1", [file_id])?;
     tx.execute("DELETE FROM source_regions WHERE file_id = ?1", [file_id])?;
+    tx.execute("DELETE FROM structural_facts WHERE file_id = ?1", [file_id])?;
     tx.execute(
         "DELETE FROM pending_relationships WHERE file_id = ?1",
         [file_id],
@@ -1457,6 +1458,7 @@ struct ChildRowInserters<'tx> {
     type_arguments: CachedStatement<'tx>,
     literals: CachedStatement<'tx>,
     source_regions: CachedStatement<'tx>,
+    structural_facts: CachedStatement<'tx>,
     parse_diagnostics: CachedStatement<'tx>,
 }
 
@@ -1524,6 +1526,13 @@ impl<'tx> ChildRowInserters<'tx> {
                   metadata_json)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             )?,
+            structural_facts: tx.prepare_cached(
+                "INSERT INTO structural_facts
+                 (structural_fact_id, file_id, path, language, pattern_id, capture_name,
+                  node_kind, containing_symbol_id, start_line, start_column, end_line,
+                  end_column, start_byte, end_byte, confidence, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            )?,
             parse_diagnostics: tx.prepare_cached(
                 "INSERT INTO parse_diagnostics
                  (diagnostic_id, file_id, path, language, kind, message, start_line, start_column,
@@ -1561,6 +1570,8 @@ impl<'tx> ChildRowInserters<'tx> {
         counts.literals += insert_literals(&mut self.literals, file, symbol_lookup)?;
         counts.source_regions +=
             insert_source_regions(&mut self.source_regions, file, symbol_lookup)?;
+        counts.structural_facts +=
+            insert_structural_facts(&mut self.structural_facts, file, symbol_lookup)?;
         counts.parse_diagnostics +=
             insert_parse_diagnostics_rows(&mut self.parse_diagnostics, file)?;
         Ok(())
@@ -1954,6 +1965,34 @@ fn insert_source_regions(
     Ok(file.source_regions.len() as i64)
 }
 
+fn insert_structural_facts(
+    stmt: &mut CachedStatement<'_>,
+    file: &ArtifactFile,
+    symbol_lookup: &SymbolLookup,
+) -> rusqlite::Result<i64> {
+    for fact in &file.structural_facts {
+        stmt.execute(params![
+            fact.structural_fact_id,
+            file.file_id,
+            file.path,
+            file.language,
+            fact.pattern_id,
+            fact.capture_name,
+            fact.node_kind,
+            valid_symbol_id(symbol_lookup, fact.containing_symbol_id.as_deref()),
+            fact.start_line,
+            fact.start_column,
+            fact.end_line,
+            fact.end_column,
+            fact.start_byte,
+            fact.end_byte,
+            fact.confidence,
+            fact.metadata_json,
+        ])?;
+    }
+    Ok(file.structural_facts.len() as i64)
+}
+
 fn insert_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare_cached(
         "INSERT INTO parse_diagnostics
@@ -2054,6 +2093,11 @@ fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut HashSet<Str
     }
     for region in &file.source_regions {
         if let Some(containing_symbol_id) = region.containing_symbol_id.as_deref() {
+            requested.insert(containing_symbol_id.to_string());
+        }
+    }
+    for fact in &file.structural_facts {
+        if let Some(containing_symbol_id) = fact.containing_symbol_id.as_deref() {
             requested.insert(containing_symbol_id.to_string());
         }
     }
@@ -2314,6 +2358,7 @@ mod tests {
             type_arguments: Vec::new(),
             literals: Vec::new(),
             source_regions: Vec::new(),
+            structural_facts: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }

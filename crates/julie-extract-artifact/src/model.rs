@@ -91,6 +91,7 @@ pub struct RowCounts {
     pub type_arguments: i64,
     pub literals: i64,
     pub source_regions: i64,
+    pub structural_facts: i64,
     pub parse_diagnostics: i64,
     pub revision_file_changes: i64,
 }
@@ -108,6 +109,7 @@ impl RowCounts {
             + self.type_arguments
             + self.literals
             + self.source_regions
+            + self.structural_facts
             + self.parse_diagnostics
     }
 
@@ -118,7 +120,8 @@ impl RowCounts {
                 r#""files":{},"symbols":{},"symbol_annotations":{},"identifiers":{},"#,
                 r#""relationships":{},"pending_relationships":{},"type_facts":{},"#,
                 r#""type_argument_usages":{},"type_arguments":{},"literals":{},"#,
-                r#""source_regions":{},"parse_diagnostics":{},"revision_file_changes":{}"#,
+                r#""source_regions":{},"structural_facts":{},"parse_diagnostics":{},"#,
+                r#""revision_file_changes":{}"#,
                 "}}"
             ),
             self.files,
@@ -132,6 +135,7 @@ impl RowCounts {
             self.type_arguments,
             self.literals,
             self.source_regions,
+            self.structural_facts,
             self.parse_diagnostics,
             self.revision_file_changes
         )
@@ -224,6 +228,7 @@ pub struct ArtifactFile {
     pub type_arguments: Vec<ArtifactTypeArgument>,
     pub literals: Vec<ArtifactLiteral>,
     pub source_regions: Vec<ArtifactSourceRegion>,
+    pub structural_facts: Vec<ArtifactStructuralFact>,
     pub parse_diagnostics: Vec<ArtifactParseDiagnostic>,
 }
 
@@ -514,6 +519,43 @@ impl Default for ArtifactSourceRegion {
             end_column: 0,
             start_byte: 0,
             end_byte: 0,
+            metadata_json: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ArtifactStructuralFact {
+    pub structural_fact_id: String,
+    pub pattern_id: String,
+    pub capture_name: String,
+    pub node_kind: String,
+    pub containing_symbol_id: Option<String>,
+    pub start_line: i64,
+    pub start_column: i64,
+    pub end_line: i64,
+    pub end_column: i64,
+    pub start_byte: i64,
+    pub end_byte: i64,
+    pub confidence: f64,
+    pub metadata_json: Option<String>,
+}
+
+impl Default for ArtifactStructuralFact {
+    fn default() -> Self {
+        Self {
+            structural_fact_id: String::new(),
+            pattern_id: String::new(),
+            capture_name: String::new(),
+            node_kind: String::new(),
+            containing_symbol_id: None,
+            start_line: 1,
+            start_column: 0,
+            end_line: 1,
+            end_column: 0,
+            start_byte: 0,
+            end_byte: 0,
+            confidence: 1.0,
             metadata_json: None,
         }
     }

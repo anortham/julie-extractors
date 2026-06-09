@@ -150,6 +150,25 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
     assert!(source_region_kinds.contains(&"comment".to_string()));
     assert!(source_region_kinds.contains(&"doc_comment".to_string()));
     assert!(source_region_kinds.contains(&"string_literal".to_string()));
+    let structural_facts = structural_facts_for_path(&db, "src/a.rs");
+    assert!(
+        structural_facts
+            .iter()
+            .any(|(pattern_id, capture_name, node_kind)| {
+                pattern_id == "rust.unsafe_block.v1"
+                    && capture_name == "unsafe_block"
+                    && node_kind == "unsafe_block"
+            }),
+        "scan should persist a Rust unsafe-block structural fact, got {structural_facts:?}"
+    );
+    assert_eq!(
+        report["counts"]["rows_written"]["structural_facts"],
+        structural_facts.len() as i64
+    );
+    assert_eq!(
+        report["counts"]["totals"]["structural_facts"],
+        structural_facts.len() as i64
+    );
     assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
 }
@@ -1110,6 +1129,11 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
             .iter()
             .any(|record| record["kind"] == "source_region")
     );
+    assert!(
+        parsed
+            .iter()
+            .any(|record| record["kind"] == "structural_fact")
+    );
 }
 
 #[test]
@@ -1405,7 +1429,7 @@ impl FixtureRoot {
         std::fs::create_dir_all(root.join("src")).unwrap();
         std::fs::write(
             root.join("src/a.rs"),
-            "// module comment\n/// Alpha docs\npub fn alpha() { let message = \"hello\"; }\npub fn helper() { alpha(); }\n",
+            "// module comment\n/// Alpha docs\npub fn alpha() { let message = \"hello\"; unsafe { core::ptr::read_volatile(&0); } }\npub fn helper() { alpha(); }\n",
         )
         .unwrap();
         std::fs::write(root.join("src/b.rs"), "pub fn beta() {}\n").unwrap();
@@ -1454,6 +1478,22 @@ fn source_region_kinds_for_path(db: &Path, path: &str) -> Vec<String> {
         .prepare("SELECT kind FROM source_regions WHERE path = ?1 ORDER BY kind, source_region_id")
         .unwrap();
     stmt.query_map([path], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn structural_facts_for_path(db: &Path, path: &str) -> Vec<(String, String, String)> {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT pattern_id, capture_name, node_kind
+             FROM structural_facts
+             WHERE path = ?1
+             ORDER BY pattern_id, structural_fact_id",
+        )
+        .unwrap();
+    stmt.query_map([path], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap()
@@ -1650,6 +1690,7 @@ fn artifact_fingerprint(db: &Path) -> Vec<(String, String)> {
         "type_arguments",
         "literals",
         "source_regions",
+        "structural_facts",
         "parse_diagnostics",
     ] {
         rows.push((format!("table:{table}"), table_count(db, table).to_string()));

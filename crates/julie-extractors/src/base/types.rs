@@ -95,6 +95,56 @@ impl SourceRegion {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StructuralFact {
+    pub id: String,
+    pub file_path: String,
+    pub language: String,
+    pub pattern_id: String,
+    pub capture_name: String,
+    pub node_kind: String,
+    pub containing_symbol_id: Option<String>,
+    pub start_line: u32,
+    pub start_column: u32,
+    pub end_line: u32,
+    pub end_column: u32,
+    pub start_byte: u32,
+    pub end_byte: u32,
+    pub confidence: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl StructuralFact {
+    pub fn apply_normalized_span(&mut self, span: NormalizedSpan) {
+        self.start_line = span.start_line;
+        self.start_column = span.start_column;
+        self.end_line = span.end_line;
+        self.end_column = span.end_column;
+        self.start_byte = span.start_byte;
+        self.end_byte = span.end_byte;
+    }
+
+    pub fn refresh_id(&mut self) {
+        self.id = stable_location_id(
+            self.file_path.as_str(),
+            &format!("{}:{}", self.pattern_id, self.capture_name),
+            self.span(),
+        );
+    }
+
+    fn span(&self) -> NormalizedSpan {
+        NormalizedSpan {
+            start_line: self.start_line,
+            start_column: self.start_column,
+            end_line: self.end_line,
+            end_column: self.end_column,
+            start_byte: self.start_byte,
+            end_byte: self.end_byte,
+        }
+    }
+}
+
 /// Canonical annotation marker with display, match, and source text forms.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AnnotationMarker {
@@ -399,5 +449,6 @@ pub struct ExtractionResults {
     /// gates these by carrier before persistence.
     pub literals: Vec<Literal>,
     pub source_regions: Vec<SourceRegion>,
+    pub structural_facts: Vec<StructuralFact>,
     pub parse_diagnostics: Vec<ParseDiagnostic>,
 }

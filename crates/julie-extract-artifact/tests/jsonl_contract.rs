@@ -88,6 +88,10 @@ fn sqlite_json_text_columns_are_decoded_into_json_values() {
         record(&records, "source_region")["metadata"],
         json!({"source_region": true})
     );
+    assert_eq!(
+        record(&records, "structural_fact")["metadata"],
+        json!({"pattern_version": 1, "query_family": "safety"})
+    );
 }
 
 #[test]
@@ -347,6 +351,23 @@ fn every_record_kind_uses_exact_payload_keys() {
             "kind",
             "containing_symbol_id",
             "span",
+            "metadata",
+        ],
+    );
+    assert_record_keys(
+        &records,
+        "structural_fact",
+        &[
+            "structural_fact_id",
+            "file_id",
+            "path",
+            "language",
+            "pattern_id",
+            "capture_name",
+            "node_kind",
+            "containing_symbol_id",
+            "span",
+            "confidence",
             "metadata",
         ],
     );
@@ -675,6 +696,16 @@ fn insert_extraction_rows(conn: &Connection) {
          VALUES ('region-comment', 'file-a', 'src/a.rs', 'rust', 'comment',
                  'sym-alpha', 1, 0, 1, 14, 0, 14, ?1)",
         [r#"{"source_region":true}"#],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO structural_facts
+         (structural_fact_id, file_id, path, language, pattern_id, capture_name, node_kind,
+          containing_symbol_id, start_line, start_column, end_line, end_column, start_byte,
+          end_byte, confidence, metadata_json)
+         VALUES ('fact-unsafe', 'file-a', 'src/a.rs', 'rust', 'rust.unsafe_block.v1',
+                 'unsafe_block', 'unsafe_block', 'sym-alpha', 3, 4, 5, 5, 36, 58, 1.0, ?1)",
+        [r#"{"pattern_version":1,"query_family":"safety"}"#],
     )
     .unwrap();
     conn.execute(

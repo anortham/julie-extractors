@@ -448,6 +448,52 @@ CREATE TABLE source_regions (
 `metadata_json` is optional. Embedded regions may include
 `embedded_language` and `host_node_kind`.
 
+## Structural Facts
+
+### `structural_facts`
+
+Parser-backed structural facts that are useful to downstream tools but are not
+symbols, identifiers, relationships, literals, or source-region spans.
+
+Rows are pattern-based. `pattern_id` is stable and versioned, so consumers can
+depend on the meaning of a row without understanding the tree-sitter grammar
+directly. This repo emits extraction facts only; querying, ranking, dashboards,
+and product workflows remain downstream.
+
+```sql
+CREATE TABLE structural_facts (
+  structural_fact_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  pattern_id TEXT NOT NULL,
+  capture_name TEXT NOT NULL,
+  node_kind TEXT NOT NULL,
+  containing_symbol_id TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  confidence REAL NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+```
+
+Initial supported pattern:
+
+| Pattern ID | Language | Capture | Node Kind | Meaning |
+| --- | --- | --- | --- | --- |
+| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | A Rust `unsafe { ... }` block. |
+
+Initial metadata:
+
+- `pattern_version`: integer, currently `1`.
+- `query_family`: string, currently `safety` for `rust.unsafe_block.v1`.
+
 ## Diagnostics
 
 ### `parse_diagnostics`
@@ -592,6 +638,9 @@ CREATE INDEX idx_pending_file ON pending_relationships(file_id);
 CREATE INDEX idx_source_regions_file_span ON source_regions(file_id, start_byte, end_byte);
 CREATE INDEX idx_source_regions_kind_file ON source_regions(kind, file_id, start_byte);
 CREATE INDEX idx_source_regions_symbol ON source_regions(containing_symbol_id);
+CREATE INDEX idx_structural_facts_file_span ON structural_facts(file_id, start_byte, end_byte);
+CREATE INDEX idx_structural_facts_pattern_language_path ON structural_facts(pattern_id, language, path);
+CREATE INDEX idx_structural_facts_symbol ON structural_facts(containing_symbol_id);
 CREATE INDEX idx_diagnostics_path ON parse_diagnostics(path);
 ```
 

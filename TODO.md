@@ -94,36 +94,29 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   Branch-gate verification passes with `cargo test -p xtask`,
   `cargo xtask test default`, and `cargo xtask test contract`.
 
-## 7. Structural tree-sitter query facts for downstream tools — open
+## 7. Structural tree-sitter query facts for downstream tools — partial
 
 - **Where:** New contract/design under `docs/contracts/` and/or `docs/plans/`;
   likely extractor surfaces under `crates/julie-extractors/src/base/`,
   `crates/julie-extractors/src/language_spec/`, and per-language modules;
   artifact surfaces under `crates/julie-extract-artifact/src/{schema.rs,writer.rs,jsonl.rs,model.rs}`.
-- **Finding:** Miller and Eros can use structural facts that only parser-backed
-  extraction can produce, but the current artifact exposes symbols,
-  relationships, identifiers, literals, source regions, and diagnostics rather
-  than a stable structural-query result contract.
-- **Why it matters:** Miller now reads and indexes source text for explicit
-  content/source search, but it should not own tree-sitter structural
-  extraction policy or language-specific parser coverage. Eros should consume
-  Miller/exported facts rather than rebuilding parser logic. If structural
-  patterns are useful for code-intelligence workflows, this repo is the right
-  place to define and emit them.
-- **Proposed fix:** Start contract-first. Define the smallest useful v1
-  structural fact shape before coding: language, file, query/pattern id,
-  capture name, matched node kind, span, optional containing symbol, confidence,
-  and metadata. Implement a narrow fixture-backed slice across a representative
-  parser-backed language set before expanding. Expose the rows in SQLite and
-  JSONL, and add capability metadata so downstream consumers know which
-  languages/patterns are covered.
+- **Implemented slice:** The current v2 artifact now has a `structural_facts`
+  SQLite table, `structural_fact` JSONL records, report row counts, writer
+  coverage, CLI scan coverage, and current-schema performance coverage. The
+  extractor emits `rust.unsafe_block.v1` facts for Rust `unsafe { ... }`
+  blocks with capture name, matched node kind, span, optional containing
+  symbol, confidence, and pattern metadata.
+- **Remaining scope:** Expand from the Rust unsafe-block starter pattern into a
+  representative parser-backed language/pattern set, then add explicit
+  capability metadata once the matrix is meaningful. Candidate next patterns
+  should be chosen contract-first and fixture-backed.
 - **Guardrail:** Do not add a generic downstream search engine or a Miller/Eros
   query DSL here. This repo should emit versioned extraction facts. Interactive
   querying, ranking, dashboards, and commercial workflows belong downstream.
-- **Verification target:** Capability-matrix evidence must identify covered
-  languages and explicit gaps. Contract tests should prove SQLite/JSONL shape,
-  fixture tests should prove per-language captures, and a real scan should show
-  non-empty rows for supported languages without default-suite slowdown.
+- **Verification:** Contract tests prove SQLite/JSONL/report shape, writer tests
+  prove row persistence and counts, extractor tests prove the Rust unsafe-block
+  capture, the CLI operations contract proves non-empty scan output, and
+  `cargo xtask performance writer-current-schema` exercises the row family.
 
 ## 8. Cross-language AST/code complexity metrics — open
 

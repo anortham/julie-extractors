@@ -60,7 +60,8 @@ Full export order is deterministic:
 16. `type_argument`
 17. `literal`
 18. `source_region`
-19. `parse_diagnostic`
+19. `structural_fact`
+20. `parse_diagnostic`
 
 Rows are ordered by primary key within each kind unless a kind defines a more
 specific natural order.
@@ -445,6 +446,30 @@ Fields:
 - `metadata`: object or `null`
 
 Embedded region metadata may include `embedded_language` and `host_node_kind`.
+
+### `structural_fact`
+
+`record_id`: `structural_fact_id`.
+
+Fields:
+
+- `structural_fact_id`: string
+- `file_id`: string
+- `path`: root-relative path string
+- `language`: string
+- `pattern_id`: stable versioned pattern identifier
+- `capture_name`: capture name within the pattern
+- `node_kind`: matched tree-sitter node kind
+- `containing_symbol_id`: string or `null`
+- `span`: span object
+- `confidence`: number
+- `metadata`: object or `null`
+
+Initial supported pattern:
+
+| Pattern ID | Language | Capture | Node Kind | Metadata |
+| --- | --- | --- | --- | --- |
+| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | `{"pattern_version":1,"query_family":"safety"}` |
 
 ### `parse_diagnostic`
 

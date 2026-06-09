@@ -31,6 +31,7 @@ pub const JSONL_RECORD_KINDS: &[&str] = &[
     "type_argument",
     "literal",
     "source_region",
+    "structural_fact",
     "parse_diagnostic",
 ];
 
@@ -134,6 +135,7 @@ pub fn export_jsonl<W: Write>(
     export_type_arguments(conn, &mut writer, artifact_id, &mut summary)?;
     export_literals(conn, &mut writer, artifact_id, &mut summary)?;
     export_source_regions(conn, &mut writer, artifact_id, &mut summary)?;
+    export_structural_facts(conn, &mut writer, artifact_id, &mut summary)?;
     export_parse_diagnostics(conn, &mut writer, artifact_id, &mut summary)?;
 
     writer.flush()?;
@@ -1296,6 +1298,83 @@ fn export_source_regions<W: Write>(
             artifact_id,
             "source_region",
             &source_region_id,
+            record,
+            summary,
+        )?;
+    }
+    Ok(())
+}
+
+fn export_structural_facts<W: Write>(
+    conn: &Connection,
+    writer: &mut W,
+    artifact_id: &str,
+    summary: &mut JsonlExportSummary,
+) -> JsonlExportResult<()> {
+    let mut stmt = conn.prepare(
+        "SELECT structural_fact_id, file_id, path, language, pattern_id, capture_name,
+                node_kind, containing_symbol_id, start_line, start_column, end_line,
+                end_column, start_byte, end_byte, confidence, metadata_json
+         FROM structural_facts
+         ORDER BY path, start_byte, end_byte, pattern_id, capture_name, structural_fact_id",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
+            row.get::<_, String>(5)?,
+            row.get::<_, String>(6)?,
+            row.get::<_, Option<String>>(7)?,
+            row.get::<_, i64>(8)?,
+            row.get::<_, i64>(9)?,
+            row.get::<_, i64>(10)?,
+            row.get::<_, i64>(11)?,
+            row.get::<_, i64>(12)?,
+            row.get::<_, i64>(13)?,
+            row.get::<_, f64>(14)?,
+            row.get::<_, Option<String>>(15)?,
+        ))
+    })?;
+    for row in rows {
+        let (
+            structural_fact_id,
+            file_id,
+            path,
+            language,
+            pattern_id,
+            capture_name,
+            node_kind,
+            containing_symbol_id,
+            start_line,
+            start_column,
+            end_line,
+            end_column,
+            start_byte,
+            end_byte,
+            confidence,
+            metadata_json,
+        ) = row?;
+        let record = json!({
+            "structural_fact_id": structural_fact_id,
+            "file_id": file_id,
+            "path": path,
+            "language": language,
+            "pattern_id": pattern_id,
+            "capture_name": capture_name,
+            "node_kind": node_kind,
+            "containing_symbol_id": containing_symbol_id,
+            "span": span(start_line, start_column, end_line, end_column, start_byte, end_byte),
+            "confidence": confidence,
+            "metadata": optional_object("structural_facts.metadata_json", metadata_json)?,
+        });
+        write_record(
+            writer,
+            artifact_id,
+            "structural_fact",
+            &structural_fact_id,
             record,
             summary,
         )?;

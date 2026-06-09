@@ -113,13 +113,14 @@ SQLite v2 is the source of truth for durable output. It stores:
 - source file metadata, hashes, and line counts;
 - symbols, symbol annotations, identifiers, relationships, pending
   relationships, type facts, generic type arguments, literals, source regions,
-  and parse diagnostics.
+  structural facts, and parse diagnostics.
 
 The SQLite contract requires lookup indexes for common consumer paths: files by
 path/language, symbols by path/file/name-kind/parent/test-role flags,
 identifiers by path/file/name-kind/containing/target, relationships by source,
 target, and kind, pending relationships by terminal/file, source regions by
-file span/kind/symbol, and diagnostics by path.
+file span/kind/symbol, structural facts by file span/pattern/symbol, and
+diagnostics by path.
 
 Source file `content_hash` values use `blake3:<hex>`. Parser inventory and
 capability snapshot fingerprints use `sha256:<hex>`, and release asset digests
@@ -151,7 +152,8 @@ export writes deterministic `snapshot` records in this order:
 16. `type_argument`
 17. `literal`
 18. `source_region`
-19. `parse_diagnostic`
+19. `structural_fact`
+20. `parse_diagnostic`
 
 JSON text stored in SQLite is decoded into JSON values in JSONL payloads.
 

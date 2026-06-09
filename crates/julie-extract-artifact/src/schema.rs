@@ -250,6 +250,27 @@ CREATE TABLE IF NOT EXISTS source_regions (
   FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS structural_facts (
+  structural_fact_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  pattern_id TEXT NOT NULL,
+  capture_name TEXT NOT NULL,
+  node_kind TEXT NOT NULL,
+  containing_symbol_id TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  confidence REAL NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS parse_diagnostics (
   diagnostic_id TEXT PRIMARY KEY,
   file_id TEXT NOT NULL,
@@ -327,5 +348,8 @@ CREATE INDEX IF NOT EXISTS idx_pending_file ON pending_relationships(file_id);
 CREATE INDEX IF NOT EXISTS idx_source_regions_file_span ON source_regions(file_id, start_byte, end_byte);
 CREATE INDEX IF NOT EXISTS idx_source_regions_kind_file ON source_regions(kind, file_id, start_byte);
 CREATE INDEX IF NOT EXISTS idx_source_regions_symbol ON source_regions(containing_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_structural_facts_file_span ON structural_facts(file_id, start_byte, end_byte);
+CREATE INDEX IF NOT EXISTS idx_structural_facts_pattern_language_path ON structural_facts(pattern_id, language, path);
+CREATE INDEX IF NOT EXISTS idx_structural_facts_symbol ON structural_facts(containing_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_diagnostics_path ON parse_diagnostics(path);
 "#;

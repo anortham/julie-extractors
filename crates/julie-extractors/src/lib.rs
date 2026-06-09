@@ -3,8 +3,8 @@
 //! Tree-sitter-backed code extraction for 34 languages plus TSX/JSX variants.
 //! Produces a stable [`ExtractionResults`] shape: symbols, relationships,
 //! structured pending relationships, identifiers, type info, source regions,
-//! and parse diagnostics. Used by `julie-extract` and consumable from Rust
-//! callers that want in-process extraction.
+//! structural facts, and parse diagnostics. Used by `julie-extract` and
+//! consumable from Rust callers that want in-process extraction.
 //!
 //! ## Quickstart
 //!
@@ -123,7 +123,7 @@ pub use capability_snapshot::{
 /// **Stable.** Bump the suffix after `v` when the canonical extraction shape
 /// changes in a way downstream consumers must observe.
 pub const EXTRACTION_CONTRACT_VERSION: &str =
-    "2026-06-03.ecmascript-swift-shape-v3.source-regions-v1";
+    "2026-06-03.ecmascript-swift-shape-v3.source-regions-v1.structural-facts-v1";
 
 // Re-export BaseExtractor for language implementors
 pub use base::BaseExtractor;
