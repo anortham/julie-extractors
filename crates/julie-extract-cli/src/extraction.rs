@@ -4,12 +4,12 @@ use std::path::Path;
 use std::string::FromUtf8Error;
 
 use julie_extract_artifact::model::{
-    ArtifactFile, ArtifactIdentifier, ArtifactLiteral, ArtifactParseDiagnostic,
-    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSourceRegion,
-    ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation, ArtifactTypeArgument,
-    ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
+    ArtifactComplexityMetric, ArtifactFile, ArtifactIdentifier, ArtifactLiteral,
+    ArtifactParseDiagnostic, ArtifactPendingRelationship, ArtifactRelationship,
+    ArtifactSourceRegion, ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation,
+    ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
 };
-use julie_extractors::base::{StructuralFact, StructuredPendingRelationship};
+use julie_extractors::base::{ComplexityMetric, StructuralFact, StructuredPendingRelationship};
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
     ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship, SourceRegion,
@@ -179,6 +179,7 @@ pub(crate) fn failed_artifact_file(
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: vec![failure_parse_diagnostic(target, error, content_bytes)],
     }
 }
@@ -211,6 +212,7 @@ pub(crate) fn unchanged_artifact_file(
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }
@@ -336,6 +338,10 @@ fn map_results(
         map_structural_facts(&results.structural_facts, target)?,
         |fact| fact.structural_fact_id.as_str(),
     );
+    let complexity_metrics = dedupe_by_id(
+        map_complexity_metrics(&results.complexity_metrics, target)?,
+        |metric| metric.complexity_metric_id.as_str(),
+    );
     let parse_diagnostics = dedupe_by_id(map_parse_diagnostics(&results, target), |diagnostic| {
         diagnostic.diagnostic_id.as_str()
     });
@@ -363,6 +369,7 @@ fn map_results(
         literals,
         source_regions,
         structural_facts,
+        complexity_metrics,
         parse_diagnostics,
     })
 }
@@ -655,6 +662,36 @@ fn map_structural_facts(
                 end_byte: i64::from(fact.end_byte),
                 confidence: f64::from(fact.confidence),
                 metadata_json: optional_json(&fact.metadata, target)?,
+            })
+        })
+        .collect()
+}
+
+fn map_complexity_metrics(
+    metrics: &[ComplexityMetric],
+    target: &FileTarget,
+) -> Result<Vec<ArtifactComplexityMetric>, ExtractFileError> {
+    metrics
+        .iter()
+        .map(|metric| {
+            Ok(ArtifactComplexityMetric {
+                complexity_metric_id: metric.id.clone(),
+                scope: metric.scope.clone(),
+                symbol_id: metric.symbol_id.clone(),
+                algorithm_id: metric.algorithm_id.clone(),
+                covered_lines: i64::from(metric.covered_lines),
+                covered_bytes: i64::from(metric.covered_bytes),
+                decision_count: i64::from(metric.decision_count),
+                loop_count: i64::from(metric.loop_count),
+                max_nesting_depth: i64::from(metric.max_nesting_depth),
+                parameter_count: metric.parameter_count.map(i64::from),
+                start_line: i64::from(metric.start_line),
+                start_column: i64::from(metric.start_column),
+                end_line: i64::from(metric.end_line),
+                end_column: i64::from(metric.end_column),
+                start_byte: i64::from(metric.start_byte),
+                end_byte: i64::from(metric.end_byte),
+                metadata_json: optional_json(&metric.metadata, target)?,
             })
         })
         .collect()

@@ -175,6 +175,10 @@ fn report_row_count_keys_are_exhaustive_for_sqlite_v2() {
         actual.contains("structural_facts"),
         "SQLite v2 row domains must include structural_facts"
     );
+    assert!(
+        actual.contains("complexity_metrics"),
+        "SQLite v2 row domains must include complexity_metrics"
+    );
 
     let report = sample_report(ReportStatus::Ok);
     let value = serde_json::to_value(report).unwrap();
@@ -242,6 +246,7 @@ fn sample_report(status: ReportStatus) -> Report {
                 literals: 1,
                 source_regions: 4,
                 structural_facts: 1,
+                complexity_metrics: 2,
                 ..RowDomainCounts::default()
             },
             totals: RowDomainCounts {
@@ -263,6 +268,7 @@ fn sample_report(status: ReportStatus) -> Report {
                 literals: 6,
                 source_regions: 42,
                 structural_facts: 12,
+                complexity_metrics: 200,
                 ..RowDomainCounts::default()
             },
         },

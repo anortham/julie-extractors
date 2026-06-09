@@ -104,6 +104,13 @@ fn query_plan_uses_required_lookup_indexes() {
         ["User"],
         "idx_pending_terminal",
     );
+    assert_query_uses_index(
+        &conn,
+        "SELECT complexity_metric_id FROM complexity_metrics \
+         WHERE scope = ?1 AND language = ?2",
+        ["symbol", "rust"],
+        "idx_complexity_metrics_scope_language",
+    );
 }
 
 #[test]
@@ -518,6 +525,31 @@ fn expected_tables() -> Vec<ExpectedTable> {
         ],
     );
     tables.insert(
+        "complexity_metrics",
+        vec![
+            "complexity_metric_id TEXT",
+            "file_id TEXT",
+            "path TEXT",
+            "language TEXT",
+            "scope TEXT",
+            "symbol_id TEXT",
+            "algorithm_id TEXT",
+            "covered_lines INTEGER",
+            "covered_bytes INTEGER",
+            "decision_count INTEGER",
+            "loop_count INTEGER",
+            "max_nesting_depth INTEGER",
+            "parameter_count INTEGER",
+            "start_line INTEGER",
+            "start_column INTEGER",
+            "end_line INTEGER",
+            "end_column INTEGER",
+            "start_byte INTEGER",
+            "end_byte INTEGER",
+            "metadata_json TEXT",
+        ],
+    );
+    tables.insert(
         "structural_facts",
         vec![
             "structural_fact_id TEXT",
@@ -715,6 +747,21 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_source_regions_symbol",
             table: "source_regions",
             columns: vec!["containing_symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_complexity_metrics_file_scope",
+            table: "complexity_metrics",
+            columns: vec!["file_id", "scope", "start_byte"],
+        },
+        ExpectedIndex {
+            name: "idx_complexity_metrics_scope_language",
+            table: "complexity_metrics",
+            columns: vec!["scope", "language", "path"],
+        },
+        ExpectedIndex {
+            name: "idx_complexity_metrics_symbol",
+            table: "complexity_metrics",
+            columns: vec!["symbol_id"],
         },
         ExpectedIndex {
             name: "idx_structural_facts_file_span",

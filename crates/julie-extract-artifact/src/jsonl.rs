@@ -31,6 +31,7 @@ pub const JSONL_RECORD_KINDS: &[&str] = &[
     "type_argument",
     "literal",
     "source_region",
+    "complexity_metric",
     "structural_fact",
     "parse_diagnostic",
 ];
@@ -135,6 +136,7 @@ pub fn export_jsonl<W: Write>(
     export_type_arguments(conn, &mut writer, artifact_id, &mut summary)?;
     export_literals(conn, &mut writer, artifact_id, &mut summary)?;
     export_source_regions(conn, &mut writer, artifact_id, &mut summary)?;
+    export_complexity_metrics(conn, &mut writer, artifact_id, &mut summary)?;
     export_structural_facts(conn, &mut writer, artifact_id, &mut summary)?;
     export_parse_diagnostics(conn, &mut writer, artifact_id, &mut summary)?;
 
@@ -1375,6 +1377,96 @@ fn export_structural_facts<W: Write>(
             artifact_id,
             "structural_fact",
             &structural_fact_id,
+            record,
+            summary,
+        )?;
+    }
+    Ok(())
+}
+
+fn export_complexity_metrics<W: Write>(
+    conn: &Connection,
+    writer: &mut W,
+    artifact_id: &str,
+    summary: &mut JsonlExportSummary,
+) -> JsonlExportResult<()> {
+    let mut stmt = conn.prepare(
+        "SELECT complexity_metric_id, file_id, path, language, scope, symbol_id, algorithm_id,
+                covered_lines, covered_bytes, decision_count, loop_count, max_nesting_depth,
+                parameter_count, start_line, start_column, end_line, end_column, start_byte,
+                end_byte, metadata_json
+         FROM complexity_metrics
+         ORDER BY path, start_byte, end_byte, scope, symbol_id, complexity_metric_id",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
+            row.get::<_, Option<String>>(5)?,
+            row.get::<_, String>(6)?,
+            row.get::<_, i64>(7)?,
+            row.get::<_, i64>(8)?,
+            row.get::<_, i64>(9)?,
+            row.get::<_, i64>(10)?,
+            row.get::<_, i64>(11)?,
+            row.get::<_, Option<i64>>(12)?,
+            row.get::<_, i64>(13)?,
+            row.get::<_, i64>(14)?,
+            row.get::<_, i64>(15)?,
+            row.get::<_, i64>(16)?,
+            row.get::<_, i64>(17)?,
+            row.get::<_, i64>(18)?,
+            row.get::<_, Option<String>>(19)?,
+        ))
+    })?;
+    for row in rows {
+        let (
+            complexity_metric_id,
+            file_id,
+            path,
+            language,
+            scope,
+            symbol_id,
+            algorithm_id,
+            covered_lines,
+            covered_bytes,
+            decision_count,
+            loop_count,
+            max_nesting_depth,
+            parameter_count,
+            start_line,
+            start_column,
+            end_line,
+            end_column,
+            start_byte,
+            end_byte,
+            metadata_json,
+        ) = row?;
+        let record = json!({
+            "complexity_metric_id": complexity_metric_id,
+            "file_id": file_id,
+            "path": path,
+            "language": language,
+            "scope": scope,
+            "symbol_id": symbol_id,
+            "algorithm_id": algorithm_id,
+            "covered_lines": covered_lines,
+            "covered_bytes": covered_bytes,
+            "decision_count": decision_count,
+            "loop_count": loop_count,
+            "max_nesting_depth": max_nesting_depth,
+            "parameter_count": parameter_count,
+            "span": span(start_line, start_column, end_line, end_column, start_byte, end_byte),
+            "metadata": optional_object("complexity_metrics.metadata_json", metadata_json)?,
+        });
+        write_record(
+            writer,
+            artifact_id,
+            "complexity_metric",
+            &complexity_metric_id,
             record,
             summary,
         )?;

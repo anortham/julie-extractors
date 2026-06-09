@@ -89,6 +89,10 @@ fn sqlite_json_text_columns_are_decoded_into_json_values() {
         json!({"source_region": true})
     );
     assert_eq!(
+        record(&records, "complexity_metric")["metadata"],
+        json!({"metric_version": 1})
+    );
+    assert_eq!(
         record(&records, "structural_fact")["metadata"],
         json!({"pattern_version": 1, "query_family": "safety"})
     );
@@ -368,6 +372,27 @@ fn every_record_kind_uses_exact_payload_keys() {
             "containing_symbol_id",
             "span",
             "confidence",
+            "metadata",
+        ],
+    );
+    assert_record_keys(
+        &records,
+        "complexity_metric",
+        &[
+            "complexity_metric_id",
+            "file_id",
+            "path",
+            "language",
+            "scope",
+            "symbol_id",
+            "algorithm_id",
+            "covered_lines",
+            "covered_bytes",
+            "decision_count",
+            "loop_count",
+            "max_nesting_depth",
+            "parameter_count",
+            "span",
             "metadata",
         ],
     );
@@ -696,6 +721,17 @@ fn insert_extraction_rows(conn: &Connection) {
          VALUES ('region-comment', 'file-a', 'src/a.rs', 'rust', 'comment',
                  'sym-alpha', 1, 0, 1, 14, 0, 14, ?1)",
         [r#"{"source_region":true}"#],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO complexity_metrics
+         (complexity_metric_id, file_id, path, language, scope, symbol_id, algorithm_id,
+          covered_lines, covered_bytes, decision_count, loop_count, max_nesting_depth,
+          parameter_count, start_line, start_column, end_line, end_column, start_byte, end_byte,
+          metadata_json)
+         VALUES ('complexity-alpha', 'file-a', 'src/a.rs', 'rust', 'symbol', 'sym-alpha',
+                 'julie-ast-complexity-v1', 3, 48, 1, 1, 2, 2, 1, 0, 3, 1, 0, 48, ?1)",
+        [r#"{"metric_version":1}"#],
     )
     .unwrap();
     conn.execute(

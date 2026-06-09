@@ -812,6 +812,7 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
                     "identifiers": kind_coverage_domain(&row.kind_coverage.identifiers),
                     "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
                     "structural_facts": kind_coverage_domain(&row.kind_coverage.structural_facts),
+                    "complexity_metrics": kind_coverage_domain(&row.kind_coverage.complexity_metrics),
                 }),
                 "fixtures": row.fixtures.len(),
                 "capability_gaps": row.capability_gaps.len(),
@@ -2031,6 +2032,7 @@ fn table_totals(connection: &Connection) -> RowDomainCounts {
         literals: table_count(connection, "literals"),
         source_regions: table_count(connection, "source_regions"),
         structural_facts: table_count(connection, "structural_facts"),
+        complexity_metrics: table_count(connection, "complexity_metrics"),
         parse_diagnostics: table_count(connection, "parse_diagnostics"),
     }
 }
@@ -2076,6 +2078,7 @@ fn jsonl_counts(records_by_kind: &BTreeMap<&'static str, usize>) -> RowDomainCou
             "literal" => counts.literals = count,
             "source_region" => counts.source_regions = count,
             "structural_fact" => counts.structural_facts = count,
+            "complexity_metric" => counts.complexity_metrics = count,
             "parse_diagnostic" => counts.parse_diagnostics = count,
             _ => {}
         }
@@ -2109,6 +2112,7 @@ fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
                 "identifiers": kind_coverage_domain(&row.kind_coverage.identifiers),
                 "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
                 "structural_facts": kind_coverage_domain(&row.kind_coverage.structural_facts),
+                "complexity_metrics": kind_coverage_domain(&row.kind_coverage.complexity_metrics),
             }),
             fixtures: row
                 .fixtures
@@ -3202,6 +3206,7 @@ mod tests {
             literals: Vec::new(),
             source_regions: Vec::new(),
             structural_facts: Vec::new(),
+            complexity_metrics: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }

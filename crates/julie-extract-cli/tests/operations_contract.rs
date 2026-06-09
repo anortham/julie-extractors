@@ -175,6 +175,24 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         report["counts"]["totals"]["structural_facts"],
         structural_facts.len() as i64
     );
+    let complexity_scopes = complexity_metric_scopes_for_path(&db, "src/a.rs");
+    assert!(
+        complexity_scopes.contains(&"file".to_string()),
+        "scan should persist a file complexity metric, got {complexity_scopes:?}"
+    );
+    assert!(
+        complexity_scopes.contains(&"symbol".to_string()),
+        "scan should persist a symbol complexity metric, got {complexity_scopes:?}"
+    );
+    let complexity_metric_count = table_count(&db, "complexity_metrics");
+    assert_eq!(
+        report["counts"]["rows_written"]["complexity_metrics"],
+        complexity_metric_count
+    );
+    assert_eq!(
+        report["counts"]["totals"]["complexity_metrics"],
+        complexity_metric_count
+    );
     assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
 }
@@ -1525,6 +1543,22 @@ fn structural_facts_for_path(db: &Path, path: &str) -> Vec<(String, String, Stri
         )
         .unwrap();
     stmt.query_map([path], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn complexity_metric_scopes_for_path(db: &Path, path: &str) -> Vec<String> {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT scope
+             FROM complexity_metrics
+             WHERE path = ?1
+             ORDER BY scope, complexity_metric_id",
+        )
+        .unwrap();
+    stmt.query_map([path], |row| row.get(0))
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap()

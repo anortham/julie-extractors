@@ -53,6 +53,9 @@ Implement every domain the language claims:
 - `structural_facts`: versioned parser-backed pattern facts when the language
   has supported structural patterns. Advertise exact pattern ids in
   `kind_coverage.structural_facts.supported`.
+- `complexity_metrics`: versioned parser-backed file and symbol metrics when
+  the language has supported metric extraction. Advertise exact scopes in
+  `kind_coverage.complexity_metrics.supported`.
 - `parse_diagnostics`: stable diagnostics for parse errors or missing nodes when
   they should be visible to downstream consumers.
 
@@ -70,7 +73,7 @@ Update `fixtures/extraction/capabilities.json`:
 - Add fixture entries for every advertised capability.
 - Fill `kind_coverage.symbols`, `kind_coverage.relationships`,
   `kind_coverage.identifiers`, `kind_coverage.body_spans`, and
-  `kind_coverage.structural_facts`.
+  `kind_coverage.structural_facts`, and `kind_coverage.complexity_metrics`.
 - Add `capability_gaps` only for real open gaps or true domain/parser
   exceptions. Every row needs typed evidence.
 

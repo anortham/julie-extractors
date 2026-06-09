@@ -60,8 +60,9 @@ Full export order is deterministic:
 16. `type_argument`
 17. `literal`
 18. `source_region`
-19. `structural_fact`
-20. `parse_diagnostic`
+19. `complexity_metric`
+20. `structural_fact`
+21. `parse_diagnostic`
 
 Rows are ordered by primary key within each kind unless a kind defines a more
 specific natural order.
@@ -446,6 +447,33 @@ Fields:
 - `metadata`: object or `null`
 
 Embedded region metadata may include `embedded_language` and `host_node_kind`.
+
+### `complexity_metric`
+
+`record_id`: `complexity_metric_id`.
+
+Fields:
+
+- `complexity_metric_id`: string
+- `file_id`: string
+- `path`: root-relative path string
+- `language`: string
+- `scope`: `file` or `symbol`
+- `symbol_id`: string or `null`
+- `algorithm_id`: stable versioned algorithm identifier
+- `covered_lines`: integer
+- `covered_bytes`: integer
+- `decision_count`: integer
+- `loop_count`: integer
+- `max_nesting_depth`: integer
+- `parameter_count`: integer or `null`
+- `span`: span object
+- `metadata`: object or `null`
+
+The initial algorithm id is `julie-ast-complexity-v1`. Records are primitive
+metrics only; downstream tools own ranking, risk labels, and dashboards.
+Supported scopes are advertised in `language_capability` records under
+`kind_coverage.complexity_metrics.supported`.
 
 ### `structural_fact`
 

@@ -50,6 +50,7 @@ impl ExtractionResults {
             literals: Vec::new(),
             source_regions: Vec::new(),
             structural_facts: Vec::new(),
+            complexity_metrics: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }
@@ -68,6 +69,8 @@ impl ExtractionResults {
         self.literals.append(&mut other.literals);
         self.source_regions.append(&mut other.source_regions);
         self.structural_facts.append(&mut other.structural_facts);
+        self.complexity_metrics
+            .append(&mut other.complexity_metrics);
         self.parse_diagnostics.append(&mut other.parse_diagnostics);
     }
 
@@ -135,6 +138,19 @@ impl ExtractionResults {
             }
             .with_offset(offset);
             fact.apply_normalized_span(span);
+        }
+
+        for metric in &mut self.complexity_metrics {
+            let span = NormalizedSpan {
+                start_line: metric.start_line,
+                start_column: metric.start_column,
+                end_line: metric.end_line,
+                end_column: metric.end_column,
+                start_byte: metric.start_byte,
+                end_byte: metric.end_byte,
+            }
+            .with_offset(offset);
+            metric.apply_normalized_span(span);
         }
 
         for relationship in &mut self.relationships {
@@ -217,6 +233,15 @@ impl ExtractionResults {
             {
                 *containing_symbol_id = new_symbol_id.clone();
             }
+        }
+
+        for metric in &mut self.complexity_metrics {
+            if let Some(symbol_id) = metric.symbol_id.as_mut()
+                && let Some(new_symbol_id) = symbol_id_map.get(symbol_id)
+            {
+                *symbol_id = new_symbol_id.clone();
+            }
+            metric.refresh_id();
         }
 
         for relationship in &mut self.relationships {

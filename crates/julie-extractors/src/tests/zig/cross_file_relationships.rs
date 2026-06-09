@@ -54,6 +54,7 @@ mod tests {
             literals: Vec::new(),
             source_regions: Vec::new(),
             structural_facts: Vec::new(),
+            complexity_metrics: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }

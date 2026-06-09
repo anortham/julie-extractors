@@ -5,11 +5,11 @@ use std::time::Instant;
 
 use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
-    ArtifactFile, ArtifactIdentifier, ArtifactLiteral, ArtifactParseDiagnostic,
-    ArtifactPendingRelationship, ArtifactRelationship, ArtifactSourceRegion,
-    ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation, ArtifactTypeArgument,
-    ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus, RevisionInput, RowCounts, WriteMode,
-    WriteOperation,
+    ArtifactComplexityMetric, ArtifactFile, ArtifactIdentifier, ArtifactLiteral,
+    ArtifactParseDiagnostic, ArtifactPendingRelationship, ArtifactRelationship,
+    ArtifactSourceRegion, ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation,
+    ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus, RevisionInput,
+    RowCounts, WriteMode, WriteOperation,
 };
 use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
 use serde::Serialize;
@@ -109,6 +109,7 @@ pub struct WriterCurrentSchemaRowCounts {
     pub literals: i64,
     pub source_regions: i64,
     pub structural_facts: i64,
+    pub complexity_metrics: i64,
     pub parse_diagnostics: i64,
     pub revision_file_changes: i64,
 }
@@ -127,6 +128,7 @@ impl WriterCurrentSchemaRowCounts {
             + self.literals
             + self.source_regions
             + self.structural_facts
+            + self.complexity_metrics
             + self.parse_diagnostics
     }
 }
@@ -146,6 +148,7 @@ impl From<&RowCounts> for WriterCurrentSchemaRowCounts {
             literals: rows.literals,
             source_regions: rows.source_regions,
             structural_facts: rows.structural_facts,
+            complexity_metrics: rows.complexity_metrics,
             parse_diagnostics: rows.parse_diagnostics,
             revision_file_changes: rows.revision_file_changes,
         }
@@ -751,6 +754,7 @@ fn writer_current_schema_file(file_index: usize, plan: &WriterCurrentSchemaPlan)
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     };
 
@@ -781,6 +785,10 @@ fn writer_current_schema_file(file_index: usize, plan: &WriterCurrentSchemaPlan)
         .collect();
     file.structural_facts
         .push(writer_current_schema_structural_fact(&file_id));
+    file.complexity_metrics = vec![
+        writer_current_schema_file_complexity_metric(&file_id),
+        writer_current_schema_symbol_complexity_metric(&file_id),
+    ];
     file.parse_diagnostics
         .push(writer_current_schema_parse_diagnostic(&file_id));
     file
@@ -991,6 +999,50 @@ fn writer_current_schema_structural_fact(file_id: &str) -> ArtifactStructuralFac
         end_byte: 160,
         confidence: 1.0,
         metadata_json: Some(r#"{"pattern_version":1,"query_family":"safety"}"#.to_string()),
+    }
+}
+
+fn writer_current_schema_file_complexity_metric(file_id: &str) -> ArtifactComplexityMetric {
+    ArtifactComplexityMetric {
+        complexity_metric_id: format!("{file_id}-complexity-file"),
+        scope: "file".to_string(),
+        symbol_id: None,
+        algorithm_id: "julie-ast-complexity-v1".to_string(),
+        covered_lines: 200,
+        covered_bytes: 4096,
+        decision_count: 4,
+        loop_count: 2,
+        max_nesting_depth: 3,
+        parameter_count: None,
+        start_line: 1,
+        start_column: 0,
+        end_line: 200,
+        end_column: 0,
+        start_byte: 0,
+        end_byte: 4096,
+        metadata_json: Some(r#"{"metric_version":1,"synthetic":true}"#.to_string()),
+    }
+}
+
+fn writer_current_schema_symbol_complexity_metric(file_id: &str) -> ArtifactComplexityMetric {
+    ArtifactComplexityMetric {
+        complexity_metric_id: format!("{file_id}-complexity-symbol-0"),
+        scope: "symbol".to_string(),
+        symbol_id: Some(format!("{file_id}-symbol-0")),
+        algorithm_id: "julie-ast-complexity-v1".to_string(),
+        covered_lines: 3,
+        covered_bytes: 96,
+        decision_count: 1,
+        loop_count: 1,
+        max_nesting_depth: 2,
+        parameter_count: Some(2),
+        start_line: 1,
+        start_column: 0,
+        end_line: 3,
+        end_column: 1,
+        start_byte: 0,
+        end_byte: 96,
+        metadata_json: Some(r#"{"metric_version":1,"synthetic":true}"#.to_string()),
     }
 }
 

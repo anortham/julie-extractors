@@ -271,6 +271,31 @@ CREATE TABLE IF NOT EXISTS structural_facts (
   FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS complexity_metrics (
+  complexity_metric_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  symbol_id TEXT,
+  algorithm_id TEXT NOT NULL,
+  covered_lines INTEGER NOT NULL,
+  covered_bytes INTEGER NOT NULL,
+  decision_count INTEGER NOT NULL,
+  loop_count INTEGER NOT NULL,
+  max_nesting_depth INTEGER NOT NULL,
+  parameter_count INTEGER,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS parse_diagnostics (
   diagnostic_id TEXT PRIMARY KEY,
   file_id TEXT NOT NULL,
@@ -351,5 +376,8 @@ CREATE INDEX IF NOT EXISTS idx_source_regions_symbol ON source_regions(containin
 CREATE INDEX IF NOT EXISTS idx_structural_facts_file_span ON structural_facts(file_id, start_byte, end_byte);
 CREATE INDEX IF NOT EXISTS idx_structural_facts_pattern_language_path ON structural_facts(pattern_id, language, path);
 CREATE INDEX IF NOT EXISTS idx_structural_facts_symbol ON structural_facts(containing_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_complexity_metrics_file_scope ON complexity_metrics(file_id, scope, start_byte);
+CREATE INDEX IF NOT EXISTS idx_complexity_metrics_scope_language ON complexity_metrics(scope, language, path);
+CREATE INDEX IF NOT EXISTS idx_complexity_metrics_symbol ON complexity_metrics(symbol_id);
 CREATE INDEX IF NOT EXISTS idx_diagnostics_path ON parse_diagnostics(path);
 "#;

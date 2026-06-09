@@ -384,6 +384,7 @@ impl DogfoodFixture {
             CREATE TABLE type_arguments (id TEXT);
             CREATE TABLE literals (id TEXT);
             CREATE TABLE source_regions (id TEXT);
+            CREATE TABLE complexity_metrics (id TEXT);
             CREATE TABLE structural_facts (id TEXT);
             CREATE TABLE parse_diagnostics (id TEXT);
             ",
@@ -456,6 +457,7 @@ impl DogfoodFixture {
             "file",
             "symbol",
             "source_region",
+            "complexity_metric",
             "structural_fact",
         ];
         for index in 0..records {

@@ -1,3 +1,4 @@
+use crate::base::complexity_metrics::complexity_metric_scopes_for_language;
 use crate::base::structural_facts::structural_fact_pattern_ids_for_language;
 use crate::extract_canonical;
 use crate::language::language_spec;
@@ -902,6 +903,24 @@ fn capability_matrix_requires_structural_facts_coverage_domain() {
 }
 
 #[test]
+fn capability_matrix_requires_complexity_metrics_coverage_domain() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        if row["kind_coverage"].get("complexity_metrics").is_none() {
+            errors.push(format!(
+                "{language} is missing kind_coverage.complexity_metrics for complexity metric claims"
+            ));
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
 fn capability_matrix_structural_fact_claims_have_fixture_evidence() {
     let root = workspace_root();
     let matrix = load_matrix_json(&root);
@@ -938,6 +957,42 @@ fn capability_matrix_structural_fact_claims_have_fixture_evidence() {
 }
 
 #[test]
+fn capability_matrix_complexity_metric_claims_have_fixture_evidence() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let Some(coverage) = row["kind_coverage"].get("complexity_metrics") else {
+            errors.push(format!(
+                "{language} is missing kind_coverage.complexity_metrics for complexity metric claims"
+            ));
+            continue;
+        };
+        let claimed = complexity_metric_claims(language, coverage);
+        let observed = observed_complexity_metric_scopes(&root, row);
+
+        for scope in &claimed {
+            if !observed.contains(scope) {
+                errors.push(format!(
+                    "{language} claims complexity metric scope `{scope}` but no fixture source emits it"
+                ));
+            }
+        }
+        for scope in &observed {
+            if !claimed.contains(scope) {
+                errors.push(format!(
+                    "{language} fixture source emits complexity metric scope `{scope}` but kind_coverage.complexity_metrics.supported does not advertise it"
+                ));
+            }
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
 fn capability_matrix_structural_fact_claims_match_registry() {
     let root = workspace_root();
     let matrix = load_matrix_json(&root);
@@ -959,6 +1014,35 @@ fn capability_matrix_structural_fact_claims_match_registry() {
         if claimed != registry {
             errors.push(format!(
                 "{language} structural_facts coverage does not match registry: claimed={claimed:?} registry={registry:?}"
+            ));
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
+fn capability_matrix_complexity_metric_claims_match_registry() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let Some(coverage) = row["kind_coverage"].get("complexity_metrics") else {
+            errors.push(format!(
+                "{language} is missing kind_coverage.complexity_metrics for complexity metric claims"
+            ));
+            continue;
+        };
+        let claimed = complexity_metric_claims(language, coverage);
+        let registry = complexity_metric_scopes_for_language(language)
+            .into_iter()
+            .map(str::to_string)
+            .collect::<BTreeSet<_>>();
+        if claimed != registry {
+            errors.push(format!(
+                "{language} complexity_metrics coverage does not match registry: claimed={claimed:?} registry={registry:?}"
             ));
         }
     }
@@ -1300,6 +1384,33 @@ fn observed_structural_fact_patterns(root: &Path, row: &Value) -> BTreeSet<Strin
     observed
 }
 
+fn observed_complexity_metric_scopes(root: &Path, row: &Value) -> BTreeSet<String> {
+    let language = row["language"].as_str().unwrap();
+    let fixtures = row["fixtures"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{language} fixtures must be an array"));
+    let mut observed = BTreeSet::new();
+
+    for fixture in fixtures {
+        let source_path = fixture["source"].as_str().unwrap_or_else(|| {
+            panic!("{language} fixture entries must include string source paths")
+        });
+        let source = fs::read_to_string(root.join(source_path))
+            .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
+        let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
+            panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
+        });
+        observed.extend(
+            results
+                .complexity_metrics
+                .iter()
+                .map(|metric| metric.scope.clone()),
+        );
+    }
+
+    observed
+}
+
 fn structural_fact_claims(language: &str, coverage: &Value) -> BTreeSet<String> {
     coverage["supported"]
         .as_array()
@@ -1310,6 +1421,22 @@ fn structural_fact_claims(language: &str, coverage: &Value) -> BTreeSet<String> 
                 .as_str()
                 .unwrap_or_else(|| {
                     panic!("{language} structural_facts.supported values must be strings")
+                })
+                .to_string()
+        })
+        .collect()
+}
+
+fn complexity_metric_claims(language: &str, coverage: &Value) -> BTreeSet<String> {
+    coverage["supported"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{language} complexity_metrics.supported must be an array"))
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .unwrap_or_else(|| {
+                    panic!("{language} complexity_metrics.supported values must be strings")
                 })
                 .to_string()
         })

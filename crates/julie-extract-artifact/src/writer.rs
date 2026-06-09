@@ -1307,6 +1307,10 @@ fn delete_file_rows(tx: &Transaction<'_>, file_id: &str, path: &str) -> rusqlite
     tx.execute("DELETE FROM source_regions WHERE file_id = ?1", [file_id])?;
     tx.execute("DELETE FROM structural_facts WHERE file_id = ?1", [file_id])?;
     tx.execute(
+        "DELETE FROM complexity_metrics WHERE file_id = ?1",
+        [file_id],
+    )?;
+    tx.execute(
         "DELETE FROM pending_relationships WHERE file_id = ?1",
         [file_id],
     )?;
@@ -1459,6 +1463,7 @@ struct ChildRowInserters<'tx> {
     literals: CachedStatement<'tx>,
     source_regions: CachedStatement<'tx>,
     structural_facts: CachedStatement<'tx>,
+    complexity_metrics: CachedStatement<'tx>,
     parse_diagnostics: CachedStatement<'tx>,
 }
 
@@ -1533,6 +1538,15 @@ impl<'tx> ChildRowInserters<'tx> {
                   end_column, start_byte, end_byte, confidence, metadata_json)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             )?,
+            complexity_metrics: tx.prepare_cached(
+                "INSERT INTO complexity_metrics
+                 (complexity_metric_id, file_id, path, language, scope, symbol_id, algorithm_id,
+                  covered_lines, covered_bytes, decision_count, loop_count, max_nesting_depth,
+                  parameter_count, start_line, start_column, end_line, end_column, start_byte,
+                  end_byte, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                         ?17, ?18, ?19, ?20)",
+            )?,
             parse_diagnostics: tx.prepare_cached(
                 "INSERT INTO parse_diagnostics
                  (diagnostic_id, file_id, path, language, kind, message, start_line, start_column,
@@ -1572,6 +1586,8 @@ impl<'tx> ChildRowInserters<'tx> {
             insert_source_regions(&mut self.source_regions, file, symbol_lookup)?;
         counts.structural_facts +=
             insert_structural_facts(&mut self.structural_facts, file, symbol_lookup)?;
+        counts.complexity_metrics +=
+            insert_complexity_metrics(&mut self.complexity_metrics, file, symbol_lookup)?;
         counts.parse_diagnostics +=
             insert_parse_diagnostics_rows(&mut self.parse_diagnostics, file)?;
         Ok(())
@@ -1993,6 +2009,38 @@ fn insert_structural_facts(
     Ok(file.structural_facts.len() as i64)
 }
 
+fn insert_complexity_metrics(
+    stmt: &mut CachedStatement<'_>,
+    file: &ArtifactFile,
+    symbol_lookup: &SymbolLookup,
+) -> rusqlite::Result<i64> {
+    for metric in &file.complexity_metrics {
+        stmt.execute(params![
+            metric.complexity_metric_id,
+            file.file_id,
+            file.path,
+            file.language,
+            metric.scope,
+            valid_symbol_id(symbol_lookup, metric.symbol_id.as_deref()),
+            metric.algorithm_id,
+            metric.covered_lines,
+            metric.covered_bytes,
+            metric.decision_count,
+            metric.loop_count,
+            metric.max_nesting_depth,
+            metric.parameter_count,
+            metric.start_line,
+            metric.start_column,
+            metric.end_line,
+            metric.end_column,
+            metric.start_byte,
+            metric.end_byte,
+            metric.metadata_json,
+        ])?;
+    }
+    Ok(file.complexity_metrics.len() as i64)
+}
+
 fn insert_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
     let mut stmt = tx.prepare_cached(
         "INSERT INTO parse_diagnostics
@@ -2099,6 +2147,11 @@ fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut HashSet<Str
     for fact in &file.structural_facts {
         if let Some(containing_symbol_id) = fact.containing_symbol_id.as_deref() {
             requested.insert(containing_symbol_id.to_string());
+        }
+    }
+    for metric in &file.complexity_metrics {
+        if let Some(symbol_id) = metric.symbol_id.as_deref() {
+            requested.insert(symbol_id.to_string());
         }
     }
 }
@@ -2359,6 +2412,7 @@ mod tests {
             literals: Vec::new(),
             source_regions: Vec::new(),
             structural_facts: Vec::new(),
+            complexity_metrics: Vec::new(),
             parse_diagnostics: Vec::new(),
         }
     }

@@ -11,6 +11,7 @@ pub mod c;
 #[cfg(feature = "test-capability-matrix")]
 pub mod capability_matrix;
 pub mod capability_snapshot_test;
+pub mod complexity_metrics;
 pub mod cpp;
 pub mod csharp;
 pub mod css;

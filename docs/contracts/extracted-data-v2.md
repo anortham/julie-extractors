@@ -46,6 +46,7 @@ These row domains are part of the extraction product contract:
 | `literals` | String or scalar literals that carry URLs, SQL, or configured language-specific facts. Route is reserved until route carriers are explicitly configured. | Languages with configured literal carriers or useful literal semantics. |
 | `source_regions` | Source spans for comments, doc comments, string literals, and embedded language regions. | Languages with supported source-region node kinds. |
 | `structural_facts` | Versioned parser-backed structural facts such as unsafe blocks, Go launch/defer statements, decorated Python definitions, JS-family await expressions, and C-family preprocessor definitions. | Languages and patterns advertised in `kind_coverage.structural_facts.supported` with explicit fixture-backed coverage. |
+| `complexity_metrics` | Versioned parser-backed file and symbol metrics: covered lines/bytes, decision count, loop count, max nesting depth, and parameter count where applicable. | Languages and scopes advertised in `kind_coverage.complexity_metrics.supported` with explicit fixture-backed coverage. |
 | `parse_diagnostics` | Tree-sitter parse errors and missing-node diagnostics in stable row form. | Supported files with parser diagnostics that should be exposed to consumers. |
 
 ## Support Labels

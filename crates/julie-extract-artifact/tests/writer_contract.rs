@@ -1,7 +1,7 @@
 use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
-    ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactFile, ArtifactIdentifier,
-    ArtifactLanguageCapabilityFixtureRow, ArtifactLanguageCapabilityGapRow,
+    ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactComplexityMetric, ArtifactFile,
+    ArtifactIdentifier, ArtifactLanguageCapabilityFixtureRow, ArtifactLanguageCapabilityGapRow,
     ArtifactLanguageCapabilityRow, ArtifactLiteral, ArtifactParseDiagnostic,
     ArtifactParserInventoryRow, ArtifactPendingRelationship, ArtifactRelationship,
     ArtifactSourceRegion, ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation,
@@ -128,6 +128,7 @@ fn scan_persists_every_normalized_row_family_with_counts() {
     assert_eq!(result.rows_written.literals, 1);
     assert_eq!(result.rows_written.source_regions, 1);
     assert_eq!(result.rows_written.structural_facts, 1);
+    assert_eq!(result.rows_written.complexity_metrics, 1);
     assert_eq!(result.rows_written.parse_diagnostics, 1);
     assert_eq!(count(writer.connection(), "symbol_annotations"), 1);
     assert_eq!(count(writer.connection(), "identifiers"), 1);
@@ -139,6 +140,7 @@ fn scan_persists_every_normalized_row_family_with_counts() {
     assert_eq!(count(writer.connection(), "literals"), 1);
     assert_eq!(count(writer.connection(), "source_regions"), 1);
     assert_eq!(count(writer.connection(), "structural_facts"), 1);
+    assert_eq!(count(writer.connection(), "complexity_metrics"), 1);
     assert_eq!(count(writer.connection(), "parse_diagnostics"), 1);
 }
 
@@ -1124,6 +1126,7 @@ fn file_with_symbols<const N: usize>(
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }
@@ -1167,6 +1170,7 @@ fn file_with_many_symbols(
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }
@@ -1267,6 +1271,25 @@ fn file_with_all_rows(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
         confidence: 1.0,
         metadata_json: Some(r#"{"pattern_version":1,"query_family":"safety"}"#.to_string()),
     });
+    file.complexity_metrics.push(ArtifactComplexityMetric {
+        complexity_metric_id: format!("{file_id}-complexity-symbol-1"),
+        scope: "symbol".to_string(),
+        symbol_id: Some(format!("{file_id}-symbol-0")),
+        algorithm_id: "julie-ast-complexity-v1".to_string(),
+        covered_lines: 3,
+        covered_bytes: 48,
+        decision_count: 1,
+        loop_count: 1,
+        max_nesting_depth: 2,
+        parameter_count: Some(2),
+        start_line: 1,
+        start_column: 0,
+        end_line: 3,
+        end_column: 1,
+        start_byte: 0,
+        end_byte: 48,
+        metadata_json: Some(r#"{"metric_version":1}"#.to_string()),
+    });
     file.parse_diagnostics.push(ArtifactParseDiagnostic {
         diagnostic_id: format!("{file_id}-diagnostic-1"),
         kind: "error".to_string(),
@@ -1294,6 +1317,7 @@ fn assert_child_tables_empty(conn: &Connection) {
         "literals",
         "source_regions",
         "structural_facts",
+        "complexity_metrics",
         "parse_diagnostics",
     ] {
         assert_eq!(count(conn, table), 0, "{table} should be empty");

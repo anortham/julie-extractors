@@ -75,6 +75,7 @@ part of this contract.
       "literals": 1,
       "source_regions": 4,
       "structural_facts": 1,
+      "complexity_metrics": 2,
       "parse_diagnostics": 0
     },
     "totals": {
@@ -97,6 +98,7 @@ part of this contract.
       "literals": 6,
       "source_regions": 300,
       "structural_facts": 12,
+      "complexity_metrics": 200,
       "parse_diagnostics": 0
     }
   },

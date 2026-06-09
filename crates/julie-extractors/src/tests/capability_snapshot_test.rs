@@ -99,6 +99,11 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
           "supported": ["new.await_expression.v1"],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": ["file", "symbol"],
+          "not_applicable": [],
+          "open_gaps": []
         }
       },
       "fixtures": []
@@ -120,5 +125,9 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
     assert_eq!(
         new.kind_coverage.structural_facts.supported,
         vec!["new.await_expression.v1"]
+    );
+    assert_eq!(
+        new.kind_coverage.complexity_metrics.supported,
+        vec!["file", "symbol"]
     );
 }

@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
-    ArtifactFile, ArtifactIdentifier, ArtifactPendingRelationship, ArtifactSymbol,
-    ArtifactTypeFact, FileStatus, RevisionInput, WriteMode, WriteOperation,
+    ArtifactComplexityMetric, ArtifactFile, ArtifactIdentifier, ArtifactPendingRelationship,
+    ArtifactSymbol, ArtifactTypeFact, FileStatus, RevisionInput, WriteMode, WriteOperation,
 };
 use julie_extract_artifact::writer::ArtifactWriter;
 
@@ -47,6 +47,7 @@ fn child_row_batch_avoids_per_file_statement_prepare_overhead() {
     assert_eq!(result.rows_written.identifiers, 36_000);
     assert_eq!(result.rows_written.pending_relationships, 12_000);
     assert_eq!(result.rows_written.type_facts, 9_000);
+    assert_eq!(result.rows_written.complexity_metrics, 9_000);
     assert!(
         elapsed < Duration::from_millis(1_750),
         "child-row writer tripwire exceeded budget: {elapsed:?}"
@@ -114,6 +115,25 @@ fn file_with_child_rows(index: usize) -> ArtifactFile {
             metadata_json: None,
         })
         .collect();
+    file.complexity_metrics = (0..3)
+        .map(|metric_index| ArtifactComplexityMetric {
+            complexity_metric_id: format!("file-{index}-complexity-{metric_index}"),
+            scope: "symbol".to_string(),
+            symbol_id: Some(format!("file-{index}-symbol-{metric_index}")),
+            algorithm_id: "julie-ast-complexity-v1".to_string(),
+            covered_lines: 3,
+            covered_bytes: 64,
+            decision_count: 1,
+            loop_count: 1,
+            max_nesting_depth: 2,
+            parameter_count: Some(2),
+            start_line: (metric_index + 1) as i64,
+            end_line: (metric_index + 3) as i64,
+            start_byte: (metric_index * 8) as i64,
+            end_byte: (metric_index * 8 + 64) as i64,
+            ..ArtifactComplexityMetric::default()
+        })
+        .collect();
     file
 }
 
@@ -150,6 +170,7 @@ fn file_with_symbol(index: usize, symbol_count: usize) -> ArtifactFile {
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
 }

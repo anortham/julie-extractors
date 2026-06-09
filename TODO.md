@@ -121,34 +121,26 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   publication, and `cargo xtask performance writer-current-schema` exercises
   the row family.
 
-## 8. Cross-language AST/code complexity metrics — open
+## 8. Cross-language AST/code complexity metrics — complete
 
-- **Where:** New contract/design under `docs/contracts/` and/or `docs/plans/`;
-  likely extractor surfaces under `crates/julie-extractors/src/base/` and
-  per-language modules; artifact surfaces under
-  `crates/julie-extract-artifact/src/{schema.rs,writer.rs,jsonl.rs,model.rs}`;
-  capability evidence in `fixtures/extraction/capabilities.json` and
-  `crates/julie-extractors/src/tests/capability_matrix.rs`.
-- **Finding:** The repo has regex-pattern complexity, but not a stable
-  cross-language code/AST complexity contract for symbols or files.
-- **Why it matters:** Miller can rank context, flag hard-to-read areas, and feed
-  Eros risk dashboards only if complexity metrics are emitted as extraction
-  facts. Computing them in Miller would duplicate parser traversal and would
-  silently miss languages.
-- **Proposed fix:** Define a v1 `complexity_metrics` contract with conservative
-  metrics that can be measured consistently across languages: symbol id or file
-  id, metric scope, lines/bytes covered, branch/decision count, loop count,
-  nesting depth, parameter count where applicable, and a versioned algorithm id.
-  Start with parser-backed languages where the metric semantics are clear; mark
-  unsupported or not-applicable language/kind gaps explicitly in the capability
-  matrix.
-- **Guardrail:** Avoid claiming language parity until fixture evidence exists.
-  Avoid a single opaque "quality score" in the extractor. Emit primitive,
-  versioned metrics; downstream tools can decide how to rank or present them.
-- **Verification target:** Add fixture-backed metrics for at least a small
-  cross-language matrix, contract tests for SQLite/JSONL output, capability
-  rows for supported and open-gap languages, and one real-repo dogfood report
-  showing row counts by language and metric scope.
+- **Done:** The current v2 artifact has a `complexity_metrics` SQLite table,
+  `complexity_metric` JSONL records, report row counts, writer coverage, CLI
+  scan persistence, current-schema writer guard coverage, and contract docs.
+- **Done:** Extractors now emit primitive parser-backed metrics with
+  `algorithm_id = julie-ast-complexity-v1`: `file` and `symbol` scope,
+  covered lines/bytes, decision count, loop count, max nesting depth, and
+  parameter count where applicable.
+- **Done:** The first fixture-backed matrix covers `c`, `cpp`, `go`,
+  `javascript`, `python`, `rust`, and `typescript`. Capability evidence
+  advertises supported scopes through
+  `kind_coverage.complexity_metrics.supported`; unsupported languages publish
+  no metric-scope claims.
+- **Guardrail kept:** The extractor emits facts only. It does not emit a single
+  opaque quality score, severity, ranking, threshold, or dashboard decision.
+- **Evidence:** `docs/release-evidence/2026-06-09-complexity-metrics-dogfood.md`
+  records a real-repo scan with 6943 `complexity_metrics` rows and counts by
+  language and metric scope. Focused extractor, artifact, CLI, capability, and
+  xtask tests pass for this slice.
 
 ## 9. Clone-ready body fingerprints beyond current `body_hash` — exact-hash contract complete
 

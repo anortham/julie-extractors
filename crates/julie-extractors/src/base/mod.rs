@@ -13,6 +13,7 @@
 
 pub mod annotations;
 pub mod body;
+pub mod complexity_metrics;
 pub mod creation_methods;
 pub mod embedded_span;
 pub mod extractor;
@@ -31,6 +32,7 @@ pub mod types;
 // Re-export key types for external use
 pub use annotations::normalize_annotations;
 pub use body::BodySpan;
+pub use complexity_metrics::collect_complexity_metrics;
 pub use embedded_span::EmbeddedSpanOffset;
 pub use extractor::BaseExtractor;
 pub use kinds::{IdentifierKind, RelationshipKind, SymbolKind, TestRole, Visibility};
@@ -44,9 +46,9 @@ pub use tree_methods::{find_child_by_type, find_child_by_types};
 pub use type_arguments::{TypeArgDecomposer, extract_type_arguments};
 pub use type_models::{Literal, LiteralKind, TypeArgument, TypeArgumentUsage};
 pub use types::{
-    AnnotationMarker, ContextConfig, ExtractionResults, Identifier, ParseDiagnostic,
-    ParseDiagnosticKind, PendingRelationship, Relationship, SourceRegion, SourceRegionKind,
-    StructuralFact, Symbol, SymbolOptions, TypeInfo,
+    AnnotationMarker, ComplexityMetric, ContextConfig, ExtractionResults, Identifier,
+    ParseDiagnostic, ParseDiagnosticKind, PendingRelationship, Relationship, SourceRegion,
+    SourceRegionKind, StructuralFact, Symbol, SymbolOptions, TypeInfo,
 };
 
 pub(crate) fn containing_symbol_at_line(symbols: &[Symbol], line_number: u32) -> Option<&Symbol> {

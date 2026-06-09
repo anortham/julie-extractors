@@ -88,6 +88,14 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [
+            "file",
+            "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -174,6 +182,14 @@
         "structural_facts": {
           "supported": [
             "c.preprocessor_definition.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [
+            "file",
+            "symbol"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -270,6 +286,14 @@
         "structural_facts": {
           "supported": [
             "cpp.preprocessor_definition.v1"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [
+            "file",
+            "symbol"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -370,6 +394,14 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [
+            "file",
+            "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -449,6 +481,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -549,6 +586,14 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [
+            "file",
+            "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -637,6 +682,11 @@
           "supported": [
             "tsx.await_expression.v1"
           ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -729,6 +779,14 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [
+            "file",
+            "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -812,6 +870,11 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -891,6 +954,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -994,6 +1062,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1071,6 +1144,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -1165,6 +1243,14 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [
+            "file",
+            "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1246,6 +1332,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -1333,6 +1424,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1414,6 +1510,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -1505,6 +1606,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1584,6 +1690,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -1672,6 +1783,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1756,6 +1872,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1835,6 +1956,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -1921,6 +2047,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1996,6 +2127,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -2088,6 +2224,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -2186,6 +2327,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2275,6 +2421,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2348,6 +2499,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -2435,6 +2591,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2514,6 +2675,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -2606,6 +2772,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2679,6 +2850,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -2767,6 +2943,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -2883,6 +3064,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2991,6 +3177,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -3114,6 +3305,11 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -3207,6 +3403,11 @@
           "open_gaps": []
         },
         "structural_facts": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []

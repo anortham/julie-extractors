@@ -55,6 +55,8 @@ pub struct CapabilityKindCoverage {
     pub body_spans: KindCoverage,
     #[serde(default)]
     pub structural_facts: KindCoverage,
+    #[serde(default)]
+    pub complexity_metrics: KindCoverage,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

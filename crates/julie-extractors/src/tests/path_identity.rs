@@ -219,6 +219,7 @@ fn test_rekey_normalized_locations_rekeys_type_map_keys() {
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     };
 
@@ -314,6 +315,7 @@ fn test_rekey_normalized_locations_refreshes_relationship_ids() {
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     };
 
@@ -380,6 +382,7 @@ fn test_rekey_normalized_locations_keeps_same_line_relationship_ids_distinct() {
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     };
 
@@ -445,6 +448,7 @@ fn test_rekey_normalized_locations_preserves_distinct_same_start_symbols_and_typ
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     };
 
@@ -599,6 +603,7 @@ fn test_rekey_normalized_locations_preserves_structured_target_identity() {
         literals: Vec::new(),
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     };
 

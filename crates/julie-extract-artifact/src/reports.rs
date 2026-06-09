@@ -26,6 +26,7 @@ pub const SQLITE_ROW_DOMAINS: &[&str] = &[
     "literals",
     "source_regions",
     "structural_facts",
+    "complexity_metrics",
     "parse_diagnostics",
 ];
 
@@ -206,6 +207,7 @@ pub struct RowDomainCounts {
     pub literals: i64,
     pub source_regions: i64,
     pub structural_facts: i64,
+    pub complexity_metrics: i64,
     pub parse_diagnostics: i64,
 }
 
@@ -230,6 +232,7 @@ impl RowDomainCounts {
             || self.literals != 0
             || self.source_regions != 0
             || self.structural_facts != 0
+            || self.complexity_metrics != 0
             || self.parse_diagnostics != 0
     }
 
@@ -253,6 +256,7 @@ impl RowDomainCounts {
         self.literals += other.literals;
         self.source_regions += other.source_regions;
         self.structural_facts += other.structural_facts;
+        self.complexity_metrics += other.complexity_metrics;
         self.parse_diagnostics += other.parse_diagnostics;
     }
 
@@ -271,6 +275,7 @@ impl RowDomainCounts {
             literals: row_counts.literals,
             source_regions: row_counts.source_regions,
             structural_facts: row_counts.structural_facts,
+            complexity_metrics: row_counts.complexity_metrics,
             parse_diagnostics: row_counts.parse_diagnostics,
             ..Self::default()
         }

@@ -92,6 +92,7 @@ pub struct RowCounts {
     pub literals: i64,
     pub source_regions: i64,
     pub structural_facts: i64,
+    pub complexity_metrics: i64,
     pub parse_diagnostics: i64,
     pub revision_file_changes: i64,
 }
@@ -110,6 +111,7 @@ impl RowCounts {
             + self.literals
             + self.source_regions
             + self.structural_facts
+            + self.complexity_metrics
             + self.parse_diagnostics
     }
 
@@ -120,7 +122,8 @@ impl RowCounts {
                 r#""files":{},"symbols":{},"symbol_annotations":{},"identifiers":{},"#,
                 r#""relationships":{},"pending_relationships":{},"type_facts":{},"#,
                 r#""type_argument_usages":{},"type_arguments":{},"literals":{},"#,
-                r#""source_regions":{},"structural_facts":{},"parse_diagnostics":{},"#,
+                r#""source_regions":{},"structural_facts":{},"#,
+                r#""complexity_metrics":{},"parse_diagnostics":{},"#,
                 r#""revision_file_changes":{}"#,
                 "}}"
             ),
@@ -136,6 +139,7 @@ impl RowCounts {
             self.literals,
             self.source_regions,
             self.structural_facts,
+            self.complexity_metrics,
             self.parse_diagnostics,
             self.revision_file_changes
         )
@@ -229,6 +233,7 @@ pub struct ArtifactFile {
     pub literals: Vec<ArtifactLiteral>,
     pub source_regions: Vec<ArtifactSourceRegion>,
     pub structural_facts: Vec<ArtifactStructuralFact>,
+    pub complexity_metrics: Vec<ArtifactComplexityMetric>,
     pub parse_diagnostics: Vec<ArtifactParseDiagnostic>,
 }
 
@@ -556,6 +561,51 @@ impl Default for ArtifactStructuralFact {
             start_byte: 0,
             end_byte: 0,
             confidence: 1.0,
+            metadata_json: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArtifactComplexityMetric {
+    pub complexity_metric_id: String,
+    pub scope: String,
+    pub symbol_id: Option<String>,
+    pub algorithm_id: String,
+    pub covered_lines: i64,
+    pub covered_bytes: i64,
+    pub decision_count: i64,
+    pub loop_count: i64,
+    pub max_nesting_depth: i64,
+    pub parameter_count: Option<i64>,
+    pub start_line: i64,
+    pub start_column: i64,
+    pub end_line: i64,
+    pub end_column: i64,
+    pub start_byte: i64,
+    pub end_byte: i64,
+    pub metadata_json: Option<String>,
+}
+
+impl Default for ArtifactComplexityMetric {
+    fn default() -> Self {
+        Self {
+            complexity_metric_id: String::new(),
+            scope: "file".to_string(),
+            symbol_id: None,
+            algorithm_id: "julie-ast-complexity-v1".to_string(),
+            covered_lines: 0,
+            covered_bytes: 0,
+            decision_count: 0,
+            loop_count: 0,
+            max_nesting_depth: 0,
+            parameter_count: None,
+            start_line: 1,
+            start_column: 0,
+            end_line: 1,
+            end_column: 0,
+            start_byte: 0,
+            end_byte: 0,
             metadata_json: None,
         }
     }

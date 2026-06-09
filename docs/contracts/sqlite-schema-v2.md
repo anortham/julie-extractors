@@ -505,6 +505,53 @@ Metadata:
 - `pattern_version`: integer, currently `1`.
 - `query_family`: string matching the table above.
 
+## Complexity Metrics
+
+### `complexity_metrics`
+
+Versioned parser-backed metrics for file and symbol scopes. Rows are primitive
+facts, not an extractor-owned quality score. Downstream tools own ranking,
+thresholds, dashboards, and risk labels.
+
+```sql
+CREATE TABLE complexity_metrics (
+  complexity_metric_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  symbol_id TEXT,
+  algorithm_id TEXT NOT NULL,
+  covered_lines INTEGER NOT NULL,
+  covered_bytes INTEGER NOT NULL,
+  decision_count INTEGER NOT NULL,
+  loop_count INTEGER NOT NULL,
+  max_nesting_depth INTEGER NOT NULL,
+  parameter_count INTEGER,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+```
+
+`scope` values are `file` and `symbol`. File-scope rows use
+`symbol_id = NULL`; symbol-scope rows link to `symbols.symbol_id` when the
+symbol is still present.
+
+The initial algorithm id is `julie-ast-complexity-v1`. It counts parser node
+kinds for decisions, loops, and maximum decision/loop nesting depth, records
+covered lines/bytes, and emits `parameter_count` only when the language parser
+shape is clear for callable symbols.
+
+Supported scopes are advertised in `language_capabilities.kind_coverage_json`
+under `kind_coverage.complexity_metrics.supported`.
+
 ## Diagnostics
 
 ### `parse_diagnostics`
@@ -652,6 +699,9 @@ CREATE INDEX idx_source_regions_symbol ON source_regions(containing_symbol_id);
 CREATE INDEX idx_structural_facts_file_span ON structural_facts(file_id, start_byte, end_byte);
 CREATE INDEX idx_structural_facts_pattern_language_path ON structural_facts(pattern_id, language, path);
 CREATE INDEX idx_structural_facts_symbol ON structural_facts(containing_symbol_id);
+CREATE INDEX idx_complexity_metrics_file_scope ON complexity_metrics(file_id, scope, start_byte);
+CREATE INDEX idx_complexity_metrics_scope_language ON complexity_metrics(scope, language, path);
+CREATE INDEX idx_complexity_metrics_symbol ON complexity_metrics(symbol_id);
 CREATE INDEX idx_diagnostics_path ON parse_diagnostics(path);
 ```
 
