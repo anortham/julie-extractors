@@ -1,4 +1,4 @@
-# Extracted Data v2
+# Extracted Data v3
 
 This is the contributor-facing list of data `julie-extractors` tries to extract.
 SQLite remains the primary contract; JSONL and reports expose the same facts in
@@ -45,6 +45,8 @@ These row domains are part of the extraction product contract:
 | `type_arguments` | Normalized nested type argument names for a usage. | Each `type_argument_usage` with one or more arguments. |
 | `literals` | String or scalar literals that carry URLs, SQL, or configured language-specific facts. Route is reserved until route carriers are explicitly configured. | Languages with configured literal carriers or useful literal semantics. |
 | `source_regions` | Source spans for comments, doc comments, string literals, and embedded language regions. | Languages with supported source-region node kinds. |
+| `structural_facts` | Versioned parser-backed structural facts such as unsafe blocks, Go launch/defer statements, decorated Python definitions, JS-family await expressions, and C-family preprocessor definitions. | Languages and patterns advertised in `kind_coverage.structural_facts.supported` with explicit fixture-backed coverage. |
+| `complexity_metrics` | Versioned parser-backed file and symbol metrics: covered lines/bytes, decision count, loop count, max nesting depth, and parameter count where applicable. | Languages and scopes advertised in `kind_coverage.complexity_metrics.supported` with explicit fixture-backed coverage. |
 | `parse_diagnostics` | Tree-sitter parse errors and missing-node diagnostics in stable row form. | Supported files with parser diagnostics that should be exposed to consumers. |
 
 ## Support Labels
@@ -86,6 +88,6 @@ capabilities. Say "domain-limited" or "partial" when that is the honest claim.
 - Extractor wiring: `crates/julie-extractors/src/registry.rs`
 - Capability evidence: `fixtures/extraction/capabilities.json`
 - Golden fixture rules: `fixtures/extraction/README.md`
-- SQLite row contract: `docs/contracts/sqlite-schema-v2.md`
-- JSONL row contract: `docs/contracts/jsonl-v2.md`
+- SQLite row contract: `docs/contracts/sqlite-schema-v3.md`
+- JSONL row contract: `docs/contracts/jsonl-v3.md`
 - Report contract: `docs/contracts/reports.md`

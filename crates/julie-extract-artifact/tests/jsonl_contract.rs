@@ -26,8 +26,8 @@ fn full_export_emits_every_kind_in_contract_order_with_snapshot_envelope() {
     assert_eq!(records[0]["record_id"], "artifact-jsonl-test");
 
     for record in &records {
-        assert_eq!(record["jsonl_schema_version"], 2);
-        assert_eq!(record["extract_contract_version"], 2);
+        assert_eq!(record["jsonl_schema_version"], 3);
+        assert_eq!(record["extract_contract_version"], 3);
         assert_eq!(record["op"], "snapshot");
         assert_eq!(record["artifact_id"], "artifact-jsonl-test");
         assert!(

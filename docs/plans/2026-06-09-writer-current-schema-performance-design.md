@@ -24,7 +24,7 @@ The current writer has the important large-write protections:
 
 The remaining gap is evidence. Existing writer performance tests are useful
 fast tripwires, but they only cover small synthetic workloads and do not
-exercise every current v2 child-row domain. A regression in a newly indexed
+exercise every current v3 child-row domain. A regression in a newly indexed
 child table could make large repository artifact writes expensive before Miller
 has a chance to index or search the result.
 
@@ -37,10 +37,11 @@ The command will:
 1. Generate a deterministic synthetic artifact workload in memory.
 2. Write it through `julie_extract_artifact::writer::ArtifactWriter` into a real
    SQLite database under `target/`.
-3. Cover all current v2 row domains:
+3. Cover all current v3 row domains:
    `files`, `symbols`, `symbol_annotations`, `identifiers`, `relationships`,
    `pending_relationships`, `type_facts`, `type_argument_usages`,
-   `type_arguments`, `literals`, `source_regions`, and `parse_diagnostics`.
+   `type_arguments`, `literals`, `source_regions`, `structural_facts`,
+   `complexity_metrics`, and `parse_diagnostics`.
 4. Record row totals, elapsed write time, rows per second, database size, input
    dimensions, and output path in a JSON summary.
 5. Exit non-zero only for invalid arguments or failed artifact writes.
@@ -197,7 +198,7 @@ it useful for the release evidence.
 
 - `cargo xtask performance writer-current-schema --out-dir <path>` creates a
   real SQLite artifact and summary JSON under the requested output directory.
-- The generated workload includes rows for every current v2 extraction child
+- The generated workload includes rows for every current v3 extraction child
   domain.
 - The summary includes input dimensions, row totals by domain, elapsed write
   time, rows per second, artifact size, and output paths.

@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 
-pub const SQLITE_SCHEMA_VERSION: i64 = 2;
-pub const EXTRACT_CONTRACT_VERSION: i64 = 2;
+pub const SQLITE_SCHEMA_VERSION: i64 = 3;
+pub const EXTRACT_CONTRACT_VERSION: i64 = 3;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute_batch(SCHEMA_SQL)

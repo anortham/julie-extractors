@@ -148,9 +148,9 @@ cargo xtask test real-world-smoke
 ## 8. Update Public Docs
 
 - Update `README.md` only when the human-facing summary needs to change.
-- Update `docs/contracts/extracted-data-v2.md` when a new row domain or support
+- Update `docs/contracts/extracted-data-v3.md` when a new row domain or support
   label is introduced.
-- Update `docs/contracts/sqlite-schema-v2.md`, `docs/contracts/jsonl-v2.md`, and
+- Update `docs/contracts/sqlite-schema-v3.md`, `docs/contracts/jsonl-v3.md`, and
   `docs/contracts/reports.md` before changing artifact or report shape.
 - Update `docs/testing-strategy.md` before changing test-tier behavior.
 - Record major architecture or product decisions under `docs/decisions/`,

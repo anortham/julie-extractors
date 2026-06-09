@@ -785,10 +785,12 @@ fn writer_current_schema_file(file_index: usize, plan: &WriterCurrentSchemaPlan)
         .collect();
     file.structural_facts
         .push(writer_current_schema_structural_fact(&file_id));
-    file.complexity_metrics = vec![
-        writer_current_schema_file_complexity_metric(&file_id),
-        writer_current_schema_symbol_complexity_metric(&file_id),
-    ];
+    file.complexity_metrics
+        .push(writer_current_schema_file_complexity_metric(&file_id));
+    file.complexity_metrics
+        .extend((0..plan.symbols_per_file).map(|symbol_index| {
+            writer_current_schema_symbol_complexity_metric(&file_id, symbol_index)
+        }));
     file.parse_diagnostics
         .push(writer_current_schema_parse_diagnostic(&file_id));
     file
@@ -1024,11 +1026,16 @@ fn writer_current_schema_file_complexity_metric(file_id: &str) -> ArtifactComple
     }
 }
 
-fn writer_current_schema_symbol_complexity_metric(file_id: &str) -> ArtifactComplexityMetric {
+fn writer_current_schema_symbol_complexity_metric(
+    file_id: &str,
+    symbol_index: usize,
+) -> ArtifactComplexityMetric {
+    let start_line = (symbol_index * 4 + 1) as i64;
+    let start_byte = (symbol_index * 128) as i64;
     ArtifactComplexityMetric {
-        complexity_metric_id: format!("{file_id}-complexity-symbol-0"),
+        complexity_metric_id: format!("{file_id}-complexity-symbol-{symbol_index}"),
         scope: "symbol".to_string(),
-        symbol_id: Some(format!("{file_id}-symbol-0")),
+        symbol_id: Some(format!("{file_id}-symbol-{symbol_index}")),
         algorithm_id: "julie-ast-complexity-v1".to_string(),
         covered_lines: 3,
         covered_bytes: 96,
@@ -1036,12 +1043,12 @@ fn writer_current_schema_symbol_complexity_metric(file_id: &str) -> ArtifactComp
         loop_count: 1,
         max_nesting_depth: 2,
         parameter_count: Some(2),
-        start_line: 1,
+        start_line,
         start_column: 0,
-        end_line: 3,
+        end_line: start_line + 2,
         end_column: 1,
-        start_byte: 0,
-        end_byte: 96,
+        start_byte,
+        end_byte: start_byte + 96,
         metadata_json: Some(r#"{"metric_version":1,"synthetic":true}"#.to_string()),
     }
 }

@@ -75,7 +75,7 @@ cargo xtask test contract
 ```
 
 **Replay/metric evidence:** The new writer command is report-only for timing.
-Hard gates are successful artifact write, non-zero rows in every current v2
+Hard gates are successful artifact write, non-zero rows in every current v3
 child-row domain, valid JSON summary, and default/contract verification passing.
 Elapsed time, rows per second, and artifact size are recorded metrics, not CI
 thresholds.
@@ -192,7 +192,7 @@ workload.
 - Modify: `xtask/tests/performance_baseline_contract.rs:1-219`
 
 **What to build:** Add deterministic fixture generation and small execution
-tests. The generator must create every current v2 extraction child-row domain
+tests. The generator must create every current v3 extraction child-row domain
 without using parser source text or the public extraction CLI.
 
 **Approach:**
@@ -234,7 +234,7 @@ without using parser source text or the public extraction CLI.
 
 - [ ] Small execution test writes a real SQLite database through
   `ArtifactWriter`.
-- [ ] `WriteResult.rows_written` has non-zero values for every current v2
+- [ ] `WriteResult.rows_written` has non-zero values for every current v3
   extraction child-row domain.
 - [ ] `transactions_committed == 1` for the generated scan.
 - [ ] `cargo test -p xtask performance_baseline_contract` passes.

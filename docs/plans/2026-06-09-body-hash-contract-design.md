@@ -45,7 +45,7 @@ Miller and Eros own grouping, ranking, thresholds, and presentation.
 - Whitespace-only and comment-only body changes produce the same hash.
 - Executable token changes produce different hashes.
 - Comment markers inside quoted strings remain part of the hash input.
-- SQLite and JSONL v2 contracts name the algorithm and explicitly say the field
+- Current SQLite and JSONL contracts name the algorithm and explicitly say the field
   does not encode duplicate severity.
 - Existing schema shape stays unchanged.
 

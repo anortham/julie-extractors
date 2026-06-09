@@ -11,6 +11,32 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 #[test]
+fn test_public_contract_version_marks_current_fact_families() {
+    let version = crate::EXTRACTION_CONTRACT_VERSION;
+    let _structural_fact: Option<crate::StructuralFact> = None;
+    let _complexity_metric: Option<crate::ComplexityMetric> = None;
+
+    for marker in [
+        "source-regions-v1",
+        "structural-facts-v1",
+        "complexity-metrics-v1",
+    ] {
+        assert!(
+            version.contains(marker),
+            "EXTRACTION_CONTRACT_VERSION must include `{marker}` after the public extraction shape changes; got `{version}`"
+        );
+    }
+
+    let crate_docs = include_str!("../lib.rs");
+    for fact_family in ["source regions", "structural facts", "complexity metrics"] {
+        assert!(
+            crate_docs.contains(fact_family),
+            "crate docs must advertise `{fact_family}` as part of ExtractionResults"
+        );
+    }
+}
+
+#[test]
 fn test_public_api_surface_projects_canonical_results() {
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let file_path = "src/app.ts";

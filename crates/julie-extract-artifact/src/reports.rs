@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize, ser::SerializeStruct};
 
 use crate::model::RowCounts;
 
-pub const REPORT_SCHEMA_VERSION: i64 = 2;
+pub const REPORT_SCHEMA_VERSION: i64 = 3;
 
 pub const SQLITE_ROW_DOMAINS: &[&str] = &[
     "artifact_metadata",

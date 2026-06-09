@@ -59,14 +59,14 @@ fn normalized_body_tokens(source: &str, comments: CommentSyntax) -> Vec<String> 
             continue;
         }
 
-        if ch == '"' || ch == '\'' || ch == '`' {
-            let (token, next_index) = quoted_token(&chars, index, ch);
-            tokens.push(token);
+        if let Some(next_index) = comment_end(&chars, index, comments) {
             index = next_index;
             continue;
         }
 
-        if let Some(next_index) = comment_end(&chars, index, comments) {
+        if ch == '"' || ch == '\'' || ch == '`' {
+            let (token, next_index) = quoted_token(&chars, index, ch);
+            tokens.push(token);
             index = next_index;
             continue;
         }
@@ -92,6 +92,7 @@ fn normalized_body_tokens(source: &str, comments: CommentSyntax) -> Vec<String> 
 struct CommentSyntax {
     line: &'static [&'static str],
     block: &'static [(&'static str, &'static str)],
+    vbnet_rem: bool,
 }
 
 fn comment_syntax(language: &str) -> CommentSyntax {
@@ -100,36 +101,49 @@ fn comment_syntax(language: &str) -> CommentSyntax {
         | "yaml" => CommentSyntax {
             line: &["#"],
             block: &[],
+            vbnet_rem: false,
         },
         "css" => CommentSyntax {
             line: &[],
             block: &[("/*", "*/")],
+            vbnet_rem: false,
         },
         "html" | "markdown" | "razor" => CommentSyntax {
             line: &[],
             block: &[("<!--", "-->")],
+            vbnet_rem: false,
         },
         "lua" => CommentSyntax {
             line: &["--"],
             block: &[("--[[", "]]")],
+            vbnet_rem: false,
         },
         "php" => CommentSyntax {
             line: &["//", "#"],
             block: &[("/*", "*/")],
+            vbnet_rem: false,
         },
         "sql" => CommentSyntax {
             line: &["--"],
             block: &[("/*", "*/")],
+            vbnet_rem: false,
+        },
+        "vbnet" => CommentSyntax {
+            line: &["'"],
+            block: &[],
+            vbnet_rem: true,
         },
         "c" | "cpp" | "csharp" | "dart" | "go" | "java" | "javascript" | "json" | "jsonc"
-        | "jsx" | "kotlin" | "qml" | "rust" | "scala" | "swift" | "tsx" | "typescript"
-        | "vbnet" | "vue" | "zig" => CommentSyntax {
+        | "jsx" | "kotlin" | "qml" | "rust" | "scala" | "swift" | "tsx" | "typescript" | "vue"
+        | "zig" => CommentSyntax {
             line: &["//"],
             block: &[("/*", "*/")],
+            vbnet_rem: false,
         },
         _ => CommentSyntax {
             line: &[],
             block: &[],
+            vbnet_rem: false,
         },
     }
 }
@@ -148,17 +162,65 @@ fn comment_end(chars: &[char], index: usize, comments: CommentSyntax) -> Option<
         }
     }
 
-    for start in comments.line {
-        if starts_with(chars, index, start) {
-            let mut next = index + start.chars().count();
-            while next < chars.len() && chars[next] != '\n' && chars[next] != '\r' {
-                next += 1;
-            }
+    if comments.vbnet_rem {
+        if let Some(next) = vbnet_rem_comment_end(chars, index) {
+            return Some(next);
+        }
+        if let Some(next) = vbnet_colon_comment_end(chars, index) {
             return Some(next);
         }
     }
 
+    for start in comments.line {
+        if starts_with(chars, index, start) {
+            return Some(line_end(chars, index + start.chars().count()));
+        }
+    }
+
     None
+}
+
+fn vbnet_colon_comment_end(chars: &[char], index: usize) -> Option<usize> {
+    if chars.get(index).copied() != Some(':') {
+        return None;
+    }
+
+    let mut next = index + 1;
+    while next < chars.len() && matches!(chars[next], ' ' | '\t') {
+        next += 1;
+    }
+
+    if starts_with(chars, next, "'") || starts_vbnet_rem_comment(chars, next) {
+        return Some(line_end(chars, next));
+    }
+    None
+}
+
+fn vbnet_rem_comment_end(chars: &[char], index: usize) -> Option<usize> {
+    starts_vbnet_rem_comment(chars, index).then(|| line_end(chars, index + 3))
+}
+
+fn starts_vbnet_rem_comment(chars: &[char], index: usize) -> bool {
+    let Some(candidate) = chars.get(index..index + 3) else {
+        return false;
+    };
+    if !candidate
+        .iter()
+        .copied()
+        .zip(['R', 'E', 'M'])
+        .all(|(actual, expected)| actual.eq_ignore_ascii_case(&expected))
+    {
+        return false;
+    }
+
+    chars.get(index + 3).is_none_or(|next| !is_word_char(*next))
+}
+
+fn line_end(chars: &[char], mut index: usize) -> usize {
+    while index < chars.len() && chars[index] != '\n' && chars[index] != '\r' {
+        index += 1;
+    }
+    index
 }
 
 fn starts_with(chars: &[char], index: usize, pattern: &str) -> bool {

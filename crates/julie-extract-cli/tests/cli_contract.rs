@@ -134,7 +134,9 @@ fn exit_codes_and_json_errors_match_contract() {
     let temp = TempDir::new().unwrap();
     let missing_db = temp.path().join("missing.sqlite");
     let incompatible_db = temp.path().join("incompatible.sqlite");
+    let old_v2_db = temp.path().join("old-v2.sqlite");
     create_incompatible_artifact(&incompatible_db);
+    create_artifact_metadata(&old_v2_db, "artifact-old-v2", "2", "2", "2");
 
     let ok = julie_extract(&["languages", "--json"]);
     assert_eq!(ok.status.code(), Some(0));
@@ -168,6 +170,20 @@ fn exit_codes_and_json_errors_match_contract() {
     let report = json_report(&incompatible);
     assert_common_report_shape(&report, "failed", "info", "read_only");
     assert_eq!(report["errors"][0]["code"], "schema_incompatible");
+
+    let old_v2 = julie_extract(&["info", "--db", old_v2_db.to_str().unwrap(), "--json"]);
+    assert_eq!(old_v2.status.code(), Some(3));
+    let report = json_report(&old_v2);
+    assert_common_report_shape(&report, "failed", "info", "read_only");
+    assert_eq!(report["errors"][0]["code"], "contract_incompatible");
+    assert_eq!(
+        report["errors"][0]["details"]["artifact_extract_contract_version"],
+        2
+    );
+    assert_eq!(
+        report["errors"][0]["details"]["supported_extract_contract_version"],
+        3
+    );
 }
 
 #[test]
@@ -226,7 +242,7 @@ fn assert_help_contains(output: &Output, expected_flags: &[&str]) {
 }
 
 fn assert_common_report_shape(report: &Value, status: &str, operation: &str, mode: &str) {
-    assert_eq!(report["report_schema_version"], 2);
+    assert_eq!(report["report_schema_version"], 3);
     assert_eq!(report["status"], status);
     assert_eq!(report["operation"], operation);
     assert_eq!(report["mode"], mode);
@@ -239,6 +255,16 @@ fn assert_common_report_shape(report: &Value, status: &str, operation: &str, mod
 }
 
 fn create_incompatible_artifact(path: &Path) {
+    create_artifact_metadata(path, "artifact-incompatible", "999", "1", "999");
+}
+
+fn create_artifact_metadata(
+    path: &Path,
+    artifact_id: &str,
+    schema_version: &str,
+    extract_contract_version: &str,
+    sqlite_schema_version: &str,
+) {
     let conn = Connection::open(path).unwrap();
     conn.execute(
         "CREATE TABLE artifact_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
@@ -246,11 +272,11 @@ fn create_incompatible_artifact(path: &Path) {
     )
     .unwrap();
     for (key, value) in [
-        ("artifact_id", "artifact-incompatible"),
+        ("artifact_id", artifact_id),
         ("root_path", "/repo"),
-        ("schema_version", "999"),
-        ("extract_contract_version", "1"),
-        ("sqlite_schema_version", "999"),
+        ("schema_version", schema_version),
+        ("extract_contract_version", extract_contract_version),
+        ("sqlite_schema_version", sqlite_schema_version),
         ("binary_version", "julie-extract 0.1.0"),
         ("hash_algorithm", "blake3"),
         ("parser_inventory_fingerprint", "sha256:parser"),

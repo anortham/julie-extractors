@@ -1,4 +1,4 @@
-# JSONL v2
+# JSONL v3
 
 ## Scope
 
@@ -9,7 +9,7 @@ JSONL does not embed complete source files. It exports file metadata,
 hashes, spans, and source-derived extraction facts from the SQLite artifact.
 
 `julie-extract export --db <path> --format jsonl --out <path|->` writes JSONL
-v2 records.
+v3 records.
 
 ## Envelope
 
@@ -17,8 +17,8 @@ Each line is one JSON object:
 
 ```json
 {
-  "jsonl_schema_version": 2,
-  "extract_contract_version": 2,
+  "jsonl_schema_version": 3,
+  "extract_contract_version": 3,
   "kind": "symbol",
   "op": "snapshot",
   "artifact_id": "01hz...",
@@ -29,8 +29,8 @@ Each line is one JSON object:
 
 Fields:
 
-- `jsonl_schema_version`: integer, always `2` for this contract.
-- `extract_contract_version`: integer, always `2` for this contract.
+- `jsonl_schema_version`: integer, always `3` for this contract.
+- `extract_contract_version`: integer, always `3` for this contract.
 - `kind`: record kind.
 - `op`: operation. Full exports use `snapshot`.
 - `artifact_id`: artifact identifier from SQLite metadata.
@@ -60,7 +60,9 @@ Full export order is deterministic:
 16. `type_argument`
 17. `literal`
 18. `source_region`
-19. `parse_diagnostic`
+19. `complexity_metric`
+20. `structural_fact`
+21. `parse_diagnostic`
 
 Rows are ordered by primary key within each kind unless a kind defines a more
 specific natural order.
@@ -68,7 +70,7 @@ specific natural order.
 ## Record Kinds
 
 JSON field names use lower-case snake_case. Payloads are the stable JSON shape
-for SQLite v2 rows.
+for SQLite v3 rows.
 
 SQLite JSON text columns are decoded in JSONL. For example,
 `metadata_json TEXT` becomes `metadata: {}` or `metadata: null` according to the
@@ -109,8 +111,8 @@ unset optional metadata is `null` only when the field explicitly allows `null`.
 
 ## Payload Schemas
 
-Each record kind below lists the exact `record` keys for JSONL v2. No additional
-keys are part of the v2 contract.
+Each record kind below lists the exact `record` keys for JSONL v3. No additional
+keys are part of the v3 contract.
 
 ### `artifact`
 
@@ -120,9 +122,9 @@ keys are part of the v2 contract.
 {
   "artifact_id": "01hz...",
   "root_path": "/repo",
-  "schema_version": 2,
-  "extract_contract_version": 2,
-  "sqlite_schema_version": 2,
+  "schema_version": 3,
+  "extract_contract_version": 3,
+  "sqlite_schema_version": 3,
   "binary_version": "2.0.0",
   "hash_algorithm": "blake3",
   "parser_inventory_fingerprint": "sha256:...",
@@ -237,8 +239,8 @@ Fields:
 - `dependency_status`: string
 - `target_capabilities`: capability flag object
 - `actual_capabilities`: capability flag object
-- `kind_coverage`: object with `symbols`, `relationships`, `identifiers`, and
-  `body_spans` domains
+- `kind_coverage`: object with `symbols`, `relationships`, `identifiers`,
+  `body_spans`, `structural_facts`, and `complexity_metrics` domains
 
 Each `kind_coverage` domain has `supported`, `not_applicable`, and `open_gaps`.
 
@@ -446,6 +448,67 @@ Fields:
 
 Embedded region metadata may include `embedded_language` and `host_node_kind`.
 
+### `complexity_metric`
+
+`record_id`: `complexity_metric_id`.
+
+Fields:
+
+- `complexity_metric_id`: string
+- `file_id`: string
+- `path`: root-relative path string
+- `language`: string
+- `scope`: `file` or `symbol`
+- `symbol_id`: string or `null`
+- `algorithm_id`: stable versioned algorithm identifier
+- `covered_lines`: integer
+- `covered_bytes`: integer
+- `decision_count`: integer
+- `loop_count`: integer
+- `max_nesting_depth`: integer
+- `parameter_count`: integer or `null`
+- `span`: span object
+- `metadata`: object or `null`
+
+The initial algorithm id is `julie-ast-complexity-v1`. Records are primitive
+metrics only; downstream tools own ranking, risk labels, and dashboards.
+Supported scopes are advertised in `language_capability` records under
+`kind_coverage.complexity_metrics.supported`.
+
+### `structural_fact`
+
+`record_id`: `structural_fact_id`.
+
+Fields:
+
+- `structural_fact_id`: string
+- `file_id`: string
+- `path`: root-relative path string
+- `language`: string
+- `pattern_id`: stable versioned pattern identifier
+- `capture_name`: capture name within the pattern
+- `node_kind`: matched tree-sitter node kind
+- `containing_symbol_id`: string or `null`
+- `span`: span object
+- `confidence`: number
+- `metadata`: object or `null`
+
+Supported patterns are advertised in `language_capability` records under
+`kind_coverage.structural_facts.supported`.
+
+| Pattern ID | Language | Capture | Node Kind(s) | Metadata |
+| --- | --- | --- | --- | --- |
+| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | `{"pattern_version":1,"query_family":"safety"}` |
+| `go.goroutine_launch.v1` | `go` | `go_statement` | `go_statement` | `{"pattern_version":1,"query_family":"concurrency"}` |
+| `go.defer_statement.v1` | `go` | `defer_statement` | `defer_statement` | `{"pattern_version":1,"query_family":"lifecycle"}` |
+| `python.decorated_definition.v1` | `python` | `decorated_definition` | `decorated_definition` | `{"pattern_version":1,"query_family":"metadata"}` |
+| `javascript.await_expression.v1` | `javascript` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
+| `jsx.await_expression.v1` | `jsx` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
+| `typescript.await_expression.v1` | `typescript` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
+| `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
+| `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
+| `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
+
 ### `parse_diagnostic`
 
 `record_id`: `diagnostic_id`.
@@ -477,7 +540,7 @@ The JSONL envelope supports streaming by using `op` values:
 - `upsert`: row created or replaced by an incremental producer.
 - `delete`: row removed by an incremental producer.
 
-`julie-extract` v2 only guarantees `snapshot` output. A downstream tool may use
+`julie-extract` v3 only guarantees `snapshot` output. A downstream tool may use
 the same envelope for its own incremental transport if it preserves the schema
 and record kinds.
 
@@ -498,7 +561,7 @@ JSONL export is all-or-error from the CLI perspective:
 - **Snake case:** JSONL follows SQLite/report naming rather than old Rust
   camelCase field names.
 - **Snapshot first:** old Julie external extract did not expose JSONL output, so
-  v2 keeps JSONL as a clean product export instead of a compatibility mode.
+  v3 keeps JSONL as a clean product export instead of a compatibility mode.
 - **Open decision before implementation:** whether `julie-extract scan` should
   support direct JSONL streaming without writing SQLite. The current contract
   keeps SQLite as the source of truth and exposes JSONL through `export`.

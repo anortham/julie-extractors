@@ -9,10 +9,10 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
 use serde_json::Value;
 
-const REPORT_SCHEMA_VERSION: i64 = 2;
-const SQLITE_SCHEMA_VERSION: i64 = 2;
-const EXTRACT_CONTRACT_VERSION: i64 = 2;
-const JSONL_SCHEMA_VERSION: i64 = 2;
+const REPORT_SCHEMA_VERSION: i64 = 3;
+const SQLITE_SCHEMA_VERSION: i64 = 3;
+const EXTRACT_CONTRACT_VERSION: i64 = 3;
+const JSONL_SCHEMA_VERSION: i64 = 3;
 const REQUIRED_METADATA_KEYS: &[&str] = &[
     "artifact_id",
     "root_path",

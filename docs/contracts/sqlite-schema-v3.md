@@ -1,10 +1,10 @@
-# SQLite Schema v2
+# SQLite Schema v3
 
 ## Scope
 
 SQLite is the primary durable artifact for `julie-extractors`.
 
-This document defines the v2 logical schema. Implementations may add
+This document defines the v3 logical schema. Implementations may add
 indexes, views, and internal helper tables, but downstream readers should rely
 only on the tables and columns named here.
 
@@ -37,9 +37,9 @@ Required keys:
 
 - `artifact_id`: generated stable identifier for this artifact.
 - `root_path`: canonical source root.
-- `schema_version`: `2`.
-- `extract_contract_version`: `2`.
-- `sqlite_schema_version`: `2`.
+- `schema_version`: `3`.
+- `extract_contract_version`: `3`.
+- `sqlite_schema_version`: `3`.
 - `binary_version`: `julie-extract` version that last wrote the artifact.
 - `hash_algorithm`: content hash algorithm name.
 - `parser_inventory_fingerprint`: fingerprint of parser package inventory.
@@ -448,6 +448,110 @@ CREATE TABLE source_regions (
 `metadata_json` is optional. Embedded regions may include
 `embedded_language` and `host_node_kind`.
 
+## Structural Facts
+
+### `structural_facts`
+
+Parser-backed structural facts that are useful to downstream tools but are not
+symbols, identifiers, relationships, literals, or source-region spans.
+
+Rows are pattern-based. `pattern_id` is stable and versioned, so consumers can
+depend on the meaning of a row without understanding the tree-sitter grammar
+directly. This repo emits extraction facts only; querying, ranking, dashboards,
+and product workflows remain downstream.
+
+```sql
+CREATE TABLE structural_facts (
+  structural_fact_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  pattern_id TEXT NOT NULL,
+  capture_name TEXT NOT NULL,
+  node_kind TEXT NOT NULL,
+  containing_symbol_id TEXT,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  confidence REAL NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+```
+
+Supported patterns are advertised in
+`language_capabilities.kind_coverage_json` under
+`kind_coverage.structural_facts.supported`.
+
+| Pattern ID | Language | Capture | Node Kind(s) | Query Family | Meaning |
+| --- | --- | --- | --- | --- | --- |
+| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | `safety` | A Rust `unsafe { ... }` block. |
+| `go.goroutine_launch.v1` | `go` | `go_statement` | `go_statement` | `concurrency` | A Go `go call()` launch. |
+| `go.defer_statement.v1` | `go` | `defer_statement` | `defer_statement` | `lifecycle` | A Go `defer call()` statement. |
+| `python.decorated_definition.v1` | `python` | `decorated_definition` | `decorated_definition` | `metadata` | A Python decorated function or class definition. |
+| `javascript.await_expression.v1` | `javascript` | `await_expression` | `await_expression` | `async` | A JavaScript `await` expression. |
+| `jsx.await_expression.v1` | `jsx` | `await_expression` | `await_expression` | `async` | A JSX file `await` expression. |
+| `typescript.await_expression.v1` | `typescript` | `await_expression` | `await_expression` | `async` | A TypeScript `await` expression. |
+| `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `async` | A TSX file `await` expression. |
+| `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C preprocessor definition. |
+| `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
+
+Metadata:
+
+- `pattern_version`: integer, currently `1`.
+- `query_family`: string matching the table above.
+
+## Complexity Metrics
+
+### `complexity_metrics`
+
+Versioned parser-backed metrics for file and symbol scopes. Rows are primitive
+facts, not an extractor-owned quality score. Downstream tools own ranking,
+thresholds, dashboards, and risk labels.
+
+```sql
+CREATE TABLE complexity_metrics (
+  complexity_metric_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  symbol_id TEXT,
+  algorithm_id TEXT NOT NULL,
+  covered_lines INTEGER NOT NULL,
+  covered_bytes INTEGER NOT NULL,
+  decision_count INTEGER NOT NULL,
+  loop_count INTEGER NOT NULL,
+  max_nesting_depth INTEGER NOT NULL,
+  parameter_count INTEGER,
+  start_line INTEGER NOT NULL,
+  start_column INTEGER NOT NULL,
+  end_line INTEGER NOT NULL,
+  end_column INTEGER NOT NULL,
+  start_byte INTEGER NOT NULL,
+  end_byte INTEGER NOT NULL,
+  metadata_json TEXT,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+);
+```
+
+`scope` values are `file` and `symbol`. File-scope rows use
+`symbol_id = NULL`; symbol-scope rows link to `symbols.symbol_id` when the
+symbol is still present.
+
+The initial algorithm id is `julie-ast-complexity-v1`. It counts parser node
+kinds for decisions, loops, and maximum decision/loop nesting depth, records
+covered lines/bytes, and emits `parameter_count` only when the language parser
+shape is clear for callable symbols.
+
+Supported scopes are advertised in `language_capabilities.kind_coverage_json`
+under `kind_coverage.complexity_metrics.supported`.
+
 ## Diagnostics
 
 ### `parse_diagnostics`
@@ -564,7 +668,7 @@ SQLite mode requirements:
 
 - Writers should use WAL mode for normal incremental operation.
 - Readers must tolerate WAL sidecar files.
-- Lower-durability settings for benchmarks are not part of the v2 product
+- Lower-durability settings for benchmarks are not part of the v3 product
   contract.
 
 ## Required Indexes
@@ -592,10 +696,16 @@ CREATE INDEX idx_pending_file ON pending_relationships(file_id);
 CREATE INDEX idx_source_regions_file_span ON source_regions(file_id, start_byte, end_byte);
 CREATE INDEX idx_source_regions_kind_file ON source_regions(kind, file_id, start_byte);
 CREATE INDEX idx_source_regions_symbol ON source_regions(containing_symbol_id);
+CREATE INDEX idx_structural_facts_file_span ON structural_facts(file_id, start_byte, end_byte);
+CREATE INDEX idx_structural_facts_pattern_language_path ON structural_facts(pattern_id, language, path);
+CREATE INDEX idx_structural_facts_symbol ON structural_facts(containing_symbol_id);
+CREATE INDEX idx_complexity_metrics_file_scope ON complexity_metrics(file_id, scope, start_byte);
+CREATE INDEX idx_complexity_metrics_scope_language ON complexity_metrics(scope, language, path);
+CREATE INDEX idx_complexity_metrics_symbol ON complexity_metrics(symbol_id);
 CREATE INDEX idx_diagnostics_path ON parse_diagnostics(path);
 ```
 
-These indexes protect the v2 access patterns. Implementations may add more
+These indexes protect the v3 access patterns. Implementations may add more
 indexes, but removing one requires a schema-versioned contract change.
 
 ## Performance Budgets
@@ -613,13 +723,13 @@ contract. The first implementation must still provide measurable gates for:
 - No embedding tables.
 - No MCP, daemon, watcher, or workspace registry tables.
 - No Julie analysis tables for reference scoring, test linkage, or test quality.
-- No old Julie schema compatibility tables as a v2 requirement.
+- No old Julie schema compatibility tables as a v3 requirement.
 
 ## Tradeoffs
 
 - **Stable opaque IDs:** downstream readers get durable references without
   depending on old fixture key or MD5 mechanics.
-- **Structured pending only:** v2 stores the richer unresolved target shape and
+- **Structured pending only:** v3 stores the richer unresolved target shape and
   does not expose Julie's legacy flat pending queue as a separate contract.
 - **Capability rows in SQLite:** consumers can validate language evidence from
   the artifact without also reading repository fixtures.
@@ -629,7 +739,7 @@ contract. The first implementation must still provide measurable gates for:
 - **Test role flags are first-class:** extractor metadata is also exposed as
   indexed SQLite booleans because downstream test filtering should not depend on
   JSON expression scans.
-- **Source regions are spans, not search:** v2 exposes AST-bounded source
+- **Source regions are spans, not search:** v3 exposes AST-bounded source
   ranges for downstream products, but it does not create lexical indexes,
   vector indexes, or store complete source text.
 - **Open decision before implementation:** exact parser version fields depend on

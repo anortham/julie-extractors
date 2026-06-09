@@ -23,6 +23,13 @@ struct ComplexityStats {
     max_nesting_depth: u32,
 }
 
+struct MetricScopeInput {
+    scope: &'static str,
+    symbol_id: Option<String>,
+    span: NormalizedSpan,
+    parameter_count: Option<u32>,
+}
+
 pub fn collect_complexity_metrics(
     language: &str,
     tree: &Tree,
@@ -37,7 +44,16 @@ pub fn collect_complexity_metrics(
     let root = tree.root_node();
     let file_span = NormalizedSpan::from_node(&root);
     metrics.push(metric_for_scope(
-        file_path, language, "file", None, file_span, None, &root, config,
+        file_path,
+        language,
+        MetricScopeInput {
+            scope: "file",
+            symbol_id: None,
+            span: file_span,
+            parameter_count: None,
+        },
+        &root,
+        config,
     ));
 
     for symbol in symbols.iter().filter(|symbol| is_callable(&symbol.kind)) {
@@ -46,10 +62,12 @@ pub fn collect_complexity_metrics(
         metrics.push(metric_for_scope(
             file_path,
             language,
-            "symbol",
-            Some(symbol.id.clone()),
-            metric_span,
-            parameter_count,
+            MetricScopeInput {
+                scope: "symbol",
+                symbol_id: Some(symbol.id.clone()),
+                span: metric_span,
+                parameter_count,
+            },
             &root,
             config,
         ));
@@ -78,14 +96,17 @@ pub(crate) fn complexity_metric_scopes_for_language(language: &str) -> Vec<&'sta
 fn metric_for_scope(
     file_path: &str,
     language: &str,
-    scope: &str,
-    symbol_id: Option<String>,
-    span: NormalizedSpan,
-    parameter_count: Option<u32>,
+    input: MetricScopeInput,
     root: &Node<'_>,
     config: ComplexityLanguageConfig,
 ) -> ComplexityMetric {
     let mut stats = ComplexityStats::default();
+    let MetricScopeInput {
+        scope,
+        symbol_id,
+        span,
+        parameter_count,
+    } = input;
     collect_stats(*root, span, config, 0, &mut stats);
     let identity = symbol_id.as_deref().unwrap_or("file");
     let metadata = HashMap::from([(

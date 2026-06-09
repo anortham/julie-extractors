@@ -1,4 +1,5 @@
-use crate::base::{BaseExtractor, SymbolKind, SymbolOptions};
+use crate::base::body::body_hash;
+use crate::base::{BaseExtractor, NormalizedSpan, SymbolKind, SymbolOptions};
 use tree_sitter::Parser;
 
 #[test]
@@ -43,7 +44,76 @@ fn body_hash_ignores_comment_only_changes() {
         "fn hello() {\n    // only a comment\n    let value = 1; /* also only a comment */\n}\n",
     );
 
+    assert!(
+        plain.body_hash.is_some(),
+        "plain Rust function needs body_hash"
+    );
+    assert!(
+        commented.body_hash.is_some(),
+        "commented Rust function needs body_hash"
+    );
     assert_eq!(plain.body_hash, commented.body_hash);
+}
+
+#[test]
+fn body_hash_ignores_vbnet_comment_only_changes() {
+    let plain = symbol_for_vbnet_method(
+        r#"Public Class Sample
+    Public Sub Hello()
+        Dim value = 1
+    End Sub
+End Class
+"#,
+    );
+    let commented = symbol_for_vbnet_method(
+        r#"Public Class Sample
+    Public Sub Hello()
+        ' only a comment
+        REM also only a comment
+        rEm mixed-case comment
+        REM
+        Dim value = 1 : REM inline comment
+    End Sub
+End Class
+"#,
+    );
+
+    assert!(
+        plain.body_hash.is_some(),
+        "plain VB.NET method needs body_hash"
+    );
+    assert!(
+        commented.body_hash.is_some(),
+        "commented VB.NET method needs body_hash"
+    );
+    assert_eq!(plain.body_hash, commented.body_hash);
+}
+
+#[test]
+fn body_hash_normalizer_ignores_vbnet_comment_syntax_inside_span() {
+    let plain = body_hash_for_language("Dim value = 1\n", "vbnet");
+    let commented = body_hash_for_language(
+        "' only a comment\nREM also only a comment\nrEm mixed-case comment\nREM\nDim value = 1\n",
+        "vbnet",
+    );
+
+    assert_eq!(plain, commented);
+}
+
+#[test]
+fn body_hash_normalizer_ignores_vbnet_inline_rem_comments_after_colon() {
+    let plain = body_hash_for_language("Dim value = 1\n", "vbnet");
+    let commented = body_hash_for_language("Dim value = 1 : REM inline comment\n", "vbnet");
+
+    assert_eq!(plain, commented);
+}
+
+#[test]
+fn body_hash_normalizer_keeps_vbnet_rem_prefix_identifiers() {
+    let rem_variable = body_hash_for_language("Dim Remote = 1\n", "vbnet");
+    let value_variable = body_hash_for_language("Dim value = 1\n", "vbnet");
+
+    assert_ne!(rem_variable, value_variable);
 }
 
 #[test]
@@ -86,6 +156,31 @@ fn symbol_for_rust_function(content: &str) -> crate::base::Symbol {
         SymbolKind::Function,
         SymbolOptions::default(),
     )
+}
+
+fn symbol_for_vbnet_method(content: &str) -> crate::base::Symbol {
+    crate::pipeline::extract_canonical("test.vb", content, std::path::Path::new("/repo"))
+        .expect("vbnet extraction should succeed")
+        .symbols
+        .into_iter()
+        .find(|symbol| symbol.name == "Hello" && symbol.kind == SymbolKind::Method)
+        .expect("vbnet fixture should contain Hello method")
+}
+
+fn body_hash_for_language(source: &str, language: &str) -> String {
+    body_hash(
+        source,
+        NormalizedSpan {
+            start_line: 1,
+            start_column: 0,
+            end_line: source.lines().count() as u32,
+            end_column: 0,
+            start_byte: 0,
+            end_byte: source.len() as u32,
+        },
+        language,
+    )
+    .expect("body hash should be computable")
 }
 
 fn rust_extractor(content: &str) -> BaseExtractor {

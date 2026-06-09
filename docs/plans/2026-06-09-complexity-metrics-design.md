@@ -120,8 +120,8 @@ language and metric scope. Row presence is hard evidence; timing and size
 changes are report-only unless a documented budget gate fails.
 
 **Escalation triggers:** Escalate if implementation requires parser dependency
-changes, a CLI exit/status-code change, a schema version bump beyond the current
-v2 contract, default-suite runtime growth, or language parity claims without
+changes, a CLI exit/status-code change, a schema version bump beyond the approved
+v3 contract, default-suite runtime growth, or language parity claims without
 fixture evidence.
 
 **Assigned verification failure:** Investigate and fix focused failures within

@@ -11,12 +11,12 @@ use serde_json::json;
 fn report_serializes_schema_version_and_success_shape() {
     let value = serde_json::to_value(sample_report(ReportStatus::Ok)).unwrap();
 
-    assert_eq!(value["report_schema_version"], 2);
+    assert_eq!(value["report_schema_version"], 3);
     assert_eq!(value["status"], "ok");
     assert_eq!(value["operation"], "scan");
     assert_eq!(value["mode"], "incremental");
     assert_eq!(value["input"]["db_path"], "/tmp/code.sqlite");
-    assert_eq!(value["artifact"]["schema_version"], 2);
+    assert_eq!(value["artifact"]["schema_version"], 3);
     assert_eq!(
         value["artifact"]["jsonl_schema_version"],
         serde_json::Value::Null
@@ -95,7 +95,7 @@ fn every_report_status_has_stable_serialized_spelling() {
 }
 
 #[test]
-fn every_v2_error_code_has_stable_serialized_spelling() {
+fn every_v3_error_code_has_stable_serialized_spelling() {
     let serialized = ReportCode::ERROR_CODES
         .iter()
         .map(|code| serde_json::to_value(code).unwrap())
@@ -160,7 +160,7 @@ fn single_file_success_reports_include_absolute_and_root_relative_paths() {
 }
 
 #[test]
-fn report_row_count_keys_are_exhaustive_for_sqlite_v2() {
+fn report_row_count_keys_are_exhaustive_for_sqlite_v3() {
     let value = serde_json::to_value(RowDomainCounts::default()).unwrap();
     let actual = value
         .as_object()
@@ -173,11 +173,11 @@ fn report_row_count_keys_are_exhaustive_for_sqlite_v2() {
     assert_eq!(actual, expected);
     assert!(
         actual.contains("structural_facts"),
-        "SQLite v2 row domains must include structural_facts"
+        "SQLite v3 row domains must include structural_facts"
     );
     assert!(
         actual.contains("complexity_metrics"),
-        "SQLite v2 row domains must include complexity_metrics"
+        "SQLite v3 row domains must include complexity_metrics"
     );
 
     let report = sample_report(ReportStatus::Ok);
@@ -211,9 +211,9 @@ fn sample_report(status: ReportStatus) -> Report {
             db_path: "/tmp/code.sqlite".to_string(),
             root_path: "/repo".to_string(),
             artifact_id: "artifact-test-1".to_string(),
-            schema_version: 2,
-            extract_contract_version: 2,
-            sqlite_schema_version: 2,
+            schema_version: 3,
+            extract_contract_version: 3,
+            sqlite_schema_version: 3,
             jsonl_schema_version: None,
             hash_algorithm: "blake3".to_string(),
             parser_inventory_fingerprint: "sha256:parser".to_string(),

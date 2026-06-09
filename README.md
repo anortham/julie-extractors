@@ -97,7 +97,7 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 | `update` | Re-extract one file in an existing artifact. | `--root`, `--db`, `--file`, repeated `--ignore-file`, `--strict-schema`, `--json` |
 | `delete` | Remove one file and its child rows from an artifact. | `--root`, `--db`, `--file`, `--strict-schema`, `--json` |
 | `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
-| `export` | Export a SQLite artifact to JSONL v2. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
+| `export` | Export a SQLite artifact to JSONL v3. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
 | `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
 
 Every command accepts `--json` for a stable machine-readable report. Human output
@@ -105,7 +105,7 @@ is intentionally not part of the contract.
 
 ## Artifact Contract
 
-SQLite v2 is the source of truth for durable output. It stores:
+SQLite v3 is the source of truth for durable output. It stores:
 
 - artifact metadata and schema versions;
 - parser inventory and language capability snapshots;
@@ -113,14 +113,14 @@ SQLite v2 is the source of truth for durable output. It stores:
 - source file metadata, hashes, and line counts;
 - symbols, symbol annotations, identifiers, relationships, pending
   relationships, type facts, generic type arguments, literals, source regions,
-  structural facts, and parse diagnostics.
+  structural facts, complexity metrics, and parse diagnostics.
 
 The SQLite contract requires lookup indexes for common consumer paths: files by
 path/language, symbols by path/file/name-kind/parent/test-role flags,
 identifiers by path/file/name-kind/containing/target, relationships by source,
 target, and kind, pending relationships by terminal/file, source regions by
-file span/kind/symbol, structural facts by file span/pattern/symbol, and
-diagnostics by path.
+file span/kind/symbol, structural facts by file span/pattern/symbol,
+complexity metrics by file scope/scope-language/symbol, and diagnostics by path.
 
 Source file `content_hash` values use `blake3:<hex>`. Parser inventory and
 capability snapshot fingerprints use `sha256:<hex>`, and release asset digests
@@ -131,7 +131,7 @@ text should read the matching source tree directly.
 
 ## JSONL Export
 
-JSONL v2 is derived from SQLite and is not a separate source of truth. A full
+JSONL v3 is derived from SQLite and is not a separate source of truth. A full
 export writes deterministic `snapshot` records in this order:
 
 1. `artifact`
@@ -152,14 +152,15 @@ export writes deterministic `snapshot` records in this order:
 16. `type_argument`
 17. `literal`
 18. `source_region`
-19. `structural_fact`
-20. `parse_diagnostic`
+19. `complexity_metric`
+20. `structural_fact`
+21. `parse_diagnostic`
 
 JSON text stored in SQLite is decoded into JSON values in JSONL payloads.
 
 ## Reports And Exit Status
 
-JSON reports use `report_schema_version: 2` and include command status, input
+JSON reports use `report_schema_version: 3` and include command status, input
 paths, artifact metadata, tool version, revision IDs, row counts, warnings, and
 typed errors.
 
@@ -193,7 +194,7 @@ snapshot instead of hard-coding this list in consumers.
 
 Contributor-facing language contracts:
 
-- `docs/contracts/extracted-data-v2.md`: definitive list of extracted data domains
+- `docs/contracts/extracted-data-v3.md`: definitive list of extracted data domains
   and support labels.
 - `docs/languages/new-language-checklist.md`: checklist for adding a language or
   upgrading a language capability claim.
@@ -256,9 +257,9 @@ Product and architecture:
 Public contracts:
 
 - [CLI contract](docs/contracts/cli.md)
-- [Extracted data v2](docs/contracts/extracted-data-v2.md)
-- [SQLite schema v2](docs/contracts/sqlite-schema-v2.md)
-- [JSONL v2](docs/contracts/jsonl-v2.md)
+- [Extracted data v3](docs/contracts/extracted-data-v3.md)
+- [SQLite schema v3](docs/contracts/sqlite-schema-v3.md)
+- [JSONL v3](docs/contracts/jsonl-v3.md)
 - [JSON reports](docs/contracts/reports.md)
 
 Language support:

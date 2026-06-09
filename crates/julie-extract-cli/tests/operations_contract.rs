@@ -1115,7 +1115,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
     assert_eq!(report["status"], "ok");
     assert_eq!(report["operation"], "export");
     assert_eq!(report["mode"], "jsonl");
-    assert_eq!(report["artifact"]["jsonl_schema_version"], 2);
+    assert_eq!(report["artifact"]["jsonl_schema_version"], 3);
     assert_eq!(report["counts"]["rows_written"]["files"], 2);
     assert_eq!(report["counts"]["rows_written"]["symbols"], 3);
     let records = std::fs::read_to_string(&out).unwrap();
@@ -1125,7 +1125,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
         .collect::<Vec<_>>();
     assert_eq!(parsed[0]["kind"], "artifact");
     assert_eq!(parsed[0]["op"], "snapshot");
-    assert_eq!(parsed[0]["jsonl_schema_version"], 2);
+    assert_eq!(parsed[0]["jsonl_schema_version"], 3);
     assert!(
         parsed
             .iter()

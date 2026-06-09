@@ -84,10 +84,11 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
 - **Coverage:** The generated workload includes files, symbols,
   symbol annotations, identifiers, relationships, pending relationships,
   type facts, type argument usages, type arguments, literals, source regions,
-  parse diagnostics, and revision file changes. The default run wrote 10,000
-  files, 80,000 symbols, 240,000 identifiers, 120,000 source regions, and a
-  235,573,248-byte SQLite artifact. Elapsed write time, rows/sec, and artifact
-  size are report-only metrics, not CI thresholds.
+  structural facts, complexity metrics, parse diagnostics, and revision file
+  changes. The default run wrote 10,000 files, 80,000 symbols, 240,000
+  identifiers, 120,000 source regions, 10,000 structural facts, 90,000
+  complexity metrics, and a 270,106,624-byte SQLite artifact. Elapsed write
+  time, rows/sec, and artifact size are report-only metrics, not CI thresholds.
 - **Verification:** Focused parser/runner tests and top-level routing tests pass.
   The manual evidence run completed:
   `cargo xtask performance writer-current-schema --out-dir target/performance/writer-current-schema`.
@@ -100,7 +101,7 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   likely extractor surfaces under `crates/julie-extractors/src/base/`,
   `crates/julie-extractors/src/language_spec/`, and per-language modules;
   artifact surfaces under `crates/julie-extract-artifact/src/{schema.rs,writer.rs,jsonl.rs,model.rs}`.
-- **Done:** The current v2 artifact has a `structural_facts` SQLite table,
+- **Done:** The current v3 artifact has a `structural_facts` SQLite table,
   `structural_fact` JSONL records, report row counts, writer coverage, CLI scan
   coverage, and current-schema performance coverage. The extractor now emits a
   representative fixture-backed pattern set: Rust unsafe blocks, Go goroutine
@@ -123,7 +124,7 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
 
 ## 8. Cross-language AST/code complexity metrics — complete
 
-- **Done:** The current v2 artifact has a `complexity_metrics` SQLite table,
+- **Done:** The current v3 artifact has a `complexity_metrics` SQLite table,
   `complexity_metric` JSONL records, report row counts, writer coverage, CLI
   scan persistence, current-schema writer guard coverage, and contract docs.
 - **Done:** Extractors now emit primitive parser-backed metrics with
@@ -149,7 +150,7 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   `crates/julie-extractors/src/base/types.rs` and
   `crates/julie-extract-artifact/src/model.rs`; artifact writers in
   `crates/julie-extract-artifact/src/{schema.rs,writer.rs,jsonl.rs}`;
-  docs in `docs/contracts/{sqlite-schema-v2.md,jsonl-v2.md}`.
+  docs in `docs/contracts/{sqlite-schema-v3.md,jsonl-v3.md}`.
 - **Finding:** Symbols already expose `body_hash` when body spans are available.
   That hash is useful for exact normalized-body matches. The exact-hash contract
   now has a documented algorithm id, normalization rules, and guardrails in the
@@ -163,7 +164,7 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   language-appropriate comments, and added tests for exact-match stability and
   contract wording.
 - **Decision:** Do not add a separate machine-readable fingerprint surface in
-  the current v2 artifact. Token counts, SimHash, token n-grams, and other
+  the current v3 artifact. Token counts, SimHash, token n-grams, and other
   near-duplicate candidate signals need a named downstream requirement before
   they become public SQLite/JSONL contract surfaces.
 - **Decision record:** `docs/decisions/0002-clone-fingerprint-scope.md`
@@ -173,5 +174,5 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   threshold, and present duplicates downstream.
 - **Verification:** Focused tests prove whitespace/comment-stable exact hashes,
   intentional non-matches when executable tokens differ, quoted string
-  preservation, and SQLite/JSONL v2 contract stability. The remaining deferred
+  preservation, and SQLite/JSONL v3 contract stability. The remaining deferred
   surface was closed by Decision 0002, not by adding speculative artifact rows.

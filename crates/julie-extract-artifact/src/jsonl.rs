@@ -10,7 +10,7 @@ use serde_json::{Map, Value, json};
 use crate::metadata::{REQUIRED_METADATA_KEYS, read_metadata};
 use crate::schema::EXTRACT_CONTRACT_VERSION;
 
-pub const JSONL_SCHEMA_VERSION: i64 = 2;
+pub const JSONL_SCHEMA_VERSION: i64 = 3;
 
 pub const JSONL_RECORD_KINDS: &[&str] = &[
     "artifact",

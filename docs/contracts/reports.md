@@ -16,7 +16,7 @@ part of this contract.
 
 ```json
 {
-  "report_schema_version": 2,
+  "report_schema_version": 3,
   "status": "ok",
   "operation": "scan",
   "mode": "incremental",
@@ -32,9 +32,9 @@ part of this contract.
     "db_path": "/tmp/code.sqlite",
     "root_path": "/repo",
     "artifact_id": "01hz...",
-    "schema_version": 2,
-    "extract_contract_version": 2,
-    "sqlite_schema_version": 2,
+    "schema_version": 3,
+    "extract_contract_version": 3,
+    "sqlite_schema_version": 3,
     "jsonl_schema_version": null,
     "hash_algorithm": "blake3",
     "parser_inventory_fingerprint": "sha256:...",
@@ -131,7 +131,7 @@ part of this contract.
 
 Fields:
 
-- `report_schema_version`: report shape version, always `2` for this contract.
+- `report_schema_version`: report shape version, always `3` for this contract.
 - `status`: one of the CLI status values.
 - `operation`: command name.
 - `mode`: operation-specific mode such as `incremental`, `force`, `single_file`,
@@ -150,7 +150,7 @@ Fields:
 Commands that do not use an artifact, such as `languages`, set `artifact` and
 `revision` to `null`.
 
-`counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v2
+`counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v3
 row domains. Commands must emit every key with `0` when that row kind is not
 written or not present.
 
@@ -282,7 +282,7 @@ Warnings use the same shape and may use warning-only codes such as
 - `operation`: `export`
 - `mode`: `jsonl`
 - Must include exported record counts by kind.
-- `artifact.jsonl_schema_version` is `2`.
+- `artifact.jsonl_schema_version` is `3`.
 
 ### `languages`
 

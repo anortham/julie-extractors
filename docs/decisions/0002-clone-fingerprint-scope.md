@@ -17,7 +17,7 @@ n-gram hashes.
 Close TODO #9 with the exact `body_hash` contract only.
 
 Do not add a new `symbol_body_fingerprints` table, JSONL record, SimHash, token
-n-gram hashes, or clone score in the current v2 artifact. Those surfaces should
+n-gram hashes, or clone score in the current v3 artifact. Those surfaces should
 be added only after a downstream consumer names a concrete requirement that
 exact normalized-body grouping cannot satisfy.
 

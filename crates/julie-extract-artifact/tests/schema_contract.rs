@@ -9,7 +9,7 @@ use julie_extract_artifact::writer::ArtifactWriter;
 use rusqlite::Connection;
 
 #[test]
-fn schema_creates_every_sqlite_v2_public_table_with_contract_columns() {
+fn schema_creates_every_sqlite_v3_public_table_with_contract_columns() {
     let conn = open_schema();
 
     let table_names: BTreeSet<_> = conn
@@ -32,7 +32,7 @@ fn schema_creates_every_sqlite_v2_public_table_with_contract_columns() {
         assert_eq!(
             table_columns(&conn, table.name),
             table.columns,
-            "{} columns drifted from sqlite-schema-v2.md",
+            "{} columns drifted from sqlite-schema-v3.md",
             table.name
         );
     }
@@ -69,7 +69,7 @@ fn schema_creates_required_indexes_with_contract_columns() {
         assert_eq!(
             index_columns(&conn, index.name),
             index.columns,
-            "{} columns drifted from sqlite-schema-v2.md",
+            "{} columns drifted from sqlite-schema-v3.md",
             index.name
         );
     }
@@ -126,8 +126,8 @@ fn metadata_required_keys_are_inserted_and_readable() {
     }
     assert_eq!(rows["artifact_id"], "artifact-test-1");
     assert_eq!(rows["root_path"], "/repo");
-    assert_eq!(rows["schema_version"], "2");
-    assert_eq!(rows["extract_contract_version"], "2");
+    assert_eq!(rows["schema_version"], "3");
+    assert_eq!(rows["extract_contract_version"], "3");
     assert_eq!(
         rows["sqlite_schema_version"],
         SQLITE_SCHEMA_VERSION.to_string()
@@ -158,7 +158,7 @@ fn writer_initializes_schema_metadata_and_foreign_key_enforcement() {
 }
 
 #[test]
-fn report_row_domains_cover_every_sqlite_v2_public_table() {
+fn report_row_domains_cover_every_sqlite_v3_public_table() {
     let domains = SQLITE_ROW_DOMAINS.iter().copied().collect::<BTreeSet<_>>();
     assert_eq!(
         domains.len(),
@@ -176,13 +176,17 @@ fn report_row_domains_cover_every_sqlite_v2_public_table() {
 }
 
 #[test]
-fn v2_contract_docs_define_body_hash_algorithm_and_limits() {
+fn contract_docs_define_body_hash_algorithm_and_limits() {
     const SQLITE_V2: &str = include_str!("../../../docs/contracts/sqlite-schema-v2.md");
+    const SQLITE_V3: &str = include_str!("../../../docs/contracts/sqlite-schema-v3.md");
     const JSONL_V2: &str = include_str!("../../../docs/contracts/jsonl-v2.md");
+    const JSONL_V3: &str = include_str!("../../../docs/contracts/jsonl-v3.md");
 
     for (name, doc) in [
         ("sqlite-schema-v2.md", SQLITE_V2),
+        ("sqlite-schema-v3.md", SQLITE_V3),
         ("jsonl-v2.md", JSONL_V2),
+        ("jsonl-v3.md", JSONL_V3),
     ] {
         let searchable = compact_whitespace(doc);
         assert!(
@@ -202,6 +206,20 @@ fn v2_contract_docs_define_body_hash_algorithm_and_limits() {
             "{name} must keep clone ranking out of the extractor contract"
         );
     }
+}
+
+#[test]
+fn jsonl_v3_docs_list_all_capability_kind_coverage_domains() {
+    const JSONL_V3: &str = include_str!("../../../docs/contracts/jsonl-v3.md");
+    let searchable = compact_whitespace(JSONL_V3);
+
+    assert!(
+        searchable.contains(
+            "`kind_coverage`: object with `symbols`, `relationships`, `identifiers`, \
+             `body_spans`, `structural_facts`, and `complexity_metrics` domains"
+        ),
+        "jsonl-v3.md language_capability docs must list every kind_coverage domain"
+    );
 }
 
 fn compact_whitespace(text: &str) -> String {
