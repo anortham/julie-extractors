@@ -142,7 +142,7 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   language and metric scope. Focused extractor, artifact, CLI, capability, and
   xtask tests pass for this slice.
 
-## 9. Clone-ready body fingerprints beyond current `body_hash` — exact-hash contract complete
+## 9. Clone-ready body fingerprints beyond current `body_hash` — done
 
 - **Where:** Existing normalized body hash logic in
   `crates/julie-extractors/src/base/body.rs`; symbol model fields in
@@ -162,12 +162,16 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   id `julie-normalized-body-md5-v1`, made normalization ignore whitespace and
   language-appropriate comments, and added tests for exact-match stability and
   contract wording.
-- **Deferred slice:** Add a separate machine-readable fingerprint surface only
-  if downstream consumers need token counts, SimHash, token n-grams, or other
-  near-duplicate candidate signals beyond exact normalized-body matches.
+- **Decision:** Do not add a separate machine-readable fingerprint surface in
+  the current v2 artifact. Token counts, SimHash, token n-grams, and other
+  near-duplicate candidate signals need a named downstream requirement before
+  they become public SQLite/JSONL contract surfaces.
+- **Decision record:** `docs/decisions/0002-clone-fingerprint-scope.md`
+  captures the clone-fingerprint scope boundary and future-entry criteria.
 - **Guardrail:** Do not make the extractor decide product-level duplicate
-  severity. Emit stable fingerprints and counts; Miller/Eros can group, rank,
+  severity. Emit stable exact fingerprints; Miller/Eros can group, rank,
   threshold, and present duplicates downstream.
-- **Verification:** Focused tests now prove whitespace/comment-stable exact
-  hashes, intentional non-matches when executable tokens differ, quoted string
-  preservation, and SQLite/JSONL v2 contract stability.
+- **Verification:** Focused tests prove whitespace/comment-stable exact hashes,
+  intentional non-matches when executable tokens differ, quoted string
+  preservation, and SQLite/JSONL v2 contract stability. The remaining deferred
+  surface was closed by Decision 0002, not by adding speculative artifact rows.

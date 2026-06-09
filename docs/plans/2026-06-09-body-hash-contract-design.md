@@ -49,9 +49,16 @@ Miller and Eros own grouping, ranking, thresholds, and presentation.
   does not encode duplicate severity.
 - Existing schema shape stays unchanged.
 
-## Deferred Work
+## Future Work Outside TODO #9
 
 - Machine-readable `symbol_body_fingerprints` table or JSONL record.
 - Normalized token counts.
 - Near-duplicate candidate fingerprints such as SimHash or token n-gram hashes.
 - Dogfood duplicate-candidate reporting by language and symbol kind.
+
+## Closure
+
+TODO #9 is closed by the exact `body_hash` contract. Decision 0002 records that
+near-duplicate candidate surfaces remain out of scope until a downstream
+consumer names a concrete requirement that exact normalized-body grouping cannot
+satisfy.
