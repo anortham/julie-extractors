@@ -176,3 +176,22 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   intentional non-matches when executable tokens differ, quoted string
   preservation, and SQLite/JSONL v3 contract stability. The remaining deferred
   surface was closed by Decision 0002, not by adding speculative artifact rows.
+
+## 10. ASP.NET minimal API, htmx, and Alpine structural facts — open
+
+- **Where:** `docs/plans/2026-06-09-aspnet-htmx-alpine-structural-facts.md`;
+  planned extractor surfaces under
+  `crates/julie-extractors/src/base/framework_structural_facts.rs`,
+  `crates/julie-extractors/src/registry.rs`, C#/HTML/Razor fixture directories,
+  and `fixtures/extraction/capabilities.json`.
+- **Why it matters:** C#, Razor, HTML, and JavaScript parser support already
+  covers the syntax, but downstream tools need durable framework facts for
+  minimal API routes, htmx request attributes, and Alpine directives before
+  Miller can reliably index and bridge this stack.
+- **Planned slice:** Emit `aspnet.minimal_api.route.v1`,
+  `htmx.attribute.v1`, and `alpine.directive.v1` through the existing
+  `structural_facts` row family with fixture-backed capability metadata. Keep
+  htmx-to-ASP.NET route linking in Miller, not in this repo.
+- **Verification target:** Focused structural-fact tests, one-language gates for
+  `csharp`, `html`, and `razor`, capability tests, CLI operations contract,
+  then `cargo xtask test default` and `cargo xtask test contract`.
