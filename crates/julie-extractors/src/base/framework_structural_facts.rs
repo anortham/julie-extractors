@@ -136,19 +136,17 @@ fn collect_markup_framework_attributes(
     let mut facts = Vec::new();
 
     for attribute in scan_markup_attributes(content) {
-        if attribute.name.starts_with("hx-") {
-            if let Some(fact) = htmx_attribute_fact(language, tree, file_path, content, &attribute)
-            {
-                facts.push(fact);
-            }
+        if attribute.name.starts_with("hx-")
+            && let Some(fact) = htmx_attribute_fact(language, tree, file_path, content, &attribute)
+        {
+            facts.push(fact);
         }
 
-        if is_alpine_attribute_name(&attribute.name) {
-            if let Some(fact) =
+        if is_alpine_attribute_name(&attribute.name)
+            && let Some(fact) =
                 alpine_directive_fact(language, tree, file_path, content, &attribute)
-            {
-                facts.push(fact);
-            }
+        {
+            facts.push(fact);
         }
     }
 
