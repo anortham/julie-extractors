@@ -155,6 +155,40 @@ fn commands_route_performance_baseline_before_test_tier_parser() {
 }
 
 #[test]
+fn commands_route_performance_writer_current_schema_before_test_tier_parser() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("writer-current-schema");
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args([
+            "performance",
+            "writer-current-schema",
+            "--out-dir",
+            out_dir.to_str().expect("utf-8 path"),
+            "--files",
+            "1",
+            "--symbols-per-file",
+            "2",
+            "--identifiers-per-file",
+            "3",
+            "--source-regions-per-file",
+            "3",
+        ])
+        .output()
+        .expect("run xtask performance writer-current-schema");
+
+    assert!(
+        output.status.success(),
+        "command failed: status {:?}, stderr {}",
+        output.status.code(),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        out_dir.join("writer-current-schema-summary.json").exists(),
+        "writer-current-schema route must write a summary"
+    );
+}
+
+#[test]
 fn workspace_members_inherit_workspace_lints() {
     let root = repo_root();
     for manifest in [

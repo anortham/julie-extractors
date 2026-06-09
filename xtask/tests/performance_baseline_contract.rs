@@ -5,7 +5,7 @@ use tempfile::TempDir;
 use xtask::dogfood::DogfoodMetrics;
 use xtask::performance::{
     BaselineRun, MetricSummary, plan_baseline_from_args, plan_writer_current_schema_from_args,
-    summarize_baseline,
+    run_writer_current_schema, summarize_baseline,
 };
 
 #[test]
@@ -131,7 +131,11 @@ fn writer_current_schema_args_reject_invalid_dimensions() {
 
     for (flag, value, expected) in [
         ("--files", "0", "--files must be greater than zero"),
-        ("--symbols-per-file", "0", "--symbols-per-file must be greater than zero"),
+        (
+            "--symbols-per-file",
+            "0",
+            "--symbols-per-file must be greater than zero",
+        ),
         (
             "--identifiers-per-file",
             "abc",
@@ -178,6 +182,101 @@ fn writer_current_schema_args_reject_unknown_arguments() {
             .to_string()
             .contains("unknown performance writer-current-schema argument `--unexpected`"),
         "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn writer_current_schema_execution_writes_every_current_child_domain() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("writer-current-schema");
+    let plan = plan_writer_current_schema_from_args([
+        "writer-current-schema",
+        "--out-dir",
+        path_str(&out_dir),
+        "--files",
+        "2",
+        "--symbols-per-file",
+        "3",
+        "--identifiers-per-file",
+        "4",
+        "--source-regions-per-file",
+        "3",
+    ])
+    .expect("writer current-schema plan");
+
+    let summary = run_writer_current_schema(plan).expect("writer current-schema run");
+
+    assert!(
+        summary.db_path.exists(),
+        "SQLite artifact should be written"
+    );
+    assert!(
+        summary.summary_path.exists(),
+        "summary JSON should be written"
+    );
+    assert_eq!(summary.transactions_committed, 1);
+    assert_eq!(summary.files_changed, 2);
+    assert_eq!(summary.rows_written.files, 2);
+    assert_eq!(summary.rows_written.symbols, 6);
+    assert_eq!(summary.rows_written.symbol_annotations, 2);
+    assert_eq!(summary.rows_written.identifiers, 8);
+    assert_eq!(summary.rows_written.relationships, 4);
+    assert_eq!(summary.rows_written.pending_relationships, 2);
+    assert_eq!(summary.rows_written.type_facts, 6);
+    assert_eq!(summary.rows_written.type_argument_usages, 8);
+    assert_eq!(summary.rows_written.type_arguments, 8);
+    assert_eq!(summary.rows_written.literals, 2);
+    assert_eq!(summary.rows_written.source_regions, 6);
+    assert_eq!(summary.rows_written.parse_diagnostics, 2);
+    assert_eq!(summary.rows_written.revision_file_changes, 2);
+    assert!(summary.sqlite_bytes > 0);
+    assert!(
+        summary.rows_per_second.is_none_or(f64::is_finite),
+        "rows_per_second must be absent or finite"
+    );
+}
+
+#[test]
+fn writer_current_schema_summary_serializes_stable_fields() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("writer-current-schema");
+    let plan = plan_writer_current_schema_from_args([
+        "writer-current-schema",
+        "--out-dir",
+        path_str(&out_dir),
+        "--files",
+        "1",
+        "--symbols-per-file",
+        "2",
+        "--identifiers-per-file",
+        "3",
+        "--source-regions-per-file",
+        "3",
+    ])
+    .expect("writer current-schema plan");
+
+    let summary = run_writer_current_schema(plan).expect("writer current-schema run");
+    let value = serde_json::to_value(&summary).expect("summary json");
+
+    assert_eq!(value["input"]["files"], 1);
+    assert_eq!(value["input"]["symbols_per_file"], 2);
+    assert_eq!(value["input"]["identifiers_per_file"], 3);
+    assert_eq!(value["input"]["source_regions_per_file"], 3);
+    assert_eq!(value["rows_written"]["files"], 1);
+    assert_eq!(value["rows_written"]["source_regions"], 3);
+    assert!(value["elapsed_write_ms"].is_number());
+    assert!(value["sqlite_bytes"].is_number());
+    assert!(
+        value["db_path"]
+            .as_str()
+            .expect("db_path string")
+            .ends_with("artifact.sqlite")
+    );
+    assert!(
+        value["summary_path"]
+            .as_str()
+            .expect("summary_path string")
+            .ends_with("writer-current-schema-summary.json")
     );
 }
 

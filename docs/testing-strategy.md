@@ -206,6 +206,21 @@ cargo xtask performance baseline --root . --out-dir target/performance/julie-ext
 This command is release-evidence tooling. It is not part of regular CI, and it
 does not define hard timing thresholds.
 
+The writer current-schema performance guard exercises the SQLite artifact writer
+directly with a deterministic synthetic v2-schema workload:
+
+```bash
+cargo xtask performance writer-current-schema --out-dir target/performance/writer-current-schema
+```
+
+The command writes `artifact.sqlite` and
+`writer-current-schema-summary.json` under the requested output directory. The
+summary records input dimensions, row totals by domain, write elapsed time,
+rows per second, and artifact size. Successful artifact creation and non-empty
+current-schema child-row domains are hard evidence; timing, rows per second,
+and artifact size are report-only metrics. This guard is local
+release-evidence tooling, not part of regular CI or the default/contract tiers.
+
 ## CI Policy
 
 Regular CI runs only fast gates:
@@ -233,6 +248,7 @@ plan explicitly adds a dedicated workflow:
 
 ```bash
 cargo xtask performance baseline --root . --out-dir target/performance/julie-extractors-baseline --binary target/release/julie-extract --runs 3
+cargo xtask performance writer-current-schema --out-dir target/performance/writer-current-schema
 ```
 
 ## Guardrails
