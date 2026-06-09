@@ -7,6 +7,10 @@ use serde::Serialize;
 use crate::dogfood::{self, DogfoodMetrics, DogfoodOutputPaths, DogfoodPlan};
 
 const MIN_BASELINE_RUNS: usize = 3;
+const DEFAULT_WRITER_CURRENT_SCHEMA_FILES: usize = 10_000;
+const DEFAULT_WRITER_CURRENT_SCHEMA_SYMBOLS_PER_FILE: usize = 8;
+const DEFAULT_WRITER_CURRENT_SCHEMA_IDENTIFIERS_PER_FILE: usize = 24;
+const DEFAULT_WRITER_CURRENT_SCHEMA_SOURCE_REGIONS_PER_FILE: usize = 12;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BaselinePlan {
@@ -26,6 +30,39 @@ impl BaselinePlan {
 
     fn run_output_dir(&self, run_index: usize) -> PathBuf {
         self.out_dir.join(format!("run-{run_index:03}"))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WriterCurrentSchemaPlan {
+    pub out_dir: PathBuf,
+    pub db_path: PathBuf,
+    pub summary_path: PathBuf,
+    pub files: usize,
+    pub symbols_per_file: usize,
+    pub identifiers_per_file: usize,
+    pub source_regions_per_file: usize,
+}
+
+impl WriterCurrentSchemaPlan {
+    fn new(
+        out_dir: PathBuf,
+        files: usize,
+        symbols_per_file: usize,
+        identifiers_per_file: usize,
+        source_regions_per_file: usize,
+    ) -> Self {
+        let db_path = out_dir.join("artifact.sqlite");
+        let summary_path = out_dir.join("writer-current-schema-summary.json");
+        Self {
+            out_dir,
+            db_path,
+            summary_path,
+            files,
+            symbols_per_file,
+            identifiers_per_file,
+            source_regions_per_file,
+        }
     }
 }
 
@@ -140,6 +177,74 @@ pub fn run_from_args(args: &[String]) -> ExitCode {
 pub fn run_baseline_from_args(args: &[String]) -> Result<BaselineSummary, PerformanceError> {
     let plan = plan_baseline_from_args(args)?;
     run_baseline(plan)
+}
+
+pub fn plan_writer_current_schema_from_args<I, S>(
+    args: I,
+) -> Result<WriterCurrentSchemaPlan, PerformanceError>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    let args = args
+        .into_iter()
+        .map(|arg| arg.as_ref().to_string())
+        .collect::<Vec<_>>();
+    if args.first().map(String::as_str) != Some("writer-current-schema") {
+        return Err(PerformanceError::Usage(
+            "usage: cargo xtask performance writer-current-schema --out-dir <path> [--files <n>] [--symbols-per-file <n>] [--identifiers-per-file <n>] [--source-regions-per-file <n>]; expected `writer-current-schema`".to_string(),
+        ));
+    }
+
+    let mut out_dir = None;
+    let mut files = DEFAULT_WRITER_CURRENT_SCHEMA_FILES;
+    let mut symbols_per_file = DEFAULT_WRITER_CURRENT_SCHEMA_SYMBOLS_PER_FILE;
+    let mut identifiers_per_file = DEFAULT_WRITER_CURRENT_SCHEMA_IDENTIFIERS_PER_FILE;
+    let mut source_regions_per_file = DEFAULT_WRITER_CURRENT_SCHEMA_SOURCE_REGIONS_PER_FILE;
+    let mut index = 1;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--out-dir" => {
+                out_dir = Some(required_value(&args, index + 1, "--out-dir")?);
+                index += 2;
+            }
+            "--files" => {
+                files = required_positive_usize(&args, index + 1, "--files")?;
+                index += 2;
+            }
+            "--symbols-per-file" => {
+                symbols_per_file =
+                    required_positive_usize(&args, index + 1, "--symbols-per-file")?;
+                index += 2;
+            }
+            "--identifiers-per-file" => {
+                identifiers_per_file =
+                    required_positive_usize(&args, index + 1, "--identifiers-per-file")?;
+                index += 2;
+            }
+            "--source-regions-per-file" => {
+                source_regions_per_file =
+                    required_positive_usize(&args, index + 1, "--source-regions-per-file")?;
+                index += 2;
+            }
+            other => {
+                return Err(PerformanceError::Usage(format!(
+                    "unknown performance writer-current-schema argument `{other}`"
+                )));
+            }
+        }
+    }
+
+    let out_dir =
+        out_dir.ok_or_else(|| PerformanceError::Usage("missing --out-dir".to_string()))?;
+
+    Ok(WriterCurrentSchemaPlan::new(
+        out_dir,
+        files,
+        symbols_per_file,
+        identifiers_per_file,
+        source_regions_per_file,
+    ))
 }
 
 pub fn plan_baseline_from_args<I, S>(args: I) -> Result<BaselinePlan, PerformanceError>
@@ -368,6 +473,24 @@ fn required_value(args: &[String], index: usize, flag: &str) -> Result<PathBuf, 
     args.get(index)
         .map(PathBuf::from)
         .ok_or_else(|| PerformanceError::Usage(format!("missing {flag} value")))
+}
+
+fn required_positive_usize(
+    args: &[String],
+    index: usize,
+    flag: &str,
+) -> Result<usize, PerformanceError> {
+    let value = required_value(args, index, flag)?;
+    let parsed = value
+        .to_string_lossy()
+        .parse::<usize>()
+        .map_err(|_| PerformanceError::Usage(format!("{flag} must be an integer")))?;
+    if parsed == 0 {
+        return Err(PerformanceError::Usage(format!(
+            "{flag} must be greater than zero"
+        )));
+    }
+    Ok(parsed)
 }
 
 fn write_summary(path: &Path, summary: &BaselineSummary) -> Result<(), PerformanceError> {

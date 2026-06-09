@@ -3,7 +3,10 @@ use std::path::Path;
 
 use tempfile::TempDir;
 use xtask::dogfood::DogfoodMetrics;
-use xtask::performance::{BaselineRun, MetricSummary, plan_baseline_from_args, summarize_baseline};
+use xtask::performance::{
+    BaselineRun, MetricSummary, plan_baseline_from_args, plan_writer_current_schema_from_args,
+    summarize_baseline,
+};
 
 #[test]
 fn baseline_args_plan_repeated_run_directories_and_summary_path() {
@@ -69,6 +72,113 @@ fn baseline_args_require_at_least_three_runs() {
             "unexpected error for runs={runs}: {error}"
         );
     }
+}
+
+#[test]
+fn writer_current_schema_args_plan_default_dimensions_and_paths() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("writer-current-schema");
+
+    let plan = plan_writer_current_schema_from_args([
+        "writer-current-schema",
+        "--out-dir",
+        path_str(&out_dir),
+    ])
+    .expect("writer current-schema plan");
+
+    assert_eq!(plan.out_dir, out_dir);
+    assert_eq!(plan.db_path, plan.out_dir.join("artifact.sqlite"));
+    assert_eq!(
+        plan.summary_path,
+        plan.out_dir.join("writer-current-schema-summary.json")
+    );
+    assert_eq!(plan.files, 10_000);
+    assert_eq!(plan.symbols_per_file, 8);
+    assert_eq!(plan.identifiers_per_file, 24);
+    assert_eq!(plan.source_regions_per_file, 12);
+}
+
+#[test]
+fn writer_current_schema_args_accept_explicit_dimensions() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("writer-current-schema");
+
+    let plan = plan_writer_current_schema_from_args([
+        "writer-current-schema",
+        "--out-dir",
+        path_str(&out_dir),
+        "--files",
+        "3",
+        "--symbols-per-file",
+        "4",
+        "--identifiers-per-file",
+        "5",
+        "--source-regions-per-file",
+        "6",
+    ])
+    .expect("writer current-schema plan");
+
+    assert_eq!(plan.files, 3);
+    assert_eq!(plan.symbols_per_file, 4);
+    assert_eq!(plan.identifiers_per_file, 5);
+    assert_eq!(plan.source_regions_per_file, 6);
+}
+
+#[test]
+fn writer_current_schema_args_reject_invalid_dimensions() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("writer-current-schema");
+
+    for (flag, value, expected) in [
+        ("--files", "0", "--files must be greater than zero"),
+        ("--symbols-per-file", "0", "--symbols-per-file must be greater than zero"),
+        (
+            "--identifiers-per-file",
+            "abc",
+            "--identifiers-per-file must be an integer",
+        ),
+        (
+            "--source-regions-per-file",
+            "0",
+            "--source-regions-per-file must be greater than zero",
+        ),
+    ] {
+        let error = plan_writer_current_schema_from_args([
+            "writer-current-schema",
+            "--out-dir",
+            path_str(&out_dir),
+            flag,
+            value,
+        ])
+        .expect_err("invalid dimension must fail");
+
+        assert!(
+            error.to_string().contains(expected),
+            "unexpected error for {flag}={value}: {error}"
+        );
+    }
+}
+
+#[test]
+fn writer_current_schema_args_reject_unknown_arguments() {
+    let temp = TempDir::new().expect("tempdir");
+    let out_dir = temp.path().join("writer-current-schema");
+
+    let error = plan_writer_current_schema_from_args([
+        "writer-current-schema",
+        "--out-dir",
+        path_str(&out_dir),
+        "--unexpected",
+        "value",
+    ])
+    .expect_err("unknown argument must fail");
+
+    assert!(
+        error
+            .to_string()
+            .contains("unknown performance writer-current-schema argument `--unexpected`"),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
