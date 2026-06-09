@@ -17,6 +17,7 @@ pub mod complexity_metrics;
 pub mod creation_methods;
 pub mod embedded_span;
 pub mod extractor;
+pub mod framework_structural_facts;
 pub mod kinds;
 pub mod relationship_resolution;
 mod results_normalization;
@@ -35,6 +36,7 @@ pub use body::BodySpan;
 pub use complexity_metrics::collect_complexity_metrics;
 pub use embedded_span::EmbeddedSpanOffset;
 pub use extractor::BaseExtractor;
+pub use framework_structural_facts::collect_framework_structural_facts;
 pub use kinds::{IdentifierKind, RelationshipKind, SymbolKind, TestRole, Visibility};
 pub use relationship_resolution::{
     LocalTargetResolution, ScopedSymbolIndex, StructuredPendingRelationship, UnresolvedTarget,

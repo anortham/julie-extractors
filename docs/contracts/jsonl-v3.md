@@ -508,6 +508,9 @@ Supported patterns are advertised in `language_capability` records under
 | `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
 | `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
+| `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","verb":"GET","route_template":"/todos","route_source":"string_literal"}` plus optional `handler_kind` and `handler_name` |
+| `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"htmx","attribute_name":"hx-get","attribute_value":"/todos"}` plus optional `verb` and `target_path` |
+| `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"alpine","directive":"x-on","argument":"click","expression":"open = !open","shorthand":true}` plus optional `modifiers` |
 
 ### `parse_diagnostic`
 

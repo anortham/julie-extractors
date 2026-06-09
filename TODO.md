@@ -177,7 +177,7 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   preservation, and SQLite/JSONL v3 contract stability. The remaining deferred
   surface was closed by Decision 0002, not by adding speculative artifact rows.
 
-## 10. ASP.NET minimal API, htmx, and Alpine structural facts — open
+## 10. ASP.NET minimal API, htmx, and Alpine structural facts — done
 
 - **Where:** `docs/plans/2026-06-09-aspnet-htmx-alpine-structural-facts.md`;
   planned extractor surfaces under
@@ -188,10 +188,17 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   covers the syntax, but downstream tools need durable framework facts for
   minimal API routes, htmx request attributes, and Alpine directives before
   Miller can reliably index and bridge this stack.
-- **Planned slice:** Emit `aspnet.minimal_api.route.v1`,
+- **Completed slice:** Emits `aspnet.minimal_api.route.v1`,
   `htmx.attribute.v1`, and `alpine.directive.v1` through the existing
-  `structural_facts` row family with fixture-backed capability metadata. Keep
-  htmx-to-ASP.NET route linking in Miller, not in this repo.
-- **Verification target:** Focused structural-fact tests, one-language gates for
-  `csharp`, `html`, and `razor`, capability tests, CLI operations contract,
-  then `cargo xtask test default` and `cargo xtask test contract`.
+  `structural_facts` row family with fixture-backed capability metadata. The
+  extractor records static ASP.NET minimal API route templates, htmx attributes
+  with request metadata where applicable, and Alpine long-form/shorthand
+  directive metadata. htmx-to-ASP.NET route linking remains downstream in
+  Miller, not in this repo.
+- **Verification:** Focused structural-fact tests pass; `cargo xtask test
+  language csharp`, `cargo xtask test language html`, and `cargo xtask test
+  language razor` pass; capability-matrix structural checks pass; golden
+  fixture checks pass; `languages --json` capability snapshot test passes; a
+  real three-file CLI smoke scan writes `aspnet.minimal_api.route.v1`,
+  `htmx.attribute.v1`, and `alpine.directive.v1` rows; `cargo xtask test
+  default` and `cargo xtask test contract` pass.

@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
+use crate::base::StructuralFact;
+
 fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
     crate::pipeline::extract_canonical(file_path, source, Path::new("/repo"))
         .expect("canonical extraction should succeed")
@@ -43,6 +45,177 @@ fn rust_unsafe_blocks_emit_structural_facts_with_containing_symbol() {
         Some("safety")
     );
     assert!(fact.end_byte > fact.start_byte);
+}
+
+#[test]
+fn csharp_minimal_api_routes_emit_structural_facts() {
+    let source = r#"using Microsoft.AspNetCore.Builder;
+
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapGet("/todos", () => "ok");
+app.MapPost("/todos", CreateTodo);
+app.MapPut("/todos/{id}", (int id) => Results.Ok(id));
+app.MapPatch("/todos/{id}", (int id) => Results.Ok(id));
+app.MapDelete("/todos/{id}", DeleteTodo);
+
+var dynamicRoute = "/dynamic";
+app.MapGet(dynamicRoute, () => "skip");
+app.MapGet($"/computed/{id}", () => "skip");
+
+static IResult CreateTodo() => Results.Ok();
+static IResult DeleteTodo(int id) => Results.Ok();
+"#;
+
+    let results = extract("src/Program.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.minimal_api.route.v1");
+
+    assert_eq!(facts.len(), 5);
+    assert_eq!(
+        facts
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "verb"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["DELETE", "GET", "PATCH", "POST", "PUT"])
+    );
+    assert_eq!(
+        facts
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "route_template"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/todos", "/todos/{id}"])
+    );
+
+    for fact in &facts {
+        assert_common_framework_fact(fact, "route_call", "framework");
+        assert_eq!(metadata_str(fact, "framework"), Some("aspnet"));
+        assert_eq!(metadata_str(fact, "api_style"), Some("minimal_api"));
+        assert_eq!(metadata_str(fact, "route_source"), Some("string_literal"));
+    }
+
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "verb") == Some("POST"))
+        .expect("expected POST route fact");
+    assert_eq!(metadata_str(post, "handler_kind"), Some("method_group"));
+    assert_eq!(metadata_str(post, "handler_name"), Some("CreateTodo"));
+
+    let put = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "verb") == Some("PUT"))
+        .expect("expected PUT route fact");
+    assert_eq!(metadata_str(put, "handler_kind"), Some("lambda"));
+    assert_eq!(metadata_str(put, "handler_name"), None);
+}
+
+#[test]
+fn html_htmx_and_alpine_attributes_emit_structural_facts() {
+    let source = r##"<div id="list"
+    hx-get="/todos"
+    hx-post="/todos"
+    hx-target="#list"
+    hx-trigger="click"
+    x-data="{ open: false }">
+    <button @click.prevent="open = !open" :class="{ active: open }" x-show="open">Toggle</button>
+</div>
+"##;
+
+    let results = extract("src/index.html", source);
+
+    let htmx = facts_with_pattern(&results, "htmx.attribute.v1");
+    assert_eq!(htmx.len(), 4);
+    assert_eq!(
+        htmx.iter()
+            .filter_map(|fact| metadata_str(fact, "attribute_name"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["hx-get", "hx-post", "hx-target", "hx-trigger"])
+    );
+    let get = htmx
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_name") == Some("hx-get"))
+        .expect("expected hx-get fact");
+    assert_common_framework_fact(get, "attribute", "frontend_interaction");
+    assert_eq!(metadata_str(get, "framework"), Some("htmx"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "target_path"), Some("/todos"));
+
+    let alpine = facts_with_pattern(&results, "alpine.directive.v1");
+    assert_eq!(alpine.len(), 4);
+    assert_eq!(
+        alpine
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "directive"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["x-bind", "x-data", "x-on", "x-show"])
+    );
+    let click = alpine
+        .iter()
+        .find(|fact| metadata_str(fact, "directive") == Some("x-on"))
+        .expect("expected x-on shorthand fact");
+    assert_common_framework_fact(click, "directive", "frontend_interaction");
+    assert_eq!(metadata_str(click, "framework"), Some("alpine"));
+    assert_eq!(metadata_str(click, "argument"), Some("click"));
+    assert_eq!(metadata_bool(click, "shorthand"), Some(true));
+    assert_eq!(metadata_array(click, "modifiers"), vec!["prevent"]);
+    assert_eq!(metadata_str(click, "expression"), Some("open = !open"));
+}
+
+#[test]
+fn html_framework_attribute_scanner_ignores_script_text() {
+    let source = r#"<script>
+const markup = "<div hx-get='/todos' x-data='{ open: true }'></div>";
+</script>
+"#;
+
+    let results = extract("src/index.html", source);
+
+    assert!(facts_with_pattern(&results, "htmx.attribute.v1").is_empty());
+    assert!(facts_with_pattern(&results, "alpine.directive.v1").is_empty());
+}
+
+#[test]
+fn razor_htmx_and_alpine_attributes_emit_structural_facts() {
+    let source = r##"@page "/todos"
+
+<div hx-get="/todos" hx-target="#list" x-data="{ open: false }">
+    <button x-on:click.prevent="open = !open" x-bind:class="{ active: open }">Toggle</button>
+</div>
+"##;
+
+    let results = extract("Components/Todos.razor", source);
+
+    let htmx = facts_with_pattern(&results, "htmx.attribute.v1");
+    assert_eq!(htmx.len(), 2);
+    assert_eq!(
+        htmx.iter()
+            .filter_map(|fact| metadata_str(fact, "attribute_name"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["hx-get", "hx-target"])
+    );
+    let get = htmx
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_name") == Some("hx-get"))
+        .expect("expected Razor hx-get fact");
+    assert_common_framework_fact(get, "attribute", "frontend_interaction");
+    assert_eq!(metadata_str(get, "target_path"), Some("/todos"));
+
+    let alpine = facts_with_pattern(&results, "alpine.directive.v1");
+    assert_eq!(alpine.len(), 3);
+    assert_eq!(
+        alpine
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "directive"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["x-bind", "x-data", "x-on"])
+    );
+    let click = alpine
+        .iter()
+        .find(|fact| metadata_str(fact, "directive") == Some("x-on"))
+        .expect("expected Razor x-on directive fact");
+    assert_common_framework_fact(click, "directive", "frontend_interaction");
+    assert_eq!(metadata_str(click, "argument"), Some("click"));
+    assert_eq!(metadata_array(click, "modifiers"), vec!["prevent"]);
 }
 
 #[derive(Debug)]
@@ -268,4 +441,52 @@ int readValue() {
             }
         }
     }
+}
+
+fn facts_with_pattern<'a>(
+    results: &'a crate::ExtractionResults,
+    pattern_id: &str,
+) -> Vec<&'a StructuralFact> {
+    results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == pattern_id)
+        .collect()
+}
+
+fn assert_common_framework_fact(fact: &StructuralFact, capture_name: &str, query_family: &str) {
+    assert_eq!(fact.capture_name, capture_name);
+    assert_eq!(fact.confidence, 1.0);
+    assert!(fact.end_byte > fact.start_byte);
+    assert_eq!(
+        fact.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("pattern_version"))
+            .and_then(|value| value.as_u64()),
+        Some(1)
+    );
+    assert_eq!(metadata_str(fact, "query_family"), Some(query_family));
+}
+
+fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_str())
+}
+
+fn metadata_bool(fact: &StructuralFact, key: &str) -> Option<bool> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_bool())
+}
+
+fn metadata_array<'a>(fact: &'a StructuralFact, key: &str) -> Vec<&'a str> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_array())
+        .map(|values| values.iter().filter_map(|value| value.as_str()).collect())
+        .unwrap_or_default()
 }

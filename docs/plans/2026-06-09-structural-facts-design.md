@@ -98,12 +98,30 @@ The supported completion-slice patterns are:
 | `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `async` | A TSX file `await` expression. |
 | `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C preprocessor definition. |
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
+| `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGet`/`MapPost`/`MapPut`/`MapPatch`/`MapDelete` route call with a literal route template. |
+| `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` attribute, including request verb and static target path metadata when applicable. |
+| `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
+
+Framework-fact rows add framework-specific metadata:
+
+- `aspnet.minimal_api.route.v1`: `framework = "aspnet"`,
+  `api_style = "minimal_api"`, `verb`, `route_template`, `route_source`, and
+  optional `handler_kind` / `handler_name`.
+- `htmx.attribute.v1`: `framework = "htmx"`, `attribute_name`, optional
+  `attribute_value`, and optional `verb` / `target_path` for request
+  attributes.
+- `alpine.directive.v1`: `framework = "alpine"`, `directive`, optional
+  `argument`, optional `modifiers`, optional `expression`, and `shorthand`.
 
 `fixtures/extraction/capabilities.json` publishes these exact ids under
 `kind_coverage.structural_facts.supported`. Languages with no current structural
 patterns publish an empty `supported` list, which means "no structural pattern
 claims yet"; it does not imply the parser cannot support structural facts in a
 future slice.
+
+The ASP.NET/htmx/Alpine slice remains fact-only. Cross-file route linking, such
+as connecting `hx-get="/todos"` to `app.MapGet("/todos", ...)`, belongs to
+downstream tools that consume these rows.
 
 ## Extraction Flow
 

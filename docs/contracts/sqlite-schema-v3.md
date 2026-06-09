@@ -499,11 +499,19 @@ Supported patterns are advertised in
 | `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `async` | A TSX file `await` expression. |
 | `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C preprocessor definition. |
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
+| `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGet`/`MapPost`/`MapPut`/`MapPatch`/`MapDelete` route call with a literal route template. |
+| `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` attribute, including request verb and static target path metadata when applicable. |
+| `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
 
 Metadata:
 
 - `pattern_version`: integer, currently `1`.
 - `query_family`: string matching the table above.
+- Framework facts may also include framework-specific keys:
+  `framework`, `api_style`, `verb`, `route_template`, `route_source`,
+  `handler_kind`, `handler_name`, `attribute_name`, `attribute_value`,
+  `target_path`, `directive`, `argument`, `modifiers`, `expression`, and
+  `shorthand`.
 
 ## Complexity Metrics
 

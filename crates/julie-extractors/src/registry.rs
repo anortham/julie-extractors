@@ -1,7 +1,9 @@
 use crate::base::ExtractionResults;
 use crate::base::collect_complexity_metrics;
+use crate::base::collect_framework_structural_facts;
 use crate::base::collect_source_regions;
 use crate::base::collect_structural_facts;
+use crate::base::structural_facts::sort_structural_facts;
 use crate::factory::convert_types_map;
 use crate::language;
 pub use crate::language::LanguageCapabilities;
@@ -1003,6 +1005,16 @@ pub fn extract_for_language(
         collect_source_regions(language, tree, file_path, content, &results.symbols);
     results.structural_facts =
         collect_structural_facts(language, tree, file_path, &results.symbols);
+    results
+        .structural_facts
+        .extend(collect_framework_structural_facts(
+            language,
+            tree,
+            file_path,
+            content,
+            &results.symbols,
+        ));
+    sort_structural_facts(&mut results.structural_facts);
     results.complexity_metrics =
         collect_complexity_metrics(language, tree, file_path, &results.symbols);
     Ok(results)

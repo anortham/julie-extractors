@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use tree_sitter::{Node, Tree};
 
+#[cfg(all(test, feature = "test-capability-matrix"))]
+use super::framework_structural_facts::framework_structural_fact_pattern_ids_for_language;
 use super::span::NormalizedSpan;
 use super::types::{StructuralFact, Symbol, stable_location_id};
 
@@ -98,6 +100,11 @@ pub fn collect_structural_facts(
     let mut facts = Vec::new();
     collect_node(tree.root_node(), language, file_path, patterns, &mut facts);
     attach_containing_symbols(&mut facts, symbols);
+    sort_structural_facts(&mut facts);
+    facts
+}
+
+pub(crate) fn sort_structural_facts(facts: &mut [StructuralFact]) {
     facts.sort_by(|left, right| {
         left.start_byte
             .cmp(&right.start_byte)
@@ -106,15 +113,18 @@ pub fn collect_structural_facts(
             .then(left.capture_name.cmp(&right.capture_name))
             .then(left.id.cmp(&right.id))
     });
-    facts
 }
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 pub(crate) fn structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'static str> {
-    patterns_for_language(language)
+    let mut pattern_ids = patterns_for_language(language)
         .iter()
         .map(|pattern| pattern.pattern_id)
-        .collect()
+        .collect::<Vec<_>>();
+    pattern_ids.extend(framework_structural_fact_pattern_ids_for_language(language));
+    pattern_ids.sort();
+    pattern_ids.dedup();
+    pattern_ids
 }
 
 fn collect_node(

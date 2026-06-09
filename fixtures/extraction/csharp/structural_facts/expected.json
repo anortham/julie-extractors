@@ -1,0 +1,604 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:Builder:1:0",
+      "name": "Builder",
+      "kind": "import",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 35,
+      "start_byte": 0,
+      "end_byte": 35,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "using Microsoft.AspNetCore.Builder",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:14:0",
+      "name": "CreateTodo",
+      "kind": "function",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 14,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 44,
+      "start_byte": 344,
+      "end_byte": 388,
+      "body_span": {
+        "start_line": 14,
+        "start_column": 28,
+        "end_line": 14,
+        "end_column": 43,
+        "start_byte": 372,
+        "end_byte": 387
+      },
+      "body_hash": "0f342421aa4ef3381f7ba0998a38f26a",
+      "signature": "static IResult CreateTodo() => Results.Ok()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "type": "local_function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:15:0",
+      "name": "DeleteTodo",
+      "kind": "function",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 50,
+      "start_byte": 389,
+      "end_byte": 439,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 34,
+        "end_line": 15,
+        "end_column": 49,
+        "start_byte": 423,
+        "end_byte": 438
+      },
+      "body_hash": "0f342421aa4ef3381f7ba0998a38f26a",
+      "signature": "static IResult DeleteTodo(int id) => Results.Ok()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "type": "local_function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "name": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "kind": "module",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 440,
+      "body_span": null,
+      "body_hash": null,
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": null,
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": "1.000",
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:14:0",
+      "callee_name": "Results.Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:15:0",
+      "callee_name": "Results.Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "callee_name": "WebApplication.CreateBuilder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 3,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "callee_name": "app.MapDelete",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "callee_name": "app.MapGet",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "callee_name": "app.MapGet",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "callee_name": "app.MapGet",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 6,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "callee_name": "app.MapPost",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "callee_name": "builder.Build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "line_number": 4,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:14:0",
+        "callee_name": "Results.Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Results.Ok",
+        "terminal_name": "Ok",
+        "receiver": "Results",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:14:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:15:0",
+        "callee_name": "Results.Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Results.Ok",
+        "terminal_name": "Ok",
+        "receiver": "Results",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:15:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+        "callee_name": "WebApplication.CreateBuilder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 3,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "WebApplication.CreateBuilder",
+        "terminal_name": "CreateBuilder",
+        "receiver": "WebApplication",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+        "callee_name": "app.MapDelete",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.MapDelete",
+        "terminal_name": "MapDelete",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+        "callee_name": "app.MapGet",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 11,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.MapGet",
+        "terminal_name": "MapGet",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+        "callee_name": "app.MapGet",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.MapGet",
+        "terminal_name": "MapGet",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+        "callee_name": "app.MapGet",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 6,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.MapGet",
+        "terminal_name": "MapGet",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+        "callee_name": "app.MapPost",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "app.MapPost",
+        "terminal_name": "MapPost",
+        "receiver": "app",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+        "callee_name": "builder.Build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+        "line_number": 4,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "builder.Build",
+        "terminal_name": "Build",
+        "receiver": "builder",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:AspNetCore:type_usage:1:16",
+      "name": "AspNetCore",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 1,
+      "start_column": 16,
+      "end_line": 1,
+      "end_column": 26,
+      "start_byte": 16,
+      "end_byte": 26,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:Builder:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:Build:call:4:18",
+      "name": "Build",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 4,
+      "start_column": 18,
+      "end_line": 4,
+      "end_column": 23,
+      "start_byte": 105,
+      "end_byte": 110,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:Builder:type_usage:1:27",
+      "name": "Builder",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 1,
+      "start_column": 27,
+      "end_line": 1,
+      "end_column": 34,
+      "start_byte": 27,
+      "end_byte": 34,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:Builder:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateBuilder:call:3:29",
+      "name": "CreateBuilder",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 3,
+      "start_column": 29,
+      "end_line": 3,
+      "end_column": 42,
+      "start_byte": 66,
+      "end_byte": 79,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:IResult:type_usage:14:7",
+      "name": "IResult",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 14,
+      "start_column": 7,
+      "end_line": 14,
+      "end_column": 14,
+      "start_byte": 351,
+      "end_byte": 358,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:14:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:IResult:type_usage:15:7",
+      "name": "IResult",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 15,
+      "start_column": 7,
+      "end_line": 15,
+      "end_column": 14,
+      "start_byte": 396,
+      "end_byte": 403,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:15:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapDelete:call:8:4",
+      "name": "MapDelete",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 13,
+      "start_byte": 188,
+      "end_byte": 197,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapGet:call:11:4",
+      "name": "MapGet",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 11,
+      "end_column": 10,
+      "start_byte": 262,
+      "end_byte": 268,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapGet:call:12:4",
+      "name": "MapGet",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 10,
+      "start_byte": 302,
+      "end_byte": 308,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapGet:call:6:4",
+      "name": "MapGet",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 10,
+      "start_byte": 119,
+      "end_byte": 125,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:MapPost:call:7:4",
+      "name": "MapPost",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 11,
+      "start_byte": 153,
+      "end_byte": 160,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:Microsoft:type_usage:1:6",
+      "name": "Microsoft",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 1,
+      "start_column": 6,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 6,
+      "end_byte": 15,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:Builder:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:Ok:call:14:39",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 14,
+      "start_column": 39,
+      "end_line": 14,
+      "end_column": 41,
+      "start_byte": 383,
+      "end_byte": 385,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:14:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/structural_facts/source.cs:Ok:call:15:45",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "start_line": 15,
+      "start_column": 45,
+      "end_line": 15,
+      "end_column": 47,
+      "start_byte": 434,
+      "end_byte": 436,
+      "containing_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:15:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:14:0",
+      "resolved_type": "IResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:15:0",
+      "resolved_type": "IResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": []
+}

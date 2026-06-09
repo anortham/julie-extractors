@@ -1,0 +1,130 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/html/structural_facts/source.html:button:6:4",
+      "name": "button",
+      "kind": "field",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 83,
+      "start_byte": 112,
+      "end_byte": 191,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 50,
+        "end_line": 6,
+        "end_column": 66,
+        "start_byte": 158,
+        "end_byte": 174
+      },
+      "body_hash": "465021563da9113f2ab8ea36d5e676b6",
+      "signature": "<button>Toggle",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "metadata": {
+        "attributes": {
+          ":class": "{ active: open }",
+          "@click.prevent": "open = !open"
+        },
+        "isSemantic": false,
+        "isVoid": false,
+        "tagName": "button",
+        "textContent": "Toggle",
+        "type": "html-element"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "name": "div",
+      "kind": "class",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 6,
+      "start_byte": 0,
+      "end_byte": 198,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 12,
+        "end_line": 6,
+        "end_column": 66,
+        "start_byte": 90,
+        "end_byte": 174
+      },
+      "body_hash": "b5cdd27332909ca8de5fc4d192e0093a",
+      "signature": "<div id=\"list\">",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "attributes": {
+          "hx-get": "/todos",
+          "hx-post": "/todos",
+          "hx-target": "#list",
+          "id": "list",
+          "x-data": "{ open: false }"
+        },
+        "isSemantic": false,
+        "isVoid": false,
+        "tagName": "div",
+        "type": "html-element"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/html/structural_facts/source.html:list:member_access:1:5",
+      "name": "list",
+      "kind": "member_access",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 1,
+      "start_column": 5,
+      "end_line": 1,
+      "end_column": 14,
+      "start_byte": 5,
+      "end_byte": 14,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:button:6:4",
+      "resolved_type": "html-element",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "resolved_type": "html-element",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "html",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": []
+}
