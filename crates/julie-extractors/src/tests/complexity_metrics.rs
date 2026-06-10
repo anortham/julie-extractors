@@ -191,6 +191,63 @@ func run(items []int, enabled bool) int {
             expected_parameters: 2,
         },
         ComplexityCase {
+            file_path: "src/Service.kt",
+            source: r#"class Service {
+    fun run(count: Int, enabled: Boolean): Int {
+        var total = 0
+        for (i in 0 until count) {
+            if (enabled) {
+                total += i
+            }
+        }
+        return total
+    }
+}
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
+            file_path: "src/Service.swift",
+            source: r#"class Service {
+    func run(count: Int, enabled: Bool) -> Int {
+        var total = 0
+        for i in 0..<count {
+            if enabled {
+                total += i
+            }
+        }
+        return total
+    }
+}
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
+            file_path: "src/service.dart",
+            source: r#"class Service {
+  int run(int count, bool enabled) {
+    var total = 0;
+    for (var i = 0; i < count; i++) {
+      if (enabled) {
+        total += i;
+      }
+    }
+    return total;
+  }
+}
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
             file_path: "src/service.c",
             source: r#"int run(int count, int enabled) {
     int total = 0;

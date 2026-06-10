@@ -14,6 +14,13 @@ struct ComplexityLanguageConfig {
     loop_node_kinds: &'static [&'static str],
     parameter_container_node_kinds: &'static [&'static str],
     parameter_node_kinds: &'static [&'static str],
+    /// Container children that group further parameter nodes without being
+    /// parameters themselves (for example Dart `optional_formal_parameters`).
+    parameter_group_node_kinds: &'static [&'static str],
+    /// Node kinds that hold a callable's body as a *sibling* of the symbol's
+    /// declaration node (for example Dart, where symbols span only the
+    /// `function_signature` and the `function_body` follows it).
+    body_sibling_node_kinds: &'static [&'static str],
 }
 
 #[derive(Default)]
@@ -57,7 +64,9 @@ pub fn collect_complexity_metrics(
     ));
 
     for symbol in symbols.iter().filter(|symbol| is_callable(&symbol.kind)) {
-        let metric_span = symbol.body_span.unwrap_or_else(|| symbol_span(symbol));
+        let metric_span = sibling_body_span(root, symbol, config)
+            .or(symbol.body_span)
+            .unwrap_or_else(|| symbol_span(symbol));
         let parameter_count = parameter_count_for_symbol(root, symbol, config);
         metrics.push(metric_for_scope(
             file_path,
@@ -177,14 +186,52 @@ fn parameter_count_for_symbol(
 ) -> Option<u32> {
     let span = symbol_span(symbol);
     let container = find_first_parameter_container(root, span, config)?;
+    Some(count_container_parameters(container, config))
+}
+
+fn count_container_parameters(container: Node<'_>, config: ComplexityLanguageConfig) -> u32 {
     let mut count = 0;
     let mut cursor = container.walk();
     for child in container.children(&mut cursor) {
         if config.parameter_node_kinds.contains(&child.kind()) {
             count += parameter_arity(child);
+        } else if config.parameter_group_node_kinds.contains(&child.kind()) {
+            count += count_container_parameters(child, config);
         }
     }
-    Some(count)
+    count
+}
+
+/// Resolve the body of a callable whose symbol node covers only its signature,
+/// with the body attached as a following sibling node (Dart's
+/// `function_signature` / `function_body` split). Returns `None` for languages
+/// that do not declare `body_sibling_node_kinds`.
+fn sibling_body_span(
+    root: Node<'_>,
+    symbol: &Symbol,
+    config: ComplexityLanguageConfig,
+) -> Option<NormalizedSpan> {
+    if config.body_sibling_node_kinds.is_empty() {
+        return None;
+    }
+    let span = symbol_span(symbol);
+    let mut node =
+        root.descendant_for_byte_range(span.start_byte as usize, span.end_byte as usize)?;
+    loop {
+        let mut sibling = node.next_named_sibling();
+        while let Some(candidate) = sibling {
+            if config.body_sibling_node_kinds.contains(&candidate.kind()) {
+                return Some(NormalizedSpan::from_node(&candidate));
+            }
+            sibling = candidate.next_named_sibling();
+        }
+        node = node.parent()?;
+        if node.end_byte() as u32 > span.end_byte {
+            // The ancestor extends past the symbol's declaration; siblings
+            // beyond this point belong to other declarations.
+            return None;
+        }
+    }
 }
 
 fn find_first_parameter_container<'tree>(
@@ -211,8 +258,18 @@ fn parameter_arity(node: Node<'_>) -> u32 {
     // Prefer the grammar's `name` field when the parameter node declares one
     // (for example C# `parameter` nodes, where a user-defined type annotation
     // is also an `identifier` and would otherwise be counted as a declarator).
+    // Only identifier-like children count: tree-sitter-swift also attaches the
+    // parameter *type* under the `name` field, which would double-count.
     let mut cursor = node.walk();
-    let named_count = node.children_by_field_name("name", &mut cursor).count() as u32;
+    let named_count = node
+        .children_by_field_name("name", &mut cursor)
+        .filter(|child| {
+            matches!(
+                child.kind(),
+                "identifier" | "simple_identifier" | "field_identifier"
+            )
+        })
+        .count() as u32;
     if named_count > 0 {
         return named_count;
     }
@@ -262,21 +319,35 @@ fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
         "c" => Some(C_LIKE_CONFIG),
         "cpp" => Some(C_LIKE_CONFIG),
         "csharp" => Some(CSHARP_CONFIG),
+        "dart" => Some(DART_CONFIG),
         "go" => Some(GO_CONFIG),
         "java" => Some(JAVA_CONFIG),
         "javascript" => Some(ECMASCRIPT_CONFIG),
+        "kotlin" => Some(KOTLIN_CONFIG),
         "python" => Some(PYTHON_CONFIG),
         "rust" => Some(RUST_CONFIG),
+        "swift" => Some(SWIFT_CONFIG),
         "typescript" => Some(ECMASCRIPT_CONFIG),
         _ => None,
     }
 }
+
+/// Base for struct-update syntax: fields most languages leave empty.
+const DEFAULT_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[],
+    loop_node_kinds: &[],
+    parameter_container_node_kinds: &[],
+    parameter_node_kinds: &[],
+    parameter_group_node_kinds: &[],
+    body_sibling_node_kinds: &[],
+};
 
 const RUST_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     decision_node_kinds: &["if_expression", "match_expression"],
     loop_node_kinds: &["for_expression", "while_expression", "loop_expression"],
     parameter_container_node_kinds: &["parameters"],
     parameter_node_kinds: &["parameter", "self_parameter"],
+    ..DEFAULT_CONFIG
 };
 
 const GO_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
@@ -289,6 +360,7 @@ const GO_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     loop_node_kinds: &["for_statement"],
     parameter_container_node_kinds: &["parameter_list"],
     parameter_node_kinds: &["parameter_declaration"],
+    ..DEFAULT_CONFIG
 };
 
 const PYTHON_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
@@ -311,6 +383,7 @@ const PYTHON_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
         "list_splat_pattern",
         "dictionary_splat_pattern",
     ],
+    ..DEFAULT_CONFIG
 };
 
 const ECMASCRIPT_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
@@ -335,6 +408,7 @@ const ECMASCRIPT_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
         "assignment_pattern",
         "rest_pattern",
     ],
+    ..DEFAULT_CONFIG
 };
 
 const CSHARP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
@@ -355,6 +429,7 @@ const CSHARP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     ],
     parameter_container_node_kinds: &["parameter_list"],
     parameter_node_kinds: &["parameter"],
+    ..DEFAULT_CONFIG
 };
 
 const JAVA_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
@@ -374,6 +449,7 @@ const JAVA_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     ],
     parameter_container_node_kinds: &["formal_parameters"],
     parameter_node_kinds: &["formal_parameter", "spread_parameter", "receiver_parameter"],
+    ..DEFAULT_CONFIG
 };
 
 const C_LIKE_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
@@ -386,4 +462,70 @@ const C_LIKE_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     loop_node_kinds: &["for_statement", "while_statement", "do_statement"],
     parameter_container_node_kinds: &["parameter_list"],
     parameter_node_kinds: &["parameter_declaration", "optional_parameter_declaration"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-kotlin-ng 1.1.0 node-types.json and
+// a to_sexp() parse dump. Kotlin has no ternary operator: `if` is an
+// expression (`if_expression`) and covers that role. `when_expression` plus
+// each `when_entry` follow the switch-container-plus-arm convention.
+const KOTLIN_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_expression",
+        "when_expression",
+        "when_entry",
+        "catch_block",
+    ],
+    loop_node_kinds: &["for_statement", "while_statement", "do_while_statement"],
+    parameter_container_node_kinds: &["function_value_parameters"],
+    parameter_node_kinds: &["parameter"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-swift 0.7.2 node-types.json and a
+// to_sexp() parse dump. The grammar has no parameter container node:
+// `parameter` nodes are direct children of the declaration, so the
+// declarations themselves act as containers. `guard_statement` counts as a
+// decision (it is Swift's early-exit conditional). `do_statement` is the
+// do/catch construct, not a loop; only its `catch_block` counts.
+const SWIFT_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "guard_statement",
+        "switch_statement",
+        "switch_entry",
+        "catch_block",
+        "ternary_expression",
+    ],
+    loop_node_kinds: &["for_statement", "while_statement", "repeat_while_statement"],
+    parameter_container_node_kinds: &[
+        "function_declaration",
+        "init_declaration",
+        "protocol_function_declaration",
+    ],
+    parameter_node_kinds: &["parameter"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-dart 0.2.0 node-types.json and a
+// to_sexp() parse dump. Dart symbols span only the signature node; the body
+// is a sibling `function_body`, hence `body_sibling_node_kinds`. Named and
+// optional positional parameters live inside an `optional_formal_parameters`
+// group nested in the `formal_parameter_list`.
+const DART_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "switch_statement",
+        "switch_statement_case",
+        "switch_statement_default",
+        "switch_expression",
+        "switch_expression_case",
+        "catch_clause",
+        "conditional_expression",
+    ],
+    loop_node_kinds: &["for_statement", "while_statement", "do_statement"],
+    parameter_container_node_kinds: &["formal_parameter_list"],
+    parameter_node_kinds: &["formal_parameter", "super_formal_parameter"],
+    parameter_group_node_kinds: &["optional_formal_parameters"],
+    body_sibling_node_kinds: &["function_body"],
 };

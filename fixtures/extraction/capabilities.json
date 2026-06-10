@@ -1806,7 +1806,10 @@
           "open_gaps": []
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -1895,7 +1898,10 @@
           "open_gaps": []
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -2070,7 +2076,10 @@
           "open_gaps": []
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }

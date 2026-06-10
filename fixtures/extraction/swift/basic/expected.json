@@ -324,7 +324,96 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 17,
+      "covered_bytes": 209,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 209,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:helper:14:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 17,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 14,
+      "start_column": 33,
+      "end_line": 16,
+      "end_column": 1,
+      "start_byte": 191,
+      "end_byte": 208,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:run:2:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 2,
+      "start_column": 12,
+      "end_line": 2,
+      "end_column": 14,
+      "start_byte": 27,
+      "end_byte": 29,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:run:8:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 8,
+      "start_column": 22,
+      "end_line": 10,
+      "end_column": 5,
+      "start_byte": 100,
+      "end_byte": 126,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {
