@@ -15,7 +15,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "<!DOCTYPE html>",
-      "doc_comment": "<!--\n  Phase 4b fixture: cross-file HTML resource references. The HTML extractor\n  must emit StructuredPendingRelationship for external <script src=...> and\n  <link href=...> references targeting other files. Inline <script> blocks\n  with intra-document references must NOT appear as structured pending.\n-->",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -42,7 +42,7 @@
       "body_span": null,
       "body_hash": null,
       "signature": "DOCTYPE",
-      "doc_comment": "<!--\n  Phase 4b fixture: cross-file HTML resource references. The HTML extractor\n  must emit StructuredPendingRelationship for external <script src=...> and\n  <link href=...> references targeting other files. Inline <script> blocks\n  with intra-document references must NOT appear as structured pending.\n-->",
+      "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/html/cross_file/source.html:DOCTYPE:7:0",
       "metadata": {
@@ -491,7 +491,7 @@
       "kind": "doc_comment",
       "language": "html",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
-      "containing_key": "fixtures/extraction/html/cross_file/source.html:DOCTYPE:7:0",
+      "containing_key": null,
       "start_line": 1,
       "start_column": 0,
       "end_line": 6,

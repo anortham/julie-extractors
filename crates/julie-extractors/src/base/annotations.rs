@@ -40,7 +40,7 @@ fn strip_syntax<'a>(raw_text: &'a str, language: &str) -> &'a str {
 
     match language {
         "rust" | "php" => strip_pair(text, "#[", "]"),
-        "cpp" | "c++" => strip_pair(text, "[[", "]]"),
+        "c" | "cpp" | "c++" => strip_pair(text, "[[", "]]"),
         "csharp" | "c#" | "powershell" => strip_pair(text, "[", "]"),
         "vbnet" | "vb.net" | "vb" => strip_pair(text, "<", ">"),
         _ => text.strip_prefix('@').unwrap_or(text).trim(),
@@ -69,7 +69,7 @@ fn expand_fragments<'a>(inner: &'a str, language: &str) -> Vec<AnnotationFragmen
 
     if matches!(
         language,
-        "csharp" | "c#" | "vbnet" | "vb.net" | "vb" | "php" | "cpp" | "c++"
+        "c" | "csharp" | "c#" | "vbnet" | "vb.net" | "vb" | "php" | "cpp" | "c++"
     ) {
         return split_top_level_commas(inner)
             .into_iter()

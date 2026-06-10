@@ -229,44 +229,31 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "function"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "attribute_or_decorator",
-              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
-              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
-          "supported": [],
+          "supported": [
+            "function",
+            "struct"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "documentation",
-              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
-              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
-            }
-          ]
+          "open_gaps": []
         },
         "literals": {
-          "supported": [],
+          "supported": [
+            "other"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "other",
-              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
-              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
-            }
-          ]
+          "open_gaps": []
         },
         "source_regions": {
           "supported": [
             "comment",
+            "doc_comment",
             "string_literal"
           ],
           "not_applicable": [],
@@ -377,44 +364,33 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "function",
+            "method"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "attribute_or_decorator",
-              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
-              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
-          "supported": [],
+          "supported": [
+            "class",
+            "function",
+            "method"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "documentation",
-              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
-              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
-            }
-          ]
+          "open_gaps": []
         },
         "literals": {
-          "supported": [],
+          "supported": [
+            "other"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "other",
-              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
-              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
-            }
-          ]
+          "open_gaps": []
         },
         "source_regions": {
           "supported": [
             "comment",
+            "doc_comment",
             "string_literal"
           ],
           "not_applicable": [],
@@ -1394,7 +1370,7 @@
         },
         "doc_comments": {
           "supported": [
-            "namespace"
+            "class"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3855,8 +3831,7 @@
         "doc_comments": {
           "supported": [
             "function",
-            "import",
-            "variable"
+            "import"
           ],
           "not_applicable": [],
           "open_gaps": []

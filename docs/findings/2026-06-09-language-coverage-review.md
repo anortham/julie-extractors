@@ -16,9 +16,10 @@ The branch completed the original extraction-data-quality plan:
   `structural_facts`, `complexity_metrics`, `annotations`, `doc_comments`,
   `literals`, and `source_regions`.
 - Complexity metrics expanded from 7 languages to 12.
-- Annotation evidence expanded to 9 languages.
-- Doc-comment evidence expanded to 23 languages.
+- Annotation evidence expanded to 11 languages.
+- Doc-comment evidence expanded to 25 languages.
 - Source-region evidence expanded to 35 languages.
+- Literal evidence expanded to 11 languages.
 - No current `kind_coverage` positive claim lacks fixture evidence.
 
 This means the remaining work is not a stale-declaration cleanup. The gap is
@@ -39,11 +40,11 @@ Current golden fixture rows by domain:
 | types | 28/36 | Dynamic or data formats have exception rows. |
 | body_spans | 35/36 | YAML is the only current miss. |
 | source_regions | 35/36 | Regex is the only current miss. |
-| doc_comments | 23/36 | Stronger, but normalization is still inconsistent. |
+| doc_comments | 25/36 | Stronger, but normalization is still inconsistent. |
 | structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
 | complexity_metrics | 12/36 | Mainstream languages improved; many code languages remain empty. |
-| annotations | 9/36 | Attribute/decorator support remains patchy outside the first pass. |
-| literals | 9/36 | Unit tests exist for many more languages than goldens advertise. |
+| annotations | 11/36 | Attribute/decorator support remains patchy outside the first pass. |
+| literals | 11/36 | Unit tests exist for many more languages than goldens advertise. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
 
 ## Phase 0 scorecard
@@ -68,32 +69,65 @@ The zero silent-cell count is not a quality win by itself. It means every
 remaining gap is now visible as debt that future language-quality work must
 close or justify with language semantics.
 
+## Phase 1 C/C++ extractor-depth slice
+
+The first extractor-depth slice closed C and C++ gaps for:
+
+- `annotations`: C `function`; C++ `function`, `method`.
+- `doc_comments`: C `function`, `struct`; C++ `class`, `function`, `method`.
+- `literals`: C and C++ `other` string-literal carriers.
+- `source_regions`: C and C++ now advertise generated `doc_comment` regions.
+
+The slice also fixed quality bugs uncovered by richer fixtures:
+
+- C and C++ attributes no longer bleed onto following functions.
+- C/C++ container doc comments no longer bleed onto child fields or methods.
+- HTML fixture-header comments no longer become DOCTYPE documentation; HTML
+  doc-comment evidence is now a real documented element.
+- Bash no longer claims variable doc comments from a shebang.
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 92
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 12/36
+- `annotations`: 11/36
+- `literals`: 11/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
-### 1. Empty domain cells hide product debt
+### 1. Open domain gaps are now explicit product debt
 
-Many language/domain cells have empty `supported`, empty `not_applicable`, and
-empty `open_gaps`. Examples:
+No language/domain cells are silent anymore. The remaining debt is explicit
+`open_gaps` in the capability matrix. Largest buckets:
 
-- `complexity_metrics`: 24 languages silent.
-- `structural_facts`: 24 languages silent.
-- `annotations`: 27 languages silent.
-- `literals`: 27 languages silent.
-- `doc_comments`: 13 languages silent.
+- `complexity_metrics`: 24 languages remain open.
+- `structural_facts`: 24 languages remain open.
+- `annotations`: 25 languages remain open.
+- `literals`: 25 languages remain open.
+- `doc_comments`: 11 languages remain open.
 
 Impact: downstream consumers cannot distinguish "not applicable" from "not
-implemented yet" or "not audited." More importantly, silent cells make it too
-easy to accept skeleton coverage for languages that should be rich.
+implemented yet" or "not audited" unless the matrix stays fail-closed.
+Open gaps are temporary debt, not acceptance criteria.
 
 ### 2. Literal extraction is under-advertised
 
 There are per-language literal unit tests for many languages, including Rust,
 C, C++, Go, Zig, Python, Java, VB.NET, PHP, Swift, Kotlin, Scala, Dart,
 Elixir, QML, GDScript, Razor, and others. Golden fixtures and
-`kind_coverage.literals`, however, currently advertise only 9 languages:
+`kind_coverage.literals`, however, currently advertise only 11 languages:
 
-`typescript`, `javascript`, `vue`, `csharp`, `ruby`, `lua`, `r`, `bash`,
-`powershell`.
+`c`, `cpp`, `typescript`, `javascript`, `vue`, `csharp`, `ruby`, `lua`, `r`,
+`bash`, `powershell`.
 
 Impact: literal extraction should be a standard domain for languages with
 string, URL, query, command, or configuration literals. Existing unit tests show
@@ -135,9 +169,9 @@ proves otherwise.
 
 ### 5. Doc-comment coverage improved but policy is still inconsistent
 
-Golden evidence exists for 23 languages. Missing or unaudited languages include
-`c`, `cpp`, `zig`, `tsx`, `vbnet`, `scala`, `elixir`, `lua`, `qml`, `r`,
-`gdscript`, plus likely not-applicable rows for `regex` and `yaml`.
+Golden evidence exists for 25 languages. Missing or unaudited languages include
+`zig`, `tsx`, `vbnet`, `scala`, `elixir`, `lua`, `qml`, `r`, `gdscript`, plus
+likely not-applicable rows for `regex` and `yaml`.
 
 The bigger issue is policy: some languages store marker-stripped text while
 others preserve raw comment markers. The next pass should add a shared

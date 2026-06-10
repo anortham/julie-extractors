@@ -31,6 +31,7 @@ pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relati
     (symbols, relationships)
 }
 
+pub mod annotations;
 pub mod classes;
 pub mod concurrency;
 pub mod cross_file_pending;

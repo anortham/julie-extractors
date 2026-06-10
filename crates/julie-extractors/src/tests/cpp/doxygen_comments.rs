@@ -39,6 +39,30 @@ mod tests {
     }
 
     #[test]
+    fn test_class_doc_comment_does_not_bleed_to_members() {
+        let code = r#"
+            /// Base identity provider.
+            class Base {
+            public:
+                int id() const {
+                    return 1;
+                }
+            };
+        "#;
+
+        let symbols = extract_symbols(code);
+        let method = symbols
+            .iter()
+            .find(|s| s.name == "id")
+            .expect("Method not found");
+
+        assert!(
+            method.doc_comment.is_none(),
+            "Method should not inherit the class doc comment"
+        );
+    }
+
+    #[test]
     fn test_extract_doxygen_from_function() {
         let code = r#"
             /**

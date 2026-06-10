@@ -108,6 +108,27 @@ mod tests {
     }
 
     #[test]
+    fn test_struct_doc_comment_does_not_bleed_to_fields() {
+        let code = r#"
+            /// Worker state passed through the helper pipeline.
+            struct Worker {
+                int id;
+            };
+        "#;
+
+        let symbols = extract_symbols(code);
+        let field = symbols
+            .iter()
+            .find(|s| s.name == "id")
+            .expect("Field not found");
+
+        assert!(
+            field.doc_comment.is_none(),
+            "Field should not inherit the struct doc comment"
+        );
+    }
+
+    #[test]
     fn test_extract_doxygen_from_typedef() {
         let code = r#"
             /**

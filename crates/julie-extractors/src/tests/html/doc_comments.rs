@@ -24,6 +24,23 @@ mod tests {
     }
 
     #[test]
+    fn test_header_comment_does_not_document_doctype() {
+        let code = r#"
+            <!-- Fixture header, not DOCTYPE documentation. -->
+            <!doctype html>
+            <html></html>
+        "#;
+
+        let symbols = extract_symbols(code);
+        let doctype = symbols.iter().find(|s| s.name == "DOCTYPE").unwrap();
+
+        assert!(
+            doctype.doc_comment.is_none(),
+            "DOCTYPE should not inherit leading HTML comments"
+        );
+    }
+
+    #[test]
     fn test_extract_html_comment_from_custom_element() {
         let code = r#"
             <!-- User profile card component

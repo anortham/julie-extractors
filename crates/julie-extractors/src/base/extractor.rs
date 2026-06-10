@@ -250,13 +250,17 @@ impl BaseExtractor {
             return Some(doc_comment);
         }
 
-        // If no comments found as direct siblings, try looking at ancestor siblings
-        // (useful for SQL where comment is sibling of statement, not create_table inside,
-        // or Dart where comment is sibling of class_member_definition, not getter_signature)
+        // If no comments found as direct siblings, try looking at wrapper ancestors.
+        // This handles declarations wrapped by templates, attributes, or language-specific
+        // statement nodes without letting container docs bleed onto child members.
         let mut current_node = *node;
         for _ in 0..3 {
             // Try up to 3 ancestor levels
             if let Some(parent) = current_node.parent() {
+                if !self.should_search_ancestor_doc_comments(&parent) {
+                    break;
+                }
+
                 let comments = self.previous_comment_texts(parent.prev_named_sibling());
                 if let Some(doc_comment) = select_doc_comment_block(&self.language, &comments) {
                     return Some(doc_comment);
@@ -284,6 +288,23 @@ impl BaseExtractor {
         }
 
         None
+    }
+
+    fn should_search_ancestor_doc_comments(&self, ancestor: &Node) -> bool {
+        if matches!(self.language.as_str(), "dart" | "sql") {
+            return true;
+        }
+
+        matches!(
+            ancestor.kind(),
+            "attributed_declarator"
+                | "attributed_statement"
+                | "declaration"
+                | "field_declaration"
+                | "function_declarator"
+                | "package_clause"
+                | "template_declaration"
+        )
     }
 
     fn previous_comment_texts<'a>(&self, mut current: Option<Node<'a>>) -> Vec<String> {

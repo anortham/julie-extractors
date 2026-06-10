@@ -156,10 +156,7 @@ impl ElementExtractor {
             serde_json::Value::String(doctype_text.clone()),
         );
 
-        // Extract HTML comment
-        let doc_comment = base.find_doc_comment(&node);
-
-        base.create_symbol(
+        let mut symbol = base.create_symbol(
             &node,
             "DOCTYPE".to_string(),
             SymbolKind::Namespace,
@@ -168,9 +165,11 @@ impl ElementExtractor {
                 visibility: Some(Visibility::Public),
                 parent_id: parent_id.map(|s| s.to_string()),
                 metadata: Some(metadata),
-                doc_comment,
+                doc_comment: None,
                 annotations: Vec::new(),
             },
-        )
+        );
+        symbol.doc_comment = None;
+        symbol
     }
 }

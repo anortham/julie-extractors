@@ -4,7 +4,7 @@
 //! function declarations, and variable declarations. Struct/union/enum extraction is in
 //! `structs.rs` and typedef handling is in `typedefs.rs`.
 
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::c::CExtractor;
 use crate::test_detection::is_test_symbol;
 use serde_json::Value;
@@ -147,6 +147,8 @@ pub(super) fn extract_function_definition(
     };
 
     let doc_comment = extractor.base.find_doc_comment(&node);
+    let annotations =
+        normalize_annotations(&helpers::extract_attributes(&extractor.base, node), "c");
 
     let mut metadata = HashMap::from([
         ("type".to_string(), Value::String("function".to_string())),
@@ -196,7 +198,7 @@ pub(super) fn extract_function_definition(
             parent_id: parent_id.map(|s| s.to_string()),
             metadata: Some(metadata),
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -216,6 +218,8 @@ pub(super) fn extract_function_declaration(
     };
 
     let doc_comment = extractor.base.find_doc_comment(&node);
+    let annotations =
+        normalize_annotations(&helpers::extract_attributes(&extractor.base, node), "c");
 
     Some(
         extractor.base.create_symbol(
@@ -259,7 +263,7 @@ pub(super) fn extract_function_declaration(
                     ),
                 ])),
                 doc_comment,
-                annotations: Vec::new(),
+                annotations,
             },
         ),
     )

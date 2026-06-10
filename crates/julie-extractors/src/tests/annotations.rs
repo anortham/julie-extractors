@@ -68,6 +68,14 @@ fn annotation_normalization_covers_language_contract_examples() {
             ],
         ),
         (
+            "c",
+            vec!["[[nodiscard, maybe_unused]]"],
+            vec![
+                marker("nodiscard", "nodiscard", "nodiscard", None),
+                marker("maybe_unused", "maybe_unused", "maybe_unused", None),
+            ],
+        ),
+        (
             "dart",
             vec!["@pragma('vm:prefer-inline')"],
             vec![marker(
