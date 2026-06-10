@@ -82,9 +82,13 @@ JSX, Razor, GDScript shallowness is not.
 - Golden fixtures only show Dart/Elixir annotation markers because most
   fixture sources contain no attributes/decorators — the same fixture-gap
   pattern as doc comments (2.2).
-- Apparently missing entirely (no `normalize_annotations` references): Java
-  annotations, Python decorators, TypeScript/JavaScript decorators, Rust
-  attributes, Kotlin annotations — confirm during implementation.
+- RESOLVED 2026-06-09 (plan Task 9): on inspection, Java, Python,
+  TypeScript, and Rust were already mostly wired (the "missing" grep used a
+  Windows-glob that silently matched nothing). Real gaps found and fixed:
+  Java fields dropped annotations, TypeScript exported classes missed
+  decorators (the grammar attaches them to the wrapping `export_statement`),
+  and JavaScript classes were unwired. All five languages now have golden
+  pins. Kotlin annotation wiring remains unverified.
 - Impact: framework-aware consumers (routing, DI, ORM mapping, test markers)
   must re-walk source for information the extractor already visits. Natural
   continuation of the ASP.NET/htmx/Alpine structural-facts work.

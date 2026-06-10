@@ -813,6 +813,10 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
                     "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
                     "structural_facts": kind_coverage_domain(&row.kind_coverage.structural_facts),
                     "complexity_metrics": kind_coverage_domain(&row.kind_coverage.complexity_metrics),
+                    "annotations": kind_coverage_domain(&row.kind_coverage.annotations),
+                    "doc_comments": kind_coverage_domain(&row.kind_coverage.doc_comments),
+                    "literals": kind_coverage_domain(&row.kind_coverage.literals),
+                    "source_regions": kind_coverage_domain(&row.kind_coverage.source_regions),
                 }),
                 "fixtures": row.fixtures.len(),
                 "capability_gaps": row.capability_gaps.len(),
@@ -2113,6 +2117,10 @@ fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
                 "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
                 "structural_facts": kind_coverage_domain(&row.kind_coverage.structural_facts),
                 "complexity_metrics": kind_coverage_domain(&row.kind_coverage.complexity_metrics),
+                "annotations": kind_coverage_domain(&row.kind_coverage.annotations),
+                "doc_comments": kind_coverage_domain(&row.kind_coverage.doc_comments),
+                "literals": kind_coverage_domain(&row.kind_coverage.literals),
+                "source_regions": kind_coverage_domain(&row.kind_coverage.source_regions),
             }),
             fixtures: row
                 .fixtures

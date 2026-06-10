@@ -78,6 +78,29 @@ left to compound.
   `FailedPreserved`.
 - Fix: replace with a `let Some(parent)` guard.
 
+### 1.7 Dart dart3 generic-modifier recovery path is dead code (LOW, discovered during fix execution)
+
+- Evidence: `crates/julie-extractors/src/dart/mod.rs:137` (and the sibling
+  check near `:247`) gate the recovery path on `parent.kind() == "program"`,
+  but tree-sitter-dart 0.2.0 has no `program` node — its root is
+  `source_file` (verified against the grammar's node-types.json and live
+  parse dumps during the 2026-06-09 fix work; riverpod-style constructs now
+  parse cleanly as `class_declaration`).
+- Impact: the recovery path never executes. Either the guard should say
+  `source_file` (re-enabling the recovery behavior) or the path should be
+  deleted. Activating it is a behavior change and needs its own decision.
+
+### 1.8 C# return-type inference is substring-fragile (LOW, discovered during fixture work)
+
+- Evidence: `crates/julie-extractors/src/csharp/type_inference.rs:46`
+  (`infer_method_return_type`) locates the method name in the signature via
+  `part.contains(&symbol.name)`. Any earlier signature token containing the
+  method name — e.g. an attribute argument like `[Obsolete("use NewHelper")]`
+  on a method named `Helper` — corrupts `resolved_type` (observed: `int`
+  became `[Obsolete("use`).
+- Fix direction: match the name token by exact identifier (or walk the AST
+  node for the return type) instead of substring containment.
+
 ## 2. Structural debt (not urgent, compounding)
 
 ### 2.1 `commands.rs` god module
