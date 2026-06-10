@@ -368,7 +368,9 @@
       "end_byte": 435,
       "metadata": {
         "embedded_language": "javascript",
-        "host_node_kind": "script_element"
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "setup": true
       }
     }
   ],

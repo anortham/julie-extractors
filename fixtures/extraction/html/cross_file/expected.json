@@ -533,7 +533,7 @@
     {
       "literal_text": "./other.css",
       "kind": "other",
-      "carrier": "href",
+      "carrier": "link.href",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
@@ -549,7 +549,7 @@
     {
       "literal_text": "./other.js",
       "kind": "other",
-      "carrier": "src",
+      "carrier": "script.src",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
@@ -565,7 +565,7 @@
     {
       "literal_text": "entry",
       "kind": "other",
-      "carrier": "id",
+      "carrier": "div.id",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
@@ -581,7 +581,7 @@
     {
       "literal_text": "stylesheet",
       "kind": "other",
-      "carrier": "rel",
+      "carrier": "link.rel",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
@@ -622,7 +622,9 @@
       "end_byte": 374,
       "metadata": {
         "embedded_language": "javascript",
-        "host_node_kind": "script_element"
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "src": "./other.js"
       }
     },
     {
@@ -638,7 +640,8 @@
       "end_byte": 586,
       "metadata": {
         "embedded_language": "javascript",
-        "host_node_kind": "script_element"
+        "host_node_kind": "script_element",
+        "host_tag": "script"
       }
     },
     {

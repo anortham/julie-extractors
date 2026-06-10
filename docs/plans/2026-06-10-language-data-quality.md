@@ -729,11 +729,12 @@ batch for data/markup/domain languages (HTML/Razor markup facts, YAML key paths,
 Markdown inline links). See
 `docs/findings/2026-06-09-language-coverage-review.md` Phase 20 for evidence.
 
-The next slice should target remaining shallow-but-complete domains called out
-in the depth audit: richer carrier context in `literals` and `source_regions`
-for config/markup languages, and additional Razor/HTML form/route facts where
-fixtures prove value. Implementation work should still avoid filler rows and
-must keep `silent_cells: 0` with honest capability semantics.
+Phase 21 closed carrier and embedded-region depth for config/markup languages.
+See `docs/findings/2026-06-09-language-coverage-review.md` Phase 21 for
+fixture-backed evidence. The next slice should target additional Razor/HTML
+form/route facts where fixtures prove value, and any remaining shallow domains
+surfaced by the depth audit. Implementation work must still avoid filler rows
+and keep `silent_cells: 0` with honest capability semantics.
 
 ## Out Of Scope
 

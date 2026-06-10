@@ -607,7 +607,7 @@
     {
       "literal_text": "/workers",
       "kind": "other",
-      "carrier": "href",
+      "carrier": "a.href",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/basic/source.html",
@@ -623,7 +623,7 @@
     {
       "literal_text": "run",
       "kind": "other",
-      "carrier": "data-action",
+      "carrier": "button.data-action",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/basic/source.html",
@@ -639,7 +639,7 @@
     {
       "literal_text": "worker",
       "kind": "other",
-      "carrier": "id",
+      "carrier": "section.id",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/basic/source.html",
@@ -680,7 +680,8 @@
       "end_byte": 347,
       "metadata": {
         "embedded_language": "javascript",
-        "host_node_kind": "script_element"
+        "host_node_kind": "script_element",
+        "host_tag": "script"
       }
     },
     {

@@ -7,6 +7,9 @@
 #[cfg(test)]
 mod relationships;
 
+#[cfg(test)]
+mod literals;
+
 pub mod structural_facts;
 
 #[cfg(test)]

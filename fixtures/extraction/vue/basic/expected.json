@@ -1002,6 +1002,22 @@
       "end_byte": 390,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
       "confidence": "1.000"
+    },
+    {
+      "literal_text": "worker",
+      "kind": "other",
+      "carrier": "section.class",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 2,
+      "start_column": 17,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 28,
+      "end_byte": 36,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "confidence": "1.000"
     }
   ],
   "source_regions": [
@@ -1018,7 +1034,9 @@
       "end_byte": 872,
       "metadata": {
         "embedded_language": "css",
-        "host_node_kind": "style_element"
+        "host_node_kind": "style_element",
+        "host_tag": "style",
+        "scoped": true
       }
     },
     {
@@ -1033,8 +1051,11 @@
       "start_byte": 207,
       "end_byte": 817,
       "metadata": {
-        "embedded_language": "javascript",
-        "host_node_kind": "script_element"
+        "embedded_language": "typescript",
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "lang": "ts",
+        "setup": true
       }
     },
     {

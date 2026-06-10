@@ -655,7 +655,7 @@
     {
       "literal_text": "0.1.0",
       "kind": "other",
-      "carrier": "version",
+      "carrier": "package.version",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cargo_deps/Cargo.toml",
@@ -671,7 +671,7 @@
     {
       "literal_text": "1",
       "kind": "other",
-      "carrier": "version",
+      "carrier": "dependencies.tokio.version",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cargo_deps/Cargo.toml",
@@ -687,7 +687,7 @@
     {
       "literal_text": "1.0",
       "kind": "other",
-      "carrier": "cc",
+      "carrier": "build-dependencies.cc",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cargo_deps/Cargo.toml",
@@ -703,7 +703,7 @@
     {
       "literal_text": "1.0",
       "kind": "other",
-      "carrier": "serde",
+      "carrier": "dependencies.serde",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cargo_deps/Cargo.toml",
@@ -719,7 +719,7 @@
     {
       "literal_text": "1.4",
       "kind": "other",
-      "carrier": "mockito",
+      "carrier": "dev-dependencies.mockito",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cargo_deps/Cargo.toml",
@@ -735,7 +735,7 @@
     {
       "literal_text": "myapp",
       "kind": "other",
-      "carrier": "name",
+      "carrier": "package.name",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cargo_deps/Cargo.toml",

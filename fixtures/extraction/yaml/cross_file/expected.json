@@ -669,7 +669,7 @@
     {
       "literal_text": "3",
       "kind": "other",
-      "carrier": "retries",
+      "carrier": "defaults.retries",
       "arg_position": 0,
       "language": "yaml",
       "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
@@ -685,7 +685,7 @@
     {
       "literal_text": "30",
       "kind": "other",
-      "carrier": "timeout",
+      "carrier": "defaults.timeout",
       "arg_position": 0,
       "language": "yaml",
       "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
@@ -701,7 +701,7 @@
     {
       "literal_text": "8080",
       "kind": "other",
-      "carrier": "port",
+      "carrier": "services.api.port",
       "arg_position": 0,
       "language": "yaml",
       "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
@@ -717,7 +717,7 @@
     {
       "literal_text": "9090",
       "kind": "other",
-      "carrier": "port",
+      "carrier": "services.worker.port",
       "arg_position": 0,
       "language": "yaml",
       "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",

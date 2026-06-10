@@ -369,7 +369,7 @@
     {
       "literal_text": "fixture",
       "kind": "other",
-      "carrier": "name",
+      "carrier": "worker.name",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/basic/source.json",
@@ -385,7 +385,7 @@
     {
       "literal_text": "https://api.example.com/workers/status",
       "kind": "other",
-      "carrier": "api_url",
+      "carrier": "worker.api_url",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/basic/source.json",

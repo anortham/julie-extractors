@@ -424,7 +424,7 @@
     {
       "literal_text": "0.1.0",
       "kind": "other",
-      "carrier": "version",
+      "carrier": "package.version",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cross_file/source.toml",
@@ -440,7 +440,7 @@
     {
       "literal_text": "1.0",
       "kind": "other",
-      "carrier": "some_other_crate",
+      "carrier": "dependencies.some_other_crate",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cross_file/source.toml",
@@ -456,7 +456,7 @@
     {
       "literal_text": "2.0",
       "kind": "other",
-      "carrier": "version",
+      "carrier": "dependencies.another_crate.version",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cross_file/source.toml",
@@ -472,7 +472,7 @@
     {
       "literal_text": "local_helper",
       "kind": "other",
-      "carrier": "name",
+      "carrier": "package.name",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/cross_file/source.toml",

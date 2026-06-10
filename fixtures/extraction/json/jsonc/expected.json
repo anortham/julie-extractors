@@ -206,7 +206,7 @@
     {
       "literal_text": "commonjs",
       "kind": "other",
-      "carrier": "module",
+      "carrier": "compilerOptions.module",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/jsonc/source.jsonc",

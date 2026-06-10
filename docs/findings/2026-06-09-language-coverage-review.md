@@ -1313,6 +1313,65 @@ cargo fmt --check
   `complexity_metrics` in this slice; those domains were audited and already
   carried downstream-useful metadata.
 
+## Phase 21 carrier and embedded-region depth (config/markup)
+
+**Before:** Config literals used bare property keys (`name`, `host`) even when
+nested under parent symbols. HTML attribute literals used attribute names only
+(`href`, `data-action`). Embedded `source_regions` for script/style/code blocks
+carried only `host_node_kind` and `embedded_language`. Vue template attribute
+values were not captured as literals.
+
+**After:** Path-aware config carriers, tag-qualified markup carriers, richer
+embedded metadata, and focused tests asserting exact carrier/metadata values.
+Strict scorecard remains `silent_cells: 0`, `quality_bar_debts: 0`.
+
+| Language / domain | Improvement | Fixture evidence |
+| --- | --- | --- |
+| `json`, `toml`, `yaml` | Literal carriers join parent symbol names (`worker.name`, `database.host`) | `basic`, `cross_file`, dedicated `cargo_deps`/`pyproject`/`refs`/`jsonc` where literals exist |
+| `html` | Attribute literals use `tag.attribute` carriers (`a.href`, `button.data-action`) | `basic`, `cross_file`, `structural_facts` |
+| `vue` | Static template attribute literals with tag carriers; directive expressions are skipped instead of mislabeled as literals; script/style embedded metadata (`host_tag`, `lang`, `setup`, `scoped`, style language) | `basic`, `cross_file` |
+| `markdown` | Inline-link literal carrier `inline_link`; fenced blocks add `info_string` metadata | `basic`, `cross_file` |
+| `razor` | `@code` / `@functions` blocks add `block_type` embedded metadata | `basic`, `cross_file` |
+| `css` | Audited: `url()` literals already use function-name carrier; no change | `basic`, `cross_file` |
+
+**Tests added/extended:**
+
+- `tests/source_regions.rs` (HTML, Vue, Markdown, Razor metadata assertions)
+- `tests/json/literals.rs`, `tests/toml/literals.rs`, `tests/yaml/literals.rs`
+- `tests/html/literals.rs`, `tests/vue/literals.rs` (template carriers)
+
+**Verification:**
+
+```bash
+cargo xtask test language json
+cargo xtask test language toml
+cargo xtask test language yaml
+cargo xtask test language html
+cargo xtask test language vue
+cargo xtask test language razor
+cargo xtask test language markdown
+cargo xtask test language css
+cargo test -p julie-extractors --lib source_regions
+UPDATE_GOLDEN=1 cargo nextest run -p julie-extractors --features test-golden golden
+cargo nextest run -p julie-extractors --features test-golden golden
+node scripts/language-data-quality-report.mjs --strict
+cargo fmt --check && git diff --check
+```
+
+**Remaining debt (intentional):**
+
+- JSON array elements with repeated keys still share bare key carriers when
+  parent symbols are not in the object-key chain (array-index paths not modeled).
+- YAML flow-style mappings and non-`block_mapping_pair` scalars keep prior
+  carrier behavior.
+- Markdown reference links and footnote destinations keep symbol metadata only
+  (no duplicate literal rows).
+- CSS `url()` carrier remains the function name, not selector-qualified context
+  (selector ancestry is unstable across minified sheets).
+- Vue `@click.prevent`, `:class`, and other directive-shaped attributes are
+  skipped by `literals`; expression-level extraction belongs in a future
+  Vue-specific relationship/fact pass.
+
 ## Recommended next plan
 
 Build the next pass around a high-bar language-quality program:

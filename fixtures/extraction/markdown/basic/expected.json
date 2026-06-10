@@ -331,7 +331,7 @@
     {
       "literal_text": "https://api.example.com/workers",
       "kind": "other",
-      "carrier": "link",
+      "carrier": "inline_link",
       "arg_position": 0,
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/basic/source.md",
@@ -359,7 +359,8 @@
       "end_byte": 259,
       "metadata": {
         "embedded_language": "rust",
-        "host_node_kind": "fenced_code_block"
+        "host_node_kind": "fenced_code_block",
+        "info_string": "rust"
       }
     }
   ],

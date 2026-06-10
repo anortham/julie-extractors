@@ -493,7 +493,7 @@
     {
       "literal_text": "#/definitions/local_helper",
       "kind": "other",
-      "carrier": "$ref",
+      "carrier": "properties.entry.$ref",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/cross_file/source.json",
@@ -525,7 +525,7 @@
     {
       "literal_text": "string",
       "kind": "other",
-      "carrier": "type",
+      "carrier": "definitions.local_helper.type",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/cross_file/source.json",

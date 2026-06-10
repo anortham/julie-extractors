@@ -323,7 +323,7 @@
     {
       "literal_text": "#local-heading",
       "kind": "other",
-      "carrier": "link",
+      "carrier": "inline_link",
       "arg_position": 0,
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/cross_file/source.md",
@@ -339,7 +339,7 @@
     {
       "literal_text": "./other.md",
       "kind": "other",
-      "carrier": "link",
+      "carrier": "inline_link",
       "arg_position": 0,
       "language": "markdown",
       "file_path": "fixtures/extraction/markdown/cross_file/source.md",

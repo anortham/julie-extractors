@@ -49,6 +49,8 @@ pub mod doc_comments;
 pub mod edge_cases;
 pub mod forms;
 pub mod identifier_extraction;
+#[cfg(test)]
+mod literals;
 pub mod media;
 pub mod relationships;
 pub mod script_style;

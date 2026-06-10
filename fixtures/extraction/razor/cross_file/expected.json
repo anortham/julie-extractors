@@ -484,6 +484,7 @@
       "start_byte": 360,
       "end_byte": 515,
       "metadata": {
+        "block_type": "code",
         "embedded_language": "csharp",
         "host_node_kind": "razor_block"
       }

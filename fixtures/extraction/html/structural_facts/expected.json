@@ -469,7 +469,7 @@
     {
       "literal_text": "#list",
       "kind": "other",
-      "carrier": "hx-target",
+      "carrier": "div.hx-target",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -485,23 +485,7 @@
     {
       "literal_text": "/todos",
       "kind": "other",
-      "carrier": "action",
-      "arg_position": 0,
-      "language": "html",
-      "file_path": "fixtures/extraction/html/structural_facts/source.html",
-      "start_line": 7,
-      "start_column": 17,
-      "end_line": 7,
-      "end_column": 25,
-      "start_byte": 209,
-      "end_byte": 217,
-      "containing_key": "fixtures/extraction/html/structural_facts/source.html:form:7:4",
-      "confidence": "1.000"
-    },
-    {
-      "literal_text": "/todos",
-      "kind": "other",
-      "carrier": "hx-get",
+      "carrier": "div.hx-get",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -517,7 +501,7 @@
     {
       "literal_text": "/todos",
       "kind": "other",
-      "carrier": "hx-post",
+      "carrier": "div.hx-post",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -531,9 +515,25 @@
       "confidence": "1.000"
     },
     {
+      "literal_text": "/todos",
+      "kind": "other",
+      "carrier": "form.action",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "start_line": 7,
+      "start_column": 17,
+      "end_line": 7,
+      "end_column": 25,
+      "start_byte": 209,
+      "end_byte": 217,
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:form:7:4",
+      "confidence": "1.000"
+    },
+    {
       "literal_text": "list",
       "kind": "other",
-      "carrier": "id",
+      "carrier": "div.id",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -549,7 +549,7 @@
     {
       "literal_text": "open = !open",
       "kind": "other",
-      "carrier": "@click.prevent",
+      "carrier": "button.@click.prevent",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -565,7 +565,7 @@
     {
       "literal_text": "post",
       "kind": "other",
-      "carrier": "method",
+      "carrier": "form.method",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -581,7 +581,7 @@
     {
       "literal_text": "text",
       "kind": "other",
-      "carrier": "type",
+      "carrier": "input.type",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -597,7 +597,7 @@
     {
       "literal_text": "title",
       "kind": "other",
-      "carrier": "name",
+      "carrier": "input.name",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -613,7 +613,7 @@
     {
       "literal_text": "todo-form",
       "kind": "other",
-      "carrier": "id",
+      "carrier": "form.id",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -629,7 +629,7 @@
     {
       "literal_text": "todoForm",
       "kind": "other",
-      "carrier": "name",
+      "carrier": "form.name",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -645,7 +645,7 @@
     {
       "literal_text": "{ active: open }",
       "kind": "other",
-      "carrier": ":class",
+      "carrier": "button.:class",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",
@@ -661,7 +661,7 @@
     {
       "literal_text": "{ open: false }",
       "kind": "other",
-      "carrier": "x-data",
+      "carrier": "div.x-data",
       "arg_position": 0,
       "language": "html",
       "file_path": "fixtures/extraction/html/structural_facts/source.html",

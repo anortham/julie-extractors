@@ -518,7 +518,7 @@
     {
       "literal_text": "admin",
       "kind": "other",
-      "carrier": "role",
+      "carrier": "worker.profile.role",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/basic/source.toml",
@@ -534,7 +534,7 @@
     {
       "literal_text": "alpha",
       "kind": "other",
-      "carrier": "key",
+      "carrier": "items.key",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/basic/source.toml",
@@ -550,7 +550,7 @@
     {
       "literal_text": "fixture",
       "kind": "other",
-      "carrier": "name",
+      "carrier": "worker.name",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/basic/source.toml",
@@ -566,7 +566,7 @@
     {
       "literal_text": "https://api.example.com/workers/status",
       "kind": "other",
-      "carrier": "api_url",
+      "carrier": "worker.api_url",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/basic/source.toml",

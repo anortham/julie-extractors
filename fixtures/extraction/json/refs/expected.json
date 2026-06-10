@@ -798,7 +798,7 @@
     {
       "literal_text": "#/$defs/Address",
       "kind": "other",
-      "carrier": "$ref",
+      "carrier": "properties.billing.$ref",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/refs/source.json",
@@ -814,7 +814,7 @@
     {
       "literal_text": "external.json#/$defs/Address",
       "kind": "other",
-      "carrier": "$ref",
+      "carrier": "properties.shipping.$ref",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/refs/source.json",
@@ -830,7 +830,7 @@
     {
       "literal_text": "object",
       "kind": "other",
-      "carrier": "type",
+      "carrier": "$defs.Address.type",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/refs/source.json",
@@ -846,7 +846,7 @@
     {
       "literal_text": "string",
       "kind": "other",
-      "carrier": "type",
+      "carrier": "$defs.Address.properties.street.type",
       "arg_position": 0,
       "language": "json",
       "file_path": "fixtures/extraction/json/refs/source.json",

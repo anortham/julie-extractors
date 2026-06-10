@@ -467,7 +467,7 @@
     {
       "literal_text": "0.1.0",
       "kind": "other",
-      "carrier": "version",
+      "carrier": "project.version",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",
@@ -483,7 +483,7 @@
     {
       "literal_text": "auto",
       "kind": "other",
-      "carrier": "asyncio_mode",
+      "carrier": "tool.pytest.ini_options.asyncio_mode",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",
@@ -499,7 +499,7 @@
     {
       "literal_text": "myapp",
       "kind": "other",
-      "carrier": "name",
+      "carrier": "project.name",
       "arg_position": 0,
       "language": "toml",
       "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",

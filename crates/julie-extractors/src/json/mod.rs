@@ -42,7 +42,7 @@ impl JsonExtractor {
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
     ) {
-        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref());
+        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref(), symbols);
         let mut current_parent_id = parent_id;
 
         if let Some(ref sym) = symbol {
@@ -62,15 +62,21 @@ impl JsonExtractor {
         &mut self,
         node: tree_sitter::Node,
         parent_id: Option<&str>,
+        symbols: &[Symbol],
     ) -> Option<Symbol> {
         match node.kind() {
-            "pair" => self.extract_pair(node, parent_id),
+            "pair" => self.extract_pair(node, parent_id, symbols),
             _ => None,
         }
     }
 
     /// Extract a key-value pair as a symbol
-    fn extract_pair(&mut self, node: tree_sitter::Node, parent_id: Option<&str>) -> Option<Symbol> {
+    fn extract_pair(
+        &mut self,
+        node: tree_sitter::Node,
+        parent_id: Option<&str>,
+        symbols: &[Symbol],
+    ) -> Option<Symbol> {
         use crate::base::SymbolOptions;
 
         // Get children: typically [string (key), ":", value]
@@ -128,10 +134,13 @@ impl JsonExtractor {
             .create_symbol(&node, key_name.clone(), symbol_kind, options);
 
         if value_node.kind() == "string" {
+            let carrier = crate::base::config_literals::build_config_key_carrier(
+                symbols, parent_id, &key_name,
+            );
             crate::base::config_literals::record_config_string_literal(
                 &mut self.base,
                 &value_node,
-                &key_name,
+                &carrier,
                 Some(symbol.id.clone()),
             );
         }

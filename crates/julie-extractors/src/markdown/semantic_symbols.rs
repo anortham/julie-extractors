@@ -88,7 +88,7 @@ fn extract_inline_link(
         base.record_literal(
             &destination_node,
             destination.clone(),
-            Some("link".to_string()),
+            Some("inline_link".to_string()),
             0,
             parent_id.map(str::to_string),
         );
@@ -248,7 +248,7 @@ pub(super) fn extract_line_based_symbols(
                 base.record_literal_at_span(
                     span,
                     clean_link_destination(destination.to_string()),
-                    Some("link".to_string()),
+                    Some("inline_link".to_string()),
                     0,
                     parent_id.clone(),
                 );

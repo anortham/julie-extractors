@@ -43,7 +43,7 @@ impl TomlExtractor {
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
     ) {
-        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref());
+        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref(), symbols);
         let mut current_parent_id = parent_id;
 
         if let Some(ref sym) = symbol {
@@ -63,11 +63,12 @@ impl TomlExtractor {
         &mut self,
         node: tree_sitter::Node,
         parent_id: Option<&str>,
+        symbols: &[Symbol],
     ) -> Option<Symbol> {
         match node.kind() {
             "table" => self.extract_table(node, parent_id, false),
             "table_array_element" => self.extract_table(node, parent_id, true),
-            "pair" => self.extract_pair(node, parent_id),
+            "pair" => self.extract_pair(node, parent_id, symbols),
             _ => None,
         }
     }
@@ -107,7 +108,12 @@ impl TomlExtractor {
     }
 
     /// Extract a key-value pair as a Property symbol
-    fn extract_pair(&mut self, node: tree_sitter::Node, parent_id: Option<&str>) -> Option<Symbol> {
+    fn extract_pair(
+        &mut self,
+        node: tree_sitter::Node,
+        parent_id: Option<&str>,
+        symbols: &[Symbol],
+    ) -> Option<Symbol> {
         use crate::base::SymbolOptions;
 
         let mut cursor = node.walk();
@@ -183,10 +189,13 @@ impl TomlExtractor {
                 .create_symbol(&node, key_name.clone(), SymbolKind::Property, options);
 
         if value_node.kind() == "string" {
+            let carrier = crate::base::config_literals::build_config_key_carrier(
+                symbols, parent_id, &key_name,
+            );
             crate::base::config_literals::record_config_string_literal(
                 &mut self.base,
                 &value_node,
-                &key_name,
+                &carrier,
                 Some(symbol.id.clone()),
             );
         }

@@ -49,7 +49,7 @@ impl YamlExtractor {
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
     ) {
-        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref());
+        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref(), symbols);
         let mut current_parent_id = parent_id;
 
         if let Some(ref sym) = symbol {
@@ -69,10 +69,11 @@ impl YamlExtractor {
         &mut self,
         node: tree_sitter::Node,
         parent_id: Option<&str>,
+        symbols: &[Symbol],
     ) -> Option<Symbol> {
         match node.kind() {
             // Block mapping pairs are the useful symbols (key: value entries)
-            "block_mapping_pair" => self.extract_mapping_pair(node, parent_id),
+            "block_mapping_pair" => self.extract_mapping_pair(node, parent_id, symbols),
 
             // "document" and "flow_mapping" are noise — generic names with no
             // search value. Their children are still walked and extracted.
@@ -86,6 +87,7 @@ impl YamlExtractor {
         &mut self,
         node: tree_sitter::Node,
         parent_id: Option<&str>,
+        symbols: &[Symbol],
     ) -> Option<Symbol> {
         use crate::base::SymbolOptions;
 
@@ -158,10 +160,13 @@ impl YamlExtractor {
                         continue;
                     }
                 }
+                let carrier = crate::base::config_literals::build_config_key_carrier(
+                    symbols, parent_id, &key_name,
+                );
                 crate::base::config_literals::record_config_string_literal(
                     &mut self.base,
                     &scalar,
-                    &key_name,
+                    &carrier,
                     Some(symbol.id.clone()),
                 );
                 break;

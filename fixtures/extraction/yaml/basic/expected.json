@@ -532,7 +532,7 @@
     {
       "literal_text": "1",
       "kind": "other",
-      "carrier": "id",
+      "carrier": "worker.id",
       "arg_position": 0,
       "language": "yaml",
       "file_path": "fixtures/extraction/yaml/basic/source.yaml",
@@ -548,7 +548,7 @@
     {
       "literal_text": "fixture",
       "kind": "other",
-      "carrier": "name",
+      "carrier": "worker.name",
       "arg_position": 0,
       "language": "yaml",
       "file_path": "fixtures/extraction/yaml/basic/source.yaml",
@@ -564,7 +564,7 @@
     {
       "literal_text": "https://api.example.com/workers/status",
       "kind": "other",
-      "carrier": "api_url",
+      "carrier": "worker.api_url",
       "arg_position": 0,
       "language": "yaml",
       "file_path": "fixtures/extraction/yaml/basic/source.yaml",
@@ -580,7 +580,7 @@
     {
       "literal_text": "true",
       "kind": "other",
-      "carrier": "active",
+      "carrier": "defaults.active",
       "arg_position": 0,
       "language": "yaml",
       "file_path": "fixtures/extraction/yaml/basic/source.yaml",
