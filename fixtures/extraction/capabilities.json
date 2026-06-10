@@ -1933,21 +1933,17 @@
           "open_gaps": []
         },
         "literals": {
-          "supported": [],
+          "supported": [
+            "other"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "other",
-              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
-              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
-            }
-          ]
+          "open_gaps": []
         },
         "source_regions": {
           "supported": [
             "comment",
-            "doc_comment"
+            "doc_comment",
+            "string_literal"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2366,21 +2362,17 @@
           "open_gaps": []
         },
         "literals": {
-          "supported": [],
+          "supported": [
+            "other"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "other",
-              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
-              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
-            }
-          ]
+          "open_gaps": []
         },
         "source_regions": {
           "supported": [
             "comment",
-            "doc_comment"
+            "doc_comment",
+            "string_literal"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2647,21 +2639,17 @@
           "open_gaps": []
         },
         "literals": {
-          "supported": [],
+          "supported": [
+            "other"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "other",
-              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
-              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
-            }
-          ]
+          "open_gaps": []
         },
         "source_regions": {
           "supported": [
             "comment",
-            "doc_comment"
+            "doc_comment",
+            "string_literal"
           ],
           "not_applicable": [],
           "open_gaps": []

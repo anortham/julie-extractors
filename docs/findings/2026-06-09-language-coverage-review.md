@@ -19,7 +19,7 @@ The branch completed the original extraction-data-quality plan:
 - Annotation evidence expanded to 11 languages.
 - Doc-comment evidence expanded to 25 languages.
 - Source-region evidence expanded to 35 languages.
-- Literal evidence expanded to 11 languages.
+- Literal evidence expanded to 17 languages.
 - No current `kind_coverage` positive claim lacks fixture evidence.
 
 This means the remaining work is not a stale-declaration cleanup. The gap is
@@ -44,7 +44,7 @@ Current golden fixture rows by domain:
 | structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
 | complexity_metrics | 12/36 | Mainstream languages improved; many code languages remain empty. |
 | annotations | 11/36 | Attribute/decorator support remains patchy outside the first pass. |
-| literals | 14/36 | Unit tests exist for many more languages than goldens advertise. |
+| literals | 17/36 | Unit tests exist for many more languages than goldens advertise. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
 
 ## Phase 0 scorecard
@@ -171,6 +171,45 @@ Scorecard after this slice:
 - `literals`: 14/36
 - `type_argument_usages`: 1/36
 
+## Phase 5 Java/PHP/Swift literal batch
+
+The fifth extractor-depth slice closed literal gaps for three languages:
+
+- `literals`: Java `other` string-literal carriers with local helper (`observeRun`,
+  `fetchUrl`) callee context in `fixtures/extraction/java/basic`.
+- `literals`: PHP `other` string-literal carriers with local helper (`observeRun`,
+  `fetchUrl`) callee context in `fixtures/extraction/php/basic`.
+- `literals`: Swift `other` string-literal carriers with local helper (`observeRun`,
+  `fetchUrl`) callee context in `fixtures/extraction/swift/basic`.
+
+**Source-region collateral (not a separate batch):** The literal carrier fixtures
+also emit `source_regions` rows of kind `string_literal` because the extractor
+already indexes string-literal spans independently of `kind_coverage.literals`.
+Removing `string_literal` from `kind_coverage.source_regions.supported` for these
+three languages was attempted and blocked: golden exact-match requires the rows in
+`expected.json`, and `capability_matrix_source_region_claims_have_fixture_evidence`
+requires every observed golden region kind to appear in `supported`. The
+`string_literal` entries are therefore fixture-synchronized matrix contract data,
+not an intentional source-regions capability expansion. A dedicated
+source-regions slice would need either different evidence shapes or a contract
+change before those claims can be dropped.
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 86
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 12/36
+- `annotations`: 11/36
+- `literals`: 17/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -181,7 +220,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 - `complexity_metrics`: 24 languages remain open.
 - `structural_facts`: 24 languages remain open.
 - `annotations`: 25 languages remain open.
-- `literals`: 22 languages remain open.
+- `literals`: 19 languages remain open.
 - `doc_comments`: 11 languages remain open.
 
 Impact: downstream consumers cannot distinguish "not applicable" from "not
@@ -193,10 +232,10 @@ Open gaps are temporary debt, not acceptance criteria.
 There are per-language literal unit tests for many languages, including Rust,
 C, C++, Go, Zig, Python, Java, VB.NET, PHP, Swift, Kotlin, Scala, Dart,
 Elixir, QML, GDScript, Razor, and others. Golden fixtures and
-`kind_coverage.literals`, however, currently advertise only 14 languages:
+`kind_coverage.literals`, however, currently advertise 17 languages:
 
 `rust`, `c`, `cpp`, `go`, `typescript`, `javascript`, `vue`, `csharp`, `ruby`,
-`lua`, `r`, `bash`, `powershell`, `python`.
+`lua`, `r`, `bash`, `powershell`, `python`, `java`, `php`, `swift`.
 
 Impact: literal extraction should be a standard domain for languages with
 string, URL, query, command, or configuration literals. Existing unit tests show

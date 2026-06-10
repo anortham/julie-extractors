@@ -13,6 +13,7 @@ class Worker implements Job {
 
     @Deprecated
     public int run() {
+        recordRun(id);
         return helper(id);
     }
 
@@ -24,5 +25,22 @@ class Worker implements Job {
      */
     private static int helper(int value) {
         return value + 1;
+    }
+
+    /** Emits a worker-run marker for observability hooks. */
+    private static void recordRun(int id) {
+        observeRun("worker-run", id);
+    }
+
+    /** Records a named worker event for downstream hooks. */
+    private static void observeRun(String event, int id) {
+    }
+
+    /** Checks the worker service health endpoint. */
+    static void fetchStatus() {
+        fetchUrl("https://api.example.com/workers/status");
+    }
+
+    private static void fetchUrl(String url) {
     }
 }
