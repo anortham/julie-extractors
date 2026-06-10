@@ -1039,6 +1039,45 @@ Languages with fixture-proven type-argument usage evidence:
 
 Remaining type-argument usage debt: 16 languages without golden rows.
 
+## Phase 16 scorecard v2 (applicability-aware view)
+
+`scripts/language-data-quality-report.mjs` now prints the existing raw
+`Fixture-Proven Domain Counts` section unchanged, then an
+`Applicability-Aware Domain View` that classifies each observed domain beyond
+raw `N/36` fixture rows.
+
+Current behavior:
+
+- Script-local `DOMAIN_APPLICABILITY` metadata is validated before printing:
+  unknown language names, duplicate bucket assignments, and fixture-proven
+  conflicts for `not_applicable`, `convention_only`, or `native_debt` throw with
+  domain, bucket, and language; `quality_debt` may coexist with fixture rows.
+- Every `OBSERVED_DOMAINS` entry reports `applicable_closure`,
+  `fixture_proven_native`, optional applicability buckets, and
+  `unclassified_gaps`.
+- Domains without script-local applicability metadata do not invent
+  `not_applicable` or `convention_only` rows; languages lacking golden evidence
+  appear only under `unclassified_gaps`.
+- `type_argument_usages` is the first fully classified domain via script-local
+  metadata aligned with the Phase 14 audit:
+
+| Bucket | Count | Languages |
+| --- | ---: | --- |
+| fixture-proven native | 20 | `rust`, `cpp`, `go`, `zig`, `typescript`, `tsx`, `vue`, `python`, `java`, `csharp`, `vbnet`, `swift`, `kotlin`, `scala`, `dart`, `elixir`, `qml`, `powershell`, `gdscript`, `razor` |
+| `not_applicable` | 13 | `c`, `javascript`, `jsx`, `html`, `css`, `r`, `bash`, `sql`, `regex`, `markdown`, `json`, `toml`, `yaml` |
+| `convention_only` | 3 | `php`, `ruby`, `lua` |
+| `native_debt` | 0 | none |
+| `quality_debt` | 0 | none |
+| `unclassified_gaps` | 0 | none |
+
+Interpretation: the raw scorecard still reads `type_argument_usages: 20/36`,
+but applicability closure is `20/20 complete` because the remaining 16
+languages are accounted for as true non-applicability (13) or convention-only
+documentation idioms (3), not extractor debt. Strict mode still reports
+`quality_bar_debts` in the header, but exit nonzero remains the pre-existing
+silent-cell gate on `kind_coverage` only; convention-only or not-applicable
+type-argument rows do not affect strict exit.
+
 ## Product bar
 
 The desired end state is the best tree-sitter extraction product available for

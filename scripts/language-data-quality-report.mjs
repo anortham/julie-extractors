@@ -55,7 +55,40 @@ const DOMAIN_LANGUAGES = new Set([
   "yaml",
 ]);
 
+// Script-local applicability metadata. Domains without an entry report
+// unclassified gaps for languages lacking fixture-proven rows.
+const DOMAIN_APPLICABILITY = {
+  type_argument_usages: {
+    not_applicable: [
+      "c",
+      "javascript",
+      "jsx",
+      "html",
+      "css",
+      "r",
+      "bash",
+      "sql",
+      "regex",
+      "markdown",
+      "json",
+      "toml",
+      "yaml",
+    ],
+    convention_only: ["php", "ruby", "lua"],
+    native_debt: [],
+    quality_debt: [],
+  },
+};
+
+const APPLICABILITY_BUCKETS = [
+  "not_applicable",
+  "convention_only",
+  "native_debt",
+  "quality_debt",
+];
+
 const capabilities = JSON.parse(fs.readFileSync(CAPABILITIES_PATH, "utf8"));
+const ALL_LANGUAGES = capabilities.languages.map((row) => row.language);
 
 function expectedFiles(language) {
   const root = path.join(ROOT, "fixtures/extraction", language);
@@ -178,6 +211,146 @@ function analyze() {
   return { byDomain, qualityDebts, rowsByLanguage, silentCells };
 }
 
+function validateDomainApplicability(byDomain) {
+  const allLanguages = new Set(ALL_LANGUAGES);
+
+  for (const [domain, meta] of Object.entries(DOMAIN_APPLICABILITY)) {
+    const fixtureProven = new Set(byDomain[domain] ?? []);
+    const bucketForLanguage = new Map();
+
+    for (const bucket of APPLICABILITY_BUCKETS) {
+      for (const language of meta[bucket] ?? []) {
+        if (!allLanguages.has(language)) {
+          throw new Error(
+            `DOMAIN_APPLICABILITY unknown language: domain=${domain} bucket=${bucket} language=${language}`,
+          );
+        }
+        if (bucketForLanguage.has(language)) {
+          const priorBucket = bucketForLanguage.get(language);
+          throw new Error(
+            `DOMAIN_APPLICABILITY duplicate bucket: domain=${domain} language=${language} buckets=${priorBucket},${bucket}`,
+          );
+        }
+        bucketForLanguage.set(language, bucket);
+
+        if (
+          bucket === "not_applicable" ||
+          bucket === "convention_only" ||
+          bucket === "native_debt"
+        ) {
+          if (fixtureProven.has(language)) {
+            throw new Error(
+              `DOMAIN_APPLICABILITY fixture-proven conflict: domain=${domain} bucket=${bucket} language=${language}`,
+            );
+          }
+        }
+      }
+    }
+  }
+}
+
+function sortedUnique(languages) {
+  return [...new Set(languages)].sort();
+}
+
+function applicabilityView(byDomain) {
+  return OBSERVED_DOMAINS.map((domain) => {
+    const meta = DOMAIN_APPLICABILITY[domain] ?? {
+      not_applicable: [],
+      convention_only: [],
+      native_debt: [],
+      quality_debt: [],
+    };
+    const fixtureProvenNative = sortedUnique(byDomain[domain]);
+    const classified = new Set([
+      ...fixtureProvenNative,
+      ...meta.not_applicable,
+      ...meta.convention_only,
+      ...meta.native_debt,
+      ...meta.quality_debt,
+    ]);
+    const unclassifiedGaps = sortedUnique(
+      ALL_LANGUAGES.filter((language) => !classified.has(language)),
+    );
+    const applicableTotal =
+      ALL_LANGUAGES.length -
+      meta.not_applicable.length -
+      meta.convention_only.length;
+    const applicableCovered = fixtureProvenNative.length;
+    const nativeDebt = sortedUnique(meta.native_debt);
+    const qualityDebt = sortedUnique(meta.quality_debt);
+    const closureComplete =
+      unclassifiedGaps.length === 0 &&
+      nativeDebt.length === 0 &&
+      qualityDebt.length === 0 &&
+      applicableCovered === applicableTotal;
+
+    return {
+      domain,
+      fixtureProvenNative,
+      notApplicable: sortedUnique(meta.not_applicable),
+      conventionOnly: sortedUnique(meta.convention_only),
+      nativeDebt,
+      qualityDebt,
+      unclassifiedGaps,
+      applicableTotal,
+      applicableCovered,
+      closureComplete,
+    };
+  });
+}
+
+function formatLanguageList(languages) {
+  return languages.length === 0 ? "none" : languages.join(", ");
+}
+
+function printApplicabilityView(views) {
+  console.log("## Applicability-Aware Domain View");
+  for (const view of views) {
+    console.log(`${view.domain}:`);
+    if (view.closureComplete) {
+      console.log(
+        `  applicable_closure: ${view.applicableCovered}/${view.applicableTotal} complete`,
+      );
+    } else {
+      console.log(
+        `  applicable_closure: ${view.applicableCovered}/${view.applicableTotal} incomplete`,
+      );
+    }
+    console.log(
+      `  fixture_proven_native: ${view.fixtureProvenNative.length}/${ALL_LANGUAGES.length} ${formatLanguageList(view.fixtureProvenNative)}`,
+    );
+    if (view.notApplicable.length > 0) {
+      console.log(
+        `  not_applicable: ${view.notApplicable.length} ${formatLanguageList(view.notApplicable)}`,
+      );
+    }
+    if (view.conventionOnly.length > 0) {
+      console.log(
+        `  convention_only: ${view.conventionOnly.length} ${formatLanguageList(view.conventionOnly)}`,
+      );
+    }
+    if (view.nativeDebt.length > 0) {
+      console.log(
+        `  native_debt: ${view.nativeDebt.length} ${formatLanguageList(view.nativeDebt)}`,
+      );
+    }
+    if (view.qualityDebt.length > 0) {
+      console.log(
+        `  quality_debt: ${view.qualityDebt.length} ${formatLanguageList(view.qualityDebt)}`,
+      );
+    }
+    if (view.unclassifiedGaps.length > 0) {
+      console.log(
+        `  unclassified_gaps: ${view.unclassifiedGaps.length} ${formatLanguageList(view.unclassifiedGaps)}`,
+      );
+    } else {
+      console.log("  unclassified_gaps: 0");
+    }
+    console.log("");
+  }
+}
+
 function printReport({ byDomain, qualityDebts, rowsByLanguage, silentCells }) {
   console.log("# Language Data Quality Scorecard");
   console.log("");
@@ -194,6 +367,7 @@ function printReport({ byDomain, qualityDebts, rowsByLanguage, silentCells }) {
     );
   }
   console.log("");
+  printApplicabilityView(applicabilityView(byDomain));
   console.log("## Silent Cells");
   if (silentCells.length === 0) {
     console.log("none");
@@ -220,6 +394,7 @@ function printReport({ byDomain, qualityDebts, rowsByLanguage, silentCells }) {
 }
 
 const result = analyze();
+validateDomainApplicability(result.byDomain);
 printReport(result);
 
 if (process.argv.includes("--strict") && result.silentCells.length > 0) {
