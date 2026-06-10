@@ -32,6 +32,13 @@ fn metadata_bool(fact: &StructuralFact, key: &str) -> Option<bool> {
         .and_then(|value| value.as_bool())
 }
 
+fn metadata_number(fact: &StructuralFact, key: &str) -> Option<u64> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_u64())
+}
+
 #[test]
 fn html_emits_link_script_and_form_control_structural_facts() {
     let source = r#"<!doctype html>
@@ -75,7 +82,11 @@ fn html_emits_link_script_and_form_control_structural_facts() {
         .expect("expected form fact");
     assert_eq!(metadata_str(form, "action"), Some("/workers"));
     assert_eq!(metadata_str(form, "method"), Some("post"));
+    assert_eq!(metadata_str(form, "method_source"), Some("explicit"));
+    assert_eq!(metadata_str(form, "action_kind"), Some("static_path"));
+    assert_eq!(metadata_str(form, "target_path"), Some("/workers"));
     assert_eq!(metadata_str(form, "name"), Some("workerForm"));
+    assert_eq!(metadata_number(form, "control_count"), Some(2));
 
     let input = facts_with_pattern(&results, "html.form_control.v1")
         .into_iter()
@@ -83,6 +94,10 @@ fn html_emits_link_script_and_form_control_structural_facts() {
         .expect("expected input form-control fact");
     assert_eq!(metadata_str(input, "type"), Some("text"));
     assert_eq!(metadata_bool(input, "required"), Some(true));
+    assert_eq!(metadata_str(input, "form_id"), Some("worker-form"));
+    assert_eq!(metadata_str(input, "form_name"), Some("workerForm"));
+    assert_eq!(metadata_str(input, "form_action"), Some("/workers"));
+    assert_eq!(metadata_str(input, "form_method"), Some("post"));
 
     let button = facts_with_pattern(&results, "html.form_control.v1")
         .into_iter()
@@ -109,4 +124,64 @@ fn html_structural_facts_normalize_case_insensitive_tags_and_attributes() {
     assert_eq!(metadata_str(link, "tag_name"), Some("a"));
     assert_eq!(metadata_str(link, "href"), Some("/upper"));
     assert_eq!(metadata_str(link, "id"), Some("upper-link"));
+}
+
+#[test]
+fn html_form_facts_default_method_and_rich_control_metadata() {
+    let source = r#"<!doctype html>
+<html>
+  <body>
+    <form action="/search" id="search-form" name="searchForm"
+          ENCTYPE="multipart/form-data" TARGET="_blank" AUTocomplete="off" novalidate>
+      <input type="checkbox" name="active" checked disabled>
+      <input type="text" name="token" readonly>
+      <select name="sort" multiple></select>
+    </form>
+    <input type="text" name="orphan" form="search-form" id="orphan-field">
+  </body>
+</html>"#;
+
+    let results = extract(source);
+
+    let form = facts_with_pattern(&results, "html.form.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "id") == Some("search-form"))
+        .expect("expected search form fact");
+    assert_eq!(metadata_str(form, "method"), Some("get"));
+    assert_eq!(metadata_str(form, "method_source"), Some("default"));
+    assert_eq!(metadata_str(form, "action_kind"), Some("static_path"));
+    assert_eq!(metadata_str(form, "target_path"), Some("/search"));
+    assert_eq!(metadata_str(form, "enctype"), Some("multipart/form-data"));
+    assert_eq!(metadata_str(form, "target"), Some("_blank"));
+    assert_eq!(metadata_str(form, "autocomplete"), Some("off"));
+    assert_eq!(metadata_bool(form, "novalidate"), Some(true));
+    assert_eq!(metadata_number(form, "control_count"), Some(3));
+
+    let checkbox = facts_with_pattern(&results, "html.form_control.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "name") == Some("active"))
+        .expect("expected checkbox control");
+    assert_eq!(metadata_bool(checkbox, "checked"), Some(true));
+    assert_eq!(metadata_bool(checkbox, "disabled"), Some(true));
+    assert_eq!(metadata_str(checkbox, "form_method"), Some("get"));
+
+    let readonly_input = facts_with_pattern(&results, "html.form_control.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "name") == Some("token"))
+        .expect("expected readonly input control");
+    assert_eq!(metadata_bool(readonly_input, "readonly"), Some(true));
+
+    let select = facts_with_pattern(&results, "html.form_control.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "name") == Some("sort"))
+        .expect("expected select control");
+    assert_eq!(metadata_bool(select, "multiple"), Some(true));
+
+    let orphan = facts_with_pattern(&results, "html.form_control.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "id") == Some("orphan-field"))
+        .expect("expected orphan control");
+    assert_eq!(metadata_str(orphan, "form_id"), Some("search-form"));
+    assert_eq!(metadata_str(orphan, "form_action"), Some("/search"));
+    assert_eq!(metadata_str(orphan, "form_method"), Some("get"));
 }

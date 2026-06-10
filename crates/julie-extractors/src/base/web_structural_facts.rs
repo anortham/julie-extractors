@@ -209,20 +209,60 @@ fn css_keyframes_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<
     ))
 }
 
+#[derive(Clone, Debug)]
+struct HtmlFormContext {
+    id: Option<String>,
+    name: Option<String>,
+    action: Option<String>,
+    method: String,
+}
+
 fn collect_html_structural_facts(
     tree: &Tree,
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
+    let mut forms_by_id = std::collections::HashMap::new();
+    register_html_forms(tree.root_node(), content, &mut forms_by_id);
+
     let mut facts = Vec::new();
-    collect_html_node(tree.root_node(), file_path, content, &mut facts);
+    let mut form_stack = Vec::new();
+    collect_html_node(
+        tree.root_node(),
+        file_path,
+        content,
+        &forms_by_id,
+        &mut form_stack,
+        &mut facts,
+    );
     facts
+}
+
+fn register_html_forms(
+    node: Node<'_>,
+    content: &str,
+    forms_by_id: &mut std::collections::HashMap<String, HtmlFormContext>,
+) {
+    if node.kind() == "element" && html_tag_name(content, node).as_deref() == Some("form") {
+        let attributes = html_element_attributes(content, node);
+        let context = html_form_context(&attributes);
+        if let Some(id) = context.id.as_ref() {
+            forms_by_id.insert(id.clone(), context);
+        }
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        register_html_forms(child, content, forms_by_id);
+    }
 }
 
 fn collect_html_node(
     node: Node<'_>,
     file_path: &str,
     content: &str,
+    forms_by_id: &std::collections::HashMap<String, HtmlFormContext>,
+    form_stack: &mut Vec<HtmlFormContext>,
     facts: &mut Vec<StructuralFact>,
 ) {
     match node.kind() {
@@ -251,16 +291,43 @@ fn collect_html_node(
                         }
                     }
                     "form" => {
-                        if let Some(fact) =
-                            html_form_fact(file_path, content, node, &tag_name, &attributes)
-                        {
+                        let context = html_form_context(&attributes);
+                        let control_count = count_html_form_controls(node, content);
+                        if let Some(fact) = html_form_fact(
+                            file_path,
+                            content,
+                            node,
+                            &tag_name,
+                            &attributes,
+                            control_count,
+                        ) {
                             facts.push(fact);
                         }
+                        form_stack.push(context);
+                        let mut cursor = node.walk();
+                        for child in node.children(&mut cursor) {
+                            collect_html_node(
+                                child,
+                                file_path,
+                                content,
+                                forms_by_id,
+                                form_stack,
+                                facts,
+                            );
+                        }
+                        form_stack.pop();
+                        return;
                     }
                     "input" | "button" | "select" | "textarea" => {
-                        if let Some(fact) =
-                            html_form_control_fact(file_path, content, node, &tag_name, &attributes)
-                        {
+                        let owner = html_form_control_owner(&attributes, form_stack, forms_by_id);
+                        if let Some(fact) = html_form_control_fact(
+                            file_path,
+                            content,
+                            node,
+                            &tag_name,
+                            &attributes,
+                            owner,
+                        ) {
                             facts.push(fact);
                         }
                     }
@@ -273,7 +340,7 @@ fn collect_html_node(
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_html_node(child, file_path, content, facts);
+        collect_html_node(child, file_path, content, forms_by_id, form_stack, facts);
     }
 }
 
@@ -329,19 +396,128 @@ fn html_script_fact(
     ))
 }
 
+fn html_form_context(attributes: &std::collections::HashMap<String, String>) -> HtmlFormContext {
+    HtmlFormContext {
+        id: attributes.get("id").cloned(),
+        name: attributes.get("name").cloned(),
+        action: attributes.get("action").cloned(),
+        method: html_normalized_form_method(attributes),
+    }
+}
+
+fn html_normalized_form_method(attributes: &std::collections::HashMap<String, String>) -> String {
+    attributes
+        .get("method")
+        .map(|method| method.trim().to_ascii_lowercase())
+        .filter(|method| !method.is_empty())
+        .unwrap_or_else(|| "get".to_string())
+}
+
+fn html_form_method_source(attributes: &std::collections::HashMap<String, String>) -> &'static str {
+    if attributes
+        .get("method")
+        .is_some_and(|method| !method.trim().is_empty())
+    {
+        "explicit"
+    } else {
+        "default"
+    }
+}
+
+fn html_form_action_kind(action: Option<&str>) -> &'static str {
+    match action.filter(|value| !value.is_empty()) {
+        Some(value) if html_is_static_path(value) => "static_path",
+        Some(_) => "other",
+        None => "same_document",
+    }
+}
+
+fn html_is_static_path(value: &str) -> bool {
+    value.starts_with('/') || value.starts_with("./") || value.starts_with("../")
+}
+
+fn count_html_form_controls(node: Node<'_>, content: &str) -> usize {
+    let mut count = 0;
+    count_html_form_controls_node(node, content, &mut count);
+    count
+}
+
+fn count_html_form_controls_node(node: Node<'_>, content: &str, count: &mut usize) {
+    if node.kind() == "element" {
+        if let Some(tag_name) = html_tag_name(content, node) {
+            if matches!(
+                tag_name.as_str(),
+                "input" | "button" | "select" | "textarea"
+            ) {
+                *count += 1;
+            }
+        }
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        count_html_form_controls_node(child, content, count);
+    }
+}
+
+fn html_form_control_owner<'a>(
+    attributes: &std::collections::HashMap<String, String>,
+    form_stack: &'a [HtmlFormContext],
+    forms_by_id: &'a std::collections::HashMap<String, HtmlFormContext>,
+) -> Option<&'a HtmlFormContext> {
+    if let Some(form_id) = attributes.get("form").filter(|value| !value.is_empty()) {
+        if let Some(owner) = forms_by_id.get(form_id) {
+            return Some(owner);
+        }
+    }
+    form_stack.last()
+}
+
 fn html_form_fact(
     file_path: &str,
     _content: &str,
     node: Node<'_>,
     tag_name: &str,
     attributes: &std::collections::HashMap<String, String>,
+    control_count: usize,
 ) -> Option<StructuralFact> {
+    let method = html_normalized_form_method(attributes);
+    let action = attributes.get("action").filter(|value| !value.is_empty());
+
     let mut metadata = base_metadata("document_forms");
     insert_string(&mut metadata, "tag_name", tag_name);
     insert_optional_string(&mut metadata, "action", attributes.get("action"));
-    insert_optional_string(&mut metadata, "method", attributes.get("method"));
+    insert_string(&mut metadata, "method", &method);
+    insert_string(
+        &mut metadata,
+        "method_source",
+        html_form_method_source(attributes),
+    );
+    insert_string(
+        &mut metadata,
+        "action_kind",
+        html_form_action_kind(action.map(String::as_str)),
+    );
+    if let Some(action) = action.filter(|value| html_is_static_path(value)) {
+        insert_string(&mut metadata, "target_path", action);
+    }
     insert_optional_string(&mut metadata, "id", attributes.get("id"));
     insert_optional_string(&mut metadata, "name", attributes.get("name"));
+    insert_optional_string(&mut metadata, "enctype", attributes.get("enctype"));
+    insert_optional_string(&mut metadata, "target", attributes.get("target"));
+    insert_optional_string(
+        &mut metadata,
+        "autocomplete",
+        attributes.get("autocomplete"),
+    );
+    metadata.insert(
+        "novalidate".to_string(),
+        Value::Bool(attributes.contains_key("novalidate")),
+    );
+    metadata.insert(
+        "control_count".to_string(),
+        Value::Number(Number::from(control_count)),
+    );
 
     Some(fact_for_node(
         file_path,
@@ -359,6 +535,7 @@ fn html_form_control_fact(
     node: Node<'_>,
     tag_name: &str,
     attributes: &std::collections::HashMap<String, String>,
+    owner: Option<&HtmlFormContext>,
 ) -> Option<StructuralFact> {
     let mut metadata = base_metadata("document_forms");
     insert_string(&mut metadata, "tag_name", tag_name);
@@ -370,6 +547,17 @@ fn html_form_control_fact(
         "required".to_string(),
         Value::Bool(attributes.contains_key("required")),
     );
+    insert_present_bool_attribute(&mut metadata, "disabled", attributes);
+    insert_present_bool_attribute(&mut metadata, "readonly", attributes);
+    insert_present_bool_attribute(&mut metadata, "checked", attributes);
+    insert_present_bool_attribute(&mut metadata, "multiple", attributes);
+
+    if let Some(owner) = owner {
+        insert_optional_string(&mut metadata, "form_id", owner.id.as_ref());
+        insert_optional_string(&mut metadata, "form_name", owner.name.as_ref());
+        insert_optional_string(&mut metadata, "form_action", owner.action.as_ref());
+        insert_string(&mut metadata, "form_method", &owner.method);
+    }
 
     Some(fact_for_node(
         file_path,
@@ -379,6 +567,16 @@ fn html_form_control_fact(
         node,
         metadata,
     ))
+}
+
+fn insert_present_bool_attribute(
+    metadata: &mut HashMap<String, Value>,
+    key: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) {
+    if attributes.contains_key(key) {
+        metadata.insert(key.to_string(), Value::Bool(true));
+    }
 }
 
 fn html_tag_name(content: &str, node: Node<'_>) -> Option<String> {

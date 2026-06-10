@@ -892,9 +892,13 @@
       "metadata": {
         "directive": "page",
         "framework": "razor",
+        "has_route_constraints": false,
         "pattern_version": 1,
         "query_family": "component_routing",
-        "route": "/worker"
+        "route": "/worker",
+        "route_parameter_count": 0,
+        "route_parameters": [],
+        "route_template": "/worker"
       }
     },
     {

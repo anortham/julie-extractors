@@ -731,10 +731,14 @@ Markdown inline links). See
 
 Phase 21 closed carrier and embedded-region depth for config/markup languages.
 See `docs/findings/2026-06-09-language-coverage-review.md` Phase 21 for
-fixture-backed evidence. The next slice should target additional Razor/HTML
-form/route facts where fixtures prove value, and any remaining shallow domains
-surfaced by the depth audit. Implementation work must still avoid filler rows
-and keep `silent_cells: 0` with honest capability semantics.
+fixture-backed evidence.
+
+Phase 22 deepened HTML form facts and Razor page route facts on existing pattern
+IDs. See `docs/findings/2026-06-09-language-coverage-review.md` Phase 22 for
+evidence. Blazor form-component facts remain deferred until the Razor grammar
+exposes stable component nodes. The next slice should target any remaining
+shallow domains surfaced by the depth audit. Implementation work must still
+avoid filler rows and keep `silent_cells: 0` with honest capability semantics.
 
 ## Out Of Scope
 

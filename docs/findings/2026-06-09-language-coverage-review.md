@@ -1372,6 +1372,45 @@ cargo fmt --check && git diff --check
   skipped by `literals`; expression-level extraction belongs in a future
   Vue-specific relationship/fact pass.
 
+## Phase 22 HTML form and Razor route depth
+
+**Before:** `html.form.v1` stored raw `method` only when present and omitted
+action classification, extended form attributes, and control counts.
+`html.form_control.v1` lacked boolean state attributes and form-owner context.
+`razor.page_directive.v1` stored only `route` and `directive`.
+
+**After:** Form and page-directive facts carry route-oriented and form-context
+metadata proven by dedicated unit tests and updated structural-facts fixtures.
+Strict scorecard remains `silent_cells: 0`, `quality_bar_debts: 0`.
+
+| Language / pattern | Improvement | Fixture evidence |
+| --- | --- | --- |
+| `html.form.v1` | Normalized `method` with `method_source`, `action_kind`/`target_path`, `enctype`/`target`/`autocomplete`/`novalidate`, `control_count` | `structural_facts` |
+| `html.form_control.v1` | Present-only `disabled`/`readonly`/`checked`/`multiple`; `form_id`/`form_name`/`form_action`/`form_method` from containing or `form=` owner | `structural_facts`, `basic` (standalone button unchanged) |
+| `razor.page_directive.v1` | `route_template`, `route_parameter_count`, `has_route_constraints`, `route_parameters[]` with `name`/`constraint`/`optional`/`catch_all` | `structural_facts`, `basic`, `cross_file` |
+
+**Tests added/extended:**
+
+- `tests/html/structural_facts.rs` (default method, uppercase attrs, orphan `form=` owner)
+- `tests/razor/structural_facts.rs` (constrained, optional, catch-all, and multi-parameter route segments)
+
+**Optional Razor form components:** Intentionally left as debt. Blazor
+`EditForm`/`InputText`/etc. are template component usages without stable
+dedicated grammar nodes; scraping tag text would not meet the AST-backed bar.
+
+**Verification commands:**
+
+```bash
+cargo xtask test language html
+cargo xtask test language razor
+cargo test -p julie-extractors --lib html::structural_facts
+cargo test -p julie-extractors --lib razor::structural_facts
+UPDATE_GOLDEN=1 cargo nextest run -p julie-extractors --features test-golden golden
+cargo nextest run -p julie-extractors --features test-golden golden
+node scripts/language-data-quality-report.mjs --strict
+cargo fmt --check && git diff --check
+```
+
 ## Recommended next plan
 
 Build the next pass around a high-bar language-quality program:
