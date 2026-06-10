@@ -4,6 +4,7 @@ extends Node
 signal activated(value)
 
 @export var id: int
+var worker_index: Array[Array[int]]
 
 func _init(value: int) -> void:
     id = value

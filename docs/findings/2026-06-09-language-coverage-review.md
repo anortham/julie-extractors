@@ -941,6 +941,72 @@ Languages with fixture-proven type-argument usage evidence:
 
 Remaining type-argument usage debt: 18 languages without golden rows.
 
+## Phase 14 type-argument usage: GDScript
+
+Task 14 slice promoted GDScript from unit-test-only evidence to golden
+fixture-proven `type_argument_usages` coverage:
+
+- GDScript: `var worker_index: Array[Array[int]]` in
+  `fixtures/extraction/gdscript/basic/source.gd`.
+- Exactly one golden row for the outermost `Array` use site with nested
+  `Array[int]` child at ordinal 0.
+- Canonical-pipeline tests in
+  `crates/julie-extractors/src/tests/gdscript/type_arguments.rs` assert the
+  basic fixture through `extract_canonical(...)` plus a negative guard that
+  plain `@export var id: int` does not emit rows.
+
+No extractor implementation changes were required; existing GDScript
+type-argument collectors already supported `Array[Array[int]]` bracket syntax.
+
+Current scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 0
+- `type_argument_usages`: 19/36
+
+Languages with fixture-proven type-argument usage evidence:
+
+`rust`, `typescript`, `vue`, `java`, `csharp`, `vbnet`, `swift`, `kotlin`,
+`scala`, `dart`, `powershell`, `razor`, `cpp`, `go`, `zig`, `python`, `qml`,
+`tsx`, `gdscript`.
+
+Remaining type-argument usage debt: 17 languages without golden rows.
+
+## Phase 14 type-argument applicability audit (remaining 17 languages)
+
+Repo inspection of extractors, fixtures, and per-language tests before
+classifying the remaining languages. Goal: distinguish implementation debt
+from constructs that genuinely do not exist in the language grammar.
+
+| Language | Classification | Evidence inspected |
+| --- | --- | --- |
+| `c` | `not_applicable` | `c/mod.rs` delegates empty `get_type_argument_usages`; `c/signatures.rs` only mentions macro generics; C++ debt is `template_type` in `cpp/identifiers.rs`, not C. |
+| `javascript` | `not_applicable` | `fixtures/extraction/javascript/basic/source.js` has no typed generics; TypeScript/TSX golden rows already cover typed ECMAScript. |
+| `jsx` | `not_applicable` | `fixtures/extraction/jsx/basic/source.jsx` is untyped JSX/JS; TSX fixture proves generic markup scripts separately. |
+| `html` | `not_applicable` | `fixtures/extraction/html/basic/source.html` has element/attribute markup only; `html/mod.rs` delegates empty `get_type_argument_usages`; `html/attributes.rs` parses attribute strings, not generic type applications; `html/basic/expected.json` has empty `type_argument_usages`. |
+| `css` | `not_applicable` | `fixtures/extraction/css/basic/source.css` has selectors/properties/at-rules only; `css/mod.rs` delegates empty `get_type_argument_usages`; `css/rules.rs` extracts selector/declaration blocks, not generic type syntax; `css/basic/expected.json` has empty `type_argument_usages`. |
+| `php` | `convention_only` | `fixtures/extraction/php/basic/source.php` uses native `int` only; `tests/php/mod.rs` PHPDoc shows `array<string,mixed>` / `Collection<User>` in comments, not PHP declaration syntax. |
+| `ruby` | `convention_only` | `fixtures/extraction/ruby/basic/source.rb` has no native generics; `ruby/symbols.rs` extracts RDoc/YARD doc comments only. |
+| `elixir` | `native_applicability_missing` | `fixtures/extraction/elixir/basic/source.ex` has `@spec run(integer()) :: integer()`; `elixir/attributes.rs` parses `@spec`/`@type` typespec calls with parameterized forms like `keyword()`. |
+| `lua` | `convention_only` | `fixtures/extraction/lua/basic/source.lua` has no typed declarations; `lua/identifiers.rs` defers type usage and documents no LuaLS `---@` annotation extractor. |
+| `r` | `not_applicable` | `tests/r/classes.rs` S4 “generic” is runtime OOP metadata (`s4_generic`), not a static type-argument syntax; `r/basic` golden has empty `type_argument_usages`. |
+| `bash` | `not_applicable` | `fixtures/extraction/bash/basic` has shell commands only; no typed generic construct in bash extractor modules. |
+| `sql` | `not_applicable` | `fixtures/extraction/sql/basic/source.sql` is DDL/DML without parameterized type syntax; `sql/mod.rs` has no type-argument collector beyond base empty delegate. |
+| `regex` | `not_applicable` | Pattern quantifiers/groups are structural facts (`regex/basic` golden), not generic type applications. |
+| `markdown` | `not_applicable` | Data/document family; Phase 10 structural facts only, no type syntax in `markdown/basic`. |
+| `json` | `not_applicable` | Scalar/object/array values only in `json/basic`; no generic type construct. |
+| `toml` | `not_applicable` | Table/key-value schema only in `toml/basic`; no generic type construct. |
+| `yaml` | `not_applicable` | Mapping/sequence schema only in `yaml/basic`; no generic type construct. |
+
+Summary:
+
+- `native_applicability_missing`: 1 (`elixir` typespec parameter forms in `@spec`/`@type`).
+- `convention_only`: 3 (`php` PHPDoc, `ruby` RDoc/YARD, `lua` deferred LuaLS-style annotations).
+- `not_applicable`: 13 (C, untyped JS/JSX, web/data formats, bash, sql, regex, r).
+- `needs_followup`: 0.
+
+Next implementation target with native syntax debt: `elixir` (typespec `@spec`/`@type` parameter trees). Convention-only languages need an explicit product decision before golden padding.
+
 ## Product bar
 
 The desired end state is the best tree-sitter extraction product available for
