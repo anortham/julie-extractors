@@ -1078,6 +1078,69 @@ documentation idioms (3), not extractor debt. Strict mode still reports
 silent-cell gate on `kind_coverage` only; convention-only or not-applicable
 type-argument rows do not affect strict exit.
 
+## Phase 17 raw-gap applicability audit (six domains)
+
+Repo inspection of golden fixtures, `fixtures/extraction/capabilities.json`
+capability gaps, and per-language tests for every language still appearing
+under scorecard v2 `unclassified_gaps` in `relationships`, `identifiers`,
+`body_spans`, `source_regions`, `pending_relationships`, and `types`.
+
+| Domain | Language | Classification | Evidence inspected |
+| --- | --- | --- | --- |
+| `relationships` | `ruby` | `native_debt` | `fixtures/extraction/ruby/basic/expected.json` and `cross_file/expected.json` have empty `relationships` while `pending_relationships` is populated; `ruby/relationships.rs` emits resolved inheritance/module/call edges; `tests/ruby/mod.rs::test_extract_inheritance_and_module_relationships` and `tests/ruby/cross_file_relationships.rs::test_same_file_method_call_creates_relationship` expect resolved same-file edges. |
+| `identifiers` | `json` | `not_applicable` | `capabilities.json` `capability_gaps.identifiers` and `kind_coverage.identifiers.not_applicable`; `fixtures/extraction/json/basic/expected.json` has empty `identifiers`; object keys are symbols/relationships. |
+| `identifiers` | `markdown` | `not_applicable` | `capabilities.json` `capability_gaps.identifiers`; `fixtures/extraction/markdown/basic/expected.json` has empty `identifiers`; headings/links are symbols/relationships. |
+| `identifiers` | `toml` | `not_applicable` | `capabilities.json` `capability_gaps.identifiers`; `fixtures/extraction/toml/basic/expected.json` has empty `identifiers`; tables/keys are symbols/relationships. |
+| `body_spans` | `yaml` | `not_applicable` | `capabilities.json` `kind_coverage.body_spans.not_applicable` for `module` and `variable`; `fixtures/extraction/yaml/basic/expected.json` symbols have `body_span: null`; YAML mappings/sequences have no callable bodies. |
+| `source_regions` | `regex` | `not_applicable` | `capabilities.json` `kind_coverage.source_regions.not_applicable` for `comment`, `doc_comment`, `embedded`, `string_literal`; `fixtures/extraction/regex/basic/expected.json` has empty `source_regions`; Phase 10 findings; tree-sitter-regex has no comment/doc-comment nodes and the source-region contract models host-language regions, not pattern internals. |
+| `pending_relationships` | `css` | `not_applicable` | `capabilities.json` `capability_gaps.pending_relationships`; `tests/css/cross_file_pending::css_pending_relationships_intra_document_only`; `@import` resolves at extraction time. |
+| `pending_relationships` | `markdown` | `not_applicable` | `capabilities.json` `capability_gaps.pending_relationships`; `tests/markdown/cross_file_pending::markdown_pending_relationships_intra_document_only`; links are URL/path strings, not deferred symbol refs. |
+| `pending_relationships` | `razor` | `not_applicable` | `capabilities.json` `capability_gaps.pending_relationships`; `tests/razor/cross_file_pending::razor_pending_relationships_handled_by_csharp_embed`; cross-file refs resolve through embedded C#. |
+| `pending_relationships` | `regex` | `not_applicable` | `capabilities.json` `capability_gaps.pending_relationships`; `tests/regex/cross_file_pending::regex_pending_relationships_within_pattern_only`; backreferences are within-pattern only. |
+| `pending_relationships` | `toml` | `not_applicable` | `capabilities.json` `capability_gaps.pending_relationships`; TOML references are file-local (Cargo deps, pyproject tables). |
+| `pending_relationships` | `yaml` | `not_applicable` | `capabilities.json` `capability_gaps.pending_relationships`; `tests/yaml/cross_file_pending::yaml_pending_relationships_intra_document_only`; anchors/aliases are within-document. |
+| `types` | `css` | `not_applicable` | `capabilities.json` `capability_gaps.types`; no static type system; custom properties are runtime strings. |
+| `types` | `json` | `not_applicable` | `capabilities.json` `capability_gaps.types`; no static type system; JSON Schema type keywords are out of tree-sitter scope. |
+| `types` | `lua` | `convention_only` | Dynamically typed runtime language; `fixtures/extraction/lua/basic/expected.json` has empty `types` and inferred `dataType` lives on symbol metadata; LuaLS `---@type` / `---@param` annotations are documentation conventions, not native TypeInfo syntax; product decision whether to harvest them. |
+| `types` | `markdown` | `not_applicable` | `capabilities.json` `capability_gaps.types`; presentation format with no static type system. |
+| `types` | `qml` | `native_debt` | `fixtures/extraction/qml/basic/source.qml` has native property types (`property string title`, `property int workerId`); `qml/semantics.rs` implements `infer_types`, `infer_property_type_from_signature`, and `infer_function_return_type_from_signature`; `tests/qml/coverage.rs` asserts inferred property/function types; `fixtures/extraction/qml/basic/expected.json` has empty `types`; inference exists but product `TypeInfo` rows are not emitted yet. |
+| `types` | `r` | `convention_only` | Dynamically typed runtime language; S3/S4/R6 class systems and roxygen `@param` tags are type-like documentation/runtime conventions, not stable native TypeInfo syntax; `fixtures/extraction/r/basic/expected.json` has empty `types`. |
+| `types` | `toml` | `not_applicable` | `capabilities.json` `capability_gaps.types`; value kinds are format-level, not TypeInfo. |
+| `types` | `yaml` | `not_applicable` | `capabilities.json` `capability_gaps.types`; tag types (`!!str`, `!!int`) are format-level, not TypeInfo. |
+
+Summary:
+
+- `not_applicable`: 16 language/domain pairs across five domains (all gaps except `relationships`, `types.qml`, and `types.lua`/`types.r`).
+- `convention_only`: 2 in this audit slice (`lua` `types`, `r` `types`).
+- `native_debt`: 2 (`ruby` `relationships`, `qml` `types`).
+- `quality_debt`: 0.
+- `unclassified_gaps`: 0 for the six audited domains after script-local metadata update.
+
+Product-decision follow-ups for `convention_only` (`types`):
+
+- **Lua types:** Decide whether LuaLS-style `---@type` / `---@param` annotations or
+  existing inferred `dataType` symbol metadata should be promoted into `TypeInfo`
+  rows; no native static type syntax exists today.
+- **R types:** Decide whether roxygen `@param` tags or S3/S4/R6 runtime class
+  metadata should be harvested into `TypeInfo` rows; no stable native TypeInfo
+  syntax exists today.
+
+Closure tasks for `native_debt`:
+
+- **Ruby relationships:** Promote resolved same-file inheritance, module inclusion,
+  and call edges from the Ruby relationship collector into golden `relationships`
+  rows (today they appear only under `pending_relationships` in
+  `fixtures/extraction/ruby/basic/expected.json`). Align canonical extraction with
+  `tests/ruby/cross_file_relationships.rs::test_same_file_method_call_creates_relationship`
+  and `tests/ruby/mod.rs::test_extract_inheritance_and_module_relationships`, then
+  regenerate Ruby goldens and verify `relationships` reaches fixture-proven closure.
+- **QML types:** Promote QML inferred property and function return types from
+  `qml/semantics.rs` into product `TypeInfo` rows and golden `types` output for
+  native declarations such as `property string title` and `property int workerId`
+  in `fixtures/extraction/qml/basic/source.qml`. Extend
+  `tests/qml/coverage.rs` and regenerate QML goldens so inferred types are
+  fixture-proven, not only symbol metadata.
+
 ## Product bar
 
 The desired end state is the best tree-sitter extraction product available for

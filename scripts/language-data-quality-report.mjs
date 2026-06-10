@@ -78,6 +78,42 @@ const DOMAIN_APPLICABILITY = {
     native_debt: [],
     quality_debt: [],
   },
+  relationships: {
+    not_applicable: [],
+    convention_only: [],
+    native_debt: ["ruby"],
+    quality_debt: [],
+  },
+  identifiers: {
+    not_applicable: ["json", "markdown", "toml"],
+    convention_only: [],
+    native_debt: [],
+    quality_debt: [],
+  },
+  body_spans: {
+    not_applicable: ["yaml"],
+    convention_only: [],
+    native_debt: [],
+    quality_debt: [],
+  },
+  source_regions: {
+    not_applicable: ["regex"],
+    convention_only: [],
+    native_debt: [],
+    quality_debt: [],
+  },
+  pending_relationships: {
+    not_applicable: ["css", "markdown", "razor", "regex", "toml", "yaml"],
+    convention_only: [],
+    native_debt: [],
+    quality_debt: [],
+  },
+  types: {
+    not_applicable: ["css", "json", "markdown", "toml", "yaml"],
+    convention_only: ["lua", "r"],
+    native_debt: ["qml"],
+    quality_debt: [],
+  },
 };
 
 const APPLICABILITY_BUCKETS = [
