@@ -89,6 +89,37 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
+      "name": "evaluate",
+      "kind": "method",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 30,
+      "start_column": 0,
+      "end_line": 44,
+      "end_column": 16,
+      "start_byte": 527,
+      "end_byte": 848,
+      "body_span": {
+        "start_line": 30,
+        "start_column": 48,
+        "end_line": 44,
+        "end_column": 16,
+        "start_byte": 575,
+        "end_byte": 848
+      },
+      "body_hash": "6620c652cef783d345931ee20a80c280",
+      "signature": "func evaluate(count: int, enabled: bool) -> int:",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:Worker:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:fetch_status:24:0",
       "name": "fetch_status",
       "kind": "method",
@@ -339,6 +370,34 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:total:31:4",
+      "name": "total",
+      "kind": "field",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 31,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 7,
+      "start_byte": 580,
+      "end_byte": 583,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var total = 0",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
+      "metadata": {
+        "dataType": "int",
+        "isExported": false,
+        "isOnReady": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -379,8 +438,36 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
+      "callee_name": "range",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "line_number": 33,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
+        "callee_name": "range",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+        "line_number": 33,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "range",
+        "terminal_name": "range",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0"
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/gdscript/basic/source.gd:Node:type_usage:2:8",
@@ -427,6 +514,22 @@
       "start_byte": 500,
       "end_byte": 506,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:fetch_url:27:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:bool:type_usage:30:35",
+      "name": "bool",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 30,
+      "start_column": 35,
+      "end_line": 30,
+      "end_column": 39,
+      "start_byte": 562,
+      "end_byte": 566,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -543,6 +646,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:int:type_usage:30:21",
+      "name": "int",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 30,
+      "start_column": 21,
+      "end_line": 30,
+      "end_column": 24,
+      "start_byte": 548,
+      "end_byte": 551,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:int:type_usage:30:44",
+      "name": "int",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 30,
+      "start_column": 44,
+      "end_line": 30,
+      "end_column": 47,
+      "start_byte": 571,
+      "end_byte": 574,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/gdscript/basic/source.gd:int:type_usage:6:16",
       "name": "int",
       "kind": "type_usage",
@@ -587,6 +722,22 @@
       "start_byte": 286,
       "end_byte": 297,
       "containing_key": "fixtures/extraction/gdscript/basic/source.gd:record_run:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/basic/source.gd:range:call:33:17",
+      "name": "range",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "start_line": 33,
+      "start_column": 17,
+      "end_line": 33,
+      "end_column": 22,
+      "start_byte": 627,
+      "end_byte": 632,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -698,6 +849,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "gdscript",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:fetch_status:24:0",
       "resolved_type": "void",
       "generic_params": null,
@@ -763,7 +923,206 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 45,
+      "covered_bytes": 849,
+      "decision_count": 6,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 45,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 849,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:_init:8:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 15,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 8,
+      "start_column": 31,
+      "end_line": 9,
+      "end_column": 14,
+      "start_byte": 109,
+      "end_byte": 124,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:evaluate:30:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 15,
+      "covered_bytes": 273,
+      "decision_count": 6,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 30,
+      "start_column": 48,
+      "end_line": 44,
+      "end_column": 16,
+      "start_byte": 575,
+      "end_byte": 848,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:fetch_status:24:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 56,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 24,
+      "start_column": 28,
+      "end_line": 25,
+      "end_column": 55,
+      "start_byte": 421,
+      "end_byte": 477,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:fetch_url:27:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 9,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 27,
+      "start_column": 37,
+      "end_line": 28,
+      "end_column": 8,
+      "start_byte": 516,
+      "end_byte": 525,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:helper:15:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 21,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 15,
+      "start_column": 31,
+      "end_line": 16,
+      "end_column": 20,
+      "start_byte": 218,
+      "end_byte": 239,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:observe_run:21:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 9,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 21,
+      "start_column": 58,
+      "end_line": 22,
+      "end_column": 8,
+      "start_byte": 382,
+      "end_byte": 391,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:record_run:18:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 41,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 18,
+      "start_column": 40,
+      "end_line": 19,
+      "end_column": 40,
+      "start_byte": 281,
+      "end_byte": 322,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/basic/source.gd:run:11:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/basic/source.gd",
+      "covered_lines": 3,
+      "covered_bytes": 41,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 18,
+      "end_line": 13,
+      "end_column": 21,
+      "start_byte": 144,
+      "end_byte": 185,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "https://api.example.com/workers/status",

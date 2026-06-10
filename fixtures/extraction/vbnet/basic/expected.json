@@ -1,6 +1,39 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:34:8",
+      "name": "Evaluate",
+      "kind": "method",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "start_line": 34,
+      "start_column": 8,
+      "end_line": 45,
+      "end_column": 0,
+      "start_byte": 833,
+      "end_byte": 1195,
+      "body_span": {
+        "start_line": 34,
+        "start_column": 32,
+        "end_line": 34,
+        "end_column": 70,
+        "start_byte": 857,
+        "end_byte": 895
+      },
+      "body_hash": "b225760d9eeaefbaf5039bc50263811d",
+      "signature": "public Function Evaluate(count As Integer, enabled As Boolean) As Integer",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vbnet/basic/source.vb:Worker:6:4",
+      "metadata": {
+        "vb_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/vbnet/basic/source.vb:FetchStatus:27:8",
       "name": "FetchStatus",
       "kind": "method",
@@ -74,19 +107,19 @@
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 35,
+      "end_line": 47,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 852,
+      "end_byte": 1223,
       "body_span": {
         "start_line": 3,
         "start_column": 20,
-        "end_line": 31,
-        "end_column": 50,
+        "end_line": 34,
+        "end_column": 70,
         "start_byte": 64,
-        "end_byte": 807
+        "end_byte": 895
       },
-      "body_hash": "0520c15d8c46575e8eb7bb5c7527fa62",
+      "body_hash": "062a2947b3c4be7664e8816cf3198a06",
       "signature": "Namespace Fixture",
       "doc_comment": null,
       "visibility": "Public",
@@ -336,19 +369,19 @@
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "start_line": 6,
       "start_column": 4,
-      "end_line": 34,
+      "end_line": 46,
       "end_column": 0,
       "start_byte": 101,
-      "end_byte": 838,
+      "end_byte": 1209,
       "body_span": {
         "start_line": 11,
         "start_column": 27,
-        "end_line": 31,
-        "end_column": 50,
+        "end_line": 34,
+        "end_column": 70,
         "start_byte": 212,
-        "end_byte": 807
+        "end_byte": 895
       },
-      "body_hash": "eab56ab3d551894c181c89be40aa993b",
+      "body_hash": "6f61e97f0b34b1f889fe5031c3f88a7d",
       "signature": "public Class Worker Implements IJob",
       "doc_comment": null,
       "visibility": "Public",
@@ -479,6 +512,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:34:8",
+      "resolved_type": "Integer",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vbnet",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:Helper:16:8",
       "resolved_type": "Integer",
       "generic_params": null,
@@ -517,7 +559,206 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 47,
+      "covered_bytes": 1223,
+      "decision_count": 2,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 47,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 1223,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:Evaluate:34:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 12,
+      "covered_bytes": 362,
+      "decision_count": 2,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 34,
+      "start_column": 8,
+      "end_line": 45,
+      "end_column": 0,
+      "start_byte": 833,
+      "end_byte": 1195,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:FetchStatus:27:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 2,
+      "covered_bytes": 65,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 27,
+      "start_column": 37,
+      "end_line": 28,
+      "end_column": 62,
+      "start_byte": 674,
+      "end_byte": 739,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:FetchUrl:31:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 3,
+      "covered_bytes": 59,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 31,
+      "start_column": 8,
+      "end_line": 33,
+      "end_column": 0,
+      "start_byte": 765,
+      "end_byte": 824,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:Helper:16:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 4,
+      "covered_bytes": 103,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 16,
+      "start_column": 8,
+      "end_line": 19,
+      "end_column": 0,
+      "start_byte": 332,
+      "end_byte": 435,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:ObserveRun:24:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 3,
+      "covered_bytes": 82,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 24,
+      "start_column": 8,
+      "end_line": 26,
+      "end_column": 0,
+      "start_byte": 554,
+      "end_byte": 636,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:RecordRun:20:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 2,
+      "covered_bytes": 56,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 20,
+      "start_column": 36,
+      "end_line": 21,
+      "end_column": 40,
+      "start_byte": 472,
+      "end_byte": 528,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:Run:11:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 3,
+      "covered_bytes": 89,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 27,
+      "end_line": 13,
+      "end_column": 29,
+      "start_byte": 212,
+      "end_byte": 301,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/basic/source.vb:Run:3:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/basic/source.vb",
+      "covered_lines": 2,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 8,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 52,
+      "end_byte": 78,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "https://api.example.com/workers/status",

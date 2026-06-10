@@ -227,16 +227,22 @@ fn call_target_matches(node: Node<'_>, source: &str, targets: &[&str]) -> bool {
     if targets.is_empty() || node.kind() != "call" {
         return false;
     }
-    let Some(target) = node.child_by_field_name("target") else {
-        return false;
-    };
-    if target.kind() != "identifier" {
-        return false;
+    for field in ["target", "function"] {
+        let Some(name_node) = node.child_by_field_name(field) else {
+            continue;
+        };
+        if name_node.kind() != "identifier" {
+            continue;
+        }
+        if name_node
+            .utf8_text(source.as_bytes())
+            .ok()
+            .is_some_and(|name| targets.contains(&name))
+        {
+            return true;
+        }
     }
-    target
-        .utf8_text(source.as_bytes())
-        .ok()
-        .is_some_and(|name| targets.contains(&name))
+    false
 }
 
 fn parameter_count_for_symbol(
@@ -351,7 +357,9 @@ fn complexity_span_for_symbol(
     let body_span = sibling_body_span(root, symbol, config).or(symbol.body_span);
     match body_span {
         Some(body) => {
-            if language == "scala" && !body_covers_meaningful_share(declaration_span, body) {
+            if (language == "scala" || language == "vbnet")
+                && !body_covers_meaningful_share(declaration_span, body)
+            {
                 declaration_span
             } else {
                 body
@@ -500,6 +508,12 @@ fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
         "scala" => Some(SCALA_CONFIG),
         "elixir" => Some(ELIXIR_CONFIG),
         "lua" => Some(LUA_CONFIG),
+        "vbnet" => Some(VBNET_CONFIG),
+        "r" => Some(R_CONFIG),
+        "bash" => Some(BASH_CONFIG),
+        "powershell" => Some(POWERSHELL_CONFIG),
+        "gdscript" => Some(GDSCRIPT_CONFIG),
+        "qml" => Some(QML_CONFIG),
         _ => None,
     }
 }
@@ -825,5 +839,135 @@ const LUA_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     loop_node_kinds: &["for_statement", "while_statement", "repeat_statement"],
     parameter_container_node_kinds: &["parameters"],
     parameter_node_kinds: &["identifier"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-vb-dotnet (rev 25dca4a)
+// node-types.json and a to_sexp() parse dump. `select_case_statement` plus
+// each `case_clause` follow the switch-container-plus-arm convention;
+// `elseif_clause` counts separately from `if_statement`.
+const VBNET_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "elseif_clause",
+        "select_case_statement",
+        "case_clause",
+        "catch_block",
+        "conditional_expression",
+    ],
+    loop_node_kinds: &[
+        "for_statement",
+        "for_each_statement",
+        "while_statement",
+        "do_statement",
+    ],
+    parameter_container_node_kinds: &["parameter_list"],
+    parameter_node_kinds: &["parameter"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-r 1.2.0 node-types.json and a
+// to_sexp() parse dump. `else if` chains parse as nested `if_statement`
+// nodes in the `alternative` field rather than a separate arm kind.
+// `switch(...)` parses as a `call` node whose `function` field is the
+// identifier `switch`.
+const R_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &["if_statement"],
+    loop_node_kinds: &["for_statement", "while_statement", "repeat_statement"],
+    parameter_container_node_kinds: &["parameters"],
+    parameter_node_kinds: &["parameter"],
+    call_decision_targets: &["switch"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-bash 0.25.1 node-types.json and a
+// to_sexp() parse dump. `elif_clause` counts separately from `if_statement`;
+// the grammar has no formal parameter container on `function_definition`.
+const BASH_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &["if_statement", "elif_clause", "case_statement", "case_item"],
+    loop_node_kinds: &["for_statement", "c_style_for_statement", "while_statement"],
+    parameter_container_node_kinds: &[],
+    parameter_node_kinds: &[],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-powershell (rev d398441)
+// node-types.json and a to_sexp() parse dump. `switch_statement` plus each
+// `switch_clause` follow the switch-container-plus-arm convention;
+// `elseif_clause` counts separately from `if_statement`.
+const POWERSHELL_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "elseif_clause",
+        "switch_statement",
+        "switch_clause",
+        "catch_clause",
+    ],
+    loop_node_kinds: &[
+        "for_statement",
+        "foreach_statement",
+        "while_statement",
+        "do_statement",
+    ],
+    parameter_container_node_kinds: &[
+        "function_parameter_declaration",
+        "parameter_list",
+        "class_method_parameter_list",
+    ],
+    parameter_node_kinds: &["script_parameter", "class_method_parameter"],
+    parameter_group_node_kinds: &["parameter_list"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-gdscript 6.1.0 node-types.json and
+// a to_sexp() parse dump. `elif_clause` counts separately from `if_statement`.
+// `match_statement` plus each `pattern_section` follow the switch-container-
+// plus-arm convention.
+const GDSCRIPT_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "elif_clause",
+        "conditional_expression",
+        "match_statement",
+        "pattern_section",
+    ],
+    loop_node_kinds: &["for_statement", "while_statement"],
+    parameter_container_node_kinds: &["parameters"],
+    parameter_node_kinds: &[
+        "identifier",
+        "typed_parameter",
+        "typed_default_parameter",
+        "default_parameter",
+        "variadic_parameter",
+    ],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-qmljs (rev 606a66b) node-types.json
+// and a to_sexp() parse dump. QML control flow follows the qmljs/TypeScript
+// grammar; `else if` chains parse as nested `if_statement` nodes.
+const QML_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "switch_statement",
+        "switch_case",
+        "switch_default",
+        "catch_clause",
+        "conditional_expression",
+    ],
+    loop_node_kinds: &[
+        "for_statement",
+        "for_in_statement",
+        "while_statement",
+        "do_statement",
+    ],
+    parameter_container_node_kinds: &["formal_parameters"],
+    parameter_node_kinds: &[
+        "identifier",
+        "required_parameter",
+        "optional_parameter",
+        "assignment_pattern",
+        "rest_pattern",
+    ],
     ..DEFAULT_CONFIG
 };

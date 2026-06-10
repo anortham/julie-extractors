@@ -71,6 +71,7 @@ pub fn extract_identifiers(code: &str) -> Vec<Identifier> {
 pub mod animations; // States, transitions, animations
 pub mod basics; // Core QML: imports, objects, basic properties
 pub mod bindings; // Property bindings and expressions
+pub mod complexity;
 pub mod components; // Custom components, loaders, repeaters
 pub mod coverage; // Consolidated coverage for docs/types/visibility/bindings/signal handlers
 pub mod cross_file_pending; // Phase 4b.qml structured pending lock

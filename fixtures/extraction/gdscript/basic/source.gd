@@ -26,3 +26,19 @@ func fetch_status() -> void:
 
 func fetch_url(_url: String) -> void:
     pass
+
+func evaluate(count: int, enabled: bool) -> int:
+    var total = 0
+    if enabled:
+        for i in range(1, count + 1):
+            total += i
+    elif count > 0:
+        total = 1
+    match count % 3:
+        0:
+            total += 0
+        1:
+            total += 1
+        _:
+            total += 2
+    return total

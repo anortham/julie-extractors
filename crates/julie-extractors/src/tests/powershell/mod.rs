@@ -1809,6 +1809,7 @@ function Simple-Function {
         }
     }
 }
+mod complexity;
 mod cross_file_pending;
 mod cross_file_relationships;
 mod literals; // Miller bridge Phase 3b: string-literal command-argument capture

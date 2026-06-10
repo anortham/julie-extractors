@@ -2134,22 +2134,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -3369,22 +3359,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -3522,22 +3502,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -3662,22 +3632,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -3806,22 +3766,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -3949,22 +3899,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [

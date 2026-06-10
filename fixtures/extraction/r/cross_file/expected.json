@@ -206,7 +206,74 @@
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/cross_file/source.R",
+      "covered_lines": 17,
+      "covered_bytes": 428,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 428,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/r/cross_file/source.R:entry:13:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/cross_file/source.R",
+      "covered_lines": 4,
+      "covered_bytes": 40,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 20,
+      "end_line": 16,
+      "end_column": 1,
+      "start_byte": 387,
+      "end_byte": 427,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/r/cross_file/source.R:local_helper:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/cross_file/source.R",
+      "covered_lines": 3,
+      "covered_bytes": 8,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 27,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 357,
+      "end_byte": 365,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {

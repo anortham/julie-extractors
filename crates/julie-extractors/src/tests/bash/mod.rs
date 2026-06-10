@@ -1582,6 +1582,7 @@ collect_files() {
     }
 }
 
+mod complexity;
 mod control_flow_verification;
 mod cross_file_pending;
 mod cross_file_relationships;

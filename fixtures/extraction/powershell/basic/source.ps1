@@ -8,6 +8,19 @@ function Invoke-Run {
     return Invoke-Helper $Value
 }
 
+function Evaluate {
+    param([int]$Count, [bool]$Enabled)
+    $total = 0
+    if ($Enabled) {
+        for ($i = 1; $i -le $Count; $i++) {
+            $total += $i
+        }
+    } elseif ($Count -gt 0) {
+        $total = 1
+    }
+    return $total
+}
+
 class Worker {
     [int]$Id
 

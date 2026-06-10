@@ -28,6 +28,18 @@ Item {
     function fetchUrl(url) {
     }
 
+    function evaluate(count, enabled) {
+        var total = 0
+        if (enabled) {
+            for (var i = 1; i <= count; i++) {
+                total += i
+            }
+        } else if (count > 0) {
+            total = 1
+        }
+        return total
+    }
+
     Text {
         text: root.format(root.title)
     }

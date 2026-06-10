@@ -241,7 +241,74 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "covered_lines": 17,
+      "covered_bytes": 393,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 393,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/bash/cross_file/source.sh:entry:13:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "covered_lines": 4,
+      "covered_bytes": 38,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 13,
+      "start_column": 8,
+      "end_line": 16,
+      "end_column": 1,
+      "start_byte": 354,
+      "end_byte": 392,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/bash/cross_file/source.sh:local_helper:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "covered_lines": 3,
+      "covered_bytes": 15,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 9,
+      "start_column": 15,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 329,
+      "end_byte": 344,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "{}",

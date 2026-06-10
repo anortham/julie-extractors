@@ -30,5 +30,17 @@ Namespace Fixture
 
         Private Shared Sub FetchUrl(url As String)
         End Sub
+
+        Public Function Evaluate(count As Integer, enabled As Boolean) As Integer
+            Dim total As Integer = 0
+            If enabled Then
+                For i As Integer = 1 To count
+                    total += i
+                Next
+            ElseIf count > 0 Then
+                total = 1
+            End If
+            Return total
+        End Function
     End Class
 End Namespace

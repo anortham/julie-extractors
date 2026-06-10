@@ -15,7 +15,7 @@ The branch completed the original extraction-data-quality plan:
   `symbols`, `relationships`, `identifiers`, `body_spans`,
   `structural_facts`, `complexity_metrics`, `annotations`, `doc_comments`,
   `literals`, and `source_regions`.
-- Complexity metrics expanded from 7 languages to 18.
+- Complexity metrics expanded from 7 languages to 24.
 - Annotation evidence expanded to 11 languages.
 - Doc-comment evidence expanded to 25 languages.
 - Source-region evidence expanded to 35 languages.
@@ -42,7 +42,7 @@ Current golden fixture rows by domain:
 | source_regions | 35/36 | Regex is the only current miss. |
 | doc_comments | 25/36 | Stronger, but normalization is still inconsistent. |
 | structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
-| complexity_metrics | 18/36 | First-batch Phase 2 Task 6 added zig, php, ruby, scala, elixir, lua. |
+| complexity_metrics | 24/36 | Second-batch Phase 2 Task 6 added vbnet, r, bash, powershell, gdscript, qml. |
 | annotations | 11/36 | Attribute/decorator support remains patchy outside the first pass. |
 | literals | 36/36 | Full baseline exists. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
@@ -60,7 +60,7 @@ After adding the repeatable scorecard and fail-closed capability-matrix policy:
 - `source_regions`: 35/36
 - `doc_comments`: 23/36
 - `structural_facts`: 12/36
-- `complexity_metrics`: 18/36
+- `complexity_metrics`: 24/36
 - `annotations`: 9/36
 - `literals`: 9/36
 - `type_argument_usages`: 1/36
@@ -365,6 +365,46 @@ Scorecard after this slice:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 2 Task 6 second-batch complexity metrics
+
+The tenth extractor-depth slice closed `complexity_metrics` gaps for six
+languages:
+
+- `complexity_metrics`: VB.NET, R, Bash, PowerShell, GDScript, and QML now
+  emit `file` and `symbol` scoped rows in each language `basic` golden fixture.
+- Shared engine extensions in `base/complexity_metrics.rs`:
+  - VB.NET joined Scala in the declaration-span fallback when `body_span`
+    covers less than half of the declaration span (VB.NET currently mis-tags
+    return-type fragments as body spans).
+  - PowerShell nested `parameter_list` groups under
+    `function_parameter_declaration` via `parameter_group_node_kinds`.
+- Bash has no AST formal-parameter container; symbol metrics report
+  `parameter_count: null` while still counting control flow from function
+  bodies.
+- R `else if` chains parse as nested `if_statement` nodes in the
+  `alternative` field rather than a separate arm kind; R `switch(...)` parses
+  as a generic `call` and is counted by callee name.
+- GDScript `match_statement` plus `pattern_section` arms follow the
+  switch-container-plus-arm convention.
+- Per-language complexity unit tests with hand-tallied expectations in
+  `crates/julie-extractors/src/tests/{vbnet,r,bash,powershell,gdscript,qml}/complexity.rs`.
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 55
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 24/36
+- `annotations`: 11/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -372,7 +412,7 @@ Scorecard after this slice:
 No language/domain cells are silent anymore. The remaining debt is explicit
 `open_gaps` in the capability matrix. Largest buckets:
 
-- `complexity_metrics`: 18 languages remain open.
+- `complexity_metrics`: 12 languages remain open.
 - `structural_facts`: 24 languages remain open.
 - `annotations`: 25 languages remain open.
 - `literals`: 0 languages remain open.

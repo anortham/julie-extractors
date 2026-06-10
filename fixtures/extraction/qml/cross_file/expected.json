@@ -298,7 +298,74 @@
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/cross_file/source.qml",
+      "covered_lines": 22,
+      "covered_bytes": 497,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 22,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 497,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/qml/cross_file/source.qml:entry:17:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/cross_file/source.qml",
+      "covered_lines": 4,
+      "covered_bytes": 63,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 17,
+      "start_column": 21,
+      "end_line": 20,
+      "end_column": 5,
+      "start_byte": 431,
+      "end_byte": 494,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/qml/cross_file/source.qml:local_helper:13:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/cross_file/source.qml",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 28,
+      "end_line": 15,
+      "end_column": 5,
+      "start_byte": 383,
+      "end_byte": 408,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {
