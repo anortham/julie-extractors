@@ -45,3 +45,13 @@ int evaluate(int count, bool enabled) {
     }
     return total;
 }
+
+template<typename K, typename V>
+struct Map {};
+
+template<typename T>
+struct Vec {};
+
+struct Item {};
+
+Map<int, Vec<Item>> worker_index;

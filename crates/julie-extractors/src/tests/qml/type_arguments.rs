@@ -11,8 +11,12 @@
 
 use crate::base::TypeArgumentUsage;
 use crate::qml::QmlExtractor;
+use std::path::Path;
 use std::path::PathBuf;
 use tree_sitter::Parser;
+
+const FIXTURE_SOURCE: &str =
+    include_str!("../../../../../fixtures/extraction/qml/basic/source.qml");
 
 fn capture(code: &str) -> Vec<TypeArgumentUsage> {
     let mut parser = Parser::new();
@@ -176,5 +180,49 @@ fn heritage_extends_clause_grammar_na() {
     assert!(
         usages.is_empty(),
         "QML heritage generic extends does not produce type_arguments (grammar N/A), got {usages:?}"
+    );
+}
+
+fn extract_fixture(source: &str) -> crate::ExtractionResults {
+    crate::pipeline::extract_canonical(
+        "fixtures/extraction/qml/basic/source.qml",
+        source,
+        Path::new("/repo"),
+    )
+    .expect("canonical QML extraction should succeed")
+}
+
+#[test]
+fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
+    let results = extract_fixture(FIXTURE_SOURCE);
+    assert_eq!(
+        results.type_argument_usages.len(),
+        1,
+        "fixture should emit one Map<string, Array<User>> usage, got {:?}",
+        results.type_argument_usages
+    );
+    let usage = &results.type_argument_usages[0];
+    assert_eq!(top_level(usage), vec![(0, "string"), (1, "Array")]);
+    assert!(usage.arguments[0].children.is_empty());
+    assert_eq!(
+        usage.arguments[1]
+            .children
+            .iter()
+            .map(|c| (c.ordinal, c.type_name.as_str()))
+            .collect::<Vec<_>>(),
+        vec![(0, "User")],
+        "Array<User> nested argument preserved under ordinal 1"
+    );
+}
+
+#[test]
+fn basic_fixture_non_generic_function_emits_no_type_arguments() {
+    let results = extract_fixture(FIXTURE_SOURCE);
+    assert!(
+        !results
+            .type_argument_usages
+            .iter()
+            .any(|usage| usage.identifier_id.contains(":format:")),
+        "plain format() must not emit type_argument_usages"
     );
 }

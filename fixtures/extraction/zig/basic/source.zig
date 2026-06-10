@@ -64,3 +64,5 @@ pub fn evaluate(count: i32, enabled: bool) i32 {
     }
     return total;
 }
+
+var workerIndex: Map(Key, ArrayList(User)) = undefined;

@@ -11,6 +11,10 @@
 
 use crate::base::TypeArgumentUsage;
 use crate::tests::cpp::parse_cpp;
+use std::path::Path;
+
+const FIXTURE_SOURCE: &str =
+    include_str!("../../../../../fixtures/extraction/cpp/basic/source.cpp");
 
 fn capture(code: &str) -> Vec<TypeArgumentUsage> {
     let (mut ext, tree) = parse_cpp(code);
@@ -167,5 +171,49 @@ Item x;
     assert!(
         usages.is_empty(),
         "non-generic type must record no type arguments, got {usages:?}"
+    );
+}
+
+fn extract_fixture(source: &str) -> crate::ExtractionResults {
+    crate::pipeline::extract_canonical(
+        "fixtures/extraction/cpp/basic/source.cpp",
+        source,
+        Path::new("/repo"),
+    )
+    .expect("canonical C++ extraction should succeed")
+}
+
+#[test]
+fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
+    let results = extract_fixture(FIXTURE_SOURCE);
+    assert_eq!(
+        results.type_argument_usages.len(),
+        1,
+        "fixture should emit one Map<int, Vec<Item>> usage, got {:?}",
+        results.type_argument_usages
+    );
+    let usage = &results.type_argument_usages[0];
+    assert_eq!(top_level(usage), vec![(0, "int"), (1, "Vec")]);
+    assert!(usage.arguments[0].children.is_empty());
+    assert_eq!(
+        usage.arguments[1]
+            .children
+            .iter()
+            .map(|c| (c.ordinal, c.type_name.as_str()))
+            .collect::<Vec<_>>(),
+        vec![(0, "Item")],
+        "Vec<Item> nested argument preserved under ordinal 1"
+    );
+}
+
+#[test]
+fn basic_fixture_non_generic_scalar_emits_no_type_arguments() {
+    let results = extract_fixture(FIXTURE_SOURCE);
+    assert!(
+        !results
+            .type_argument_usages
+            .iter()
+            .any(|usage| usage.identifier_id.contains(":Worker:")),
+        "plain Worker class must not emit type_argument_usages"
     );
 }

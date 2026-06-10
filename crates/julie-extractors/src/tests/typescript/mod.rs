@@ -18,6 +18,7 @@ pub mod symbols;
 pub mod test_call_extraction;
 pub mod tsx_complexity;
 pub mod tsx_cross_file_pending;
+pub mod tsx_type_arguments;
 pub mod type_arguments;
 pub mod types; // NEW: Phase 4 - Type extraction verification tests
 

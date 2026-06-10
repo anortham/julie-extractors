@@ -7,6 +7,8 @@ export class WorkerModel {
     constructor(public label: string) {}
 }
 
+const workerIndex: Map<string, Array<number>> = new Map();
+
 function fetchWorkers() {
     return fetch("/api/workers");
 }

@@ -13,6 +13,10 @@ Item {
         return value.trim()
     }
 
+    function buildIndex(m: Map<string, Array<User>>): void {
+        void m
+    }
+
     function run() {
         recordRun(workerId)
     }

@@ -1,3 +1,8 @@
+from typing import Dict, List
+
+worker_index: Dict[str, List[int]] = {}
+
+
 class Worker:
     def __init__(self, id: int) -> None:
         self.id = id

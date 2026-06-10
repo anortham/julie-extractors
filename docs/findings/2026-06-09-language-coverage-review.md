@@ -901,6 +901,46 @@ Languages with fixture-proven type-argument usage evidence:
 
 Remaining type-argument usage debt: 24 languages without golden rows.
 
+## Phase 13 type-argument usage: C++, Go, Zig, Python, QML, TSX
+
+Task 13 slice promoted six additional generic-capable languages from shallow
+fixture evidence to product-grade `type_argument_usages` coverage using nested
+generic use sites in basic fixtures, golden rows, and `extract_canonical`
+fixture tests.
+
+- C++: `Map<int, Vec<Item>>` global on `worker_index`.
+- Go: `Map[string, List[int]]` package variable on `workerIndex`.
+- Zig: `Map(Key, ArrayList(User))` type-position variable on `workerIndex`.
+- Python: `Dict[str, List[int]]` module variable on `worker_index` (typing
+  names; builtin `dict`/`list` are intentionally skipped by the extractor).
+- QML: `Map<string, Array<User>>` typed parameter on `buildIndex()`.
+- TSX: `Map<string, Array<number>>` variable on `workerIndex` in the basic
+  fixture; proven through `extract_canonical(...)` with the TSX grammar, not
+  the plain `.ts` parser helper.
+
+Each language now emits exactly one golden `type_argument_usages` row with
+ordered top-level arguments and nested children where applicable. Focused
+tests assert the basic fixture through `extract_canonical(...)` plus a
+negative guard that plain non-generic symbols in the same fixture do not emit
+rows.
+
+No extractor implementation changes were required; existing per-language
+type-argument collectors already supported the chosen patterns.
+
+Current scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 0
+- `type_argument_usages`: 18/36
+
+Languages with fixture-proven type-argument usage evidence:
+
+`rust`, `typescript`, `vue`, `java`, `csharp`, `vbnet`, `swift`, `kotlin`,
+`scala`, `dart`, `powershell`, `razor`, `cpp`, `go`, `zig`, `python`, `qml`,
+`tsx`.
+
+Remaining type-argument usage debt: 18 languages without golden rows.
+
 ## Product bar
 
 The desired end state is the best tree-sitter extraction product available for

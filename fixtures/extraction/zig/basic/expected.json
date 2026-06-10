@@ -583,6 +583,37 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/zig/basic/source.zig:workerIndex:68:0",
+      "name": "workerIndex",
+      "kind": "variable",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 68,
+      "start_column": 0,
+      "end_line": 68,
+      "end_column": 55,
+      "start_byte": 1322,
+      "end_byte": 1377,
+      "body_span": {
+        "start_line": 68,
+        "start_column": 20,
+        "end_line": 68,
+        "end_column": 42,
+        "start_byte": 1342,
+        "end_byte": 1364
+      },
+      "body_hash": "b57f0b4c867dc189d038b99b15605013",
+      "signature": "var workerIndex: inferred",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/zig/basic/source.zig:worker_tls:3:0",
       "name": "worker_tls",
       "kind": "variable",
@@ -672,6 +703,38 @@
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [
+    {
+      "key": "fixtures/extraction/zig/basic/source.zig:ArrayList:call:68:26",
+      "name": "ArrayList",
+      "kind": "call",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 68,
+      "start_column": 26,
+      "end_line": 68,
+      "end_column": 35,
+      "start_byte": 1348,
+      "end_byte": 1357,
+      "containing_key": "fixtures/extraction/zig/basic/source.zig:workerIndex:68:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/zig/basic/source.zig:Map:call:68:17",
+      "name": "Map",
+      "kind": "call",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "start_line": 68,
+      "start_column": 17,
+      "end_line": 68,
+      "end_column": 20,
+      "start_byte": 1339,
+      "end_byte": 1342,
+      "containing_key": "fixtures/extraction/zig/basic/source.zig:workerIndex:68:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
     {
       "key": "fixtures/extraction/zig/basic/source.zig:T:type_usage:37:37",
       "name": "T",
@@ -963,6 +1026,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/zig/basic/source.zig:workerIndex:68:0",
+      "resolved_type": "inferred",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "zig",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/zig/basic/source.zig:worker_tls:3:0",
       "resolved_type": "inferred",
       "generic_params": null,
@@ -1122,18 +1194,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "zig",
       "file_path": "fixtures/extraction/zig/basic/source.zig",
-      "covered_lines": 67,
-      "covered_bytes": 1321,
+      "covered_lines": 69,
+      "covered_bytes": 1378,
       "decision_count": 3,
       "loop_count": 1,
       "max_nesting_depth": 3,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 67,
+      "end_line": 69,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 1321,
+      "end_byte": 1378,
       "metadata": {
         "metric_version": 1
       }
@@ -1530,5 +1602,29 @@
       "metadata": null
     }
   ],
-  "type_argument_usages": []
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/zig/basic/source.zig:Map:call:68:17",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/basic/source.zig",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Key",
+          "children": []
+        },
+        {
+          "ordinal": 1,
+          "type_name": "ArrayList",
+          "children": [
+            {
+              "ordinal": 0,
+              "type_name": "User",
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

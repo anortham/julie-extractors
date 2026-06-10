@@ -2,9 +2,15 @@ package fixture
 
 import "net/http"
 
+type List[T any] struct{}
+
+type Map[K, V any] struct{}
+
 type Worker struct {
 	ID int `json:"id" db:"worker_id"`
 }
+
+var workerIndex Map[string, List[int]]
 
 func NewWorker(id int) Worker {
 	return Worker{ID: id}
