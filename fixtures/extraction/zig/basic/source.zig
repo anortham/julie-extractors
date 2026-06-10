@@ -1,3 +1,5 @@
+threadlocal var worker_tls: i32 = 0;
+
 pub const Worker = struct {
     id: i32,
 
@@ -18,6 +20,14 @@ fn observe_run(event: []const u8, id: i32) void {}
 /// Increment a worker id.
 pub fn helper(value: i32) i32 {
     return value + 1;
+}
+
+inline fn fast_path(value: i32) i32 {
+    return value + 1;
+}
+
+export fn ffi_entry(value: i32) i32 {
+    return helper(value);
 }
 
 /// Checks the worker service health endpoint.

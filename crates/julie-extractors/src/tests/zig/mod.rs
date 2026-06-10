@@ -1,4 +1,5 @@
 // Submodule declarations
+mod annotations;
 mod complexity;
 pub mod extractor;
 #[cfg(test)]

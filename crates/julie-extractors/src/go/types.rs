@@ -125,6 +125,7 @@ impl super::GoExtractor {
             match type_kind {
                 "struct" => {
                     let signature = format!("type {}{} struct", name, type_params);
+                    let annotations = self.annotations_from_struct_field_tags(type_node);
                     Some(self.base.create_symbol(
                         &node,
                         name,
@@ -135,7 +136,7 @@ impl super::GoExtractor {
                             parent_id: parent_id.map(|s| s.to_string()),
                             metadata: None,
                             doc_comment: doc_comment.clone(),
-                            annotations: Vec::new(),
+                            annotations,
                         },
                     ))
                 }
@@ -276,12 +277,12 @@ impl super::GoExtractor {
         // field_declaration
         //   field_identifier (name) - can have MULTIPLE on same line (X, Y float64)
         //   primitive_type | slice_type | etc. (type)
-        //   [optional] field_tag (like `json:"id"`)
+        //   [optional] tag / field_tag (like `json:"id"`)
 
         let mut cursor = node.walk();
         let mut field_names = Vec::new();
         let mut field_type = None;
-        let mut field_tag = None;
+        let mut field_tag = node.child_by_field_name("tag");
 
         // Collect all field_identifier nodes (can have multiple on same line: X, Y float64)
         for child in node.children(&mut cursor) {
@@ -296,7 +297,9 @@ impl super::GoExtractor {
                         field_type = Some(child);
                     }
                 }
-                "field_tag" => {
+                "tag" | "field_tag" | "raw_string_literal" | "interpreted_string_literal"
+                    if field_tag.is_none() =>
+                {
                     field_tag = Some(child);
                 }
                 _ => {}
@@ -320,6 +323,11 @@ impl super::GoExtractor {
                     signature.push_str(tag);
                 }
 
+                let annotations = tag_text
+                    .as_ref()
+                    .map(|tag| self.annotations_from_field_tag(tag))
+                    .unwrap_or_default();
+
                 // Determine visibility (Go rule: uppercase first letter = public)
                 let visibility = if self.is_public(&name) {
                     Some(Visibility::Public)
@@ -338,7 +346,7 @@ impl super::GoExtractor {
                         parent_id: parent_id.map(|s| s.to_string()),
                         metadata: None,
                         doc_comment: None,
-                        annotations: Vec::new(),
+                        annotations,
                     },
                 );
 
@@ -387,6 +395,11 @@ impl super::GoExtractor {
                             Some(Visibility::Private)
                         };
 
+                        let annotations = tag_text
+                            .as_ref()
+                            .map(|tag| self.annotations_from_field_tag(tag))
+                            .unwrap_or_default();
+
                         symbols.push(self.base.create_symbol(
                             &type_node,
                             embedded_name,
@@ -397,7 +410,7 @@ impl super::GoExtractor {
                                 parent_id: parent_id.map(|s| s.to_string()),
                                 metadata: Some(metadata),
                                 doc_comment: None,
-                                annotations: Vec::new(),
+                                annotations,
                             },
                         ));
                     }

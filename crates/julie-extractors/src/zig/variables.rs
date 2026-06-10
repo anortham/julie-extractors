@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use tree_sitter::Node;
 
+use super::helpers::extract_variable_declaration_annotations;
 use super::imports;
 
 // Static regexes compiled once for performance
@@ -382,6 +383,8 @@ fn extract_standard_variable(
         Visibility::Private
     };
 
+    let annotations = extract_variable_declaration_annotations(base, node);
+
     Some(base.create_symbol(
         &node,
         name,
@@ -392,7 +395,7 @@ fn extract_standard_variable(
             parent_id: parent_id.cloned(),
             metadata: None,
             doc_comment: base.extract_documentation(&node),
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }

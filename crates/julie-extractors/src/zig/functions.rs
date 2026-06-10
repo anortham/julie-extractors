@@ -3,6 +3,8 @@ use crate::test_detection::is_test_symbol;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
+use super::helpers::{extract_function_declaration_annotations, is_inline_function};
+
 /// Extract function/method declarations
 pub(super) fn extract_function(
     base: &mut BaseExtractor,
@@ -34,6 +36,7 @@ pub(super) fn extract_function(
     };
 
     let doc_comment = base.extract_documentation(&node);
+    let annotations = extract_function_declaration_annotations(base, node);
 
     // Test detection
     let mut metadata = HashMap::new();
@@ -62,7 +65,7 @@ pub(super) fn extract_function(
                 Some(metadata)
             },
             doc_comment,
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }
@@ -247,24 +250,4 @@ fn extract_function_signature(
         params.join(", "),
         return_type
     ))
-}
-
-/// Check if function has inline modifier
-fn is_inline_function(base: &BaseExtractor, node: Node) -> bool {
-    // Check for "inline" keyword in function children
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == "inline" || base.get_node_text(&child) == "inline" {
-            return true;
-        }
-    }
-
-    // Also check for "inline" keyword before function (fallback)
-    if let Some(prev) = node.prev_sibling()
-        && (prev.kind() == "inline" || base.get_node_text(&prev) == "inline")
-    {
-        return true;
-    }
-
-    false
 }

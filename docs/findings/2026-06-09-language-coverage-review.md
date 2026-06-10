@@ -498,16 +498,25 @@ carried generic `attribute_or_decorator` open gaps:
   are now `not_applicable` because the grammars expose no first-class
   attribute/decorator syntax on declarations (R roxygen tags remain in
   `doc_comments`).
-- `annotations`: Four code languages retain concrete open gaps: Go (`struct`,
-  `field`, `function` for struct tags and `//go:` directives), Zig (`function`,
-  `variable` for declaration builtins), Vue (`class`, `function` for script
-  decorators and component metadata), and Razor (`method`, `property`, `class`
-  for embedded C# attributes in `@code` blocks).
+- `annotations`: Two code languages retain concrete open gaps: Vue (`class`,
+  `function` for script decorators and component metadata), and Razor (`method`,
+  `property`, `class` for embedded C# attributes in `@code` blocks).
+
+## Phase 8 Go/Zig annotation slice
+
+The eighth extractor-depth slice closed Go and Zig annotation gaps for:
+
+- `annotations`: Go `struct` (field-tag summary), `field` (per-key struct
+  tags), and `function` (`//go:` compiler directives) in
+  `fixtures/extraction/go/basic`.
+- `annotations`: Zig `function` (`export`, `inline`, and `extern` linkage when
+  present) and `variable` (`threadlocal`, `export`, `comptime`, and `align(...)`
+  when present) in `fixtures/extraction/zig/basic`.
 
 Scorecard after this slice:
 
 - `silent_cells`: 0
-- `quality_bar_debts`: 29
+- `quality_bar_debts`: 27
 - `symbols`: 36/36
 - `relationships`: 36/36
 - `identifiers`: 33/36
@@ -516,7 +525,7 @@ Scorecard after this slice:
 - `doc_comments`: 35/36 fixture-proven; 0 open doc-comment gaps because regex is `not_applicable`
 - `structural_facts`: 12/36
 - `complexity_metrics`: 28/36
-- `annotations`: 19/36
+- `annotations`: 21/36
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
@@ -530,7 +539,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 - `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
   YAML, Markdown, Regex).
 - `structural_facts`: 24 languages remain open.
-- `annotations`: 4 code languages remain open (`go`, `zig`, `vue`, `razor`).
+- `annotations`: 2 code languages remain open (`vue`, `razor`).
 - `literals`: 0 languages remain open.
 - `doc_comments`: 35/36 fixture-proven; 0 open doc-comment gaps because regex is
   `not_applicable` (tree-sitter-regex has no comment or doc-comment nodes).

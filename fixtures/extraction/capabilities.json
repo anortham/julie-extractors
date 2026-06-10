@@ -498,28 +498,13 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "struct",
+            "field",
+            "function"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "struct",
-              "reason": "Go struct field tags (`json`, `xml`, `db`, etc.) are symbol-attached metadata the grammar exposes on struct types, but the extractor always emits empty annotation rows.",
-              "required_closure": "Parse backtick struct tags on `field_declaration` nodes inside struct `type_spec` declarations and normalize them into annotation markers on struct and field symbols.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            },
-            {
-              "kind": "field",
-              "reason": "Go struct field tags attach to individual fields and are distinct from type-level metadata, but the extractor does not yet surface them as annotation markers.",
-              "required_closure": "Emit per-field annotation markers from `field_declaration` tag literals while keeping file-level `//go:` directives out of the symbol annotation domain.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            },
-            {
-              "kind": "function",
-              "reason": "Go function-scoped `//go:` compiler directives (`//go:noinline`, `//go:linkname`, etc.) are plausible symbol-attached metadata, but the extractor does not model them.",
-              "required_closure": "Attach normalized annotation markers to function symbols for recognized `//go:` directives immediately preceding declarations.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [
@@ -642,22 +627,12 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "function",
+            "variable"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "function",
-              "reason": "Zig function declarations expose builtin attributes such as `export`, `inline`, calling-convention qualifiers, and alignment metadata, but the extractor always emits empty annotation rows.",
-              "required_closure": "Map Zig declaration-prefix builtins and function attributes from tree-sitter nodes to normalized annotation markers on function symbols.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            },
-            {
-              "kind": "variable",
-              "reason": "Zig global and local declarations can carry `export`, `threadlocal`, and alignment-style metadata, but the extractor does not normalize them as symbol annotations.",
-              "required_closure": "Extract declaration-prefix builtins on variable and constant symbols and emit normalized annotation markers.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [

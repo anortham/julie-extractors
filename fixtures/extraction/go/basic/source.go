@@ -3,7 +3,7 @@ package fixture
 import "net/http"
 
 type Worker struct {
-	ID int
+	ID int `json:"id" db:"worker_id"`
 }
 
 func NewWorker(id int) Worker {
@@ -37,6 +37,7 @@ func FetchStatus() error {
 	return err
 }
 
+//go:noinline
 func Evaluate(count int, enabled bool) int {
 	total := 0
 	if enabled {
