@@ -33,3 +33,11 @@ def fetch_status() -> None:
 
 def fetch_url(url: str) -> None:
     pass
+
+
+def evaluate(count: int, enabled: bool) -> int:
+    total = 0
+    if enabled:
+        for i in range(count):
+            total += i
+    return total

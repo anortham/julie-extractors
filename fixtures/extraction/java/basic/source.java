@@ -43,4 +43,14 @@ class Worker implements Job {
 
     private static void fetchUrl(String url) {
     }
+
+    static int evaluate(int count, boolean enabled) {
+        int total = 0;
+        if (enabled) {
+            for (int i = 0; i < count; i++) {
+                total += i;
+            }
+        }
+        return total;
+    }
 }

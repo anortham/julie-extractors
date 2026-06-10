@@ -3,6 +3,7 @@
 
 // Submodule declarations
 pub mod class_constant_dedup;
+mod complexity;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod doc_comments;

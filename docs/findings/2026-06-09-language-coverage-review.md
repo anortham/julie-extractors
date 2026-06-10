@@ -15,7 +15,7 @@ The branch completed the original extraction-data-quality plan:
   `symbols`, `relationships`, `identifiers`, `body_spans`,
   `structural_facts`, `complexity_metrics`, `annotations`, `doc_comments`,
   `literals`, and `source_regions`.
-- Complexity metrics expanded from 7 languages to 12.
+- Complexity metrics expanded from 7 languages to 18.
 - Annotation evidence expanded to 11 languages.
 - Doc-comment evidence expanded to 25 languages.
 - Source-region evidence expanded to 35 languages.
@@ -42,7 +42,7 @@ Current golden fixture rows by domain:
 | source_regions | 35/36 | Regex is the only current miss. |
 | doc_comments | 25/36 | Stronger, but normalization is still inconsistent. |
 | structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
-| complexity_metrics | 12/36 | Mainstream languages improved; many code languages remain empty. |
+| complexity_metrics | 18/36 | First-batch Phase 2 Task 6 added zig, php, ruby, scala, elixir, lua. |
 | annotations | 11/36 | Attribute/decorator support remains patchy outside the first pass. |
 | literals | 36/36 | Full baseline exists. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
@@ -60,7 +60,7 @@ After adding the repeatable scorecard and fail-closed capability-matrix policy:
 - `source_regions`: 35/36
 - `doc_comments`: 23/36
 - `structural_facts`: 12/36
-- `complexity_metrics`: 12/36
+- `complexity_metrics`: 18/36
 - `annotations`: 9/36
 - `literals`: 9/36
 - `type_argument_usages`: 1/36
@@ -331,6 +331,40 @@ Scorecard after this slice:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 2 Task 6 first-batch complexity metrics
+
+The ninth extractor-depth slice closed `complexity_metrics` gaps for six
+languages:
+
+- `complexity_metrics`: Zig, PHP, Ruby, Scala, Elixir, and Lua now emit
+  `file` and `symbol` scoped rows in each language `basic` golden fixture.
+- Shared engine extensions in `base/complexity_metrics.rs`:
+  - Elixir call-target matching for control-flow macros (`if`, `unless`,
+    `case`, `cond`, `with`, `for`) plus `stab_clause`, `rescue_block`, and
+    `catch_block` nodes.
+  - Ruby same-kind parent/child dedup for nested `if`/`for` wrappers.
+  - Scala-only symbol-span fallback when `body_span` covers less than half of
+    the declaration span (other languages keep using `body_span` when present).
+- Per-language complexity unit tests with hand-tallied expectations in
+  `crates/julie-extractors/src/tests/{zig,php,ruby,scala,elixir,lua}/complexity.rs`.
+- Cross-language guard cases added in `tests/complexity_metrics.rs`.
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 61
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 18/36
+- `annotations`: 11/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -338,7 +372,7 @@ Scorecard after this slice:
 No language/domain cells are silent anymore. The remaining debt is explicit
 `open_gaps` in the capability matrix. Largest buckets:
 
-- `complexity_metrics`: 24 languages remain open.
+- `complexity_metrics`: 18 languages remain open.
 - `structural_facts`: 24 languages remain open.
 - `annotations`: 25 languages remain open.
 - `literals`: 0 languages remain open.
@@ -365,13 +399,14 @@ goldens do not yet make it first-class across the matrix.
 
 Current fixture-proven languages:
 
-`rust`, `c`, `cpp`, `go`, `typescript`, `javascript`, `python`, `java`,
-`csharp`, `swift`, `kotlin`, `dart`.
+`rust`, `c`, `cpp`, `go`, `zig`, `typescript`, `javascript`, `python`,
+`java`, `csharp`, `php`, `ruby`, `swift`, `kotlin`, `scala`, `dart`,
+`elixir`, `lua`.
 
 Likely code-language targets still missing:
 
-`zig`, `tsx`, `jsx`, `vue`, `vbnet`, `php`, `ruby`, `scala`, `elixir`,
-`lua`, `qml`, `r`, `bash`, `powershell`, `gdscript`, and `razor`.
+`tsx`, `jsx`, `vue`, `vbnet`, `qml`, `r`, `bash`, `powershell`,
+`gdscript`, and `razor`.
 SQL should be design-gated separately because procedural SQL complexity is not
 the same metric as cyclomatic complexity in general-purpose code.
 

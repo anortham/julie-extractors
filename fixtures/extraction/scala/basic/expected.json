@@ -42,19 +42,19 @@
       "file_path": "fixtures/extraction/scala/basic/source.scala",
       "start_line": 7,
       "start_column": 0,
-      "end_line": 29,
+      "end_line": 39,
       "end_column": 1,
       "start_byte": 49,
-      "end_byte": 651,
+      "end_byte": 872,
       "body_span": {
         "start_line": 7,
         "start_column": 38,
-        "end_line": 29,
+        "end_line": 39,
         "end_column": 1,
         "start_byte": 87,
-        "end_byte": 651
+        "end_byte": 872
       },
-      "body_hash": "c9fdec5c3f86b85f9fdfeb914b22b91a",
+      "body_hash": "c4a642f5a4fa535d004ad95541dde611",
       "signature": "class Worker(val id: Int) extends Job",
       "doc_comment": null,
       "visibility": "Public",
@@ -62,6 +62,41 @@
       "metadata": {
         "modifiers": "",
         "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:evaluate:30:2",
+      "name": "evaluate",
+      "kind": "method",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 30,
+      "start_column": 2,
+      "end_line": 38,
+      "end_column": 3,
+      "start_byte": 653,
+      "end_byte": 870,
+      "body_span": {
+        "start_line": 30,
+        "start_column": 52,
+        "end_line": 38,
+        "end_column": 3,
+        "start_byte": 703,
+        "end_byte": 870
+      },
+      "body_hash": "ee3244ee1657cb1998e45c18d45408fb",
+      "signature": "def evaluate(count: Int, enabled: Boolean): Int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
+      "metadata": {
+        "modifiers": "",
+        "returnType": "Int",
+        "type": "method"
       },
       "annotations": [],
       "semantic_group": null,
@@ -338,6 +373,33 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/basic/source.scala:total:31:4",
+      "name": "total",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "start_line": 31,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 17,
+      "start_byte": 709,
+      "end_byte": 722,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var total",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/basic/source.scala:evaluate:30:2",
+      "metadata": {
+        "modifiers": "",
+        "type": "var"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -475,6 +537,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:evaluate:30:2",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "scala",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/scala/basic/source.scala:fetchStatus:24:2",
       "resolved_type": "Unit",
       "generic_params": null,
@@ -540,7 +611,206 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 40,
+      "covered_bytes": 873,
+      "decision_count": 3,
+      "loop_count": 1,
+      "max_nesting_depth": 3,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 40,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 873,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:evaluate:30:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 9,
+      "covered_bytes": 167,
+      "decision_count": 3,
+      "loop_count": 1,
+      "max_nesting_depth": 3,
+      "parameter_count": 2,
+      "start_line": 30,
+      "start_column": 52,
+      "end_line": 38,
+      "end_column": 3,
+      "start_byte": 703,
+      "end_byte": 870,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:fetchStatus:24:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 3,
+      "covered_bytes": 60,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 24,
+      "start_column": 28,
+      "end_line": 26,
+      "end_column": 3,
+      "start_byte": 541,
+      "end_byte": 601,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:fetchUrl:28:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 44,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 28,
+      "start_column": 2,
+      "end_line": 28,
+      "end_column": 46,
+      "start_byte": 605,
+      "end_byte": 649,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:helper:13:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 47,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 13,
+      "start_column": 2,
+      "end_line": 13,
+      "end_column": 49,
+      "start_byte": 150,
+      "end_byte": 197,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:observeRun:21:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 57,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 21,
+      "start_column": 2,
+      "end_line": 21,
+      "end_column": 59,
+      "start_byte": 402,
+      "end_byte": 459,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:recordRun:16:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 3,
+      "covered_bytes": 77,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 16,
+      "start_column": 2,
+      "end_line": 18,
+      "end_column": 3,
+      "start_byte": 261,
+      "end_byte": 338,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:run:4:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 14,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 4,
+      "start_column": 2,
+      "end_line": 4,
+      "end_column": 16,
+      "start_byte": 31,
+      "end_byte": 45,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/basic/source.scala:run:8:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/basic/source.scala",
+      "covered_lines": 4,
+      "covered_bytes": 38,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 8,
+      "start_column": 19,
+      "end_line": 11,
+      "end_column": 3,
+      "start_byte": 108,
+      "end_byte": 146,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "https://api.example.com/workers/status",

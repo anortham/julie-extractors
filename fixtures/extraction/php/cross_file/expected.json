@@ -60,19 +60,19 @@
       "file_path": "fixtures/extraction/php/cross_file/source.php",
       "start_line": 12,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 27,
       "end_column": 1,
       "start_byte": 351,
-      "end_byte": 539,
+      "end_byte": 703,
       "body_span": {
         "start_line": 12,
         "start_column": 13,
-        "end_line": 21,
+        "end_line": 27,
         "end_column": 1,
         "start_byte": 364,
-        "end_byte": 539
+        "end_byte": 703
       },
-      "body_hash": "9cb8066fbc75ec508f59df0a005f57d8",
+      "body_hash": "c7cccab6e863a9326b564bfb09c82604",
       "signature": "class Worker",
       "doc_comment": null,
       "visibility": "Public",
@@ -94,19 +94,19 @@
       "file_path": "fixtures/extraction/php/cross_file/source.php",
       "start_line": 13,
       "start_column": 4,
-      "end_line": 16,
+      "end_line": 22,
       "end_column": 5,
       "start_byte": 370,
-      "end_byte": 469,
+      "end_byte": 633,
       "body_span": {
         "start_line": 13,
         "start_column": 33,
-        "end_line": 16,
+        "end_line": 22,
         "end_column": 5,
         "start_byte": 399,
-        "end_byte": 469
+        "end_byte": 633
       },
-      "body_hash": "c7401990449ae6d903eca1c9d7d390d9",
+      "body_hash": "9c86d722f37e2a670bdb9785a9021ad2",
       "signature": "public function entry(): int",
       "doc_comment": null,
       "visibility": "Public",
@@ -123,24 +123,51 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/cross_file/source.php:localHelper:18:4",
+      "key": "fixtures/extraction/php/cross_file/source.php:i:16:17",
+      "name": "i",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "start_line": 16,
+      "start_column": 17,
+      "end_line": 16,
+      "end_column": 23,
+      "start_byte": 478,
+      "end_byte": 484,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$i = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
+      "metadata": {
+        "type": "variable_assignment",
+        "value": "0"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/cross_file/source.php:localHelper:24:4",
       "name": "localHelper",
       "kind": "method",
       "language": "php",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
-      "start_line": 18,
+      "start_line": 24,
       "start_column": 4,
-      "end_line": 20,
+      "end_line": 26,
       "end_column": 5,
-      "start_byte": 475,
-      "end_byte": 537,
+      "start_byte": 639,
+      "end_byte": 701,
       "body_span": {
-        "start_line": 18,
+        "start_line": 24,
         "start_column": 40,
-        "end_line": 20,
+        "end_line": 26,
         "end_column": 5,
-        "start_byte": 511,
-        "end_byte": 537
+        "start_byte": 675,
+        "end_byte": 701
       },
       "body_hash": "d2eca0a1521da9f57d8eeb7ec054d1bf",
       "signature": "private function localHelper(): int",
@@ -159,24 +186,51 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/php/cross_file/source.php:x:14:8",
-      "name": "x",
+      "key": "fixtures/extraction/php/cross_file/source.php:total:14:8",
+      "name": "total",
       "kind": "variable",
       "language": "php",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
       "start_line": 14,
       "start_column": 8,
       "end_line": 14,
-      "end_column": 24,
+      "end_column": 18,
       "start_byte": 409,
-      "end_byte": 425,
+      "end_byte": 419,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$total = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
+      "metadata": {
+        "type": "variable_assignment",
+        "value": "0"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/cross_file/source.php:x:20:8",
+      "name": "x",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "start_line": 20,
+      "start_column": 8,
+      "end_line": 20,
+      "end_column": 24,
+      "start_byte": 564,
+      "end_byte": 580,
       "body_span": {
-        "start_line": 14,
+        "start_line": 20,
         "start_column": 22,
-        "end_line": 14,
+        "end_line": 20,
         "end_column": 24,
-        "start_byte": 423,
-        "end_byte": 425
+        "start_byte": 578,
+        "end_byte": 580
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "$x = new Other()",
@@ -196,10 +250,19 @@
   "relationships": [
     {
       "from_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
-      "to_key": "fixtures/extraction/php/cross_file/source.php:localHelper:18:4",
+      "to_key": "fixtures/extraction/php/cross_file/source.php:localHelper:24:4",
       "kind": "calls",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
       "line_number": 15,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
+      "to_key": "fixtures/extraction/php/cross_file/source.php:localHelper:24:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "line_number": 21,
       "confidence": "0.900",
       "metadata": null
     }
@@ -210,7 +273,7 @@
       "callee_name": "Other",
       "kind": "instantiates",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
-      "line_number": 14,
+      "line_number": 20,
       "confidence": "0.700"
     }
   ],
@@ -221,7 +284,7 @@
         "callee_name": "Other",
         "kind": "instantiates",
         "file_path": "fixtures/extraction/php/cross_file/source.php",
-        "line_number": 14,
+        "line_number": 20,
         "confidence": "0.700"
       },
       "target": {
@@ -236,17 +299,33 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/php/cross_file/source.php:localHelper:call:15:22",
+      "key": "fixtures/extraction/php/cross_file/source.php:localHelper:call:15:19",
       "name": "localHelper",
       "kind": "call",
       "language": "php",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
       "start_line": 15,
-      "start_column": 22,
+      "start_column": 19,
       "end_line": 15,
-      "end_column": 33,
-      "start_byte": 449,
-      "end_byte": 460,
+      "end_column": 30,
+      "start_byte": 440,
+      "end_byte": 451,
+      "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/cross_file/source.php:localHelper:call:21:31",
+      "name": "localHelper",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "start_line": 21,
+      "start_column": 31,
+      "end_line": 21,
+      "end_column": 42,
+      "start_byte": 613,
+      "end_byte": 624,
       "containing_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
       "target_key": null,
       "confidence": "1.000"
@@ -290,7 +369,16 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/php/cross_file/source.php:localHelper:18:4",
+      "symbol_key": "fixtures/extraction/php/cross_file/source.php:i:16:17",
+      "resolved_type": "variable_assignment",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/cross_file/source.php:localHelper:24:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
@@ -299,7 +387,16 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/php/cross_file/source.php:x:14:8",
+      "symbol_key": "fixtures/extraction/php/cross_file/source.php:total:14:8",
+      "resolved_type": "variable_assignment",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/cross_file/source.php:x:20:8",
       "resolved_type": "variable_assignment",
       "generic_params": null,
       "constraints": null,
@@ -310,7 +407,74 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "covered_lines": 28,
+      "covered_bytes": 704,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 28,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 704,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "covered_lines": 10,
+      "covered_bytes": 234,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 33,
+      "end_line": 22,
+      "end_column": 5,
+      "start_byte": 399,
+      "end_byte": 633,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/cross_file/source.php:localHelper:24:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "covered_lines": 3,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 24,
+      "start_column": 40,
+      "end_line": 26,
+      "end_column": 5,
+      "start_byte": 675,
+      "end_byte": 701,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {

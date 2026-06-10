@@ -19,3 +19,13 @@ export class Worker implements Job {
 function helper(value: number): number {
     return value + 1;
 }
+
+function evaluate(count: number, enabled: boolean): number {
+    let total = 0;
+    if (enabled) {
+        for (let i = 0; i < count; i++) {
+            total += i;
+        }
+    }
+    return total;
+}

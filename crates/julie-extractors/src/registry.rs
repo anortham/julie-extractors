@@ -1016,7 +1016,7 @@ pub fn extract_for_language(
         ));
     sort_structural_facts(&mut results.structural_facts);
     results.complexity_metrics =
-        collect_complexity_metrics(language, tree, file_path, &results.symbols);
+        collect_complexity_metrics(language, tree, content, file_path, &results.symbols);
     Ok(results)
 }
 

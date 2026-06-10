@@ -281,6 +281,117 @@ func run(items []int, enabled bool) int {
             expected_depth: 2,
             expected_parameters: 2,
         },
+        ComplexityCase {
+            file_path: "src/evaluate.zig",
+            source: r#"pub fn run(count: i32, enabled: bool) i32 {
+    var total: i32 = 0;
+    for (0..count) |i| {
+        if (enabled) {
+            total += i;
+        }
+    }
+    return total;
+}
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
+            file_path: "src/Calculator.php",
+            source: r#"<?php
+class Service {
+    public function run(int $count, bool $enabled): int {
+        $total = 0;
+        for ($i = 0; $i < $count; $i++) {
+            if ($enabled) {
+                $total += $i;
+            }
+        }
+        return $total;
+    }
+}
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
+            file_path: "src/calculator.rb",
+            source: r#"class Service
+  def run(count, enabled)
+    total = 0
+    for i in 0...count
+      if enabled
+        total += i
+      end
+    end
+    total
+  end
+end
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
+            file_path: "src/Calculator.scala",
+            source: r#"class Service {
+  def run(count: Int, enabled: Boolean): Int = {
+    var total = 0
+    for (i <- 0 until count) {
+      if (enabled) {
+        total += i
+      }
+    }
+    total
+  }
+}
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
+            file_path: "src/calculator.ex",
+            source: r#"defmodule Service do
+  def run(count, enabled) do
+    total = 0
+    for i <- 0..count do
+      if enabled do
+        total = total + i
+      end
+    end
+    total
+  end
+end
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
+            file_path: "src/evaluate.lua",
+            source: r#"function run(count, enabled)
+    local total = 0
+    for i = 1, count do
+        if enabled then
+            total = total + i
+        end
+    end
+    return total
+end
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
     ];
 
     for case in cases {
@@ -312,7 +423,11 @@ func run(items []int, enabled bool) int {
             "{} emitted wrong algorithm id",
             case.file_path
         );
-        assert_eq!(symbol_metric.decision_count, case.expected_decisions);
+        assert_eq!(
+            symbol_metric.decision_count, case.expected_decisions,
+            "{} decision_count",
+            case.file_path
+        );
         assert_eq!(symbol_metric.loop_count, case.expected_loops);
         assert_eq!(symbol_metric.max_nesting_depth, case.expected_depth);
         assert_eq!(

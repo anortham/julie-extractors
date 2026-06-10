@@ -26,3 +26,15 @@ fn fetch_url(url: []const u8) void {}
 pub fn runWorker(worker: Worker) i32 {
     return helper(worker.id);
 }
+
+pub fn evaluate(count: i32, enabled: bool) i32 {
+    var total: i32 = 0;
+    if (enabled) {
+        for (0..count) |i| {
+            total += i;
+        }
+    } else if (count > 0) {
+        total = if (count > 10) 1 else 0;
+    }
+    return total;
+}

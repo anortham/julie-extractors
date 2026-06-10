@@ -622,22 +622,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -1407,7 +1397,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "CSS @import directives resolve at extraction time and current relationship extraction emits direct edges. CSS has no forward-reference construct that would benefit from pending relationships.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "css_pending_relationships_intra_document_only",
@@ -1418,7 +1408,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "CSS has no static type system. Custom property values are runtime strings; there is no type metadata to extract.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/css/basic/expected.json",
@@ -2296,22 +2286,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -2438,22 +2418,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -2849,22 +2819,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -3119,22 +3079,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [
@@ -3210,7 +3160,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "Lua is a dynamically typed language with no static type annotations in core syntax. Luau-style annotations are out of scope for the base Lua extractor.",
-          "required_closure": "Out of scope — Lua is dynamic. Luau-style type annotations would be a separate language target.",
+          "required_closure": "Out of scope \u2014 Lua is dynamic. Luau-style type annotations would be a separate language target.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/lua/basic/expected.json",
@@ -3270,22 +3220,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
-              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            },
-            {
-              "kind": "symbol",
-              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
-              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [],
@@ -3366,7 +3306,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "QML property bindings carry runtime type names that are stored on Symbol metadata (propertyType field), not as separate TypeInfo rows. QML has no static type system distinct from these tags. Domain classification, not a deferred gap.",
-          "required_closure": "N/A — QML property types are recorded on Symbol metadata. A separate TypeInfo row layer would duplicate, not enrich.",
+          "required_closure": "N/A \u2014 QML property types are recorded on Symbol metadata. A separate TypeInfo row layer would duplicate, not enrich.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/qml/basic/expected.json",
@@ -3526,7 +3466,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "R is a dynamically typed language with no static type system. roxygen @param type tags are documentation-only and not currently extracted as TypeInfo.",
-          "required_closure": "N/A — domain limitation. Future work could harvest roxygen type annotations into TypeInfo.",
+          "required_closure": "N/A \u2014 domain limitation. Future work could harvest roxygen type annotations into TypeInfo.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/r/basic/expected.json",
@@ -4105,8 +4045,8 @@
         {
           "capability": "pending_relationships",
           "status": "exception",
-          "reason": "Razor cross-file references resolve through the embedded C# pipeline, not Razor’s own pending path. Locked by razor_pending_relationships_handled_by_csharp_embed test (Phase 4b.razor).",
-          "required_closure": "N/A — domain classification. Locking test in crates/julie-extractors/src/tests/razor/cross_file_pending.rs enforces no-pending classification.",
+          "reason": "Razor cross-file references resolve through the embedded C# pipeline, not Razor\u2019s own pending path. Locked by razor_pending_relationships_handled_by_csharp_embed test (Phase 4b.razor).",
+          "required_closure": "N/A \u2014 domain classification. Locking test in crates/julie-extractors/src/tests/razor/cross_file_pending.rs enforces no-pending classification.",
           "evidence": {
             "kind": "test",
             "value": "razor_pending_relationships_handled_by_csharp_embed",
@@ -4386,7 +4326,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "Regex backreferences are within-pattern only; there is no cross-file forward-reference construct in regex syntax.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "regex_pending_relationships_within_pattern_only",
@@ -4543,7 +4483,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "Markdown links and footnote references are within-document. Cross-file links are URL/path strings, not symbol references.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "markdown_pending_relationships_intra_document_only",
@@ -4554,7 +4494,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "Markdown is a presentation format with no static type system.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/markdown/basic/expected.json",
@@ -4565,7 +4505,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "Markdown headings, links, and frontmatter are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A — domain limitation. Add a new symbol/relationship kind before treating markdown text as identifiers.",
+          "required_closure": "N/A \u2014 domain limitation. Add a new symbol/relationship kind before treating markdown text as identifiers.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/markdown/basic/expected.json",
@@ -4727,7 +4667,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "JSON has no static type system. JSON Schema type keywords are runtime hints, not extracted as TypeInfo. Domain limitation, not a gap.",
-          "required_closure": "N/A — domain limitation. JSON Schema type extraction would require a schema-aware extractor mode outside the tree-sitter scope.",
+          "required_closure": "N/A \u2014 domain limitation. JSON Schema type extraction would require a schema-aware extractor mode outside the tree-sitter scope.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/json/basic/expected.json",
@@ -4738,7 +4678,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "JSON object keys are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A — domain limitation. JSON Schema-aware identifier output would require a separate schema mode.",
+          "required_closure": "N/A \u2014 domain limitation. JSON Schema-aware identifier output would require a separate schema mode.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/json/basic/expected.json",
@@ -4895,7 +4835,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "TOML has no cross-document construct that requires deferred resolution. All references in TOML are file-local (Cargo deps, pyproject tool tables). Domain limitation, not a gap.",
-          "required_closure": "N/A — domain limitation. TOML resolution is always intra-file.",
+          "required_closure": "N/A \u2014 domain limitation. TOML resolution is always intra-file.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -4906,7 +4846,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "TOML has no static type system. Value types (string/int/array) are format-level, not extracted as TypeInfo. Domain limitation, not a gap.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -4917,7 +4857,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "TOML tables and keys are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A — domain limitation. TOML key references remain symbol/relationship data.",
+          "required_closure": "N/A \u2014 domain limitation. TOML key references remain symbol/relationship data.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -5065,7 +5005,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "YAML anchors/aliases are within-document. YAML has no cross-document forward-reference construct.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "yaml_pending_relationships_intra_document_only",
@@ -5076,7 +5016,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "YAML has no static type system. Tag types (!!str, !!int) are format-level, not extracted as TypeInfo.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/yaml/basic/expected.json",

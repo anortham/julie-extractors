@@ -114,6 +114,41 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/python/basic/source.py:evaluate:38:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "start_line": 38,
+      "start_column": 0,
+      "end_line": 43,
+      "end_column": 16,
+      "start_byte": 747,
+      "end_byte": 895,
+      "body_span": {
+        "start_line": 39,
+        "start_column": 4,
+        "end_line": 43,
+        "end_column": 16,
+        "start_byte": 799,
+        "end_byte": 895
+      },
+      "body_hash": "3cdebbca47fdb4a2844d753a93da279a",
+      "signature": "def evaluate(count: int, enabled: bool): int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "decorators": [],
+        "isAsync": false,
+        "returnType": ": int"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/python/basic/source.py:fetch_status:29:0",
       "name": "fetch_status",
       "kind": "function",
@@ -348,6 +383,32 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/basic/source.py:total:39:4",
+      "name": "total",
+      "kind": "variable",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "start_line": 39,
+      "start_column": 4,
+      "end_line": 39,
+      "end_column": 13,
+      "start_byte": 799,
+      "end_byte": 808,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "total = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "hasTypeAnnotation": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -388,8 +449,36 @@
       "metadata": null
     }
   ],
-  "pending_relationships": [],
-  "structured_pending_relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/python/basic/source.py:evaluate:38:0",
+      "callee_name": "range",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "line_number": 41,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/python/basic/source.py:evaluate:38:0",
+        "callee_name": "range",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/python/basic/source.py",
+        "line_number": 41,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "range",
+        "terminal_name": "range",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/python/basic/source.py:evaluate:38:0"
+    }
+  ],
   "identifiers": [
     {
       "key": "fixtures/extraction/python/basic/source.py:fetch_url:call:31:4",
@@ -488,6 +577,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/python/basic/source.py:range:call:41:17",
+      "name": "range",
+      "kind": "call",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "start_line": 41,
+      "start_column": 17,
+      "end_line": 41,
+      "end_column": 22,
+      "start_byte": 842,
+      "end_byte": 847,
+      "containing_key": "fixtures/extraction/python/basic/source.py:evaluate:38:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/python/basic/source.py:record_run:call:6:8",
       "name": "record_run",
       "kind": "call",
@@ -507,6 +612,15 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/python/basic/source.py:default_id:10:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "python",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/python/basic/source.py:evaluate:38:0",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
@@ -598,18 +712,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/basic/source.py",
-      "covered_lines": 36,
-      "covered_bytes": 745,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 44,
+      "covered_bytes": 896,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 36,
+      "end_line": 44,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 745,
+      "end_byte": 896,
       "metadata": {
         "metric_version": 1
       }
@@ -654,6 +768,28 @@
       "end_column": 16,
       "start_byte": 218,
       "end_byte": 226,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/python/basic/source.py:evaluate:38:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "covered_lines": 5,
+      "covered_bytes": 96,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 39,
+      "start_column": 4,
+      "end_line": 43,
+      "end_column": 16,
+      "start_byte": 799,
+      "end_byte": 895,
       "metadata": {
         "metric_version": 1
       }

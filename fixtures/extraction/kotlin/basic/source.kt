@@ -34,3 +34,13 @@ class Worker(private val id: Int) : Job {
     private fun fetchUrl(url: String) {
     }
 }
+
+fun evaluate(count: Int, enabled: Boolean): Int {
+    var total = 0
+    if (enabled) {
+        for (i in 0 until count) {
+            total += i
+        }
+    }
+    return total
+}

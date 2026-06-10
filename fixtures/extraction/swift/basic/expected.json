@@ -72,6 +72,42 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/swift/basic/source.swift:evaluate:36:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 36,
+      "start_column": 0,
+      "end_line": 44,
+      "end_column": 1,
+      "start_byte": 624,
+      "end_byte": 797,
+      "body_span": {
+        "start_line": 36,
+        "start_column": 50,
+        "end_line": 44,
+        "end_column": 1,
+        "start_byte": 674,
+        "end_byte": 797
+      },
+      "body_hash": "6860aa093bbfd09093cb87362307225e",
+      "signature": "func evaluate(_ count: Int, enabled: Bool) -> Int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "parameters": "(_ count: Int, enabled: Bool)",
+        "returnType": "Int",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/swift/basic/source.swift:fetchStatus:29:0",
       "name": "fetchStatus",
       "kind": "function",
@@ -350,6 +386,35 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/basic/source.swift:total:37:4",
+      "name": "total",
+      "kind": "property",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "start_line": 37,
+      "start_column": 4,
+      "end_line": 37,
+      "end_column": 17,
+      "start_byte": 680,
+      "end_byte": 693,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var total",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/basic/source.swift:evaluate:36:0",
+      "metadata": {
+        "keyword": "var",
+        "modifiers": "",
+        "propertyType": "Any",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -505,6 +570,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:evaluate:36:0",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/swift/basic/source.swift:fetchStatus:29:0",
       "resolved_type": "Void",
       "generic_params": null,
@@ -575,6 +649,15 @@
       "is_inferred": true,
       "language": "swift",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:total:37:4",
+      "resolved_type": "Any",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
     }
   ],
   "parse_diagnostics": [],
@@ -586,18 +669,40 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
-      "covered_lines": 35,
-      "covered_bytes": 623,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 45,
+      "covered_bytes": 798,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 35,
+      "end_line": 45,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 623,
+      "end_byte": 798,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:evaluate:36:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "covered_lines": 9,
+      "covered_bytes": 123,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 36,
+      "start_column": 50,
+      "end_line": 44,
+      "end_column": 1,
+      "start_byte": 674,
+      "end_byte": 797,
       "metadata": {
         "metric_version": 1
       }

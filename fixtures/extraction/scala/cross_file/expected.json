@@ -8,19 +8,19 @@
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
       "start_line": 10,
       "start_column": 0,
-      "end_line": 17,
+      "end_line": 21,
       "end_column": 1,
       "start_byte": 309,
-      "end_byte": 419,
+      "end_byte": 518,
       "body_span": {
         "start_line": 10,
         "start_column": 13,
-        "end_line": 17,
+        "end_line": 21,
         "end_column": 1,
         "start_byte": 322,
-        "end_byte": 419
+        "end_byte": 518
       },
-      "body_hash": "079241dc24e52a49cdd8b8049263c52e",
+      "body_hash": "519749acccf48085714a7043d1aea814",
       "signature": "class Worker",
       "doc_comment": null,
       "visibility": "Public",
@@ -42,19 +42,19 @@
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
       "start_line": 11,
       "start_column": 2,
-      "end_line": 14,
+      "end_line": 18,
       "end_column": 3,
       "start_byte": 326,
-      "end_byte": 386,
+      "end_byte": 485,
       "body_span": {
         "start_line": 11,
         "start_column": 21,
-        "end_line": 14,
+        "end_line": 18,
         "end_column": 3,
         "start_byte": 345,
-        "end_byte": 386
+        "end_byte": 485
       },
-      "body_hash": "00124e74699b29671eb510504080c4dc",
+      "body_hash": "905e2fe44c6206b792b2938120732e5b",
       "signature": "def entry(): Int",
       "doc_comment": null,
       "visibility": "Public",
@@ -96,24 +96,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:16:2",
+      "key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:20:2",
       "name": "localHelper",
       "kind": "method",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
-      "start_line": 16,
+      "start_line": 20,
       "start_column": 2,
-      "end_line": 16,
+      "end_line": 20,
       "end_column": 29,
-      "start_byte": 390,
-      "end_byte": 417,
+      "start_byte": 489,
+      "end_byte": 516,
       "body_span": {
-        "start_line": 16,
+        "start_line": 20,
         "start_column": 27,
-        "end_line": 16,
+        "end_line": 20,
         "end_column": 29,
-        "start_byte": 415,
-        "end_byte": 417
+        "start_byte": 514,
+        "end_byte": 516
       },
       "body_hash": "a1d0c6e83f027327d8461063f4ac58a6",
       "signature": "def localHelper(): Int",
@@ -155,15 +155,51 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/scala/cross_file/source.scala:total:12:4",
+      "name": "total",
+      "kind": "variable",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 17,
+      "start_byte": 351,
+      "end_byte": 364,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var total",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "metadata": {
+        "modifiers": "",
+        "type": "var"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
     {
       "from_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
-      "to_key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:16:2",
+      "to_key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:20:2",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
       "line_number": 13,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "to_key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:20:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "line_number": 17,
       "confidence": "0.900",
       "metadata": null
     }
@@ -174,7 +210,7 @@
       "callee_name": "Thing.apply",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
-      "line_number": 12,
+      "line_number": 16,
       "confidence": "0.700"
     },
     {
@@ -182,7 +218,7 @@
       "callee_name": "Thing.apply",
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
-      "line_number": 12,
+      "line_number": 16,
       "confidence": "0.700"
     }
   ],
@@ -193,7 +229,7 @@
         "callee_name": "Thing.apply",
         "kind": "calls",
         "file_path": "fixtures/extraction/scala/cross_file/source.scala",
-        "line_number": 12,
+        "line_number": 16,
         "confidence": "0.700"
       },
       "target": {
@@ -211,7 +247,7 @@
         "callee_name": "Thing.apply",
         "kind": "calls",
         "file_path": "fixtures/extraction/scala/cross_file/source.scala",
-        "line_number": 12,
+        "line_number": 16,
         "confidence": "0.700"
       },
       "target": {
@@ -226,33 +262,49 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/scala/cross_file/source.scala:apply:call:12:10",
+      "key": "fixtures/extraction/scala/cross_file/source.scala:apply:call:16:10",
       "name": "apply",
       "kind": "call",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
-      "start_line": 12,
+      "start_line": 16,
       "start_column": 10,
-      "end_line": 12,
+      "end_line": 16,
       "end_column": 15,
-      "start_byte": 357,
-      "end_byte": 362,
+      "start_byte": 448,
+      "end_byte": 453,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:call:13:4",
+      "key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:call:13:8",
       "name": "localHelper",
       "kind": "call",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
       "start_line": 13,
-      "start_column": 4,
+      "start_column": 8,
       "end_line": 13,
-      "end_column": 15,
-      "start_byte": 369,
-      "end_byte": 380,
+      "end_column": 19,
+      "start_byte": 373,
+      "end_byte": 384,
+      "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:call:17:12",
+      "name": "localHelper",
+      "kind": "call",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "start_line": 17,
+      "start_column": 12,
+      "end_line": 17,
+      "end_column": 23,
+      "start_byte": 468,
+      "end_byte": 479,
       "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
       "target_key": null,
       "confidence": "1.000"
@@ -269,7 +321,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:16:2",
+      "symbol_key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:20:2",
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
@@ -280,7 +332,74 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "covered_lines": 22,
+      "covered_bytes": 519,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 22,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 519,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "covered_lines": 8,
+      "covered_bytes": 140,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 21,
+      "end_line": 18,
+      "end_column": 3,
+      "start_byte": 345,
+      "end_byte": 485,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/scala/cross_file/source.scala:localHelper:20:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "covered_lines": 1,
+      "covered_bytes": 27,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 20,
+      "start_column": 2,
+      "end_line": 20,
+      "end_column": 29,
+      "start_byte": 489,
+      "end_byte": 516,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {

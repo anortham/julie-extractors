@@ -38,4 +38,14 @@ pub mod fixture {
     fn fetch_url(url: &str) {
         let _ = url;
     }
+
+    pub fn evaluate(count: i32, enabled: bool) -> i32 {
+        let mut total = 0;
+        if enabled {
+            for i in 0..count {
+                total += i;
+            }
+        }
+        total
+    }
 }

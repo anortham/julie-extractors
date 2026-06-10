@@ -26,4 +26,14 @@ class Worker(val id: Int) extends Job {
   }
 
   private def fetchUrl(url: String): Unit = ()
+
+  def evaluate(count: Int, enabled: Boolean): Int = {
+    var total = 0
+    if (enabled) {
+      for (i <- 0 until count) total += i
+    } else if (count > 0) {
+      total = if (count > 10) 1 else 0
+    }
+    total
+  }
 }

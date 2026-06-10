@@ -1,6 +1,7 @@
 //! Tests for Scala extractor
 
 mod ast_debug;
+mod complexity;
 mod cross_file_pending;
 mod literals;
 mod task14;

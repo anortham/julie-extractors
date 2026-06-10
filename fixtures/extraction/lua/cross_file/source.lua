@@ -10,8 +10,14 @@ local function local_helper()
 end
 
 local function entry()
+    local total = 0
+    if local_helper() > 0 then
+        for i = 1, 2 do
+            total = total + i
+        end
+    end
     other.fn()
-    return local_helper()
+    return total + local_helper()
 end
 
 return entry

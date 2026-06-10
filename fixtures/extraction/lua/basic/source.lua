@@ -17,4 +17,16 @@ function Worker:run()
     return helper(self.id)
 end
 
+local function evaluate(count, enabled)
+    local total = 0
+    if enabled then
+        for i = 1, count do
+            total = total + i
+        end
+    elseif count > 0 then
+        total = count > 10 and 1 or 0
+    end
+    return total
+end
+
 return Worker

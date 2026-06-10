@@ -8,19 +8,19 @@
       "file_path": "fixtures/extraction/lua/cross_file/source.lua",
       "start_line": 12,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 21,
       "end_column": 3,
       "start_byte": 370,
-      "end_byte": 437,
+      "end_byte": 570,
       "body_span": {
         "start_line": 13,
         "start_column": 4,
-        "end_line": 14,
-        "end_column": 25,
+        "end_line": 20,
+        "end_column": 33,
         "start_byte": 397,
-        "end_byte": 433
+        "end_byte": 566
       },
-      "body_hash": "beac6a2f4f7f6c8f7b17cc3dbe72f14f",
+      "body_hash": "500febfb912fc94f48f8dcd3a4826af8",
       "signature": "local function entry()",
       "doc_comment": null,
       "visibility": "Private",
@@ -113,6 +113,84 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:total:13:10",
+      "name": "total",
+      "kind": "variable",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 13,
+      "start_column": 10,
+      "end_line": 13,
+      "end_column": 15,
+      "start_byte": 403,
+      "end_byte": 408,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "local total = 0",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
+      "metadata": {
+        "dataType": "number"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:total:13:10",
+      "name": "total",
+      "kind": "variable",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 13,
+      "start_column": 10,
+      "end_line": 13,
+      "end_column": 15,
+      "start_byte": 403,
+      "end_byte": 408,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "total = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "dataType": "number"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:total:16:12",
+      "name": "total",
+      "kind": "variable",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 16,
+      "start_column": 12,
+      "end_line": 16,
+      "end_column": 17,
+      "start_byte": 480,
+      "end_byte": 485,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "total = total + i",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "dataType": ""
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -124,6 +202,15 @@
       "line_number": 14,
       "confidence": "0.900",
       "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
+      "to_key": "fixtures/extraction/lua/cross_file/source.lua:local_helper:8:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "line_number": 20,
+      "confidence": "0.900",
+      "metadata": null
     }
   ],
   "pending_relationships": [
@@ -132,7 +219,7 @@
       "callee_name": "other.fn",
       "kind": "calls",
       "file_path": "fixtures/extraction/lua/cross_file/source.lua",
-      "line_number": 13,
+      "line_number": 19,
       "confidence": "0.700"
     }
   ],
@@ -143,7 +230,7 @@
         "callee_name": "other.fn",
         "kind": "calls",
         "file_path": "fixtures/extraction/lua/cross_file/source.lua",
-        "line_number": 13,
+        "line_number": 19,
         "confidence": "0.700"
       },
       "target": {
@@ -158,33 +245,49 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/lua/cross_file/source.lua:fn:call:13:10",
+      "key": "fixtures/extraction/lua/cross_file/source.lua:fn:call:19:10",
       "name": "fn",
       "kind": "call",
       "language": "lua",
       "file_path": "fixtures/extraction/lua/cross_file/source.lua",
-      "start_line": 13,
+      "start_line": 19,
       "start_column": 10,
-      "end_line": 13,
+      "end_line": 19,
       "end_column": 12,
-      "start_byte": 403,
-      "end_byte": 405,
+      "start_byte": 528,
+      "end_byte": 530,
       "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/lua/cross_file/source.lua:local_helper:call:14:11",
+      "key": "fixtures/extraction/lua/cross_file/source.lua:local_helper:call:14:7",
       "name": "local_helper",
       "kind": "call",
       "language": "lua",
       "file_path": "fixtures/extraction/lua/cross_file/source.lua",
       "start_line": 14,
-      "start_column": 11,
+      "start_column": 7,
       "end_line": 14,
-      "end_column": 23,
-      "start_byte": 419,
-      "end_byte": 431,
+      "end_column": 19,
+      "start_byte": 420,
+      "end_byte": 432,
+      "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:local_helper:call:20:19",
+      "name": "local_helper",
+      "kind": "call",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 20,
+      "start_column": 19,
+      "end_line": 20,
+      "end_column": 31,
+      "start_byte": 552,
+      "end_byte": 564,
       "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
       "target_key": null,
       "confidence": "1.000"
@@ -209,7 +312,74 @@
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "covered_lines": 24,
+      "covered_bytes": 585,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 585,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "covered_lines": 8,
+      "covered_bytes": 169,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 4,
+      "end_line": 20,
+      "end_column": 33,
+      "start_byte": 397,
+      "end_byte": 566,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/lua/cross_file/source.lua:local_helper:8:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "covered_lines": 1,
+      "covered_bytes": 9,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 13,
+      "start_byte": 355,
+      "end_byte": 364,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "other",

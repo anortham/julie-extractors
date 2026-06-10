@@ -118,6 +118,46 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/javascript/basic/source.js:evaluate:20:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/basic/source.js",
+      "start_line": 20,
+      "start_column": 0,
+      "end_line": 28,
+      "end_column": 1,
+      "start_byte": 243,
+      "end_byte": 418,
+      "body_span": {
+        "start_line": 20,
+        "start_column": 34,
+        "end_line": 28,
+        "end_column": 1,
+        "start_byte": 277,
+        "end_byte": 418
+      },
+      "body_hash": "7eb8b04fb752d85fa4e289b3db991f4e",
+      "signature": "function evaluate(count, enabled)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isArrowFunction": false,
+        "isAsync": false,
+        "isExpression": false,
+        "isGenerator": false,
+        "parameters": [
+          "count",
+          "enabled"
+        ]
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/javascript/basic/source.js:helper:16:0",
       "name": "helper",
       "kind": "function",
@@ -157,6 +197,35 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/javascript/basic/source.js:i:23:17",
+      "name": "i",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/basic/source.js",
+      "start_line": 23,
+      "start_column": 17,
+      "end_line": 23,
+      "end_column": 22,
+      "start_byte": 334,
+      "end_byte": 339,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "let i = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/javascript/basic/source.js:evaluate:20:0",
+      "metadata": {
+        "declarationType": "let",
+        "initializer": "0",
+        "isConst": false,
+        "isLet": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/javascript/basic/source.js:run:7:4",
       "name": "run",
       "kind": "method",
@@ -189,6 +258,35 @@
         "isSetter": false,
         "isStatic": false,
         "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/basic/source.js:total:21:8",
+      "name": "total",
+      "kind": "variable",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/basic/source.js",
+      "start_line": 21,
+      "start_column": 8,
+      "end_line": 21,
+      "end_column": 17,
+      "start_byte": 287,
+      "end_byte": 296,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "let total = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/javascript/basic/source.js:evaluate:20:0",
+      "metadata": {
+        "declarationType": "let",
+        "initializer": "0",
+        "isConst": false,
+        "isLet": true
       },
       "annotations": [],
       "semantic_group": null,
@@ -279,18 +377,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/basic/source.js",
-      "covered_lines": 19,
-      "covered_bytes": 242,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 29,
+      "covered_bytes": 419,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 19,
+      "end_line": 29,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 242,
+      "end_byte": 419,
       "metadata": {
         "metric_version": 1
       }
@@ -313,6 +411,28 @@
       "end_column": 5,
       "start_byte": 54,
       "end_byte": 83,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/javascript/basic/source.js:evaluate:20:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/basic/source.js",
+      "covered_lines": 9,
+      "covered_bytes": 141,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 20,
+      "start_column": 34,
+      "end_line": 28,
+      "end_column": 1,
+      "start_byte": 277,
+      "end_byte": 418,
       "metadata": {
         "metric_version": 1
       }

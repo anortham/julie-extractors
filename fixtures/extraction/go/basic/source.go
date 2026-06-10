@@ -36,3 +36,13 @@ func FetchStatus() error {
 	_, err := http.Get("https://api.example.com/workers/status")
 	return err
 }
+
+func Evaluate(count int, enabled bool) int {
+	total := 0
+	if enabled {
+		for i := 0; i < count; i++ {
+			total += i
+		}
+	}
+	return total
+}

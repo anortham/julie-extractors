@@ -20,4 +20,14 @@ defmodule Fixture.Worker do
   end
 
   defp fetch_url(_url), do: :ok
+
+  def evaluate(count, enabled) do
+    if enabled do
+      for i <- 1..count, reduce: 0 do
+        acc -> acc + i
+      end
+    else
+      if count > 0, do: 1, else: 0
+    end
+  end
 end

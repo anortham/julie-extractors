@@ -20,3 +20,13 @@ int worker_run(Worker *worker) {
 int helper(int value) {
     return value + 1;
 }
+
+int evaluate(int count, int enabled) {
+    int total = 0;
+    if (enabled) {
+        for (int i = 0; i < count; i++) {
+            total += i;
+        }
+    }
+    return total;
+}

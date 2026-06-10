@@ -32,3 +32,13 @@ func fetchStatus() {
 
 func fetchUrl(_ url: String) {
 }
+
+func evaluate(_ count: Int, enabled: Bool) -> Int {
+    var total = 0
+    if enabled {
+        for i in 0..<count {
+            total += i
+        }
+    }
+    return total
+}

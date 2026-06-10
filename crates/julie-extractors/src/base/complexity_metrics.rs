@@ -21,6 +21,11 @@ struct ComplexityLanguageConfig {
     /// declaration node (for example Dart, where symbols span only the
     /// `function_signature` and the `function_body` follows it).
     body_sibling_node_kinds: &'static [&'static str],
+    /// For grammars that encode control flow as generic `call` nodes (Elixir),
+    /// count a `call` whose `target` identifier matches one of these names.
+    call_decision_targets: &'static [&'static str],
+    /// Same as `call_decision_targets`, but for loop constructs.
+    call_loop_targets: &'static [&'static str],
 }
 
 #[derive(Default)]
@@ -40,6 +45,7 @@ struct MetricScopeInput {
 pub fn collect_complexity_metrics(
     language: &str,
     tree: &Tree,
+    source: &str,
     file_path: &str,
     symbols: &[Symbol],
 ) -> Vec<ComplexityMetric> {
@@ -59,15 +65,14 @@ pub fn collect_complexity_metrics(
             span: file_span,
             parameter_count: None,
         },
+        source,
         &root,
         config,
     ));
 
     for symbol in symbols.iter().filter(|symbol| is_callable(&symbol.kind)) {
-        let metric_span = sibling_body_span(root, symbol, config)
-            .or(symbol.body_span)
-            .unwrap_or_else(|| symbol_span(symbol));
-        let parameter_count = parameter_count_for_symbol(root, symbol, config);
+        let metric_span = complexity_span_for_symbol(language, root, symbol, config);
+        let parameter_count = parameter_count_for_symbol(language, source, root, symbol, config);
         metrics.push(metric_for_scope(
             file_path,
             language,
@@ -77,6 +82,7 @@ pub fn collect_complexity_metrics(
                 span: metric_span,
                 parameter_count,
             },
+            source,
             &root,
             config,
         ));
@@ -106,6 +112,7 @@ fn metric_for_scope(
     file_path: &str,
     language: &str,
     input: MetricScopeInput,
+    source: &str,
     root: &Node<'_>,
     config: ComplexityLanguageConfig,
 ) -> ComplexityMetric {
@@ -116,7 +123,7 @@ fn metric_for_scope(
         span,
         parameter_count,
     } = input;
-    collect_stats(*root, span, config, 0, &mut stats);
+    collect_stats(language, *root, source, span, config, 0, &mut stats);
     let identity = symbol_id.as_deref().unwrap_or("file");
     let metadata = HashMap::from([(
         "metric_version".to_string(),
@@ -147,7 +154,9 @@ fn metric_for_scope(
 }
 
 fn collect_stats(
+    language: &str,
     node: Node<'_>,
+    source: &str,
     span: NormalizedSpan,
     config: ComplexityLanguageConfig,
     current_depth: u32,
@@ -157,13 +166,23 @@ fn collect_stats(
         return;
     }
 
-    let counted = contains(span, node)
-        && (config.decision_node_kinds.contains(&node.kind())
-            || config.loop_node_kinds.contains(&node.kind()));
+    let decision_kind = config.decision_node_kinds.contains(&node.kind())
+        || call_target_matches(node, source, config.call_decision_targets);
+    let loop_kind = config.loop_node_kinds.contains(&node.kind())
+        || call_target_matches(node, source, config.call_loop_targets);
+    // tree-sitter-ruby nests duplicate `if`/`for` wrappers around the same
+    // construct; count only the outer node when parent and child share a kind.
+    let decision = contains(span, node)
+        && decision_kind
+        && !is_same_kind_child_wrapper(language, node, true, config, source);
+    let loop_node = contains(span, node)
+        && loop_kind
+        && !is_same_kind_child_wrapper(language, node, false, config, source);
+    let counted = decision || loop_node;
     let next_depth = if counted {
         let next = current_depth + 1;
         stats.max_nesting_depth = stats.max_nesting_depth.max(next);
-        if config.decision_node_kinds.contains(&node.kind()) {
+        if decision {
             stats.decision_count += 1;
         } else {
             stats.loop_count += 1;
@@ -175,18 +194,135 @@ fn collect_stats(
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_stats(child, span, config, next_depth, stats);
+        collect_stats(language, child, source, span, config, next_depth, stats);
     }
 }
 
+fn is_same_kind_child_wrapper(
+    language: &str,
+    node: Node<'_>,
+    decision: bool,
+    config: ComplexityLanguageConfig,
+    source: &str,
+) -> bool {
+    if language != "ruby" {
+        return false;
+    }
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    if parent.kind() != node.kind() {
+        return false;
+    }
+    if decision {
+        config.decision_node_kinds.contains(&node.kind())
+            || call_target_matches(node, source, config.call_decision_targets)
+    } else {
+        config.loop_node_kinds.contains(&node.kind())
+            || call_target_matches(node, source, config.call_loop_targets)
+    }
+}
+
+fn call_target_matches(node: Node<'_>, source: &str, targets: &[&str]) -> bool {
+    if targets.is_empty() || node.kind() != "call" {
+        return false;
+    }
+    let Some(target) = node.child_by_field_name("target") else {
+        return false;
+    };
+    if target.kind() != "identifier" {
+        return false;
+    }
+    target
+        .utf8_text(source.as_bytes())
+        .ok()
+        .is_some_and(|name| targets.contains(&name))
+}
+
 fn parameter_count_for_symbol(
+    language: &str,
+    source: &str,
     root: Node<'_>,
     symbol: &Symbol,
     config: ComplexityLanguageConfig,
 ) -> Option<u32> {
+    if language == "elixir" {
+        return parameter_count_for_elixir_symbol(source, root, symbol);
+    }
+
     let span = symbol_span(symbol);
     let container = find_first_parameter_container(root, span, config)?;
     Some(count_container_parameters(container, config))
+}
+
+fn parameter_count_for_elixir_symbol(source: &str, root: Node<'_>, symbol: &Symbol) -> Option<u32> {
+    let span = symbol_span(symbol);
+    let def_call = find_elixir_def_call(root, source, span)?;
+    let container = elixir_function_head_arguments(def_call)?;
+    Some(count_elixir_parameters(container, source))
+}
+
+fn find_elixir_def_call<'tree>(
+    node: Node<'tree>,
+    source: &str,
+    span: NormalizedSpan,
+) -> Option<Node<'tree>> {
+    if !overlaps(node, span) {
+        return None;
+    }
+    if contains(span, node) && call_target_matches(node, source, &["def", "defp"]) {
+        return Some(node);
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if let Some(found) = find_elixir_def_call(child, source, span) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+fn elixir_function_head_arguments(def_call: Node<'_>) -> Option<Node<'_>> {
+    let args = child_by_kind(def_call, "arguments")?;
+    let mut cursor = args.walk();
+    for child in args.children(&mut cursor) {
+        match child.kind() {
+            "call" => {
+                if let Some(head_args) = child_by_kind(child, "arguments") {
+                    return Some(head_args);
+                }
+            }
+            "binary_operator" => {
+                if let Some(left) = child.child_by_field_name("left")
+                    && left.kind() == "call"
+                    && let Some(head_args) = child_by_kind(left, "arguments")
+                {
+                    return Some(head_args);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn count_elixir_parameters(container: Node<'_>, _source: &str) -> u32 {
+    let mut count = 0;
+    let mut cursor = container.walk();
+    for child in container.children(&mut cursor) {
+        match child.kind() {
+            "identifier" => count += 1,
+            "call" => count += 1,
+            _ => {}
+        }
+    }
+    count
+}
+
+fn child_by_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 fn count_container_parameters(container: Node<'_>, config: ComplexityLanguageConfig) -> u32 {
@@ -202,10 +338,40 @@ fn count_container_parameters(container: Node<'_>, config: ComplexityLanguageCon
     count
 }
 
-/// Resolve the body of a callable whose symbol node covers only its signature,
-/// with the body attached as a following sibling node (Dart's
-/// `function_signature` / `function_body` split). Returns `None` for languages
-/// that do not declare `body_sibling_node_kinds`.
+/// Resolve the span used for symbol-scoped complexity. Prefer callable bodies,
+/// including detached sibling bodies for grammars such as Dart, and fall back to
+/// the declaration span when no usable body span is available.
+fn complexity_span_for_symbol(
+    language: &str,
+    root: Node<'_>,
+    symbol: &Symbol,
+    config: ComplexityLanguageConfig,
+) -> NormalizedSpan {
+    let declaration_span = symbol_span(symbol);
+    let body_span = sibling_body_span(root, symbol, config).or(symbol.body_span);
+    match body_span {
+        Some(body) => {
+            if language == "scala" && !body_covers_meaningful_share(declaration_span, body) {
+                declaration_span
+            } else {
+                body
+            }
+        }
+        None => declaration_span,
+    }
+}
+
+fn body_covers_meaningful_share(declaration_span: NormalizedSpan, body: NormalizedSpan) -> bool {
+    let declaration_bytes = declaration_span
+        .end_byte
+        .saturating_sub(declaration_span.start_byte);
+    if declaration_bytes == 0 {
+        return false;
+    }
+    let body_bytes = body.end_byte.saturating_sub(body.start_byte);
+    body_bytes * 2 >= declaration_bytes
+}
+
 fn sibling_body_span(
     root: Node<'_>,
     symbol: &Symbol,
@@ -328,6 +494,12 @@ fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
         "rust" => Some(RUST_CONFIG),
         "swift" => Some(SWIFT_CONFIG),
         "typescript" => Some(ECMASCRIPT_CONFIG),
+        "zig" => Some(ZIG_CONFIG),
+        "php" => Some(PHP_CONFIG),
+        "ruby" => Some(RUBY_CONFIG),
+        "scala" => Some(SCALA_CONFIG),
+        "elixir" => Some(ELIXIR_CONFIG),
+        "lua" => Some(LUA_CONFIG),
         _ => None,
     }
 }
@@ -340,6 +512,8 @@ const DEFAULT_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     parameter_node_kinds: &[],
     parameter_group_node_kinds: &[],
     body_sibling_node_kinds: &[],
+    call_decision_targets: &[],
+    call_loop_targets: &[],
 };
 
 const RUST_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
@@ -528,4 +702,128 @@ const DART_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     parameter_node_kinds: &["formal_parameter", "super_formal_parameter"],
     parameter_group_node_kinds: &["optional_formal_parameters"],
     body_sibling_node_kinds: &["function_body"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-zig 1.1.2 node-types.json and a
+// to_sexp() parse dump. Zig `if` appears as both `if_statement` and
+// `if_expression`; switch arms are `switch_case` children of `switch_expression`.
+const ZIG_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_expression",
+        "if_statement",
+        "switch_expression",
+        "switch_case",
+        "catch_expression",
+    ],
+    loop_node_kinds: &[
+        "for_expression",
+        "for_statement",
+        "while_expression",
+        "while_statement",
+    ],
+    parameter_container_node_kinds: &["parameters"],
+    parameter_node_kinds: &["parameter"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-php 0.24.2 php/node-types.json and a
+// to_sexp() parse dump.
+const PHP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "else_if_clause",
+        "switch_statement",
+        "case_statement",
+        "match_expression",
+        "match_conditional_expression",
+        "match_default_expression",
+        "catch_clause",
+        "conditional_expression",
+    ],
+    loop_node_kinds: &[
+        "for_statement",
+        "foreach_statement",
+        "while_statement",
+        "do_statement",
+    ],
+    parameter_container_node_kinds: &["formal_parameters"],
+    parameter_node_kinds: &[
+        "simple_parameter",
+        "variadic_parameter",
+        "property_promotion_parameter",
+    ],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-ruby 0.23.1 node-types.json and a
+// to_sexp() parse dump. `case` plus each `when` follow the switch-container
+// plus-arm convention; `elsif` counts separately from `if`.
+const RUBY_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if",
+        "elsif",
+        "unless",
+        "case",
+        "when",
+        "conditional",
+        "rescue",
+    ],
+    loop_node_kinds: &["for", "while", "until"],
+    parameter_container_node_kinds: &["method_parameters"],
+    parameter_node_kinds: &[
+        "identifier",
+        "optional_parameter",
+        "keyword_parameter",
+        "splat_parameter",
+        "hash_splat_parameter",
+        "block_parameter",
+        "destructured_parameter",
+        "forward_parameter",
+    ],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-scala 0.26.0 node-types.json and a
+// to_sexp() parse dump. `match_expression` plus each `case_clause` follow the
+// switch-container-plus-arm convention; `guard` counts as an early-exit decision.
+const SCALA_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_expression",
+        "match_expression",
+        "case_clause",
+        "type_case_clause",
+        "catch_clause",
+        "guard",
+        "given_conditional",
+    ],
+    loop_node_kinds: &["for_expression", "while_expression", "do_while_expression"],
+    parameter_container_node_kinds: &["parameters", "class_parameters"],
+    parameter_node_kinds: &["parameter", "class_parameter"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-elixir 0.3.5 node-types.json and a
+// to_sexp() parse dump. Control-flow macros parse as generic `call` nodes, so
+// `call_decision_targets`/`call_loop_targets` cover `if`, `case`, and `for`.
+// `stab_clause` arms inside `case`/`cond` and `rescue_block`/`catch_block`
+// inside `try` count as explicit decision nodes.
+const ELIXIR_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &["stab_clause", "rescue_block", "catch_block"],
+    loop_node_kinds: &[],
+    parameter_container_node_kinds: &[],
+    parameter_node_kinds: &[],
+    call_decision_targets: &["if", "unless", "case", "cond", "with"],
+    call_loop_targets: &["for"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-lua 0.5.0 node-types.json and a
+// to_sexp() parse dump. `elseif_statement` counts separately from `if_statement`.
+const LUA_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &["if_statement", "elseif_statement"],
+    loop_node_kinds: &["for_statement", "while_statement", "repeat_statement"],
+    parameter_container_node_kinds: &["parameters"],
+    parameter_node_kinds: &["identifier"],
+    ..DEFAULT_CONFIG
 };

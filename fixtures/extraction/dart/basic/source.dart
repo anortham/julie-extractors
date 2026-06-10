@@ -35,3 +35,13 @@ void fetchStatus() {
 
 void fetchUrl(String url) {
 }
+
+int evaluate(int count, bool enabled) {
+  var total = 0;
+  if (enabled) {
+    for (var i = 0; i < count; i++) {
+      total += i;
+    }
+  }
+  return total;
+}

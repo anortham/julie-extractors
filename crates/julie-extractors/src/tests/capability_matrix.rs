@@ -987,6 +987,11 @@ fn capability_matrix_complexity_metric_claims_have_fixture_evidence() {
                 ));
             }
         }
+        if !claimed.is_empty() && !complexity_metrics_have_control_flow_evidence(&root, row) {
+            errors.push(format!(
+                "{language} claims complexity_metrics but no fixture emits a nonzero decision_count or loop_count"
+            ));
+        }
     }
 
     assert!(errors.is_empty(), "{}", errors.join("\n"));
@@ -1483,6 +1488,28 @@ fn observed_structural_fact_patterns(root: &Path, row: &Value) -> BTreeSet<Strin
     }
 
     observed
+}
+
+fn complexity_metrics_have_control_flow_evidence(root: &Path, row: &Value) -> bool {
+    let language = row["language"].as_str().unwrap();
+    let fixtures = row["fixtures"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{language} fixtures must be an array"));
+
+    fixtures.iter().any(|fixture| {
+        let source_path = fixture["source"].as_str().unwrap_or_else(|| {
+            panic!("{language} fixture entries must include string source paths")
+        });
+        let source = fs::read_to_string(root.join(source_path))
+            .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
+        let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
+            panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
+        });
+        results
+            .complexity_metrics
+            .iter()
+            .any(|metric| metric.decision_count > 0 || metric.loop_count > 0)
+    })
 }
 
 fn observed_complexity_metric_scopes(root: &Path, row: &Value) -> BTreeSet<String> {

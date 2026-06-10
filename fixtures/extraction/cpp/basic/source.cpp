@@ -35,3 +35,13 @@ int helper_value(int value) {
 int run_worker() {
     return helper_value(20);
 }
+
+int evaluate(int count, bool enabled) {
+    int total = 0;
+    if (enabled) {
+        for (int i = 0; i < count; i++) {
+            total += i;
+        }
+    }
+    return total;
+}

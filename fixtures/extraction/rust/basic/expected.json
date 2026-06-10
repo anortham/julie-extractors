@@ -70,6 +70,37 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/basic/source.rs:evaluate:42:4",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 42,
+      "start_column": 4,
+      "end_line": 50,
+      "end_column": 5,
+      "start_byte": 868,
+      "end_byte": 1071,
+      "body_span": {
+        "start_line": 42,
+        "start_column": 54,
+        "end_line": 50,
+        "end_column": 5,
+        "start_byte": 918,
+        "end_byte": 1071
+      },
+      "body_hash": "f9ba3e9ce05f6331cb4d7c4a2e9515a2",
+      "signature": "pub fn evaluate(count: i32, enabled: bool) -> i32",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:fixture:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/basic/source.rs:fetch_status:34:4",
       "name": "fetch_status",
       "kind": "function",
@@ -139,19 +170,19 @@
       "file_path": "fixtures/extraction/rust/basic/source.rs",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 41,
+      "end_line": 51,
       "end_column": 1,
       "start_byte": 0,
-      "end_byte": 864,
+      "end_byte": 1073,
       "body_span": {
         "start_line": 1,
         "start_column": 16,
-        "end_line": 41,
+        "end_line": 51,
         "end_column": 1,
         "start_byte": 16,
-        "end_byte": 864
+        "end_byte": 1073
       },
-      "body_hash": "4cd07ec99f2bb5d0cf577793a5865a7b",
+      "body_hash": "f62123e2a0651bb87300fce243a622a2",
       "signature": "pub mod fixture",
       "doc_comment": null,
       "visibility": "Public",
@@ -479,6 +510,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:evaluate:42:4",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/basic/source.rs:helper:24:4",
       "resolved_type": "i32",
       "generic_params": null,
@@ -515,18 +555,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/basic/source.rs",
-      "covered_lines": 42,
-      "covered_bytes": 865,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 52,
+      "covered_bytes": 1074,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 42,
+      "end_line": 52,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 865,
+      "end_byte": 1074,
       "metadata": {
         "metric_version": 1
       }
@@ -549,6 +589,28 @@
       "end_column": 5,
       "start_byte": 632,
       "end_byte": 657,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:evaluate:42:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "covered_lines": 9,
+      "covered_bytes": 153,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 42,
+      "start_column": 54,
+      "end_line": 50,
+      "end_column": 5,
+      "start_byte": 918,
+      "end_byte": 1071,
       "metadata": {
         "metric_version": 1
       }

@@ -49,3 +49,16 @@ function fetchStatus(): void
 function fetchUrl(string $url): void
 {
 }
+
+function evaluate(int $count, bool $enabled): int
+{
+    $total = 0;
+    if ($enabled) {
+        for ($i = 0; $i < $count; $i++) {
+            $total += $i;
+        }
+    } elseif ($count > 0) {
+        $total = $count > 10 ? 1 : 0;
+    }
+    return $total;
+}

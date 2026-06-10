@@ -69,6 +69,41 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/kotlin/basic/source.kt:evaluate:38:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/basic/source.kt",
+      "start_line": 38,
+      "start_column": 0,
+      "end_line": 46,
+      "end_column": 1,
+      "start_byte": 761,
+      "end_byte": 940,
+      "body_span": {
+        "start_line": 38,
+        "start_column": 48,
+        "end_line": 46,
+        "end_column": 1,
+        "start_byte": 809,
+        "end_byte": 940
+      },
+      "body_hash": "d893bbaf3dcf06a42d2d84f216a230f2",
+      "signature": "fun evaluate(count: Int, enabled: Boolean): Int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "returnType": "Int",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/kotlin/basic/source.kt:fetchStatus:30:4",
       "name": "fetchStatus",
       "kind": "method",
@@ -363,6 +398,35 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/basic/source.kt:total:39:4",
+      "name": "total",
+      "kind": "property",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/basic/source.kt",
+      "start_line": 39,
+      "start_column": 4,
+      "end_line": 39,
+      "end_column": 17,
+      "start_byte": 815,
+      "end_byte": 828,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "var total = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/kotlin/basic/source.kt:evaluate:38:0",
+      "metadata": {
+        "isVal": "false",
+        "isVar": "true",
+        "modifiers": "",
+        "type": "property"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [
@@ -500,6 +564,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/kotlin/basic/source.kt:evaluate:38:0",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "kotlin",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/kotlin/basic/source.kt:helper:16:4",
       "resolved_type": "Int",
       "generic_params": null,
@@ -545,18 +618,40 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "kotlin",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
-      "covered_lines": 37,
-      "covered_bytes": 760,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 47,
+      "covered_bytes": 941,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 37,
+      "end_line": 47,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 760,
+      "end_byte": 941,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/basic/source.kt:evaluate:38:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/basic/source.kt",
+      "covered_lines": 9,
+      "covered_bytes": 131,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 38,
+      "start_column": 48,
+      "end_line": 46,
+      "end_column": 1,
+      "start_byte": 809,
+      "end_byte": 940,
       "metadata": {
         "metric_version": 1
       }

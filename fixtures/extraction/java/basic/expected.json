@@ -70,19 +70,19 @@
       "file_path": "fixtures/extraction/java/basic/source.java",
       "start_line": 7,
       "start_column": 0,
-      "end_line": 46,
+      "end_line": 56,
       "end_column": 1,
       "start_byte": 52,
-      "end_byte": 939,
+      "end_byte": 1166,
       "body_span": {
         "start_line": 7,
         "start_column": 28,
-        "end_line": 46,
+        "end_line": 56,
         "end_column": 1,
         "start_byte": 80,
-        "end_byte": 939
+        "end_byte": 1166
       },
-      "body_hash": "9d2940dd36268c78f1c355d4bac262f4",
+      "body_hash": "6aac90427ff98ddd383e83656395afad",
       "signature": "class Worker implements Job",
       "doc_comment": null,
       "visibility": "Private",
@@ -92,6 +92,37 @@
           "Job"
         ]
       },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/basic/source.java:evaluate:47:4",
+      "name": "evaluate",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "start_line": 47,
+      "start_column": 4,
+      "end_line": 55,
+      "end_column": 5,
+      "start_byte": 943,
+      "end_byte": 1164,
+      "body_span": {
+        "start_line": 47,
+        "start_column": 52,
+        "end_line": 55,
+        "end_column": 5,
+        "start_byte": 991,
+        "end_byte": 1164
+      },
+      "body_hash": "c584cfb2ad1aaa2d2e17beaa1c134f90",
+      "signature": "static int evaluate(int count, boolean enabled)",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
+      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -528,6 +559,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/java/basic/source.java:evaluate:47:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/java/basic/source.java:fetchStatus:40:4",
       "resolved_type": "void",
       "generic_params": null,
@@ -609,18 +649,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
-      "covered_lines": 47,
-      "covered_bytes": 940,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 57,
+      "covered_bytes": 1167,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 47,
+      "end_line": 57,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 940,
+      "end_byte": 1167,
       "metadata": {
         "metric_version": 1
       }
@@ -643,6 +683,28 @@
       "end_column": 5,
       "start_byte": 128,
       "end_byte": 157,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:evaluate:47:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "covered_lines": 9,
+      "covered_bytes": 173,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 47,
+      "start_column": 52,
+      "end_line": 55,
+      "end_column": 5,
+      "start_byte": 991,
+      "end_byte": 1164,
       "metadata": {
         "metric_version": 1
       }

@@ -97,6 +97,37 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/dart/basic/source.dart:evaluate:39:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "start_line": 39,
+      "start_column": 0,
+      "end_line": 39,
+      "end_column": 37,
+      "start_byte": 620,
+      "end_byte": 657,
+      "body_span": {
+        "start_line": 39,
+        "start_column": 12,
+        "end_line": 39,
+        "end_column": 37,
+        "start_byte": 632,
+        "end_byte": 657
+      },
+      "body_hash": "635e58f3424ea07abf92a90dec4c56b0",
+      "signature": "int evaluate(int count, bool enabled)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/dart/basic/source.dart:fetchStatus:32:0",
       "name": "fetchStatus",
       "kind": "function",
@@ -439,6 +470,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/dart/basic/source.dart:bool:type_usage:39:24",
+      "name": "bool",
+      "kind": "type_usage",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "start_line": 39,
+      "start_column": 24,
+      "end_line": 39,
+      "end_column": 28,
+      "start_byte": 644,
+      "end_byte": 648,
+      "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:39:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/dart/basic/source.dart:fetchUrl:call:33:2",
       "name": "fetchUrl",
       "kind": "call",
@@ -567,6 +614,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/dart/basic/source.dart:int:type_usage:39:0",
+      "name": "int",
+      "kind": "type_usage",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "start_line": 39,
+      "start_column": 0,
+      "end_line": 39,
+      "end_column": 3,
+      "start_byte": 620,
+      "end_byte": 623,
+      "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:39:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/dart/basic/source.dart:int:type_usage:39:13",
+      "name": "int",
+      "kind": "type_usage",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "start_line": 39,
+      "start_column": 13,
+      "end_line": 39,
+      "end_column": 16,
+      "start_byte": 633,
+      "end_byte": 636,
+      "containing_key": "fixtures/extraction/dart/basic/source.dart:evaluate:39:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/dart/basic/source.dart:int:type_usage:6:8",
       "name": "int",
       "kind": "type_usage",
@@ -628,6 +707,15 @@
     {
       "symbol_key": "fixtures/extraction/dart/basic/source.dart:Worker:5:0",
       "resolved_type": "class",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "dart",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/dart/basic/source.dart:evaluate:39:0",
+      "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -707,18 +795,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "dart",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
-      "covered_lines": 38,
-      "covered_bytes": 619,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 48,
+      "covered_bytes": 778,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 38,
+      "end_line": 48,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 619,
+      "end_byte": 778,
       "metadata": {
         "metric_version": 1
       }
@@ -741,6 +829,28 @@
       "end_column": 17,
       "start_byte": 89,
       "end_byte": 98,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/dart/basic/source.dart:evaluate:39:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/basic/source.dart",
+      "covered_lines": 9,
+      "covered_bytes": 119,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 39,
+      "start_column": 38,
+      "end_line": 47,
+      "end_column": 1,
+      "start_byte": 658,
+      "end_byte": 777,
       "metadata": {
         "metric_version": 1
       }

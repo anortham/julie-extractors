@@ -28,3 +28,19 @@ public sealed class Worker : IJob
         return value + 1;
     }
 }
+
+public static class ComplexityFixture
+{
+    public static int Evaluate(int count, bool enabled)
+    {
+        var total = 0;
+        if (enabled)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                total += i;
+            }
+        }
+        return total;
+    }
+}

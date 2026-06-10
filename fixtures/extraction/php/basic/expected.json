@@ -96,6 +96,42 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/php/basic/source.php:evaluate:53:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 53,
+      "start_column": 0,
+      "end_line": 64,
+      "end_column": 1,
+      "start_byte": 846,
+      "end_byte": 1104,
+      "body_span": {
+        "start_line": 54,
+        "start_column": 0,
+        "end_line": 64,
+        "end_column": 1,
+        "start_byte": 896,
+        "end_byte": 1104
+      },
+      "body_hash": "68082ccd1534628ccb6b0098bf07ace3",
+      "signature": "function evaluate(int $count, bool $enabled): int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "parameters": "(int $count, bool $enabled)",
+        "returnType": "int",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/php/basic/source.php:fetchStatus:44:0",
       "name": "fetchStatus",
       "kind": "function",
@@ -197,6 +233,33 @@
         "parameters": "(int $value)",
         "returnType": "int",
         "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:i:57:13",
+      "name": "i",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 57,
+      "start_column": 13,
+      "end_line": 57,
+      "end_column": 19,
+      "start_byte": 947,
+      "end_byte": 953,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$i = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/basic/source.php:evaluate:53:0",
+      "metadata": {
+        "type": "variable_assignment",
+        "value": "0"
       },
       "annotations": [],
       "semantic_group": null,
@@ -360,6 +423,60 @@
         "parameters": "()",
         "returnType": "int",
         "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:total:55:4",
+      "name": "total",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 55,
+      "start_column": 4,
+      "end_line": 55,
+      "end_column": 14,
+      "start_byte": 902,
+      "end_byte": 912,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$total = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/basic/source.php:evaluate:53:0",
+      "metadata": {
+        "type": "variable_assignment",
+        "value": "0"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/basic/source.php:total:61:8",
+      "name": "total",
+      "kind": "variable",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "start_line": 61,
+      "start_column": 8,
+      "end_line": 61,
+      "end_column": 36,
+      "start_byte": 1048,
+      "end_byte": 1076,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "$total = $count > 10 ? 1 : 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/php/basic/source.php:evaluate:53:0",
+      "metadata": {
+        "type": "variable_assignment",
+        "value": "$count > 10 ? 1 : 0"
       },
       "annotations": [],
       "semantic_group": null,
@@ -541,6 +658,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/php/basic/source.php:evaluate:53:0",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/php/basic/source.php:fetchStatus:44:0",
       "resolved_type": "void",
       "generic_params": null,
@@ -561,6 +687,15 @@
     {
       "symbol_key": "fixtures/extraction/php/basic/source.php:helper:27:0",
       "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/basic/source.php:i:57:13",
+      "resolved_type": "variable_assignment",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -611,11 +746,228 @@
       "is_inferred": true,
       "language": "php",
       "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/basic/source.php:total:55:4",
+      "resolved_type": "variable_assignment",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/basic/source.php:total:61:8",
+      "resolved_type": "variable_assignment",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
     }
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 65,
+      "covered_bytes": 1105,
+      "decision_count": 3,
+      "loop_count": 1,
+      "max_nesting_depth": 3,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 65,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 1105,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/basic/source.php:__construct:9:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 3,
+      "covered_bytes": 32,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 108,
+      "end_byte": 140,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/basic/source.php:evaluate:53:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 11,
+      "covered_bytes": 208,
+      "decision_count": 3,
+      "loop_count": 1,
+      "max_nesting_depth": 3,
+      "parameter_count": 2,
+      "start_line": 54,
+      "start_column": 0,
+      "end_line": 64,
+      "end_column": 1,
+      "start_byte": 896,
+      "end_byte": 1104,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/basic/source.php:fetchStatus:44:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 3,
+      "covered_bytes": 59,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 45,
+      "start_column": 0,
+      "end_line": 47,
+      "end_column": 1,
+      "start_byte": 743,
+      "end_byte": 802,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/basic/source.php:fetchUrl:49:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 2,
+      "covered_bytes": 3,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 50,
+      "start_column": 0,
+      "end_line": 51,
+      "end_column": 1,
+      "start_byte": 841,
+      "end_byte": 844,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/basic/source.php:helper:27:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 3,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 28,
+      "start_column": 0,
+      "end_line": 30,
+      "end_column": 1,
+      "start_byte": 391,
+      "end_byte": 417,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/basic/source.php:observeRun:39:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 2,
+      "covered_bytes": 3,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 40,
+      "start_column": 0,
+      "end_line": 41,
+      "end_column": 1,
+      "start_byte": 659,
+      "end_byte": 662,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/basic/source.php:recordRun:33:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 3,
+      "covered_bytes": 38,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 34,
+      "start_column": 0,
+      "end_line": 36,
+      "end_column": 1,
+      "start_byte": 511,
+      "end_byte": 549,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/basic/source.php:run:14:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/basic/source.php",
+      "covered_lines": 4,
+      "covered_bytes": 71,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 5,
+      "start_byte": 177,
+      "end_byte": 248,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "https://api.example.com/workers/status",

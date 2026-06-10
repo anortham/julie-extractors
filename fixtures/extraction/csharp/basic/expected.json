@@ -1,6 +1,70 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/csharp/basic/source.cs:ComplexityFixture:32:0",
+      "name": "ComplexityFixture",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 32,
+      "start_column": 0,
+      "end_line": 46,
+      "end_column": 1,
+      "start_byte": 508,
+      "end_byte": 803,
+      "body_span": {
+        "start_line": 33,
+        "start_column": 0,
+        "end_line": 46,
+        "end_column": 1,
+        "start_byte": 546,
+        "end_byte": 803
+      },
+      "body_hash": "91c82538783a1b817acef232bb351765",
+      "signature": "public static class ComplexityFixture",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "csharp_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/basic/source.cs:Evaluate:34:4",
+      "name": "Evaluate",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 34,
+      "start_column": 4,
+      "end_line": 45,
+      "end_column": 5,
+      "start_byte": 552,
+      "end_byte": 801,
+      "body_span": {
+        "start_line": 35,
+        "start_column": 4,
+        "end_line": 45,
+        "end_column": 5,
+        "start_byte": 608,
+        "end_byte": 801
+      },
+      "body_hash": "b21879c1a934bd0c748e7df41f2590b6",
+      "signature": "public static int Evaluate(int count, bool enabled)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:ComplexityFixture:32:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
       "name": "Helper",
       "kind": "method",
@@ -268,6 +332,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Evaluate:34:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
       "resolved_type": "int",
       "generic_params": null,
@@ -313,18 +386,40 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "covered_lines": 31,
-      "covered_bytes": 507,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 47,
+      "covered_bytes": 804,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 31,
+      "end_line": 47,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 507,
+      "end_byte": 804,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Evaluate:34:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "covered_lines": 11,
+      "covered_bytes": 193,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 35,
+      "start_column": 4,
+      "end_line": 45,
+      "end_column": 5,
+      "start_byte": 608,
+      "end_byte": 801,
       "metadata": {
         "metric_version": 1
       }

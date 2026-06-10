@@ -1,6 +1,37 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/go/basic/source.go:Evaluate:40:0",
+      "name": "Evaluate",
+      "kind": "function",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "start_line": 40,
+      "start_column": 0,
+      "end_line": 48,
+      "end_column": 1,
+      "start_byte": 690,
+      "end_byte": 828,
+      "body_span": {
+        "start_line": 40,
+        "start_column": 43,
+        "end_line": 48,
+        "end_column": 1,
+        "start_byte": 733,
+        "end_byte": 828
+      },
+      "body_hash": "b1fd4e3eb33fbe78c5252a6e33594ebf",
+      "signature": "func Evaluate(count int, enabled bool) int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/go/basic/source.go:FetchStatus:35:0",
       "name": "FetchStatus",
       "kind": "function",
@@ -444,6 +475,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/go/basic/source.go:Evaluate:40:0",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "go",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/go/basic/source.go:FetchStatus:35:0",
       "resolved_type": "error",
       "generic_params": null,
@@ -489,18 +529,40 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "go",
       "file_path": "fixtures/extraction/go/basic/source.go",
-      "covered_lines": 39,
-      "covered_bytes": 689,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
+      "covered_lines": 49,
+      "covered_bytes": 829,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 39,
+      "end_line": 49,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 689,
+      "end_byte": 829,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/go/basic/source.go:Evaluate:40:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "covered_lines": 9,
+      "covered_bytes": 95,
+      "decision_count": 1,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 40,
+      "start_column": 43,
+      "end_line": 48,
+      "end_column": 1,
+      "start_byte": 733,
+      "end_byte": 828,
       "metadata": {
         "metric_version": 1
       }
