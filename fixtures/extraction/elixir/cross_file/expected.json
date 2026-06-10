@@ -338,7 +338,49 @@
   ],
   "types": [],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "elixir.defmodule_call.v1",
+      "capture_name": "defmodule_call",
+      "node_kind": "call",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
+      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:Fixture.Worker:7:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 3,
+      "start_byte": 294,
+      "end_byte": 601,
+      "confidence": "1.000",
+      "metadata": {
+        "module_name": "Fixture.Worker",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "elixir.directive_call.v1",
+      "capture_name": "directive_call",
+      "node_kind": "call",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
+      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:Phoenix.Router:8:2",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 22,
+      "start_byte": 324,
+      "end_byte": 344,
+      "confidence": "1.000",
+      "metadata": {
+        "directive_kind": "alias",
+        "directive_target": "Phoenix.Router",
+        "pattern_version": 1,
+        "query_family": "directives"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

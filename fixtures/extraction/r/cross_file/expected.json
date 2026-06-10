@@ -205,7 +205,29 @@
   ],
   "types": [],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "r.library_call.v1",
+      "capture_name": "library_call",
+      "node_kind": "call",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/cross_file/source.R",
+      "containing_key": "fixtures/extraction/r/cross_file/source.R:other:7:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 14,
+      "start_byte": 314,
+      "end_byte": 328,
+      "confidence": "1.000",
+      "metadata": {
+        "load_kind": "library",
+        "package_name": "other",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

@@ -2185,16 +2185,16 @@
           "open_gaps": []
         },
         "structural_facts": {
-          "supported": [],
+          "supported": [
+            "php.anonymous_function.v1",
+            "php.attribute.v1",
+            "php.match_expression.v1",
+            "php.namespace_definition.v1",
+            "php.namespace_use_declaration.v1",
+            "php.trait_use_declaration.v1"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "semantic_facts",
-              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
-              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -2314,16 +2314,14 @@
           "open_gaps": []
         },
         "structural_facts": {
-          "supported": [],
+          "supported": [
+            "ruby.block.v1",
+            "ruby.mixin_call.v1",
+            "ruby.require_call.v1",
+            "ruby.rescue_clause.v1"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "semantic_facts",
-              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
-              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -2956,16 +2954,15 @@
           "open_gaps": []
         },
         "structural_facts": {
-          "supported": [],
+          "supported": [
+            "elixir.defmodule_call.v1",
+            "elixir.directive_call.v1",
+            "elixir.module_attribute.v1",
+            "elixir.pipeline_operator.v1",
+            "elixir.with_expression.v1"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "semantic_facts",
-              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
-              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -2977,14 +2974,16 @@
         },
         "annotations": {
           "supported": [
-            "function"
+            "function",
+            "module"
           ],
           "not_applicable": [],
           "open_gaps": []
         },
         "doc_comments": {
           "supported": [
-            "function"
+            "function",
+            "module"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3092,16 +3091,15 @@
           "open_gaps": []
         },
         "structural_facts": {
-          "supported": [],
+          "supported": [
+            "lua.coroutine_call.v1",
+            "lua.module_return.v1",
+            "lua.require_call.v1",
+            "lua.setmetatable_call.v1",
+            "lua.table_constructor.v1"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "semantic_facts",
-              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
-              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -3373,16 +3371,13 @@
           "open_gaps": []
         },
         "structural_facts": {
-          "supported": [],
+          "supported": [
+            "r.formula_expression.v1",
+            "r.library_call.v1",
+            "r.pipe_expression.v1"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "semantic_facts",
-              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
-              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [

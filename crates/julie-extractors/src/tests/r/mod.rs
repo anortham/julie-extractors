@@ -88,5 +88,6 @@ pub mod packages; // library(), require(), package::function syntax
 #[cfg(feature = "test-real-world")]
 pub mod real_world; // Real-world validation (ggplot2, dplyr)
 pub mod relationships; // Relationship extraction (calls, pipes, library usage)
+pub mod structural_facts;
 pub mod test_detection; // testthat call-style test detection (Miller bridge test-roles)
 pub mod tidyverse; // %>% pipes, dplyr verbs, ggplot2 patterns

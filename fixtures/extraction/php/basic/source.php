@@ -2,6 +2,12 @@
 
 namespace Fixture;
 
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
+
+trait Timestampable
+{
+}
+
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD | \Attribute::TARGET_PROPERTY)]
 class Entity
 {
@@ -23,6 +29,8 @@ class Required
 #[Entity]
 class Worker
 {
+    use Timestampable;
+
     #[Required]
     public int $id;
 
@@ -71,6 +79,14 @@ function fetchUrl(string $url): void
 {
 }
 
+function withMapper(int $value): int
+{
+    $mapper = function (int $input): int {
+        return $input + 1;
+    };
+    return $mapper($value);
+}
+
 function evaluate(int $count, bool $enabled): int
 {
     $total = 0;
@@ -79,7 +95,10 @@ function evaluate(int $count, bool $enabled): int
             $total += $i;
         }
     } elseif ($count > 0) {
-        $total = $count > 10 ? 1 : 0;
+        $total = match (true) {
+            $count > 10 => 1,
+            default => 0,
+        };
     }
     return $total;
 }

@@ -1,3 +1,5 @@
+local json = require("json")
+
 local Worker = {}
 Worker.__index = Worker
 
@@ -29,5 +31,9 @@ local function evaluate(count, enabled)
     end
     return total
 end
+
+local co = coroutine.create(function()
+    return 1
+end)
 
 return Worker

@@ -285,7 +285,29 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "ruby.require_call.v1",
+      "capture_name": "require_call",
+      "node_kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 15,
+      "start_byte": 351,
+      "end_byte": 366,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "imports",
+        "require_kind": "require",
+        "required_path": "other"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

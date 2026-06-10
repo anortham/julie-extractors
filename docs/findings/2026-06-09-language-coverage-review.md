@@ -783,6 +783,43 @@ Keep these as explicit implementation tasks, not buried in broad coverage work:
 - SQL body-span quality remains weak for views/triggers that come from recovery
   paths.
 
+## Phase 10 structural facts: PHP, Ruby, Elixir, Lua, R
+
+Task 10 slice closed structural-facts debt for five scripting languages using
+parser-backed collectors in `code_structural_facts.rs`, focused fixture sources,
+golden rows, and per-language `structural_facts.rs` tests.
+
+- PHP: attributes, namespace/use declarations, trait use, anonymous functions,
+  match expressions.
+- Ruby: `require` / `require_relative`, mixin calls (`include` / `extend` /
+  `prepend`), blocks, rescue clauses.
+- Elixir: `defmodule`, module attributes (`@spec`, `@doc`, `@moduledoc`), directive
+  calls (`use`, `import`, `alias`, `require`), pipeline (`|>`), `with`.
+- Lua: `require`, `setmetatable`, `coroutine.*` calls, chunk-level module
+  returns, table constructors with field metadata.
+- R: `library()` / `require()`, pipe (`|>`), formula (`~`) expressions.
+
+Rejected candidates:
+
+- PHP `try`/`catch`: not added to the basic fixture; match and anonymous
+  functions cover control-flow and functional debt instead.
+- Ruby metaprogramming (`define_method`, etc.): unstable as structural facts;
+  blocks and mixin calls are parser-backed and fixture-proven.
+- Elixir Phoenix/Rails-style framework facts: not statically visible in fixture
+  syntax.
+- Lua bare `return` inside functions: filtered out; only chunk-level module
+  exports emit `lua.module_return.v1`.
+- R S3/S4/R6 class declarations: `R6::R6Class(...)` is a generic call without
+  reliable static class-shape metadata beyond existing symbol extraction.
+
+Current scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 5
+- `structural_facts`: 31/36
+
+Remaining structural-facts debt: `zig`, `qml`, `bash`, `powershell`, `gdscript`.
+
 ## Product bar
 
 The desired end state is the best tree-sitter extraction product available for

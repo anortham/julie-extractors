@@ -1,5 +1,11 @@
 defmodule Fixture.Worker do
+  @moduledoc "Worker helpers for fixture extraction."
   @spec run(integer()) :: integer()
+
+  import Kernel, only: [apply: 2]
+  alias Fixture.Helper
+  require Logger
+
   def run(id) do
     record_run(id)
     helper(id)
@@ -22,6 +28,16 @@ defmodule Fixture.Worker do
   end
 
   defp fetch_url(_url), do: :ok
+
+  def piped(id), do: id |> helper() |> Kernel.abs()
+
+  def safe_div(a, b) do
+    with true <- b != 0 do
+      div(a, b)
+    else
+      _ -> 0
+    end
+  end
 
   def evaluate(count, enabled) do
     if enabled do

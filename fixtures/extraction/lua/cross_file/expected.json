@@ -311,7 +311,49 @@
   ],
   "types": [],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "lua.module_return.v1",
+      "capture_name": "module_return",
+      "node_kind": "return_statement",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "containing_key": null,
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 23,
+      "end_column": 12,
+      "start_byte": 572,
+      "end_byte": 584,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "module",
+        "returned_value": "entry"
+      }
+    },
+    {
+      "pattern_id": "lua.require_call.v1",
+      "capture_name": "require_call",
+      "node_kind": "function_call",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 14,
+      "end_line": 6,
+      "end_column": 30,
+      "start_byte": 303,
+      "end_byte": 319,
+      "confidence": "1.000",
+      "metadata": {
+        "call_name": "require",
+        "pattern_version": 1,
+        "query_family": "imports",
+        "required_module": "other"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

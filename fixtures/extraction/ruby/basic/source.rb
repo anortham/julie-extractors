@@ -1,4 +1,9 @@
+require "json"
+require_relative "./helper"
+
 class Worker
+  include Enumerable
+
   DEFAULT_LABEL = "worker"
 
   def initialize(id)
@@ -6,7 +11,13 @@ class Worker
   end
 
   def run
-    helper(@id)
+    [1, 2].map { |value| helper(value) }
+  end
+
+  def risky
+    1 / 0
+  rescue ZeroDivisionError
+    0
   end
 
   private

@@ -13,6 +13,7 @@ pub mod literals;
 pub mod properties;
 pub mod rspec;
 pub mod struct_and_module_function;
+pub mod structural_facts;
 pub mod types;
 
 use crate::base::{RelationshipKind, SymbolKind, Visibility};

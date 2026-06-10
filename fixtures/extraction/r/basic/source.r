@@ -1,11 +1,15 @@
+library(dplyr)
+
 #' Increment a worker id.
 #' @param value worker id
 helper <- function(value) {
   value + 1
 }
 
+model_formula <- total ~ count
+
 run_worker <- function(id) {
-  helper(id)
+  id |> helper()
 }
 
 evaluate <- function(count, enabled) {
