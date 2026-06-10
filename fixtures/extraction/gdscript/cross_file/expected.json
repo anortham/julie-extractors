@@ -191,7 +191,28 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "gdscript.extends_declaration.v1",
+      "capture_name": "extends_declaration",
+      "node_kind": "extends_statement",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 24,
+      "start_byte": 295,
+      "end_byte": 319,
+      "confidence": "1.000",
+      "metadata": {
+        "base_type": "res://other.gd",
+        "pattern_version": 1,
+        "query_family": "inheritance"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

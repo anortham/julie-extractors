@@ -291,6 +291,153 @@ const R_PATTERNS: &[CodeStructuralPattern] = &[
     },
 ];
 
+const ZIG_PATTERNS: &[CodeStructuralPattern] = &[
+    CodeStructuralPattern {
+        pattern_id: "zig.builtin_call.v1",
+        capture_name: "builtin_call",
+        node_kinds: &["builtin_function", "call_expression"],
+        query_family: "builtin",
+    },
+    CodeStructuralPattern {
+        pattern_id: "zig.threadlocal_variable.v1",
+        capture_name: "threadlocal_variable",
+        node_kinds: &["variable_declaration"],
+        query_family: "storage",
+    },
+    CodeStructuralPattern {
+        pattern_id: "zig.inline_function.v1",
+        capture_name: "inline_function",
+        node_kinds: &["function_declaration"],
+        query_family: "functions",
+    },
+    CodeStructuralPattern {
+        pattern_id: "zig.exported_function.v1",
+        capture_name: "exported_function",
+        node_kinds: &["function_declaration"],
+        query_family: "ffi",
+    },
+    CodeStructuralPattern {
+        pattern_id: "zig.comptime_parameter.v1",
+        capture_name: "comptime_parameter",
+        node_kinds: &["parameter"],
+        query_family: "metaprogramming",
+    },
+];
+
+const QML_PATTERNS: &[CodeStructuralPattern] = &[
+    CodeStructuralPattern {
+        pattern_id: "qml.import_statement.v1",
+        capture_name: "import_statement",
+        node_kinds: &["ui_import"],
+        query_family: "imports",
+    },
+    CodeStructuralPattern {
+        pattern_id: "qml.property_declaration.v1",
+        capture_name: "property_declaration",
+        node_kinds: &["ui_property"],
+        query_family: "properties",
+    },
+    CodeStructuralPattern {
+        pattern_id: "qml.signal_declaration.v1",
+        capture_name: "signal_declaration",
+        node_kinds: &["ui_signal"],
+        query_family: "signals",
+    },
+    CodeStructuralPattern {
+        pattern_id: "qml.binding.v1",
+        capture_name: "binding",
+        node_kinds: &["ui_binding"],
+        query_family: "bindings",
+    },
+];
+
+const BASH_PATTERNS: &[CodeStructuralPattern] = &[
+    CodeStructuralPattern {
+        pattern_id: "bash.shebang.v1",
+        capture_name: "shebang",
+        node_kinds: &["comment"],
+        query_family: "script_header",
+    },
+    CodeStructuralPattern {
+        pattern_id: "bash.command_substitution.v1",
+        capture_name: "command_substitution",
+        node_kinds: &["command_substitution"],
+        query_family: "expansion",
+    },
+    CodeStructuralPattern {
+        pattern_id: "bash.arithmetic_expansion.v1",
+        capture_name: "arithmetic_expansion",
+        node_kinds: &["arithmetic_expansion"],
+        query_family: "expansion",
+    },
+    CodeStructuralPattern {
+        pattern_id: "bash.export_declaration.v1",
+        capture_name: "export_declaration",
+        node_kinds: &["declaration_command"],
+        query_family: "environment",
+    },
+];
+
+const POWERSHELL_PATTERNS: &[CodeStructuralPattern] = &[
+    CodeStructuralPattern {
+        pattern_id: "powershell.cmdlet_binding_attribute.v1",
+        capture_name: "cmdlet_binding_attribute",
+        node_kinds: &["attribute"],
+        query_family: "metadata",
+    },
+    CodeStructuralPattern {
+        pattern_id: "powershell.param_block.v1",
+        capture_name: "param_block",
+        node_kinds: &["param_block"],
+        query_family: "parameters",
+    },
+    CodeStructuralPattern {
+        pattern_id: "powershell.pipeline_expression.v1",
+        capture_name: "pipeline_expression",
+        node_kinds: &["pipeline"],
+        query_family: "pipeline",
+    },
+    CodeStructuralPattern {
+        pattern_id: "powershell.class_definition.v1",
+        capture_name: "class_definition",
+        node_kinds: &["class_statement"],
+        query_family: "types",
+    },
+];
+
+const GDSCRIPT_PATTERNS: &[CodeStructuralPattern] = &[
+    CodeStructuralPattern {
+        pattern_id: "gdscript.class_name.v1",
+        capture_name: "class_name",
+        node_kinds: &["class_name_statement"],
+        query_family: "types",
+    },
+    CodeStructuralPattern {
+        pattern_id: "gdscript.extends_declaration.v1",
+        capture_name: "extends_declaration",
+        node_kinds: &["extends_statement"],
+        query_family: "inheritance",
+    },
+    CodeStructuralPattern {
+        pattern_id: "gdscript.signal_declaration.v1",
+        capture_name: "signal_declaration",
+        node_kinds: &["signal_statement"],
+        query_family: "signals",
+    },
+    CodeStructuralPattern {
+        pattern_id: "gdscript.export_annotation.v1",
+        capture_name: "export_annotation",
+        node_kinds: &["annotation"],
+        query_family: "metadata",
+    },
+    CodeStructuralPattern {
+        pattern_id: "gdscript.match_statement.v1",
+        capture_name: "match_statement",
+        node_kinds: &["match_statement"],
+        query_family: "control_flow",
+    },
+];
+
 const VBNET_PATTERNS: &[CodeStructuralPattern] = &[
     CodeStructuralPattern {
         pattern_id: "vbnet.handles_clause.v1",
@@ -396,6 +543,43 @@ const VBNET_PATTERN_IDS: &[&str] = &[
     "vbnet.event_declaration.v1",
     "vbnet.attribute.v1",
 ];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const ZIG_PATTERN_IDS: &[&str] = &[
+    "zig.builtin_call.v1",
+    "zig.threadlocal_variable.v1",
+    "zig.inline_function.v1",
+    "zig.exported_function.v1",
+    "zig.comptime_parameter.v1",
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const QML_PATTERN_IDS: &[&str] = &[
+    "qml.import_statement.v1",
+    "qml.property_declaration.v1",
+    "qml.signal_declaration.v1",
+    "qml.binding.v1",
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const BASH_PATTERN_IDS: &[&str] = &[
+    "bash.shebang.v1",
+    "bash.command_substitution.v1",
+    "bash.arithmetic_expansion.v1",
+    "bash.export_declaration.v1",
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const POWERSHELL_PATTERN_IDS: &[&str] = &[
+    "powershell.cmdlet_binding_attribute.v1",
+    "powershell.param_block.v1",
+    "powershell.pipeline_expression.v1",
+    "powershell.class_definition.v1",
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const GDSCRIPT_PATTERN_IDS: &[&str] = &[
+    "gdscript.class_name.v1",
+    "gdscript.extends_declaration.v1",
+    "gdscript.signal_declaration.v1",
+    "gdscript.export_annotation.v1",
+    "gdscript.match_statement.v1",
+];
 
 pub fn collect_code_structural_facts(
     language: &str,
@@ -438,24 +622,34 @@ pub(crate) fn code_structural_fact_pattern_ids_for_language(
         "ruby" => RUBY_PATTERN_IDS,
         "scala" => SCALA_PATTERN_IDS,
         "swift" => SWIFT_PATTERN_IDS,
+        "bash" => BASH_PATTERN_IDS,
+        "gdscript" => GDSCRIPT_PATTERN_IDS,
+        "powershell" => POWERSHELL_PATTERN_IDS,
+        "qml" => QML_PATTERN_IDS,
         "vbnet" => VBNET_PATTERN_IDS,
+        "zig" => ZIG_PATTERN_IDS,
         _ => &[],
     }
 }
 
 fn patterns_for_language(language: &str) -> &'static [CodeStructuralPattern] {
     match language {
+        "bash" => BASH_PATTERNS,
         "dart" => DART_PATTERNS,
         "elixir" => ELIXIR_PATTERNS,
+        "gdscript" => GDSCRIPT_PATTERNS,
         "java" => JAVA_PATTERNS,
         "kotlin" => KOTLIN_PATTERNS,
         "lua" => LUA_PATTERNS,
         "php" => PHP_PATTERNS,
+        "powershell" => POWERSHELL_PATTERNS,
+        "qml" => QML_PATTERNS,
         "r" => R_PATTERNS,
         "ruby" => RUBY_PATTERNS,
         "scala" => SCALA_PATTERNS,
         "swift" => SWIFT_PATTERNS,
         "vbnet" => VBNET_PATTERNS,
+        "zig" => ZIG_PATTERNS,
         _ => &[],
     }
 }
@@ -679,6 +873,90 @@ fn enrich_metadata(
                 insert_string(metadata, "formula_text", &formula);
             }
         }
+        "zig.builtin_call.v1" => {
+            if let Some(name) = zig_builtin_name(content, node) {
+                insert_string(metadata, "builtin_name", &name);
+            }
+        }
+        "zig.threadlocal_variable.v1" => {
+            if let Some(name) = zig_variable_name(content, node) {
+                insert_string(metadata, "variable_name", &name);
+            }
+        }
+        "zig.inline_function.v1" | "zig.exported_function.v1" => {
+            if let Some(name) = zig_function_name(content, node) {
+                insert_string(metadata, "function_name", &name);
+            }
+        }
+        "zig.comptime_parameter.v1" => {
+            if let Some(name) = zig_parameter_name(content, node) {
+                insert_string(metadata, "parameter_name", &name);
+            }
+        }
+        "qml.import_statement.v1" => {
+            if let Some(module) = qml_import_module(content, node) {
+                insert_string(metadata, "import_module", &module);
+            }
+        }
+        "qml.property_declaration.v1" => {
+            if let Some(name) = qml_field_name(content, node, "name") {
+                insert_string(metadata, "property_name", &name);
+            }
+            if let Some(property_type) = qml_field_name(content, node, "type") {
+                insert_string(metadata, "property_type", &property_type);
+            }
+        }
+        "qml.signal_declaration.v1" => {
+            if let Some(name) = qml_field_name(content, node, "name") {
+                insert_string(metadata, "signal_name", &name);
+            }
+        }
+        "qml.binding.v1" => {
+            if let Some(name) = qml_field_name(content, node, "name") {
+                insert_string(metadata, "property_name", &name);
+            }
+        }
+        "bash.export_declaration.v1" => {
+            if let Some(name) = bash_export_variable_name(content, node) {
+                insert_string(metadata, "variable_name", &name);
+            }
+        }
+        "powershell.cmdlet_binding_attribute.v1" => {
+            if let Some(name) = powershell_attribute_name(content, node) {
+                insert_string(metadata, "attribute_name", &name);
+            }
+        }
+        "powershell.pipeline_expression.v1" => {
+            if let Some(marker) = powershell_pipeline_marker(content, node) {
+                insert_string(metadata, "pipeline_marker", &marker);
+            }
+        }
+        "powershell.class_definition.v1" => {
+            if let Some(name) = powershell_class_name(content, node) {
+                insert_string(metadata, "class_name", &name);
+            }
+        }
+        "gdscript.class_name.v1" => {
+            if let Some(name) = gdscript_named_field(content, node, "name") {
+                insert_string(metadata, "class_name", &name);
+            }
+        }
+        "gdscript.extends_declaration.v1" => {
+            if let Some(base_type) = gdscript_extends_base_type(content, node) {
+                insert_string(metadata, "base_type", &base_type);
+            }
+        }
+        "gdscript.signal_declaration.v1" => {
+            if let Some(name) = gdscript_named_field(content, node, "name") {
+                insert_string(metadata, "signal_name", &name);
+            }
+        }
+        "gdscript.export_annotation.v1" => {
+            insert_string(metadata, "annotation_name", "export");
+            if let Some(name) = gdscript_exported_variable_name(content, node) {
+                insert_string(metadata, "exported_variable", &name);
+            }
+        }
         _ if language == "swift" && pattern_id == "swift.actor_declaration.v1" => {
             if let Some(name) = swift_actor_name(content, node) {
                 insert_string(metadata, "actor_name", &name);
@@ -868,6 +1146,33 @@ fn matches_pattern(language: &str, content: &str, node: Node<'_>, pattern_id: &s
         ("r", "r.library_call.v1") => r_library_kind(content, node).is_some(),
         ("r", "r.pipe_expression.v1") => r_is_pipe_expression(node),
         ("r", "r.formula_expression.v1") => r_is_formula_expression(content, node),
+        ("zig", "zig.builtin_call.v1") => zig_is_builtin_call(content, node),
+        ("zig", "zig.threadlocal_variable.v1") => zig_has_keyword(content, node, "threadlocal"),
+        ("zig", "zig.inline_function.v1") => zig_has_keyword(content, node, "inline"),
+        ("zig", "zig.exported_function.v1") => zig_has_keyword(content, node, "export"),
+        ("zig", "zig.comptime_parameter.v1") => zig_has_keyword(content, node, "comptime"),
+        ("qml", "qml.binding.v1") => qml_is_semantic_property_binding(content, node),
+        ("bash", "bash.shebang.v1") => node_text(content, node).trim_start().starts_with("#!"),
+        ("bash", "bash.command_substitution.v1") => true,
+        ("bash", "bash.arithmetic_expansion.v1") => true,
+        ("bash", "bash.export_declaration.v1") => {
+            bash_declaration_command(content, node).as_deref() == Some("export")
+        }
+        ("powershell", "powershell.cmdlet_binding_attribute.v1") => {
+            powershell_attribute_name(content, node).as_deref() == Some("CmdletBinding")
+        }
+        ("powershell", "powershell.param_block.v1") => true,
+        ("powershell", "powershell.pipeline_expression.v1") => {
+            node_text(content, node).contains('|')
+        }
+        ("powershell", "powershell.class_definition.v1") => true,
+        ("gdscript", "gdscript.class_name.v1") => true,
+        ("gdscript", "gdscript.extends_declaration.v1") => true,
+        ("gdscript", "gdscript.signal_declaration.v1") => true,
+        ("gdscript", "gdscript.export_annotation.v1") => {
+            gdscript_is_export_annotation(content, node)
+        }
+        ("gdscript", "gdscript.match_statement.v1") => true,
         _ => true,
     }
 }
@@ -1132,6 +1437,189 @@ fn first_descendant_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node
         }
     }
     None
+}
+
+fn zig_has_keyword(content: &str, node: Node<'_>, keyword: &str) -> bool {
+    if node.kind() == keyword || node_text(content, node) == keyword {
+        return true;
+    }
+    if let Some(prev) = node.prev_sibling()
+        && (prev.kind() == keyword || node_text(content, prev) == keyword)
+    {
+        return true;
+    }
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .any(|child| child.kind() == keyword || node_text(content, child) == keyword)
+}
+
+fn zig_is_builtin_call(content: &str, node: Node<'_>) -> bool {
+    match node.kind() {
+        "builtin_function" => node
+            .parent()
+            .is_none_or(|parent| parent.kind() != "call_expression"),
+        "call_expression" => node
+            .child_by_field_name("function")
+            .is_some_and(|function| {
+                function.kind() == "builtin_function"
+                    || node_text(content, function).starts_with('@')
+            }),
+        _ => false,
+    }
+}
+
+fn zig_builtin_name(content: &str, node: Node<'_>) -> Option<String> {
+    let raw = match node.kind() {
+        "builtin_function" => first_named_identifier(content, node, &["builtin_identifier"])
+            .or_else(|| {
+                let text = node_text(content, node);
+                text.split('(').next().map(str::trim).map(str::to_string)
+            }),
+        "call_expression" => node
+            .child_by_field_name("function")
+            .and_then(|function| zig_builtin_name(content, function)),
+        _ => None,
+    }?;
+    Some(raw.strip_prefix('@').unwrap_or(&raw).to_string())
+}
+
+fn zig_variable_name(content: &str, node: Node<'_>) -> Option<String> {
+    node.child_by_field_name("name")
+        .map(|name| node_text(content, name))
+        .or_else(|| first_named_identifier(content, node, &["identifier"]))
+}
+
+fn zig_function_name(content: &str, node: Node<'_>) -> Option<String> {
+    node.child_by_field_name("name")
+        .map(|name| node_text(content, name))
+}
+
+fn zig_parameter_name(content: &str, node: Node<'_>) -> Option<String> {
+    node.child_by_field_name("name")
+        .map(|name| node_text(content, name))
+        .or_else(|| first_named_identifier(content, node, &["identifier"]))
+}
+
+fn qml_field_name(content: &str, node: Node<'_>, field: &str) -> Option<String> {
+    node.child_by_field_name(field)
+        .map(|field_node| node_text(content, field_node))
+}
+
+fn qml_import_module(content: &str, node: Node<'_>) -> Option<String> {
+    qml_field_name(content, node, "source")
+}
+
+fn qml_is_semantic_property_binding(content: &str, node: Node<'_>) -> bool {
+    let Some(name) = qml_field_name(content, node, "name") else {
+        return false;
+    };
+    if name == "id" {
+        return false;
+    }
+    if name.starts_with("on")
+        && name.len() > 2
+        && name
+            .as_bytes()
+            .get(2)
+            .is_some_and(|b| b.is_ascii_uppercase())
+    {
+        return false;
+    }
+    true
+}
+
+fn bash_declaration_command(content: &str, node: Node<'_>) -> Option<String> {
+    let text = node_text(content, node);
+    text.split_whitespace().next().map(str::to_string)
+}
+
+fn bash_export_variable_name(content: &str, node: Node<'_>) -> Option<String> {
+    first_descendant_of_kind(node, "variable_assignment").and_then(|assignment| {
+        assignment
+            .child_by_field_name("name")
+            .map(|name| node_text(content, name))
+            .or_else(|| first_named_identifier(content, assignment, &["variable_name"]))
+    })
+}
+
+fn powershell_attribute_name(content: &str, node: Node<'_>) -> Option<String> {
+    node.child_by_field_name("name")
+        .and_then(|name| {
+            if name.kind() == "attribute_name" {
+                first_named_identifier(content, name, &["type_spec"])
+            } else {
+                Some(node_text(content, name))
+            }
+        })
+        .or_else(|| {
+            first_named_identifier(content, node, &["attribute_name"]).and_then(|name| {
+                name.split('(')
+                    .next()
+                    .map(str::trim)
+                    .filter(|part| !part.is_empty())
+                    .map(str::to_string)
+            })
+        })
+}
+
+fn powershell_pipeline_marker(content: &str, node: Node<'_>) -> Option<String> {
+    let text = node_text(content, node);
+    if text.contains('|') {
+        Some("|".to_string())
+    } else {
+        None
+    }
+}
+
+fn powershell_class_name(content: &str, node: Node<'_>) -> Option<String> {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if matches!(child.kind(), "simple_name" | "identifier" | "type_name") {
+            return Some(node_text(content, child));
+        }
+    }
+    None
+}
+
+fn gdscript_is_export_annotation(content: &str, node: Node<'_>) -> bool {
+    first_named_identifier(content, node, &["identifier"]).is_some_and(|name| name == "export")
+}
+
+fn gdscript_exported_variable_name(content: &str, node: Node<'_>) -> Option<String> {
+    if let Some(parent) = node.parent()
+        && parent.kind() == "annotations"
+        && let Some(variable) = parent.parent().filter(|grandparent| {
+            matches!(
+                grandparent.kind(),
+                "variable_statement" | "export_variable_statement" | "onready_variable_statement"
+            )
+        })
+    {
+        return gdscript_named_field(content, variable, "name");
+    }
+
+    let mut sibling = node.next_sibling();
+    while let Some(next) = sibling {
+        match next.kind() {
+            "variable_statement" | "export_variable_statement" | "onready_variable_statement" => {
+                return gdscript_named_field(content, next, "name");
+            }
+            "annotations" => {}
+            _ => break,
+        }
+        sibling = next.next_sibling();
+    }
+    None
+}
+
+fn gdscript_named_field(content: &str, node: Node<'_>, field: &str) -> Option<String> {
+    node.child_by_field_name(field)
+        .map(|field_node| node_text(content, field_node))
+}
+
+fn gdscript_extends_base_type(content: &str, node: Node<'_>) -> Option<String> {
+    first_named_identifier(content, node, &["type", "identifier", "string"])
+        .map(|name| name.trim_matches('"').to_string())
 }
 
 fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {

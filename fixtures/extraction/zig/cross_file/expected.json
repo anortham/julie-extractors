@@ -254,7 +254,28 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "zig.builtin_call.v1",
+      "capture_name": "builtin_call",
+      "node_kind": "builtin_function",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/cross_file/source.zig",
+      "containing_key": "fixtures/extraction/zig/cross_file/source.zig:m:6:0",
+      "start_line": 6,
+      "start_column": 10,
+      "end_line": 6,
+      "end_column": 30,
+      "start_byte": 280,
+      "end_byte": 300,
+      "confidence": "1.000",
+      "metadata": {
+        "builtin_name": "import",
+        "pattern_version": 1,
+        "query_family": "builtin"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

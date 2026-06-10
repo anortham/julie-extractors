@@ -820,6 +820,49 @@ Current scorecard after this slice:
 
 Remaining structural-facts debt: `zig`, `qml`, `bash`, `powershell`, `gdscript`.
 
+## Phase 11 structural facts: Zig, QML, Bash, PowerShell, GDScript
+
+Task 11 slice closed the remaining structural-facts debt for five languages
+using parser-backed collectors in `code_structural_facts.rs`, focused fixture
+sources, golden rows, and per-language `structural_facts.rs` tests.
+
+- Zig: `@import` / other builtin calls, `threadlocal var`, `inline fn`,
+  `export fn`, `comptime` parameters.
+- QML: `import`, `property`, `signal`, and property-binding declarations.
+- Bash: shebang, command substitution, arithmetic expansion, `export`
+  declarations.
+- PowerShell: `[CmdletBinding()]`, `param(...)` blocks, pipeline expressions,
+  class definitions.
+- GDScript: `class_name`, `extends`, `signal`, `@export`, and `match`
+  statements.
+
+Rejected candidates:
+
+- QML JavaScript statement bodies: not emitted as structural facts; QML UI
+  semantics only.
+- Bash plain command invocations: filtered out of command-substitution facts.
+- PowerShell typed parameter attributes such as `[int]`: not confused with
+  `CmdletBinding`.
+- GDScript duplicate facts from nested broad matches: guarded with focused
+  `matches_pattern` checks.
+
+Parser-shape decisions:
+
+- Zig `@import("std")` parses as `builtin_function`; metadata normalizes
+  `@`-prefixed builtin identifiers to bare names (`import`).
+- GDScript `@export var` uses an `annotation` child under `variable_statement`,
+  not a standalone `export_variable_statement` node.
+- PowerShell class names come from the first direct `simple_name` child of
+  `class_statement`, not the first type annotation inside the body.
+
+Current scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 0
+- `structural_facts`: 36/36
+
+Remaining structural-facts debt: none.
+
 ## Product bar
 
 The desired end state is the best tree-sitter extraction product available for

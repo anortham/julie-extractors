@@ -1,3 +1,5 @@
+const std = @import("std");
+
 threadlocal var worker_tls: i32 = 0;
 
 pub const Worker = struct {
@@ -7,6 +9,8 @@ pub const Worker = struct {
         record_run(self.id);
         return helper(self.id);
     }
+
+    const Self = @This();
 };
 
 /// Emits a worker-run marker for observability hooks.
@@ -22,8 +26,16 @@ pub fn helper(value: i32) i32 {
     return value + 1;
 }
 
+fn hypotenuse(x: f64, y: f64) f64 {
+    return @sqrt(x * x + y * y);
+}
+
 inline fn fast_path(value: i32) i32 {
     return value + 1;
+}
+
+fn identity(comptime T: type, value: T) T {
+    return value;
 }
 
 export fn ffi_entry(value: i32) i32 {

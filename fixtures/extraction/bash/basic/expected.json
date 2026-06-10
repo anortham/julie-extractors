@@ -97,6 +97,54 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/bash/basic/source.sh:APP_ENV:26:7",
+      "name": "APP_ENV",
+      "kind": "constant",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 26,
+      "start_column": 7,
+      "end_line": 26,
+      "end_column": 27,
+      "start_byte": 394,
+      "end_byte": 414,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "APP_ENV=\"production\"",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/bash/basic/source.sh:APP_ENV:26:7",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/bash/basic/source.sh:APP_ENV:26:7",
+      "name": "APP_ENV",
+      "kind": "variable",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 26,
+      "start_column": 7,
+      "end_line": 26,
+      "end_column": 27,
+      "start_byte": 394,
+      "end_byte": 414,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "export APP_ENV",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/bash/basic/source.sh:bash:1:0",
       "name": "bash",
       "kind": "variable",
@@ -104,10 +152,10 @@
       "file_path": "fixtures/extraction/bash/basic/source.sh",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 25,
+      "end_line": 27,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 386,
+      "end_byte": 415,
       "body_span": {
         "start_line": 3,
         "start_column": 9,
@@ -595,6 +643,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "unresolved:APP_ENV",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "bash",
+      "metadata": null
+    },
+    {
       "symbol_key": "unresolved:bash",
       "resolved_type": "string",
       "generic_params": null,
@@ -641,7 +698,104 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "bash.arithmetic_expansion.v1",
+      "capture_name": "arithmetic_expansion",
+      "node_kind": "arithmetic_expansion",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:helper:3:0",
+      "start_line": 5,
+      "start_column": 10,
+      "end_line": 5,
+      "end_column": 24,
+      "start_byte": 63,
+      "end_byte": 77,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "expansion"
+      }
+    },
+    {
+      "pattern_id": "bash.arithmetic_expansion.v1",
+      "capture_name": "arithmetic_expansion",
+      "node_kind": "arithmetic_expansion",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:total:18:12",
+      "start_line": 18,
+      "start_column": 18,
+      "end_line": 18,
+      "end_column": 32,
+      "start_byte": 281,
+      "end_byte": 295,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "expansion"
+      }
+    },
+    {
+      "pattern_id": "bash.command_substitution.v1",
+      "capture_name": "command_substitution",
+      "node_kind": "command_substitution",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
+      "start_line": 17,
+      "start_column": 17,
+      "end_line": 17,
+      "end_column": 34,
+      "start_byte": 241,
+      "end_byte": 258,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "expansion"
+      }
+    },
+    {
+      "pattern_id": "bash.export_declaration.v1",
+      "capture_name": "export_declaration",
+      "node_kind": "declaration_command",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:bash:1:0",
+      "start_line": 26,
+      "start_column": 0,
+      "end_line": 26,
+      "end_column": 27,
+      "start_byte": 387,
+      "end_byte": 414,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "environment",
+        "variable_name": "APP_ENV"
+      }
+    },
+    {
+      "pattern_id": "bash.shebang.v1",
+      "capture_name": "shebang",
+      "node_kind": "comment",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:bash:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 19,
+      "start_byte": 0,
+      "end_byte": 19,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "script_header"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",
@@ -649,18 +803,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "bash",
       "file_path": "fixtures/extraction/bash/basic/source.sh",
-      "covered_lines": 25,
-      "covered_bytes": 386,
+      "covered_lines": 27,
+      "covered_bytes": 415,
       "decision_count": 2,
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 25,
+      "end_line": 27,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 386,
+      "end_byte": 415,
       "metadata": {
         "metric_version": 1
       }
@@ -810,6 +964,19 @@
       "end_column": 19,
       "start_byte": 0,
       "end_byte": 19,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:APP_ENV:26:7",
+      "start_line": 26,
+      "start_column": 15,
+      "end_line": 26,
+      "end_column": 27,
+      "start_byte": 402,
+      "end_byte": 414,
       "metadata": null
     },
     {

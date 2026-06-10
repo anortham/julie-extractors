@@ -22,6 +22,10 @@ function Evaluate {
     return $total
 }
 
+function Get-Filtered {
+    Get-Process | Select-Object -First 1
+}
+
 class Worker {
     [int]$Id
 

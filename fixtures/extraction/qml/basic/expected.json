@@ -1008,7 +1008,110 @@
   ],
   "types": [],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "qml.binding.v1",
+      "capture_name": "binding",
+      "node_kind": "ui_binding",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:text:47:8",
+      "start_line": 47,
+      "start_column": 8,
+      "end_line": 47,
+      "end_column": 37,
+      "start_byte": 841,
+      "end_byte": 870,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "property_name": "text",
+        "query_family": "bindings"
+      }
+    },
+    {
+      "pattern_id": "qml.import_statement.v1",
+      "capture_name": "import_statement",
+      "node_kind": "ui_import",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:QtQuick:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 19,
+      "start_byte": 0,
+      "end_byte": 19,
+      "confidence": "1.000",
+      "metadata": {
+        "import_module": "QtQuick",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "qml.property_declaration.v1",
+      "capture_name": "property_declaration",
+      "node_kind": "ui_property",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:title:5:4",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 35,
+      "start_byte": 45,
+      "end_byte": 76,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "property_name": "title",
+        "property_type": "string",
+        "query_family": "properties"
+      }
+    },
+    {
+      "pattern_id": "qml.property_declaration.v1",
+      "capture_name": "property_declaration",
+      "node_kind": "ui_property",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:workerId:6:4",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 28,
+      "start_byte": 81,
+      "end_byte": 105,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "property_name": "workerId",
+        "property_type": "int",
+        "query_family": "properties"
+      }
+    },
+    {
+      "pattern_id": "qml.signal_declaration.v1",
+      "capture_name": "signal_declaration",
+      "node_kind": "ui_signal",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:activated:7:4",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 34,
+      "start_byte": 110,
+      "end_byte": 140,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "signals",
+        "signal_name": "activated"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

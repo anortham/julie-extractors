@@ -240,7 +240,27 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "bash.shebang.v1",
+      "capture_name": "shebang",
+      "node_kind": "comment",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:bash:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 19,
+      "start_byte": 0,
+      "end_byte": 19,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "script_header"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

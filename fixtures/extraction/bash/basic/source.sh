@@ -22,3 +22,5 @@ evaluate() {
     fi
     echo "$total"
 }
+
+export APP_ENV="production"
