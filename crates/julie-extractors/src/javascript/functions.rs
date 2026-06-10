@@ -172,7 +172,7 @@ impl super::JavaScriptExtractor {
         ))
     }
 
-    fn extract_decorator_annotations(&self, node: Node) -> Vec<AnnotationMarker> {
+    pub(super) fn extract_decorator_annotations(&self, node: Node) -> Vec<AnnotationMarker> {
         let mut raw_decorators: Vec<String> = node
             .children(&mut node.walk())
             .filter(|child| child.kind() == "decorator")

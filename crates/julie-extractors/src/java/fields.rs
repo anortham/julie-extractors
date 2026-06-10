@@ -23,6 +23,7 @@ pub(super) fn extract_fields(
 ) -> Vec<Symbol> {
     let modifiers = helpers::extract_modifiers(extractor.base(), node);
     let visibility = helpers::determine_visibility(&modifiers);
+    let annotations = helpers::extract_annotations(extractor.base(), node);
 
     // Get type
     let type_node = node.children(&mut node.walk()).find(|c| {
@@ -95,6 +96,7 @@ pub(super) fn extract_fields(
                 visibility: Some(visibility.clone()),
                 parent_id: parent_id.map(|s| s.to_string()),
                 doc_comment: doc_comment.clone(),
+                annotations: annotations.clone(),
                 ..Default::default()
             };
 

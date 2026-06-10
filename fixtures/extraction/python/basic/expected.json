@@ -8,19 +8,19 @@
       "file_path": "fixtures/extraction/python/basic/source.py",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 6,
-      "end_column": 30,
+      "end_line": 10,
+      "end_column": 16,
       "start_byte": 0,
-      "end_byte": 133,
+      "end_byte": 198,
       "body_span": {
         "start_line": 2,
         "start_column": 4,
-        "end_line": 6,
-        "end_column": 30,
+        "end_line": 10,
+        "end_column": 16,
         "start_byte": 18,
-        "end_byte": 133
+        "end_byte": 198
       },
-      "body_hash": "add591ea5a0eaba5bf05098c7e6e9fa3",
+      "body_hash": "a4a82516b35c5e2e96a1ae8fd46147fa",
       "signature": "class Worker",
       "doc_comment": null,
       "visibility": "Public",
@@ -71,24 +71,67 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/python/basic/source.py:helper:9:0",
+      "key": "fixtures/extraction/python/basic/source.py:default_id:9:4",
+      "name": "default_id",
+      "kind": "method",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 10,
+      "end_column": 16,
+      "start_byte": 157,
+      "end_byte": 198,
+      "body_span": {
+        "start_line": 10,
+        "start_column": 8,
+        "end_line": 10,
+        "end_column": 16,
+        "start_byte": 190,
+        "end_byte": 198
+      },
+      "body_hash": "83cda753e6624d41e2a2fa5a45dd0a42",
+      "signature": "@staticmethod def default_id(): int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/basic/source.py:Worker:1:0",
+      "metadata": {
+        "decorators": [
+          "staticmethod"
+        ],
+        "isAsync": false,
+        "returnType": ": int"
+      },
+      "annotations": [
+        {
+          "annotation": "staticmethod",
+          "annotation_key": "staticmethod",
+          "raw_text": "staticmethod"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/basic/source.py:helper:13:0",
       "name": "helper",
       "kind": "function",
       "language": "python",
       "file_path": "fixtures/extraction/python/basic/source.py",
-      "start_line": 9,
+      "start_line": 13,
       "start_column": 0,
-      "end_line": 11,
+      "end_line": 15,
       "end_column": 20,
-      "start_byte": 136,
-      "end_byte": 220,
+      "start_byte": 201,
+      "end_byte": 285,
       "body_span": {
-        "start_line": 10,
+        "start_line": 14,
         "start_column": 4,
-        "end_line": 11,
+        "end_line": 15,
         "end_column": 20,
-        "start_byte": 171,
-        "end_byte": 220
+        "start_byte": 236,
+        "end_byte": 285
       },
       "body_hash": "5637ce87077f66b326b44cc1bd913073",
       "signature": "def helper(value: int): int",
@@ -170,7 +213,7 @@
   "relationships": [
     {
       "from_key": "fixtures/extraction/python/basic/source.py:run:5:4",
-      "to_key": "fixtures/extraction/python/basic/source.py:helper:9:0",
+      "to_key": "fixtures/extraction/python/basic/source.py:helper:13:0",
       "kind": "calls",
       "file_path": "fixtures/extraction/python/basic/source.py",
       "line_number": 6,
@@ -232,7 +275,16 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/python/basic/source.py:helper:9:0",
+      "symbol_key": "fixtures/extraction/python/basic/source.py:default_id:9:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "python",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/python/basic/source.py:helper:13:0",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
@@ -251,7 +303,27 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "python.decorated_definition.v1",
+      "capture_name": "decorated_definition",
+      "node_kind": "decorated_definition",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "containing_key": "fixtures/extraction/python/basic/source.py:Worker:1:0",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 10,
+      "end_column": 16,
+      "start_byte": 139,
+      "end_byte": 198,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",
@@ -259,18 +331,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/basic/source.py",
-      "covered_lines": 12,
-      "covered_bytes": 221,
+      "covered_lines": 16,
+      "covered_bytes": 286,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 12,
+      "end_line": 16,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 221,
+      "end_byte": 286,
       "metadata": {
         "metric_version": 1
       }
@@ -299,7 +371,29 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/python/basic/source.py:helper:9:0",
+      "symbol_key": "fixtures/extraction/python/basic/source.py:default_id:9:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "covered_lines": 1,
+      "covered_bytes": 8,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 10,
+      "start_column": 8,
+      "end_line": 10,
+      "end_column": 16,
+      "start_byte": 190,
+      "end_byte": 198,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/python/basic/source.py:helper:13:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/basic/source.py",
@@ -309,12 +403,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
-      "start_line": 10,
+      "start_line": 14,
       "start_column": 4,
-      "end_line": 11,
+      "end_line": 15,
       "end_column": 20,
-      "start_byte": 171,
-      "end_byte": 220,
+      "start_byte": 236,
+      "end_byte": 285,
       "metadata": {
         "metric_version": 1
       }
@@ -348,13 +442,13 @@
       "kind": "string_literal",
       "language": "python",
       "file_path": "fixtures/extraction/python/basic/source.py",
-      "containing_key": "fixtures/extraction/python/basic/source.py:helper:9:0",
-      "start_line": 10,
+      "containing_key": "fixtures/extraction/python/basic/source.py:helper:13:0",
+      "start_line": 14,
       "start_column": 4,
-      "end_line": 10,
+      "end_line": 14,
       "end_column": 32,
-      "start_byte": 171,
-      "end_byte": 199,
+      "start_byte": 236,
+      "end_byte": 264,
       "metadata": null
     }
   ],

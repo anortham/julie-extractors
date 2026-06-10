@@ -1,3 +1,4 @@
+@registered
 export class Worker {
     constructor(id) {
         this.id = id;

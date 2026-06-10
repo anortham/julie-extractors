@@ -1,4 +1,5 @@
 pub mod fixture {
+    #[derive(Debug)]
     pub struct Worker {
         pub id: i32,
     }

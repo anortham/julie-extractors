@@ -70,19 +70,19 @@
       "file_path": "fixtures/extraction/java/basic/source.java",
       "start_line": 7,
       "start_column": 0,
-      "end_line": 27,
+      "end_line": 28,
       "end_column": 1,
       "start_byte": 52,
-      "end_byte": 414,
+      "end_byte": 430,
       "body_span": {
         "start_line": 7,
         "start_column": 28,
-        "end_line": 27,
+        "end_line": 28,
         "end_column": 1,
         "start_byte": 80,
-        "end_byte": 414
+        "end_byte": 430
       },
-      "body_hash": "73635bd6cd986df3fb102740c2502ef5",
+      "body_hash": "7bb1c6533d24774ca3b09dcbae6a5a57",
       "signature": "class Worker implements Job",
       "doc_comment": null,
       "visibility": "Private",
@@ -98,24 +98,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/java/basic/source.java:helper:24:4",
+      "key": "fixtures/extraction/java/basic/source.java:helper:25:4",
       "name": "helper",
       "kind": "method",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
-      "start_line": 24,
+      "start_line": 25,
       "start_column": 4,
-      "end_line": 26,
+      "end_line": 27,
       "end_column": 5,
-      "start_byte": 342,
-      "end_byte": 412,
+      "start_byte": 358,
+      "end_byte": 428,
       "body_span": {
-        "start_line": 24,
+        "start_line": 25,
         "start_column": 41,
-        "end_line": 26,
+        "end_line": 27,
         "end_column": 5,
-        "start_byte": 379,
-        "end_byte": 412
+        "start_byte": 395,
+        "end_byte": 428
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
       "signature": "private static int helper(int value)",
@@ -160,25 +160,31 @@
       "file_path": "fixtures/extraction/java/basic/source.java",
       "start_line": 14,
       "start_column": 4,
-      "end_line": 16,
+      "end_line": 17,
       "end_column": 5,
       "start_byte": 163,
-      "end_byte": 214,
+      "end_byte": 230,
       "body_span": {
-        "start_line": 14,
+        "start_line": 15,
         "start_column": 21,
-        "end_line": 16,
+        "end_line": 17,
         "end_column": 5,
-        "start_byte": 180,
-        "end_byte": 214
+        "start_byte": 196,
+        "end_byte": 230
       },
       "body_hash": "35e30e5855d60979cf5d033972c11705",
-      "signature": "public int run()",
+      "signature": "@Deprecated public int run()",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": {},
-      "annotations": [],
+      "annotations": [
+        {
+          "annotation": "Deprecated",
+          "annotation_key": "deprecated",
+          "raw_text": "Deprecated"
+        }
+      ],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -229,10 +235,10 @@
     },
     {
       "from_key": "fixtures/extraction/java/basic/source.java:run:14:4",
-      "to_key": "fixtures/extraction/java/basic/source.java:helper:24:4",
+      "to_key": "fixtures/extraction/java/basic/source.java:helper:25:4",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
-      "line_number": 15,
+      "line_number": 16,
       "confidence": "0.900",
       "metadata": null
     }
@@ -257,17 +263,17 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/java/basic/source.java:helper:call:15:15",
+      "key": "fixtures/extraction/java/basic/source.java:helper:call:16:15",
       "name": "helper",
       "kind": "call",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
-      "start_line": 15,
+      "start_line": 16,
       "start_column": 15,
-      "end_line": 15,
+      "end_line": 16,
       "end_column": 21,
-      "start_byte": 197,
-      "end_byte": 203,
+      "start_byte": 213,
+      "end_byte": 219,
       "containing_key": "fixtures/extraction/java/basic/source.java:run:14:4",
       "target_key": null,
       "confidence": "1.000"
@@ -291,7 +297,7 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/java/basic/source.java:helper:24:4",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:helper:25:4",
       "resolved_type": "static int",
       "generic_params": null,
       "constraints": null,
@@ -310,7 +316,7 @@
     },
     {
       "symbol_key": "fixtures/extraction/java/basic/source.java:run:14:4",
-      "resolved_type": "int",
+      "resolved_type": "Deprecated public int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -336,18 +342,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
-      "covered_lines": 28,
-      "covered_bytes": 415,
+      "covered_lines": 29,
+      "covered_bytes": 431,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 28,
+      "end_line": 29,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 415,
+      "end_byte": 431,
       "metadata": {
         "metric_version": 1
       }
@@ -376,7 +382,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/java/basic/source.java:helper:24:4",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:helper:25:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
@@ -386,12 +392,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
-      "start_line": 24,
+      "start_line": 25,
       "start_column": 41,
-      "end_line": 26,
+      "end_line": 27,
       "end_column": 5,
-      "start_byte": 379,
-      "end_byte": 412,
+      "start_byte": 395,
+      "end_byte": 428,
       "metadata": {
         "metric_version": 1
       }
@@ -408,12 +414,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 14,
+      "start_line": 15,
       "start_column": 21,
-      "end_line": 16,
+      "end_line": 17,
       "end_column": 5,
-      "start_byte": 180,
-      "end_byte": 214,
+      "start_byte": 196,
+      "end_byte": 230,
       "metadata": {
         "metric_version": 1
       }
@@ -447,13 +453,13 @@
       "kind": "doc_comment",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
-      "containing_key": "fixtures/extraction/java/basic/source.java:helper:24:4",
-      "start_line": 18,
+      "containing_key": "fixtures/extraction/java/basic/source.java:helper:25:4",
+      "start_line": 19,
       "start_column": 4,
-      "end_line": 23,
+      "end_line": 24,
       "end_column": 7,
-      "start_byte": 220,
-      "end_byte": 337,
+      "start_byte": 236,
+      "end_byte": 353,
       "metadata": null
     }
   ],

@@ -2,6 +2,7 @@ export interface Job {
     run(): number;
 }
 
+@Component()
 export class Worker implements Job {
     constructor(private id: number) {}
 

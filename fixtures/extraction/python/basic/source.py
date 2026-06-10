@@ -5,6 +5,10 @@ class Worker:
     def run(self) -> int:
         return helper(self.id)
 
+    @staticmethod
+    def default_id() -> int:
+        return 0
+
 
 def helper(value: int) -> int:
     """Increment a worker id."""

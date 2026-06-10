@@ -11,6 +11,7 @@ class Worker implements Job {
         this.id = id;
     }
 
+    @Deprecated
     public int run() {
         return helper(id);
     }

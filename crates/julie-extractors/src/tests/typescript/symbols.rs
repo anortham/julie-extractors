@@ -374,6 +374,57 @@ class UserService {
     );
 }
 
+#[test]
+fn typescript_decorator_markers_persist_for_exported_classes() {
+    // Decorators on `@Component() export class ...` attach to the wrapping
+    // export_statement node, not the class_declaration itself.
+    let code = r#"
+@Component()
+export class AppWidget {
+}
+
+export class PlainWidget {
+}
+"#;
+
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "test.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+
+    let class_sym = symbols
+        .iter()
+        .find(|s| s.name == "AppWidget" && s.kind == SymbolKind::Class)
+        .expect("Should extract AppWidget class");
+    assert_eq!(class_sym.annotations.len(), 1);
+    assert_eq!(class_sym.annotations[0].annotation, "Component");
+    assert_eq!(class_sym.annotations[0].annotation_key, "component");
+    assert_eq!(
+        class_sym.annotations[0].raw_text.as_deref(),
+        Some("Component()")
+    );
+
+    let plain_sym = symbols
+        .iter()
+        .find(|s| s.name == "PlainWidget" && s.kind == SymbolKind::Class)
+        .expect("Should extract PlainWidget class");
+    assert!(
+        plain_sym.annotations.is_empty(),
+        "undecorated exported class should carry no annotations, got {:?}",
+        plain_sym.annotations
+    );
+}
+
 // ========================================================================
 // Access modifier (visibility) extraction tests
 // ========================================================================

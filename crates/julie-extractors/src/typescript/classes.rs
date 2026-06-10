@@ -77,10 +77,11 @@ pub(super) fn extract_class(
     let is_abstract = helpers::has_modifier(node, "abstract");
     metadata.insert("isAbstract".to_string(), serde_json::json!(is_abstract));
 
-    // Extract decorators from child nodes
+    // Extract decorators from child nodes (or the wrapping export_statement)
     let content = extractor.base().content.clone();
-    let decorators = helpers::extract_decorator_names(node, &content);
-    let decorator_texts = helpers::extract_decorator_texts(node, &content);
+    let decorator_carrier = helpers::decorator_carrier_node(node);
+    let decorators = helpers::extract_decorator_names(decorator_carrier, &content);
+    let decorator_texts = helpers::extract_decorator_texts(decorator_carrier, &content);
     let annotations = normalize_annotations(&decorator_texts, "typescript");
 
     // Build signature
