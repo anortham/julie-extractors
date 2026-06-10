@@ -2,6 +2,11 @@ type Props = {
     label: string;
 };
 
+@Component()
+export class WorkerModel {
+    constructor(public label: string) {}
+}
+
 function fetchWorkers() {
     return fetch("/api/workers");
 }

@@ -482,6 +482,44 @@ Scorecard after this slice:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 1 Task 5 remaining annotation audit
+
+The thirteenth extractor-depth slice audited the 19 languages that still
+carried generic `attribute_or_decorator` open gaps:
+
+- `annotations`: TSX and JSX now have fixture-proven `class` decorator support
+  via the existing TypeScript/JavaScript decorator paths (`@Component()` and
+  `@registered` in each language `basic` fixture).
+- `annotations`: Eight format/data languages (`html`, `css`, `sql`, `regex`,
+  `markdown`, `json`, `toml`, `yaml`) are now `not_applicable` because markup
+  attributes, selectors, keys, and pattern syntax belong to other domains, not
+  symbol-attached annotation markers.
+- `annotations`: Five scripting languages (`ruby`, `lua`, `qml`, `r`, `bash`)
+  are now `not_applicable` because the grammars expose no first-class
+  attribute/decorator syntax on declarations (R roxygen tags remain in
+  `doc_comments`).
+- `annotations`: Four code languages retain concrete open gaps: Go (`struct`,
+  `field`, `function` for struct tags and `//go:` directives), Zig (`function`,
+  `variable` for declaration builtins), Vue (`class`, `function` for script
+  decorators and component metadata), and Razor (`method`, `property`, `class`
+  for embedded C# attributes in `@code` blocks).
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 38
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 28/36
+- `annotations`: 19/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -492,7 +530,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 - `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
   YAML, Markdown, Regex).
 - `structural_facts`: 24 languages remain open.
-- `annotations`: 19 languages remain open.
+- `annotations`: 4 code languages remain open (`go`, `zig`, `vue`, `razor`).
 - `literals`: 0 languages remain open.
 - `doc_comments`: 11 languages remain open.
 
