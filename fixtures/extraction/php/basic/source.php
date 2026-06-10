@@ -2,8 +2,28 @@
 
 namespace Fixture;
 
+#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD | \Attribute::TARGET_PROPERTY)]
+class Entity
+{
+}
+
+#[\Attribute(\Attribute::TARGET_METHOD)]
+class Route
+{
+    public function __construct(public string $path)
+    {
+    }
+}
+
+#[\Attribute(\Attribute::TARGET_PROPERTY)]
+class Required
+{
+}
+
+#[Entity]
 class Worker
 {
+    #[Required]
     public int $id;
 
     public function __construct(int $id)
@@ -11,6 +31,7 @@ class Worker
         $this->id = $id;
     }
 
+    #[Route('/run')]
     public function run(): int
     {
         recordRun($this->id);

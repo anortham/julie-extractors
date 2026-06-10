@@ -2,6 +2,7 @@ protocol Job {
     func run() -> Int
 }
 
+@MainActor
 struct Worker: Job {
     let id: Int
 
@@ -9,6 +10,20 @@ struct Worker: Job {
         recordRun(id)
         return helper(id)
     }
+}
+
+@available(iOS 17.0, *)
+extension Worker {
+    @Published var status: String = "ready"
+}
+
+@available(*, deprecated, message: "use ModernHandler")
+typealias LegacyHandler = () -> Void
+
+enum WorkerStatus {
+    @available(*, deprecated)
+    case legacy
+    case current
 }
 
 /// Increments a worker id.
@@ -26,6 +41,7 @@ func observeRun(_ event: String, id: Int) {
 }
 
 /// Checks the worker service health endpoint.
+@available(iOS 13.0, *)
 func fetchStatus() {
     fetchUrl("https://api.example.com/workers/status")
 }

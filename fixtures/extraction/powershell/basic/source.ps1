@@ -9,6 +9,7 @@ function Invoke-Run {
 }
 
 function Evaluate {
+    [CmdletBinding()]
     param([int]$Count, [bool]$Enabled)
     $total = 0
     if ($Enabled) {

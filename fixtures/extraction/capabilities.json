@@ -2112,16 +2112,12 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "method",
+            "property"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "attribute_or_decorator",
-              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
-              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [],
@@ -2254,16 +2250,13 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "class",
+            "method",
+            "property"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "attribute_or_decorator",
-              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
-              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [
@@ -2521,16 +2514,16 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "enum_member",
+            "function",
+            "module",
+            "property",
+            "struct",
+            "type"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "attribute_or_decorator",
-              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
-              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [
@@ -2655,16 +2648,14 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "class",
+            "method",
+            "property",
+            "type"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "attribute_or_decorator",
-              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
-              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [
@@ -2787,16 +2778,15 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "class",
+            "function",
+            "method",
+            "property",
+            "type"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "attribute_or_decorator",
-              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
-              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [],
@@ -3744,16 +3734,11 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "function"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "attribute_or_decorator",
-              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
-              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [

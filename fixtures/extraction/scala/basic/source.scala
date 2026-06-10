@@ -4,7 +4,9 @@ trait Job {
   def run(): Int
 }
 
+@deprecated("Use WorkerV2", since = "2.0")
 class Worker(val id: Int) extends Job {
+  @deprecated("Prefer runSync", since = "2.0")
   def run(): Int = {
     recordRun(id)
     helper(id)
@@ -37,3 +39,15 @@ class Worker(val id: Int) extends Job {
     total
   }
 }
+
+@singleton
+object WorkerRegistry {
+  @tracked val runs: Int = 0
+}
+
+@opaque
+type WorkerId = Int
+
+@ops
+extension (value: Int)
+  def doubled: Int = value * 2

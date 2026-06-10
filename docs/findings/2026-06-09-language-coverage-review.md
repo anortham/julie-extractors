@@ -16,7 +16,7 @@ The branch completed the original extraction-data-quality plan:
   `structural_facts`, `complexity_metrics`, `annotations`, `doc_comments`,
   `literals`, and `source_regions`.
 - Complexity metrics expanded from 7 languages to 24.
-- Annotation evidence expanded to 11 languages.
+- Annotation evidence expanded to 17 languages.
 - Doc-comment evidence expanded to 25 languages.
 - Source-region evidence expanded to 35 languages.
 - Literal evidence expanded to 26 languages.
@@ -43,7 +43,7 @@ Current golden fixture rows by domain:
 | doc_comments | 25/36 | Stronger, but normalization is still inconsistent. |
 | structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
 | complexity_metrics | 28/36 | Third-batch Phase 2 Task 6 added tsx, jsx, vue, razor embedded/web support. |
-| annotations | 11/36 | Attribute/decorator support remains patchy outside the first pass. |
+| annotations | 17/36 | Attribute/decorator support remains patchy outside the first pass. |
 | literals | 36/36 | Full baseline exists. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
 
@@ -439,6 +439,49 @@ Scorecard after this slice:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 1 Task 5 annotation fixture-evidence batch
+
+The twelfth extractor-depth slice closed `annotations` gaps for six languages
+whose extractors already emitted normalized markers but lacked golden fixture
+evidence. A follow-up pass deepened that evidence so supported kinds match
+what existing unit tests already prove:
+
+- `annotations`: PHP `class`, `method`, `property` via `#[Entity]`, `#[Route]`,
+  and `#[Required]`; attribute stubs use `#[\Attribute(...)]`.
+- `annotations`: VB.NET `method`, `property` via `<TestMethod>` and `<Obsolete>`.
+- `annotations`: PowerShell `function` via `[CmdletBinding()]`.
+- `annotations`: Scala `class`, `function`, `method`, `property`, `type` via
+  `@deprecated`, `@singleton` object, `@tracked` val, `@opaque` type alias,
+  and `@ops` extension function.
+- `annotations`: Kotlin `class`, `method`, `property`, `type` via `@Deprecated`,
+  `@Singleton` object, `@Volatile` property, constructor `@Suppress`, and
+  `@Suppress` type alias.
+- `annotations`: Swift `struct`, `function`, `module`, `property`, `type`,
+  `enum_member` via `@MainActor`, `@available`, `@Published`, typealias, and
+  enum-case attributes.
+
+No extractor code changes were required; existing `normalize_annotations` wiring
+and per-language unit tests already covered the syntax. This slice added
+annotation-bearing symbols to each language `basic` fixture, regenerated
+goldens, and moved `kind_coverage.annotations` from `open_gaps` to
+fixture-proven `supported` rows.
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 45
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 28/36
+- `annotations`: 17/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -449,7 +492,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 - `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
   YAML, Markdown, Regex).
 - `structural_facts`: 24 languages remain open.
-- `annotations`: 25 languages remain open.
+- `annotations`: 19 languages remain open.
 - `literals`: 0 languages remain open.
 - `doc_comments`: 11 languages remain open.
 

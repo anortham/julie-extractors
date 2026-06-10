@@ -4,7 +4,20 @@ interface Job {
     fun run(): Int
 }
 
-class Worker(private val id: Int) : Job {
+@Singleton
+object WorkerRegistry
+
+@Suppress("UNCHECKED_CAST")
+typealias WorkerCallback = (Int) -> Unit
+
+@Deprecated("Use WorkerV2")
+class Worker(
+    @Suppress("UNUSED") private val id: Int,
+) : Job {
+    @Volatile
+    var status: String = "ready"
+
+    @Deprecated("Legacy entry point")
     override fun run(): Int {
         recordRun(id)
         return helper(id)

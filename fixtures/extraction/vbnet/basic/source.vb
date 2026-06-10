@@ -6,13 +6,16 @@ Namespace Fixture
     Public Class Worker
         Implements IJob
 
+        <Obsolete("Use WorkerId")>
         Public Property Id As Integer
 
+        <TestMethod>
         Public Function Run() As Integer Implements IJob.Run
             RecordRun(Id)
             Return Helper(Id)
         End Function
 
+        <Obsolete("Use HelperV2")>
         Private Function Helper(value As Integer) As Integer
             Return value + 1
         End Function
