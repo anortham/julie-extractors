@@ -43,12 +43,17 @@ Current fixture-proven domain counts:
 - `types`: 28/36
 - `body_spans`: 35/36
 - `source_regions`: 35/36
-- `doc_comments`: 23/36
+- `doc_comments`: 25/36
 - `structural_facts`: 12/36
 - `complexity_metrics`: 12/36
-- `annotations`: 9/36
-- `literals`: 9/36
+- `annotations`: 11/36
+- `literals`: 36/36
 - `type_argument_usages`: 1/36
+
+Current explicit quality-bar debt:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 67
 
 The key finding is that there are no positive `kind_coverage` claims without
 fixture evidence. That is table stakes, not the destination. The remaining
@@ -224,6 +229,10 @@ semantics prove the construct cannot exist.
 ## Phase 1 - Promote Existing Depth To Product-Grade Coverage
 
 ### Task 3: Make literal extraction broad and fixture-proven
+
+**Status:** Complete. Literal support is now fixture-proven for all 36
+languages, and `node scripts/language-data-quality-report.mjs --strict`
+reports `literals`: 36/36.
 
 **Files:**
 - Modify: `fixtures/extraction/<language>/basic/source.*`
@@ -564,14 +573,26 @@ CI validation.
 
 1. Phase 0 first. It sets the measurement bar and prevents hidden gaps while
    the rest of the plan runs.
-2. Phase 1 next. It promotes already-designed domains into product-grade,
-   language-wide behavior.
+2. Phase 1 next. Task 3 is complete. Tasks 4 and 5 remain, but can run after
+   the first complexity batch if that keeps delegation review tighter.
 3. Phase 2 and Phase 3 can run in parallel by language family after Phase 0.
 4. Phase 4 should wait until annotation and identifier evidence is stable,
    because structural facts often build on those fields.
 5. Phase 5 can run independently as focused defect fixes.
 6. Phase 6 proves value in dependent projects and real repositories.
 7. Phase 7 closes the branch.
+
+## Current Execution Path
+
+The next delegated implementation slice should target Phase 2, Task 6 first
+batch: `zig`, `php`, `ruby`, `scala`, `elixir`, and `lua` complexity metrics.
+This is the best next Composer task because the behavior is measurable through
+hand-tallied complexity snippets and the shared complexity engine, while still
+being substantial enough to validate larger delegation.
+
+Lead-owned work should proceed in parallel on the structural-fact taxonomy.
+Structural facts should not be assigned as a broad implementation batch until
+the useful fact kinds for each language family are explicit.
 
 ## Out Of Scope
 
