@@ -70,13 +70,14 @@ impl VueExtractor {
                     // Try to extract HTML comment from the beginning of the file
                     let doc_comment = extract_component_doc_comment(&self.base.content);
 
+                    let component_end_line = self.base.content.lines().count() + 1;
                     let component_symbol = create_symbol_manual(
                         &self.base,
                         &component_name,
                         SymbolKind::Class,
                         1,
                         1,
-                        self.base.content.lines().count(),
+                        component_end_line,
                         1,
                         Some(format!("<{} />", component_name)),
                         doc_comment.or_else(|| {

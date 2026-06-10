@@ -8,10 +8,10 @@
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
       "start_line": 1,
       "start_column": 1,
-      "end_line": 21,
+      "end_line": 22,
       "end_column": 1,
       "start_byte": 0,
-      "end_byte": 477,
+      "end_byte": 489,
       "body_span": {
         "start_line": 7,
         "start_column": 7,
@@ -239,7 +239,52 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 9,
+      "start_byte": 0,
+      "end_byte": 435,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "script",
+        "setup": true
+      }
+    },
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 11,
+      "start_byte": 437,
+      "end_byte": 488,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "template",
+        "setup": false
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

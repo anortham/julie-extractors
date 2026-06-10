@@ -529,6 +529,36 @@ Scorecard after this slice:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 9 Vue/Razor annotations and web structural facts
+
+The next slices closed the final code-language annotation gaps and began the
+structural-facts completion program with web-domain facts:
+
+- `annotations`: Vue component/script-setup macro metadata and
+  `defineExpose` API exposure facts now attach to owning Vue symbols.
+- `annotations`: Razor embedded C# attributes now normalize on class, method,
+  and property symbols.
+- `structural_facts`: CSS now emits versioned facts for selector rules, custom
+  properties, media queries, and keyframes.
+- `structural_facts`: Vue now emits versioned facts for SFC sections and
+  template directives.
+
+Current scorecard:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 23
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 35/36 fixture-proven; 0 open doc-comment gaps because regex is `not_applicable`
+- `structural_facts`: 14/36
+- `complexity_metrics`: 28/36
+- `annotations`: 23/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -538,7 +568,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 
 - `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
   YAML, Markdown, Regex).
-- `structural_facts`: 24 languages remain open.
+- `structural_facts`: 22 languages remain open.
 - `annotations`: 0 code languages remain open; Vue and Razor closed in Task 5 with
   script-setup macro and embedded C# attribute fixture evidence.
 - `literals`: 0 languages remain open.

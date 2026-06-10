@@ -1,17 +1,17 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:.worker:36:0",
+      "key": "fixtures/extraction/vue/basic/source.vue:.worker:37:0",
       "name": ".worker",
       "kind": "property",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 36,
+      "start_line": 37,
       "start_column": 0,
-      "end_line": 38,
+      "end_line": 39,
       "end_column": 1,
-      "start_byte": 675,
-      "end_byte": 704,
+      "start_byte": 775,
+      "end_byte": 804,
       "body_span": {
         "start_line": 1,
         "start_column": 8,
@@ -45,19 +45,19 @@
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 1,
       "start_column": 1,
-      "end_line": 39,
+      "end_line": 41,
       "end_column": 1,
       "start_byte": 0,
-      "end_byte": 705,
+      "end_byte": 814,
       "body_span": {
         "start_line": 4,
         "start_column": 8,
-        "end_line": 38,
+        "end_line": 39,
         "end_column": 1,
-        "start_byte": 64,
-        "end_byte": 704
+        "start_byte": 77,
+        "end_byte": 804
       },
-      "body_hash": "f4fe932e732399e81c083244089ac6ae",
+      "body_hash": "df6f3d97a9837af416ec9c51ed6a6ff8",
       "signature": "<Worker />",
       "doc_comment": "Vue Single File Component: Worker",
       "visibility": "Public",
@@ -88,24 +88,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:defineExpose:32:0",
+      "key": "fixtures/extraction/vue/basic/source.vue:defineExpose:33:0",
       "name": "defineExpose",
       "kind": "function",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 32,
+      "start_line": 33,
       "start_column": 0,
-      "end_line": 32,
+      "end_line": 33,
       "end_column": 34,
-      "start_byte": 613,
-      "end_byte": 647,
+      "start_byte": 713,
+      "end_byte": 747,
       "body_span": {
-        "start_line": 32,
+        "start_line": 33,
         "start_column": 13,
-        "end_line": 32,
+        "end_line": 33,
         "end_column": 33,
-        "start_byte": 626,
-        "end_byte": 646
+        "start_byte": 726,
+        "end_byte": 746
       },
       "body_hash": "653b18ac3b59597a9251c69472a46d21",
       "signature": "defineExpose()",
@@ -121,24 +121,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:defineOptions:9:0",
+      "key": "fixtures/extraction/vue/basic/source.vue:defineOptions:10:0",
       "name": "defineOptions",
       "kind": "function",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 9,
+      "start_line": 10,
       "start_column": 0,
-      "end_line": 9,
+      "end_line": 10,
       "end_column": 33,
-      "start_byte": 132,
-      "end_byte": 165,
+      "start_byte": 232,
+      "end_byte": 265,
       "body_span": {
-        "start_line": 9,
+        "start_line": 10,
         "start_column": 14,
-        "end_line": 9,
+        "end_line": 10,
         "end_column": 32,
-        "start_byte": 146,
-        "end_byte": 164
+        "start_byte": 246,
+        "end_byte": 264
       },
       "body_hash": "dd8e33b1bf874e703c52b41c1598e94f",
       "signature": "defineOptions()",
@@ -154,24 +154,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:emit:12:6",
+      "key": "fixtures/extraction/vue/basic/source.vue:emit:13:6",
       "name": "emit",
       "kind": "variable",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 12,
+      "start_line": 13,
       "start_column": 6,
-      "end_line": 12,
+      "end_line": 13,
       "end_column": 42,
-      "start_byte": 222,
-      "end_byte": 258,
+      "start_byte": 322,
+      "end_byte": 358,
       "body_span": {
-        "start_line": 12,
+        "start_line": 13,
         "start_column": 25,
-        "end_line": 12,
+        "end_line": 13,
         "end_column": 39,
-        "start_byte": 241,
-        "end_byte": 255
+        "start_byte": 341,
+        "end_byte": 355
       },
       "body_hash": "5fb38b7b0f7bd52f06cb135b9d01259b",
       "signature": "const emit",
@@ -188,24 +188,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:evaluate:20:0",
+      "key": "fixtures/extraction/vue/basic/source.vue:evaluate:21:0",
       "name": "evaluate",
       "kind": "function",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 20,
+      "start_line": 21,
       "start_column": 0,
-      "end_line": 30,
+      "end_line": 31,
       "end_column": 1,
-      "start_byte": 363,
-      "end_byte": 611,
+      "start_byte": 463,
+      "end_byte": 711,
       "body_span": {
-        "start_line": 20,
+        "start_line": 21,
         "start_column": 59,
-        "end_line": 30,
+        "end_line": 31,
         "end_column": 1,
-        "start_byte": 422,
-        "end_byte": 611
+        "start_byte": 522,
+        "end_byte": 711
       },
       "body_hash": "0d61c5c9950c9a877d638c6a5522fcd9",
       "signature": "function evaluate(count: number, enabled: boolean)",
@@ -227,24 +227,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:format:16:0",
+      "key": "fixtures/extraction/vue/basic/source.vue:format:17:0",
       "name": "format",
       "kind": "function",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 16,
+      "start_line": 17,
       "start_column": 0,
-      "end_line": 18,
+      "end_line": 19,
       "end_column": 1,
-      "start_byte": 294,
-      "end_byte": 361,
+      "start_byte": 394,
+      "end_byte": 461,
       "body_span": {
-        "start_line": 16,
+        "start_line": 17,
         "start_column": 39,
-        "end_line": 18,
+        "end_line": 19,
         "end_column": 1,
-        "start_byte": 333,
-        "end_byte": 361
+        "start_byte": 433,
+        "end_byte": 461
       },
       "body_hash": "610fbeb731a13af644329e41367482b9",
       "signature": "function format(value: string)",
@@ -266,24 +266,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:props:11:6",
+      "key": "fixtures/extraction/vue/basic/source.vue:props:12:6",
       "name": "props",
       "kind": "variable",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 11,
+      "start_line": 12,
       "start_column": 6,
-      "end_line": 11,
+      "end_line": 12,
       "end_column": 46,
-      "start_byte": 174,
-      "end_byte": 214,
+      "start_byte": 274,
+      "end_byte": 314,
       "body_span": {
-        "start_line": 11,
+        "start_line": 12,
         "start_column": 26,
-        "end_line": 11,
+        "end_line": 12,
         "end_column": 43,
-        "start_byte": 194,
-        "end_byte": 211
+        "start_byte": 294,
+        "end_byte": 311
       },
       "body_hash": "36ed6a5f5ed25acfe0f792004b8cf8f6",
       "signature": "const props",
@@ -300,24 +300,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:title:14:6",
+      "key": "fixtures/extraction/vue/basic/source.vue:title:15:6",
       "name": "title",
       "kind": "variable",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 14,
+      "start_line": 15,
       "start_column": 6,
-      "end_line": 14,
+      "end_line": 15,
       "end_column": 30,
-      "start_byte": 267,
-      "end_byte": 291,
+      "start_byte": 367,
+      "end_byte": 391,
       "body_span": {
-        "start_line": 14,
+        "start_line": 15,
         "start_column": 20,
-        "end_line": 14,
+        "end_line": 15,
         "end_column": 30,
-        "start_byte": 281,
-        "end_byte": 291
+        "start_byte": 381,
+        "end_byte": 391
       },
       "body_hash": "faa84f139a69da88f8f7371e84964fe8",
       "signature": "const title",
@@ -337,10 +337,10 @@
   "relationships": [
     {
       "from_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
-      "to_key": "fixtures/extraction/vue/basic/source.vue:defineExpose:32:0",
+      "to_key": "fixtures/extraction/vue/basic/source.vue:defineExpose:33:0",
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "line_number": 32,
+      "line_number": 33,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "defineExpose"
@@ -348,10 +348,10 @@
     },
     {
       "from_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
-      "to_key": "fixtures/extraction/vue/basic/source.vue:defineOptions:9:0",
+      "to_key": "fixtures/extraction/vue/basic/source.vue:defineOptions:10:0",
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "line_number": 9,
+      "line_number": 10,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "defineOptions"
@@ -359,10 +359,10 @@
     },
     {
       "from_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
-      "to_key": "fixtures/extraction/vue/basic/source.vue:format:16:0",
+      "to_key": "fixtures/extraction/vue/basic/source.vue:format:17:0",
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "line_number": 14,
+      "line_number": 15,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "format"
@@ -370,7 +370,7 @@
     },
     {
       "from_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
-      "to_key": "fixtures/extraction/vue/basic/source.vue:title:14:6",
+      "to_key": "fixtures/extraction/vue/basic/source.vue:title:15:6",
       "kind": "references",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "line_number": 4,
@@ -394,7 +394,7 @@
       "callee_name": "defineEmits",
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "line_number": 12,
+      "line_number": 13,
       "confidence": "0.800"
     },
     {
@@ -402,7 +402,7 @@
       "callee_name": "defineProps",
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "line_number": 11,
+      "line_number": 12,
       "confidence": "0.800"
     },
     {
@@ -410,7 +410,7 @@
       "callee_name": "trim",
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "line_number": 17,
+      "line_number": 18,
       "confidence": "0.800"
     }
   ],
@@ -439,7 +439,7 @@
         "callee_name": "defineEmits",
         "kind": "calls",
         "file_path": "fixtures/extraction/vue/basic/source.vue",
-        "line_number": 12,
+        "line_number": 13,
         "confidence": "0.800"
       },
       "target": {
@@ -457,7 +457,7 @@
         "callee_name": "defineProps",
         "kind": "calls",
         "file_path": "fixtures/extraction/vue/basic/source.vue",
-        "line_number": 11,
+        "line_number": 12,
         "confidence": "0.800"
       },
       "target": {
@@ -475,7 +475,7 @@
         "callee_name": "trim",
         "kind": "calls",
         "file_path": "fixtures/extraction/vue/basic/source.vue",
-        "line_number": 17,
+        "line_number": 18,
         "confidence": "0.800"
       },
       "target": {
@@ -490,105 +490,105 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:defineEmits:call:12:13",
+      "key": "fixtures/extraction/vue/basic/source.vue:defineEmits:call:13:13",
       "name": "defineEmits",
       "kind": "call",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 12,
+      "start_line": 13,
       "start_column": 13,
-      "end_line": 12,
+      "end_line": 13,
       "end_column": 24,
-      "start_byte": 229,
-      "end_byte": 240,
+      "start_byte": 329,
+      "end_byte": 340,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:defineExpose:call:32:0",
+      "key": "fixtures/extraction/vue/basic/source.vue:defineExpose:call:33:0",
       "name": "defineExpose",
       "kind": "call",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 32,
+      "start_line": 33,
       "start_column": 0,
-      "end_line": 32,
+      "end_line": 33,
       "end_column": 12,
-      "start_byte": 613,
-      "end_byte": 625,
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:defineExpose:32:0",
+      "start_byte": 713,
+      "end_byte": 725,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:defineExpose:33:0",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:defineOptions:call:9:0",
+      "key": "fixtures/extraction/vue/basic/source.vue:defineOptions:call:10:0",
       "name": "defineOptions",
       "kind": "call",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 9,
+      "start_line": 10,
       "start_column": 0,
-      "end_line": 9,
+      "end_line": 10,
       "end_column": 13,
-      "start_byte": 132,
-      "end_byte": 145,
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:defineOptions:9:0",
+      "start_byte": 232,
+      "end_byte": 245,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:defineOptions:10:0",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:defineProps:call:11:14",
+      "key": "fixtures/extraction/vue/basic/source.vue:defineProps:call:12:14",
       "name": "defineProps",
       "kind": "call",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 11,
+      "start_line": 12,
       "start_column": 14,
-      "end_line": 11,
+      "end_line": 12,
       "end_column": 25,
-      "start_byte": 182,
-      "end_byte": 193,
+      "start_byte": 282,
+      "end_byte": 293,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:format:call:14:14",
+      "key": "fixtures/extraction/vue/basic/source.vue:format:call:15:14",
       "name": "format",
       "kind": "call",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 14,
+      "start_line": 15,
       "start_column": 14,
-      "end_line": 14,
+      "end_line": 15,
       "end_column": 20,
-      "start_byte": 275,
-      "end_byte": 281,
+      "start_byte": 375,
+      "end_byte": 381,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:trim:call:17:17",
+      "key": "fixtures/extraction/vue/basic/source.vue:trim:call:18:17",
       "name": "trim",
       "kind": "call",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 17,
+      "start_line": 18,
       "start_column": 17,
-      "end_line": 17,
+      "end_line": 18,
       "end_column": 21,
-      "start_byte": 352,
-      "end_byte": 356,
-      "containing_key": "fixtures/extraction/vue/basic/source.vue:format:16:0",
+      "start_byte": 452,
+      "end_byte": 456,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:format:17:0",
       "target_key": null,
       "confidence": "1.000"
     }
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:.worker:36:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:.worker:37:0",
       "resolved_type": "css-rule",
       "generic_params": null,
       "constraints": null,
@@ -606,7 +606,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:defineExpose:32:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:defineExpose:33:0",
       "resolved_type": "vue-macro",
       "generic_params": null,
       "constraints": null,
@@ -615,7 +615,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:defineOptions:9:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:defineOptions:10:0",
       "resolved_type": "vue-macro",
       "generic_params": null,
       "constraints": null,
@@ -624,7 +624,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:emit:12:6",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:emit:13:6",
       "resolved_type": "emits",
       "generic_params": null,
       "constraints": null,
@@ -633,7 +633,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:props:11:6",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:props:12:6",
       "resolved_type": "props",
       "generic_params": null,
       "constraints": null,
@@ -642,7 +642,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:title:14:6",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:title:15:6",
       "resolved_type": "variable",
       "generic_params": null,
       "constraints": null,
@@ -652,7 +652,149 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 11,
+      "start_byte": 0,
+      "end_byte": 205,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "template",
+        "setup": false
+      }
+    },
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 36,
+      "start_column": 0,
+      "end_line": 40,
+      "end_column": 8,
+      "start_byte": 760,
+      "end_byte": 813,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": true,
+        "section_type": "style",
+        "setup": false
+      }
+    },
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 34,
+      "end_column": 9,
+      "start_byte": 207,
+      "end_byte": 758,
+      "confidence": "1.000",
+      "metadata": {
+        "lang": "ts",
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "script",
+        "setup": true
+      }
+    },
+    {
+      "pattern_id": "vue.template_directive.v1",
+      "capture_name": "directive",
+      "node_kind": "template_attribute",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 2,
+      "start_column": 26,
+      "end_line": 2,
+      "end_column": 38,
+      "start_byte": 37,
+      "end_byte": 49,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "v-if",
+        "directive": "v-if",
+        "expression": "title",
+        "pattern_version": 1,
+        "query_family": "component_template",
+        "shorthand": false
+      }
+    },
+    {
+      "pattern_id": "vue.template_directive.v1",
+      "capture_name": "directive",
+      "node_kind": "template_attribute",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 5,
+      "start_column": 12,
+      "end_line": 5,
+      "end_column": 46,
+      "start_byte": 106,
+      "end_byte": 140,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "click",
+        "attribute_name": "@click.prevent",
+        "directive": "v-on",
+        "expression": "evaluate(1, true)",
+        "modifiers": [
+          "prevent"
+        ],
+        "pattern_version": 1,
+        "query_family": "component_template",
+        "shorthand": true
+      }
+    },
+    {
+      "pattern_id": "vue.template_directive.v1",
+      "capture_name": "directive",
+      "node_kind": "template_attribute",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 5,
+      "start_column": 47,
+      "end_line": 5,
+      "end_column": 73,
+      "start_byte": 141,
+      "end_byte": 167,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "class",
+        "attribute_name": ":class",
+        "directive": "v-bind",
+        "expression": "{ active: title }",
+        "pattern_version": 1,
+        "query_family": "component_template",
+        "shorthand": true
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",
@@ -666,19 +808,19 @@
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": null,
-      "start_line": 9,
+      "start_line": 10,
       "start_column": 0,
-      "end_line": 32,
+      "end_line": 33,
       "end_column": 35,
-      "start_byte": 132,
-      "end_byte": 648,
+      "start_byte": 232,
+      "end_byte": 748,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:defineExpose:32:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:defineExpose:33:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
@@ -688,19 +830,19 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
-      "start_line": 32,
+      "start_line": 33,
       "start_column": 13,
-      "end_line": 32,
+      "end_line": 33,
       "end_column": 33,
-      "start_byte": 626,
-      "end_byte": 646,
+      "start_byte": 726,
+      "end_byte": 746,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:defineOptions:9:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:defineOptions:10:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
@@ -710,19 +852,19 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
-      "start_line": 9,
+      "start_line": 10,
       "start_column": 14,
-      "end_line": 9,
+      "end_line": 10,
       "end_column": 32,
-      "start_byte": 146,
-      "end_byte": 164,
+      "start_byte": 246,
+      "end_byte": 264,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:evaluate:20:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:evaluate:21:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
@@ -732,19 +874,19 @@
       "loop_count": 1,
       "max_nesting_depth": 2,
       "parameter_count": 2,
-      "start_line": 20,
+      "start_line": 21,
       "start_column": 59,
-      "end_line": 30,
+      "end_line": 31,
       "end_column": 1,
-      "start_byte": 422,
-      "end_byte": 611,
+      "start_byte": 522,
+      "end_byte": 711,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:format:16:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:format:17:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
@@ -754,12 +896,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
-      "start_line": 16,
+      "start_line": 17,
       "start_column": 39,
-      "end_line": 18,
+      "end_line": 19,
       "end_column": 1,
-      "start_byte": 333,
-      "end_byte": 361,
+      "start_byte": 433,
+      "end_byte": 461,
       "metadata": {
         "metric_version": 1
       }
@@ -773,12 +915,12 @@
       "arg_position": 0,
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 14,
+      "start_line": 15,
       "start_column": 21,
-      "end_line": 14,
+      "end_line": 15,
       "end_column": 29,
-      "start_byte": 282,
-      "end_byte": 290,
+      "start_byte": 382,
+      "end_byte": 390,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
       "confidence": "1.000"
     }
@@ -789,12 +931,12 @@
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "containing_key": null,
-      "start_line": 35,
+      "start_line": 36,
       "start_column": 0,
-      "end_line": 39,
+      "end_line": 40,
       "end_column": 8,
-      "start_byte": 660,
-      "end_byte": 713,
+      "start_byte": 760,
+      "end_byte": 813,
       "metadata": {
         "embedded_language": "css",
         "host_node_kind": "style_element"
@@ -805,12 +947,12 @@
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "containing_key": null,
-      "start_line": 8,
+      "start_line": 9,
       "start_column": 0,
-      "end_line": 33,
+      "end_line": 34,
       "end_column": 9,
-      "start_byte": 107,
-      "end_byte": 658,
+      "start_byte": 207,
+      "end_byte": 758,
       "metadata": {
         "embedded_language": "javascript",
         "host_node_kind": "script_element"
@@ -834,12 +976,51 @@
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
-      "start_line": 8,
+      "start_line": 2,
+      "start_column": 31,
+      "end_line": 2,
+      "end_column": 38,
+      "start_byte": 42,
+      "end_byte": 49,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 5,
+      "start_column": 27,
+      "end_line": 5,
+      "end_column": 46,
+      "start_byte": 121,
+      "end_byte": 140,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 5,
+      "start_column": 54,
+      "end_line": 5,
+      "end_column": 73,
+      "start_byte": 148,
+      "end_byte": 167,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Worker:1:1",
+      "start_line": 9,
       "start_column": 19,
-      "end_line": 8,
+      "end_line": 9,
       "end_column": 23,
-      "start_byte": 126,
-      "end_byte": 130,
+      "start_byte": 226,
+      "end_byte": 230,
       "metadata": null
     }
   ],

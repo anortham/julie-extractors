@@ -1,7 +1,8 @@
 <template>
-  <section class="worker">
+  <section class="worker" v-if="title">
     <HeaderBar />
     <h1>{{ title }}</h1>
+    <button @click.prevent="evaluate(1, true)" :class="{ active: title }">Run</button>
   </section>
 </template>
 

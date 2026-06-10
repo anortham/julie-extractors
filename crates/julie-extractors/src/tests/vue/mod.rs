@@ -7,6 +7,7 @@ pub mod cross_file_pending;
 pub mod literals;
 pub mod parsing;
 pub mod relationships;
+pub mod structural_facts;
 pub mod type_arguments;
 
 mod complexity;

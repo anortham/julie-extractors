@@ -1,0 +1,711 @@
+use std::collections::HashMap;
+
+use serde_json::{Number, Value};
+use tree_sitter::{Node, Tree};
+
+use super::span::NormalizedSpan;
+use super::structural_facts::sort_structural_facts;
+use super::types::{StructuralFact, Symbol, stable_location_id};
+
+const CSS_SELECTOR_RULE_PATTERN_ID: &str = "css.selector_rule.v1";
+const CSS_CUSTOM_PROPERTY_PATTERN_ID: &str = "css.custom_property.v1";
+const CSS_MEDIA_QUERY_PATTERN_ID: &str = "css.media_query.v1";
+const CSS_KEYFRAMES_PATTERN_ID: &str = "css.keyframes.v1";
+const VUE_SFC_SECTION_PATTERN_ID: &str = "vue.sfc_section.v1";
+const VUE_TEMPLATE_DIRECTIVE_PATTERN_ID: &str = "vue.template_directive.v1";
+
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const CSS_WEB_PATTERN_IDS: &[&str] = &[
+    CSS_CUSTOM_PROPERTY_PATTERN_ID,
+    CSS_KEYFRAMES_PATTERN_ID,
+    CSS_MEDIA_QUERY_PATTERN_ID,
+    CSS_SELECTOR_RULE_PATTERN_ID,
+];
+
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const VUE_WEB_PATTERN_IDS: &[&str] = &[
+    VUE_SFC_SECTION_PATTERN_ID,
+    VUE_TEMPLATE_DIRECTIVE_PATTERN_ID,
+];
+
+pub fn collect_web_structural_facts(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    symbols: &[Symbol],
+) -> Vec<StructuralFact> {
+    let mut facts = match language {
+        "css" => collect_css_structural_facts(tree, file_path, content),
+        "vue" => collect_vue_structural_facts(file_path, content),
+        _ => Vec::new(),
+    };
+
+    attach_containing_symbols(&mut facts, symbols);
+    sort_structural_facts(&mut facts);
+    facts
+}
+
+#[cfg(all(test, feature = "test-capability-matrix"))]
+pub(crate) fn web_structural_fact_pattern_ids_for_language(
+    language: &str,
+) -> &'static [&'static str] {
+    match language {
+        "css" => CSS_WEB_PATTERN_IDS,
+        "vue" => VUE_WEB_PATTERN_IDS,
+        _ => &[],
+    }
+}
+
+fn collect_css_structural_facts(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    collect_css_node(tree.root_node(), file_path, content, &mut facts);
+    facts
+}
+
+fn collect_css_node(
+    node: Node<'_>,
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    match node.kind() {
+        "rule_set" => {
+            if let Some(fact) = css_selector_rule_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "property_name" => {
+            if let Some(fact) = css_custom_property_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "media_statement" => {
+            if let Some(fact) = css_media_query_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "keyframes_statement" => {
+            if let Some(fact) = css_keyframes_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        _ => {}
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_css_node(child, file_path, content, facts);
+    }
+}
+
+fn css_selector_rule_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let selectors = child_by_kind(node, "selectors")?;
+    let selector_text = node_text(content, selectors)?.trim().to_string();
+    if selector_text.is_empty() {
+        return None;
+    }
+
+    let mut metadata = base_metadata("stylesheet_structure");
+    insert_string(&mut metadata, "selector", &selector_text);
+    insert_string(
+        &mut metadata,
+        "selector_kind",
+        css_selector_kind(&selector_text),
+    );
+    metadata.insert(
+        "declaration_count".to_string(),
+        Value::Number(Number::from(count_css_declarations(node))),
+    );
+
+    Some(fact_for_node(
+        file_path,
+        "css",
+        CSS_SELECTOR_RULE_PATTERN_ID,
+        "rule_set",
+        node,
+        metadata,
+    ))
+}
+
+fn css_custom_property_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let property_name = node_text(content, node)?.trim();
+    if !property_name.starts_with("--") {
+        return None;
+    }
+
+    let mut metadata = base_metadata("stylesheet_structure");
+    insert_string(&mut metadata, "property_name", property_name);
+
+    Some(fact_for_node(
+        file_path,
+        "css",
+        CSS_CUSTOM_PROPERTY_PATTERN_ID,
+        "custom_property",
+        node,
+        metadata,
+    ))
+}
+
+fn css_media_query_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
+    let text = node_text(content, node)?;
+    let query = css_at_rule_prelude(text, "@media");
+    let mut metadata = base_metadata("responsive_design");
+    if let Some(query) = query {
+        insert_string(&mut metadata, "query", query);
+    }
+
+    Some(fact_for_node(
+        file_path,
+        "css",
+        CSS_MEDIA_QUERY_PATTERN_ID,
+        "media_query",
+        node,
+        metadata,
+    ))
+}
+
+fn css_keyframes_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
+    let text = node_text(content, node)?;
+    let animation_name = css_at_rule_prelude(text, "@keyframes");
+    let mut metadata = base_metadata("animation");
+    if let Some(animation_name) = animation_name {
+        insert_string(&mut metadata, "animation_name", animation_name);
+    }
+
+    Some(fact_for_node(
+        file_path,
+        "css",
+        CSS_KEYFRAMES_PATTERN_ID,
+        "keyframes",
+        node,
+        metadata,
+    ))
+}
+
+fn collect_vue_structural_facts(file_path: &str, content: &str) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+
+    for section in scan_vue_sections(content) {
+        facts.push(vue_section_fact(file_path, &section));
+
+        if section.section_type == "template" {
+            for attribute in
+                scan_markup_attributes(content, section.content_start, section.content_end)
+            {
+                if let Some(directive) = parse_vue_directive(&attribute.name) {
+                    facts.push(vue_template_directive_fact(
+                        file_path, &attribute, directive,
+                    ));
+                }
+            }
+        }
+    }
+
+    facts
+}
+
+fn vue_section_fact(file_path: &str, section: &VueSectionSpan) -> StructuralFact {
+    let mut metadata = base_metadata("component_structure");
+    insert_string(&mut metadata, "section_type", section.section_type);
+    if let Some(lang) = section.lang.as_deref() {
+        insert_string(&mut metadata, "lang", lang);
+    }
+    metadata.insert("setup".to_string(), Value::Bool(section.setup));
+    metadata.insert("scoped".to_string(), Value::Bool(section.scoped));
+
+    fact_for_span(
+        file_path,
+        "vue",
+        VUE_SFC_SECTION_PATTERN_ID,
+        "section",
+        "sfc_section",
+        section.start_span,
+        metadata,
+    )
+}
+
+fn vue_template_directive_fact(
+    file_path: &str,
+    attribute: &MarkupAttribute,
+    directive: VueDirective,
+) -> StructuralFact {
+    let mut metadata = base_metadata("component_template");
+    insert_string(&mut metadata, "directive", directive.name);
+    insert_string(&mut metadata, "attribute_name", &attribute.name);
+    metadata.insert("shorthand".to_string(), Value::Bool(directive.shorthand));
+    if let Some(argument) = directive.argument {
+        insert_string(&mut metadata, "argument", &argument);
+    }
+    if !directive.modifiers.is_empty() {
+        metadata.insert(
+            "modifiers".to_string(),
+            Value::Array(directive.modifiers.into_iter().map(Value::String).collect()),
+        );
+    }
+    if let Some(expression) = attribute.value.as_deref() {
+        insert_string(&mut metadata, "expression", expression);
+    }
+
+    fact_for_span(
+        file_path,
+        "vue",
+        VUE_TEMPLATE_DIRECTIVE_PATTERN_ID,
+        "directive",
+        "template_attribute",
+        attribute.span,
+        metadata,
+    )
+}
+
+fn fact_for_node(
+    file_path: &str,
+    language: &str,
+    pattern_id: &str,
+    capture_name: &str,
+    node: Node<'_>,
+    metadata: HashMap<String, Value>,
+) -> StructuralFact {
+    fact_for_span(
+        file_path,
+        language,
+        pattern_id,
+        capture_name,
+        node.kind(),
+        NormalizedSpan::from_node(&node),
+        metadata,
+    )
+}
+
+fn fact_for_span(
+    file_path: &str,
+    language: &str,
+    pattern_id: &str,
+    capture_name: &str,
+    node_kind: &str,
+    span: NormalizedSpan,
+    metadata: HashMap<String, Value>,
+) -> StructuralFact {
+    StructuralFact {
+        id: stable_location_id(file_path, &format!("{pattern_id}:{capture_name}"), span),
+        file_path: file_path.to_string(),
+        language: language.to_string(),
+        pattern_id: pattern_id.to_string(),
+        capture_name: capture_name.to_string(),
+        node_kind: node_kind.to_string(),
+        containing_symbol_id: None,
+        start_line: span.start_line,
+        start_column: span.start_column,
+        end_line: span.end_line,
+        end_column: span.end_column,
+        start_byte: span.start_byte,
+        end_byte: span.end_byte,
+        confidence: 1.0,
+        metadata: Some(metadata),
+    }
+}
+
+fn base_metadata(query_family: &str) -> HashMap<String, Value> {
+    HashMap::from([
+        (
+            "pattern_version".to_string(),
+            Value::Number(Number::from(1)),
+        ),
+        (
+            "query_family".to_string(),
+            Value::String(query_family.to_string()),
+        ),
+    ])
+}
+
+fn insert_string(metadata: &mut HashMap<String, Value>, key: &str, value: &str) {
+    metadata.insert(key.to_string(), Value::String(value.to_string()));
+}
+
+fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
+    for fact in facts {
+        fact.containing_symbol_id = symbols
+            .iter()
+            .filter(|symbol| {
+                symbol.start_byte <= fact.start_byte && symbol.end_byte >= fact.end_byte
+            })
+            .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))
+            .map(|symbol| symbol.id.clone());
+    }
+}
+
+fn child_by_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
+}
+
+fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
+    content.get(node.start_byte()..node.end_byte())
+}
+
+fn css_selector_kind(selector: &str) -> &'static str {
+    let selector = selector.trim();
+    if selector.contains(',') {
+        "selector_list"
+    } else if selector.starts_with('.') {
+        "class"
+    } else if selector.starts_with('#') {
+        "id"
+    } else if selector.starts_with(':') {
+        "pseudo"
+    } else {
+        "compound"
+    }
+}
+
+fn count_css_declarations(node: Node<'_>) -> usize {
+    let mut count = usize::from(node.kind() == "declaration");
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        count += count_css_declarations(child);
+    }
+    count
+}
+
+fn css_at_rule_prelude<'a>(text: &'a str, keyword: &str) -> Option<&'a str> {
+    let trimmed = text.trim();
+    let rest = trimmed.strip_prefix(keyword)?.trim();
+    let prelude = rest.split('{').next().unwrap_or(rest).trim();
+    (!prelude.is_empty()).then_some(prelude)
+}
+
+#[derive(Debug)]
+struct VueSectionSpan {
+    section_type: &'static str,
+    lang: Option<String>,
+    setup: bool,
+    scoped: bool,
+    start_span: NormalizedSpan,
+    content_start: usize,
+    content_end: usize,
+}
+
+fn scan_vue_sections(content: &str) -> Vec<VueSectionSpan> {
+    let mut sections = Vec::new();
+    let mut cursor = 0usize;
+
+    while let Some((tag_start, section_type)) = next_vue_section_start(content, cursor) {
+        let Some(open_tag_end) = find_tag_end(content, tag_start) else {
+            break;
+        };
+        let close_tag = format!("</{section_type}>");
+        let content_start = open_tag_end + 1;
+        let Some(close_relative) = content[content_start..].find(&close_tag) else {
+            cursor = content_start;
+            continue;
+        };
+        let content_end = content_start + close_relative;
+        let tag_end = content_end + close_tag.len();
+        let Some(span) = NormalizedSpan::from_content_range(content, tag_start, tag_end) else {
+            cursor = tag_end;
+            continue;
+        };
+
+        let attrs = content.get(tag_start..=open_tag_end).unwrap_or_default();
+        sections.push(VueSectionSpan {
+            section_type,
+            lang: parse_attr_value(attrs, "lang"),
+            setup: has_boolean_attr(attrs, "setup"),
+            scoped: has_boolean_attr(attrs, "scoped"),
+            start_span: span,
+            content_start,
+            content_end,
+        });
+        cursor = tag_end;
+    }
+
+    sections
+}
+
+fn next_vue_section_start(content: &str, cursor: usize) -> Option<(usize, &'static str)> {
+    ["template", "script", "style"]
+        .into_iter()
+        .filter_map(|section| {
+            content[cursor..]
+                .find(&format!("<{section}"))
+                .map(|relative| (cursor + relative, section))
+        })
+        .min_by_key(|(start, _)| *start)
+}
+
+#[derive(Debug)]
+struct MarkupAttribute {
+    name: String,
+    value: Option<String>,
+    span: NormalizedSpan,
+}
+
+fn scan_markup_attributes(content: &str, start: usize, end: usize) -> Vec<MarkupAttribute> {
+    let mut attributes = Vec::new();
+    let mut cursor = start;
+
+    while cursor < end {
+        let Some(relative_tag_start) = content[cursor..end].find('<') else {
+            break;
+        };
+        let tag_start = cursor + relative_tag_start;
+        let Some(tag_end) = find_tag_end(content, tag_start).filter(|tag_end| *tag_end <= end)
+        else {
+            break;
+        };
+        if is_markup_tag_start(content.as_bytes(), tag_start) {
+            scan_tag_attributes(content, tag_start, tag_end, &mut attributes);
+        }
+        cursor = tag_end + 1;
+    }
+
+    attributes
+}
+
+fn scan_tag_attributes(
+    content: &str,
+    tag_start: usize,
+    tag_end: usize,
+    attributes: &mut Vec<MarkupAttribute>,
+) {
+    let bytes = content.as_bytes();
+    let mut cursor = tag_start + 1;
+    while cursor < tag_end && is_attr_name_byte(bytes[cursor]) {
+        cursor += 1;
+    }
+
+    while cursor < tag_end {
+        cursor = skip_ascii_whitespace_until(content, cursor, tag_end);
+        if cursor >= tag_end || bytes[cursor] == b'/' {
+            cursor += 1;
+            continue;
+        }
+
+        let name_start = cursor;
+        while cursor < tag_end && is_attr_name_byte(bytes[cursor]) {
+            cursor += 1;
+        }
+        if cursor == name_start {
+            cursor += 1;
+            continue;
+        }
+
+        let name_end = cursor;
+        let mut value = None;
+        let mut attr_end = name_end;
+        cursor = skip_ascii_whitespace_until(content, cursor, tag_end);
+        if cursor < tag_end && bytes[cursor] == b'=' {
+            cursor = skip_ascii_whitespace_until(content, cursor + 1, tag_end);
+            let (parsed_value, value_end) = parse_markup_attribute_value(content, cursor, tag_end);
+            value = parsed_value;
+            attr_end = value_end;
+            cursor = value_end;
+        }
+
+        let Some(span) = NormalizedSpan::from_content_range(content, name_start, attr_end) else {
+            continue;
+        };
+        let Some(name) = content.get(name_start..name_end) else {
+            continue;
+        };
+        attributes.push(MarkupAttribute {
+            name: name.to_string(),
+            value,
+            span,
+        });
+    }
+}
+
+fn parse_markup_attribute_value(
+    content: &str,
+    value_start: usize,
+    tag_end: usize,
+) -> (Option<String>, usize) {
+    let bytes = content.as_bytes();
+    let Some(quote) = bytes
+        .get(value_start)
+        .copied()
+        .filter(|byte| matches!(*byte, b'"' | b'\''))
+    else {
+        let mut value_end = value_start;
+        while value_end < tag_end && !bytes[value_end].is_ascii_whitespace() {
+            value_end += 1;
+        }
+        return (
+            content.get(value_start..value_end).map(ToString::to_string),
+            value_end,
+        );
+    };
+
+    let mut value_end = value_start + 1;
+    while value_end < tag_end && bytes[value_end] != quote {
+        value_end += 1;
+    }
+    let value = content
+        .get(value_start + 1..value_end)
+        .map(ToString::to_string);
+    let attr_end = if value_end < tag_end {
+        value_end + 1
+    } else {
+        value_end
+    };
+    (value, attr_end)
+}
+
+fn find_tag_end(content: &str, tag_start: usize) -> Option<usize> {
+    let bytes = content.as_bytes();
+    let mut cursor = tag_start + 1;
+    let mut quote = None;
+
+    while cursor < bytes.len() {
+        let byte = bytes[cursor];
+        if let Some(active_quote) = quote {
+            if byte == active_quote {
+                quote = None;
+            }
+        } else if byte == b'"' || byte == b'\'' {
+            quote = Some(byte);
+        } else if byte == b'>' {
+            return Some(cursor);
+        }
+        cursor += 1;
+    }
+
+    None
+}
+
+fn is_markup_tag_start(bytes: &[u8], tag_start: usize) -> bool {
+    let Some(next) = bytes.get(tag_start + 1) else {
+        return false;
+    };
+    !matches!(*next, b'!' | b'?' | b'/')
+}
+
+fn is_attr_name_byte(byte: u8) -> bool {
+    !byte.is_ascii_whitespace() && !matches!(byte, b'=' | b'/' | b'>' | b'<')
+}
+
+fn skip_ascii_whitespace_until(content: &str, mut cursor: usize, end: usize) -> usize {
+    let bytes = content.as_bytes();
+    while cursor < end && bytes[cursor].is_ascii_whitespace() {
+        cursor += 1;
+    }
+    cursor
+}
+
+fn parse_attr_value(attrs: &str, name: &str) -> Option<String> {
+    for quote in ['"', '\''] {
+        let prefix = format!("{name}={quote}");
+        if let Some(start) = attrs.find(&prefix) {
+            let value_start = start + prefix.len();
+            let value_end = attrs[value_start..].find(quote)? + value_start;
+            return Some(attrs[value_start..value_end].to_string());
+        }
+    }
+    None
+}
+
+fn has_boolean_attr(attrs: &str, name: &str) -> bool {
+    attrs
+        .split(|ch: char| ch.is_ascii_whitespace() || matches!(ch, '<' | '>' | '/'))
+        .any(|part| part == name)
+}
+
+#[derive(Debug)]
+struct VueDirective {
+    name: &'static str,
+    argument: Option<String>,
+    modifiers: Vec<String>,
+    shorthand: bool,
+}
+
+fn parse_vue_directive(attribute_name: &str) -> Option<VueDirective> {
+    if let Some(rest) = attribute_name.strip_prefix('@') {
+        let (argument, modifiers) = split_argument_and_modifiers(rest);
+        return Some(VueDirective {
+            name: "v-on",
+            argument,
+            modifiers,
+            shorthand: true,
+        });
+    }
+
+    if let Some(rest) = attribute_name.strip_prefix(':') {
+        let (argument, modifiers) = split_argument_and_modifiers(rest);
+        return Some(VueDirective {
+            name: "v-bind",
+            argument,
+            modifiers,
+            shorthand: true,
+        });
+    }
+
+    let rest = attribute_name.strip_prefix("v-")?;
+    let base = rest
+        .find(&[':', '.'][..])
+        .map(|index| &rest[..index])
+        .unwrap_or(rest);
+    let directive_name = match base {
+        "bind" => "v-bind",
+        "on" => "v-on",
+        "if" => "v-if",
+        "else-if" => "v-else-if",
+        "else" => "v-else",
+        "for" => "v-for",
+        "show" => "v-show",
+        "model" => "v-model",
+        "slot" => "v-slot",
+        "text" => "v-text",
+        "html" => "v-html",
+        "pre" => "v-pre",
+        "once" => "v-once",
+        "memo" => "v-memo",
+        "cloak" => "v-cloak",
+        _ => return None,
+    };
+
+    let mut argument = None;
+    let mut modifiers = Vec::new();
+    let tail_start = "v-".len() + base.len();
+    if let Some(separator) = attribute_name.as_bytes().get(tail_start).copied() {
+        let tail = &attribute_name[tail_start + 1..];
+        if separator == b':' {
+            let (parsed_argument, parsed_modifiers) = split_argument_and_modifiers(tail);
+            argument = parsed_argument;
+            modifiers = parsed_modifiers;
+        } else if separator == b'.' {
+            modifiers = tail
+                .split('.')
+                .filter(|modifier| !modifier.is_empty())
+                .map(ToString::to_string)
+                .collect();
+        }
+    }
+
+    Some(VueDirective {
+        name: directive_name,
+        argument,
+        modifiers,
+        shorthand: false,
+    })
+}
+
+fn split_argument_and_modifiers(value: &str) -> (Option<String>, Vec<String>) {
+    let mut parts = value.split('.').filter(|part| !part.is_empty());
+    let argument = parts.next().map(ToString::to_string);
+    let modifiers = parts.map(ToString::to_string).collect();
+    (argument, modifiers)
+}

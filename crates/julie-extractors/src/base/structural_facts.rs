@@ -6,6 +6,8 @@ use tree_sitter::{Node, Tree};
 use super::framework_structural_facts::framework_structural_fact_pattern_ids_for_language;
 use super::span::NormalizedSpan;
 use super::types::{StructuralFact, Symbol, stable_location_id};
+#[cfg(all(test, feature = "test-capability-matrix"))]
+use super::web_structural_facts::web_structural_fact_pattern_ids_for_language;
 
 #[derive(Debug, Clone, Copy)]
 struct StructuralPattern {
@@ -122,6 +124,7 @@ pub(crate) fn structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'
         .map(|pattern| pattern.pattern_id)
         .collect::<Vec<_>>();
     pattern_ids.extend(framework_structural_fact_pattern_ids_for_language(language));
+    pattern_ids.extend(web_structural_fact_pattern_ids_for_language(language));
     pattern_ids.sort();
     pattern_ids.dedup();
     pattern_ids

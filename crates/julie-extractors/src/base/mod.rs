@@ -30,6 +30,7 @@ pub mod tree_methods;
 pub mod type_arguments;
 pub mod type_models;
 pub mod types;
+pub mod web_structural_facts;
 
 // Re-export key types for external use
 pub use annotations::normalize_annotations;
@@ -53,6 +54,7 @@ pub use types::{
     ParseDiagnostic, ParseDiagnosticKind, PendingRelationship, Relationship, SourceRegion,
     SourceRegionKind, StructuralFact, Symbol, SymbolOptions, TypeInfo,
 };
+pub use web_structural_facts::collect_web_structural_facts;
 
 pub(crate) fn containing_symbol_at_line(symbols: &[Symbol], line_number: u32) -> Option<&Symbol> {
     symbols
