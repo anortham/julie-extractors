@@ -1411,15 +1411,30 @@ node scripts/language-data-quality-report.mjs --strict
 cargo fmt --check && git diff --check
 ```
 
+## Phase 23 downstream dogfood evidence
+
+Phase 6 dogfood now has comparative evidence in
+`docs/release-evidence/2026-06-10-language-data-quality.md`.
+
+The current branch and published `v2.2.1` baseline were scanned against
+`julie-extractors`, the three dependent projects (`miller`, `julie`, `eros`),
+and representative local corpora for Razor, Vue, JavaScript, TypeScript,
+Python, C#, Swift, C, C++, Java, Elixir, and Ruby.
+
+Result:
+
+- Current branch scans: 16/16 succeeded with `--strict-schema`.
+- Failed files: 0.
+- Parse diagnostics: unchanged from baseline (`18517`).
+- Strict scorecard: `silent_cells: 0`, `quality_bar_debts: 0`.
+- Structural facts increased from `8048` to `459430` rows across the dogfood
+  set, with positive deltas in 26 languages.
+
 ## Recommended next plan
 
-Build the next pass around a high-bar language-quality program:
+Implementation and dogfood are complete for this quality branch. The remaining
+work is Phase 7 closeout:
 
-1. Add a scorecard and no-silent-cell policy so gaps are visible.
-2. Raise broad domains like literals, doc comments, annotations, complexity,
-   identifiers, and type-argument usage to product-grade coverage across all
-   languages that can support them.
-3. Define language-family structural facts with clear downstream value.
-4. Fix the known Dart, C#, and SQL quality defects as test-first tasks.
-5. Dogfood the result against dependent projects and representative real-world
-   corpora, recording domain counts and regressions.
+1. Update consumer-facing docs and the new-language checklist.
+2. Run the full final validation gates.
+3. Capture a final handoff/verification note before merge review.

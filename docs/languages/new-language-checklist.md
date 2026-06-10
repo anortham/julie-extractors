@@ -130,6 +130,7 @@ cargo xtask test golden
 cargo xtask test capability
 cargo xtask test changed crates/julie-extractors/src/language_spec/specs.rs fixtures/extraction/capabilities.json
 cargo run -p julie-extract-cli -- languages --json
+node scripts/language-data-quality-report.mjs --strict
 ```
 
 If parser dependencies changed, run the certification gate:
@@ -144,6 +145,11 @@ run the real-world smoke gate:
 ```bash
 cargo xtask test real-world-smoke
 ```
+
+For broad capability upgrades, also record dogfood or representative-repository
+evidence. The evidence should include row counts, failed files, parse
+diagnostics, and before/after deltas for the domains being upgraded. Dogfood
+evidence does not replace fixture-backed assertions.
 
 ## 8. Update Public Docs
 
@@ -162,6 +168,8 @@ Before merging, answer these review questions:
 
 - Does `languages --json` match the intended capability claim?
 - Does every true capability have fixture evidence?
+- Does the strict language data quality scorecard still report no silent cells
+  and no quality-bar debt?
 - Does every false capability have either a domain reason or a planned closure?
 - Are variant languages tested independently?
 - Are parser-specific limitations documented as evidence, not hidden in prose?

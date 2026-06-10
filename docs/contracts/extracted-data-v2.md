@@ -84,6 +84,15 @@ capabilities. Say "domain-limited" or "partial" when that is the honest claim.
   behavior. Current examples: `tsx`, `jsx`, and `vue`.
 - Runtime smoke is not enough. If a function returns data, the test must assert
   the actual rows or fields.
+- Empty row vectors are not support evidence. They are valid only for false
+  capabilities, not-applicable domains, or fixtures that explicitly prove
+  absence.
+- Broad capability upgrades must keep the language data quality scorecard clean:
+  no silent cells and no quality-bar debt. Any remaining domain must be
+  classified as supported, not applicable, convention-only, partial, or a typed
+  gap with closure evidence.
+- Downstream or real-world scans are evidence for regression risk and row volume,
+  not a replacement for fixture-backed field assertions.
 
 ## Doc Comment Policy
 

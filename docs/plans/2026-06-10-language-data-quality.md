@@ -736,9 +736,13 @@ fixture-backed evidence.
 Phase 22 deepened HTML form facts and Razor page route facts on existing pattern
 IDs. See `docs/findings/2026-06-09-language-coverage-review.md` Phase 22 for
 evidence. Blazor form-component facts remain deferred until the Razor grammar
-exposes stable component nodes. The next slice should target any remaining
-shallow domains surfaced by the depth audit. Implementation work must still
-avoid filler rows and keep `silent_cells: 0` with honest capability semantics.
+exposes stable component nodes.
+
+Phase 23 completed downstream dogfood and comparative quality evidence. See
+`docs/release-evidence/2026-06-10-language-data-quality.md` and
+`docs/findings/2026-06-09-language-coverage-review.md` Phase 23. The remaining
+work is Phase 7 closeout: consumer-facing docs/checklist updates, final gates,
+and handoff.
 
 ## Out Of Scope
 
