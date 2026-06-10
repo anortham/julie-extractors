@@ -2,6 +2,7 @@
 
 // Submodule declarations
 pub mod extractor;
+mod type_inference;
 
 use crate::base::{Symbol, SymbolKind, Visibility};
 use crate::csharp::CSharpExtractor;

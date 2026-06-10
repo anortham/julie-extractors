@@ -40,14 +40,17 @@ fn sql_complexity_metrics_emit_file_and_symbol_scopes() {
         .find(|metric| metric.scope == "symbol" && metric.symbol_id.as_deref() == Some(&trigger.id))
         .expect("expected trigger symbol complexity metric");
     assert_eq!(trigger_metric.algorithm_id, "julie-sql-complexity-v1");
-    assert!(
-        trigger_metric.start_byte <= trigger.start_byte,
-        "metric span should cover trigger declaration start"
+    let trigger_body = trigger
+        .body_span
+        .expect("trigger should expose a callable body span for complexity analysis");
+    assert_eq!(
+        trigger_metric.start_byte, trigger_body.start_byte,
+        "symbol complexity should analyze the callable body span"
     );
     assert!(
-        trigger_metric.end_byte >= trigger.end_byte,
-        "metric span should cover trigger callable body: trigger_end={} metric_end={}",
-        trigger.end_byte,
+        trigger_metric.end_byte >= trigger_body.end_byte,
+        "metric span should cover the trigger body: body_end={} metric_end={}",
+        trigger_body.end_byte,
         trigger_metric.end_byte
     );
     assert!(

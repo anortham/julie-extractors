@@ -774,14 +774,19 @@ Candidate high-value facts to evaluate:
 
 ### 8. Known language-specific defects remain
 
-Keep these as explicit implementation tasks, not buried in broad coverage work:
+Phase 5 (2026-06-10) closed the three tracked defects below. Remaining SQL
+recovery limitations are explicit via `extractedFromError` + `bodySpanSource`
+metadata rather than silent weak spans.
 
-- Dart generic-modifier recovery path checks for `program`, but
-  tree-sitter-dart uses `source_file`.
-- C# return-type inference can be corrupted by substring matching when an
-  attribute argument contains the method name.
-- SQL body-span quality remains weak for views/triggers that come from recovery
-  paths.
+- ~~Dart generic-modifier recovery path checks for `program`, but
+  tree-sitter-dart uses `source_file`.~~ Fixed: guards use `source_file`; tests
+  document active recovery vs clean parse.
+- ~~C# return-type inference can be corrupted by substring matching when an
+  attribute argument contains the method name.~~ Fixed: exact `MethodName(`
+  matching with regression coverage.
+- ~~SQL body-span quality remains weak for views/triggers that come from recovery
+  paths.~~ Improved: statement-level body spans plus `bodySpanSource` metadata;
+  golden fixture updated for SQL basic views and triggers.
 
 ## Phase 10 structural facts: PHP, Ruby, Elixir, Lua, R
 

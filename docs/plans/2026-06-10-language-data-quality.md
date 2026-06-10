@@ -577,6 +577,10 @@ embedding constructs have been reviewed.
 
 ### Task 11: Fix Dart recovery semantics
 
+**Status:** Complete. Recovery guards now use tree-sitter-dart's `source_file`
+root instead of obsolete `program`. Tests assert the root kind and document
+when generic-modifier recovery is active vs clean class parsing.
+
 **Files:**
 - Modify: `crates/julie-extractors/src/dart/mod.rs`
 - Modify: `crates/julie-extractors/src/tests/dart/*`
@@ -592,6 +596,10 @@ the chosen behavior against tree-sitter-dart's actual root node.
 
 ### Task 12: Fix C# return-type inference fragility
 
+**Status:** Complete. `infer_method_return_type` now locates the exact
+`MethodName(` declaration token instead of substring matching. Regression tests
+cover attribute/default-string contamination and preserve existing method types.
+
 **Files:**
 - Modify: `crates/julie-extractors/src/csharp/type_inference.rs`
 - Add or update tests under `crates/julie-extractors/src/tests/csharp/`
@@ -606,6 +614,11 @@ case where an attribute argument contains the method name.
 - C# method return types do not change unexpectedly outside the targeted case.
 
 ### Task 13: Improve SQL body spans and recovery markers
+
+**Status:** Complete for views/triggers/procedures in this slice. Callable body
+spans are derived from full statement text (`AS` / `BEGIN..END`), recovery rows
+keep `extractedFromError` and add `bodySpanSource` metadata
+(`recovery_heuristic`, `statement_text`, or `unavailable`).
 
 **Files:**
 - Modify: `crates/julie-extractors/src/sql/*`
