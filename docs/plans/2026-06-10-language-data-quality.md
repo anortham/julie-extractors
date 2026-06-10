@@ -2,10 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use razorback:subagent-driven-development when subagent delegation is available. Fall back to razorback:executing-plans for single-task, tightly-sequential, or no-delegation runs.
 
-**Goal:** Move language extraction quality from uneven best-effort coverage to
-an explicit, fixture-proven matrix where every advertised language/domain pair
-is either supported, not applicable, or tracked as an open gap with a closure
-task.
+**Goal:** Raise `julie-extractors` into the best available tree-sitter
+extraction implementation for its supported languages: deep, AST-backed,
+fixture-proven semantic data across the board, with explicit limitations only
+where the language truly lacks the construct.
 
 **Architecture:** Keep the current product contract shape from
 `docs/decisions/0003-domain-coverage-via-kind-coverage.md`: no schema bump, no
@@ -18,13 +18,14 @@ fixtures, and shared helpers such as `base/complexity_metrics.rs`,
 **Tech Stack:** Rust workspace, tree-sitter, golden JSON fixtures,
 `capability_matrix.rs`, cargo-nextest, xtask test tiers.
 
-**Architecture Quality:** Medium risk. Capability claims are public contract
-data, and shared helper changes affect many languages. The caller-facing
-interface is the extraction artifact data and `julie-extract languages --json`,
-not private helper functions. Tests must prove behavior through golden fixtures
-and capability rows. Rejected shortcut: adding broad capability claims from
-source inspection alone. Positive claims require fixture evidence; otherwise
-record `not_applicable` or an `open_gaps` row.
+**Architecture Quality:** High strategic importance, medium implementation
+risk. Capability claims are public contract data, and shared helper changes
+affect many languages. The caller-facing interface is the extraction artifact
+data and `julie-extract languages --json`, not private helper functions. Tests
+must prove behavior through golden fixtures, targeted language tests, and
+downstream dogfood scans. Rejected shortcuts: lowering the bar to current
+coverage, adding broad capability claims from source inspection alone, or
+using `not_applicable` to hide ordinary extractor gaps.
 
 ---
 
@@ -50,9 +51,44 @@ Current fixture-proven domain counts:
 - `type_argument_usages`: 1/36
 
 The key finding is that there are no positive `kind_coverage` claims without
-fixture evidence. The remaining problem is that empty cells are often silent,
-so consumers cannot tell deliberate non-applicability from unaudited or missing
-support.
+fixture evidence. That is table stakes, not the destination. The remaining
+problem is that quality is uneven: a few languages are rich, while many code
+languages still lack domains that should be expected from a first-rate
+tree-sitter extractor.
+
+## Product Quality Bar
+
+The target is not "honest about what is missing." The target is high-quality
+extraction for every language this repo advertises.
+
+For general-purpose code languages, the expected bar is:
+
+- rich symbol coverage with signatures, visibility, parent linkage, body
+  spans, body hashes, and doc comments;
+- relationships and pending relationships where references can cross files or
+  resolve later;
+- identifiers for calls, member access, variable references, and type usage
+  where the grammar exposes them;
+- type facts and type-argument usages for statically typed or generic-capable
+  languages;
+- literals with carrier context for downstream routing, query, URL, and
+  configuration analysis;
+- source regions for comments, doc comments, strings, and embedded language
+  regions;
+- complexity metrics for real code constructs;
+- annotations/decorators/attributes where the language has them;
+- structural facts for high-value semantic constructs, frameworks, and
+  language features.
+
+For data, markup, query, or domain-specific languages, the bar is not to mimic
+general-purpose code. It is to extract the language's own semantics deeply:
+schema structure, links, selectors, bindings, routes, anchors, imports,
+queries, DDL/DML/procedure structure, embedded languages, and other constructs
+that downstream tools can use directly.
+
+`not_applicable` is allowed only when the construct genuinely does not exist in
+the language. `open_gaps` is temporary debt, not an acceptable end state for a
+language where the grammar can support the data.
 
 ## Verification Strategy
 
@@ -79,8 +115,9 @@ cargo nextest run -p julie-extractors capability_matrix
 real-world, certification, release, or broad performance gates.
 
 **Worker gate invariant:** A positive capability row must be proven by golden
-fixture output for the same domain. A negative or empty row must be documented
-as `not_applicable` or `open_gaps` with a planned closure task.
+fixture output for the same domain. A missing code-language domain is presumed
+to be a bug or debt until AST inspection proves otherwise. `not_applicable`
+requires a language-semantics reason, not a missing implementation.
 
 **Lead affected-change scope:** Run `cargo xtask test changed` after each
 coherent phase, unless endpoint protection blocks an equivalent xtask binary;
@@ -93,7 +130,8 @@ record the substitution.
 
 **Escalation triggers:** Any capability-claim change, public CLI/report output
 change, artifact schema change, parser dependency change, default-suite runtime
-growth, or weak evidence behind a passing test.
+growth, weak evidence behind a passing test, or a proposal to mark a code
+language/domain pair not applicable.
 
 **Verification ledger:** Record invariant, command, scope label, commit SHA,
 result, and timestamp. For generated goldens, include the changed language set
@@ -113,8 +151,7 @@ target behavior is already decided.
 
 **Mechanical tier:** Fixture-only evidence additions and docs-only updates that
 do not own gate interpretation.
-- Harness mapping: inherit unless the harness supports a cheaper mechanical
-model.
+- Harness mapping: inherit unless the harness has a dedicated mechanical tier.
 
 **Gate-interpretation reviewer:** Lead session.
 - Harness mapping: inherit.
@@ -130,7 +167,7 @@ does not reinterpret public contracts.
 **Mechanical exclusion:** Mechanical workers cannot decide whether a passing
 fixture proves a domain claim.
 
-## Phase 0 - Matrix Policy And Audit Tooling
+## Phase 0 - Raise The Bar And Make It Measurable
 
 ### Task 1: Add a repeatable language-quality scorecard
 
@@ -141,8 +178,8 @@ fixture proves a domain claim.
 **What to build:** Add a repo-local script that reads
 `fixtures/extraction/capabilities.json` and every
 `fixtures/extraction/<language>/**/expected.json`, then prints a compact table
-of fixture-proven domains, `kind_coverage` claims, open gaps, and silent empty
-cells. The script should not modify files.
+of fixture-proven domains, `kind_coverage` claims, open gaps, silent empty
+cells, and quality-bar failures. The script should not modify files.
 
 **Acceptance criteria:**
 - Running `node scripts/language-data-quality-report.mjs` prints the same
@@ -150,9 +187,11 @@ cells. The script should not modify files.
   implementation.
 - The script identifies every language/domain pair where `supported`,
   `not_applicable`, and `open_gaps` are all empty.
+- The script marks code-language gaps separately from legitimate
+  domain-language limitations.
 - The findings doc records the latest scorecard output after each phase.
 
-### Task 2: Fail closed on silent empty domain cells
+### Task 2: Fail closed on silent empty domain cells without lowering the bar
 
 **Files:**
 - Modify: `fixtures/extraction/capabilities.json`
@@ -168,19 +207,23 @@ domain must have at least one of:
 - non-empty `open_gaps` with `required_closure` and `planned_closure_task`
 
 Update `capabilities.json` with honest initial rows. Do not claim support in
-this task unless existing golden evidence already proves it.
+this task unless existing golden evidence already proves it. Do not mark a
+code-language domain `not_applicable` merely because it is currently missing;
+use `open_gaps` with a concrete closure task unless the grammar and language
+semantics prove the construct cannot exist.
 
 **Acceptance criteria:**
 - `cargo nextest run -p julie-extractors capability_matrix` fails before the
   matrix is updated and passes after.
 - Empty cells for `complexity_metrics`, `structural_facts`, `annotations`,
   `doc_comments`, `literals`, and `source_regions` are no longer silent.
-- Format/data languages use `not_applicable` when the domain is not meaningful.
-- Real gaps use `open_gaps`, not fake support.
+- Format/data languages use `not_applicable` only when the domain is not
+  meaningful after language-semantics review.
+- Real gaps use `open_gaps`, not fake support and not false non-applicability.
 
-## Phase 1 - Cheap Evidence Closures
+## Phase 1 - Promote Existing Depth To Product-Grade Coverage
 
-### Task 3: Align literal goldens and capability claims
+### Task 3: Make literal extraction broad and fixture-proven
 
 **Files:**
 - Modify: `fixtures/extraction/<language>/basic/source.*`
@@ -192,21 +235,24 @@ this task unless existing golden evidence already proves it.
 `java`, `vbnet`, `php`, `swift`, `kotlin`, `scala`, `dart`, `elixir`, `qml`,
 `gdscript`, and `razor`.
 
-**What to build:** For each language with existing literal unit tests, add one
-minimal golden fixture case that emits a representative literal row through the
-public extraction result. Update `kind_coverage.literals.supported` only when
-the golden proves it. If a language has unit tests but no fixture output, fix
-the extractor or record an `open_gaps` row explaining the missing wiring.
+**What to build:** For each language with meaningful string or command
+literals, emit literal rows through the public extraction result with useful
+carrier context. Existing literal unit tests are evidence to inspect, not a
+ceiling. If a language has literal syntax and no fixture output, fix the
+extractor unless AST inspection proves the language-specific model should be
+different.
 
 **Acceptance criteria:**
-- Literal support is no longer limited to the current 9 languages when unit
-  tests already prove broader support.
+- Literal support is broad across code and scripting languages, not limited to
+  the current 9 languages.
 - Every positive `literals` claim has golden evidence.
+- Remaining `literals.open_gaps` rows identify concrete extractor work, not
+  generic "unsupported" status.
 - `cargo nextest run -p julie-extractors --features test-golden golden` passes
   without `UPDATE_GOLDEN` after regeneration.
 - `capability_matrix` passes.
 
-### Task 4: Normalize doc-comment policy and fill missing evidence
+### Task 4: Make doc comments consistent and language-wide
 
 **Files:**
 - Create or modify: `crates/julie-extractors/src/base/doc_comments.rs`
@@ -221,19 +267,19 @@ the extractor or record an `open_gaps` row explaining the missing wiring.
 
 **What to build:** Define a single doc-comment normalization policy for symbol
 `doc_comment` values. Apply it consistently enough that new fixtures can make
-stable assertions. Add fixture evidence where the language has a meaningful doc
-comment syntax. Mark `regex` and `yaml` not applicable unless the audit finds a
-stable language-native documentation construct.
+stable assertions. Add fixture evidence wherever the language has a meaningful
+documentation comment or docstring convention. For languages without a
+documentation construct, document why; for languages with one, implement it.
 
 **Acceptance criteria:**
 - The contract doc states whether `doc_comment` values preserve or strip
   comment markers.
 - Existing doc-comment goldens are updated intentionally, not accidentally.
-- New doc-comment support or non-applicability rows are explicit in
-  `capabilities.json`.
+- New doc-comment support is implemented for languages with doc-comment
+  syntax. Non-applicability rows require a language-semantics explanation.
 - Per-language tests and golden tests pass for affected languages.
 
-### Task 5: Turn hidden annotation support into claims or gaps
+### Task 5: Make attributes, decorators, and annotations first-class
 
 **Files:**
 - Modify as needed: `crates/julie-extractors/src/cpp/*`,
@@ -247,19 +293,20 @@ stable language-native documentation construct.
 - Add or update focused annotation tests under
   `crates/julie-extractors/src/tests/<language>/`
 
-**What to build:** Audit each language that either has an attribute/decorator
-syntax or already calls `normalize_annotations`. For supported cases, add a
-fixture and `kind_coverage.annotations` claim. For unsupported but meaningful
-cases, add an `open_gaps` row with a planned closure task. For truly
-inapplicable languages, add `not_applicable`.
+**What to build:** Audit each language that has attribute, decorator,
+annotation, metadata, or compiler-directive syntax. Add extractor support and
+fixtures for every stable syntax the grammar exposes. Existing
+`normalize_annotations` calls are starting points; languages without current
+helpers still need AST review.
 
 **Acceptance criteria:**
 - Kotlin annotation wiring is no longer unverified.
-- Any existing helper that already emits annotations is backed by a golden
-  fixture or explicitly scoped out.
+- Attribute/decorator languages are backed by golden fixtures and capability
+  claims, or have concrete `open_gaps` rows explaining the missing extractor
+  work.
 - `capability_matrix` rejects future annotation helper/golden drift.
 
-## Phase 2 - Complexity Metrics Breadth
+## Phase 2 - Complexity Metrics Across Code Languages
 
 ### Task 6: Add complexity configs for straightforward code languages
 
@@ -274,15 +321,18 @@ inapplicable languages, add `not_applicable`.
 **Second language batch:** `vbnet`, `r`, `bash`, `powershell`, `gdscript`,
 `qml`.
 
-**What to build:** Add `ComplexityLanguageConfig` entries only where the grammar
-has stable decision, loop, parameter, and callable body nodes. Each language
-test must include a hand-tallied snippet for decision count, loop count, max
-nesting depth, and parameter count.
+**What to build:** Add `ComplexityLanguageConfig` entries for every
+general-purpose or scripting language whose grammar exposes decision, loop,
+parameter, and callable body nodes. If the generic config model is too weak for
+a language, extend the shared engine instead of dropping the language. Each
+language test must include a hand-tallied snippet for decision count, loop
+count, max nesting depth, and parameter count.
 
 **Acceptance criteria:**
 - Each supported language emits both `file` and `symbol` complexity scopes, or
   the plan records why only one scope is meaningful.
-- Config/data/markup languages are explicit `not_applicable`.
+- Config/data/markup languages are reviewed for their own structural metrics;
+  only true non-code formats become explicit `not_applicable`.
 - `supported_complexity_languages_emit_file_and_symbol_metrics` remains the
   cross-language guard.
 - Golden fixtures prove the new metric rows.
@@ -305,9 +355,8 @@ complexity policy.
 **What to build:** Decide whether complexity belongs to the host file, embedded
 language regions, or extracted symbols. For Vue and Razor, prefer embedded
 script/C# regions if the extractor can map metrics to existing symbols. For
-SQL, only add complexity if procedural control-flow blocks are represented
-reliably; otherwise mark not applicable for now and keep SQL quality in the
-body-span task.
+SQL, define a procedural SQL metric only for control-flow-bearing routines; do
+not flatten ordinary DDL into code complexity.
 
 **Acceptance criteria:**
 - The chosen semantics are documented in the test names and capability row.
@@ -316,7 +365,7 @@ body-span task.
 
 ## Phase 3 - Identifier And Type-Argument Depth
 
-### Task 8: Improve weak identifier languages
+### Task 8: Bring weak identifier languages up to semantic parity
 
 **Files:**
 - Modify: `crates/julie-extractors/src/bash/*`,
@@ -332,12 +381,11 @@ body-span task.
 - Bash: add variable/member references if grammar support is stable.
 - JSX/TSX/Vue: add component/tag/type usage identifiers beyond `call`.
 - SQL: add table/column/procedure identifier kinds beyond `member_access`.
-- YAML: either prove more than `variable_ref` or mark the limited model
-  explicitly.
+- YAML: extract anchors, aliases, references, or tag identifiers if the grammar
+  exposes them; otherwise document the precise language limitation.
 
 **Acceptance criteria:**
-- No weak language remains unexplained by either better identifiers or an
-  explicit capability limitation.
+- No weak language remains shallow because nobody revisited it.
 - Fixture rows demonstrate each newly claimed identifier kind.
 
 ### Task 9: Expand type-argument usage evidence
@@ -351,9 +399,9 @@ body-span task.
 `swift`, `vbnet`, `php`, `scala`, `razor`, and `gdscript`.
 
 **What to build:** The goldens currently prove `type_argument_usages` only for
-TypeScript. Promote existing per-language type-argument behavior into golden
-fixtures where it is already implemented, and add capability rows or open gaps
-so this domain is not hidden.
+TypeScript. Implement or promote type-argument usage extraction for every
+generic-capable language where tree-sitter exposes the syntax. Existing
+per-language type-argument tests are starting evidence, not the finish line.
 
 **Acceptance criteria:**
 - Current type-argument tests are reflected in golden fixtures where the
@@ -361,7 +409,7 @@ so this domain is not hidden.
 - Unsupported language rows are explicit.
 - Type-argument fixture output is stable and deterministic.
 
-## Phase 4 - High-Value Structural Facts
+## Phase 4 - High-Value Structural Facts Across The Matrix
 
 ### Task 10: Define and implement structural-fact targets by language family
 
@@ -384,10 +432,10 @@ so this domain is not hidden.
 - GDScript signals, exported variables, and scene/resource facts.
 - Swift concurrency or property-wrapper facts if grammar support is reliable.
 
-**What to build:** Add only facts with clear downstream value and stable
-tree-sitter evidence. Do not create a token "one fact per language" rule.
-Languages without high-value structural facts should get `not_applicable` or
-an explicit open gap.
+**What to build:** Add facts with clear downstream value and stable tree-sitter
+evidence. Do not create filler rows, but do not accept "no structural facts"
+for a language until its framework, module, concurrency, resource, schema, and
+embedding constructs have been reviewed.
 
 **Acceptance criteria:**
 - Structural facts remain semantic and useful, not filler rows.
@@ -443,9 +491,29 @@ capability gaps.
   explained.
 - Recovery-path rows are not silently treated as first-class clean extraction.
 
-## Phase 6 - Docs And Branch Closeout
+## Phase 6 - Downstream Dogfood And Comparative Quality
 
-### Task 14: Update product docs and checklist
+### Task 14: Validate against dependent projects and real repositories
+
+**Files:**
+- Create or modify: `docs/release-evidence/<date>-language-data-quality.md`
+- Modify: `docs/findings/2026-06-09-language-coverage-review.md`
+
+**What to run:** Scan the repos that depend on this extractor layer, including
+the current downstream projects using it, and at least one representative
+real-world corpus per major language family. Record domain row counts,
+parse-diagnostic rates, failure rows, and before/after deltas for every changed
+language.
+
+**Acceptance criteria:**
+- Improvements are visible outside synthetic fixtures.
+- No dependent project loses core symbols, relationships, body spans, or type
+  data.
+- The evidence doc records quality metrics, not only pass/fail commands.
+
+## Phase 7 - Docs And Branch Closeout
+
+### Task 15: Update product docs and checklist
 
 **Files:**
 - Modify: `docs/languages/new-language-checklist.md`
@@ -453,17 +521,17 @@ capability gaps.
 - Modify: `docs/findings/2026-06-09-language-coverage-review.md`
 - Add release-note draft if behavior changes need to be called out
 
-**What to build:** Update contributor guidance so future languages must define
-domain policy up front. The checklist should require fixture evidence for every
-positive domain claim and explicit `not_applicable` or `open_gaps` entries for
-the rest.
+**What to build:** Update contributor guidance so future languages must meet
+the product quality bar up front. The checklist should require fixture
+evidence, domain policy, negative cases, downstream relevance, and explicit
+closure plans for any temporarily missing domains.
 
 **Acceptance criteria:**
-- A new language cannot be added with silent empty domain cells.
+- A new language cannot be added as skeleton coverage.
 - Docs describe capability depth in consumer-facing terms.
 - The findings doc has an end-state scorecard.
 
-### Task 15: Final validation and handoff
+### Task 16: Final validation and handoff
 
 **Files:**
 - No code ownership beyond verification-ledger updates.
@@ -486,21 +554,24 @@ CI validation.
 **Acceptance criteria:**
 - Branch gate evidence is recorded with command, result, commit SHA, and
   timestamp.
-- The scorecard shows no silent empty domain cells.
+- The scorecard shows materially deeper coverage across code languages, not
+  merely no silent empty domain cells.
 - Every positive claim is fixture-proven.
-- Remaining limitations are visible as `not_applicable` or `open_gaps`, not
-  hidden absence.
+- Remaining limitations have language-semantics justification or concrete
+  closure tasks.
 
 ## Sequencing
 
-1. Phase 0 first. It prevents new hidden gaps while the rest of the plan runs.
-2. Phase 1 next. Literals and doc comments have the best evidence-to-effort
-   ratio.
+1. Phase 0 first. It sets the measurement bar and prevents hidden gaps while
+   the rest of the plan runs.
+2. Phase 1 next. It promotes already-designed domains into product-grade,
+   language-wide behavior.
 3. Phase 2 and Phase 3 can run in parallel by language family after Phase 0.
 4. Phase 4 should wait until annotation and identifier evidence is stable,
    because structural facts often build on those fields.
 5. Phase 5 can run independently as focused defect fixes.
-6. Phase 6 closes the branch.
+6. Phase 6 proves value in dependent projects and real repositories.
+7. Phase 7 closes the branch.
 
 ## Out Of Scope
 
