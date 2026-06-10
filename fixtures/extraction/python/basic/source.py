@@ -7,4 +7,5 @@ class Worker:
 
 
 def helper(value: int) -> int:
+    """Increment a worker id."""
     return value + 1

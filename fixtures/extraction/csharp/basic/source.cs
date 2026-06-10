@@ -19,6 +19,9 @@ public sealed class Worker : IJob
         return Helper(Id);
     }
 
+    /// <summary>Increments a worker id.</summary>
+    /// <param name="value">The worker id.</param>
+    /// <returns>The incremented id.</returns>
     private static int Helper(int value)
     {
         return value + 1;

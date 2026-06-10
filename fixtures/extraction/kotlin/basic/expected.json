@@ -42,17 +42,17 @@
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "start_line": 7,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 18,
       "end_column": 1,
       "start_byte": 55,
-      "end_byte": 234,
+      "end_byte": 281,
       "body_span": {
         "start_line": 7,
         "start_column": 40,
-        "end_line": 15,
+        "end_line": 18,
         "end_column": 1,
         "start_byte": 95,
-        "end_byte": 234
+        "end_byte": 281
       },
       "body_hash": "726580a3ebd12dbb3d4767cd1a881614",
       "signature": "class Worker(private val id: Int) : Job",
@@ -95,28 +95,28 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/kotlin/basic/source.kt:helper:12:4",
+      "key": "fixtures/extraction/kotlin/basic/source.kt:helper:15:4",
       "name": "helper",
       "kind": "method",
       "language": "kotlin",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
-      "start_line": 12,
+      "start_line": 15,
       "start_column": 4,
-      "end_line": 14,
+      "end_line": 17,
       "end_column": 5,
-      "start_byte": 164,
-      "end_byte": 232,
+      "start_byte": 211,
+      "end_byte": 279,
       "body_span": {
-        "start_line": 12,
+        "start_line": 15,
         "start_column": 40,
-        "end_line": 14,
+        "end_line": 17,
         "end_column": 5,
-        "start_byte": 200,
-        "end_byte": 232
+        "start_byte": 247,
+        "end_byte": 279
       },
       "body_hash": "f965a52ee97686452fd3ec460eb23ee4",
       "signature": "private fun helper(value: Int): Int",
-      "doc_comment": null,
+      "doc_comment": "/**\n     * Increments a worker id.\n     */",
       "visibility": "Private",
       "parent_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:7:0",
       "metadata": {
@@ -243,7 +243,7 @@
     },
     {
       "from_key": "fixtures/extraction/kotlin/basic/source.kt:run:8:4",
-      "to_key": "fixtures/extraction/kotlin/basic/source.kt:helper:12:4",
+      "to_key": "fixtures/extraction/kotlin/basic/source.kt:helper:15:4",
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "line_number": 9,
@@ -289,7 +289,7 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/kotlin/basic/source.kt:helper:12:4",
+      "symbol_key": "fixtures/extraction/kotlin/basic/source.kt:helper:15:4",
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
@@ -329,6 +329,20 @@
   "structural_facts": [],
   "complexity_metrics": [],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/basic/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/basic/source.kt:helper:15:4",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 14,
+      "end_column": 7,
+      "start_byte": 164,
+      "end_byte": 206,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

@@ -1,28 +1,28 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/csharp/basic/source.cs:Helper:22:4",
+      "key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
       "name": "Helper",
       "kind": "method",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "start_line": 22,
+      "start_line": 25,
       "start_column": 4,
-      "end_line": 25,
+      "end_line": 28,
       "end_column": 5,
-      "start_byte": 247,
-      "end_byte": 321,
+      "start_byte": 396,
+      "end_byte": 470,
       "body_span": {
-        "start_line": 23,
+        "start_line": 26,
         "start_column": 4,
-        "end_line": 25,
+        "end_line": 28,
         "end_column": 5,
-        "start_byte": 288,
-        "end_byte": 321
+        "start_byte": 437,
+        "end_byte": 470
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
       "signature": "private static int Helper(int value)",
-      "doc_comment": null,
+      "doc_comment": "/// <summary>Increments a worker id.</summary>\n/// <param name=\"value\">The worker id.</param>\n/// <returns>The incremented id.</returns>",
       "visibility": "Private",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Worker:8:0",
       "metadata": {},
@@ -194,17 +194,17 @@
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
       "start_line": 8,
       "start_column": 0,
-      "end_line": 26,
+      "end_line": 29,
       "end_column": 1,
       "start_byte": 62,
-      "end_byte": 323,
+      "end_byte": 472,
       "body_span": {
         "start_line": 9,
         "start_column": 0,
-        "end_line": 26,
+        "end_line": 29,
         "end_column": 1,
         "start_byte": 96,
-        "end_byte": 323
+        "end_byte": 472
       },
       "body_hash": "b83d691995a1ca5e4a2640beaaaaf4c1",
       "signature": "public sealed class Worker : IJob",
@@ -223,7 +223,7 @@
   "relationships": [
     {
       "from_key": "fixtures/extraction/csharp/basic/source.cs:Run:17:4",
-      "to_key": "fixtures/extraction/csharp/basic/source.cs:Helper:22:4",
+      "to_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
       "line_number": 19,
@@ -262,7 +262,7 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Helper:22:4",
+      "symbol_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
       "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
@@ -302,6 +302,46 @@
   "structural_facts": [],
   "complexity_metrics": [],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 22,
+      "end_column": 50,
+      "start_byte": 247,
+      "end_byte": 293,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 50,
+      "start_byte": 298,
+      "end_byte": 344,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
+      "start_line": 24,
+      "start_column": 4,
+      "end_line": 24,
+      "end_column": 46,
+      "start_byte": 349,
+      "end_byte": 391,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

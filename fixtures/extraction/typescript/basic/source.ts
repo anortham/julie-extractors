@@ -10,6 +10,11 @@ export class Worker implements Job {
     }
 }
 
+/**
+ * Increment a worker id.
+ * @param value the worker id
+ * @returns the incremented id
+ */
 function helper(value: number): number {
     return value + 1;
 }

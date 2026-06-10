@@ -32,6 +32,37 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/rust/basic/source.rs:double:17:4",
+      "name": "double",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "start_line": 17,
+      "start_column": 4,
+      "end_line": 19,
+      "end_column": 5,
+      "start_byte": 265,
+      "end_byte": 323,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 37,
+        "end_line": 19,
+        "end_column": 5,
+        "start_byte": 298,
+        "end_byte": 323
+      },
+      "body_hash": "ae8fad561e1680b5dfcbfc85584560d7",
+      "signature": "pub fn double(value: i32) -> i32",
+      "doc_comment": "Doubles a worker id.",
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/rust/basic/source.rs:fixture:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/rust/basic/source.rs:fixture:1:0",
       "name": "fixture",
       "kind": "namespace",
@@ -39,19 +70,19 @@
       "file_path": "fixtures/extraction/rust/basic/source.rs",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 20,
       "end_column": 1,
       "start_byte": 0,
-      "end_byte": 232,
+      "end_byte": 325,
       "body_span": {
         "start_line": 1,
         "start_column": 16,
-        "end_line": 15,
+        "end_line": 20,
         "end_column": 1,
         "start_byte": 16,
-        "end_byte": 232
+        "end_byte": 325
       },
-      "body_hash": "aa63d3574a5656dfe773bb0b1b357272",
+      "body_hash": "fb982879da320631149b4ce46c469e4e",
       "signature": "pub mod fixture",
       "doc_comment": null,
       "visibility": "Public",
@@ -217,6 +248,15 @@
   ],
   "types": [
     {
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:double:17:4",
+      "resolved_type": "i32",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/rust/basic/source.rs:helper:12:4",
       "resolved_type": "i32",
       "generic_params": null,
@@ -253,18 +293,40 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "rust",
       "file_path": "fixtures/extraction/rust/basic/source.rs",
-      "covered_lines": 16,
-      "covered_bytes": 233,
+      "covered_lines": 21,
+      "covered_bytes": 326,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 16,
+      "end_line": 21,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 233,
+      "end_byte": 326,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:double:17:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 17,
+      "start_column": 37,
+      "end_line": 19,
+      "end_column": 5,
+      "start_byte": 298,
+      "end_byte": 323,
       "metadata": {
         "metric_version": 1
       }
@@ -315,6 +377,20 @@
     }
   ],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "containing_key": "fixtures/extraction/rust/basic/source.rs:double:17:4",
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 236,
+      "end_byte": 261,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

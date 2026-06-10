@@ -10,6 +10,7 @@ struct Worker: Job {
     }
 }
 
+/// Increments a worker id.
 func helper(_ value: Int) -> Int {
     value + 1
 }

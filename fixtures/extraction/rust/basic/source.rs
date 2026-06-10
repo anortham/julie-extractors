@@ -12,4 +12,9 @@ pub mod fixture {
     pub fn helper(value: i32) -> i32 {
         value + 1
     }
+
+    /// Doubles a worker id.
+    pub fn double(value: i32) -> i32 {
+        value * 2
+    }
 }

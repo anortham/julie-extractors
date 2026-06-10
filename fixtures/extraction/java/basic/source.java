@@ -15,6 +15,12 @@ class Worker implements Job {
         return helper(id);
     }
 
+    /**
+     * Increments a worker id.
+     *
+     * @param value the worker id
+     * @return the incremented id
+     */
     private static int helper(int value) {
         return value + 1;
     }

@@ -17,6 +17,12 @@ class Worker
     }
 }
 
+/**
+ * Increment a worker id.
+ *
+ * @param int $value the worker id
+ * @return int the incremented id
+ */
 function helper(int $value): int
 {
     return $value + 1;

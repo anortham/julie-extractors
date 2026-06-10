@@ -9,6 +9,9 @@ class Worker(private val id: Int) : Job {
         return helper(id)
     }
 
+    /**
+     * Increments a worker id.
+     */
     private fun helper(value: Int): Int {
         return value + 1
     }

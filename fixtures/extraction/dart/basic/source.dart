@@ -13,6 +13,7 @@ class Worker extends Job {
   }
 }
 
+/// Increments a worker id.
 int helper(int value) {
   return value + 1;
 }

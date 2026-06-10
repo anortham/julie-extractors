@@ -11,6 +11,7 @@ class Worker
 
   private
 
+  # Increments a worker id.
   def helper(value)
     value + 1
   end

@@ -72,28 +72,28 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/swift/basic/source.swift:helper:13:0",
+      "key": "fixtures/extraction/swift/basic/source.swift:helper:14:0",
       "name": "helper",
       "kind": "function",
       "language": "swift",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
-      "start_line": 13,
+      "start_line": 14,
       "start_column": 0,
-      "end_line": 15,
+      "end_line": 16,
       "end_column": 1,
-      "start_byte": 130,
-      "end_byte": 180,
+      "start_byte": 158,
+      "end_byte": 208,
       "body_span": {
-        "start_line": 13,
+        "start_line": 14,
         "start_column": 33,
-        "end_line": 15,
+        "end_line": 16,
         "end_column": 1,
-        "start_byte": 163,
-        "end_byte": 180
+        "start_byte": 191,
+        "end_byte": 208
       },
       "body_hash": "363bdca7cbcfaef7ecfdbc1ef28d0e2b",
       "signature": "func helper(_ value: Int) -> Int",
-      "doc_comment": null,
+      "doc_comment": "/// Increments a worker id.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -222,7 +222,7 @@
     },
     {
       "from_key": "fixtures/extraction/swift/basic/source.swift:run:8:4",
-      "to_key": "fixtures/extraction/swift/basic/source.swift:helper:13:0",
+      "to_key": "fixtures/extraction/swift/basic/source.swift:helper:14:0",
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "line_number": 9,
@@ -286,7 +286,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/swift/basic/source.swift:helper:13:0",
+      "symbol_key": "fixtures/extraction/swift/basic/source.swift:helper:14:0",
       "resolved_type": "Int",
       "generic_params": null,
       "constraints": null,
@@ -326,6 +326,20 @@
   "structural_facts": [],
   "complexity_metrics": [],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/basic/source.swift",
+      "containing_key": "fixtures/extraction/swift/basic/source.swift:helper:14:0",
+      "start_line": 13,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 27,
+      "start_byte": 130,
+      "end_byte": 157,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

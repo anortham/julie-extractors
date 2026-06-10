@@ -70,17 +70,17 @@
       "file_path": "fixtures/extraction/java/basic/source.java",
       "start_line": 7,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 27,
       "end_column": 1,
       "start_byte": 52,
-      "end_byte": 292,
+      "end_byte": 414,
       "body_span": {
         "start_line": 7,
         "start_column": 28,
-        "end_line": 21,
+        "end_line": 27,
         "end_column": 1,
         "start_byte": 80,
-        "end_byte": 292
+        "end_byte": 414
       },
       "body_hash": "73635bd6cd986df3fb102740c2502ef5",
       "signature": "class Worker implements Job",
@@ -98,28 +98,28 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/java/basic/source.java:helper:18:4",
+      "key": "fixtures/extraction/java/basic/source.java:helper:24:4",
       "name": "helper",
       "kind": "method",
       "language": "java",
       "file_path": "fixtures/extraction/java/basic/source.java",
-      "start_line": 18,
+      "start_line": 24,
       "start_column": 4,
-      "end_line": 20,
+      "end_line": 26,
       "end_column": 5,
-      "start_byte": 220,
-      "end_byte": 290,
+      "start_byte": 342,
+      "end_byte": 412,
       "body_span": {
-        "start_line": 18,
+        "start_line": 24,
         "start_column": 41,
-        "end_line": 20,
+        "end_line": 26,
         "end_column": 5,
-        "start_byte": 257,
-        "end_byte": 290
+        "start_byte": 379,
+        "end_byte": 412
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
       "signature": "private static int helper(int value)",
-      "doc_comment": null,
+      "doc_comment": "/**\n     * Increments a worker id.\n     *\n     * @param value the worker id\n     * @return the incremented id\n     */",
       "visibility": "Private",
       "parent_key": "fixtures/extraction/java/basic/source.java:Worker:7:0",
       "metadata": {},
@@ -229,7 +229,7 @@
     },
     {
       "from_key": "fixtures/extraction/java/basic/source.java:run:14:4",
-      "to_key": "fixtures/extraction/java/basic/source.java:helper:18:4",
+      "to_key": "fixtures/extraction/java/basic/source.java:helper:24:4",
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 15,
@@ -291,7 +291,7 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/java/basic/source.java:helper:18:4",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:helper:24:4",
       "resolved_type": "static int",
       "generic_params": null,
       "constraints": null,
@@ -331,6 +331,20 @@
   "structural_facts": [],
   "complexity_metrics": [],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "containing_key": "fixtures/extraction/java/basic/source.java:helper:24:4",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 7,
+      "start_byte": 220,
+      "end_byte": 337,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

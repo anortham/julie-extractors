@@ -78,21 +78,21 @@
       "file_path": "fixtures/extraction/python/basic/source.py",
       "start_line": 9,
       "start_column": 0,
-      "end_line": 10,
+      "end_line": 11,
       "end_column": 20,
       "start_byte": 136,
-      "end_byte": 187,
+      "end_byte": 220,
       "body_span": {
         "start_line": 10,
         "start_column": 4,
-        "end_line": 10,
+        "end_line": 11,
         "end_column": 20,
         "start_byte": 171,
-        "end_byte": 187
+        "end_byte": 220
       },
-      "body_hash": "658544813176da4ccaa7c369396b7b9d",
+      "body_hash": "5637ce87077f66b326b44cc1bd913073",
       "signature": "def helper(value: int): int",
-      "doc_comment": null,
+      "doc_comment": "Increment a worker id.",
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
@@ -259,18 +259,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/basic/source.py",
-      "covered_lines": 11,
-      "covered_bytes": 188,
+      "covered_lines": 12,
+      "covered_bytes": 221,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 11,
+      "end_line": 12,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 188,
+      "end_byte": 221,
       "metadata": {
         "metric_version": 1
       }
@@ -303,18 +303,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/basic/source.py",
-      "covered_lines": 1,
-      "covered_bytes": 16,
+      "covered_lines": 2,
+      "covered_bytes": 49,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 10,
       "start_column": 4,
-      "end_line": 10,
+      "end_line": 11,
       "end_column": 20,
       "start_byte": 171,
-      "end_byte": 187,
+      "end_byte": 220,
       "metadata": {
         "metric_version": 1
       }
@@ -343,6 +343,20 @@
     }
   ],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/basic/source.py",
+      "containing_key": "fixtures/extraction/python/basic/source.py:helper:9:0",
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 10,
+      "end_column": 32,
+      "start_byte": 171,
+      "end_byte": 199,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }
