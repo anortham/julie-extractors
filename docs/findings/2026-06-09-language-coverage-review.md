@@ -596,6 +596,34 @@ Current scorecard:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 11 SQL structural facts
+
+The next slice closed SQL structural-facts debt with a focused collector
+rather than generic node-kind matching:
+
+- `structural_facts`: SQL now emits versioned facts for table/view/trigger/index
+  definitions, columns, foreign keys, selects, CTEs, joins, transactions, and
+  update statements.
+- SQLite-style triggers that parse as `ERROR` nodes still emit
+  `sql.trigger_definition.v1` via controlled fallback parsing.
+
+Current scorecard:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 16
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36 fixture-proven; regex closed via capability
+  `not_applicable` (no golden `source_regions` rows)
+- `doc_comments`: 35/36 fixture-proven; regex `not_applicable`
+- `structural_facts`: 20/36
+- `complexity_metrics`: 28/36
+- `annotations`: 23/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -605,7 +633,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 
 - `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
   YAML, Markdown, Regex).
-- `structural_facts`: 17 languages remain open.
+- `structural_facts`: 16 languages remain open.
 - `annotations`: 0 code languages remain open; Vue and Razor closed in Task 5 with
   script-setup macro and embedded C# attribute fixture evidence.
 - `literals`: 0 languages remain open.

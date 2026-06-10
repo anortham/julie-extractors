@@ -53,5 +53,6 @@ pub mod procedures;
 pub mod relationships;
 pub mod schema;
 pub mod security;
+pub mod structural_facts;
 pub mod transactions;
 mod types; // Phase 4: Type extraction verification tests

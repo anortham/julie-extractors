@@ -25,6 +25,7 @@ pub mod relationship_resolution;
 mod results_normalization;
 pub mod source_regions;
 pub mod span;
+mod sql_structural_facts;
 mod string_literals;
 pub mod structural_facts;
 pub mod tree_methods;
@@ -47,6 +48,7 @@ pub use relationship_resolution::{
 };
 pub use source_regions::collect_source_regions;
 pub use span::{NormalizedSpan, RecordOffset, normalize_file_path};
+pub use sql_structural_facts::collect_sql_structural_facts;
 pub use structural_facts::collect_structural_facts;
 pub use tree_methods::{find_child_by_type, find_child_by_types};
 pub use type_arguments::{TypeArgDecomposer, extract_type_arguments};

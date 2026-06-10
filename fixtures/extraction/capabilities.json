@@ -4027,16 +4027,22 @@
           "open_gaps": []
         },
         "structural_facts": {
-          "supported": [],
+          "supported": [
+            "sql.column_definition.v1",
+            "sql.constraint.v1",
+            "sql.cte.v1",
+            "sql.foreign_key.v1",
+            "sql.index_definition.v1",
+            "sql.join.v1",
+            "sql.select_query.v1",
+            "sql.table_definition.v1",
+            "sql.transaction.v1",
+            "sql.trigger_definition.v1",
+            "sql.update_statement.v1",
+            "sql.view_definition.v1"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "semantic_facts",
-              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
-              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
