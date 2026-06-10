@@ -1,7 +1,31 @@
 /// Razor-specific directive extraction (e.g., @page, @model, @using, @inject)
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use regex::Regex;
 use std::collections::HashMap;
+use std::sync::{LazyLock, Mutex};
 use tree_sitter::Node;
+
+// Static regexes compiled once for performance
+static DIRECTIVE_NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@(\w+)").unwrap());
+static ADD_TAG_HELPER_VALUE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"@addTagHelper\s+(.+)").unwrap());
+static DIRECTIVE_VALUE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@\w+\s+(.*)").unwrap());
+static EXPRESSION_VARIABLE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(\w+)").unwrap());
+
+// Token-directive value patterns depend on the directive type (a small, fixed
+// set of tree-sitter node kinds), so cache each compiled variant once.
+static TOKEN_DIRECTIVE_VALUE_RES: LazyLock<Mutex<HashMap<String, Regex>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+fn token_directive_value_regex(directive_type: &str) -> Regex {
+    let mut cache = TOKEN_DIRECTIVE_VALUE_RES
+        .lock()
+        .expect("token directive regex cache poisoned");
+    cache
+        .entry(directive_type.to_string())
+        .or_insert_with(|| Regex::new(&format!(r"@{}\s+(\S+)", directive_type)).unwrap())
+        .clone()
+}
 
 impl super::RazorExtractor {
     /// Extract Razor directives (@page, @model, @using, etc.)
@@ -93,8 +117,7 @@ impl super::RazorExtractor {
                 if text.contains("@addTagHelper") {
                     Some("addTagHelper".to_string())
                 } else {
-                    regex::Regex::new(r"@(\w+)")
-                        .unwrap()
+                    DIRECTIVE_NAME_RE
                         .captures(&text)
                         .map(|captures| captures[1].to_string())
                 }
@@ -123,21 +146,18 @@ impl super::RazorExtractor {
                 .map(|n| self.base.get_node_text(&n)),
             "razor_addtaghelper_directive" => {
                 let text = self.base.get_node_text(&node);
-                regex::Regex::new(r"@addTagHelper\s+(.+)")
-                    .unwrap()
+                ADD_TAG_HELPER_VALUE_RE
                     .captures(&text)
                     .map(|captures| captures[1].trim().to_string())
             }
             _ => {
                 let text = self.base.get_node_text(&node);
                 if text.contains("@addTagHelper") {
-                    regex::Regex::new(r"@addTagHelper\s+(.+)")
-                        .unwrap()
+                    ADD_TAG_HELPER_VALUE_RE
                         .captures(&text)
                         .map(|captures| captures[1].trim().to_string())
                 } else {
-                    regex::Regex::new(r"@\w+\s+(.*)")
-                        .unwrap()
+                    DIRECTIVE_VALUE_RE
                         .captures(&text)
                         .map(|captures| captures[1].trim().to_string())
                 }
@@ -170,8 +190,7 @@ impl super::RazorExtractor {
         // Look for the directive value in siblings
         let directive_value = if let Some(parent) = node.parent() {
             let text = self.base.get_node_text(&parent);
-            regex::Regex::new(&format!(r"@{}\s+(\S+)", directive_type))
-                .unwrap()
+            token_directive_value_regex(&directive_type)
                 .captures(&text)
                 .map(|captures| captures[1].to_string())
         } else {
@@ -360,8 +379,7 @@ impl super::RazorExtractor {
 
     /// Extract variable name from expression
     pub(super) fn extract_variable_from_expression(&self, expression: &str) -> Option<String> {
-        regex::Regex::new(r"(\w+)")
-            .unwrap()
+        EXPRESSION_VARIABLE_RE
             .captures(expression)
             .map(|captures| captures[1].to_string())
     }

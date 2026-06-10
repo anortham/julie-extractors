@@ -1,7 +1,14 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use tree_sitter::Node;
+
+// Static regexes compiled once for performance
+static IMPORT_SOURCE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"@import\(([^)]*)\)"#).unwrap());
+static USINGNAMESPACE_TARGET_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"usingnamespace\s+(.+?)\s*;?\s*$"#).unwrap());
 
 pub(super) fn extract_import_variable(
     base: &mut BaseExtractor,
@@ -125,9 +132,7 @@ fn extract_import(
 }
 
 fn extract_import_source(node_text: &str) -> Option<String> {
-    let captures = Regex::new(r#"@import\(([^)]*)\)"#)
-        .unwrap()
-        .captures(node_text)?;
+    let captures = IMPORT_SOURCE_RE.captures(node_text)?;
     let raw_source = captures.get(1)?.as_str().trim();
     Some(
         raw_source
@@ -137,8 +142,7 @@ fn extract_import_source(node_text: &str) -> Option<String> {
 }
 
 fn extract_usingnamespace_target(node_text: &str) -> Option<String> {
-    Regex::new(r#"usingnamespace\s+(.+?)\s*;?\s*$"#)
-        .unwrap()
+    USINGNAMESPACE_TARGET_RE
         .captures(node_text)
         .and_then(|caps| caps.get(1).map(|target| target.as_str().trim().to_string()))
 }

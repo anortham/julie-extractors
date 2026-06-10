@@ -1,7 +1,15 @@
 /// Relationship extraction (component usage, bindings, method calls)
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind};
+use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use tree_sitter::Node;
+
+// Static regexes compiled once for performance
+static COMPONENT_TAG_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"<([A-Z][A-Za-z0-9]*)\b").unwrap());
+static BIND_PROPERTY_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@bind-(\w+)").unwrap());
+static EVENT_BINDING_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@on(\w+)").unwrap());
 
 impl super::RazorExtractor {
     /// Extract relationships between symbols
@@ -212,53 +220,51 @@ impl super::RazorExtractor {
         let element_text = self.base.get_node_text(&node);
 
         // Check for component usage using regex to find all components in the element
-        if let Ok(component_regex) = regex::Regex::new(r"<([A-Z][A-Za-z0-9]*)\b") {
-            for captures in component_regex.captures_iter(&element_text) {
-                if let Some(tag_match) = captures.get(1) {
-                    let tag_name = tag_match.as_str();
+        for captures in COMPONENT_TAG_RE.captures_iter(&element_text) {
+            if let Some(tag_match) = captures.get(1) {
+                let tag_name = tag_match.as_str();
 
-                    // Find the component symbol first, then find a different "from" symbol
-                    if let Some(component_symbol) = symbols.iter().find(|s| s.name == tag_name) {
-                        // Find the page/module that USES this component (must not be the component itself)
-                        let from_symbol = symbols
-                            .iter()
-                            .find(|s| {
-                                s.signature
-                                    .as_ref()
-                                    .is_some_and(|sig| sig.contains("@page"))
+                // Find the component symbol first, then find a different "from" symbol
+                if let Some(component_symbol) = symbols.iter().find(|s| s.name == tag_name) {
+                    // Find the page/module that USES this component (must not be the component itself)
+                    let from_symbol = symbols
+                        .iter()
+                        .find(|s| {
+                            s.signature
+                                .as_ref()
+                                .is_some_and(|sig| sig.contains("@page"))
+                        })
+                        .or_else(|| {
+                            symbols.iter().find(|s| {
+                                s.kind == SymbolKind::Module && s.id != component_symbol.id
                             })
-                            .or_else(|| {
-                                symbols.iter().find(|s| {
-                                    s.kind == SymbolKind::Module && s.id != component_symbol.id
-                                })
+                        })
+                        .or_else(|| {
+                            symbols.iter().find(|s| {
+                                s.kind == SymbolKind::Class && s.id != component_symbol.id
                             })
-                            .or_else(|| {
-                                symbols.iter().find(|s| {
-                                    s.kind == SymbolKind::Class && s.id != component_symbol.id
-                                })
-                            });
+                        });
 
-                        if let Some(from_symbol) = from_symbol {
-                            relationships.push(self.base.create_relationship(
-                                from_symbol.id.clone(),
-                                component_symbol.id.clone(),
-                                RelationshipKind::Uses,
-                                &node,
-                                Some(1.0),
-                                Some({
-                                    let mut metadata = HashMap::new();
-                                    metadata.insert(
-                                        "component".to_string(),
-                                        serde_json::Value::String(tag_name.to_string()),
-                                    );
-                                    metadata.insert(
-                                        "type".to_string(),
-                                        serde_json::Value::String("component-usage".to_string()),
-                                    );
-                                    metadata
-                                }),
-                            ));
-                        }
+                    if let Some(from_symbol) = from_symbol {
+                        relationships.push(self.base.create_relationship(
+                            from_symbol.id.clone(),
+                            component_symbol.id.clone(),
+                            RelationshipKind::Uses,
+                            &node,
+                            Some(1.0),
+                            Some({
+                                let mut metadata = HashMap::new();
+                                metadata.insert(
+                                    "component".to_string(),
+                                    serde_json::Value::String(tag_name.to_string()),
+                                );
+                                metadata.insert(
+                                    "type".to_string(),
+                                    serde_json::Value::String("component-usage".to_string()),
+                                );
+                                metadata
+                            }),
+                        ));
                     }
                 }
             }
@@ -269,9 +275,7 @@ impl super::RazorExtractor {
             && let Some(from_symbol) = symbols.iter().find(|s| s.kind == SymbolKind::Class)
         {
             // Extract property being bound
-            if let Some(captures) = regex::Regex::new(r"@bind-(\w+)")
-                .unwrap()
-                .captures(&element_text)
+            if let Some(captures) = BIND_PROPERTY_RE.captures(&element_text)
                 && let Some(property_match) = captures.get(1)
             {
                 let property_name = property_match.as_str().to_string();
@@ -301,9 +305,7 @@ impl super::RazorExtractor {
         // Check for event binding attributes (e.g., @onclick)
         if element_text.contains("@on")
             && let Some(from_symbol) = symbols.iter().find(|s| s.kind == SymbolKind::Class)
-            && let Some(captures) = regex::Regex::new(r"@on(\w+)")
-                .unwrap()
-                .captures(&element_text)
+            && let Some(captures) = EVENT_BINDING_RE.captures(&element_text)
             && let Some(event_match) = captures.get(1)
         {
             let event_name = event_match.as_str().to_string();

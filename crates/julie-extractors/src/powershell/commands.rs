@@ -3,9 +3,16 @@
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use regex::Regex;
+use std::sync::LazyLock;
 use tree_sitter::Node;
 
 use super::helpers::find_command_name_node;
+
+// Static regexes compiled once for performance
+static CONFIGURATION_NAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Configuration\s+([A-Za-z][A-Za-z0-9-_]*)").unwrap());
+static FUNCTION_NAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"function\s+([A-Za-z][A-Za-z0-9-_]*)").unwrap());
 
 const BUILTIN_CMDLETS: &[&str] = &["Write-Output", "Get-ChildItem", "Invoke-Command"];
 
@@ -105,10 +112,7 @@ pub(super) fn extract_configuration_from_error(
     node_text: &str,
 ) -> Option<(String, String)> {
     // Extract configuration name from text like "Configuration MyWebServer {"
-    if let Some(config_match) = Regex::new(r"Configuration\s+([A-Za-z][A-Za-z0-9-_]*)")
-        .unwrap()
-        .captures(node_text)
-    {
+    if let Some(config_match) = CONFIGURATION_NAME_RE.captures(node_text) {
         let name = config_match.get(1).unwrap().as_str().to_string();
         let signature = format!("Configuration {}", name);
         return Some((name, signature));
@@ -123,10 +127,7 @@ pub(super) fn extract_function_from_error(
     node_text: &str,
 ) -> Option<(String, String)> {
     // Extract function name from text like "function MyFunction {"
-    if let Some(func_match) = Regex::new(r"function\s+([A-Za-z][A-Za-z0-9-_]*)")
-        .unwrap()
-        .captures(node_text)
-    {
+    if let Some(func_match) = FUNCTION_NAME_RE.captures(node_text) {
         let name = func_match.get(1).unwrap().as_str().to_string();
         let signature = format!("function {}()", name);
         return Some((name, signature));

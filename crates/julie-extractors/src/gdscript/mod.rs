@@ -24,8 +24,15 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
+
+// Static regexes compiled once for performance
+static FUNC_RETURN_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"->\s*(\w+)").unwrap());
+static VAR_CONST_TYPE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?:var|const)\s+\w+\s*:\s*(\w+)").unwrap());
 
 pub struct GDScriptExtractor {
     pub(crate) base: BaseExtractor,
@@ -161,16 +168,18 @@ impl GDScriptExtractor {
                 let func_line = signature
                     .lines()
                     .find(|l| l.trim_start().contains("func "))?;
-                let re = regex::Regex::new(r"->\s*(\w+)").ok()?;
-                re.captures(func_line).map(|c| c[1].to_string())
+                FUNC_RETURN_TYPE_RE
+                    .captures(func_line)
+                    .map(|c| c[1].to_string())
             }
             SymbolKind::Variable
             | SymbolKind::Property
             | SymbolKind::Field
             | SymbolKind::Constant => {
                 // Signature: `@export var name: Type = value` or `const NAME: Type = value`
-                let re = regex::Regex::new(r"(?:var|const)\s+\w+\s*:\s*(\w+)").ok()?;
-                re.captures(signature).map(|c| c[1].to_string())
+                VAR_CONST_TYPE_RE
+                    .captures(signature)
+                    .map(|c| c[1].to_string())
             }
             _ => None,
         }

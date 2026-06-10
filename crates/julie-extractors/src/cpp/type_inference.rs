@@ -2,7 +2,21 @@
 //! Infers return types and variable types from signatures and declarations
 
 use crate::base::{Symbol, SymbolKind};
+use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
+
+// Static regexes compiled once for performance
+static FUNCTION_RETURN_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:(?:virtual|static|inline|friend)\s+)*(.+?)\s+(\w+|operator\w*|~\w+)\s*\(")
+        .unwrap()
+});
+static AUTO_RETURN_TYPE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"auto\s+(\w+)\s*\([^)]*\)\s*->\s*(.+?)(?:\s|$)").unwrap());
+static VARIABLE_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:(?:static|extern|const|constexpr|mutable)\s+)*(.+?)\s+(\w+)(?:\s*=.*)?$")
+        .unwrap()
+});
 
 /// Infer types from C++ type annotations and declarations
 pub(super) fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
@@ -55,18 +69,13 @@ fn infer_function_return_type(symbol: &Symbol) -> Option<String> {
     }
 
     // Pattern: "returnType functionName(params)"
-    let function_pattern = regex::Regex::new(
-        r"^(?:(?:virtual|static|inline|friend)\s+)*(.+?)\s+(\w+|operator\w*|~\w+)\s*\(",
-    )
-    .ok()?;
-    if let Some(captures) = function_pattern.captures(signature) {
+    if let Some(captures) = FUNCTION_RETURN_TYPE_RE.captures(signature) {
         let return_type = captures.get(1)?.as_str().trim();
         return Some(return_type.to_string());
     }
 
     // Pattern: "auto functionName(params) -> returnType"
-    let auto_pattern = regex::Regex::new(r"auto\s+(\w+)\s*\([^)]*\)\s*->\s*(.+?)(?:\s|$)").ok()?;
-    if let Some(captures) = auto_pattern.captures(signature) {
+    if let Some(captures) = AUTO_RETURN_TYPE_RE.captures(signature) {
         return Some(captures.get(2)?.as_str().trim().to_string());
     }
 
@@ -78,11 +87,7 @@ fn infer_variable_type(symbol: &Symbol) -> Option<String> {
     let signature = symbol.signature.as_ref()?;
 
     // Pattern: "storageClass? typeSpec variableName initializer?"
-    let variable_pattern = regex::Regex::new(
-        r"^(?:(?:static|extern|const|constexpr|mutable)\s+)*(.+?)\s+(\w+)(?:\s*=.*)?$",
-    )
-    .ok()?;
-    if let Some(captures) = variable_pattern.captures(signature) {
+    if let Some(captures) = VARIABLE_TYPE_RE.captures(signature) {
         return Some(captures.get(1)?.as_str().trim().to_string());
     }
 
