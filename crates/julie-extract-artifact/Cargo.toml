@@ -4,6 +4,7 @@ version = "2.2.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 description = "SQLite artifact persistence for julie-extract"
 
 [lints]
