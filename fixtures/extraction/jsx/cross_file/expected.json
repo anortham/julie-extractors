@@ -258,5 +258,76 @@
     }
   ],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 78,
+      "start_byte": 0,
+      "end_byte": 78,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 54,
+      "start_byte": 79,
+      "end_byte": 133,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 65,
+      "start_byte": 134,
+      "end_byte": 199,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 53,
+      "start_byte": 200,
+      "end_byte": 253,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/cross_file/source.jsx",
+      "containing_key": "fixtures/extraction/jsx/cross_file/source.jsx:Foo:6:0",
+      "start_line": 6,
+      "start_column": 20,
+      "end_line": 6,
+      "end_column": 29,
+      "start_byte": 275,
+      "end_byte": 284,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

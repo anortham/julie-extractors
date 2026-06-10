@@ -92,5 +92,94 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "cpp.preprocessor_definition.v1",
+      "capture_name": "preprocessor_definition",
+      "node_kind": "preproc_def",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/structural_facts/source.cpp",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 16,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "preprocessor"
+      }
+    },
+    {
+      "pattern_id": "cpp.preprocessor_definition.v1",
+      "capture_name": "preprocessor_definition",
+      "node_kind": "preproc_function_def",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/structural_facts/source.cpp",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 0,
+      "start_byte": 16,
+      "end_byte": 44,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "preprocessor"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/structural_facts/source.cpp",
+      "covered_lines": 7,
+      "covered_bytes": 91,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 91,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/structural_facts/source.cpp",
+      "covered_lines": 3,
+      "covered_bytes": 29,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 4,
+      "start_column": 16,
+      "end_line": 6,
+      "end_column": 1,
+      "start_byte": 61,
+      "end_byte": 90,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
 }

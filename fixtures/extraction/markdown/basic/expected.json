@@ -134,5 +134,27 @@
   "structured_pending_relationships": [],
   "identifiers": [],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/basic/source.md",
+      "containing_key": null,
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 132,
+      "end_byte": 191,
+      "metadata": {
+        "embedded_language": "rust",
+        "host_node_kind": "fenced_code_block"
+      }
+    }
+  ],
+  "type_argument_usages": []
 }

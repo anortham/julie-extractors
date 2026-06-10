@@ -109,5 +109,76 @@
   "structured_pending_relationships": [],
   "identifiers": [],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/basic/source.json",
+      "containing_key": "fixtures/extraction/json/basic/source.json:active:5:4",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 12,
+      "start_byte": 56,
+      "end_byte": 64,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/basic/source.json",
+      "containing_key": "fixtures/extraction/json/basic/source.json:id:3:4",
+      "start_line": 3,
+      "start_column": 4,
+      "end_line": 3,
+      "end_column": 8,
+      "start_byte": 20,
+      "end_byte": 24,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/basic/source.json",
+      "containing_key": "fixtures/extraction/json/basic/source.json:name:4:4",
+      "start_line": 4,
+      "start_column": 12,
+      "end_line": 4,
+      "end_column": 21,
+      "start_byte": 41,
+      "end_byte": 50,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/basic/source.json",
+      "containing_key": "fixtures/extraction/json/basic/source.json:name:4:4",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 10,
+      "start_byte": 33,
+      "end_byte": 39,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/basic/source.json",
+      "containing_key": "fixtures/extraction/json/basic/source.json:worker:2:2",
+      "start_line": 2,
+      "start_column": 2,
+      "end_line": 2,
+      "end_column": 10,
+      "start_byte": 4,
+      "end_byte": 12,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

@@ -482,5 +482,108 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:DOCTYPE:7:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 3,
+      "start_byte": 0,
+      "end_byte": 307,
+      "metadata": null
+    },
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": null,
+      "start_line": 10,
+      "start_column": 2,
+      "end_line": 10,
+      "end_column": 36,
+      "start_byte": 340,
+      "end_byte": 374,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": null,
+      "start_line": 15,
+      "start_column": 2,
+      "end_line": 18,
+      "end_column": 11,
+      "start_byte": 462,
+      "end_byte": 586,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element"
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:div:14:2",
+      "start_line": 14,
+      "start_column": 10,
+      "end_line": 14,
+      "end_column": 17,
+      "start_byte": 445,
+      "end_byte": 452,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:link:11:2",
+      "start_line": 11,
+      "start_column": 12,
+      "end_line": 11,
+      "end_column": 24,
+      "start_byte": 387,
+      "end_byte": 399,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:link:11:2",
+      "start_line": 11,
+      "start_column": 30,
+      "end_line": 11,
+      "end_column": 43,
+      "start_byte": 405,
+      "end_byte": 418,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:script:10:2",
+      "start_line": 10,
+      "start_column": 14,
+      "end_line": 10,
+      "end_column": 26,
+      "start_byte": 352,
+      "end_byte": 364,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

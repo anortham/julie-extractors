@@ -1,7 +1,7 @@
 use crate::base::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
 use crate::base::{
-    ExtractionResults, Identifier, ParseDiagnostic, PendingRelationship, Relationship, Symbol,
-    TypeInfo,
+    ComplexityMetric, ExtractionResults, Identifier, Literal, ParseDiagnostic, PendingRelationship,
+    Relationship, SourceRegion, StructuralFact, Symbol, TypeArgument, TypeArgumentUsage, TypeInfo,
 };
 use crate::pipeline::{detect_language_for_path, extract_canonical};
 use serde::{Deserialize, Serialize};
@@ -38,6 +38,16 @@ struct NormalizedExtraction {
     types: Vec<NormalizedTypeInfo>,
     #[serde(default)]
     parse_diagnostics: Vec<NormalizedParseDiagnostic>,
+    #[serde(default)]
+    structural_facts: Vec<NormalizedStructuralFact>,
+    #[serde(default)]
+    complexity_metrics: Vec<NormalizedComplexityMetric>,
+    #[serde(default)]
+    literals: Vec<NormalizedLiteral>,
+    #[serde(default)]
+    source_regions: Vec<NormalizedSourceRegion>,
+    #[serde(default)]
+    type_argument_usages: Vec<NormalizedTypeArgumentUsage>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -151,6 +161,94 @@ struct NormalizedParseDiagnostic {
     end_column: u32,
     start_byte: u32,
     end_byte: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+struct NormalizedStructuralFact {
+    pattern_id: String,
+    capture_name: String,
+    node_kind: String,
+    language: String,
+    file_path: String,
+    containing_key: Option<String>,
+    start_line: u32,
+    start_column: u32,
+    end_line: u32,
+    end_column: u32,
+    start_byte: u32,
+    end_byte: u32,
+    confidence: String,
+    metadata: Option<Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+struct NormalizedComplexityMetric {
+    scope: String,
+    symbol_key: Option<String>,
+    algorithm_id: String,
+    language: String,
+    file_path: String,
+    covered_lines: u32,
+    covered_bytes: u32,
+    decision_count: u32,
+    loop_count: u32,
+    max_nesting_depth: u32,
+    parameter_count: Option<u32>,
+    start_line: u32,
+    start_column: u32,
+    end_line: u32,
+    end_column: u32,
+    start_byte: u32,
+    end_byte: u32,
+    metadata: Option<Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+struct NormalizedLiteral {
+    literal_text: String,
+    kind: String,
+    carrier: Option<String>,
+    arg_position: u32,
+    language: String,
+    file_path: String,
+    start_line: u32,
+    start_column: u32,
+    end_line: u32,
+    end_column: u32,
+    start_byte: u32,
+    end_byte: u32,
+    containing_key: Option<String>,
+    confidence: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+struct NormalizedSourceRegion {
+    kind: String,
+    language: String,
+    file_path: String,
+    containing_key: Option<String>,
+    start_line: u32,
+    start_column: u32,
+    end_line: u32,
+    end_column: u32,
+    start_byte: u32,
+    end_byte: u32,
+    metadata: Option<Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+struct NormalizedTypeArgumentUsage {
+    identifier_key: String,
+    language: String,
+    file_path: String,
+    arguments: Vec<NormalizedTypeArgument>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+struct NormalizedTypeArgument {
+    ordinal: u32,
+    type_name: String,
+    children: Vec<NormalizedTypeArgument>,
 }
 
 #[test]
@@ -301,6 +399,32 @@ fn normalize(results: ExtractionResults) -> NormalizedExtraction {
         .iter()
         .map(normalize_parse_diagnostic)
         .collect();
+    let mut structural_facts: Vec<_> = results
+        .structural_facts
+        .iter()
+        .map(|fact| normalize_structural_fact(fact, &symbol_keys))
+        .collect();
+    let mut complexity_metrics: Vec<_> = results
+        .complexity_metrics
+        .iter()
+        .map(|metric| normalize_complexity_metric(metric, &symbol_keys))
+        .collect();
+    let mut literals: Vec<_> = results
+        .literals
+        .iter()
+        .map(|literal| normalize_literal(literal, &symbol_keys))
+        .collect();
+    let mut source_regions: Vec<_> = results
+        .source_regions
+        .iter()
+        .map(|region| normalize_source_region(region, &symbol_keys))
+        .collect();
+    let identifier_keys = identifier_key_map(&results.identifiers);
+    let mut type_argument_usages: Vec<_> = results
+        .type_argument_usages
+        .iter()
+        .map(|usage| normalize_type_argument_usage(usage, &identifier_keys))
+        .collect();
 
     sort_json(&mut symbols);
     sort_json(&mut relationships);
@@ -309,6 +433,11 @@ fn normalize(results: ExtractionResults) -> NormalizedExtraction {
     sort_json(&mut identifiers);
     sort_json(&mut types);
     sort_json(&mut parse_diagnostics);
+    sort_json(&mut structural_facts);
+    sort_json(&mut complexity_metrics);
+    sort_json(&mut literals);
+    sort_json(&mut source_regions);
+    sort_json(&mut type_argument_usages);
 
     NormalizedExtraction {
         symbols,
@@ -318,6 +447,11 @@ fn normalize(results: ExtractionResults) -> NormalizedExtraction {
         identifiers,
         types,
         parse_diagnostics,
+        structural_facts,
+        complexity_metrics,
+        literals,
+        source_regions,
+        type_argument_usages,
     }
 }
 
@@ -434,14 +568,7 @@ fn normalize_identifier(
     symbol_keys: &HashMap<String, String>,
 ) -> NormalizedIdentifier {
     NormalizedIdentifier {
-        key: format!(
-            "{}:{}:{}:{}:{}",
-            identifier.file_path,
-            identifier.name,
-            identifier.kind,
-            identifier.start_line,
-            identifier.start_column
-        ),
+        key: identifier_key(identifier),
         name: identifier.name.clone(),
         kind: identifier.kind.to_string(),
         language: identifier.language.clone(),
@@ -488,6 +615,156 @@ fn normalize_parse_diagnostic(diagnostic: &ParseDiagnostic) -> NormalizedParseDi
         end_column: diagnostic.end_column,
         start_byte: diagnostic.start_byte,
         end_byte: diagnostic.end_byte,
+    }
+}
+
+fn identifier_key(identifier: &Identifier) -> String {
+    format!(
+        "{}:{}:{}:{}:{}",
+        identifier.file_path,
+        identifier.name,
+        identifier.kind,
+        identifier.start_line,
+        identifier.start_column
+    )
+}
+
+fn identifier_key_map(identifiers: &[Identifier]) -> HashMap<String, String> {
+    identifiers
+        .iter()
+        .map(|identifier| (identifier.id.clone(), identifier_key(identifier)))
+        .collect()
+}
+
+fn normalize_structural_fact(
+    fact: &StructuralFact,
+    symbol_keys: &HashMap<String, String>,
+) -> NormalizedStructuralFact {
+    NormalizedStructuralFact {
+        pattern_id: fact.pattern_id.clone(),
+        capture_name: fact.capture_name.clone(),
+        node_kind: fact.node_kind.clone(),
+        language: fact.language.clone(),
+        file_path: fact.file_path.clone(),
+        containing_key: fact
+            .containing_symbol_id
+            .as_ref()
+            .map(|id| lookup_symbol_key(id, symbol_keys)),
+        start_line: fact.start_line,
+        start_column: fact.start_column,
+        end_line: fact.end_line,
+        end_column: fact.end_column,
+        start_byte: fact.start_byte,
+        end_byte: fact.end_byte,
+        confidence: normalize_confidence(fact.confidence),
+        metadata: fact.metadata.as_ref().map(sorted_json_map),
+    }
+}
+
+fn normalize_complexity_metric(
+    metric: &ComplexityMetric,
+    symbol_keys: &HashMap<String, String>,
+) -> NormalizedComplexityMetric {
+    NormalizedComplexityMetric {
+        scope: metric.scope.clone(),
+        symbol_key: metric
+            .symbol_id
+            .as_ref()
+            .map(|id| lookup_symbol_key(id, symbol_keys)),
+        algorithm_id: metric.algorithm_id.clone(),
+        language: metric.language.clone(),
+        file_path: metric.file_path.clone(),
+        covered_lines: metric.covered_lines,
+        covered_bytes: metric.covered_bytes,
+        decision_count: metric.decision_count,
+        loop_count: metric.loop_count,
+        max_nesting_depth: metric.max_nesting_depth,
+        parameter_count: metric.parameter_count,
+        start_line: metric.start_line,
+        start_column: metric.start_column,
+        end_line: metric.end_line,
+        end_column: metric.end_column,
+        start_byte: metric.start_byte,
+        end_byte: metric.end_byte,
+        metadata: metric.metadata.as_ref().map(sorted_json_map),
+    }
+}
+
+fn normalize_literal(
+    literal: &Literal,
+    symbol_keys: &HashMap<String, String>,
+) -> NormalizedLiteral {
+    NormalizedLiteral {
+        literal_text: literal.literal_text.clone(),
+        kind: literal.kind.as_str().to_string(),
+        carrier: literal.carrier.clone(),
+        arg_position: literal.arg_position,
+        language: literal.language.clone(),
+        file_path: literal.file_path.clone(),
+        start_line: literal.start_line,
+        start_column: literal.start_column,
+        end_line: literal.end_line,
+        end_column: literal.end_column,
+        start_byte: literal.start_byte,
+        end_byte: literal.end_byte,
+        containing_key: literal
+            .containing_symbol_id
+            .as_ref()
+            .map(|id| lookup_symbol_key(id, symbol_keys)),
+        confidence: normalize_confidence(literal.confidence),
+    }
+}
+
+fn normalize_source_region(
+    region: &SourceRegion,
+    symbol_keys: &HashMap<String, String>,
+) -> NormalizedSourceRegion {
+    NormalizedSourceRegion {
+        kind: region.kind.as_str().to_string(),
+        language: region.language.clone(),
+        file_path: region.file_path.clone(),
+        containing_key: region
+            .containing_symbol_id
+            .as_ref()
+            .map(|id| lookup_symbol_key(id, symbol_keys)),
+        start_line: region.start_line,
+        start_column: region.start_column,
+        end_line: region.end_line,
+        end_column: region.end_column,
+        start_byte: region.start_byte,
+        end_byte: region.end_byte,
+        metadata: region.metadata.as_ref().map(sorted_json_map),
+    }
+}
+
+fn normalize_type_argument_usage(
+    usage: &TypeArgumentUsage,
+    identifier_keys: &HashMap<String, String>,
+) -> NormalizedTypeArgumentUsage {
+    NormalizedTypeArgumentUsage {
+        identifier_key: identifier_keys
+            .get(&usage.identifier_id)
+            .cloned()
+            .unwrap_or_else(|| format!("unresolved:{}", usage.identifier_id)),
+        language: usage.language.clone(),
+        file_path: usage.file_path.clone(),
+        arguments: usage
+            .arguments
+            .iter()
+            .map(normalize_type_argument)
+            .collect(),
+    }
+}
+
+fn normalize_type_argument(argument: &TypeArgument) -> NormalizedTypeArgument {
+    NormalizedTypeArgument {
+        ordinal: argument.ordinal,
+        type_name: argument.type_name.clone(),
+        children: argument
+            .children
+            .iter()
+            .map(normalize_type_argument)
+            .collect(),
     }
 }
 

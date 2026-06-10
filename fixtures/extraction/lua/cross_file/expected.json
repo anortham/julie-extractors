@@ -207,5 +207,93 @@
     }
   ],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "other",
+      "kind": "other",
+      "carrier": "require",
+      "arg_position": 0,
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 6,
+      "start_column": 22,
+      "end_line": 6,
+      "end_column": 29,
+      "start_byte": 311,
+      "end_byte": 318,
+      "containing_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 71,
+      "start_byte": 0,
+      "end_byte": 71,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 65,
+      "start_byte": 72,
+      "end_byte": 137,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 76,
+      "start_byte": 138,
+      "end_byte": 214,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 72,
+      "start_byte": 215,
+      "end_byte": 287,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 22,
+      "end_line": 6,
+      "end_column": 29,
+      "start_byte": 311,
+      "end_byte": 318,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

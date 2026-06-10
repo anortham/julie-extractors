@@ -342,5 +342,41 @@
     }
   ],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "Worker",
+      "kind": "other",
+      "carrier": "R6.R6Class",
+      "arg_position": 0,
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "start_line": 10,
+      "start_column": 2,
+      "end_line": 10,
+      "end_column": 10,
+      "start_byte": 113,
+      "end_byte": 121,
+      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:9:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "r",
+      "file_path": "fixtures/extraction/r/basic/source.r",
+      "containing_key": "fixtures/extraction/r/basic/source.r:Worker:9:0",
+      "start_line": 10,
+      "start_column": 2,
+      "end_line": 10,
+      "end_column": 10,
+      "start_byte": 113,
+      "end_byte": 121,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

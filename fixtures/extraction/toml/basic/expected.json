@@ -102,5 +102,24 @@
   "structured_pending_relationships": [],
   "identifiers": [],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "toml",
+      "file_path": "fixtures/extraction/toml/basic/source.toml",
+      "containing_key": "fixtures/extraction/toml/basic/source.toml:name:3:0",
+      "start_line": 3,
+      "start_column": 7,
+      "end_line": 3,
+      "end_column": 16,
+      "start_byte": 23,
+      "end_byte": 32,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

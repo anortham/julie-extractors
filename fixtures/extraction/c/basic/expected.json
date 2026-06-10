@@ -309,5 +309,99 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/basic/source.c",
+      "covered_lines": 14,
+      "covered_bytes": 186,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 186,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/c/basic/source.c:helper:11:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/basic/source.c",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 11,
+      "start_column": 22,
+      "end_line": 13,
+      "end_column": 1,
+      "start_byte": 160,
+      "end_byte": 185,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/c/basic/source.c:helper:5:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/basic/source.c",
+      "covered_lines": 1,
+      "covered_bytes": 11,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 5,
+      "start_column": 10,
+      "end_line": 5,
+      "end_column": 21,
+      "start_byte": 57,
+      "end_byte": 68,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/c/basic/source.c:worker_run:7:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/basic/source.c",
+      "covered_lines": 3,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 7,
+      "start_column": 31,
+      "end_line": 9,
+      "end_column": 1,
+      "start_byte": 102,
+      "end_byte": 136,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
 }

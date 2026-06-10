@@ -210,5 +210,53 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 1,
+      "start_byte": 42,
+      "end_byte": 170,
+      "metadata": {
+        "embedded_language": "csharp",
+        "host_node_kind": "razor_block"
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "containing_key": "fixtures/extraction/razor/basic/source.razor:@page:1:0",
+      "start_line": 1,
+      "start_column": 6,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 6,
+      "end_byte": 15,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "containing_key": "fixtures/extraction/razor/basic/source.razor:Title:6:12",
+      "start_line": 6,
+      "start_column": 27,
+      "end_line": 6,
+      "end_column": 35,
+      "start_byte": 77,
+      "end_byte": 85,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

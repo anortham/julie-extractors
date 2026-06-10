@@ -424,5 +424,10 @@
       "start_byte": 287,
       "end_byte": 422
     }
-  ]
+  ],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
 }

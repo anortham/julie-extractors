@@ -418,5 +418,24 @@
     }
   ],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "qml",
+      "file_path": "fixtures/extraction/qml/basic/source.qml",
+      "containing_key": "fixtures/extraction/qml/basic/source.qml:title:5:4",
+      "start_line": 5,
+      "start_column": 27,
+      "end_line": 5,
+      "end_column": 35,
+      "start_byte": 68,
+      "end_byte": 76,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

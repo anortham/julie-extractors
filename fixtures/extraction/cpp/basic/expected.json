@@ -423,5 +423,165 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "covered_lines": 31,
+      "covered_bytes": 404,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 31,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 404,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:Worker:10:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 10,
+      "start_column": 38,
+      "end_line": 10,
+      "end_column": 40,
+      "start_byte": 145,
+      "end_byte": 147,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:helper:17:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "covered_lines": 3,
+      "covered_bytes": 33,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 17,
+      "start_column": 32,
+      "end_line": 19,
+      "end_column": 5,
+      "start_byte": 247,
+      "end_byte": 280,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:helper_value:24:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 24,
+      "start_column": 28,
+      "end_line": 26,
+      "end_column": 1,
+      "start_byte": 327,
+      "end_byte": 352,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:id:3:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 19,
+      "end_line": 5,
+      "end_column": 5,
+      "start_byte": 40,
+      "end_byte": 65,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:run:12:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "covered_lines": 3,
+      "covered_bytes": 35,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 12,
+      "start_column": 20,
+      "end_line": 14,
+      "end_column": 5,
+      "start_byte": 169,
+      "end_byte": 204,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/basic/source.cpp:run_worker:28:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/basic/source.cpp",
+      "covered_lines": 3,
+      "covered_bytes": 32,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 28,
+      "start_column": 17,
+      "end_line": 30,
+      "end_column": 1,
+      "start_byte": 371,
+      "end_byte": 403,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
 }

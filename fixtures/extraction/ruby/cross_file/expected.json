@@ -226,5 +226,106 @@
     }
   ],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "other",
+      "kind": "other",
+      "carrier": "require",
+      "arg_position": 0,
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "start_line": 7,
+      "start_column": 8,
+      "end_line": 7,
+      "end_column": 15,
+      "start_byte": 359,
+      "end_byte": 366,
+      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 75,
+      "start_byte": 0,
+      "end_byte": 75,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 69,
+      "start_byte": 76,
+      "end_byte": 145,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 68,
+      "start_byte": 146,
+      "end_byte": 214,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 56,
+      "start_byte": 215,
+      "end_byte": 271,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 77,
+      "start_byte": 272,
+      "end_byte": 349,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
+      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "start_line": 7,
+      "start_column": 8,
+      "end_line": 7,
+      "end_column": 15,
+      "start_byte": 359,
+      "end_byte": 366,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

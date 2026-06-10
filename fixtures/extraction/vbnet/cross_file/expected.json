@@ -250,5 +250,63 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/cross_file/source.vb",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 71,
+      "start_byte": 0,
+      "end_byte": 71,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/cross_file/source.vb",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 71,
+      "start_byte": 72,
+      "end_byte": 143,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/cross_file/source.vb",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 71,
+      "start_byte": 144,
+      "end_byte": 215,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/cross_file/source.vb",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 52,
+      "start_byte": 216,
+      "end_byte": 268,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

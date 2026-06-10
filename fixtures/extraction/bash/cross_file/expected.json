@@ -239,5 +239,106 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "{}",
+      "kind": "other",
+      "carrier": "other_fn",
+      "arg_position": 0,
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "start_line": 14,
+      "start_column": 13,
+      "end_line": 14,
+      "end_column": 17,
+      "start_byte": 369,
+      "end_byte": 373,
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:entry:13:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 19,
+      "start_byte": 0,
+      "end_byte": 19,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 76,
+      "start_byte": 20,
+      "end_byte": 96,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 65,
+      "start_byte": 97,
+      "end_byte": 162,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 69,
+      "start_byte": 163,
+      "end_byte": 232,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:other:7:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 60,
+      "start_byte": 233,
+      "end_byte": 293,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/cross_file/source.sh",
+      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:entry:13:0",
+      "start_line": 14,
+      "start_column": 13,
+      "end_line": 14,
+      "end_column": 17,
+      "start_byte": 369,
+      "end_byte": 373,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

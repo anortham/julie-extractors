@@ -294,5 +294,76 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/cross_file/source.tsx",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 72,
+      "start_byte": 0,
+      "end_byte": 72,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/cross_file/source.tsx",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 74,
+      "start_byte": 73,
+      "end_byte": 147,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/cross_file/source.tsx",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 75,
+      "start_byte": 148,
+      "end_byte": 223,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/cross_file/source.tsx",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 75,
+      "start_byte": 224,
+      "end_byte": 299,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/cross_file/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/cross_file/source.tsx:Foo:6:0",
+      "start_line": 6,
+      "start_column": 20,
+      "end_line": 6,
+      "end_column": 29,
+      "start_byte": 321,
+      "end_byte": 330,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

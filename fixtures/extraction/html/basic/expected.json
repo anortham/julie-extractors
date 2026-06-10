@@ -536,5 +536,66 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "containing_key": null,
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 13,
+      "start_byte": 226,
+      "end_byte": 313,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element"
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "containing_key": "fixtures/extraction/html/basic/source.html:a:9:6",
+      "start_line": 9,
+      "start_column": 14,
+      "end_line": 9,
+      "end_column": 24,
+      "start_byte": 139,
+      "end_byte": 149,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "containing_key": "fixtures/extraction/html/basic/source.html:button:10:6",
+      "start_line": 10,
+      "start_column": 26,
+      "end_line": 10,
+      "end_column": 31,
+      "start_byte": 188,
+      "end_byte": 193,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "containing_key": "fixtures/extraction/html/basic/source.html:section:7:4",
+      "start_line": 7,
+      "start_column": 16,
+      "end_line": 7,
+      "end_column": 24,
+      "start_byte": 93,
+      "end_byte": 101,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

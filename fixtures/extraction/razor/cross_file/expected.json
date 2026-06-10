@@ -321,5 +321,53 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/cross_file/source.razor",
+      "containing_key": "fixtures/extraction/razor/cross_file/source.razor:@page:6:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 57,
+      "start_byte": 0,
+      "end_byte": 268,
+      "metadata": null
+    },
+    {
+      "kind": "embedded",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/cross_file/source.razor",
+      "containing_key": null,
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 1,
+      "start_byte": 360,
+      "end_byte": 515,
+      "metadata": {
+        "embedded_language": "csharp",
+        "host_node_kind": "razor_block"
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/cross_file/source.razor",
+      "containing_key": "fixtures/extraction/razor/cross_file/source.razor:@page:6:0",
+      "start_line": 6,
+      "start_column": 6,
+      "end_line": 6,
+      "end_column": 16,
+      "start_byte": 276,
+      "end_byte": 286,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

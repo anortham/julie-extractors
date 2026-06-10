@@ -244,5 +244,77 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "covered_lines": 16,
+      "covered_bytes": 233,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 233,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:helper:12:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 12,
+      "start_column": 37,
+      "end_line": 14,
+      "end_column": 5,
+      "start_byte": 205,
+      "end_byte": 230,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/basic/source.rs:run:7:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/basic/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 39,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 7,
+      "start_column": 33,
+      "end_line": 9,
+      "end_column": 9,
+      "start_byte": 121,
+      "end_byte": 160,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
 }

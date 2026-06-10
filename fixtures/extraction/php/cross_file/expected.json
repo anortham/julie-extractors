@@ -308,5 +308,76 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 73,
+      "start_byte": 6,
+      "end_byte": 79,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 66,
+      "start_byte": 80,
+      "end_byte": 146,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 70,
+      "start_byte": 147,
+      "end_byte": 217,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 71,
+      "start_byte": 218,
+      "end_byte": 289,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/cross_file/source.php",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 23,
+      "start_byte": 290,
+      "end_byte": 313,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

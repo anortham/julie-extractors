@@ -282,5 +282,63 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/cross_file/source.sql",
+      "containing_key": "fixtures/extraction/sql/cross_file/source.sql:orders:5:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 63,
+      "start_byte": 0,
+      "end_byte": 63,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/cross_file/source.sql",
+      "containing_key": "fixtures/extraction/sql/cross_file/source.sql:orders:5:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 76,
+      "start_byte": 64,
+      "end_byte": 140,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/cross_file/source.sql",
+      "containing_key": "fixtures/extraction/sql/cross_file/source.sql:orders:5:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 72,
+      "start_byte": 141,
+      "end_byte": 213,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/cross_file/source.sql",
+      "containing_key": "fixtures/extraction/sql/cross_file/source.sql:orders:5:0",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 35,
+      "start_byte": 214,
+      "end_byte": 249,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

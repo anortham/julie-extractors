@@ -266,5 +266,96 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "{}",
+      "kind": "other",
+      "carrier": "echo",
+      "arg_position": 0,
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 5,
+      "start_column": 9,
+      "end_line": 5,
+      "end_column": 25,
+      "start_byte": 62,
+      "end_byte": 78,
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:helper:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "{}",
+      "kind": "other",
+      "carrier": "helper",
+      "arg_position": 0,
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "start_line": 9,
+      "start_column": 11,
+      "end_line": 9,
+      "end_column": 15,
+      "start_byte": 108,
+      "end_byte": 112,
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:run_worker:8:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:helper:3:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 19,
+      "start_byte": 0,
+      "end_byte": 19,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:helper:3:0",
+      "start_line": 5,
+      "start_column": 9,
+      "end_line": 5,
+      "end_column": 25,
+      "start_byte": 62,
+      "end_byte": 78,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:run_worker:8:0",
+      "start_line": 9,
+      "start_column": 11,
+      "end_line": 9,
+      "end_column": 15,
+      "start_byte": 108,
+      "end_byte": 112,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "bash",
+      "file_path": "fixtures/extraction/bash/basic/source.sh",
+      "containing_key": "fixtures/extraction/bash/basic/source.sh:value:4:10",
+      "start_line": 4,
+      "start_column": 16,
+      "end_line": 4,
+      "end_column": 20,
+      "start_byte": 48,
+      "end_byte": 52,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

@@ -126,5 +126,247 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "alpine.directive.v1",
+      "capture_name": "directive",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:button:6:4",
+      "start_line": 6,
+      "start_column": 12,
+      "end_line": 6,
+      "end_column": 41,
+      "start_byte": 120,
+      "end_byte": 149,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "click",
+        "directive": "x-on",
+        "expression": "open = !open",
+        "framework": "alpine",
+        "modifiers": [
+          "prevent"
+        ],
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "shorthand": true
+      }
+    },
+    {
+      "pattern_id": "alpine.directive.v1",
+      "capture_name": "directive",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:button:6:4",
+      "start_line": 6,
+      "start_column": 42,
+      "end_line": 6,
+      "end_column": 67,
+      "start_byte": 150,
+      "end_byte": 175,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "class",
+        "directive": "x-bind",
+        "expression": "{ active: open }",
+        "framework": "alpine",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "shorthand": true
+      }
+    },
+    {
+      "pattern_id": "alpine.directive.v1",
+      "capture_name": "directive",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 28,
+      "start_byte": 82,
+      "end_byte": 106,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "x-data",
+        "expression": "{ open: false }",
+        "framework": "alpine",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "shorthand": false
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 2,
+      "end_column": 19,
+      "start_byte": 19,
+      "end_byte": 34,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-get",
+        "attribute_value": "/todos",
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "target_path": "/todos",
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 3,
+      "start_column": 4,
+      "end_line": 3,
+      "end_column": 20,
+      "start_byte": 39,
+      "end_byte": 55,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-post",
+        "attribute_value": "/todos",
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "target_path": "/todos",
+        "verb": "POST"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 21,
+      "start_byte": 60,
+      "end_byte": 77,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-target",
+        "attribute_value": "#list",
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:button:6:4",
+      "start_line": 6,
+      "start_column": 27,
+      "end_line": 6,
+      "end_column": 41,
+      "start_byte": 135,
+      "end_byte": 149,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:button:6:4",
+      "start_line": 6,
+      "start_column": 49,
+      "end_line": 6,
+      "end_column": 67,
+      "start_byte": 157,
+      "end_byte": 175,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 14,
+      "start_byte": 8,
+      "end_byte": 14,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 2,
+      "start_column": 11,
+      "end_line": 2,
+      "end_column": 19,
+      "start_byte": 26,
+      "end_byte": 34,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 3,
+      "start_column": 12,
+      "end_line": 3,
+      "end_column": 20,
+      "start_byte": 47,
+      "end_byte": 55,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 4,
+      "start_column": 14,
+      "end_line": 4,
+      "end_column": 21,
+      "start_byte": 70,
+      "end_byte": 77,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/structural_facts/source.html",
+      "containing_key": "fixtures/extraction/html/structural_facts/source.html:div:1:0",
+      "start_line": 5,
+      "start_column": 11,
+      "end_line": 5,
+      "end_column": 28,
+      "start_byte": 89,
+      "end_byte": 106,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

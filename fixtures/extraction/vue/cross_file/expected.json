@@ -238,5 +238,27 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 9,
+      "start_byte": 0,
+      "end_byte": 435,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element"
+      }
+    }
+  ],
+  "type_argument_usages": []
 }

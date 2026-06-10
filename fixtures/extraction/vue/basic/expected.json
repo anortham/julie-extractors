@@ -282,5 +282,86 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "Worker",
+      "kind": "other",
+      "carrier": "format",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 9,
+      "start_column": 21,
+      "end_line": 9,
+      "end_column": 29,
+      "start_byte": 153,
+      "end_byte": 161,
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Source:1:1",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": null,
+      "start_line": 16,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 8,
+      "start_byte": 242,
+      "end_byte": 295,
+      "metadata": {
+        "embedded_language": "css",
+        "host_node_kind": "style_element"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": null,
+      "start_line": 8,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 9,
+      "start_byte": 107,
+      "end_byte": 240,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element"
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Source:1:1",
+      "start_line": 2,
+      "start_column": 17,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 28,
+      "end_byte": 36,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "containing_key": "fixtures/extraction/vue/basic/source.vue:Source:1:1",
+      "start_line": 8,
+      "start_column": 19,
+      "end_line": 8,
+      "end_column": 23,
+      "start_byte": 126,
+      "end_byte": 130,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }
