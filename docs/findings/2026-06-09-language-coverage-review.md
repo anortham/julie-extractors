@@ -46,6 +46,28 @@ Current golden fixture rows by domain:
 | literals | 9/36 | Unit tests exist for many more languages than goldens advertise. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
 
+## Phase 0 scorecard
+
+After adding the repeatable scorecard and fail-closed capability-matrix policy:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 98
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 23/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 12/36
+- `annotations`: 9/36
+- `literals`: 9/36
+- `type_argument_usages`: 1/36
+
+The zero silent-cell count is not a quality win by itself. It means every
+remaining gap is now visible as debt that future language-quality work must
+close or justify with language semantics.
+
 ## Remaining verified gaps
 
 ### 1. Empty domain cells hide product debt

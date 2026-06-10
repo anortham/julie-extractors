@@ -1076,6 +1076,50 @@ fn capability_matrix_requires_source_regions_coverage_domain() {
 }
 
 #[test]
+fn capability_matrix_has_no_silent_kind_coverage_cells() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let coverage = row["kind_coverage"]
+            .as_object()
+            .unwrap_or_else(|| panic!("{language} kind_coverage must be an object"));
+
+        for domain in [
+            "symbols",
+            "relationships",
+            "identifiers",
+            "body_spans",
+            "structural_facts",
+            "complexity_metrics",
+            "annotations",
+            "doc_comments",
+            "literals",
+            "source_regions",
+        ] {
+            let Some(domain_coverage) = coverage.get(domain) else {
+                errors.push(format!("{language} is missing kind_coverage.{domain}"));
+                continue;
+            };
+            let supported = coverage_array_len(language, domain, domain_coverage, "supported");
+            let not_applicable =
+                coverage_array_len(language, domain, domain_coverage, "not_applicable");
+            let open_gaps = coverage_array_len(language, domain, domain_coverage, "open_gaps");
+            if supported + not_applicable + open_gaps == 0 {
+                errors.push(format!(
+                    "{language} kind_coverage.{domain} is silent; add supported evidence, a language-semantics not_applicable entry, or an open_gap closure task"
+                ));
+            }
+            validate_open_gap_rows(language, domain, domain_coverage, &mut errors);
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
 fn capability_matrix_annotation_claims_have_fixture_evidence() {
     assert_golden_domain_claims_match(
         "annotations",
@@ -1505,6 +1549,38 @@ fn require_kind_coverage_domain(domain: &str, claims: &str) {
     }
 
     assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+fn coverage_array_len(language: &str, domain: &str, coverage: &Value, field: &str) -> usize {
+    coverage
+        .get(field)
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| panic!("{language} kind_coverage.{domain}.{field} must be an array"))
+        .len()
+}
+
+fn validate_open_gap_rows(
+    language: &str,
+    domain: &str,
+    coverage: &Value,
+    errors: &mut Vec<String>,
+) {
+    let Some(gaps) = coverage.get("open_gaps").and_then(Value::as_array) else {
+        return;
+    };
+    for gap in gaps {
+        for field in ["kind", "reason", "required_closure", "planned_closure_task"] {
+            if gap
+                .get(field)
+                .and_then(Value::as_str)
+                .is_none_or(str::is_empty)
+            {
+                errors.push(format!(
+                    "{language} kind_coverage.{domain}.open_gaps entries must include non-empty {field}"
+                ));
+            }
+        }
+    }
 }
 
 /// Golden-backed bidirectional evidence check: every `supported` claim for

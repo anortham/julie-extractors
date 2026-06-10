@@ -114,7 +114,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -224,17 +231,38 @@
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -351,17 +379,38 @@
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -479,7 +528,14 @@
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -492,7 +548,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -582,27 +645,68 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -840,22 +944,56 @@
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -1079,12 +1217,32 @@
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -1096,7 +1254,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -1200,12 +1365,32 @@
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -1217,7 +1402,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -1326,17 +1518,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -1348,7 +1567,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -1436,17 +1662,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -1587,7 +1840,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -1679,7 +1939,14 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [
@@ -1706,7 +1973,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -1927,27 +2201,68 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -2042,17 +2357,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -2064,7 +2406,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -2154,17 +2503,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -2272,7 +2648,14 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [
@@ -2285,7 +2668,14 @@
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -2297,7 +2687,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -2389,7 +2786,14 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [
@@ -2402,7 +2806,14 @@
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -2414,7 +2825,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -2504,27 +2922,68 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -2614,7 +3073,14 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [
@@ -2641,7 +3107,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -2728,12 +3201,32 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [
@@ -2745,12 +3238,26 @@
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -2849,22 +3356,56 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [
@@ -2974,27 +3515,68 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -3091,22 +3673,56 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [
@@ -3197,17 +3813,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -3315,17 +3958,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -3431,12 +4101,32 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [
@@ -3448,12 +4138,26 @@
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -3563,12 +4267,32 @@
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -3580,7 +4304,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -3665,17 +4396,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -3688,7 +4446,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -3783,32 +4548,80 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "source_region",
+              "reason": "Source-region extraction has not yet been proven for this language.",
+              "required_closure": "Implement comment, string, doc-comment, or embedded source regions where the grammar exposes them, or document true non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         }
       }
     },
@@ -3921,17 +4734,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -3945,7 +4785,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -4063,17 +4910,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -4085,7 +4959,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -4213,17 +5094,44 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [
@@ -4235,7 +5143,14 @@
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [
@@ -4339,27 +5254,68 @@
         "structural_facts": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "semantic_facts",
+              "reason": "This language has not yet been reviewed for high-value structural facts; this is implementation debt, not non-applicability.",
+              "required_closure": "Review tree-sitter node types and downstream use cases, then implement versioned structural fact rows or replace this gap with documented language-semantics not_applicable evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 10"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "file",
+              "reason": "File-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves the language lacks code-like control flow.",
+              "required_closure": "Implement file-level complexity metrics from tree-sitter control-flow nodes, or document why the language has no meaningful complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            },
+            {
+              "kind": "symbol",
+              "reason": "Symbol-level complexity metrics are not yet implemented for this language; this is implementation debt unless AST review proves there are no callable bodies.",
+              "required_closure": "Implement symbol-level complexity metrics for callable bodies, or document why the language has no symbol-scoped complexity model.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 6"
+            }
+          ]
         },
         "annotations": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "attribute_or_decorator",
+              "reason": "Attribute, decorator, annotation, metadata, or compiler-directive syntax has not yet been fully audited for this language.",
+              "required_closure": "Inspect the grammar for annotation-like syntax, implement normalized annotation markers where present, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
+            }
+          ]
         },
         "doc_comments": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "documentation",
+              "reason": "Documentation comment or docstring support has not yet been fully audited and normalized for this language.",
+              "required_closure": "Define the language doc-comment policy, implement extraction where syntax exists, and add golden fixture evidence.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         },
         "literals": {
           "supported": [],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "other",
+              "reason": "Literal extraction is not yet product-grade for this language; this is implementation debt for languages with string, command, query, URL, or configuration literals.",
+              "required_closure": "Implement literal capture with useful carrier context and add golden fixture evidence, or document true language-level non-applicability.",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 3"
+            }
+          ]
         },
         "source_regions": {
           "supported": [

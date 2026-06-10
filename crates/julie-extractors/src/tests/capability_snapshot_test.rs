@@ -123,7 +123,14 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
         "source_regions": {
           "supported": ["comment", "string_literal"],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "embedded",
+              "reason": "embedded regions require a language-specific wrapper",
+              "required_closure": "add fixture-proven embedded source regions",
+              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
+            }
+          ]
         }
       },
       "fixtures": []
@@ -157,6 +164,10 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
         new.kind_coverage.source_regions.supported,
         vec!["comment", "string_literal"]
     );
+    assert_eq!(new.kind_coverage.source_regions.open_gaps.len(), 1);
+    let gap = &new.kind_coverage.source_regions.open_gaps[0];
+    assert_eq!(gap.kind, "embedded");
+    assert!(gap.required_closure.contains("embedded source regions"));
     assert!(legacy.kind_coverage.annotations.supported.is_empty());
     assert!(legacy.kind_coverage.doc_comments.supported.is_empty());
     assert!(legacy.kind_coverage.literals.supported.is_empty());
