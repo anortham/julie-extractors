@@ -143,17 +143,21 @@ impl DartExtractor {
                         )
                 {
                     let class_id = class_sym.id.clone();
-                    // Extract inheritance from source text before pushing symbol
-                    let source = self.base.get_node_text(&node.parent().unwrap());
-                    for (target_name, kind) in extract_inheritance_from_source(&source) {
-                        self.add_pending_relationship(PendingRelationship {
-                            from_symbol_id: class_id.clone(),
-                            callee_name: target_name,
-                            kind,
-                            file_path: self.base.file_path.clone(),
-                            line_number: node.start_position().row as u32 + 1,
-                            confidence: 0.8,
-                        });
+                    // Extract inheritance from source text before pushing symbol.
+                    // Skip inheritance extraction when the node has no parent
+                    // (root-level construct) rather than panicking.
+                    if let Some(parent) = node.parent() {
+                        let source = self.base.get_node_text(&parent);
+                        for (target_name, kind) in extract_inheritance_from_source(&source) {
+                            self.add_pending_relationship(PendingRelationship {
+                                from_symbol_id: class_id.clone(),
+                                callee_name: target_name,
+                                kind,
+                                file_path: self.base.file_path.clone(),
+                                line_number: node.start_position().row as u32 + 1,
+                                confidence: 0.8,
+                            });
+                        }
                     }
                     symbols.push(class_sym);
                     // Prevent the expression_statement/ERROR container from being double-visited

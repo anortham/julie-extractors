@@ -2645,6 +2645,50 @@ mixin class MixinClass {}
         }
 
         #[test]
+        fn test_dart3_generic_modifier_class_as_outermost_construct_no_panic() {
+            // Regression for the dart3 generic-modifier recovery path
+            // (visit_node "type_identifier" arm): it reads the node's parent
+            // to extract inheritance text and previously used `.unwrap()` on
+            // `node.parent()`. This pins the behavior when the construct is
+            // the outermost item in the file: extraction must not panic and
+            // must still produce the class symbol, its members, and its
+            // signature with the dart3 modifier.
+            let code = "sealed class AsyncValue<T> {\n  const AsyncValue._();\n  bool get isLoading;\n}\n";
+            let mut parser = init_parser();
+            let tree = parser.parse(code, None).unwrap();
+            let workspace_root = PathBuf::from("/tmp/test");
+            let mut extractor = DartExtractor::new(
+                "dart".to_string(),
+                "test.dart".to_string(),
+                code.to_string(),
+                &workspace_root,
+            );
+
+            let symbols = extractor.extract_symbols(&tree);
+
+            let class_sym = symbols
+                .iter()
+                .find(|s| s.kind == SymbolKind::Class && s.name == "AsyncValue")
+                .expect("should extract sealed generic class at file root");
+            let sig = class_sym.signature.as_deref().unwrap_or("");
+            assert!(
+                sig.contains("sealed"),
+                "root-level sealed class signature should include 'sealed', got: {}",
+                sig
+            );
+
+            let getter = symbols
+                .iter()
+                .find(|s| s.name == "isLoading")
+                .expect("should extract isLoading member of root-level sealed class");
+            assert_eq!(
+                getter.parent_id.as_deref(),
+                Some(class_sym.id.as_str()),
+                "isLoading should be parented to the root-level sealed class"
+            );
+        }
+
+        #[test]
         fn test_dart3_modifier_classes_riverpod_realistic() {
             // Mirrors actual rrousselGit/riverpod class definitions that were
             // failing: generics, implements clauses, and mixin class.
