@@ -7,6 +7,8 @@
 #[cfg(test)]
 mod relationships;
 
+pub mod structural_facts;
+
 #[cfg(test)]
 mod toml_extractor_tests {
     #![allow(unused_imports)]

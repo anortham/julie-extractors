@@ -9,6 +9,7 @@ pub mod helpers;
 pub mod identifiers;
 pub mod relationships;
 pub mod signatures;
+pub mod structural_facts;
 #[cfg(test)]
 mod task15;
 

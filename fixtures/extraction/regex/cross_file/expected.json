@@ -1,33 +1,33 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n:1:0",
-      "name": "# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n",
-      "kind": "variable",
+      "key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
+      "name": "# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n",
+      "kind": "method",
       "language": "regex",
       "file_path": "fixtures/extraction/regex/cross_file/source.regex",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 7,
+      "end_line": 9,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 275,
+      "end_byte": 302,
       "body_span": {
         "start_line": 3,
         "start_column": 11,
-        "end_line": 6,
-        "end_column": 12,
+        "end_line": 8,
+        "end_column": 9,
         "start_byte": 147,
-        "end_byte": 263
+        "end_byte": 301
       },
-      "body_hash": "cb2ea6545c04ea5c6d74ddcdc6c31348",
+      "body_hash": "9fac22ab0cc2e72c52c2e35c424ebe5d",
       "signature": "# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forwar...",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "complexity": "11",
-        "pattern": "# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n",
+        "complexity": "20",
+        "pattern": "# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n",
         "type": "regex-pattern"
       },
       "annotations": [],
@@ -59,13 +59,49 @@
       "signature": "Named group 'word': (?<word>\\w+)",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n:1:0",
+      "parent_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
       "metadata": {
         "captureIndex": 3,
         "capturing": "false",
         "named": "word",
         "pattern": "(?<word>\\w+)",
         "type": "group"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/regex/cross_file/source.regex:(?=lookahead):7:0",
+      "name": "(?=lookahead)",
+      "kind": "method",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 13,
+      "start_byte": 275,
+      "end_byte": 288,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 7,
+        "end_column": 13,
+        "start_byte": 275,
+        "end_byte": 288
+      },
+      "body_hash": "f57a30cb48b58ff7b49ec86b5dd6885b",
+      "signature": "positive lookahead: (?=lookahead)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "direction": "lookahead",
+        "pattern": "(?=lookahead)",
+        "positive": "true",
+        "type": "lookaround"
       },
       "annotations": [],
       "semantic_group": null,
@@ -96,7 +132,7 @@
       "signature": "Group: (\\1)",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n:1:0",
+      "parent_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
       "metadata": {
         "captureIndex": 1,
         "capturing": "true",
@@ -111,7 +147,7 @@
   ],
   "relationships": [
     {
-      "from_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n:1:0",
+      "from_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
       "to_key": "fixtures/extraction/regex/cross_file/source.regex:(?<word>\\w+):6:0",
       "kind": "references",
       "file_path": "fixtures/extraction/regex/cross_file/source.regex",
@@ -150,7 +186,7 @@
       "end_column": 35,
       "start_byte": 163,
       "end_byte": 171,
-      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n:1:0",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -166,7 +202,7 @@
       "end_column": 23,
       "start_byte": 266,
       "end_byte": 274,
-      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n:1:0",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -189,7 +225,7 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n:1:0",
+      "symbol_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
       "resolved_type": "regex:regex-pattern",
       "generic_params": null,
       "constraints": null,
@@ -207,6 +243,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/regex/cross_file/source.regex:(?=lookahead):7:0",
+      "resolved_type": "regex:lookaround",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "regex",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/regex/cross_file/source.regex:(\\1):3:11",
       "resolved_type": "regex:group",
       "generic_params": null,
@@ -217,7 +262,193 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "regex.alternation.v1",
+      "capture_name": "alternation",
+      "node_kind": "alternation",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
+      "start_line": 8,
+      "start_column": 1,
+      "end_line": 8,
+      "end_column": 8,
+      "start_byte": 293,
+      "end_byte": 300,
+      "confidence": "1.000",
+      "metadata": {
+        "branch_count": 2,
+        "pattern_version": 1,
+        "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.capture_group.v1",
+      "capture_name": "capture_group",
+      "node_kind": "anonymous_capturing_group",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
+      "start_line": 3,
+      "start_column": 26,
+      "end_line": 3,
+      "end_column": 36,
+      "start_byte": 162,
+      "end_byte": 172,
+      "confidence": "1.000",
+      "metadata": {
+        "capture_index": 2,
+        "named": false,
+        "pattern_version": 1,
+        "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.capture_group.v1",
+      "capture_name": "capture_group",
+      "node_kind": "anonymous_capturing_group",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
+      "start_line": 8,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 9,
+      "start_byte": 292,
+      "end_byte": 301,
+      "confidence": "1.000",
+      "metadata": {
+        "capture_index": 4,
+        "named": false,
+        "pattern_version": 1,
+        "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.capture_group.v1",
+      "capture_name": "capture_group",
+      "node_kind": "anonymous_capturing_group",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:(\\1):3:11",
+      "start_line": 3,
+      "start_column": 11,
+      "end_line": 3,
+      "end_column": 15,
+      "start_byte": 147,
+      "end_byte": 151,
+      "confidence": "1.000",
+      "metadata": {
+        "capture_index": 1,
+        "named": false,
+        "pattern_version": 1,
+        "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.lookaround.v1",
+      "capture_name": "lookaround",
+      "node_kind": "lookaround",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:(?=lookahead):7:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 13,
+      "start_byte": 275,
+      "end_byte": 288,
+      "confidence": "1.000",
+      "metadata": {
+        "direction": "lookahead",
+        "pattern_version": 1,
+        "polarity": "positive",
+        "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.named_capture.v1",
+      "capture_name": "named_capture",
+      "node_kind": "named_capturing_group",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:(?<word>\\w+):6:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 12,
+      "start_byte": 251,
+      "end_byte": 263,
+      "confidence": "1.000",
+      "metadata": {
+        "capture_index": 3,
+        "capture_name": "word",
+        "pattern_version": 1,
+        "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.quantifier.v1",
+      "capture_name": "quantifier",
+      "node_kind": "one_or_more",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
+      "start_line": 6,
+      "start_column": 14,
+      "end_line": 6,
+      "end_column": 15,
+      "start_byte": 265,
+      "end_byte": 266,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "quantifier": "+",
+        "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.quantifier.v1",
+      "capture_name": "quantifier",
+      "node_kind": "one_or_more",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:# Phase 4c fixture: regex backreferences are within-pattern only;\n# there is no cross-file forward-reference construct in regex syntax.\n# Numbered (\\1) and named (\\k<name>) backreferences resolve at parse\n# time. Locks the no-pending classification.\n\n(?<word>\\w+)\\s+\\k<word>\n(?=lookahead)\\w+\n(foo|bar)\n:1:0",
+      "start_line": 7,
+      "start_column": 15,
+      "end_line": 7,
+      "end_column": 16,
+      "start_byte": 290,
+      "end_byte": 291,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "quantifier": "+",
+        "query_family": "pattern_structure"
+      }
+    },
+    {
+      "pattern_id": "regex.quantifier.v1",
+      "capture_name": "quantifier",
+      "node_kind": "one_or_more",
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/cross_file/source.regex",
+      "containing_key": "fixtures/extraction/regex/cross_file/source.regex:(?<word>\\w+):6:0",
+      "start_line": 6,
+      "start_column": 10,
+      "end_line": 6,
+      "end_column": 11,
+      "start_byte": 261,
+      "end_byte": 262,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "quantifier": "+",
+        "query_family": "pattern_structure"
+      }
+    }
+  ],
   "complexity_metrics": [],
   "literals": [],
   "source_regions": [],

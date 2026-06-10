@@ -39,9 +39,9 @@ Current golden fixture rows by domain:
 | identifiers | 33/36 | Markdown, JSON, and TOML are documented exceptions. |
 | types | 28/36 | Dynamic or data formats have exception rows. |
 | body_spans | 35/36 | YAML is the only current miss. |
-| source_regions | 35/36 | Regex is the only current miss. |
+| source_regions | 35/36 fixture-proven | Regex cell closed via capability `not_applicable`, not golden rows. |
 | doc_comments | 25/36 | Stronger, but normalization is still inconsistent. |
-| structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
+| structural_facts | 19/36 | Tier-1, web/framework, and data/document families now covered. |
 | complexity_metrics | 28/36 | Third-batch Phase 2 Task 6 added tsx, jsx, vue, razor embedded/web support. |
 | annotations | 17/36 | Attribute/decorator support remains patchy outside the first pass. |
 | literals | 36/36 | Full baseline exists. |
@@ -559,6 +559,43 @@ Current scorecard:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 10 data/document structural facts
+
+The next slice closed the data and markup structural-facts debt for the
+format languages that downstream tools query most often:
+
+- `structural_facts`: Markdown now emits versioned facts for frontmatter,
+  headings, fenced code blocks, link definitions, and pipe tables.
+- `structural_facts`: JSON now emits object, array, and property facts with
+  path, depth, and value-kind metadata while avoiding scalar noise.
+- `structural_facts`: TOML now emits table, array-table, key-value, and
+  inline-table facts with key paths and value kinds.
+- `structural_facts`: YAML now emits document, mapping, sequence, anchor, and
+  alias facts.
+- `structural_facts`: Regex now emits capture groups, named captures,
+  lookarounds, character classes, quantifiers, alternations, and anchors.
+- `source_regions`: Regex is documented `not_applicable` for
+  `comment`, `doc_comment`, `string_literal`, and `embedded` because the
+  current source-region contract models host-language comments and literals,
+  not regex-pattern internals.
+
+Current scorecard:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 17
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36 fixture-proven; regex closed via capability
+  `not_applicable` (no golden `source_regions` rows)
+- `doc_comments`: 35/36 fixture-proven; regex `not_applicable`
+- `structural_facts`: 19/36
+- `complexity_metrics`: 28/36
+- `annotations`: 23/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -568,7 +605,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 
 - `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
   YAML, Markdown, Regex).
-- `structural_facts`: 22 languages remain open.
+- `structural_facts`: 17 languages remain open.
 - `annotations`: 0 code languages remain open; Vue and Razor closed in Task 5 with
   script-setup macro and embedded C# attribute fixture evidence.
 - `literals`: 0 languages remain open.

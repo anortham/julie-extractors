@@ -7,6 +7,7 @@
 pub mod cross_file_pending;
 pub mod relationships;
 pub mod semantics;
+pub mod structural_facts;
 
 #[cfg(test)]
 mod markdown_extractor_tests {

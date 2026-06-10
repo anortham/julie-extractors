@@ -257,7 +257,188 @@
   ],
   "types": [],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "yaml.alias.v1",
+      "capture_name": "alias",
+      "node_kind": "alias",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/cross_file/source.yaml:api:11:2",
+      "start_line": 12,
+      "start_column": 8,
+      "end_line": 12,
+      "end_column": 17,
+      "start_byte": 309,
+      "end_byte": 318,
+      "confidence": "1.000",
+      "metadata": {
+        "alias_target": "defaults",
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.alias.v1",
+      "capture_name": "alias",
+      "node_kind": "alias",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/cross_file/source.yaml:worker:14:2",
+      "start_line": 15,
+      "start_column": 8,
+      "end_line": 15,
+      "end_column": 17,
+      "start_byte": 352,
+      "end_byte": 361,
+      "confidence": "1.000",
+      "metadata": {
+        "alias_target": "defaults",
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.anchor.v1",
+      "capture_name": "anchor",
+      "node_kind": "anchor",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/cross_file/source.yaml:defaults:6:0",
+      "start_line": 6,
+      "start_column": 10,
+      "end_line": 6,
+      "end_column": 19,
+      "start_byte": 246,
+      "end_byte": 255,
+      "confidence": "1.000",
+      "metadata": {
+        "anchor_name": "defaults",
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.document.v1",
+      "capture_name": "document",
+      "node_kind": "document",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 236,
+      "end_byte": 377,
+      "confidence": "1.000",
+      "metadata": {
+        "has_directives": false,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.mapping.v1",
+      "capture_name": "mapping",
+      "node_kind": "block_mapping",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/cross_file/source.yaml:api:11:2",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 13,
+      "end_column": 14,
+      "start_byte": 305,
+      "end_byte": 333,
+      "confidence": "1.000",
+      "metadata": {
+        "pair_count": 2,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.mapping.v1",
+      "capture_name": "mapping",
+      "node_kind": "block_mapping",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/cross_file/source.yaml:defaults:6:0",
+      "start_line": 7,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 12,
+      "start_byte": 258,
+      "end_byte": 282,
+      "confidence": "1.000",
+      "metadata": {
+        "pair_count": 2,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.mapping.v1",
+      "capture_name": "mapping",
+      "node_kind": "block_mapping",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/cross_file/source.yaml:services:10:0",
+      "start_line": 11,
+      "start_column": 2,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 296,
+      "end_byte": 377,
+      "confidence": "1.000",
+      "metadata": {
+        "pair_count": 2,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.mapping.v1",
+      "capture_name": "mapping",
+      "node_kind": "block_mapping",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/cross_file/source.yaml:worker:14:2",
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 348,
+      "end_byte": 377,
+      "confidence": "1.000",
+      "metadata": {
+        "pair_count": 2,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    },
+    {
+      "pattern_id": "yaml.mapping.v1",
+      "capture_name": "mapping",
+      "node_kind": "block_mapping",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 236,
+      "end_byte": 377,
+      "confidence": "1.000",
+      "metadata": {
+        "pair_count": 2,
+        "pattern_version": 1,
+        "query_family": "config_structure"
+      }
+    }
+  ],
   "complexity_metrics": [],
   "literals": [
     {

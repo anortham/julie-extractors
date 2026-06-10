@@ -86,7 +86,121 @@
   "identifiers": [],
   "types": [],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "json.object.v1",
+      "capture_name": "object",
+      "node_kind": "object",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/jsonc/source.jsonc",
+      "containing_key": "fixtures/extraction/json/jsonc/source.jsonc:compilerOptions:3:2",
+      "start_line": 3,
+      "start_column": 21,
+      "end_line": 6,
+      "end_column": 3,
+      "start_byte": 100,
+      "end_byte": 192,
+      "confidence": "1.000",
+      "metadata": {
+        "depth": 3,
+        "path": "$.compilerOptions",
+        "pattern_version": 1,
+        "property_count": 2,
+        "query_family": "data_structure"
+      }
+    },
+    {
+      "pattern_id": "json.object.v1",
+      "capture_name": "object",
+      "node_kind": "object",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/jsonc/source.jsonc",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 194,
+      "confidence": "1.000",
+      "metadata": {
+        "depth": 1,
+        "path": "$",
+        "pattern_version": 1,
+        "property_count": 1,
+        "query_family": "data_structure"
+      }
+    },
+    {
+      "pattern_id": "json.property.v1",
+      "capture_name": "property",
+      "node_kind": "pair",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/jsonc/source.jsonc",
+      "containing_key": "fixtures/extraction/json/jsonc/source.jsonc:compilerOptions:3:2",
+      "start_line": 3,
+      "start_column": 2,
+      "end_line": 6,
+      "end_column": 3,
+      "start_byte": 81,
+      "end_byte": 192,
+      "confidence": "1.000",
+      "metadata": {
+        "depth": 2,
+        "key": "compilerOptions",
+        "path": "$",
+        "pattern_version": 1,
+        "query_family": "data_structure",
+        "value_kind": "object"
+      }
+    },
+    {
+      "pattern_id": "json.property.v1",
+      "capture_name": "property",
+      "node_kind": "pair",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/jsonc/source.jsonc",
+      "containing_key": "fixtures/extraction/json/jsonc/source.jsonc:module:4:4",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 24,
+      "start_byte": 106,
+      "end_byte": 126,
+      "confidence": "1.000",
+      "metadata": {
+        "depth": 4,
+        "key": "module",
+        "path": "$.compilerOptions",
+        "pattern_version": 1,
+        "query_family": "data_structure",
+        "value_kind": "string"
+      }
+    },
+    {
+      "pattern_id": "json.property.v1",
+      "capture_name": "property",
+      "node_kind": "pair",
+      "language": "json",
+      "file_path": "fixtures/extraction/json/jsonc/source.jsonc",
+      "containing_key": "fixtures/extraction/json/jsonc/source.jsonc:strict:5:4",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 18,
+      "start_byte": 174,
+      "end_byte": 188,
+      "confidence": "1.000",
+      "metadata": {
+        "depth": 4,
+        "key": "strict",
+        "path": "$.compilerOptions",
+        "pattern_version": 1,
+        "query_family": "data_structure",
+        "value_kind": "boolean"
+      }
+    }
+  ],
   "complexity_metrics": [],
   "literals": [
     {

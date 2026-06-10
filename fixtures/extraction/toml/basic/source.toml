@@ -2,4 +2,8 @@
 id = 1
 name = "fixture"
 active = true
+profile = { role = "admin", active = true }
 api_url = "https://api.example.com/workers/status"
+
+[[items]]
+key = "alpha"

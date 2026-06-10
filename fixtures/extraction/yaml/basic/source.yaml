@@ -7,4 +7,7 @@ worker:
   # Primary worker identifier
   id: 1
   name: "fixture"
+  tags:
+    - fixture
+    - active
   api_url: "https://api.example.com/workers/status"
