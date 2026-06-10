@@ -96,6 +96,33 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "struct"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -190,6 +217,29 @@
           "supported": [
             "file",
             "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -294,6 +344,29 @@
           "supported": [
             "file",
             "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -402,6 +475,32 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function",
+            "module"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "doc_comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -487,6 +586,29 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -594,6 +716,36 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "class"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -687,6 +839,29 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -787,6 +962,36 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "class"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -873,6 +1078,32 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -968,6 +1199,32 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "namespace"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "doc_comment",
+            "embedded",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -1075,6 +1332,31 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "import"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "doc_comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1158,6 +1440,33 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "class"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "embedded",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -1259,6 +1568,34 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "function",
+            "method"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1348,6 +1685,33 @@
           "supported": [
             "file",
             "symbol"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "method"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "method"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1450,6 +1814,36 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "method"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "method"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1537,6 +1931,28 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -1632,6 +2048,31 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1717,6 +2158,34 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "import",
+            "method"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "doc_comment",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -1812,6 +2281,31 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1904,6 +2398,31 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "method"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -1989,6 +2508,28 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -2082,6 +2623,34 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "method"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "doc_comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2163,6 +2732,30 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "function"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -2260,6 +2853,31 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -2362,6 +2980,29 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2456,6 +3097,31 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2535,6 +3201,35 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function",
+            "import",
+            "variable"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "doc_comment",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -2626,6 +3321,35 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "function",
+            "import",
+            "variable"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [
+            "other"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2711,6 +3435,31 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [
+            "field"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -2815,6 +3564,32 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "import"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "doc_comment",
+            "embedded",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -2894,6 +3669,31 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "class",
+            "field"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "doc_comment"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -2986,6 +3786,26 @@
           "open_gaps": []
         },
         "complexity_metrics": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
@@ -3107,6 +3927,32 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "import",
+            "module",
+            "property"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "embedded"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -3221,6 +4067,31 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "variable"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }
@@ -3348,6 +4219,31 @@
           "supported": [],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [
+            "property"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment",
+            "string_literal"
+          ],
+          "not_applicable": [],
+          "open_gaps": []
         }
       }
     },
@@ -3447,6 +4343,28 @@
         },
         "complexity_metrics": {
           "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "annotations": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": [
+            "comment"
+          ],
           "not_applicable": [],
           "open_gaps": []
         }

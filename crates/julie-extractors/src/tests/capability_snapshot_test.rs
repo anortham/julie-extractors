@@ -104,6 +104,26 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
           "supported": ["file", "symbol"],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "annotations": {
+          "supported": ["function"],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "doc_comments": {
+          "supported": ["function"],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "literals": {
+          "supported": ["other"],
+          "not_applicable": [],
+          "open_gaps": []
+        },
+        "source_regions": {
+          "supported": ["comment", "string_literal"],
+          "not_applicable": [],
+          "open_gaps": []
         }
       },
       "fixtures": []
@@ -130,4 +150,15 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
         new.kind_coverage.complexity_metrics.supported,
         vec!["file", "symbol"]
     );
+    assert_eq!(new.kind_coverage.annotations.supported, vec!["function"]);
+    assert_eq!(new.kind_coverage.doc_comments.supported, vec!["function"]);
+    assert_eq!(new.kind_coverage.literals.supported, vec!["other"]);
+    assert_eq!(
+        new.kind_coverage.source_regions.supported,
+        vec!["comment", "string_literal"]
+    );
+    assert!(legacy.kind_coverage.annotations.supported.is_empty());
+    assert!(legacy.kind_coverage.doc_comments.supported.is_empty());
+    assert!(legacy.kind_coverage.literals.supported.is_empty());
+    assert!(legacy.kind_coverage.source_regions.supported.is_empty());
 }
