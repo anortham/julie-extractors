@@ -3,7 +3,7 @@ extends Node
 
 signal activated(value)
 
-var id: int
+@export var id: int
 
 func _init(value: int) -> void:
     id = value

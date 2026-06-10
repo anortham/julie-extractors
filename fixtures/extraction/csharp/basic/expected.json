@@ -8,25 +8,31 @@
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
       "start_line": 25,
       "start_column": 4,
-      "end_line": 28,
+      "end_line": 29,
       "end_column": 5,
       "start_byte": 396,
-      "end_byte": 470,
+      "end_byte": 504,
       "body_span": {
-        "start_line": 26,
+        "start_line": 27,
         "start_column": 4,
-        "end_line": 28,
+        "end_line": 29,
         "end_column": 5,
-        "start_byte": 437,
-        "end_byte": 470
+        "start_byte": 471,
+        "end_byte": 504
       },
       "body_hash": "9d7bfc03ef03477a6cc1004df50e77c5",
-      "signature": "private static int Helper(int value)",
+      "signature": "[Obsolete(\"use IncrementV2\")] private static int Helper(int value)",
       "doc_comment": "/// <summary>Increments a worker id.</summary>\n/// <param name=\"value\">The worker id.</param>\n/// <returns>The incremented id.</returns>",
       "visibility": "Private",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Worker:8:0",
       "metadata": {},
-      "annotations": [],
+      "annotations": [
+        {
+          "annotation": "Obsolete",
+          "annotation_key": "obsolete",
+          "raw_text": "Obsolete(\"use IncrementV2\")"
+        }
+      ],
       "semantic_group": null,
       "confidence": null,
       "content_type": null
@@ -194,19 +200,19 @@
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
       "start_line": 8,
       "start_column": 0,
-      "end_line": 29,
+      "end_line": 30,
       "end_column": 1,
       "start_byte": 62,
-      "end_byte": 472,
+      "end_byte": 506,
       "body_span": {
         "start_line": 9,
         "start_column": 0,
-        "end_line": 29,
+        "end_line": 30,
         "end_column": 1,
         "start_byte": 96,
-        "end_byte": 472
+        "end_byte": 506
       },
-      "body_hash": "b83d691995a1ca5e4a2640beaaaaf4c1",
+      "body_hash": "edc043909b9500b1a0c205fad9c6e700",
       "signature": "public sealed class Worker : IJob",
       "doc_comment": null,
       "visibility": "Public",
@@ -307,18 +313,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "covered_lines": 30,
-      "covered_bytes": 473,
+      "covered_lines": 31,
+      "covered_bytes": 507,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 30,
+      "end_line": 31,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 473,
+      "end_byte": 507,
       "metadata": {
         "metric_version": 1
       }
@@ -335,12 +341,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
-      "start_line": 26,
+      "start_line": 27,
       "start_column": 4,
-      "end_line": 28,
+      "end_line": 29,
       "end_column": 5,
-      "start_byte": 437,
-      "end_byte": 470,
+      "start_byte": 471,
+      "end_byte": 504,
       "metadata": {
         "metric_version": 1
       }
@@ -451,6 +457,19 @@
       "end_column": 46,
       "start_byte": 349,
       "end_byte": 391,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "containing_key": "fixtures/extraction/csharp/basic/source.cs:Helper:25:4",
+      "start_line": 25,
+      "start_column": 14,
+      "end_line": 25,
+      "end_column": 31,
+      "start_byte": 406,
+      "end_byte": 423,
       "metadata": null
     }
   ],
