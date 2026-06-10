@@ -1,4 +1,5 @@
 use crate::base::ExtractionResults;
+use crate::base::collect_code_structural_facts;
 use crate::base::collect_complexity_metrics;
 use crate::base::collect_data_structural_facts;
 use crate::base::collect_framework_structural_facts;
@@ -1020,6 +1021,15 @@ pub fn extract_for_language(
     results
         .structural_facts
         .extend(collect_web_structural_facts(
+            language,
+            tree,
+            file_path,
+            content,
+            &results.symbols,
+        ));
+    results
+        .structural_facts
+        .extend(collect_code_structural_facts(
             language,
             tree,
             file_path,

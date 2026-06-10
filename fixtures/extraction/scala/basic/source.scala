@@ -38,7 +38,15 @@ class Worker(val id: Int) extends Job {
     }
     total
   }
+
+  def scanPositive(items: List[Int]): List[Int] =
+    for {
+      item <- items
+      if item > 0
+    } yield item * 2
 }
+
+given Ordering[Int] = Ordering.Int
 
 @singleton
 object WorkerRegistry {
@@ -48,6 +56,8 @@ object WorkerRegistry {
 @opaque
 type WorkerId = Int
 
-@ops
 extension (value: Int)
-  def doubled: Int = value * 2
+  @inline def doubled: Int = value * 2
+
+@deprecated("legacy", since = "1.0")
+def legacyHook(): Unit = ()

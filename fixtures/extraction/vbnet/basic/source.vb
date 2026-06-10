@@ -6,6 +6,8 @@ Namespace Fixture
     Public Class Worker
         Implements IJob
 
+        Public Event Completed As EventHandler
+
         <Obsolete("Use WorkerId")>
         Public Property Id As Integer
 
@@ -14,6 +16,9 @@ Namespace Fixture
             RecordRun(Id)
             Return Helper(Id)
         End Function
+
+        Private Sub HandleClick(sender As Object, e As EventArgs) Handles Button.Click
+        End Sub
 
         <Obsolete("Use HelperV2")>
         ''' <summary>Increments a worker id.</summary>

@@ -17,6 +17,31 @@ class Worker implements Job {
         return helper(id);
     }
 
+    private static final Object lock = new Object();
+
+    static void guardedFetch() {
+        synchronized (lock) {
+            fetchStatus();
+        }
+    }
+
+    static void readConfig() {
+        try (AutoCloseable stream = openStream()) {
+            stream.close();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static AutoCloseable openStream() {
+        return () -> {};
+    }
+
+    @SuppressWarnings("unchecked")
+    static void observeAsync(Runnable task) {
+        Runnable wrapped = () -> task.run();
+        wrapped.run();
+    }
+
     /**
      * Increments a worker id.
      *

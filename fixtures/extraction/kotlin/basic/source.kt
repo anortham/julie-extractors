@@ -23,6 +23,12 @@ class Worker(
         return helper(id)
     }
 
+    suspend fun loadRemote(): Int {
+        return helper(id)
+    }
+
+    val runner by lazy { Worker(id) }
+
     /**
      * Increments a worker id.
      */

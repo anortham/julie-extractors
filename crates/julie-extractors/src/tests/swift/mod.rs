@@ -6,6 +6,7 @@ mod cross_file_pending;
 mod cross_file_relationships;
 mod identifiers;
 mod literals;
+mod structural_facts;
 mod task14;
 mod test_detection; // Miller bridge test-roles: base_types + Swift Testing annotations
 mod type_arguments;

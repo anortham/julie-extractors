@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
+use super::code_structural_facts::code_structural_fact_pattern_ids_for_language;
+#[cfg(all(test, feature = "test-capability-matrix"))]
 use super::data_structural_facts::data_structural_fact_pattern_ids_for_language;
 #[cfg(all(test, feature = "test-capability-matrix"))]
 use super::framework_structural_facts::framework_structural_fact_pattern_ids_for_language;
@@ -127,6 +129,7 @@ pub(crate) fn structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'
         .iter()
         .map(|pattern| pattern.pattern_id)
         .collect::<Vec<_>>();
+    pattern_ids.extend(code_structural_fact_pattern_ids_for_language(language));
     pattern_ids.extend(framework_structural_fact_pattern_ids_for_language(language));
     pattern_ids.extend(web_structural_fact_pattern_ids_for_language(language));
     pattern_ids.extend(data_structural_fact_pattern_ids_for_language(language));

@@ -50,5 +50,6 @@ pub mod identifiers;
 pub mod literals;
 pub mod members;
 pub mod relationships;
+pub mod structural_facts;
 pub mod type_arguments;
 pub mod types;

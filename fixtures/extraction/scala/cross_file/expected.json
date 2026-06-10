@@ -331,7 +331,27 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "scala.for_expression.v1",
+      "capture_name": "for_expression",
+      "node_kind": "for_expression",
+      "language": "scala",
+      "file_path": "fixtures/extraction/scala/cross_file/source.scala",
+      "containing_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "start_line": 14,
+      "start_column": 6,
+      "end_line": 14,
+      "end_column": 37,
+      "start_byte": 400,
+      "end_byte": 431,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "comprehension"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

@@ -12,6 +12,17 @@ struct Worker: Job {
     }
 }
 
+actor Counter {
+    func increment() async {
+        let next = await computeNext()
+        _ = next
+    }
+
+    private func computeNext() async -> Int {
+        return 1
+    }
+}
+
 @available(iOS 17.0, *)
 extension Worker {
     @Published var status: String = "ready"

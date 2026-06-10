@@ -12,6 +12,10 @@ class Worker extends Job {
     recordRun(id);
     return helper(id);
   }
+
+  Future<int> loadRemote() async {
+    return await helper(id);
+  }
 }
 
 /// Increments a worker id.

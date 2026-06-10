@@ -624,6 +624,49 @@ Current scorecard:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 12 JVM and mobile code structural facts
+
+Task 10 slice closed structural-facts debt for Java, Kotlin, Scala, Swift,
+Dart, and VB.NET via `base/code_structural_facts.rs`:
+
+- **Java**: `java.synchronized_statement.v1`, `java.try_with_resources_statement.v1`,
+  `java.lambda_expression.v1`, `java.marker_annotation.v1`, `java.annotation.v1`
+  (parameterized annotations such as `@SuppressWarnings("unchecked")`).
+- **Kotlin**: `kotlin.suspend_modifier.v1`, `kotlin.property_delegate.v1`,
+  `kotlin.annotation.v1`.
+- **Scala**: `scala.extension_definition.v1`, `scala.given_definition.v1`,
+  `scala.for_expression.v1`, `scala.annotation.v1` (extension blocks without
+  leading `@ops`; `@ops extension` parses as `function_definition` + ERROR).
+- **Swift**: `swift.await_expression.v1`, `swift.actor_declaration.v1` (actor
+  bodies are `class_declaration` nodes whose text starts with `actor`),
+  `swift.attribute.v1`.
+- **Dart**: `dart.await_expression.v1`, `dart.async_modifier.v1`,
+  `dart.annotation.v1`.
+- **VB.NET**: `vbnet.handles_clause.v1`, `vbnet.implements_clause.v1`,
+  `vbnet.event_declaration.v1`, `vbnet.attribute.v1`.
+
+Rejected candidates (no reliable tree-sitter node kinds): Kotlin coroutine
+`launch`/`async`/`withContext` calls (generic `call_expression` only), VB.NET
+async/await (no dedicated nodes in tree-sitter-vb-dotnet), Dart Flutter
+widget/build hooks (ordinary `method_declaration` only).
+
+Current scorecard:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 10
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36 fixture-proven; regex closed via capability
+  `not_applicable` (no golden `source_regions` rows)
+- `doc_comments`: 35/36 fixture-proven; regex `not_applicable`
+- `structural_facts`: 26/36
+- `complexity_metrics`: 28/36
+- `annotations`: 23/36
+- `literals`: 36/36
+- `type_argument_usages`: 3/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -633,7 +676,8 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 
 - `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
   YAML, Markdown, Regex).
-- `structural_facts`: 16 languages remain open.
+- `structural_facts`: 10 languages remain open (zig, php, ruby, elixir, lua,
+  qml, r, bash, powershell, gdscript).
 - `annotations`: 0 code languages remain open; Vue and Razor closed in Task 5 with
   script-setup macro and embedded C# attribute fixture evidence.
 - `literals`: 0 languages remain open.

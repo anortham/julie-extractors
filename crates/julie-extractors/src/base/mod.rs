@@ -13,6 +13,7 @@
 
 pub mod annotations;
 pub mod body;
+pub mod code_structural_facts;
 pub mod complexity_metrics;
 pub mod config_literals;
 pub mod creation_methods;
@@ -37,6 +38,7 @@ pub mod web_structural_facts;
 // Re-export key types for external use
 pub use annotations::normalize_annotations;
 pub use body::BodySpan;
+pub use code_structural_facts::collect_code_structural_facts;
 pub use complexity_metrics::collect_complexity_metrics;
 pub use data_structural_facts::collect_data_structural_facts;
 pub use embedded_span::EmbeddedSpanOffset;
