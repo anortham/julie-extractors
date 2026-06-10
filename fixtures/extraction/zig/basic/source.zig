@@ -7,16 +7,20 @@ pub const Worker = struct {
     }
 };
 
+/// Emits a worker-run marker for observability hooks.
 fn record_run(id: i32) void {
     observe_run("worker-run", id);
 }
 
+/// Records a named worker event for downstream hooks.
 fn observe_run(event: []const u8, id: i32) void {}
 
+/// Increment a worker id.
 pub fn helper(value: i32) i32 {
     return value + 1;
 }
 
+/// Checks the worker service health endpoint.
 pub fn fetch_status() void {
     fetch_url("https://api.example.com/workers/status");
 }

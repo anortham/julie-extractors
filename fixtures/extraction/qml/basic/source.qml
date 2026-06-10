@@ -6,6 +6,9 @@ Item {
     property int workerId: 0
     signal activated(string value)
 
+    /**
+     * Format the badge label.
+     */
     function format(value) {
         return value.trim()
     }

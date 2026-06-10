@@ -10,7 +10,7 @@ pub fn extract_namespace(
     let name_node = node.child_by_field_name("name")?;
     let name = base.get_node_text(&name_node);
     let signature = format!("Namespace {}", name);
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
 
     let options = SymbolOptions {
         signature: Some(signature),
@@ -41,7 +41,7 @@ pub fn extract_imports(
             .map(|n| base.get_node_text(n))
             .unwrap_or_else(|| name.clone());
         let signature = format!("Imports {} = {}", name, full_path);
-        let doc_comment = base.find_doc_comment(&node);
+        let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
 
         let options = SymbolOptions {
             signature: Some(signature),
@@ -62,7 +62,7 @@ pub fn extract_imports(
         .unwrap_or(&full_path)
         .to_string();
     let signature = format!("Imports {}", full_path);
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
 
     let options = SymbolOptions {
         signature: Some(signature),
@@ -104,7 +104,7 @@ pub fn extract_class(
 
     let metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
 
     let options = SymbolOptions {
         signature: Some(signature),
@@ -134,7 +134,7 @@ pub fn extract_module(
     let mut metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
     metadata.insert("vb_module".to_string(), serde_json::Value::Bool(true));
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
 
     let options = SymbolOptions {
         signature: Some(signature),
@@ -170,7 +170,7 @@ pub fn extract_structure(
         signature.push_str(&format!(" Implements {}", implements.join(", ")));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
 
     let options = SymbolOptions {
@@ -207,7 +207,7 @@ pub fn extract_interface(
         signature.push_str(&format!(" Inherits {}", inherits.join(", ")));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
 
     let options = SymbolOptions {
@@ -239,7 +239,7 @@ pub fn extract_enum(
         signature.push_str(&format!(" As {}", base.get_node_text(&underlying)));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
 
     let options = SymbolOptions {
@@ -268,7 +268,7 @@ pub fn extract_enum_member(
         signature.push_str(&format!(" = {}", value));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
 
     let options = SymbolOptions {
         signature: Some(signature),
@@ -310,7 +310,7 @@ pub fn extract_delegate(
         signature.push_str(&format!(" As {}", rt));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
 
     let options = SymbolOptions {

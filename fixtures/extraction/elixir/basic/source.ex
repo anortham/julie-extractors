@@ -5,6 +5,7 @@ defmodule Fixture.Worker do
     helper(id)
   end
 
+  @doc "Increment a worker id."
   defp helper(value) do
     value + 1
   end
@@ -15,6 +16,7 @@ defmodule Fixture.Worker do
 
   defp observe_run(_event, _id), do: :ok
 
+  @doc "Checks the worker service health endpoint."
   def fetch_status do
     fetch_url("https://api.example.com/workers/status")
   end

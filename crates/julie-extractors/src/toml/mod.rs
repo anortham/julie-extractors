@@ -178,9 +178,9 @@ impl TomlExtractor {
             ..Default::default()
         };
 
-        let symbol = self
-            .base
-            .create_symbol(&node, key_name.clone(), SymbolKind::Property, options);
+        let symbol =
+            self.base
+                .create_symbol(&node, key_name.clone(), SymbolKind::Property, options);
 
         if value_node.kind() == "string" {
             crate::base::config_literals::record_config_string_literal(

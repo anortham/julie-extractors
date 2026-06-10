@@ -51,8 +51,7 @@ impl IdentifierExtractor {
             "call_expression" => {
                 let mut cursor = node.walk();
                 let mut function_name = None;
-                let containing_symbol_id =
-                    Self::find_containing_symbol_id(base, node, symbol_map);
+                let containing_symbol_id = Self::find_containing_symbol_id(base, node, symbol_map);
 
                 for child in node.children(&mut cursor) {
                     match child.kind() {

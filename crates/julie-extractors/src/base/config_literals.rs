@@ -20,10 +20,7 @@ pub fn record_config_string_literal(
     let literal_text = match value_node.kind() {
         "double_quote_scalar" | "single_quote_scalar" => {
             let raw = base.get_node_text(value_node);
-            raw.trim()
-                .trim_matches('"')
-                .trim_matches('\'')
-                .to_string()
+            raw.trim().trim_matches('"').trim_matches('\'').to_string()
         }
         _ => base
             .decode_string_literal(value_node)

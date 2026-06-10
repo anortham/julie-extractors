@@ -71,7 +71,7 @@ fn extract_defmodule(
     let module_name = helpers::extract_module_name(&extractor.base, node)?;
 
     let signature = format!("defmodule {}", module_name);
-    let doc_comment = extractor.base.find_doc_comment(node);
+    let doc_comment = attributes::extract_moduledoc_for_module(&extractor.base, node);
     let annotations = normalize_annotations(
         &attributes::collect_module_annotations(&extractor.base, node),
         "elixir",
@@ -122,7 +122,7 @@ fn extract_def(
         Some(p) => format!("def {}{}", fn_name, p),
         None => format!("def {}", fn_name),
     };
-    let doc_comment = extractor.base.find_doc_comment(node);
+    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]);
     let annotations = normalize_annotations(
         &attributes::collect_preceding_annotations(&extractor.base, node, &["doc", "spec", "impl"]),
         "elixir",
@@ -186,7 +186,7 @@ fn extract_defmacro(
         Some(p) => format!("{} {}{}", keyword, macro_name, p),
         None => format!("{} {}", keyword, macro_name),
     };
-    let doc_comment = extractor.base.find_doc_comment(node);
+    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]);
     let annotations = normalize_annotations(
         &attributes::collect_preceding_annotations(&extractor.base, node, &["doc", "spec", "impl"]),
         "elixir",
@@ -225,7 +225,7 @@ fn extract_defprotocol(
     let protocol_name = helpers::extract_module_name(&extractor.base, node)?;
 
     let signature = format!("defprotocol {}", protocol_name);
-    let doc_comment = extractor.base.find_doc_comment(node);
+    let doc_comment = attributes::extract_moduledoc_for_module(&extractor.base, node);
 
     let symbol = extractor.base.create_symbol(
         node,
@@ -278,7 +278,7 @@ fn extract_defimpl(
     } else {
         format!("defimpl {}, for: {}", protocol_name, for_type)
     };
-    let doc_comment = extractor.base.find_doc_comment(node);
+    let doc_comment = attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]);
 
     let mut metadata = HashMap::new();
     metadata.insert("protocol_impl".to_string(), Value::Bool(true));

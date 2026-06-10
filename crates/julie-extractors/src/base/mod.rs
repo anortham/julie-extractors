@@ -13,8 +13,8 @@
 
 pub mod annotations;
 pub mod body;
-pub mod config_literals;
 pub mod complexity_metrics;
+pub mod config_literals;
 pub mod creation_methods;
 pub mod embedded_span;
 pub mod extractor;

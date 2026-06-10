@@ -1,8 +1,10 @@
 defaults: &defaults
   active: true
 
+# Worker configuration section
 worker:
   <<: *defaults
+  # Primary worker identifier
   id: 1
   name: "fixture"
   api_url: "https://api.example.com/workers/status"

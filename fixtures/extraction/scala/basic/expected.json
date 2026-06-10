@@ -245,7 +245,7 @@
       },
       "body_hash": "2ef9a06b132268ceca2e42a3b0410bca",
       "signature": "def fetchStatus(): Unit",
-      "doc_comment": null,
+      "doc_comment": "/** Checks the worker service health endpoint. */",
       "visibility": "Public",
       "parent_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
       "metadata": {
@@ -376,7 +376,7 @@
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "def observeRun(event: String, id: Int): Unit",
-      "doc_comment": null,
+      "doc_comment": "/** Records a named worker event for downstream hooks. */",
       "visibility": "Private",
       "parent_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
       "metadata": {
@@ -411,7 +411,7 @@
       },
       "body_hash": "fa8224a71efac54cbeb9d6141770d08c",
       "signature": "def recordRun(id: Int): Unit",
-      "doc_comment": null,
+      "doc_comment": "/** Emits a worker-run marker for observability hooks. */",
       "visibility": "Private",
       "parent_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
       "metadata": {
@@ -1154,23 +1154,23 @@
   ],
   "source_regions": [
     {
-      "kind": "comment",
+      "kind": "doc_comment",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "containing_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
-      "start_line": 17,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:fetchStatus:26:2",
+      "start_line": 25,
       "start_column": 2,
-      "end_line": 17,
-      "end_column": 59,
-      "start_byte": 291,
-      "end_byte": 348,
+      "end_line": 25,
+      "end_column": 51,
+      "start_byte": 553,
+      "end_byte": 602,
       "metadata": null
     },
     {
-      "kind": "comment",
+      "kind": "doc_comment",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "containing_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:observeRun:23:2",
       "start_line": 22,
       "start_column": 2,
       "end_line": 22,
@@ -1180,16 +1180,16 @@
       "metadata": null
     },
     {
-      "kind": "comment",
+      "kind": "doc_comment",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "containing_key": "fixtures/extraction/scala/basic/source.scala:Worker:7:0",
-      "start_line": 25,
+      "containing_key": "fixtures/extraction/scala/basic/source.scala:recordRun:18:2",
+      "start_line": 17,
       "start_column": 2,
-      "end_line": 25,
-      "end_column": 51,
-      "start_byte": 553,
-      "end_byte": 602,
+      "end_line": 17,
+      "end_column": 59,
+      "start_byte": 291,
+      "end_byte": 348,
       "metadata": null
     },
     {

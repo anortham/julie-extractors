@@ -23,6 +23,10 @@ export function Badge(props: Props) {
     );
 }
 
+/**
+ * Format the badge label.
+ * @returns formatted string
+ */
 function format(value: string): string {
     return value.trim();
 }

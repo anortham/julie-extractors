@@ -398,7 +398,8 @@ fn line_symbol(
 
 fn first_child_node<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 fn first_child_text(base: &BaseExtractor, node: Node, kind: &str) -> Option<String> {

@@ -167,7 +167,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "tree-sitter-scala",
         FULL_CAPABILITIES,
         parser_scala,
-        EMPTY,
+        JAVA_DOCS,
     ),
     spec(
         "dart",

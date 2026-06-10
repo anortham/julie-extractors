@@ -507,13 +507,13 @@ carried generic `attribute_or_decorator` open gaps:
 Scorecard after this slice:
 
 - `silent_cells`: 0
-- `quality_bar_debts`: 38
+- `quality_bar_debts`: 29
 - `symbols`: 36/36
 - `relationships`: 36/36
 - `identifiers`: 33/36
 - `body_spans`: 35/36
 - `source_regions`: 35/36
-- `doc_comments`: 25/36
+- `doc_comments`: 35/36 fixture-proven; 0 open doc-comment gaps because regex is `not_applicable`
 - `structural_facts`: 12/36
 - `complexity_metrics`: 28/36
 - `annotations`: 19/36
@@ -532,7 +532,8 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 - `structural_facts`: 24 languages remain open.
 - `annotations`: 4 code languages remain open (`go`, `zig`, `vue`, `razor`).
 - `literals`: 0 languages remain open.
-- `doc_comments`: 11 languages remain open.
+- `doc_comments`: 35/36 fixture-proven; 0 open doc-comment gaps because regex is
+  `not_applicable` (tree-sitter-regex has no comment or doc-comment nodes).
 
 Impact: downstream consumers cannot distinguish "not applicable" from "not
 implemented yet" or "not audited" unless the matrix stays fail-closed.

@@ -1,6 +1,7 @@
 local Worker = {}
 Worker.__index = Worker
 
+--- Increment a worker id.
 local function helper(value)
     return value + 1
 end

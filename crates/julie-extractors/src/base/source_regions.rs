@@ -63,7 +63,13 @@ fn collect_node(
         ));
     } else if config.comment_node_kinds.contains(&node_kind) {
         let text = node_text(content, node);
-        let kind = if is_doc_comment(language, text.unwrap_or_default()) {
+        let kind = if language == "yaml" {
+            if is_yaml_key_attached_comment(content, node) {
+                SourceRegionKind::DocComment
+            } else {
+                SourceRegionKind::Comment
+            }
+        } else if is_doc_comment(language, text.unwrap_or_default()) {
             SourceRegionKind::DocComment
         } else {
             SourceRegionKind::Comment
@@ -169,6 +175,75 @@ fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
 
 fn is_doc_comment(language: &str, text: &str) -> bool {
     crate::language_spec::language_spec(language).is_some_and(|spec| spec.is_doc_comment(text))
+}
+
+fn is_yaml_key_attached_comment(content: &str, comment_node: Node<'_>) -> bool {
+    if comment_node.kind() != "comment" {
+        return false;
+    }
+    let Some(text) = node_text(content, comment_node) else {
+        return false;
+    };
+    if !text.trim_start().starts_with('#') {
+        return false;
+    }
+    // Multi-line header blocks stay ordinary comments.
+    if comment_node
+        .next_sibling()
+        .is_some_and(|sibling| sibling.kind() == "comment")
+    {
+        return false;
+    }
+
+    let key_column = comment_node.start_position().column;
+    let mut next = comment_node.next_sibling();
+    while let Some(sibling) = next {
+        if sibling.kind() == "blank_line" {
+            next = sibling.next_sibling();
+            continue;
+        }
+        if sibling.kind() != "block_mapping_pair" {
+            return false;
+        }
+        return !yaml_pair_has_nested_mapping(sibling)
+            && yaml_mapping_key_start_column(content, sibling) == Some(key_column);
+    }
+    false
+}
+
+fn yaml_pair_has_nested_mapping(pair: Node<'_>) -> bool {
+    let mut cursor = pair.walk();
+    for child in pair.children(&mut cursor) {
+        if child.kind() != "block_node" {
+            continue;
+        }
+        let mut block_cursor = child.walk();
+        for block_child in child.children(&mut block_cursor) {
+            if block_child.kind() == "block_mapping" {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn yaml_mapping_key_start_column(_content: &str, pair: Node<'_>) -> Option<usize> {
+    let mut cursor = pair.walk();
+    for child in pair.children(&mut cursor) {
+        if !matches!(child.kind(), "flow_node" | "block_node") {
+            continue;
+        }
+        let mut key_cursor = child.walk();
+        for key_child in child.children(&mut key_cursor) {
+            if matches!(
+                key_child.kind(),
+                "plain_scalar" | "single_quote_scalar" | "double_quote_scalar"
+            ) {
+                return Some(key_child.start_position().column);
+            }
+        }
+    }
+    None
 }
 
 fn is_html_comment(text: &str) -> bool {

@@ -12,6 +12,7 @@ func run() -> int:
     record_run(id)
     return helper(id)
 
+## Increment a worker id.
 func helper(value: int) -> int:
     return value + 1
 

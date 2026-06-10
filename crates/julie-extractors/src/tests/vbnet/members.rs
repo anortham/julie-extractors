@@ -763,4 +763,39 @@ End Interface
         let sig = draw.unwrap().signature.as_ref().unwrap();
         assert!(sig.contains("Sub Draw"), "Signature: {}", sig);
     }
+
+    #[test]
+    fn test_triple_quote_doc_comment_attaches_to_method() {
+        let code = r#"
+Namespace Fixture
+    Public Class Worker
+        ''' <summary>Checks endpoint.</summary>
+        Public Shared Sub FetchStatus()
+        End Sub
+    End Class
+End Namespace
+"#;
+        let mut parser = init_parser();
+        let tree = parser.parse(code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = VbNetExtractor::new(
+            "vbnet".to_string(),
+            "test.vb".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let fetch = symbols
+            .iter()
+            .find(|s| s.name == "FetchStatus")
+            .expect("FetchStatus method");
+        assert!(
+            fetch
+                .doc_comment
+                .as_deref()
+                .is_some_and(|doc| doc.contains("Checks endpoint")),
+            "doc_comment={:?}",
+            fetch.doc_comment
+        );
+    }
 }

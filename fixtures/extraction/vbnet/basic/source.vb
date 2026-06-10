@@ -16,6 +16,7 @@ Namespace Fixture
         End Function
 
         <Obsolete("Use HelperV2")>
+        ''' <summary>Increments a worker id.</summary>
         Private Function Helper(value As Integer) As Integer
             Return value + 1
         End Function
@@ -27,6 +28,7 @@ Namespace Fixture
         Private Shared Sub ObserveRun(eventName As String, id As Integer)
         End Sub
 
+        ''' <summary>Checks the worker service health endpoint.</summary>
         Public Shared Sub FetchStatus()
             FetchUrl("https://api.example.com/workers/status")
         End Sub

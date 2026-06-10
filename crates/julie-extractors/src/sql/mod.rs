@@ -92,13 +92,8 @@ impl SqlExtractor {
                 .map(|symbol| symbol.id.clone());
             if let Some(text) = self.decode_sql_string_literal(&node) {
                 let carrier = self.sql_literal_carrier(&node);
-                self.base.record_literal(
-                    &node,
-                    text,
-                    carrier,
-                    0,
-                    containing_symbol_id,
-                );
+                self.base
+                    .record_literal(&node, text, carrier, 0, containing_symbol_id);
             }
         }
 
@@ -171,10 +166,7 @@ impl SqlExtractor {
             if !raw.trim_start().starts_with('\'') && !raw.trim_start().starts_with('"') {
                 return None;
             }
-            let trimmed = raw
-                .trim()
-                .trim_matches(|c| c == '\'' || c == '"')
-                .trim();
+            let trimmed = raw.trim().trim_matches(|c| c == '\'' || c == '"').trim();
             if trimmed.is_empty() {
                 None
             } else {

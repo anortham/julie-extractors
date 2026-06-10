@@ -144,7 +144,7 @@ impl RegexExtractor {
                     );
                 }
                 None
-            },
+            }
             _ => None,
         };
 

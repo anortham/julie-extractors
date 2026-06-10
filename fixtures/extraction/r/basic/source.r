@@ -1,3 +1,5 @@
+#' Increment a worker id.
+#' @param value worker id
 helper <- function(value) {
   value + 1
 }
