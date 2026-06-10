@@ -1,17 +1,17 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:.worker:17:0",
+      "key": "fixtures/extraction/vue/basic/source.vue:.worker:29:0",
       "name": ".worker",
       "kind": "property",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
-      "start_line": 17,
+      "start_line": 29,
       "start_column": 0,
-      "end_line": 19,
+      "end_line": 31,
       "end_column": 1,
-      "start_byte": 257,
-      "end_byte": 286,
+      "start_byte": 509,
+      "end_byte": 538,
       "body_span": {
         "start_line": 1,
         "start_column": 8,
@@ -45,19 +45,19 @@
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 1,
       "start_column": 1,
-      "end_line": 20,
+      "end_line": 32,
       "end_column": 1,
       "start_byte": 0,
-      "end_byte": 287,
+      "end_byte": 539,
       "body_span": {
         "start_line": 4,
         "start_column": 8,
-        "end_line": 19,
+        "end_line": 31,
         "end_column": 1,
         "start_byte": 64,
-        "end_byte": 286
+        "end_byte": 538
       },
-      "body_hash": "97560a13bcf4ba7b5fdb26b51ba761fa",
+      "body_hash": "783d08acb3fc7b8d52a241171e7cdfac",
       "signature": "<Source />",
       "doc_comment": "Vue Single File Component: Source",
       "visibility": "Public",
@@ -65,6 +65,39 @@
       "metadata": {
         "sections": "template,script,style",
         "type": "vue-sfc"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vue/basic/source.vue:evaluate:15:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 25,
+      "end_column": 1,
+      "start_byte": 234,
+      "end_byte": 482,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 59,
+        "end_line": 25,
+        "end_column": 1,
+        "start_byte": 293,
+        "end_byte": 482
+      },
+      "body_hash": "0d61c5c9950c9a877d638c6a5522fcd9",
+      "signature": "function evaluate(count: number, enabled: boolean)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "function"
       },
       "annotations": [],
       "semantic_group": null,
@@ -82,14 +115,14 @@
       "end_line": 13,
       "end_column": 1,
       "start_byte": 165,
-      "end_byte": 230,
+      "end_byte": 232,
       "body_span": {
         "start_line": 11,
         "start_column": 39,
         "end_line": 13,
         "end_column": 1,
         "start_byte": 204,
-        "end_byte": 230
+        "end_byte": 232
       },
       "body_hash": "610fbeb731a13af644329e41367482b9",
       "signature": "function format(value: string)",
@@ -237,17 +270,17 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/vue/basic/source.vue:trim:call:12:15",
+      "key": "fixtures/extraction/vue/basic/source.vue:trim:call:12:17",
       "name": "trim",
       "kind": "call",
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 12,
-      "start_column": 15,
+      "start_column": 17,
       "end_line": 12,
-      "end_column": 19,
-      "start_byte": 221,
-      "end_byte": 225,
+      "end_column": 21,
+      "start_byte": 223,
+      "end_byte": 227,
       "containing_key": "fixtures/extraction/vue/basic/source.vue:format:11:0",
       "target_key": null,
       "confidence": "1.000"
@@ -255,7 +288,7 @@
   ],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/vue/basic/source.vue:.worker:17:0",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:.worker:29:0",
       "resolved_type": "css-rule",
       "generic_params": null,
       "constraints": null,
@@ -284,7 +317,74 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "covered_lines": 17,
+      "covered_bytes": 350,
+      "decision_count": 2,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 25,
+      "end_column": 1,
+      "start_byte": 132,
+      "end_byte": 482,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:evaluate:15:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "covered_lines": 11,
+      "covered_bytes": 189,
+      "decision_count": 2,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 15,
+      "start_column": 59,
+      "end_line": 25,
+      "end_column": 1,
+      "start_byte": 293,
+      "end_byte": 482,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vue/basic/source.vue:format:11:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/basic/source.vue",
+      "covered_lines": 3,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 11,
+      "start_column": 39,
+      "end_line": 13,
+      "end_column": 1,
+      "start_byte": 204,
+      "end_byte": 232,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "Worker",
@@ -309,12 +409,12 @@
       "language": "vue",
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "containing_key": null,
-      "start_line": 16,
+      "start_line": 28,
       "start_column": 0,
-      "end_line": 20,
+      "end_line": 32,
       "end_column": 8,
-      "start_byte": 242,
-      "end_byte": 295,
+      "start_byte": 494,
+      "end_byte": 547,
       "metadata": {
         "embedded_language": "css",
         "host_node_kind": "style_element"
@@ -327,10 +427,10 @@
       "containing_key": null,
       "start_line": 8,
       "start_column": 0,
-      "end_line": 14,
+      "end_line": 26,
       "end_column": 9,
       "start_byte": 107,
-      "end_byte": 240,
+      "end_byte": 492,
       "metadata": {
         "embedded_language": "javascript",
         "host_node_kind": "script_element"

@@ -75,6 +75,46 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:22:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "start_line": 22,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 1,
+      "start_byte": 367,
+      "end_byte": 590,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 34,
+        "end_line": 32,
+        "end_column": 1,
+        "start_byte": 401,
+        "end_byte": 590
+      },
+      "body_hash": "0d61c5c9950c9a877d638c6a5522fcd9",
+      "signature": "function evaluate(count, enabled)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isArrowFunction": false,
+        "isAsync": false,
+        "isExpression": false,
+        "isGenerator": false,
+        "parameters": [
+          "count",
+          "enabled"
+        ]
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/jsx/basic/source.jsx:format:18:0",
       "name": "format",
       "kind": "function",
@@ -144,6 +184,64 @@
         "isExpression": false,
         "isGenerator": false,
         "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/basic/source.jsx:i:25:17",
+      "name": "i",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "start_line": 25,
+      "start_column": 17,
+      "end_line": 25,
+      "end_column": 22,
+      "start_byte": 458,
+      "end_byte": 463,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "let i = 1",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:22:0",
+      "metadata": {
+        "declarationType": "let",
+        "initializer": "1",
+        "isConst": false,
+        "isLet": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/basic/source.jsx:total:23:8",
+      "name": "total",
+      "kind": "variable",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "start_line": 23,
+      "start_column": 8,
+      "end_line": 23,
+      "end_column": 17,
+      "start_byte": 411,
+      "end_byte": 420,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "let total = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:22:0",
+      "metadata": {
+        "declarationType": "let",
+        "initializer": "0",
+        "isConst": false,
+        "isLet": true
       },
       "annotations": [],
       "semantic_group": null,
@@ -252,7 +350,118 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "covered_lines": 33,
+      "covered_bytes": 591,
+      "decision_count": 2,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 33,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 591,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/jsx/basic/source.jsx:Badge:1:7",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "covered_lines": 12,
+      "covered_bytes": 223,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 33,
+      "end_line": 12,
+      "end_column": 1,
+      "start_byte": 33,
+      "end_byte": 256,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/jsx/basic/source.jsx:evaluate:22:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "covered_lines": 11,
+      "covered_bytes": 189,
+      "decision_count": 2,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 22,
+      "start_column": 34,
+      "end_line": 32,
+      "end_column": 1,
+      "start_byte": 401,
+      "end_byte": 590,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/jsx/basic/source.jsx:format:18:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "covered_lines": 3,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 18,
+      "start_column": 23,
+      "end_line": 20,
+      "end_column": 1,
+      "start_byte": 337,
+      "end_byte": 365,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/jsx/basic/source.jsx:handleClick:2:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/basic/source.jsx",
+      "covered_lines": 4,
+      "covered_bytes": 68,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 2,
+      "start_column": 27,
+      "end_line": 5,
+      "end_column": 5,
+      "start_byte": 62,
+      "end_byte": 130,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "/api/workers",

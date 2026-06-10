@@ -181,7 +181,52 @@
       }
     }
   ],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/structural_facts/source.jsx",
+      "covered_lines": 5,
+      "covered_bytes": 94,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 94,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/jsx/structural_facts/source.jsx:View:1:7",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/structural_facts/source.jsx",
+      "covered_lines": 4,
+      "covered_bytes": 64,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 29,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 29,
+      "end_byte": 93,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [],
   "type_argument_usages": []

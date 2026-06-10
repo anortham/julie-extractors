@@ -99,6 +99,43 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:25:0",
+      "name": "evaluate",
+      "kind": "function",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 25,
+      "start_column": 0,
+      "end_line": 35,
+      "end_column": 1,
+      "start_byte": 415,
+      "end_byte": 663,
+      "body_span": {
+        "start_line": 25,
+        "start_column": 59,
+        "end_line": 35,
+        "end_column": 1,
+        "start_byte": 474,
+        "end_byte": 663
+      },
+      "body_hash": "0d61c5c9950c9a877d638c6a5522fcd9",
+      "signature": "evaluate(count: number, enabled: boolean): : number",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "parameters": [],
+        "returnType": ": number",
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/basic/source.tsx:fetchWorkers:5:0",
       "name": "fetchWorkers",
       "kind": "function",
@@ -172,6 +209,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:i:28:17",
+      "name": "i",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 28,
+      "start_column": 17,
+      "end_line": 28,
+      "end_column": 22,
+      "start_byte": 531,
+      "end_byte": 536,
+      "body_span": null,
+      "body_hash": null,
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:25:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/tsx/basic/source.tsx:label:2:4",
       "name": "label",
       "kind": "property",
@@ -226,6 +287,30 @@
         "parameters": [],
         "typeParameters": []
       },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/basic/source.tsx:total:26:8",
+      "name": "total",
+      "kind": "variable",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "start_line": 26,
+      "start_column": 8,
+      "end_line": 26,
+      "end_column": 17,
+      "start_byte": 484,
+      "end_byte": 493,
+      "body_span": null,
+      "body_hash": null,
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:25:0",
+      "metadata": {},
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -363,6 +448,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:25:0",
+      "resolved_type": "function",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:fetchWorkers:5:0",
       "resolved_type": "function",
       "generic_params": null,
@@ -381,8 +475,26 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:i:28:17",
+      "resolved_type": "number",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:observeRun:9:0",
       "resolved_type": "function",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:total:26:8",
+      "resolved_type": "number",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,
@@ -392,7 +504,140 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "covered_lines": 36,
+      "covered_bytes": 664,
+      "decision_count": 2,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 36,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 664,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:Badge:13:7",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "covered_lines": 7,
+      "covered_bytes": 151,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 13,
+      "start_column": 36,
+      "end_line": 19,
+      "end_column": 1,
+      "start_byte": 193,
+      "end_byte": 344,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:evaluate:25:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "covered_lines": 11,
+      "covered_bytes": 189,
+      "decision_count": 2,
+      "loop_count": 1,
+      "max_nesting_depth": 2,
+      "parameter_count": 2,
+      "start_line": 25,
+      "start_column": 59,
+      "end_line": 35,
+      "end_column": 1,
+      "start_byte": 474,
+      "end_byte": 663,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:fetchWorkers:5:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "covered_lines": 3,
+      "covered_bytes": 37,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 5,
+      "start_column": 24,
+      "end_line": 7,
+      "end_column": 1,
+      "start_byte": 62,
+      "end_byte": 99,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:format:21:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "covered_lines": 3,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 21,
+      "start_column": 39,
+      "end_line": 23,
+      "end_column": 1,
+      "start_byte": 385,
+      "end_byte": 413,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/basic/source.tsx:observeRun:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "covered_lines": 3,
+      "covered_bytes": 19,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 9,
+      "start_column": 35,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 136,
+      "end_byte": 155,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "/api/workers",

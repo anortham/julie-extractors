@@ -16,6 +16,23 @@
         return value.Trim();
     }
 
+    private int Evaluate(int count, bool enabled)
+    {
+        int total = 0;
+        if (enabled)
+        {
+            for (int i = 1; i <= count; i++)
+            {
+                total += i;
+            }
+        }
+        else if (count > 0)
+        {
+            total = 1;
+        }
+        return total;
+    }
+
     private static int Helper(int value)
     {
         return value + 1;

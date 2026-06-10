@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use tree_sitter::{Node, Tree};
+use tree_sitter::{Node, Parser, Tree};
 
+use super::embedded_span::EmbeddedSpanOffset;
 use super::kinds::SymbolKind;
 use super::span::NormalizedSpan;
 use super::types::{ComplexityMetric, Symbol, stable_location_id};
@@ -49,6 +50,10 @@ pub fn collect_complexity_metrics(
     file_path: &str,
     symbols: &[Symbol],
 ) -> Vec<ComplexityMetric> {
+    if language == "vue" {
+        return collect_vue_complexity_metrics(source, file_path, symbols);
+    }
+
     let Some(config) = config_for_language(language) else {
         return Vec::new();
     };
@@ -101,7 +106,7 @@ pub fn collect_complexity_metrics(
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 pub(crate) fn complexity_metric_scopes_for_language(language: &str) -> Vec<&'static str> {
-    if config_for_language(language).is_some() {
+    if config_for_language(language).is_some() || language == "vue" {
         vec!["file", "symbol"]
     } else {
         Vec::new()
@@ -502,6 +507,9 @@ fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
         "rust" => Some(RUST_CONFIG),
         "swift" => Some(SWIFT_CONFIG),
         "typescript" => Some(ECMASCRIPT_CONFIG),
+        "tsx" => Some(ECMASCRIPT_CONFIG),
+        "jsx" => Some(ECMASCRIPT_CONFIG),
+        "razor" => Some(CSHARP_CONFIG),
         "zig" => Some(ZIG_CONFIG),
         "php" => Some(PHP_CONFIG),
         "ruby" => Some(RUBY_CONFIG),
@@ -971,3 +979,243 @@ const QML_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     ],
     ..DEFAULT_CONFIG
 };
+
+fn collect_vue_complexity_metrics(
+    source: &str,
+    file_path: &str,
+    symbols: &[Symbol],
+) -> Vec<ComplexityMetric> {
+    use crate::vue::parsing::{VueSection, parse_vue_sfc};
+
+    let Ok(sections) = parse_vue_sfc(source) else {
+        return Vec::new();
+    };
+    let script_sections: Vec<&VueSection> = sections
+        .iter()
+        .filter(|section| section.section_type == "script")
+        .collect();
+    if script_sections.is_empty() {
+        return Vec::new();
+    }
+
+    let config = ECMASCRIPT_CONFIG;
+    let mut metrics = Vec::new();
+    let mut file_stats = ComplexityStats::default();
+    let mut file_span: Option<NormalizedSpan> = None;
+
+    for section in &script_sections {
+        let Some(tree) = parse_vue_script_tree(section) else {
+            continue;
+        };
+        let root = tree.root_node();
+        let local_span = NormalizedSpan::from_node(&root);
+        let byte_start = vue_section_byte_offset(source, section.start_line);
+        let Some(offset) = EmbeddedSpanOffset::from_host_byte(source, byte_start as usize) else {
+            continue;
+        };
+        let section_file_span = offset.apply(local_span);
+        let mut section_stats = ComplexityStats::default();
+        collect_stats(
+            "typescript",
+            root,
+            &section.content,
+            local_span,
+            config,
+            0,
+            &mut section_stats,
+        );
+        merge_complexity_stats(&mut file_stats, section_stats);
+        file_span = Some(merge_spans(file_span, section_file_span));
+    }
+
+    if let Some(span) = file_span {
+        metrics.push(build_complexity_metric(
+            file_path,
+            "vue",
+            MetricScopeInput {
+                scope: "file",
+                symbol_id: None,
+                span,
+                parameter_count: None,
+            },
+            file_stats,
+        ));
+    }
+
+    for symbol in symbols.iter().filter(|symbol| is_callable(&symbol.kind)) {
+        let Some((section, byte_start)) =
+            vue_script_section_for_symbol(source, &script_sections, symbol)
+        else {
+            continue;
+        };
+        let Some(tree) = parse_vue_script_tree(section) else {
+            continue;
+        };
+        let root = tree.root_node();
+        let symbol_file_span = symbol
+            .body_span
+            .map(|body| NormalizedSpan {
+                start_line: body.start_line,
+                start_column: body.start_column,
+                end_line: body.end_line,
+                end_column: body.end_column,
+                start_byte: body.start_byte,
+                end_byte: body.end_byte,
+            })
+            .unwrap_or_else(|| symbol_span(symbol));
+        let local_span = file_span_to_section_local(symbol_file_span, byte_start);
+        let mut stats = ComplexityStats::default();
+        collect_stats(
+            "typescript",
+            root,
+            &section.content,
+            local_span,
+            config,
+            0,
+            &mut stats,
+        );
+        let local_declaration = file_span_to_section_local(symbol_span(symbol), byte_start);
+        let parameter_count = find_first_parameter_container(root, local_declaration, config)
+            .map(|container| count_container_parameters(container, config));
+        metrics.push(build_complexity_metric(
+            file_path,
+            "vue",
+            MetricScopeInput {
+                scope: "symbol",
+                symbol_id: Some(symbol.id.clone()),
+                span: symbol_file_span,
+                parameter_count,
+            },
+            stats,
+        ));
+    }
+
+    metrics.sort_by(|left, right| {
+        left.start_byte
+            .cmp(&right.start_byte)
+            .then(left.end_byte.cmp(&right.end_byte))
+            .then(left.scope.cmp(&right.scope))
+            .then(left.symbol_id.cmp(&right.symbol_id))
+            .then(left.id.cmp(&right.id))
+    });
+    metrics
+}
+
+fn build_complexity_metric(
+    file_path: &str,
+    language: &str,
+    input: MetricScopeInput,
+    stats: ComplexityStats,
+) -> ComplexityMetric {
+    let MetricScopeInput {
+        scope,
+        symbol_id,
+        span,
+        parameter_count,
+    } = input;
+    let identity = symbol_id.as_deref().unwrap_or("file");
+    let metadata = HashMap::from([(
+        "metric_version".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(1)),
+    )]);
+
+    ComplexityMetric {
+        id: stable_location_id(file_path, &format!("complexity:{scope}:{identity}"), span),
+        file_path: file_path.to_string(),
+        language: language.to_string(),
+        scope: scope.to_string(),
+        symbol_id,
+        algorithm_id: ALGORITHM_ID.to_string(),
+        covered_lines: span.end_line.saturating_sub(span.start_line) + 1,
+        covered_bytes: span.end_byte.saturating_sub(span.start_byte),
+        decision_count: stats.decision_count,
+        loop_count: stats.loop_count,
+        max_nesting_depth: stats.max_nesting_depth,
+        parameter_count,
+        start_line: span.start_line,
+        start_column: span.start_column,
+        end_line: span.end_line,
+        end_column: span.end_column,
+        start_byte: span.start_byte,
+        end_byte: span.end_byte,
+        metadata: Some(metadata),
+    }
+}
+
+fn merge_complexity_stats(into: &mut ComplexityStats, from: ComplexityStats) {
+    into.decision_count += from.decision_count;
+    into.loop_count += from.loop_count;
+    into.max_nesting_depth = into.max_nesting_depth.max(from.max_nesting_depth);
+}
+
+fn merge_spans(left: Option<NormalizedSpan>, right: NormalizedSpan) -> NormalizedSpan {
+    match left {
+        Some(existing) => NormalizedSpan {
+            start_line: existing.start_line.min(right.start_line),
+            start_column: if right.start_line < existing.start_line {
+                right.start_column
+            } else if existing.start_line < right.start_line {
+                existing.start_column
+            } else {
+                existing.start_column.min(right.start_column)
+            },
+            end_line: existing.end_line.max(right.end_line),
+            end_column: if right.end_line > existing.end_line {
+                right.end_column
+            } else if existing.end_line > right.end_line {
+                existing.end_column
+            } else {
+                existing.end_column.max(right.end_column)
+            },
+            start_byte: existing.start_byte.min(right.start_byte),
+            end_byte: existing.end_byte.max(right.end_byte),
+        },
+        None => right,
+    }
+}
+
+fn vue_section_byte_offset(content: &str, start_line: usize) -> u32 {
+    content
+        .split_inclusive('\n')
+        .take(start_line)
+        .map(str::len)
+        .sum::<usize>() as u32
+}
+
+fn parse_vue_script_tree(section: &crate::vue::parsing::VueSection) -> Option<Tree> {
+    let mut parser = Parser::new();
+    let lang = section.lang.as_deref().unwrap_or("js");
+    let ts_lang = if lang == "ts" || lang == "typescript" {
+        tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()
+    } else {
+        tree_sitter_javascript::LANGUAGE.into()
+    };
+    parser.set_language(&ts_lang).ok()?;
+    parser.parse(&section.content, None)
+}
+
+fn vue_script_section_for_symbol<'a>(
+    content: &str,
+    sections: &[&'a crate::vue::parsing::VueSection],
+    symbol: &Symbol,
+) -> Option<(&'a crate::vue::parsing::VueSection, u32)> {
+    for section in sections {
+        let byte_start = vue_section_byte_offset(content, section.start_line);
+        let byte_end = byte_start.saturating_add(section.content.len() as u32);
+        if symbol.start_byte >= byte_start && symbol.end_byte <= byte_end {
+            return Some((*section, byte_start));
+        }
+    }
+    None
+}
+
+fn file_span_to_section_local(span: NormalizedSpan, byte_start: u32) -> NormalizedSpan {
+    NormalizedSpan {
+        start_line: span.start_line,
+        start_column: span.start_column,
+        end_line: span.end_line,
+        end_column: span.end_column,
+        start_byte: span.start_byte.saturating_sub(byte_start),
+        end_byte: span.end_byte.saturating_sub(byte_start),
+    }
+}

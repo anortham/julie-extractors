@@ -42,7 +42,7 @@ Current golden fixture rows by domain:
 | source_regions | 35/36 | Regex is the only current miss. |
 | doc_comments | 25/36 | Stronger, but normalization is still inconsistent. |
 | structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
-| complexity_metrics | 24/36 | Second-batch Phase 2 Task 6 added vbnet, r, bash, powershell, gdscript, qml. |
+| complexity_metrics | 28/36 | Third-batch Phase 2 Task 6 added tsx, jsx, vue, razor embedded/web support. |
 | annotations | 11/36 | Attribute/decorator support remains patchy outside the first pass. |
 | literals | 36/36 | Full baseline exists. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
@@ -405,6 +405,40 @@ Scorecard after this slice:
 - `literals`: 36/36
 - `type_argument_usages`: 1/36
 
+## Phase 2 Task 6 third-batch embedded/web complexity metrics
+
+The eleventh extractor-depth slice closed `complexity_metrics` gaps for four
+embedded/web languages:
+
+- `complexity_metrics`: TSX, JSX, Vue, and Razor now emit `file` and `symbol`
+  scoped rows in each language `basic` golden fixture.
+- TSX and JSX reuse `ECMASCRIPT_CONFIG` on their native tree-sitter grammars;
+  JSX/TSX markup nodes do not match decision or loop kinds, so markup nesting is
+  not counted as code complexity.
+- Razor reuses `CSHARP_CONFIG` on the tree-sitter-razor AST; C# control-flow
+  nodes inside `@code` blocks are counted while HTML markup nesting is not.
+- Vue parses `<script>` / `<script setup>` sections with the embedded TS/JS
+  parser and aggregates metrics only across script byte spans; template and
+  style sections are excluded from file-scope complexity.
+- Per-language complexity unit tests with hand-tallied expectations in
+  `crates/julie-extractors/src/tests/{typescript,javascript,vue,razor}/complexity.rs`.
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 51
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 28/36
+- `annotations`: 11/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -412,7 +446,8 @@ Scorecard after this slice:
 No language/domain cells are silent anymore. The remaining debt is explicit
 `open_gaps` in the capability matrix. Largest buckets:
 
-- `complexity_metrics`: 12 languages remain open.
+- `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
+  YAML, Markdown, Regex).
 - `structural_facts`: 24 languages remain open.
 - `annotations`: 25 languages remain open.
 - `literals`: 0 languages remain open.
@@ -439,14 +474,14 @@ goldens do not yet make it first-class across the matrix.
 
 Current fixture-proven languages:
 
-`rust`, `c`, `cpp`, `go`, `zig`, `typescript`, `javascript`, `python`,
-`java`, `csharp`, `php`, `ruby`, `swift`, `kotlin`, `scala`, `dart`,
-`elixir`, `lua`.
+`rust`, `c`, `cpp`, `go`, `zig`, `typescript`, `tsx`, `javascript`, `jsx`,
+`python`, `java`, `csharp`, `vbnet`, `php`, `ruby`, `swift`, `kotlin`,
+`scala`, `dart`, `elixir`, `lua`, `r`, `bash`, `powershell`, `gdscript`,
+`qml`, `vue`, and `razor`.
 
 Likely code-language targets still missing:
 
-`tsx`, `jsx`, `vue`, `vbnet`, `qml`, `r`, `bash`, `powershell`,
-`gdscript`, and `razor`.
+`sql` (design-gated separately).
 SQL should be design-gated separately because procedural SQL complexity is not
 the same metric as cyclomatic complexity in general-purpose code.
 

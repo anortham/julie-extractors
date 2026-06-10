@@ -8,6 +8,8 @@ pub mod parsing;
 pub mod relationships;
 pub mod type_arguments;
 
+mod complexity;
+
 use crate::base::SymbolKind;
 use crate::vue::VueExtractor;
 
