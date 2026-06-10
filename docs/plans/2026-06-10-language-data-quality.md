@@ -34,32 +34,46 @@ using `not_applicable` to hide ordinary extractor gaps.
 This plan starts after `docs/plans/2026-06-09-extraction-data-quality.md`.
 That plan is complete on branch `feature/extraction-data-quality`.
 
-Current fixture-proven domain counts:
+Current fixture-proven domain counts from
+`node scripts/language-data-quality-report.mjs --strict` after the literal,
+structural-fact, complexity, annotation, doc-comment, and type-argument slices:
 
 - `symbols`: 36/36
-- `relationships`: 36/36
-- `pending_relationships`: 30/36
+- `relationships`: 35/36
 - `identifiers`: 33/36
-- `types`: 28/36
 - `body_spans`: 35/36
-- `source_regions`: 35/36
-- `doc_comments`: 25/36
-- `structural_facts`: 12/36
-- `complexity_metrics`: 12/36
-- `annotations`: 11/36
+- `structural_facts`: 36/36
+- `complexity_metrics`: 28/36
+- `annotations`: 23/36
+- `doc_comments`: 35/36
 - `literals`: 36/36
-- `type_argument_usages`: 1/36
+- `source_regions`: 35/36
+- `pending_relationships`: 30/36
+- `types`: 28/36
+- `type_argument_usages`: 20/36
 
 Current explicit quality-bar debt:
 
 - `silent_cells`: 0
-- `quality_bar_debts`: 67
+- `quality_bar_debts`: 0
 
-The key finding is that there are no positive `kind_coverage` claims without
-fixture evidence. That is table stakes, not the destination. The remaining
-problem is that quality is uneven: a few languages are rich, while many code
-languages still lack domains that should be expected from a first-rate
-tree-sitter extractor.
+The key finding is now stronger than the original baseline: there are no silent
+capability cells and no explicit quality-bar debts in the current report. That
+is still not the destination. The remaining problem is that the raw `N/36`
+counts mix three different states:
+
+- real fixture-proven native coverage;
+- legitimate non-applicability where the language does not have the construct;
+- convention-only or low-value cases where the language has related runtime
+  idioms, but not a stable tree-sitter-backed construct worth claiming as the
+  same domain.
+
+The next phase must make those states visible in the scorecard so the team can
+delegate bigger batches without confusing a raw missing row with extractor
+debt. For example, `type_argument_usages` is 20/36 fixture-proven, with the
+remaining 16 classified as 13 true `not_applicable`, 3 convention-only
+(`php`, `ruby`, `lua`), and 0 native implementation debt after the Elixir
+slice. The current report cannot express that distinction yet.
 
 ## Product Quality Bar
 
@@ -172,9 +186,95 @@ does not reinterpret public contracts.
 **Mechanical exclusion:** Mechanical workers cannot decide whether a passing
 fixture proves a domain claim.
 
+## Acceleration Model
+
+The first half of this branch proved that small, tightly reviewed Cursor slices
+work. Continuing one language at a time is now the bottleneck. The next
+execution model is:
+
+1. Lead session owns domain policy, applicability calls, scorecard semantics,
+   and review.
+2. Cursor workers own larger implementation batches only after the expected
+   rows, files, and verification commands are explicit.
+3. Every worker output is reviewed through the same gates: diff inspection,
+   language-focused tests, golden fixture checks, `cargo fmt --check`,
+   `git diff --check`, and `node scripts/language-data-quality-report.mjs
+   --strict`.
+4. Parallel workers must use separate worktrees or non-overlapping file sets.
+   Do not let two workers edit `fixtures/extraction/capabilities.json`,
+   `docs/findings/2026-06-09-language-coverage-review.md`, or shared base
+   helpers in the same batch unless the lead session owns the merge.
+
+### Applicability classes
+
+Use these classes when planning or reviewing each domain/language pair:
+
+- `fixture_proven_native`: the language has a native construct and golden rows
+  prove the extractor output.
+- `not_applicable`: the construct genuinely does not exist in the language.
+- `convention_only`: the language has dynamic/runtime conventions that resemble
+  the domain, but there is no stable native syntax to claim as that domain.
+- `native_debt`: the language has the construct, tree-sitter exposes it, and
+  the extractor does not yet emit product-grade rows.
+- `quality_debt`: rows exist, but they are shallow, ambiguous, missing carrier
+  context, or not useful enough for downstream tools.
+
+`not_applicable` and `convention_only` require written evidence. `native_debt`
+and `quality_debt` require closure tasks.
+
+### Larger work packages
+
+Use these as the next Cursor-sized slices. Each slice should be large enough to
+matter, but small enough that review can remain exact.
+
+1. **Applicability-aware scorecard v2:** Extend
+   `scripts/language-data-quality-report.mjs` so it preserves the raw fixture
+   counts, then adds an applicability-adjusted view for every observed domain.
+   Start with `type_argument_usages` because the audit is already complete.
+   The script-local metadata may be temporary; do not change artifact schemas
+   or public CLI contracts in this task.
+2. **Raw-gap applicability audit:** Classify every remaining raw gap in
+   `relationships`, `identifiers`, `body_spans`, `source_regions`,
+   `pending_relationships`, and `types` as `fixture_proven_native`,
+   `not_applicable`, `convention_only`, `native_debt`, or `quality_debt`.
+   This is audit work first; implementation follows only for true debt.
+3. **Depth audit for complete-looking domains:** Review `structural_facts`,
+   `literals`, `doc_comments`, and `complexity_metrics` for useful carrier
+   context and downstream value. A 36/36 count is not enough if rows are thin.
+4. **Annotation/decorator closure:** Batch the remaining annotation-capable
+   languages by grammar family. Skip only with evidence that the language has
+   no stable annotation/decorator/metadata construct.
+5. **SQL and data-language semantic depth:** Treat SQL, YAML, TOML, JSON,
+   Markdown, HTML, CSS, Regex, and Vue/Razor embedded regions as domain
+   languages, not failed general-purpose code languages. Improve schema,
+   selector, route/link, embedded-region, and query facts where useful.
+6. **Downstream dogfood pack:** After the scorecard can report applicability,
+   run the extractor against the dependent projects and representative
+   real-world corpora. Record before/after counts and parse diagnostics in
+   release evidence.
+
+### Cursor prompt contract
+
+Every delegated prompt must include:
+
+- the exact domain and language set;
+- the expected applicability class for each language/domain pair, or an
+  instruction to audit and report before implementing;
+- allowed files and forbidden files;
+- required golden fixture behavior;
+- required commands;
+- a warning that workers may not add fake `not_applicable`, fake support, or
+  schema changes to make the report greener.
+
+The lead session should prefer fewer, larger prompts that map to the work
+packages above, then review each returned diff before committing.
+
 ## Phase 0 - Raise The Bar And Make It Measurable
 
 ### Task 1: Add a repeatable language-quality scorecard
+
+**Status:** Complete for raw reporting and strict capability debt checks.
+Follow-up belongs to the applicability-aware scorecard v2 work package.
 
 **Files:**
 - Create: `scripts/language-data-quality-report.mjs`
@@ -197,6 +297,9 @@ cells, and quality-bar failures. The script should not modify files.
 - The findings doc records the latest scorecard output after each phase.
 
 ### Task 2: Fail closed on silent empty domain cells without lowering the bar
+
+**Status:** Complete for the current `kind_coverage` matrix. Follow-up is to
+make remaining non-raw applicability states visible, not to relax the gate.
 
 **Files:**
 - Modify: `fixtures/extraction/capabilities.json`
@@ -263,6 +366,9 @@ different.
 
 ### Task 4: Make doc comments consistent and language-wide
 
+**Status:** Complete for fixture-proven coverage after the doc-comment slices:
+35/36 raw fixture-proven, with regex explicitly non-applicable.
+
 **Files:**
 - Create or modify: `crates/julie-extractors/src/base/doc_comments.rs`
 - Modify: per-language doc-comment helpers where marker handling is local
@@ -289,6 +395,11 @@ documentation construct, document why; for languages with one, implement it.
 - Per-language tests and golden tests pass for affected languages.
 
 ### Task 5: Make attributes, decorators, and annotations first-class
+
+**Status:** Partially complete. Current raw annotation fixture evidence is
+23/36. The next work should classify the remaining 13 rows by language
+semantics before implementation, because several data or markup languages may
+be non-applicable while other code languages may still have real debt.
 
 **Files:**
 - Modify as needed: `crates/julie-extractors/src/cpp/*`,
@@ -318,6 +429,11 @@ helpers still need AST review.
 ## Phase 2 - Complexity Metrics Across Code Languages
 
 ### Task 6: Add complexity configs for straightforward code languages
+
+**Status:** Complete for the broad code-language batches covered so far.
+Current raw complexity fixture evidence is 28/36. Remaining rows need
+applicability classification and quality review rather than another blind
+language-by-language implementation pass.
 
 **Files:**
 - Modify: `crates/julie-extractors/src/base/complexity_metrics.rs`
@@ -398,6 +514,12 @@ not flatten ordinary DDL into code complexity.
 - Fixture rows demonstrate each newly claimed identifier kind.
 
 ### Task 9: Expand type-argument usage evidence
+
+**Status:** Implementation complete for native type-argument syntax. Current
+raw fixture evidence is 20/36. The remaining 16 are classified in the findings
+doc as 13 true `not_applicable`, 3 convention-only (`php`, `ruby`, `lua`), and
+0 native implementation debt. Follow-up belongs to scorecard v2 so the report
+can show that this is not an open implementation gap.
 
 **Files:**
 - Review existing tests under `crates/julie-extractors/src/tests/*/type_arguments.rs`
@@ -571,28 +693,32 @@ CI validation.
 
 ## Sequencing
 
-1. Phase 0 first. It sets the measurement bar and prevents hidden gaps while
-   the rest of the plan runs.
-2. Phase 1 next. Task 3 is complete. Tasks 4 and 5 remain, but can run after
-   the first complexity batch if that keeps delegation review tighter.
-3. Phase 2 and Phase 3 can run in parallel by language family after Phase 0.
-4. Phase 4 should wait until annotation and identifier evidence is stable,
-   because structural facts often build on those fields.
-5. Phase 5 can run independently as focused defect fixes.
+1. Complete the applicability-aware scorecard v2 before more broad
+   implementation batches. It lets the team distinguish real debt from
+   legitimate non-applicability.
+2. Run the raw-gap applicability audit next. This produces bigger, safer Cursor
+   prompts because each implementation batch starts with known debt.
+3. Execute annotation/decorator closure, SQL/data-language semantic depth, and
+   remaining identifier/type/body/source-region implementation in parallel
+   worktrees when file ownership does not overlap.
+4. Run the depth audit for complete-looking domains after each family batch.
+   A domain can be 36/36 and still need better carrier context.
+5. Use Phase 5 defect fixes as independent slices when they do not collide with
+   the active domain batch.
 6. Phase 6 proves value in dependent projects and real repositories.
 7. Phase 7 closes the branch.
 
 ## Current Execution Path
 
-The next delegated implementation slice should target Phase 2, Task 6 first
-batch: `zig`, `php`, `ruby`, `scala`, `elixir`, and `lua` complexity metrics.
-This is the best next Composer task because the behavior is measurable through
-hand-tallied complexity snippets and the shared complexity engine, while still
-being substantial enough to validate larger delegation.
+The next slice should be lead-owned or tightly reviewed because it changes how
+the team interprets quality data: build applicability-aware scorecard v2 with
+`type_argument_usages` as the first fully classified domain. After that, hand
+Cursor the raw-gap applicability audit as a larger batch. Implementation work
+should resume only where that audit finds `native_debt` or `quality_debt`.
 
-Lead-owned work should proceed in parallel on the structural-fact taxonomy.
-Structural facts should not be assigned as a broad implementation batch until
-the useful fact kinds for each language family are explicit.
+Lead-owned work should also continue on structural-fact and data-language
+taxonomy. Structural facts should not be assigned as a broad implementation
+batch until the useful fact kinds for each language family are explicit.
 
 ## Out Of Scope
 
