@@ -2654,7 +2654,8 @@ mixin class MixinClass {}
             // the outermost item in the file: extraction must not panic and
             // must still produce the class symbol, its members, and its
             // signature with the dart3 modifier.
-            let code = "sealed class AsyncValue<T> {\n  const AsyncValue._();\n  bool get isLoading;\n}\n";
+            let code =
+                "sealed class AsyncValue<T> {\n  const AsyncValue._();\n  bool get isLoading;\n}\n";
             let mut parser = init_parser();
             let tree = parser.parse(code, None).unwrap();
             let workspace_root = PathBuf::from("/tmp/test");

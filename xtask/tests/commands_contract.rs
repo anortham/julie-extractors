@@ -197,7 +197,9 @@ fn workspace_members_inherit_workspace_lints() {
         "crates/julie-extractors/Cargo.toml",
         "xtask/Cargo.toml",
     ] {
-        let source = std::fs::read_to_string(root.join(manifest)).expect("read manifest");
+        let source = std::fs::read_to_string(root.join(manifest))
+            .expect("read manifest")
+            .replace("\r\n", "\n");
         assert!(
             source.contains("\n[lints]\nworkspace = true\n"),
             "{manifest} must inherit workspace lint settings"

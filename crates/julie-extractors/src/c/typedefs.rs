@@ -11,8 +11,9 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 // Static regexes compiled once for performance
-static FUNCTION_POINTER_TYPEDEF_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"typedef\s+[^(]*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)").unwrap());
+static FUNCTION_POINTER_TYPEDEF_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"typedef\s+[^(]*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)").unwrap()
+});
 static STRUCT_ALIGN_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"typedef\s+struct\s+(ALIGN\([^)]+\))").unwrap());
 

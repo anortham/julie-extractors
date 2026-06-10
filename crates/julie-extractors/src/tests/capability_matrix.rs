@@ -1565,9 +1565,8 @@ fn observed_golden_domain(
         let expected_path = fixture["expected"].as_str().unwrap_or_else(|| {
             panic!("{language} fixture entries must include string expected paths")
         });
-        let json = fs::read_to_string(root.join(expected_path)).unwrap_or_else(|err| {
-            panic!("failed to read expected fixture {expected_path}: {err}")
-        });
+        let json = fs::read_to_string(root.join(expected_path))
+            .unwrap_or_else(|err| panic!("failed to read expected fixture {expected_path}: {err}"));
         let expected: Value = serde_json::from_str(&json).unwrap_or_else(|err| {
             panic!("failed to parse expected fixture {expected_path}: {err}")
         });
@@ -1583,9 +1582,7 @@ fn observed_annotation_symbol_kinds(expected: &Value, into: &mut BTreeSet<String
             .get("annotations")
             .and_then(Value::as_array)
             .is_some_and(|annotations| !annotations.is_empty());
-        if has_annotations
-            && let Some(kind) = symbol.get("kind").and_then(Value::as_str)
-        {
+        if has_annotations && let Some(kind) = symbol.get("kind").and_then(Value::as_str) {
             into.insert(kind.to_string());
         }
     }
@@ -1594,9 +1591,7 @@ fn observed_annotation_symbol_kinds(expected: &Value, into: &mut BTreeSet<String
 fn observed_doc_comment_symbol_kinds(expected: &Value, into: &mut BTreeSet<String>) {
     for symbol in golden_items(expected, "symbols") {
         let has_doc_comment = symbol.get("doc_comment").is_some_and(|doc| !doc.is_null());
-        if has_doc_comment
-            && let Some(kind) = symbol.get("kind").and_then(Value::as_str)
-        {
+        if has_doc_comment && let Some(kind) = symbol.get("kind").and_then(Value::as_str) {
             into.insert(kind.to_string());
         }
     }
