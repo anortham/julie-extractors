@@ -3,56 +3,62 @@
 <h1>@Format(Title)</h1>
 
 @code {
-    private string Title = "Worker";
-
-    private int Run(int id)
+    [Route("/worker")]
+    public partial class WorkerPage
     {
-        RecordRun(id);
-        return Helper(id);
-    }
+        [Parameter]
+        public string Title { get; set; } = "Worker";
 
-    private string Format(string value)
-    {
-        return value.Trim();
-    }
-
-    private int Evaluate(int count, bool enabled)
-    {
-        int total = 0;
-        if (enabled)
+        [Authorize]
+        private int Run(int id)
         {
-            for (int i = 1; i <= count; i++)
+            RecordRun(id);
+            return Helper(id);
+        }
+
+        private string Format(string value)
+        {
+            return value.Trim();
+        }
+
+        private int Evaluate(int count, bool enabled)
+        {
+            int total = 0;
+            if (enabled)
             {
-                total += i;
+                for (int i = 1; i <= count; i++)
+                {
+                    total += i;
+                }
             }
+            else if (count > 0)
+            {
+                total = 1;
+            }
+            return total;
         }
-        else if (count > 0)
+
+        private static int Helper(int value)
         {
-            total = 1;
+            return value + 1;
         }
-        return total;
-    }
 
-    private static int Helper(int value)
-    {
-        return value + 1;
-    }
+        private static void RecordRun(int id)
+        {
+            ObserveRun("worker-run", id);
+        }
 
-    private static void RecordRun(int id)
-    {
-        ObserveRun("worker-run", id);
-    }
+        private static void ObserveRun(string eventName, int id)
+        {
+        }
 
-    private static void ObserveRun(string eventName, int id)
-    {
-    }
+        public static void FetchStatus()
+        {
+            FetchUrl("https://api.example.com/workers/status");
+        }
 
-    public static void FetchStatus()
-    {
-        FetchUrl("https://api.example.com/workers/status");
-    }
-
-    private static void FetchUrl(string url)
-    {
+        private static void FetchUrl(string url)
+        {
+        }
     }
 }

@@ -1,5 +1,5 @@
 /// C# symbol extraction within Razor code blocks
-use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::test_detection::is_test_symbol;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -157,10 +157,16 @@ impl super::RazorExtractor {
         let name = self.base.get_node_text(&name_node);
 
         let modifiers = self.extract_modifiers(node);
-        let mut signature = format!("class {}", name);
-        if !modifiers.is_empty() {
-            signature = format!("{} {}", modifiers.join(" "), signature);
+        let attributes = self.extract_attributes(node);
+        let mut signature_parts = Vec::new();
+        if !attributes.is_empty() {
+            signature_parts.push(attributes.join(" "));
         }
+        if !modifiers.is_empty() {
+            signature_parts.push(modifiers.join(" "));
+        }
+        signature_parts.push(format!("class {}", name));
+        let signature = signature_parts.join(" ");
 
         // Extract C# XML doc comment
         let doc_comment = self.base.find_doc_comment(&node);
@@ -183,10 +189,16 @@ impl super::RazorExtractor {
                         "modifiers".to_string(),
                         serde_json::Value::String(modifiers.join(", ")),
                     );
+                    if !attributes.is_empty() {
+                        metadata.insert(
+                            "attributes".to_string(),
+                            serde_json::Value::String(attributes.join(", ")),
+                        );
+                    }
                     metadata
                 }),
                 doc_comment,
-                annotations: Vec::new(),
+                annotations: normalize_annotations(&attributes, "csharp"),
             },
         ))
     }
@@ -304,7 +316,7 @@ impl super::RazorExtractor {
                     metadata
                 }),
                 doc_comment,
-                annotations: Vec::new(),
+                annotations: normalize_annotations(&attributes, "csharp"),
             },
         ))
     }
@@ -435,7 +447,7 @@ impl super::RazorExtractor {
                     metadata
                 }),
                 doc_comment,
-                annotations: Vec::new(),
+                annotations: normalize_annotations(&attributes, "csharp"),
             },
         ))
     }

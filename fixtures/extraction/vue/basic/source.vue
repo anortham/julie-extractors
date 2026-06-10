@@ -6,6 +6,11 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: "Worker" });
+
+const props = defineProps<{ title: string }>();
+const emit = defineEmits<{ update: [] }>();
+
 const title = format("Worker");
 
 function format(value: string): string {
@@ -23,6 +28,8 @@ function evaluate(count: number, enabled: boolean): number {
     }
     return total;
 }
+
+defineExpose({ format, evaluate });
 </script>
 
 <style scoped>

@@ -539,7 +539,8 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 - `complexity_metrics`: 8 languages remain open (HTML, CSS, SQL, JSON, TOML,
   YAML, Markdown, Regex).
 - `structural_facts`: 24 languages remain open.
-- `annotations`: 2 code languages remain open (`vue`, `razor`).
+- `annotations`: 0 code languages remain open; Vue and Razor closed in Task 5 with
+  script-setup macro and embedded C# attribute fixture evidence.
 - `literals`: 0 languages remain open.
 - `doc_comments`: 35/36 fixture-proven; 0 open doc-comment gaps because regex is
   `not_applicable` (tree-sitter-regex has no comment or doc-comment nodes).

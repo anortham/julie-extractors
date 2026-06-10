@@ -1564,22 +1564,12 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "class",
+            "function"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "class",
-              "reason": "Vue `<script>` and `<script setup>` sections can use ECMAScript/TypeScript class decorators on components, but the Vue extractor always emits empty annotation rows.",
-              "required_closure": "Reuse the embedded TS/JS decorator extraction path for class declarations parsed from Vue script sections and add golden fixture evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            },
-            {
-              "kind": "function",
-              "reason": "Vue script sections can decorate functions and composables, and `defineOptions`/`defineProps` macros carry component metadata, but none are normalized as symbol annotations today.",
-              "required_closure": "Extract decorator and `defineOptions` metadata from Vue script AST nodes and attach normalized annotation markers to the owning function or component symbol.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [
@@ -3940,28 +3930,13 @@
           "open_gaps": []
         },
         "annotations": {
-          "supported": [],
+          "supported": [
+            "class",
+            "method",
+            "property"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "method",
-              "reason": "Razor `@code` blocks embed C# methods that commonly carry `[Parameter]`, `[Inject]`, `[Authorize]`, and route attributes, but the Razor C# embedding always emits empty annotation rows.",
-              "required_closure": "Wire the existing C# attribute extraction helpers into Razor `@code` method declarations and add golden fixture evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            },
-            {
-              "kind": "property",
-              "reason": "C# properties inside Razor `@code` blocks can carry Blazor/ASP.NET attributes, but the Razor extractor does not attach them to property symbols.",
-              "required_closure": "Extract `attribute_list` nodes on Razor-embedded C# property declarations and normalize them into annotation markers.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            },
-            {
-              "kind": "class",
-              "reason": "Razor components may declare partial classes with page/route attributes in `@code`, but class-level C# attributes are not normalized today.",
-              "required_closure": "Attach C# class attributes from Razor `@code` class declarations to class symbols with golden fixture evidence.",
-              "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 5"
-            }
-          ]
+          "open_gaps": []
         },
         "doc_comments": {
           "supported": [

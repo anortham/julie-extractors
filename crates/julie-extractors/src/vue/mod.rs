@@ -101,6 +101,8 @@ impl VueExtractor {
                     );
                     symbols.push(component_symbol);
                 }
+
+                script_setup::apply_script_setup_annotations(&mut symbols, &sections);
             }
             Err(_e) => {
                 // Error extracting Vue symbols - continue silently
