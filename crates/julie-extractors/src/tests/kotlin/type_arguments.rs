@@ -8,8 +8,12 @@
 
 use crate::base::TypeArgumentUsage;
 use crate::kotlin::KotlinExtractor;
+use std::path::Path;
 use std::path::PathBuf;
 use tree_sitter::Parser;
+
+const FIXTURE_SOURCE: &str =
+    include_str!("../../../../../fixtures/extraction/kotlin/basic/source.kt");
 
 fn capture(code: &str) -> Vec<TypeArgumentUsage> {
     let mut parser = Parser::new();
@@ -158,5 +162,48 @@ class Repo {
     assert!(
         usages.is_empty(),
         "non-generic use must record no type arguments, got {usages:?}"
+    );
+}
+
+fn extract_fixture(source: &str) -> crate::ExtractionResults {
+    crate::pipeline::extract_canonical(
+        "fixtures/extraction/kotlin/basic/source.kt",
+        source,
+        Path::new("/repo"),
+    )
+    .expect("canonical Kotlin extraction should succeed")
+}
+
+#[test]
+fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
+    let results = extract_fixture(FIXTURE_SOURCE);
+    assert_eq!(
+        results.type_argument_usages.len(),
+        1,
+        "fixture should emit one List<Map<String, Int>> usage, got {:?}",
+        results.type_argument_usages
+    );
+    let usage = &results.type_argument_usages[0];
+    assert_eq!(top_level(usage), vec![(0, "Map")]);
+    assert_eq!(
+        usage.arguments[0]
+            .children
+            .iter()
+            .map(|c| (c.ordinal, c.type_name.as_str()))
+            .collect::<Vec<_>>(),
+        vec![(0, "String"), (1, "Int")],
+        "Map<String,Int> nested arguments preserved under ordinal 0"
+    );
+}
+
+#[test]
+fn basic_fixture_non_generic_scalar_emits_no_type_arguments() {
+    let results = extract_fixture(FIXTURE_SOURCE);
+    assert!(
+        !results
+            .type_argument_usages
+            .iter()
+            .any(|usage| usage.identifier_id.contains(":Worker:")),
+        "plain Worker struct must not emit type_argument_usages"
     );
 }

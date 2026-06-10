@@ -9,8 +9,12 @@
 
 use crate::base::TypeArgumentUsage;
 use crate::rust::RustExtractor;
+use std::path::Path;
 use std::path::PathBuf;
 use tree_sitter::Parser;
+
+const FIXTURE_SOURCE: &str =
+    include_str!("../../../../../fixtures/extraction/rust/basic/source.rs");
 
 fn capture(code: &str) -> Vec<TypeArgumentUsage> {
     let mut parser = Parser::new();
@@ -160,5 +164,49 @@ fn non_generic_type_records_no_arguments() {
     assert!(
         usages.is_empty(),
         "non-generic type must record no type arguments, got {usages:?}"
+    );
+}
+
+fn extract_fixture(source: &str) -> crate::ExtractionResults {
+    crate::pipeline::extract_canonical(
+        "fixtures/extraction/rust/basic/source.rs",
+        source,
+        Path::new("/repo"),
+    )
+    .expect("canonical Rust extraction should succeed")
+}
+
+#[test]
+fn basic_fixture_emits_nested_type_arguments_via_canonical_pipeline() {
+    let results = extract_fixture(FIXTURE_SOURCE);
+    assert_eq!(
+        results.type_argument_usages.len(),
+        1,
+        "fixture should emit one HashMap<String, Vec<u8>> usage, got {:?}",
+        results.type_argument_usages
+    );
+    let usage = &results.type_argument_usages[0];
+    assert_eq!(top_level(usage), vec![(0, "String"), (1, "Vec")]);
+    assert!(usage.arguments[0].children.is_empty());
+    assert_eq!(
+        usage.arguments[1]
+            .children
+            .iter()
+            .map(|c| (c.ordinal, c.type_name.as_str()))
+            .collect::<Vec<_>>(),
+        vec![(0, "u8")],
+        "Vec<u8> nested argument preserved under ordinal 1"
+    );
+}
+
+#[test]
+fn basic_fixture_non_generic_scalar_emits_no_type_arguments() {
+    let results = extract_fixture(FIXTURE_SOURCE);
+    assert!(
+        !results
+            .type_argument_usages
+            .iter()
+            .any(|usage| usage.identifier_id.contains(":Worker:")),
+        "plain Worker struct must not emit type_argument_usages"
     );
 }

@@ -5,6 +5,7 @@ protocol Job {
 @MainActor
 struct Worker: Job {
     let id: Int
+    let mapping: Array<Dictionary<String, Int>>
 
     func run() -> Int {
         recordRun(id)

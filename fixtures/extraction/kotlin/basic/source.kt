@@ -17,6 +17,8 @@ class Worker(
     @Volatile
     var status: String = "ready"
 
+    private val index: List<Map<String, Int>> = emptyList()
+
     @Deprecated("Legacy entry point")
     override fun run(): Int {
         recordRun(id)

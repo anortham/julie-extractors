@@ -13,6 +13,7 @@ const props = defineProps<{ title: string }>();
 const emit = defineEmits<{ update: [] }>();
 
 const title = format("Worker");
+const workerIndex: Map<string, Array<number>> = new Map();
 
 function format(value: string): string {
     return value.trim();

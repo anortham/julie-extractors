@@ -26,6 +26,8 @@ function Get-Filtered {
     Get-Process | Select-Object -First 1
 }
 
+[Dictionary[string, List[int]]]$script:WorkerIndex = @{}
+
 class Worker {
     [int]$Id
 

@@ -8,6 +8,8 @@ Namespace Fixture
 
         Public Event Completed As EventHandler
 
+        Private ReadOnly Index As Dictionary(Of String, List(Of Integer))
+
         <Obsolete("Use WorkerId")>
         Public Property Id As Integer
 

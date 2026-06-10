@@ -863,6 +863,44 @@ Current scorecard after this slice:
 
 Remaining structural-facts debt: none.
 
+## Phase 12 type-argument usage: Rust, C#, Java, Kotlin, Swift, VB.NET, PowerShell, Razor, Vue
+
+Task 12 slice promoted generic-capable languages from shallow fixture evidence
+to product-grade `type_argument_usages` coverage using nested generic use sites
+in basic fixtures, golden rows, and `extract_canonical` fixture tests.
+
+- Rust: `HashMap<String, Vec<u8>>` return type on `build_index()`.
+- C#: `Dictionary<string, List<int>>` field on `ComplexityFixture`.
+- Java: `Map<String, List<Integer>>` field on `Worker`.
+- Kotlin: `List<Map<String, Int>>` property on `Worker`.
+- Swift: `Array<Dictionary<String, Int>>` property on `Worker`.
+- VB.NET: `Dictionary(Of String, List(Of Integer))` field on `Worker`.
+- PowerShell: `[Dictionary[string, List[int]]]$script:WorkerIndex`.
+- Razor: `Dictionary<string, List<int>>` field in `@code`.
+- Vue: `Map<string, Array<number>>` in `<script setup lang="ts">`.
+
+Each language now emits exactly one golden `type_argument_usages` row with
+ordered top-level arguments and nested children where applicable. Focused
+tests assert the basic fixture through `extract_canonical(...)` plus a
+negative guard that plain non-generic symbols in the same fixture do not emit
+rows.
+
+No extractor implementation changes were required; existing per-language
+type-argument collectors already supported the chosen patterns.
+
+Current scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 0
+- `type_argument_usages`: 12/36
+
+Languages with fixture-proven type-argument usage evidence:
+
+`rust`, `typescript`, `vue`, `java`, `csharp`, `vbnet`, `swift`, `kotlin`,
+`scala`, `dart`, `powershell`, `razor`.
+
+Remaining type-argument usage debt: 24 languages without golden rows.
+
 ## Product bar
 
 The desired end state is the best tree-sitter extraction product available for

@@ -31,6 +31,8 @@ public sealed class Worker : IJob
 
 public static class ComplexityFixture
 {
+    private static Dictionary<string, List<int>> index;
+
     public static int Evaluate(int count, bool enabled)
     {
         var total = 0;

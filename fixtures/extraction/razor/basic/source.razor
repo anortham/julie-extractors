@@ -9,6 +9,8 @@
         [Parameter]
         public string Title { get; set; } = "Worker";
 
+        private Dictionary<string, List<int>> index;
+
         [Authorize]
         private int Run(int id)
         {

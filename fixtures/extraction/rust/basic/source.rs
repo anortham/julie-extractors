@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub mod fixture {
     #[derive(Debug)]
     pub struct Worker {
@@ -37,6 +39,10 @@ pub mod fixture {
 
     fn fetch_url(url: &str) {
         let _ = url;
+    }
+
+    pub fn build_index() -> HashMap<String, Vec<u8>> {
+        HashMap::new()
     }
 
     pub fn evaluate(count: i32, enabled: bool) -> i32 {

@@ -6,6 +6,7 @@ interface Job {
 
 class Worker implements Job {
     private final int id;
+    private Map<String, List<Integer>> index;
 
     Worker(int id) {
         this.id = id;
