@@ -217,7 +217,56 @@
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "#/definitions/local_helper",
+      "kind": "other",
+      "carrier": "$ref",
+      "arg_position": 0,
+      "language": "json",
+      "file_path": "fixtures/extraction/json/cross_file/source.json",
+      "start_line": 10,
+      "start_column": 14,
+      "end_line": 10,
+      "end_column": 42,
+      "start_byte": 361,
+      "end_byte": 389,
+      "containing_key": "fixtures/extraction/json/cross_file/source.json:$ref:10:6",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "Phase 4d fixture: JSON $ref pointers are intra-document by JSON Schema spec; cross-document $refs are URL strings, not symbol references. This fixture exercises intra-document refs to lock the no-pending classification.",
+      "kind": "other",
+      "carrier": "_comment",
+      "arg_position": 0,
+      "language": "json",
+      "file_path": "fixtures/extraction/json/cross_file/source.json",
+      "start_line": 2,
+      "start_column": 14,
+      "end_line": 2,
+      "end_column": 235,
+      "start_byte": 16,
+      "end_byte": 237,
+      "containing_key": "fixtures/extraction/json/cross_file/source.json:_comment:2:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "string",
+      "kind": "other",
+      "carrier": "type",
+      "arg_position": 0,
+      "language": "json",
+      "file_path": "fixtures/extraction/json/cross_file/source.json",
+      "start_line": 5,
+      "start_column": 14,
+      "end_line": 5,
+      "end_column": 22,
+      "start_byte": 294,
+      "end_byte": 302,
+      "containing_key": "fixtures/extraction/json/cross_file/source.json:type:5:6",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "string_literal",

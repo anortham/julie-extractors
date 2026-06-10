@@ -88,7 +88,24 @@
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "commonjs",
+      "kind": "other",
+      "carrier": "module",
+      "arg_position": 0,
+      "language": "json",
+      "file_path": "fixtures/extraction/json/jsonc/source.jsonc",
+      "start_line": 4,
+      "start_column": 14,
+      "end_line": 4,
+      "end_column": 24,
+      "start_byte": 116,
+      "end_byte": 126,
+      "containing_key": "fixtures/extraction/json/jsonc/source.jsonc:module:4:4",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "comment",

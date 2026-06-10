@@ -44,7 +44,7 @@ Current golden fixture rows by domain:
 | structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
 | complexity_metrics | 12/36 | Mainstream languages improved; many code languages remain empty. |
 | annotations | 11/36 | Attribute/decorator support remains patchy outside the first pass. |
-| literals | 26/36 | Unit tests exist for several more languages than goldens advertise. |
+| literals | 36/36 | Full baseline exists. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
 
 ## Phase 0 scorecard
@@ -285,6 +285,52 @@ Scorecard after this slice:
 - `literals`: 26/36
 - `type_argument_usages`: 1/36
 
+## Phase 8 remaining literal coverage batch
+
+The eighth extractor-depth slice closed literal gaps for ten languages:
+
+- `literals`: TSX/JSX `other` carriers in component/render contexts (`fetch`,
+  `observeRun`, `data-action`) in `fixtures/extraction/tsx/basic` and
+  `fixtures/extraction/jsx/basic`.
+- `literals`: HTML attribute carriers (`href`, `data-action`) in
+  `fixtures/extraction/html/basic`.
+- `literals`: CSS `url()` path carrier in `fixtures/extraction/css/basic`.
+- `literals`: SQL quoted DDL default carrier in `fixtures/extraction/sql/basic`.
+- `literals`: Regex pattern fragment carrier (`foo` in `(foo)`) in
+  `fixtures/extraction/regex/basic`.
+- `literals`: Markdown inline-link destination carrier in
+  `fixtures/extraction/markdown/basic`.
+- `literals`: JSON/TOML/YAML config scalar carriers (`name`, `api_url`) in each
+  language `basic` fixture.
+
+Extractor work in this slice:
+
+- Added `base/config_literals.rs` for data-language scalar capture.
+- HTML attribute values, CSS `url()` arguments, SQL `literal` nodes, markdown
+  line-based link destinations, and regex capturing-group fragments now emit
+  literal rows with useful carriers.
+
+**Source-region collateral (documented):** SQL and YAML golden fixtures emit
+`source_regions` rows of kind `string_literal` alongside new literal rows.
+`kind_coverage.source_regions.supported` gained `string_literal` for SQL and
+YAML to satisfy `capability_matrix_source_region_claims_have_fixture_evidence`.
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 67
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 12/36
+- `annotations`: 11/36
+- `literals`: 36/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -295,7 +341,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 - `complexity_metrics`: 24 languages remain open.
 - `structural_facts`: 24 languages remain open.
 - `annotations`: 25 languages remain open.
-- `literals`: 10 languages remain open.
+- `literals`: 0 languages remain open.
 - `doc_comments`: 11 languages remain open.
 
 Impact: downstream consumers cannot distinguish "not applicable" from "not
@@ -307,11 +353,8 @@ Open gaps are temporary debt, not acceptance criteria.
 There are per-language literal unit tests for many languages, including Rust,
 C, C++, Go, Zig, Python, Java, VB.NET, PHP, Swift, Kotlin, Scala, Dart,
 Elixir, QML, GDScript, Razor, and others. Golden fixtures and
-`kind_coverage.literals`, however, currently advertise 26 languages:
-
-`rust`, `c`, `cpp`, `go`, `zig`, `typescript`, `javascript`, `vue`, `csharp`,
-`ruby`, `lua`, `r`, `bash`, `powershell`, `python`, `java`, `php`, `swift`,
-`vbnet`, `kotlin`, `scala`, `dart`, `elixir`, `qml`, `gdscript`, `razor`.
+`kind_coverage.literals` now advertises 36/36 languages with golden fixture
+evidence across code, markup, query, and data formats.
 
 Impact: literal extraction should be a standard domain for languages with
 string, URL, query, command, or configuration literals. Existing unit tests show

@@ -158,6 +158,36 @@ impl BaseExtractor {
         literal
     }
 
+    pub fn record_literal_at_span(
+        &mut self,
+        span: NormalizedSpan,
+        literal_text: String,
+        carrier: Option<String>,
+        arg_position: u32,
+        containing_symbol_id: Option<String>,
+    ) -> Literal {
+        let id = self.generate_id_for_span(&literal_text, &span);
+        let literal = Literal {
+            id,
+            literal_text,
+            kind: LiteralKind::Other,
+            carrier,
+            arg_position,
+            language: self.language.clone(),
+            file_path: self.file_path.clone(),
+            start_line: span.start_line,
+            start_column: span.start_column,
+            end_line: span.end_line,
+            end_column: span.end_column,
+            start_byte: span.start_byte,
+            end_byte: span.end_byte,
+            containing_symbol_id,
+            confidence: 1.0,
+        };
+        self.literals.push(literal.clone());
+        literal
+    }
+
     /// Clone the accumulated call-argument literals.
     pub fn get_literals(&self) -> Vec<Literal> {
         self.literals.clone()

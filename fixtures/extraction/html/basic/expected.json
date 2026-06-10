@@ -539,7 +539,56 @@
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "/workers",
+      "kind": "other",
+      "carrier": "href",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "start_line": 10,
+      "start_column": 14,
+      "end_line": 10,
+      "end_column": 24,
+      "start_byte": 173,
+      "end_byte": 183,
+      "containing_key": "fixtures/extraction/html/basic/source.html:a:10:6",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "run",
+      "kind": "other",
+      "carrier": "data-action",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "start_line": 11,
+      "start_column": 26,
+      "end_line": 11,
+      "end_column": 31,
+      "start_byte": 222,
+      "end_byte": 227,
+      "containing_key": "fixtures/extraction/html/basic/source.html:section:8:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "worker",
+      "kind": "other",
+      "carrier": "id",
+      "arg_position": 0,
+      "language": "html",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "start_line": 8,
+      "start_column": 16,
+      "end_line": 8,
+      "end_column": 24,
+      "start_byte": 127,
+      "end_byte": 135,
+      "containing_key": "fixtures/extraction/html/basic/source.html:section:8:4",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "doc_comment",

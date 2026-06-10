@@ -4,4 +4,5 @@ defaults: &defaults
 worker:
   <<: *defaults
   id: 1
-  name: fixture
+  name: "fixture"
+  api_url: "https://api.example.com/workers/status"

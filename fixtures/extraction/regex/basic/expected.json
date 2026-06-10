@@ -302,7 +302,24 @@
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "foo",
+      "kind": "other",
+      "carrier": "pattern",
+      "arg_position": 0,
+      "language": "regex",
+      "file_path": "fixtures/extraction/regex/basic/source.regex",
+      "start_line": 1,
+      "start_column": 40,
+      "end_line": 1,
+      "end_column": 45,
+      "start_byte": 40,
+      "end_byte": 45,
+      "containing_key": "fixtures/extraction/regex/basic/source.regex:^(?<name>[A-Za-z]+)-(?<id>\\d+)-\\k<name>-(foo)-\\3$\n:1:0",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [],
   "type_argument_usages": []
 }

@@ -34,6 +34,7 @@ impl IdentifierExtractor {
                 let mut cursor = node.walk();
                 let mut attr_name = None;
                 let mut attr_value = None;
+                let mut attr_value_node = None;
 
                 for child in node.children(&mut cursor) {
                     match child.kind() {
@@ -44,8 +45,25 @@ impl IdentifierExtractor {
                             let text = base.get_node_text(&child);
                             attr_value =
                                 Some(text.trim_matches(|c| c == '"' || c == '\'').to_string());
+                            attr_value_node = Some(child);
                         }
                         _ => {}
+                    }
+                }
+
+                if let (Some(name), Some(value), Some(value_node)) =
+                    (&attr_name, &attr_value, attr_value_node)
+                {
+                    if !value.is_empty() {
+                        let containing_symbol_id =
+                            Self::find_containing_symbol_id(base, node, symbol_map);
+                        base.record_literal(
+                            &value_node,
+                            value.clone(),
+                            Some(name.clone()),
+                            0,
+                            containing_symbol_id,
+                        );
                     }
                 }
 

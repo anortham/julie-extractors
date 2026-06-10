@@ -1,6 +1,6 @@
 CREATE TABLE workers (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL DEFAULT 'fixture-worker'
 );
 
 CREATE TABLE jobs (

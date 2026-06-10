@@ -125,7 +125,16 @@ impl JsonExtractor {
 
         let symbol = self
             .base
-            .create_symbol(&node, key_name, symbol_kind, options);
+            .create_symbol(&node, key_name.clone(), symbol_kind, options);
+
+        if value_node.kind() == "string" {
+            crate::base::config_literals::record_config_string_literal(
+                &mut self.base,
+                &value_node,
+                &key_name,
+                Some(symbol.id.clone()),
+            );
+        }
 
         Some(symbol)
     }

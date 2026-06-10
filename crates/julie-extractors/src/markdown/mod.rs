@@ -32,7 +32,8 @@ impl MarkdownExtractor {
         let mut symbols = Vec::new();
         self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None);
         symbols.extend(semantic_symbols::extract_line_based_symbols(
-            &self.base, &symbols,
+            &mut self.base,
+            &symbols,
         ));
         symbols
     }

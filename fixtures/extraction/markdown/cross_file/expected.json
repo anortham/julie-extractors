@@ -213,7 +213,40 @@
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "#local-heading",
+      "kind": "other",
+      "carrier": "link",
+      "arg_position": 0,
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 9,
+      "start_column": 16,
+      "end_line": 9,
+      "end_column": 30,
+      "start_byte": 332,
+      "end_byte": 346,
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "./other.md",
+      "kind": "other",
+      "carrier": "link",
+      "arg_position": 0,
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 7,
+      "start_column": 20,
+      "end_line": 7,
+      "end_column": 30,
+      "start_byte": 260,
+      "end_byte": 270,
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [],
   "type_argument_usages": []
 }

@@ -259,7 +259,56 @@
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "0.1.0",
+      "kind": "other",
+      "carrier": "version",
+      "arg_position": 0,
+      "language": "toml",
+      "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",
+      "start_line": 3,
+      "start_column": 10,
+      "end_line": 3,
+      "end_column": 17,
+      "start_byte": 35,
+      "end_byte": 42,
+      "containing_key": "fixtures/extraction/toml/pyproject/pyproject.toml:version:3:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "auto",
+      "kind": "other",
+      "carrier": "asyncio_mode",
+      "arg_position": 0,
+      "language": "toml",
+      "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",
+      "start_line": 9,
+      "start_column": 15,
+      "end_line": 9,
+      "end_column": 21,
+      "start_byte": 115,
+      "end_byte": 121,
+      "containing_key": "fixtures/extraction/toml/pyproject/pyproject.toml:asyncio_mode:9:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "myapp",
+      "kind": "other",
+      "carrier": "name",
+      "arg_position": 0,
+      "language": "toml",
+      "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",
+      "start_line": 2,
+      "start_column": 7,
+      "end_line": 2,
+      "end_column": 14,
+      "start_byte": 17,
+      "end_byte": 24,
+      "containing_key": "fixtures/extraction/toml/pyproject/pyproject.toml:name:2:0",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "string_literal",

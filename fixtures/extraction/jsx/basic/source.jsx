@@ -1,9 +1,14 @@
 export function Badge({ label }) {
     function handleClick() {
+        fetch("/api/workers");
         return format(label);
     }
 
-    return <button onClick={handleClick}>{format(label)}</button>;
+    return (
+        <button data-action="run" onClick={handleClick}>
+            {format(label)}
+        </button>
+    );
 }
 
 /**

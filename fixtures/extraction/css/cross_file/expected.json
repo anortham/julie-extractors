@@ -291,7 +291,24 @@
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "./other.css",
+      "kind": "other",
+      "carrier": "url",
+      "arg_position": 0,
+      "language": "css",
+      "file_path": "fixtures/extraction/css/cross_file/source.css",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 8,
+      "end_column": 25,
+      "start_byte": 333,
+      "end_byte": 346,
+      "containing_key": "fixtures/extraction/css/cross_file/source.css:@import:8:0",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "doc_comment",

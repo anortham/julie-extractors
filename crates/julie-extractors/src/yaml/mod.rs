@@ -110,10 +110,11 @@ impl YamlExtractor {
         });
 
         // Determine kind: container keys (with nested mappings) are Module, leaves are Variable
-        let kind = if self.has_nested_mapping(node) {
-            SymbolKind::Module
-        } else {
+        let is_leaf_value = !self.has_nested_mapping(node);
+        let kind = if is_leaf_value {
             SymbolKind::Variable
+        } else {
+            SymbolKind::Module
         };
 
         let options = SymbolOptions {
@@ -125,7 +126,46 @@ impl YamlExtractor {
             ..Default::default()
         };
 
-        let symbol = self.base.create_symbol(&node, key_name, kind, options);
+        let symbol = self.base.create_symbol(&node, key_name.clone(), kind, options);
+
+        if !is_leaf_value {
+            return Some(symbol);
+        }
+
+        let mut cursor = node.walk();
+        let mut saw_key_container = false;
+        for child in node.children(&mut cursor) {
+            if child.kind() != "flow_node" && child.kind() != "block_node" {
+                continue;
+            }
+            if !saw_key_container {
+                saw_key_container = true;
+                continue;
+            }
+            let mut inner_cursor = child.walk();
+            for scalar in child.children(&mut inner_cursor) {
+                if !matches!(
+                    scalar.kind(),
+                    "double_quote_scalar" | "single_quote_scalar" | "plain_scalar"
+                ) {
+                    continue;
+                }
+                if scalar.kind() == "plain_scalar" {
+                    let text = self.base.get_node_text(&scalar);
+                    if text.contains(':') || text.starts_with('&') || text.starts_with('*') {
+                        continue;
+                    }
+                }
+                crate::base::config_literals::record_config_string_literal(
+                    &mut self.base,
+                    &scalar,
+                    &key_name,
+                    Some(symbol.id.clone()),
+                );
+                break;
+            }
+            break;
+        }
 
         Some(symbol)
     }
