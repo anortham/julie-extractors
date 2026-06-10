@@ -723,15 +723,17 @@ CI validation.
 
 ## Current Execution Path
 
-The next slice should be lead-owned or tightly reviewed because it changes how
-the team interprets quality data: build applicability-aware scorecard v2 with
-`type_argument_usages` as the first fully classified domain. After that, hand
-Cursor the raw-gap applicability audit as a larger batch. Implementation work
-should resume only where that audit finds `native_debt` or `quality_debt`.
+Applicability-aware scorecard v2, the raw-gap audit, and Phase 18-19
+applicability closures are complete. Phase 20 closed the first semantic-depth
+batch for data/markup/domain languages (HTML/Razor markup facts, YAML key paths,
+Markdown inline links). See
+`docs/findings/2026-06-09-language-coverage-review.md` Phase 20 for evidence.
 
-Lead-owned work should also continue on structural-fact and data-language
-taxonomy. Structural facts should not be assigned as a broad implementation
-batch until the useful fact kinds for each language family are explicit.
+The next slice should target remaining shallow-but-complete domains called out
+in the depth audit: richer carrier context in `literals` and `source_regions`
+for config/markup languages, and additional Razor/HTML form/route facts where
+fixtures prove value. Implementation work should still avoid filler rows and
+must keep `silent_cells: 0` with honest capability semantics.
 
 ## Out Of Scope
 

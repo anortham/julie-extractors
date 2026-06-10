@@ -1253,6 +1253,10 @@
         "structural_facts": {
           "supported": [
             "alpine.directive.v1",
+            "html.form.v1",
+            "html.form_control.v1",
+            "html.link.v1",
+            "html.script.v1",
             "htmx.attribute.v1"
           ],
           "not_applicable": [],
@@ -3852,7 +3856,10 @@
         "structural_facts": {
           "supported": [
             "alpine.directive.v1",
-            "htmx.attribute.v1"
+            "htmx.attribute.v1",
+            "razor.code_block.v1",
+            "razor.page_directive.v1",
+            "razor.template_expression.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4279,6 +4286,7 @@
             "markdown.fenced_code_block.v1",
             "markdown.frontmatter.v1",
             "markdown.heading.v1",
+            "markdown.inline_link.v1",
             "markdown.link_definition.v1",
             "markdown.table.v1"
           ],
@@ -4737,6 +4745,7 @@
             "yaml.alias.v1",
             "yaml.anchor.v1",
             "yaml.document.v1",
+            "yaml.key_value.v1",
             "yaml.mapping.v1",
             "yaml.sequence.v1"
           ],

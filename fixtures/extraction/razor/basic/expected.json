@@ -853,7 +853,73 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "razor.code_block.v1",
+      "capture_name": "code_block",
+      "node_kind": "razor_block",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 66,
+      "end_column": 1,
+      "start_byte": 42,
+      "end_byte": 1351,
+      "confidence": "1.000",
+      "metadata": {
+        "block_type": "code",
+        "framework": "razor",
+        "pattern_version": 1,
+        "query_family": "component_code"
+      }
+    },
+    {
+      "pattern_id": "razor.page_directive.v1",
+      "capture_name": "page_directive",
+      "node_kind": "razor_page_directive",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "containing_key": "fixtures/extraction/razor/basic/source.razor:@page:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 0,
+      "end_byte": 15,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "page",
+        "framework": "razor",
+        "pattern_version": 1,
+        "query_family": "component_routing",
+        "route": "/worker"
+      }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "capture_name": "template_expression",
+      "node_kind": "razor_implicit_expression",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 4,
+      "end_line": 3,
+      "end_column": 18,
+      "start_byte": 21,
+      "end_byte": 35,
+      "confidence": "1.000",
+      "metadata": {
+        "expression": "Format(Title)",
+        "framework": "razor",
+        "implicit": true,
+        "pattern_version": 1,
+        "query_family": "component_template"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

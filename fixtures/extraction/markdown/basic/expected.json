@@ -262,6 +262,27 @@
       }
     },
     {
+      "pattern_id": "markdown.inline_link.v1",
+      "capture_name": "inline_link",
+      "node_kind": "inline_link",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/basic/source.md",
+      "containing_key": "fixtures/extraction/markdown/basic/source.md:Worker API:14:11",
+      "start_line": 14,
+      "start_column": 11,
+      "end_line": 14,
+      "end_column": 56,
+      "start_byte": 131,
+      "end_byte": 176,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "https://api.example.com/workers",
+        "label": "Worker API",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    },
+    {
       "pattern_id": "markdown.link_definition.v1",
       "capture_name": "link_definition",
       "node_kind": "link_reference_definition",

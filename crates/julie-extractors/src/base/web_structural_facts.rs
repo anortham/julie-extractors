@@ -11,6 +11,10 @@ const CSS_SELECTOR_RULE_PATTERN_ID: &str = "css.selector_rule.v1";
 const CSS_CUSTOM_PROPERTY_PATTERN_ID: &str = "css.custom_property.v1";
 const CSS_MEDIA_QUERY_PATTERN_ID: &str = "css.media_query.v1";
 const CSS_KEYFRAMES_PATTERN_ID: &str = "css.keyframes.v1";
+const HTML_LINK_PATTERN_ID: &str = "html.link.v1";
+const HTML_SCRIPT_PATTERN_ID: &str = "html.script.v1";
+const HTML_FORM_PATTERN_ID: &str = "html.form.v1";
+const HTML_FORM_CONTROL_PATTERN_ID: &str = "html.form_control.v1";
 const VUE_SFC_SECTION_PATTERN_ID: &str = "vue.sfc_section.v1";
 const VUE_TEMPLATE_DIRECTIVE_PATTERN_ID: &str = "vue.template_directive.v1";
 
@@ -20,6 +24,14 @@ const CSS_WEB_PATTERN_IDS: &[&str] = &[
     CSS_KEYFRAMES_PATTERN_ID,
     CSS_MEDIA_QUERY_PATTERN_ID,
     CSS_SELECTOR_RULE_PATTERN_ID,
+];
+
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const HTML_WEB_PATTERN_IDS: &[&str] = &[
+    HTML_FORM_CONTROL_PATTERN_ID,
+    HTML_FORM_PATTERN_ID,
+    HTML_LINK_PATTERN_ID,
+    HTML_SCRIPT_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -37,6 +49,7 @@ pub fn collect_web_structural_facts(
 ) -> Vec<StructuralFact> {
     let mut facts = match language {
         "css" => collect_css_structural_facts(tree, file_path, content),
+        "html" => collect_html_structural_facts(tree, file_path, content),
         "vue" => collect_vue_structural_facts(file_path, content),
         _ => Vec::new(),
     };
@@ -52,6 +65,7 @@ pub(crate) fn web_structural_fact_pattern_ids_for_language(
 ) -> &'static [&'static str] {
     match language {
         "css" => CSS_WEB_PATTERN_IDS,
+        "html" => HTML_WEB_PATTERN_IDS,
         "vue" => VUE_WEB_PATTERN_IDS,
         _ => &[],
     }
@@ -193,6 +207,250 @@ fn css_keyframes_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<
         node,
         metadata,
     ))
+}
+
+fn collect_html_structural_facts(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    collect_html_node(tree.root_node(), file_path, content, &mut facts);
+    facts
+}
+
+fn collect_html_node(
+    node: Node<'_>,
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    match node.kind() {
+        "script_element" => {
+            let attributes = html_element_attributes(content, node);
+            if let Some(fact) = html_script_fact(file_path, content, node, "script", &attributes) {
+                facts.push(fact);
+            }
+        }
+        "element" => {
+            if let Some(tag_name) = html_tag_name(content, node) {
+                let attributes = html_element_attributes(content, node);
+                match tag_name.as_str() {
+                    "a" => {
+                        if let Some(fact) =
+                            html_link_fact(file_path, content, node, &tag_name, &attributes)
+                        {
+                            facts.push(fact);
+                        }
+                    }
+                    "script" => {
+                        if let Some(fact) =
+                            html_script_fact(file_path, content, node, &tag_name, &attributes)
+                        {
+                            facts.push(fact);
+                        }
+                    }
+                    "form" => {
+                        if let Some(fact) =
+                            html_form_fact(file_path, content, node, &tag_name, &attributes)
+                        {
+                            facts.push(fact);
+                        }
+                    }
+                    "input" | "button" | "select" | "textarea" => {
+                        if let Some(fact) =
+                            html_form_control_fact(file_path, content, node, &tag_name, &attributes)
+                        {
+                            facts.push(fact);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        _ => {}
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_html_node(child, file_path, content, facts);
+    }
+}
+
+fn html_link_fact(
+    file_path: &str,
+    _content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let href = attributes.get("href")?;
+    let mut metadata = base_metadata("document_navigation");
+    insert_string(&mut metadata, "tag_name", tag_name);
+    insert_string(&mut metadata, "href", href);
+    insert_optional_string(&mut metadata, "id", attributes.get("id"));
+    insert_optional_string(&mut metadata, "class", attributes.get("class"));
+    insert_optional_string(&mut metadata, "rel", attributes.get("rel"));
+
+    Some(fact_for_node(
+        file_path,
+        "html",
+        HTML_LINK_PATTERN_ID,
+        "link",
+        node,
+        metadata,
+    ))
+}
+
+fn html_script_fact(
+    file_path: &str,
+    _content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let mut metadata = base_metadata("document_assets");
+    insert_string(&mut metadata, "tag_name", tag_name);
+    metadata.insert(
+        "inline".to_string(),
+        Value::Bool(!attributes.contains_key("src")),
+    );
+    insert_optional_string(&mut metadata, "src", attributes.get("src"));
+    insert_optional_string(&mut metadata, "type", attributes.get("type"));
+    insert_optional_string(&mut metadata, "id", attributes.get("id"));
+
+    Some(fact_for_node(
+        file_path,
+        "html",
+        HTML_SCRIPT_PATTERN_ID,
+        "script",
+        node,
+        metadata,
+    ))
+}
+
+fn html_form_fact(
+    file_path: &str,
+    _content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let mut metadata = base_metadata("document_forms");
+    insert_string(&mut metadata, "tag_name", tag_name);
+    insert_optional_string(&mut metadata, "action", attributes.get("action"));
+    insert_optional_string(&mut metadata, "method", attributes.get("method"));
+    insert_optional_string(&mut metadata, "id", attributes.get("id"));
+    insert_optional_string(&mut metadata, "name", attributes.get("name"));
+
+    Some(fact_for_node(
+        file_path,
+        "html",
+        HTML_FORM_PATTERN_ID,
+        "form",
+        node,
+        metadata,
+    ))
+}
+
+fn html_form_control_fact(
+    file_path: &str,
+    _content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let mut metadata = base_metadata("document_forms");
+    insert_string(&mut metadata, "tag_name", tag_name);
+    insert_optional_string(&mut metadata, "type", attributes.get("type"));
+    insert_optional_string(&mut metadata, "name", attributes.get("name"));
+    insert_optional_string(&mut metadata, "id", attributes.get("id"));
+    insert_optional_string(&mut metadata, "value", attributes.get("value"));
+    metadata.insert(
+        "required".to_string(),
+        Value::Bool(attributes.contains_key("required")),
+    );
+
+    Some(fact_for_node(
+        file_path,
+        "html",
+        HTML_FORM_CONTROL_PATTERN_ID,
+        "form_control",
+        node,
+        metadata,
+    ))
+}
+
+fn html_tag_name(content: &str, node: Node<'_>) -> Option<String> {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if !matches!(child.kind(), "start_tag" | "self_closing_tag") {
+            continue;
+        }
+        let mut tag_cursor = child.walk();
+        for tag_child in child.children(&mut tag_cursor) {
+            if tag_child.kind() == "tag_name" {
+                return node_text(content, tag_child).map(str::to_ascii_lowercase);
+            }
+        }
+    }
+    None
+}
+
+fn html_element_attributes(
+    content: &str,
+    node: Node<'_>,
+) -> std::collections::HashMap<String, String> {
+    let mut attributes = std::collections::HashMap::new();
+    let mut cursor = node.walk();
+    let tag_container = node
+        .children(&mut cursor)
+        .find(|child| matches!(child.kind(), "start_tag" | "self_closing_tag"))
+        .unwrap_or(node);
+
+    let mut tag_cursor = tag_container.walk();
+    for child in tag_container.children(&mut tag_cursor) {
+        if child.kind() != "attribute" {
+            continue;
+        }
+        if let Some((name, value)) = html_attribute_name_value(content, child) {
+            attributes.insert(name, value);
+        }
+    }
+    attributes
+}
+
+fn html_attribute_name_value(content: &str, attr_node: Node<'_>) -> Option<(String, String)> {
+    let mut name = None;
+    let mut value = String::new();
+
+    let mut cursor = attr_node.walk();
+    for child in attr_node.children(&mut cursor) {
+        match child.kind() {
+            "attribute_name" => {
+                name = node_text(content, child).map(str::to_string);
+            }
+            "attribute_value" | "quoted_attribute_value" => {
+                value = node_text(content, child)
+                    .unwrap_or_default()
+                    .trim_matches(|ch| ch == '"' || ch == '\'')
+                    .to_string();
+            }
+            _ => {}
+        }
+    }
+
+    name.map(|name| (name.to_ascii_lowercase(), value))
+}
+
+fn insert_optional_string(
+    metadata: &mut HashMap<String, Value>,
+    key: &str,
+    value: Option<&String>,
+) {
+    if let Some(value) = value.filter(|value| !value.is_empty()) {
+        insert_string(metadata, key, value);
+    }
 }
 
 fn collect_vue_structural_facts(file_path: &str, content: &str) -> Vec<StructuralFact> {

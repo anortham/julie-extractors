@@ -268,6 +268,182 @@
       }
     },
     {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/basic/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/basic/source.yaml:active:2:2",
+      "start_line": 2,
+      "start_column": 2,
+      "end_line": 2,
+      "end_column": 14,
+      "start_byte": 22,
+      "end_byte": 34,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "active",
+        "key_path": "$.defaults.active",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "scalar"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/basic/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/basic/source.yaml:api_url:13:2",
+      "start_line": 13,
+      "start_column": 2,
+      "end_line": 13,
+      "end_column": 51,
+      "start_byte": 184,
+      "end_byte": 233,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "api_url",
+        "key_path": "$.worker.api_url",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "scalar"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/basic/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/basic/source.yaml:defaults:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 30,
+      "start_byte": 0,
+      "end_byte": 66,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "defaults",
+        "key_path": "$.defaults",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "anchor"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/basic/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/basic/source.yaml:id:8:2",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 7,
+      "start_byte": 123,
+      "end_byte": 128,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "id",
+        "key_path": "$.worker.id",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "scalar"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/basic/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/basic/source.yaml:name:9:2",
+      "start_line": 9,
+      "start_column": 2,
+      "end_line": 9,
+      "end_column": 17,
+      "start_byte": 131,
+      "end_byte": 146,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "name",
+        "key_path": "$.worker.name",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "scalar"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/basic/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/basic/source.yaml:tags:10:2",
+      "start_line": 10,
+      "start_column": 2,
+      "end_line": 12,
+      "end_column": 12,
+      "start_byte": 149,
+      "end_byte": 181,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "tags",
+        "key_path": "$.worker.tags",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "sequence"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/basic/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/basic/source.yaml:worker:5:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 67,
+      "end_byte": 234,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "worker",
+        "key_path": "$.worker",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "mapping"
+      }
+    },
+    {
+      "pattern_id": "yaml.key_value.v1",
+      "capture_name": "key_value",
+      "node_kind": "block_mapping_pair",
+      "language": "yaml",
+      "file_path": "fixtures/extraction/yaml/basic/source.yaml",
+      "containing_key": "fixtures/extraction/yaml/basic/source.yaml:worker:5:0",
+      "start_line": 6,
+      "start_column": 2,
+      "end_line": 6,
+      "end_column": 15,
+      "start_byte": 77,
+      "end_byte": 90,
+      "confidence": "1.000",
+      "metadata": {
+        "key": "<<",
+        "key_path": "$.worker.<<",
+        "pattern_version": 1,
+        "query_family": "config_structure",
+        "value_kind": "alias"
+      }
+    },
+    {
       "pattern_id": "yaml.mapping.v1",
       "capture_name": "mapping",
       "node_kind": "block_mapping",
@@ -282,6 +458,7 @@
       "end_byte": 66,
       "confidence": "1.000",
       "metadata": {
+        "key_path": "$.defaults",
         "pair_count": 1,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -302,6 +479,7 @@
       "end_byte": 234,
       "confidence": "1.000",
       "metadata": {
+        "key_path": "$.worker",
         "pair_count": 5,
         "pattern_version": 1,
         "query_family": "config_structure"
@@ -322,6 +500,7 @@
       "end_byte": 234,
       "confidence": "1.000",
       "metadata": {
+        "key_path": "$",
         "pair_count": 2,
         "pattern_version": 1,
         "query_family": "config_structure"

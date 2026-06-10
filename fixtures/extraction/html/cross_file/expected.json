@@ -483,7 +483,51 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:body:13:0",
+      "start_line": 15,
+      "start_column": 2,
+      "end_line": 18,
+      "end_column": 11,
+      "start_byte": 462,
+      "end_byte": 586,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": true,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "tag_name": "script"
+      }
+    },
+    {
+      "pattern_id": "html.script.v1",
+      "capture_name": "script",
+      "node_kind": "script_element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/cross_file/source.html",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:script:10:2",
+      "start_line": 10,
+      "start_column": 2,
+      "end_line": 10,
+      "end_column": 36,
+      "start_byte": 340,
+      "end_byte": 374,
+      "confidence": "1.000",
+      "metadata": {
+        "inline": false,
+        "pattern_version": 1,
+        "query_family": "document_assets",
+        "src": "./other.js",
+        "tag_name": "script"
+      }
+    }
+  ],
   "complexity_metrics": [],
   "literals": [
     {

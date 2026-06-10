@@ -87,6 +87,15 @@ fn helper(value: i32) -> i32 {
         .expect("expected fenced code block fact");
     assert_eq!(metadata_str(code_block, "language"), Some("rust"));
 
+    let inline_link = facts_with_pattern(&results, "markdown.inline_link.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "label") == Some("the API"))
+        .expect("expected inline link fact");
+    assert_eq!(
+        metadata_str(inline_link, "destination"),
+        Some("https://api.example.com/workers")
+    );
+
     let link_def = facts_with_pattern(&results, "markdown.link_definition.v1")
         .into_iter()
         .next()
@@ -109,4 +118,24 @@ fn helper(value: i32) -> i32 {
             .iter()
             .all(|fact| fact.end_byte > fact.start_byte)
     );
+}
+
+#[test]
+fn markdown_inline_link_fallback_ignores_fenced_code() {
+    let source = r#"# Links
+
+See [real link](https://example.com/real).
+
+```markdown
+[not a document link](https://example.com/code)
+```
+"#;
+
+    let results = extract(source);
+    let labels = facts_with_pattern(&results, "markdown.inline_link.v1")
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "label"))
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(labels, BTreeSet::from(["real link"]));
 }

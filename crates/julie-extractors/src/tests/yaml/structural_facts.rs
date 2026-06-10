@@ -72,4 +72,18 @@ worker:
         .next()
         .expect("expected alias fact");
     assert_eq!(metadata_str(alias, "alias_target"), Some("defaults"));
+
+    let worker_id = facts_with_pattern(&results, "yaml.key_value.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "key") == Some("id"))
+        .expect("expected worker.id key-value fact");
+    assert_eq!(metadata_str(worker_id, "key_path"), Some("$.worker.id"));
+    assert_eq!(metadata_str(worker_id, "value_kind"), Some("scalar"));
+
+    let worker_tags = facts_with_pattern(&results, "yaml.key_value.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "key") == Some("tags"))
+        .expect("expected worker.tags key-value fact");
+    assert_eq!(metadata_str(worker_tags, "key_path"), Some("$.worker.tags"));
+    assert_eq!(metadata_str(worker_tags, "value_kind"), Some("sequence"));
 }

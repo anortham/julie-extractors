@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
+use regex::Regex;
 use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
@@ -12,6 +14,7 @@ const MARKDOWN_FRONTMATTER_PATTERN_ID: &str = "markdown.frontmatter.v1";
 const MARKDOWN_HEADING_PATTERN_ID: &str = "markdown.heading.v1";
 const MARKDOWN_FENCED_CODE_BLOCK_PATTERN_ID: &str = "markdown.fenced_code_block.v1";
 const MARKDOWN_LINK_DEFINITION_PATTERN_ID: &str = "markdown.link_definition.v1";
+const MARKDOWN_INLINE_LINK_PATTERN_ID: &str = "markdown.inline_link.v1";
 const MARKDOWN_TABLE_PATTERN_ID: &str = "markdown.table.v1";
 
 // JSON
@@ -31,6 +34,7 @@ const YAML_MAPPING_PATTERN_ID: &str = "yaml.mapping.v1";
 const YAML_SEQUENCE_PATTERN_ID: &str = "yaml.sequence.v1";
 const YAML_ANCHOR_PATTERN_ID: &str = "yaml.anchor.v1";
 const YAML_ALIAS_PATTERN_ID: &str = "yaml.alias.v1";
+const YAML_KEY_VALUE_PATTERN_ID: &str = "yaml.key_value.v1";
 
 // Regex
 const REGEX_CAPTURE_GROUP_PATTERN_ID: &str = "regex.capture_group.v1";
@@ -41,11 +45,15 @@ const REGEX_QUANTIFIER_PATTERN_ID: &str = "regex.quantifier.v1";
 const REGEX_ALTERNATION_PATTERN_ID: &str = "regex.alternation.v1";
 const REGEX_ANCHOR_PATTERN_ID: &str = "regex.anchor.v1";
 
+static MARKDOWN_INLINE_LINK_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(!)?\[([^\]\n]+)\]\(([^)\n]+)\)").unwrap());
+
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const MARKDOWN_DATA_PATTERN_IDS: &[&str] = &[
     MARKDOWN_FENCED_CODE_BLOCK_PATTERN_ID,
     MARKDOWN_FRONTMATTER_PATTERN_ID,
     MARKDOWN_HEADING_PATTERN_ID,
+    MARKDOWN_INLINE_LINK_PATTERN_ID,
     MARKDOWN_LINK_DEFINITION_PATTERN_ID,
     MARKDOWN_TABLE_PATTERN_ID,
 ];
@@ -70,6 +78,7 @@ const YAML_DATA_PATTERN_IDS: &[&str] = &[
     YAML_ALIAS_PATTERN_ID,
     YAML_ANCHOR_PATTERN_ID,
     YAML_DOCUMENT_PATTERN_ID,
+    YAML_KEY_VALUE_PATTERN_ID,
     YAML_MAPPING_PATTERN_ID,
     YAML_SEQUENCE_PATTERN_ID,
 ];
@@ -127,7 +136,85 @@ fn collect_markdown_structural_facts(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     collect_markdown_node(tree.root_node(), file_path, content, &mut facts);
+    append_markdown_inline_link_facts(file_path, content, &mut facts);
     facts
+}
+
+fn append_markdown_inline_link_facts(
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let excluded_spans = markdown_inline_link_excluded_spans(facts);
+
+    for captures in MARKDOWN_INLINE_LINK_RE.captures_iter(content) {
+        if captures.get(1).is_some() {
+            continue;
+        }
+        let Some(matched) = captures.get(0) else {
+            continue;
+        };
+        let Some(label) = captures.get(2).map(|matched| matched.as_str()) else {
+            continue;
+        };
+        let Some(destination_match) = captures.get(3) else {
+            continue;
+        };
+        let destination = destination_match.as_str();
+        let start = matched.start();
+        let end = matched.end();
+        if span_is_covered(&excluded_spans, start, end) {
+            continue;
+        }
+        if facts.iter().any(|fact| {
+            fact.pattern_id == MARKDOWN_INLINE_LINK_PATTERN_ID
+                && fact.start_byte <= start as u32
+                && fact.end_byte >= end as u32
+        }) {
+            continue;
+        }
+
+        let Some(span) = NormalizedSpan::from_content_range(content, start, end) else {
+            continue;
+        };
+
+        let mut metadata = base_metadata("document_links");
+        insert_string(&mut metadata, "label", &clean_markdown_link_text(label));
+        insert_string(
+            &mut metadata,
+            "destination",
+            &clean_markdown_link_destination(destination),
+        );
+
+        facts.push(fact_for_span(
+            file_path,
+            "markdown",
+            MARKDOWN_INLINE_LINK_PATTERN_ID,
+            "inline_link",
+            "inline_link",
+            span,
+            metadata,
+        ));
+    }
+}
+
+fn markdown_inline_link_excluded_spans(facts: &[StructuralFact]) -> Vec<(u32, u32)> {
+    facts
+        .iter()
+        .filter(|fact| {
+            matches!(
+                fact.pattern_id.as_str(),
+                MARKDOWN_FENCED_CODE_BLOCK_PATTERN_ID | MARKDOWN_FRONTMATTER_PATTERN_ID
+            )
+        })
+        .map(|fact| (fact.start_byte, fact.end_byte))
+        .collect()
+}
+
+fn span_is_covered(spans: &[(u32, u32)], start: usize, end: usize) -> bool {
+    spans
+        .iter()
+        .any(|(span_start, span_end)| *span_start <= start as u32 && *span_end >= end as u32)
 }
 
 fn collect_markdown_node(
@@ -154,6 +241,11 @@ fn collect_markdown_node(
         }
         "link_reference_definition" => {
             if let Some(fact) = markdown_link_definition_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "inline_link" => {
+            if let Some(fact) = markdown_inline_link_fact(file_path, content, node) {
                 facts.push(fact);
             }
         }
@@ -254,6 +346,37 @@ fn markdown_fenced_code_block_fact(
         "markdown",
         MARKDOWN_FENCED_CODE_BLOCK_PATTERN_ID,
         "fenced_code_block",
+        node,
+        metadata,
+    ))
+}
+
+fn markdown_inline_link_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let label = clean_markdown_link_text(child_text(node, content, "link_text")?);
+    let destination =
+        clean_markdown_link_destination(child_text(node, content, "link_destination")?);
+    if label.is_empty() || destination.is_empty() {
+        return None;
+    }
+
+    let mut metadata = base_metadata("document_links");
+    insert_string(&mut metadata, "label", &label);
+    insert_string(&mut metadata, "destination", &destination);
+    if let Some(title) = child_text(node, content, "link_title").map(clean_markdown_link_title) {
+        if !title.is_empty() {
+            insert_string(&mut metadata, "title", &title);
+        }
+    }
+
+    Some(fact_for_node(
+        file_path,
+        "markdown",
+        MARKDOWN_INLINE_LINK_PATTERN_ID,
+        "inline_link",
         node,
         metadata,
     ))
@@ -585,7 +708,7 @@ fn collect_yaml_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_yaml_node(tree.root_node(), file_path, content, &mut facts);
+    collect_yaml_node(tree.root_node(), file_path, content, &[], &mut facts);
     facts
 }
 
@@ -593,6 +716,7 @@ fn collect_yaml_node(
     node: Node<'_>,
     file_path: &str,
     content: &str,
+    path: &[String],
     facts: &mut Vec<StructuralFact>,
 ) {
     match node.kind() {
@@ -613,6 +737,7 @@ fn collect_yaml_node(
         }
         "block_mapping" => {
             let mut metadata = base_metadata("config_structure");
+            insert_string(&mut metadata, "key_path", &yaml_key_path(path));
             metadata.insert(
                 "pair_count".to_string(),
                 Value::Number(Number::from(count_direct_children(
@@ -628,6 +753,32 @@ fn collect_yaml_node(
                 node,
                 metadata,
             ));
+        }
+        "block_mapping_pair" => {
+            if let Some((key, value_node)) = yaml_pair_key_and_value(content, node) {
+                let key_path = yaml_property_path(path, &key);
+                let mut metadata = base_metadata("config_structure");
+                insert_string(&mut metadata, "key", &key);
+                insert_string(&mut metadata, "key_path", &key_path);
+                insert_string(
+                    &mut metadata,
+                    "value_kind",
+                    yaml_value_kind(value_node, content),
+                );
+                facts.push(fact_for_node(
+                    file_path,
+                    "yaml",
+                    YAML_KEY_VALUE_PATTERN_ID,
+                    "key_value",
+                    node,
+                    metadata,
+                ));
+
+                let mut child_path = path.to_vec();
+                child_path.push(key);
+                collect_yaml_node(value_node, file_path, content, &child_path, facts);
+                return;
+            }
         }
         "block_sequence" => {
             let mut metadata = base_metadata("config_structure");
@@ -680,7 +831,7 @@ fn collect_yaml_node(
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_yaml_node(child, file_path, content, facts);
+        collect_yaml_node(child, file_path, content, path, facts);
     }
 }
 
@@ -1202,6 +1353,109 @@ fn strip_atx_heading_marker(raw: &str) -> String {
         .trim_start()
         .trim_end()
         .to_string()
+}
+
+fn clean_markdown_link_text(raw: &str) -> String {
+    raw.trim().to_string()
+}
+
+fn clean_markdown_link_destination(raw: &str) -> String {
+    raw.trim_matches(|ch| ch == '<' || ch == '>' || ch == '(' || ch == ')')
+        .trim()
+        .to_string()
+}
+
+fn clean_markdown_link_title(raw: &str) -> String {
+    raw.trim_matches(|ch| ch == '"' || ch == '\'' || ch == '(' || ch == ')')
+        .trim()
+        .to_string()
+}
+
+fn yaml_key_path(path: &[String]) -> String {
+    if path.is_empty() {
+        "$".to_string()
+    } else {
+        format!("$.{}", path.join("."))
+    }
+}
+
+fn yaml_property_path(path: &[String], key: &str) -> String {
+    if path.is_empty() {
+        format!("$.{key}")
+    } else {
+        format!("$.{}.{}", path.join("."), key)
+    }
+}
+
+fn yaml_pair_key_and_value<'a>(content: &str, node: Node<'a>) -> Option<(String, Node<'a>)> {
+    let mut cursor = node.walk();
+    let mut key = None;
+    for child in node.children(&mut cursor) {
+        match child.kind() {
+            "flow_node" | "block_node" => {
+                if key.is_none() {
+                    key = yaml_node_scalar_text(content, child);
+                } else {
+                    return Some((key?, child));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn yaml_node_scalar_text(content: &str, node: Node<'_>) -> Option<String> {
+    if matches!(
+        node.kind(),
+        "plain_scalar" | "double_quote_scalar" | "single_quote_scalar"
+    ) {
+        let text = node_text(content, node)?;
+        return Some(text.trim_matches('"').trim_matches('\'').trim().to_string());
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if let Some(text) = yaml_node_scalar_text(content, child) {
+            return Some(text);
+        }
+    }
+    None
+}
+
+fn yaml_value_kind(value_node: Node<'_>, content: &str) -> &'static str {
+    match value_node.kind() {
+        "block_node" => {
+            let mut cursor = value_node.walk();
+            for child in value_node.children(&mut cursor) {
+                return match child.kind() {
+                    "block_mapping" => "mapping",
+                    "block_sequence" => "sequence",
+                    "alias" => "alias",
+                    "anchor" => "anchor",
+                    _ => "other",
+                };
+            }
+            "other"
+        }
+        "flow_node" => {
+            let mut cursor = value_node.walk();
+            for child in value_node.children(&mut cursor) {
+                return match child.kind() {
+                    "plain_scalar" | "double_quote_scalar" | "single_quote_scalar" => "scalar",
+                    "flow_mapping" => "mapping",
+                    "flow_sequence" => "sequence",
+                    "alias" => "alias",
+                    "anchor" => "anchor",
+                    _ => "other",
+                };
+            }
+            yaml_node_scalar_text(content, value_node)
+                .map(|_| "scalar")
+                .unwrap_or("other")
+        }
+        _ => "other",
+    }
 }
 
 fn parse_link_reference_definition(text: &str) -> Option<(String, String)> {

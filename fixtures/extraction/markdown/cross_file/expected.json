@@ -255,6 +255,48 @@
       }
     },
     {
+      "pattern_id": "markdown.inline_link.v1",
+      "capture_name": "inline_link",
+      "node_kind": "inline_link",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:9:0",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 31,
+      "start_byte": 316,
+      "end_byte": 347,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "#local-heading",
+        "label": "Local heading",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    },
+    {
+      "pattern_id": "markdown.inline_link.v1",
+      "capture_name": "inline_link",
+      "node_kind": "inline_link",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:the other doc:7:4",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 31,
+      "start_byte": 244,
+      "end_byte": 271,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "./other.md",
+        "label": "the other doc",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    },
+    {
       "pattern_id": "markdown.link_definition.v1",
       "capture_name": "link_definition",
       "node_kind": "link_reference_definition",

@@ -4,4 +4,7 @@
     hx-target="#list"
     x-data="{ open: false }">
     <button @click.prevent="open = !open" :class="{ active: open }">Toggle</button>
+    <form action="/todos" method="post" id="todo-form" name="todoForm">
+        <input type="text" name="title" required>
+    </form>
 </div>

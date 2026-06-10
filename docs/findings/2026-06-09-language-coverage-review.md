@@ -1229,6 +1229,7 @@ cargo xtask test language sql
 cargo xtask test language regex
 UPDATE_GOLDEN=1 cargo nextest run -p julie-extractors --features test-golden golden
 cargo nextest run -p julie-extractors --features test-golden golden
+cargo test -p julie-extractors --features test-capability-matrix tests::capability_matrix::
 node scripts/language-data-quality-report.mjs --strict
 git diff --check
 cargo fmt --check
@@ -1251,6 +1252,66 @@ the supported language set. That means:
   task;
 - downstream project scans should prove the improvements outside synthetic
   fixtures.
+
+## Phase 20 semantic-depth batch (data/markup/domain languages)
+
+**Before:** HTML and Razor golden `structural_facts` were empty despite rich
+symbol extraction. YAML mappings only exposed `pair_count` without stable key
+paths. Markdown inline links were symbol-proven via line-regex fallback but had
+no structural-fact rows. Several markup/config languages looked complete in
+the scorecard while downstream tools still had to reparse source for routes,
+links, and config key paths.
+
+**After:** Five concrete, parser-backed structural-fact improvements with
+metadata assertions and golden updates. Strict scorecard remains
+`silent_cells: 0`, `quality_bar_debts: 0`.
+
+| Language | Domain | Improvement | Downstream value |
+| --- | --- | --- | --- |
+| `html` | `structural_facts` | `html.link.v1`, `html.script.v1`, `html.form.v1`, `html.form_control.v1` from tree-sitter `element` / `script_element` nodes | Direct `href`/`src`/`type`/`id`/`name` routing without reparsing tag text |
+| `razor` | `structural_facts` | `razor.page_directive.v1`, `razor.code_block.v1`, `razor.template_expression.v1` from razor grammar nodes | Route and template-expression facts for Blazor/MVC page analysis |
+| `yaml` | `structural_facts` | `yaml.key_value.v1` with `key_path`, `value_kind`; mapping facts now carry parent `key_path` | Config path queries (`$.worker.id`) without walking raw YAML |
+| `markdown` | `structural_facts` | `markdown.inline_link.v1` from AST nodes plus regex fallback aligned with symbol extraction | Inline link label/destination facts for doc navigation graphs |
+| `sql`, `toml`, `json`, `css`, `regex`, `vue` | audited | Existing facts already expose query/schema/selector/pattern metadata with focused tests; no filler rows added in this slice | N/A |
+
+**Tests added/extended:**
+
+- `tests/html/structural_facts.rs`
+- `tests/razor/structural_facts.rs`
+- `tests/yaml/structural_facts.rs` (`key_path`, `value_kind`)
+- `tests/markdown/structural_facts.rs` (`markdown.inline_link.v1`)
+
+**Golden fixtures updated:** `html`, `razor`, `yaml`, `markdown` (`basic`,
+`cross_file`, and dedicated `structural_facts` fixtures where present).
+
+**Verification commands:**
+
+```bash
+cargo xtask test language html
+cargo xtask test language razor
+cargo xtask test language yaml
+cargo xtask test language markdown
+UPDATE_GOLDEN=1 cargo nextest run -p julie-extractors --features test-golden golden
+cargo nextest run -p julie-extractors --features test-golden golden
+node scripts/language-data-quality-report.mjs --strict
+git diff --check
+cargo fmt --check
+```
+
+**Remaining quality_debt / intentional non-changes:**
+
+- `html.form.v1` is proven by the dedicated structural-facts fixture; the basic
+  HTML fixture still proves link/script/form-control facts.
+- `razor` template-expression facts skip empty expressions; invocation-shaped
+  expressions are still emitted when the grammar provides a span.
+- `yaml` `key_value` rows use `$.`-prefixed paths consistent with JSON
+  property paths; flow-style mappings outside `block_mapping_pair` remain
+  mapping-level facts only.
+- `markdown` inline-link regex fallback mirrors symbol extraction; image links
+  (`![alt](url)`) are intentionally excluded.
+- No changes to SQL/TOML/JSON/CSS/regex/vue literals, `source_regions`, or
+  `complexity_metrics` in this slice; those domains were audited and already
+  carried downstream-useful metadata.
 
 ## Recommended next plan
 
