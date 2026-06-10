@@ -44,7 +44,7 @@ Current golden fixture rows by domain:
 | structural_facts | 12/36 | Still concentrated in Tier-1 and recent web/framework work. |
 | complexity_metrics | 12/36 | Mainstream languages improved; many code languages remain empty. |
 | annotations | 11/36 | Attribute/decorator support remains patchy outside the first pass. |
-| literals | 12/36 | Unit tests exist for many more languages than goldens advertise. |
+| literals | 13/36 | Unit tests exist for many more languages than goldens advertise. |
 | type_argument_usages | 1/36 | Type-argument usage evidence is TypeScript-only in goldens. |
 
 ## Phase 0 scorecard
@@ -125,6 +125,29 @@ Scorecard after this slice:
 - `literals`: 12/36
 - `type_argument_usages`: 1/36
 
+## Phase 3 Rust literal slice
+
+The third extractor-depth slice closed Rust gaps for:
+
+- `literals`: Rust `other` string-literal carriers with local helper (`observe_run`,
+  `fetch_url`) callee context in `fixtures/extraction/rust/basic`.
+
+Scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 90
+- `symbols`: 36/36
+- `relationships`: 36/36
+- `identifiers`: 33/36
+- `body_spans`: 35/36
+- `source_regions`: 35/36
+- `doc_comments`: 25/36
+- `structural_facts`: 12/36
+- `complexity_metrics`: 12/36
+- `annotations`: 11/36
+- `literals`: 13/36
+- `type_argument_usages`: 1/36
+
 ## Remaining verified gaps
 
 ### 1. Open domain gaps are now explicit product debt
@@ -135,7 +158,7 @@ No language/domain cells are silent anymore. The remaining debt is explicit
 - `complexity_metrics`: 24 languages remain open.
 - `structural_facts`: 24 languages remain open.
 - `annotations`: 25 languages remain open.
-- `literals`: 24 languages remain open.
+- `literals`: 23 languages remain open.
 - `doc_comments`: 11 languages remain open.
 
 Impact: downstream consumers cannot distinguish "not applicable" from "not
@@ -147,10 +170,10 @@ Open gaps are temporary debt, not acceptance criteria.
 There are per-language literal unit tests for many languages, including Rust,
 C, C++, Go, Zig, Python, Java, VB.NET, PHP, Swift, Kotlin, Scala, Dart,
 Elixir, QML, GDScript, Razor, and others. Golden fixtures and
-`kind_coverage.literals`, however, currently advertise only 12 languages:
+`kind_coverage.literals`, however, currently advertise only 13 languages:
 
-`c`, `cpp`, `go`, `typescript`, `javascript`, `vue`, `csharp`, `ruby`, `lua`,
-`r`, `bash`, `powershell`.
+`rust`, `c`, `cpp`, `go`, `typescript`, `javascript`, `vue`, `csharp`, `ruby`,
+`lua`, `r`, `bash`, `powershell`.
 
 Impact: literal extraction should be a standard domain for languages with
 string, URL, query, command, or configuration literals. Existing unit tests show
