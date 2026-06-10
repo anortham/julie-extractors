@@ -3156,7 +3156,7 @@
         "relationships": true,
         "pending_relationships": true,
         "identifiers": true,
-        "types": false
+        "types": true
       },
       "fixtures": [
         {
@@ -3175,21 +3175,9 @@
         "relationships": true,
         "pending_relationships": true,
         "identifiers": true,
-        "types": false
+        "types": true
       },
-      "capability_gaps": [
-        {
-          "capability": "types",
-          "status": "exception",
-          "reason": "QML property bindings carry runtime type names that are stored on Symbol metadata (propertyType field), not as separate TypeInfo rows. QML has no static type system distinct from these tags. Domain classification, not a deferred gap.",
-          "required_closure": "N/A \u2014 QML property types are recorded on Symbol metadata. A separate TypeInfo row layer would duplicate, not enrich.",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/qml/basic/expected.json",
-            "command": "cargo xtask test golden"
-          }
-        }
-      ],
+      "capability_gaps": [],
       "kind_coverage": {
         "symbols": {
           "supported": [

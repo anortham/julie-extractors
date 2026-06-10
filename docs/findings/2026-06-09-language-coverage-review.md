@@ -1141,6 +1141,41 @@ Closure tasks for `native_debt`:
   `tests/qml/coverage.rs` and regenerate QML goldens so inferred types are
   fixture-proven, not only symbol metadata.
 
+## Phase 18 native-debt closure (Ruby relationships, QML types)
+
+**Before:** scorecard v2 listed `relationships.ruby` and `types.qml` as
+`native_debt` with raw counts `relationships 35/36` and `types 28/36`. Ruby
+resolved call edges were blocked when a `require_relative` import symbol shared
+the callee name with an in-class method (`helper`). QML `infer_types` existed
+but `extract_qml` returned an empty `types` map.
+
+**After:** `relationships 36/36`, `types 29/36`, and both domains report
+`native_debt: 0` in `scripts/language-data-quality-report.mjs --strict`.
+
+| Change | Evidence |
+| --- | --- |
+| Ruby scoped call resolution prefers same-parent methods over import-name collisions | `ruby/relationships.rs::resolve_ruby_call_target`; `tests/ruby/canonical_relationships.rs` |
+| Ruby basic golden `relationships` | `run` -> `helper` `calls` edge at line 14; unresolved `Enumerable` / cross-file calls remain in `pending_relationships` |
+| QML product `TypeInfo` rows | `registry.rs::extract_qml` now uses `convert_types_map(ext.infer_types(&symbols), "qml")` |
+| QML basic golden `types` | `title` -> `string`, `workerId` -> `int`, `buildIndex` -> `void` |
+| Caller-facing QML types test | `tests/qml/types.rs::canonical_qml_extraction_emits_property_and_function_types` via `extract_symbols_and_relationships` |
+| Capabilities | `fixtures/extraction/capabilities.json` sets QML `types: true` and clears the prior types exception gap |
+
+**Verification commands:**
+
+```bash
+cargo xtask test language ruby
+cargo xtask test language qml
+UPDATE_GOLDEN=1 cargo nextest run -p julie-extractors --features test-golden golden
+cargo nextest run -p julie-extractors --features test-golden golden
+node scripts/language-data-quality-report.mjs --strict
+git diff --check
+cargo fmt --check
+```
+
+Remaining scorecard gaps in these domains are classified (`not_applicable` or
+`convention_only` for `types.lua` / `types.r`), not unclosed native debt.
+
 ## Product bar
 
 The desired end state is the best tree-sitter extraction product available for

@@ -1117,7 +1117,35 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/qml/basic/source.qml:buildIndex:16:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "qml",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/qml/basic/source.qml:title:5:4",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "qml",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/qml/basic/source.qml:workerId:6:4",
+      "resolved_type": "int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "qml",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {

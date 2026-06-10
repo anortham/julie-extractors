@@ -651,6 +651,7 @@ fn extract_qml(
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
+    let types = ext.infer_types(&symbols);
     let pending_relationships = ext.base.take_pending_relationships();
     let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
@@ -664,7 +665,7 @@ fn extract_qml(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: HashMap::new(),
+        types: convert_types_map(types, "qml"),
         parse_diagnostics: Vec::new(),
     })
 }

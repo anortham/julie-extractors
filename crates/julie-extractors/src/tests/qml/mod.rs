@@ -88,3 +88,4 @@ pub mod signals; // Signals and signal handlers
 pub mod structural_facts;
 pub mod test_detection; // Qt Quick Test container detection (base_types metadata)
 pub mod type_arguments;
+pub mod types;

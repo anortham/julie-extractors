@@ -2,6 +2,7 @@
 // Following TDD pattern: RED phase - tests should compile but fail
 
 // Submodule declarations
+pub mod canonical_relationships;
 pub mod class_constant_dedup;
 mod complexity;
 pub mod cross_file_pending;

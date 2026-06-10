@@ -81,7 +81,7 @@ const DOMAIN_APPLICABILITY = {
   relationships: {
     not_applicable: [],
     convention_only: [],
-    native_debt: ["ruby"],
+    native_debt: [],
     quality_debt: [],
   },
   identifiers: {
@@ -111,7 +111,7 @@ const DOMAIN_APPLICABILITY = {
   types: {
     not_applicable: ["css", "json", "markdown", "toml", "yaml"],
     convention_only: ["lua", "r"],
-    native_debt: ["qml"],
+    native_debt: [],
     quality_debt: [],
   },
 };

@@ -379,7 +379,17 @@
       "content_type": null
     }
   ],
-  "relationships": [],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/ruby/basic/source.rb:run:13:2",
+      "to_key": "fixtures/extraction/ruby/basic/source.rb:helper:26:2",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/ruby/basic/source.rb",
+      "line_number": 14,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
   "pending_relationships": [
     {
       "from_key": "fixtures/extraction/ruby/basic/source.rb:Worker:4:0",
@@ -416,14 +426,6 @@
     {
       "from_key": "fixtures/extraction/ruby/basic/source.rb:run:13:2",
       "callee_name": "[1, 2].map { |value| helper",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/ruby/basic/source.rb",
-      "line_number": 14,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/ruby/basic/source.rb:run:13:2",
-      "callee_name": "helper",
       "kind": "calls",
       "file_path": "fixtures/extraction/ruby/basic/source.rb",
       "line_number": 14,
@@ -516,24 +518,6 @@
         "display_name": "[1, 2].map { |value| helper",
         "terminal_name": "map { |value| helper",
         "receiver": "[1, 2]",
-        "namespace_path": [],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:run:13:2"
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/ruby/basic/source.rb:run:13:2",
-        "callee_name": "helper",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/ruby/basic/source.rb",
-        "line_number": 14,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "helper",
-        "terminal_name": "helper",
-        "receiver": null,
         "namespace_path": [],
         "import_context": null
       },
