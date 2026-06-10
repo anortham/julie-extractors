@@ -14,6 +14,7 @@
 //!
 //! This enables full-stack symbol tracing from frontend -> API -> database schema.
 
+pub(crate) mod complexity_metrics;
 mod constraints;
 mod error_handling;
 mod helpers;

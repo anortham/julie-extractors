@@ -32,5 +32,8 @@ CREATE TRIGGER refresh_active_workers
 AFTER INSERT ON workers
 FOR EACH ROW
 BEGIN
-    INSERT INTO jobs (worker_id) VALUES (NEW.id);
+    INSERT INTO jobs (worker_id)
+    SELECT NEW.id
+    FROM workers
+    WHERE NEW.id > 0;
 END;

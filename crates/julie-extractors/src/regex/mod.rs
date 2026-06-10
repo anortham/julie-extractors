@@ -1,4 +1,5 @@
 pub(crate) mod classes;
+pub(crate) mod complexity_metrics;
 pub(crate) mod flags;
 pub(crate) mod groups;
 pub(crate) mod helpers;

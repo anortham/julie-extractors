@@ -474,7 +474,31 @@
       }
     }
   ],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-sql-complexity-v1",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/cross_file/source.sql",
+      "covered_lines": 14,
+      "covered_bytes": 444,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 444,
+      "metadata": {
+        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {

@@ -197,7 +197,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "qml",
         &["qml"],
         "tree-sitter-qmljs",
-        PENDING_NO_TYPES_CAPABILITIES,
+        FULL_CAPABILITIES,
         parser_qml,
         EMPTY,
     ),

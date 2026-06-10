@@ -1168,6 +1168,7 @@ cargo xtask test language ruby
 cargo xtask test language qml
 UPDATE_GOLDEN=1 cargo nextest run -p julie-extractors --features test-golden golden
 cargo nextest run -p julie-extractors --features test-golden golden
+cargo test -p julie-extractors --features test-capability-matrix tests::capability_matrix::
 node scripts/language-data-quality-report.mjs --strict
 git diff --check
 cargo fmt --check
@@ -1175,6 +1176,58 @@ cargo fmt --check
 
 Remaining scorecard gaps in these domains are classified (`not_applicable` or
 `convention_only` for `types.lua` / `types.r`), not unclosed native debt.
+
+## Phase 19 applicability closure (complexity_metrics, annotations, doc_comments)
+
+**Before:** strict scorecard listed 22 unclassified applicability gaps across
+`complexity_metrics` (8), `annotations` (13), and `doc_comments` (1).
+
+**After:** all three domains report `unclassified_gaps: 0` in
+`scripts/language-data-quality-report.mjs --strict`.
+
+| Domain | Language | Decision | Evidence |
+| --- | --- | --- | --- |
+| `complexity_metrics` | `sql` | native extraction | `sql/complexity_metrics.rs` emits `julie-sql-complexity-v1` file/symbol metrics counting joins, predicates (`where`/`having`), set operations, `case` arms, and query nesting (`select`/`cte`); `tests/sql/complexity.rs`; golden `fixtures/extraction/sql/basic/expected.json`. |
+| `complexity_metrics` | `regex` | native extraction | `regex/complexity_metrics.rs` emits `julie-regex-complexity-v1` metrics counting alternations/conditionals, quantifiers, and group/lookaround nesting; `tests/regex/complexity.rs`; golden `fixtures/extraction/regex/basic/expected.json`. |
+| `complexity_metrics` | `css` | `not_applicable` | Declarative stylesheet language with selector/property structure but no callable control-flow bodies; complexity belongs in structural facts (`css.*.v1`), not cyclomatic-style metrics. |
+| `complexity_metrics` | `html` | `not_applicable` | Markup language with element/attribute structure and embedded scripts handled by other language targets; no native file/symbol complexity model in HTML grammar. |
+| `complexity_metrics` | `json` | `not_applicable` | Pure data format with object/array/value nodes and no control flow. |
+| `complexity_metrics` | `markdown` | `not_applicable` | Presentation format with headings/links/tables; no callable bodies or control flow. |
+| `complexity_metrics` | `toml` | `not_applicable` | Configuration tables/keys only; no control flow. |
+| `complexity_metrics` | `yaml` | `not_applicable` | Document/mapping structure only; no control flow. |
+| `annotations` | `bash` | `not_applicable` | `fixtures/extraction/capabilities.json` Phase 1 audit; shell has no attribute/decorator syntax on declarations (shebang and magic comments are source-region/doc conventions). |
+| `annotations` | `css` | `not_applicable` | HTML/CSS/SQL/markup attributes are structural facts or symbol metadata, not symbol-attached annotation markers. |
+| `annotations` | `html` | `not_applicable` | Element attributes (`class`, `hx-*`, `x-*`) are structural facts, not annotations domain. |
+| `annotations` | `json` | `not_applicable` | Keys and values only; no annotation syntax. |
+| `annotations` | `lua` | `not_applicable` | No first-class attribute syntax; EmmyLua `---@` tags are comment conventions already routed through `doc_comments`, consistent with Phase 1 Task 5. |
+| `annotations` | `markdown` | `not_applicable` | No declaration-attached annotation syntax. |
+| `annotations` | `qml` | `not_applicable` | QML property modifiers (`readonly`, `required`) are declaration keywords, not separate annotation markers; `capabilities.json` already marks all symbol kinds `not_applicable`. |
+| `annotations` | `r` | `not_applicable` | No decorator syntax; roxygen `@tags` are doc-comment conventions (`doc_comments` domain). |
+| `annotations` | `regex` | `not_applicable` | Pattern syntax has no symbol-attached annotation markers. |
+| `annotations` | `ruby` | `not_applicable` | No native decorator/attribute syntax; YARD/RDoc tags are doc-comment conventions. |
+| `annotations` | `sql` | `not_applicable` | `COMMENT ON` and dialect hints are metadata/comments, not declaration annotations. |
+| `annotations` | `toml` | `not_applicable` | Tables and keys only. |
+| `annotations` | `yaml` | `not_applicable` | Mappings/tags only. |
+| `doc_comments` | `regex` | `not_applicable` | Inline `(?#...)` comments are dialect-specific and not reliably grammar-attached to symbols; extended-mode `#` comments require `(?x)` and are not stable doc regions. `source_regions` and `doc_comments` are already `not_applicable` in `capabilities.json`; `tests/regex/mod.rs` doc-comment tests document optional behavior without golden evidence. |
+
+Summary:
+
+- `native extraction`: 2 (`sql` `complexity_metrics`, `regex` `complexity_metrics`).
+- `not_applicable`: 20 language/domain pairs.
+- `convention_only`: 0 in this slice (annotation comment conventions intentionally stay in `doc_comments` / `not_applicable`, not `convention_only` annotations).
+- `quality_debt`: 0.
+
+**Verification commands:**
+
+```bash
+cargo xtask test language sql
+cargo xtask test language regex
+UPDATE_GOLDEN=1 cargo nextest run -p julie-extractors --features test-golden golden
+cargo nextest run -p julie-extractors --features test-golden golden
+node scripts/language-data-quality-report.mjs --strict
+git diff --check
+cargo fmt --check
+```
 
 ## Product bar
 

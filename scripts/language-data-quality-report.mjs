@@ -114,6 +114,38 @@ const DOMAIN_APPLICABILITY = {
     native_debt: [],
     quality_debt: [],
   },
+  complexity_metrics: {
+    not_applicable: ["css", "html", "json", "markdown", "toml", "yaml"],
+    convention_only: [],
+    native_debt: [],
+    quality_debt: [],
+  },
+  annotations: {
+    not_applicable: [
+      "bash",
+      "css",
+      "html",
+      "json",
+      "lua",
+      "markdown",
+      "qml",
+      "r",
+      "regex",
+      "ruby",
+      "sql",
+      "toml",
+      "yaml",
+    ],
+    convention_only: [],
+    native_debt: [],
+    quality_debt: [],
+  },
+  doc_comments: {
+    not_applicable: ["regex"],
+    convention_only: [],
+    native_debt: [],
+    quality_debt: [],
+  },
 };
 
 const APPLICABILITY_BUCKETS = [

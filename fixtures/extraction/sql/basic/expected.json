@@ -270,19 +270,19 @@
       "file_path": "fixtures/extraction/sql/basic/source.sql",
       "start_line": 31,
       "start_column": 0,
-      "end_line": 36,
+      "end_line": 39,
       "end_column": 4,
       "start_byte": 638,
-      "end_byte": 773,
+      "end_byte": 813,
       "body_span": {
         "start_line": 35,
         "start_column": 21,
         "end_line": 35,
-        "end_column": 48,
+        "end_column": 32,
         "start_byte": 740,
-        "end_byte": 767
+        "end_byte": 751
       },
-      "body_hash": "55c2acab0d586b8d499f3833e0f51970",
+      "body_hash": "1642dacdaa2273cf7b98673e090870c3",
       "signature": "CREATE TRIGGER refresh_active_workers AFTER INSERT ON workers",
       "doc_comment": null,
       "visibility": "Public",
@@ -694,10 +694,28 @@
       "kind": "Error",
       "start_line": 31,
       "start_column": 0,
-      "end_line": 36,
+      "end_line": 39,
       "end_column": 4,
       "start_byte": 638,
-      "end_byte": 773
+      "end_byte": 813
+    },
+    {
+      "kind": "Error",
+      "start_line": 34,
+      "start_column": 0,
+      "end_line": 36,
+      "end_column": 17,
+      "start_byte": 713,
+      "end_byte": 769
+    },
+    {
+      "kind": "Error",
+      "start_line": 38,
+      "start_column": 4,
+      "end_line": 38,
+      "end_column": 13,
+      "start_byte": 791,
+      "end_byte": 800
     }
   ],
   "structural_facts": [
@@ -1056,10 +1074,10 @@
       "containing_key": "fixtures/extraction/sql/basic/source.sql:refresh_active_workers:31:0",
       "start_line": 31,
       "start_column": 0,
-      "end_line": 36,
+      "end_line": 39,
       "end_column": 4,
       "start_byte": 638,
-      "end_byte": 773,
+      "end_byte": 813,
       "confidence": "1.000",
       "metadata": {
         "event": "INSERT",
@@ -1116,7 +1134,54 @@
       }
     }
   ],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-sql-complexity-v1",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/basic/source.sql",
+      "covered_lines": 40,
+      "covered_bytes": 814,
+      "decision_count": 5,
+      "loop_count": 0,
+      "max_nesting_depth": 2,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 40,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 814,
+      "metadata": {
+        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/sql/basic/source.sql:refresh_active_workers:31:0",
+      "algorithm_id": "julie-sql-complexity-v1",
+      "language": "sql",
+      "file_path": "fixtures/extraction/sql/basic/source.sql",
+      "covered_lines": 9,
+      "covered_bytes": 175,
+      "decision_count": 1,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 31,
+      "start_column": 0,
+      "end_line": 39,
+      "end_column": 4,
+      "start_byte": 638,
+      "end_byte": 813,
+      "metadata": {
+        "decision_signal_kinds": "join,set_operation,case,where,having,error_where",
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "fixture-worker",

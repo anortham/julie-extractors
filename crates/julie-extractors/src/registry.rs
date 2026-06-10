@@ -1056,8 +1056,20 @@ pub fn extract_for_language(
             &results.symbols,
         ));
     sort_structural_facts(&mut results.structural_facts);
-    results.complexity_metrics =
-        collect_complexity_metrics(language, tree, content, file_path, &results.symbols);
+    results.complexity_metrics = match language {
+        "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(
+            tree,
+            content,
+            file_path,
+            &results.symbols,
+        ),
+        "regex" => crate::regex::complexity_metrics::collect_complexity_metrics(
+            tree,
+            file_path,
+            &results.symbols,
+        ),
+        _ => collect_complexity_metrics(language, tree, content, file_path, &results.symbols),
+    };
     Ok(results)
 }
 
