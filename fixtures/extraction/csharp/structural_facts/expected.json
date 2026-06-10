@@ -680,7 +680,74 @@
       }
     }
   ],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "covered_lines": 16,
+      "covered_bytes": 440,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 440,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:14:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 15,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 14,
+      "start_column": 28,
+      "end_line": 14,
+      "end_column": 43,
+      "start_byte": 372,
+      "end_byte": 387,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:15:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/structural_facts/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 15,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 15,
+      "start_column": 34,
+      "end_line": 15,
+      "end_column": 49,
+      "start_byte": 423,
+      "end_byte": 438,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [
     {
       "literal_text": "/computed/{}",

@@ -208,6 +208,15 @@ fn find_first_parameter_container<'tree>(
 }
 
 fn parameter_arity(node: Node<'_>) -> u32 {
+    // Prefer the grammar's `name` field when the parameter node declares one
+    // (for example C# `parameter` nodes, where a user-defined type annotation
+    // is also an `identifier` and would otherwise be counted as a declarator).
+    let mut cursor = node.walk();
+    let named_count = node.children_by_field_name("name", &mut cursor).count() as u32;
+    if named_count > 0 {
+        return named_count;
+    }
+
     let mut declarator_count = 0;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
@@ -252,7 +261,9 @@ fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
     match language {
         "c" => Some(C_LIKE_CONFIG),
         "cpp" => Some(C_LIKE_CONFIG),
+        "csharp" => Some(CSHARP_CONFIG),
         "go" => Some(GO_CONFIG),
+        "java" => Some(JAVA_CONFIG),
         "javascript" => Some(ECMASCRIPT_CONFIG),
         "python" => Some(PYTHON_CONFIG),
         "rust" => Some(RUST_CONFIG),
@@ -324,6 +335,45 @@ const ECMASCRIPT_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
         "assignment_pattern",
         "rest_pattern",
     ],
+};
+
+const CSHARP_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "switch_statement",
+        "switch_section",
+        "switch_expression",
+        "switch_expression_arm",
+        "catch_clause",
+        "conditional_expression",
+    ],
+    loop_node_kinds: &[
+        "for_statement",
+        "foreach_statement",
+        "while_statement",
+        "do_statement",
+    ],
+    parameter_container_node_kinds: &["parameter_list"],
+    parameter_node_kinds: &["parameter"],
+};
+
+const JAVA_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "if_statement",
+        "switch_expression",
+        "switch_block_statement_group",
+        "switch_rule",
+        "catch_clause",
+        "ternary_expression",
+    ],
+    loop_node_kinds: &[
+        "for_statement",
+        "enhanced_for_statement",
+        "while_statement",
+        "do_statement",
+    ],
+    parameter_container_node_kinds: &["formal_parameters"],
+    parameter_node_kinds: &["formal_parameter", "spread_parameter", "receiver_parameter"],
 };
 
 const C_LIKE_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {

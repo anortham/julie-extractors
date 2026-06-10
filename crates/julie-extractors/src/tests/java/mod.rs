@@ -1,6 +1,7 @@
 mod annotation_tests;
 
 mod class_tests;
+mod complexity;
 mod cross_file_pending;
 mod cross_file_relationships;
 /// Java extractor tests

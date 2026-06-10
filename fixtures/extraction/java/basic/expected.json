@@ -329,7 +329,118 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "covered_lines": 28,
+      "covered_bytes": 415,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 28,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 415,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:Worker:10:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "covered_lines": 3,
+      "covered_bytes": 29,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 10,
+      "start_column": 19,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 128,
+      "end_byte": 157,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:helper:24:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "covered_lines": 3,
+      "covered_bytes": 33,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 24,
+      "start_column": 41,
+      "end_line": 26,
+      "end_column": 5,
+      "start_byte": 379,
+      "end_byte": 412,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:run:14:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "covered_lines": 3,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 14,
+      "start_column": 21,
+      "end_line": 16,
+      "end_column": 5,
+      "start_byte": 180,
+      "end_byte": 214,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/basic/source.java:run:4:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/basic/source.java",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 4,
+      "start_column": 11,
+      "end_line": 4,
+      "end_column": 13,
+      "start_byte": 45,
+      "end_byte": 47,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {

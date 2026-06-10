@@ -153,6 +153,44 @@ func run(items []int, enabled bool) int {
             expected_parameters: 2,
         },
         ComplexityCase {
+            file_path: "src/Service.cs",
+            source: r#"public class Service {
+    public int Run(int count, bool enabled) {
+        int total = 0;
+        for (int index = 0; index < count; index++) {
+            if (enabled) {
+                total += index;
+            }
+        }
+        return total;
+    }
+}
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
+            file_path: "src/Service.java",
+            source: r#"public class Service {
+    public int run(int count, boolean enabled) {
+        int total = 0;
+        for (int index = 0; index < count; index++) {
+            if (enabled) {
+                total += index;
+            }
+        }
+        return total;
+    }
+}
+"#,
+            expected_decisions: 1,
+            expected_loops: 1,
+            expected_depth: 2,
+            expected_parameters: 2,
+        },
+        ComplexityCase {
             file_path: "src/service.c",
             source: r#"int run(int count, int enabled) {
     int total = 0;
