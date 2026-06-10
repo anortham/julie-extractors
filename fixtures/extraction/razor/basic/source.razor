@@ -5,8 +5,37 @@
 @code {
     private string Title = "Worker";
 
+    private int Run(int id)
+    {
+        RecordRun(id);
+        return Helper(id);
+    }
+
     private string Format(string value)
     {
         return value.Trim();
+    }
+
+    private static int Helper(int value)
+    {
+        return value + 1;
+    }
+
+    private static void RecordRun(int id)
+    {
+        ObserveRun("worker-run", id);
+    }
+
+    private static void ObserveRun(string eventName, int id)
+    {
+    }
+
+    public static void FetchStatus()
+    {
+        FetchUrl("https://api.example.com/workers/status");
+    }
+
+    private static void FetchUrl(string url)
+    {
     }
 }
