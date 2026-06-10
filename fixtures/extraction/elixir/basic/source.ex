@@ -1,6 +1,7 @@
 defmodule Fixture.Worker do
   @moduledoc "Worker helpers for fixture extraction."
   @spec run(integer()) :: integer()
+  @type worker_index :: list(list(integer()))
 
   import Kernel, only: [apply: 2]
   alias Fixture.Helper

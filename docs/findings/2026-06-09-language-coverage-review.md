@@ -972,10 +972,11 @@ Languages with fixture-proven type-argument usage evidence:
 
 Remaining type-argument usage debt: 17 languages without golden rows.
 
-## Phase 14 type-argument applicability audit (remaining 17 languages)
+## Phase 14 type-argument applicability audit (remaining 16 languages)
 
-Repo inspection of extractors, fixtures, and per-language tests before
-classifying the remaining languages. Goal: distinguish implementation debt
+Repo inspection of extractors, fixtures, and per-language tests for the
+languages still without golden `type_argument_usages` rows after Phase 15
+closed Elixir native typespec debt. Goal: distinguish implementation debt
 from constructs that genuinely do not exist in the language grammar.
 
 | Language | Classification | Evidence inspected |
@@ -987,7 +988,6 @@ from constructs that genuinely do not exist in the language grammar.
 | `css` | `not_applicable` | `fixtures/extraction/css/basic/source.css` has selectors/properties/at-rules only; `css/mod.rs` delegates empty `get_type_argument_usages`; `css/rules.rs` extracts selector/declaration blocks, not generic type syntax; `css/basic/expected.json` has empty `type_argument_usages`. |
 | `php` | `convention_only` | `fixtures/extraction/php/basic/source.php` uses native `int` only; `tests/php/mod.rs` PHPDoc shows `array<string,mixed>` / `Collection<User>` in comments, not PHP declaration syntax. |
 | `ruby` | `convention_only` | `fixtures/extraction/ruby/basic/source.rb` has no native generics; `ruby/symbols.rs` extracts RDoc/YARD doc comments only. |
-| `elixir` | `native_applicability_missing` | `fixtures/extraction/elixir/basic/source.ex` has `@spec run(integer()) :: integer()`; `elixir/attributes.rs` parses `@spec`/`@type` typespec calls with parameterized forms like `keyword()`. |
 | `lua` | `convention_only` | `fixtures/extraction/lua/basic/source.lua` has no typed declarations; `lua/identifiers.rs` defers type usage and documents no LuaLS `---@` annotation extractor. |
 | `r` | `not_applicable` | `tests/r/classes.rs` S4 “generic” is runtime OOP metadata (`s4_generic`), not a static type-argument syntax; `r/basic` golden has empty `type_argument_usages`. |
 | `bash` | `not_applicable` | `fixtures/extraction/bash/basic` has shell commands only; no typed generic construct in bash extractor modules. |
@@ -1000,12 +1000,44 @@ from constructs that genuinely do not exist in the language grammar.
 
 Summary:
 
-- `native_applicability_missing`: 1 (`elixir` typespec parameter forms in `@spec`/`@type`).
+- `native_applicability_missing`: 0.
 - `convention_only`: 3 (`php` PHPDoc, `ruby` RDoc/YARD, `lua` deferred LuaLS-style annotations).
 - `not_applicable`: 13 (C, untyped JS/JSX, web/data formats, bash, sql, regex, r).
 - `needs_followup`: 0.
 
-Next implementation target with native syntax debt: `elixir` (typespec `@spec`/`@type` parameter trees). Convention-only languages need an explicit product decision before golden padding.
+Convention-only languages still need an explicit product decision before golden padding.
+
+## Phase 15 type-argument usage: Elixir
+
+Task 15 slice promoted Elixir from `native_applicability_missing` to golden
+fixture-proven `type_argument_usages` coverage:
+
+- Elixir: `@type worker_index :: list(list(integer()))` in
+  `fixtures/extraction/elixir/basic/source.ex`.
+- Exactly one golden row for the outermost `list` use site with nested
+  `list(integer())` child at ordinal 0 (`integer` leaf).
+- Extractor change in `elixir/identifiers.rs`: walk `@type` / `@typep` /
+  `@opaque` / `@spec` / `@callback` attribute trees, record parameterized
+  typespec `call` nodes (e.g. `list(...)`) only in typespec contexts, skip
+  `@spec` function heads and zero-argument primitives like `integer()`.
+- Canonical-pipeline tests in
+  `crates/julie-extractors/src/tests/elixir/type_arguments.rs` assert the
+  basic fixture through `extract_canonical(...)` plus negative guards for
+  `@spec run(integer())` and runtime calls.
+
+Current scorecard after this slice:
+
+- `silent_cells`: 0
+- `quality_bar_debts`: 0
+- `type_argument_usages`: 20/36
+
+Languages with fixture-proven type-argument usage evidence:
+
+`rust`, `typescript`, `vue`, `java`, `csharp`, `vbnet`, `swift`, `kotlin`,
+`scala`, `dart`, `powershell`, `razor`, `cpp`, `go`, `zig`, `python`, `qml`,
+`tsx`, `gdscript`, `elixir`.
+
+Remaining type-argument usage debt: 16 languages without golden rows.
 
 ## Product bar
 
