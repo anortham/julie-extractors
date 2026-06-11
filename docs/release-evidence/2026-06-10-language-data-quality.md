@@ -4,7 +4,10 @@ Date: 2026-06-10
 
 Branch under test: `feature/extraction-data-quality`
 
-Commit under test: `78bf354c49ad2884e1ca0d785ddec815ac0a7aec`
+Primary dogfood commit under test: `78bf354c49ad2884e1ca0d785ddec815ac0a7aec`
+
+Current-head branch-gate commit under test:
+`bf009ae2756c7d37659134709d7e21016673aa9e`
 
 ## Scope
 
@@ -26,6 +29,7 @@ Full SQLite artifacts and `scan.json` reports are under:
 ```text
 target/data-quality-dogfood/2026-06-10/
 target/data-quality-dogfood/2026-06-10-baseline-v2.2.1/
+target/data-quality-dogfood/2026-06-11/
 ```
 
 ## Commands
@@ -76,6 +80,10 @@ target/release/julie-extract scan \
 The baseline scan used the downloaded v2.2.1 binary and wrote to
 `target/data-quality-dogfood/2026-06-10-baseline-v2.2.1/<repo>/`.
 
+After the branch-gate clippy cleanup commit, the same current-branch scan matrix
+was rerun at `bf009ae2756c7d37659134709d7e21016673aa9e` and wrote to
+`target/data-quality-dogfood/2026-06-11/<repo>/`.
+
 The strict scorecard also passed:
 
 ```bash
@@ -103,6 +111,54 @@ All 16 current-branch scans completed successfully with `--strict-schema`.
 The baseline v2.2.1 scan also had `0` failed files and the same parse
 diagnostic count. The quality branch did not increase parser recovery noise in
 this dogfood set.
+
+The current-head rerun at `bf009ae2756c7d37659134709d7e21016673aa9e` also
+completed all 16 scans with `0` failed files. Compared to the 2026-06-10
+current-branch artifacts, only the `julie-extractors` self-scan changed:
+
+- `files`: `1180 -> 1181`
+- `symbols`: `73498 -> 73516`
+- `source_regions`: `138907 -> 138915`
+- `structural_facts`: `68917 -> 68939`
+
+All dependent-project and representative-corpus metrics were unchanged. The
+self-scan increase is expected because the branch gained one committed
+Goldfish checkpoint file during closeout.
+
+## Final Branch Gate
+
+Commit under test: `bf009ae2756c7d37659134709d7e21016673aa9e`
+
+Timestamp: `2026-06-11T00:05:45Z`
+
+Command:
+
+```bash
+cargo fmt --check
+cargo clippy --workspace --all-targets
+cargo xtask test default
+cargo xtask test contract
+scripts/check-agent-doc-sync.sh
+node scripts/language-data-quality-report.mjs
+git diff --check
+```
+
+Result: success.
+
+Recorded evidence:
+
+- `cargo xtask test default`: default crate tests passed, including
+  `cargo test -p julie-extractors` with `2467` tests and
+  `cargo test -p julie-extract-cli` with `15` tests.
+- `cargo xtask test contract`: contract tests passed, including schema,
+  JSONL, CLI, path-policy, operations, pending-shape, and downstream smoke
+  contract gates.
+- `scripts/check-agent-doc-sync.sh`: `AGENTS.md and CLAUDE.md are synced.`
+- `node scripts/language-data-quality-report.mjs`: `languages: 36`,
+  `silent_cells: 0`, `quality_bar_debts: 0`.
+- `cargo clippy --workspace --all-targets`: success with clean live clippy
+  output after the branch-gate cleanup.
+- `git diff --check`: success.
 
 ## Domain Totals
 
