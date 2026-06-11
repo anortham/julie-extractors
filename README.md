@@ -14,19 +14,19 @@ extraction results by spawning a binary and reading a durable artifact.
 
 ## Current Release
 
-- Current release: `v2.2.1`
-- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.2.1
-- Published: `2026-06-09T21:11:46Z`
-- Release commit: `a779a20b9862cb63b2a5bf0d2e7ad7584e5c7c97`
-- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/27235707604
-- Release evidence: [docs/release-evidence/2026-06-09-v2-2-1-release.md](docs/release-evidence/2026-06-09-v2-2-1-release.md)
+- Current release: `v2.3.0`
+- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.3.0
+- Published: `2026-06-11T01:25:01Z`
+- Release commit: `0fe1ea4e09bd067b11cf1e67e6a6215a348372da`
+- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/27317263662
+- Release evidence: [docs/release-evidence/2026-06-11-v2-3-0-release.md](docs/release-evidence/2026-06-11-v2-3-0-release.md)
 
 | Platform | Asset | SHA-256 |
 | --- | --- | --- |
-| Linux x86_64 | [`julie-extract-v2.2.1-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.2.1/julie-extract-v2.2.1-x86_64-unknown-linux-gnu.tar.gz) | `44695709ba3787943026e19f77d0de4114cfd9bc224a7722e25fcf59a46c285e` |
-| macOS Apple Silicon | [`julie-extract-v2.2.1-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.2.1/julie-extract-v2.2.1-aarch64-apple-darwin.tar.gz) | `562c323a24932f980f71b88e6541f395f19fd5dc1cdda4964dc4f60370b6b544` |
-| macOS Intel | [`julie-extract-v2.2.1-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.2.1/julie-extract-v2.2.1-x86_64-apple-darwin.tar.gz) | `8af0f22a03c0af47fe5657c3f39166825a6c1a1b29ad7849f0a5c5ad6fb7b5f3` |
-| Windows x86_64 | [`julie-extract-v2.2.1-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.2.1/julie-extract-v2.2.1-x86_64-pc-windows-msvc.zip) | `2665537413f14885d27090665a0b63c88a5e467b0d101b5d8bce09644cccd403` |
+| Linux x86_64 | [`julie-extract-v2.3.0-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.3.0/julie-extract-v2.3.0-x86_64-unknown-linux-gnu.tar.gz) | `a01354a7adbb928530f7d5a553a89099aa314624120b1e6e227ca7fca46f8ed6` |
+| macOS Apple Silicon | [`julie-extract-v2.3.0-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.3.0/julie-extract-v2.3.0-aarch64-apple-darwin.tar.gz) | `d17981fee403e6ddf2388374f31b0a0ccba8bf07a4deec760694185f941c897a` |
+| macOS Intel | [`julie-extract-v2.3.0-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.3.0/julie-extract-v2.3.0-x86_64-apple-darwin.tar.gz) | `c8b800aa7c3af78a54d05ed724751d08f8271fee025006167ee0eb7c764b65d9` |
+| Windows x86_64 | [`julie-extract-v2.3.0-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.3.0/julie-extract-v2.3.0-x86_64-pc-windows-msvc.zip) | `8a479ec414fa1487fb08f3b11695c45acae7b0d514451610b0df5113b4a17582` |
 
 The v2 line starts above the old in-tree Julie extractor crate line, which had
 reached v1.22.0 before this repo became the standalone product.
@@ -39,9 +39,9 @@ Download a published binary archive from the release page, extract it, and put
 Linux example:
 
 ```bash
-curl -L -o julie-extract-v2.2.1-x86_64-unknown-linux-gnu.tar.gz \
-  https://github.com/anortham/julie-extractors/releases/download/v2.2.1/julie-extract-v2.2.1-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf julie-extract-v2.2.1-x86_64-unknown-linux-gnu.tar.gz
+curl -L -o julie-extract-v2.3.0-x86_64-unknown-linux-gnu.tar.gz \
+  https://github.com/anortham/julie-extractors/releases/download/v2.3.0/julie-extract-v2.3.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf julie-extract-v2.3.0-x86_64-unknown-linux-gnu.tar.gz
 ./dist/x86_64-unknown-linux-gnu/julie-extract --version
 ```
 
@@ -131,11 +131,11 @@ text should read the matching source tree directly.
 
 ## Data Quality
 
-The upcoming `v2.3.0` release is a broad extraction-quality release. It raises
-the supported language matrix from boolean "supported" claims to fixture-backed,
+The `v2.3.0` release is a broad extraction-quality release. It raises the
+supported language matrix from boolean "supported" claims to fixture-backed,
 per-domain evidence. Every advertised language now has explicit coverage data
-for each extraction domain, and the scorecard has no silent cells or
-quality-bar debt.
+for each extraction domain, and the scorecard has no silent cells or quality-bar
+debt.
 
 Current quality scorecard:
 
@@ -166,8 +166,8 @@ language construct. Missing extractor work cannot be hidden behind
 `not_applicable`; the capability matrix enforces that every positive claim has
 golden fixture evidence.
 
-Dogfood evidence compares this branch with the published `v2.2.1` binary across
-the three dependent projects and representative real-world repositories. The
+Dogfood evidence compares `v2.3.0` with the previous `v2.2.1` binary across the
+three dependent projects and representative real-world repositories. The release
 branch scanned `12,893` files with `0` failed files, kept parse diagnostics
 unchanged, and added `451,382` structural facts plus `33,687` complexity metrics
 in that corpus.
@@ -315,8 +315,10 @@ Release and testing:
 
 - [Testing strategy](docs/testing-strategy.md)
 - [Release and certification](docs/release.md)
-- [v2.2.1 release notes](docs/release-notes/v2.2.1.md)
-- [v2.2.1 release evidence](docs/release-evidence/2026-06-09-v2-2-1-release.md)
+- [v2.3.0 release notes](docs/release-notes/v2.3.0.md)
+- [v2.3.0 release evidence](docs/release-evidence/2026-06-11-v2-3-0-release.md)
+- [historical v2.2.1 release notes](docs/release-notes/v2.2.1.md)
+- [historical v2.2.1 release evidence](docs/release-evidence/2026-06-09-v2-2-1-release.md)
 - [historical v2.2.0 release notes](docs/release-notes/v2.2.0.md)
 - [historical v2.2.0 release evidence](docs/release-evidence/2026-06-09-v2-2-0-release.md)
 - [historical v2.1.3 release notes](docs/release-notes/v2.1.3.md)
