@@ -285,5 +285,55 @@
       "start_byte": 197,
       "end_byte": 208
     }
-  ]
+  ],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/malformed_recovery/source.go",
+      "covered_lines": 16,
+      "covered_bytes": 227,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 227,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/go/malformed_recovery/source.go:VariadicFunction:13:5",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/malformed_recovery/source.go",
+      "covered_lines": 1,
+      "covered_bytes": 54,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 13,
+      "start_column": 5,
+      "end_line": 13,
+      "end_column": 59,
+      "start_byte": 138,
+      "end_byte": 192,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
 }

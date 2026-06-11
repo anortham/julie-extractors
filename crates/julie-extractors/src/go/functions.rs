@@ -147,7 +147,8 @@ impl super::GoExtractor {
             return_type.as_deref(),
         );
 
-        let doc_comment = self.base.find_doc_comment(&node);
+        let doc_comment = self.find_function_doc_comment(&node);
+        let annotations = self.annotations_from_compiler_directives(&node);
 
         let mut metadata = HashMap::new();
         if is_test_symbol(
@@ -161,7 +162,7 @@ impl super::GoExtractor {
             metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
         }
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Function,
@@ -174,9 +175,13 @@ impl super::GoExtractor {
                 } else {
                     Some(metadata)
                 },
-                doc_comment,
-                annotations: Vec::new(),
+                doc_comment: doc_comment.clone(),
+                annotations,
             },
+        );
+        Some(super::helpers::finalize_function_symbol(
+            symbol,
+            doc_comment,
         ))
     }
 
@@ -249,7 +254,8 @@ impl super::GoExtractor {
             )
         };
 
-        let doc_comment = self.base.find_doc_comment(&node);
+        let doc_comment = self.find_function_doc_comment(&node);
+        let annotations = self.annotations_from_compiler_directives(&node);
 
         let mut metadata = HashMap::new();
         if is_test_symbol(
@@ -263,7 +269,7 @@ impl super::GoExtractor {
             metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
         }
 
-        Some(self.base.create_symbol(
+        let symbol = self.base.create_symbol(
             &node,
             name,
             SymbolKind::Method,
@@ -276,9 +282,13 @@ impl super::GoExtractor {
                 } else {
                     Some(metadata)
                 },
-                doc_comment,
-                annotations: Vec::new(),
+                doc_comment: doc_comment.clone(),
+                annotations,
             },
+        );
+        Some(super::helpers::finalize_function_symbol(
+            symbol,
+            doc_comment,
         ))
     }
 
@@ -367,9 +377,9 @@ impl super::GoExtractor {
             // This looks like a function signature trapped in an ERROR node
             let signature = format!("func {}{}", name, params);
 
-            let doc_comment = self.base.find_doc_comment(&node);
+            let doc_comment = self.find_function_doc_comment(&node);
 
-            return Some(self.base.create_symbol(
+            let symbol = self.base.create_symbol(
                 &node,
                 name.clone(),
                 SymbolKind::Function,
@@ -382,9 +392,13 @@ impl super::GoExtractor {
                     },
                     parent_id: parent_id.map(|s| s.to_string()),
                     metadata: None,
-                    doc_comment,
+                    doc_comment: doc_comment.clone(),
                     annotations: Vec::new(),
                 },
+            );
+            return Some(super::helpers::finalize_function_symbol(
+                symbol,
+                doc_comment,
             ));
         }
 

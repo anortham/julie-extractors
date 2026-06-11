@@ -81,6 +81,36 @@ capabilities. Say "domain-limited" or "partial" when that is the honest claim.
   behavior. Current examples: `tsx`, `jsx`, and `vue`.
 - Runtime smoke is not enough. If a function returns data, the test must assert
   the actual rows or fields.
+- Empty row vectors are not support evidence. They are valid only for false
+  capabilities, not-applicable domains, or fixtures that explicitly prove
+  absence.
+- Broad capability upgrades must keep the language data quality scorecard clean:
+  no silent cells and no quality-bar debt. Any remaining domain must be
+  classified as supported, not applicable, convention-only, partial, or a typed
+  gap with closure evidence.
+- Downstream or real-world scans are evidence for regression risk and row volume,
+  not a replacement for fixture-backed field assertions.
+
+## Doc Comment Policy
+
+`Symbol.doc_comment` is the selected source documentation attached to the
+symbol:
+
+- Prefer the contiguous preceding comment block that the language treats as
+  documentation (JSDoc `/** */`, Go `//` doc lines, Lua `---`, R roxygen `#'`,
+  GDScript `##`, Zig `///`, VB.NET `'''`, and similar).
+- YAML attaches a single same-indent `#` line only when it immediately
+  precedes a leaf mapping key; file headers and container-key section comments
+  remain ordinary `comment` source regions.
+- Elixir uses `@doc` / `@moduledoc` module attributes; the attribute source text
+  is stored in `doc_comment`.
+- Preserve source comment markers and attribute syntax in the stored value unless
+  an existing language already has golden-tested behavior that intentionally
+  strips or normalizes them.
+- Plain non-documentation comments must not populate `doc_comment`.
+- Languages with no symbol-attached documentation construct (for example
+  tree-sitter-regex pattern files) use `kind_coverage.doc_comments.not_applicable`
+  with a language-semantics explanation rather than empty support rows.
 
 ## Source Of Truth
 

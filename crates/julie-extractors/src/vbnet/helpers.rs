@@ -217,3 +217,45 @@ fn normalize_type_name(type_name: &str) -> Option<String> {
         Some(normalized)
     }
 }
+
+pub fn find_vbnet_doc_comment(base: &BaseExtractor, node: &Node) -> Option<String> {
+    if let Some(doc) = base.find_doc_comment(node) {
+        return Some(doc);
+    }
+
+    let spec = crate::language::language_spec("vbnet")?;
+    let mut comments = Vec::new();
+    let mut current = node.prev_sibling();
+    while let Some(sibling) = current {
+        match sibling.kind() {
+            "comment" => {
+                let text = base.get_node_text(&sibling);
+                if spec.is_doc_comment(text.trim_start()) {
+                    comments.push(text);
+                    current = sibling.prev_sibling();
+                } else {
+                    break;
+                }
+            }
+            "blank_line" if comments.is_empty() => {
+                current = sibling.prev_sibling();
+            }
+            _ if is_vbnet_doc_barrier(&sibling) => {
+                current = sibling.prev_sibling();
+            }
+            _ => break,
+        }
+    }
+
+    comments.reverse();
+    if comments.is_empty() {
+        None
+    } else {
+        Some(comments.join("\n"))
+    }
+}
+
+fn is_vbnet_doc_barrier(node: &Node) -> bool {
+    matches!(node.kind(), "attribute" | "attribute_list" | "attributes")
+        || node.kind().contains("attribute")
+}

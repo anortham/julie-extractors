@@ -28,6 +28,8 @@ fn extract_relationships(code: &str, symbols: &[Symbol]) -> Vec<Relationship> {
 }
 
 #[cfg(test)]
+mod annotations;
+#[cfg(test)]
 mod cross_file_pending;
 #[cfg(test)]
 mod relationships;
@@ -2066,7 +2068,9 @@ mod razor_identifier_extraction_tests {
         );
     }
 }
+mod complexity;
 mod literals; // Phase 3: String-literal call-argument capture
+mod structural_facts;
 mod type_arguments; // Phase 2: Generic type-argument capture
 mod types; // Phase 4: Type extraction verification tests
 

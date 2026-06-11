@@ -987,6 +987,11 @@ fn capability_matrix_complexity_metric_claims_have_fixture_evidence() {
                 ));
             }
         }
+        if !claimed.is_empty() && !complexity_metrics_have_control_flow_evidence(&root, row) {
+            errors.push(format!(
+                "{language} claims complexity_metrics but no fixture emits a nonzero decision_count or loop_count"
+            ));
+        }
     }
 
     assert!(errors.is_empty(), "{}", errors.join("\n"));
@@ -1048,6 +1053,107 @@ fn capability_matrix_complexity_metric_claims_match_registry() {
     }
 
     assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+// Task 10: golden-backed kind_coverage domains for annotations, doc comments,
+// literals, and source regions. Same contract style as structural_facts /
+// complexity_metrics: every language row must declare the domain, and the
+// `supported` list must match golden-fixture evidence in both directions.
+
+#[test]
+fn capability_matrix_requires_annotations_coverage_domain() {
+    require_kind_coverage_domain("annotations", "symbol annotation claims");
+}
+
+#[test]
+fn capability_matrix_requires_doc_comments_coverage_domain() {
+    require_kind_coverage_domain("doc_comments", "doc-comment claims");
+}
+
+#[test]
+fn capability_matrix_requires_literals_coverage_domain() {
+    require_kind_coverage_domain("literals", "literal capture claims");
+}
+
+#[test]
+fn capability_matrix_requires_source_regions_coverage_domain() {
+    require_kind_coverage_domain("source_regions", "source-region claims");
+}
+
+#[test]
+fn capability_matrix_has_no_silent_kind_coverage_cells() {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let coverage = row["kind_coverage"]
+            .as_object()
+            .unwrap_or_else(|| panic!("{language} kind_coverage must be an object"));
+
+        for domain in [
+            "symbols",
+            "relationships",
+            "identifiers",
+            "body_spans",
+            "structural_facts",
+            "complexity_metrics",
+            "annotations",
+            "doc_comments",
+            "literals",
+            "source_regions",
+        ] {
+            let Some(domain_coverage) = coverage.get(domain) else {
+                errors.push(format!("{language} is missing kind_coverage.{domain}"));
+                continue;
+            };
+            let supported = coverage_array_len(language, domain, domain_coverage, "supported");
+            let not_applicable =
+                coverage_array_len(language, domain, domain_coverage, "not_applicable");
+            let open_gaps = coverage_array_len(language, domain, domain_coverage, "open_gaps");
+            if supported + not_applicable + open_gaps == 0 {
+                errors.push(format!(
+                    "{language} kind_coverage.{domain} is silent; add supported evidence, a language-semantics not_applicable entry, or an open_gap closure task"
+                ));
+            }
+            validate_open_gap_rows(language, domain, domain_coverage, &mut errors);
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
+fn capability_matrix_annotation_claims_have_fixture_evidence() {
+    assert_golden_domain_claims_match(
+        "annotations",
+        "symbol kind",
+        observed_annotation_symbol_kinds,
+    );
+}
+
+#[test]
+fn capability_matrix_doc_comment_claims_have_fixture_evidence() {
+    assert_golden_domain_claims_match(
+        "doc_comments",
+        "symbol kind",
+        observed_doc_comment_symbol_kinds,
+    );
+}
+
+#[test]
+fn capability_matrix_literal_claims_have_fixture_evidence() {
+    assert_golden_domain_claims_match("literals", "literal kind", observed_literal_kinds);
+}
+
+#[test]
+fn capability_matrix_source_region_claims_have_fixture_evidence() {
+    assert_golden_domain_claims_match(
+        "source_regions",
+        "region kind",
+        observed_source_region_kinds,
+    );
 }
 
 #[test]
@@ -1384,6 +1490,28 @@ fn observed_structural_fact_patterns(root: &Path, row: &Value) -> BTreeSet<Strin
     observed
 }
 
+fn complexity_metrics_have_control_flow_evidence(root: &Path, row: &Value) -> bool {
+    let language = row["language"].as_str().unwrap();
+    let fixtures = row["fixtures"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{language} fixtures must be an array"));
+
+    fixtures.iter().any(|fixture| {
+        let source_path = fixture["source"].as_str().unwrap_or_else(|| {
+            panic!("{language} fixture entries must include string source paths")
+        });
+        let source = fs::read_to_string(root.join(source_path))
+            .unwrap_or_else(|err| panic!("failed to read fixture source {source_path}: {err}"));
+        let results = extract_canonical(source_path, &source, root).unwrap_or_else(|err| {
+            panic!("extract_canonical failed for {language} fixture {source_path}: {err}")
+        });
+        results
+            .complexity_metrics
+            .iter()
+            .any(|metric| metric.decision_count > 0 || metric.loop_count > 0)
+    })
+}
+
 fn observed_complexity_metric_scopes(root: &Path, row: &Value) -> BTreeSet<String> {
     let language = row["language"].as_str().unwrap();
     let fixtures = row["fixtures"]
@@ -1412,35 +1540,188 @@ fn observed_complexity_metric_scopes(root: &Path, row: &Value) -> BTreeSet<Strin
 }
 
 fn structural_fact_claims(language: &str, coverage: &Value) -> BTreeSet<String> {
+    supported_claims(language, "structural_facts", coverage)
+}
+
+fn complexity_metric_claims(language: &str, coverage: &Value) -> BTreeSet<String> {
+    supported_claims(language, "complexity_metrics", coverage)
+}
+
+fn supported_claims(language: &str, domain: &str, coverage: &Value) -> BTreeSet<String> {
     coverage["supported"]
         .as_array()
-        .unwrap_or_else(|| panic!("{language} structural_facts.supported must be an array"))
+        .unwrap_or_else(|| panic!("{language} {domain}.supported must be an array"))
         .iter()
         .map(|value| {
             value
                 .as_str()
-                .unwrap_or_else(|| {
-                    panic!("{language} structural_facts.supported values must be strings")
-                })
+                .unwrap_or_else(|| panic!("{language} {domain}.supported values must be strings"))
                 .to_string()
         })
         .collect()
 }
 
-fn complexity_metric_claims(language: &str, coverage: &Value) -> BTreeSet<String> {
-    coverage["supported"]
+fn require_kind_coverage_domain(domain: &str, claims: &str) {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        if row["kind_coverage"].get(domain).is_none() {
+            errors.push(format!(
+                "{language} is missing kind_coverage.{domain} for {claims}"
+            ));
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+fn coverage_array_len(language: &str, domain: &str, coverage: &Value, field: &str) -> usize {
+    coverage
+        .get(field)
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| panic!("{language} kind_coverage.{domain}.{field} must be an array"))
+        .len()
+}
+
+fn validate_open_gap_rows(
+    language: &str,
+    domain: &str,
+    coverage: &Value,
+    errors: &mut Vec<String>,
+) {
+    let Some(gaps) = coverage.get("open_gaps").and_then(Value::as_array) else {
+        return;
+    };
+    for gap in gaps {
+        for field in ["kind", "reason", "required_closure", "planned_closure_task"] {
+            if gap
+                .get(field)
+                .and_then(Value::as_str)
+                .is_none_or(str::is_empty)
+            {
+                errors.push(format!(
+                    "{language} kind_coverage.{domain}.open_gaps entries must include non-empty {field}"
+                ));
+            }
+        }
+    }
+}
+
+/// Golden-backed bidirectional evidence check: every `supported` claim for
+/// `domain` must be observed in at least one golden `expected.json`, and every
+/// observed unit must be claimed. Reads goldens (not live extraction) because
+/// the golden suite already locks goldens to extractor output.
+fn assert_golden_domain_claims_match(
+    domain: &str,
+    unit: &str,
+    observe: fn(&Value, &mut BTreeSet<String>),
+) {
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let Some(coverage) = row["kind_coverage"].get(domain) else {
+            errors.push(format!(
+                "{language} is missing kind_coverage.{domain}; run the requires_{domain}_coverage_domain test for details"
+            ));
+            continue;
+        };
+        let claimed = supported_claims(language, domain, coverage);
+        let observed = observed_golden_domain(&root, row, observe);
+
+        for entry in &claimed {
+            if !observed.contains(entry) {
+                errors.push(format!(
+                    "{language} claims supported {domain} {unit} `{entry}` but no golden fixture emits it"
+                ));
+            }
+        }
+        for entry in &observed {
+            if !claimed.contains(entry) {
+                errors.push(format!(
+                    "{language} golden fixtures emit {domain} {unit} `{entry}` but kind_coverage.{domain}.supported does not advertise it"
+                ));
+            }
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+fn observed_golden_domain(
+    root: &Path,
+    row: &Value,
+    observe: fn(&Value, &mut BTreeSet<String>),
+) -> BTreeSet<String> {
+    let language = row["language"].as_str().unwrap();
+    let fixtures = row["fixtures"]
         .as_array()
-        .unwrap_or_else(|| panic!("{language} complexity_metrics.supported must be an array"))
-        .iter()
-        .map(|value| {
-            value
-                .as_str()
-                .unwrap_or_else(|| {
-                    panic!("{language} complexity_metrics.supported values must be strings")
-                })
-                .to_string()
-        })
-        .collect()
+        .unwrap_or_else(|| panic!("{language} fixtures must be an array"));
+    let mut observed = BTreeSet::new();
+
+    for fixture in fixtures {
+        let expected_path = fixture["expected"].as_str().unwrap_or_else(|| {
+            panic!("{language} fixture entries must include string expected paths")
+        });
+        let json = fs::read_to_string(root.join(expected_path))
+            .unwrap_or_else(|err| panic!("failed to read expected fixture {expected_path}: {err}"));
+        let expected: Value = serde_json::from_str(&json).unwrap_or_else(|err| {
+            panic!("failed to parse expected fixture {expected_path}: {err}")
+        });
+        observe(&expected, &mut observed);
+    }
+
+    observed
+}
+
+fn observed_annotation_symbol_kinds(expected: &Value, into: &mut BTreeSet<String>) {
+    for symbol in golden_items(expected, "symbols") {
+        let has_annotations = symbol
+            .get("annotations")
+            .and_then(Value::as_array)
+            .is_some_and(|annotations| !annotations.is_empty());
+        if has_annotations && let Some(kind) = symbol.get("kind").and_then(Value::as_str) {
+            into.insert(kind.to_string());
+        }
+    }
+}
+
+fn observed_doc_comment_symbol_kinds(expected: &Value, into: &mut BTreeSet<String>) {
+    for symbol in golden_items(expected, "symbols") {
+        let has_doc_comment = symbol.get("doc_comment").is_some_and(|doc| !doc.is_null());
+        if has_doc_comment && let Some(kind) = symbol.get("kind").and_then(Value::as_str) {
+            into.insert(kind.to_string());
+        }
+    }
+}
+
+fn observed_literal_kinds(expected: &Value, into: &mut BTreeSet<String>) {
+    for literal in golden_items(expected, "literals") {
+        if let Some(kind) = literal.get("kind").and_then(Value::as_str) {
+            into.insert(kind.to_string());
+        }
+    }
+}
+
+fn observed_source_region_kinds(expected: &Value, into: &mut BTreeSet<String>) {
+    for region in golden_items(expected, "source_regions") {
+        if let Some(kind) = region.get("kind").and_then(Value::as_str) {
+            into.insert(kind.to_string());
+        }
+    }
+}
+
+fn golden_items<'a>(expected: &'a Value, field: &str) -> impl Iterator<Item = &'a Value> {
+    expected
+        .get(field)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
 }
 
 fn collect_kinds<F>(into: &mut BTreeSet<String>, expected: &Value, fields: &[&str], get_kind: F)

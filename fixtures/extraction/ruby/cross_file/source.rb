@@ -8,8 +8,14 @@ require 'other'
 
 class Worker
   def entry
+    total = 0
+    if local_helper > 0
+      for i in 0...2
+        total += i
+      end
+    end
     OtherModule.do_thing
-    local_helper
+    total + local_helper
   end
 
   def local_helper

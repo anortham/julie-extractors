@@ -27,8 +27,16 @@ use crate::ecmascript_imports::{
     ImportSourceKind, import_source_from_symbol, import_source_kind,
     is_ecmascript_global_direct_target,
 };
+use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 use tree_sitter::Tree;
+
+// Static regexes compiled once for performance
+static JSDOC_RETURNS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"@returns?\s*\{([^}]+)\}").unwrap());
+static JSDOC_TYPE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"@type\s*\{([^}]+)\}").unwrap());
 
 pub struct JavaScriptExtractor {
     pub(crate) base: BaseExtractor,
@@ -631,19 +639,13 @@ impl JavaScriptExtractor {
         match kind {
             SymbolKind::Function | SymbolKind::Method => {
                 // Extract return type from @returns {Type} or @return {Type}
-                if let Some(captures) = regex::Regex::new(r"@returns?\s*\{([^}]+)\}")
-                    .ok()?
-                    .captures(doc_comment)
-                {
+                if let Some(captures) = JSDOC_RETURNS_RE.captures(doc_comment) {
                     return Some(captures[1].trim().to_string());
                 }
             }
             SymbolKind::Variable | SymbolKind::Property => {
                 // Extract type from @type {Type}
-                if let Some(captures) = regex::Regex::new(r"@type\s*\{([^}]+)\}")
-                    .ok()?
-                    .captures(doc_comment)
-                {
+                if let Some(captures) = JSDOC_TYPE_RE.captures(doc_comment) {
                     return Some(captures[1].trim().to_string());
                 }
             }

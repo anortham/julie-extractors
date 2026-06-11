@@ -243,5 +243,143 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/cross_file/source.rs",
+      "covered_lines": 17,
+      "covered_bytes": 478,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 478,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/cross_file/source.rs:entry:13:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/cross_file/source.rs",
+      "covered_lines": 4,
+      "covered_bytes": 46,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 22,
+      "end_line": 16,
+      "end_column": 1,
+      "start_byte": 431,
+      "end_byte": 477,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/cross_file/source.rs:local_helper:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/cross_file/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 10,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 25,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 397,
+      "end_byte": 407,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/cross_file/source.rs",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 72,
+      "start_byte": 0,
+      "end_byte": 72,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/cross_file/source.rs",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 71,
+      "start_byte": 73,
+      "end_byte": 144,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/cross_file/source.rs",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 73,
+      "start_byte": 145,
+      "end_byte": 218,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/cross_file/source.rs",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 72,
+      "start_byte": 219,
+      "end_byte": 291,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/cross_file/source.rs",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 42,
+      "start_byte": 292,
+      "end_byte": 334,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

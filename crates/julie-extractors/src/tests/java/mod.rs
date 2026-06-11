@@ -1,6 +1,7 @@
 mod annotation_tests;
 
 mod class_tests;
+mod complexity;
 mod cross_file_pending;
 mod cross_file_relationships;
 /// Java extractor tests
@@ -12,6 +13,7 @@ mod literals;
 mod method_tests;
 mod modern_java_tests;
 mod package_import_tests;
+mod structural_facts;
 mod test_detection; // Miller bridge test-roles: base_types + @Nested + JUnit annotations
 mod type_arguments;
 mod types; // Phase 4: Type extraction verification tests

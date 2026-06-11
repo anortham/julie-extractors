@@ -8,7 +8,7 @@
 
 use super::parsing::VueSection;
 use super::script::create_symbol_manual;
-use crate::base::{BaseExtractor, Symbol, SymbolKind};
+use crate::base::{AnnotationMarker, BaseExtractor, Symbol, SymbolKind, normalize_annotations};
 use crate::test_detection::is_test_symbol;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -30,6 +30,147 @@ pub(super) fn extract_script_setup_symbols(
     walk_for_symbols(base, root, section, &mut symbols);
 
     symbols
+}
+
+const COMPONENT_MACROS: [&str; 3] = ["defineOptions", "defineProps", "defineEmits"];
+
+/// Attach script-setup macro metadata to the component symbol and defineExpose targets.
+pub(super) fn apply_script_setup_annotations(symbols: &mut [Symbol], sections: &[VueSection]) {
+    for section in sections {
+        if section.section_type != "script" || !section.is_setup {
+            continue;
+        }
+        let Some(tree) = parse_script_section(section) else {
+            continue;
+        };
+
+        let component_macros = collect_component_macros(tree.root_node(), &section.content);
+        if !component_macros.is_empty()
+            && let Some(component) = symbols
+                .iter_mut()
+                .find(|symbol| is_vue_component_symbol(symbol))
+        {
+            merge_annotations(component, vue_macro_annotations(&component_macros));
+        }
+
+        let exposed_names = collect_define_expose_names(tree.root_node(), &section.content);
+        for name in exposed_names {
+            if let Some(symbol) = symbols.iter_mut().find(|symbol| {
+                symbol.name == name
+                    && matches!(
+                        symbol.kind,
+                        SymbolKind::Function | SymbolKind::Variable | SymbolKind::Method
+                    )
+            }) {
+                merge_annotations(symbol, vue_macro_annotations(&["defineExpose".to_string()]));
+            }
+        }
+    }
+}
+
+fn is_vue_component_symbol(symbol: &Symbol) -> bool {
+    symbol.kind == SymbolKind::Class
+        && symbol.metadata.as_ref().is_some_and(|metadata| {
+            metadata.get("type").and_then(|value| value.as_str()) == Some("vue-sfc")
+        })
+}
+
+fn merge_annotations(symbol: &mut Symbol, annotations: Vec<AnnotationMarker>) {
+    for annotation in annotations {
+        if symbol
+            .annotations
+            .iter()
+            .any(|existing| existing.annotation_key == annotation.annotation_key)
+        {
+            continue;
+        }
+        symbol.annotations.push(annotation);
+    }
+}
+
+fn vue_macro_annotations(macro_names: &[String]) -> Vec<AnnotationMarker> {
+    let raw_texts: Vec<String> = macro_names.iter().map(|name| format!("{name}()")).collect();
+    normalize_annotations(&raw_texts, "javascript")
+}
+
+fn collect_component_macros(node: Node, content: &str) -> Vec<String> {
+    let mut macros = Vec::new();
+    collect_component_macros_recursive(node, content, &mut macros);
+    macros.sort();
+    macros.dedup();
+    macros
+}
+
+fn collect_component_macros_recursive(node: Node, content: &str, macros: &mut Vec<String>) {
+    if node.kind() == "call_expression"
+        && let Some(callee) = node.child_by_field_name("function")
+    {
+        let callee_name = get_node_text(&callee, content);
+        if COMPONENT_MACROS.contains(&callee_name.as_str()) {
+            macros.push(callee_name);
+        }
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_component_macros_recursive(child, content, macros);
+    }
+}
+
+fn collect_define_expose_names(node: Node, content: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    collect_define_expose_names_recursive(node, content, &mut names);
+    names.sort();
+    names.dedup();
+    names
+}
+
+fn collect_define_expose_names_recursive(node: Node, content: &str, names: &mut Vec<String>) {
+    if node.kind() == "call_expression"
+        && let Some(callee) = node.child_by_field_name("function")
+        && get_node_text(&callee, content) == "defineExpose"
+        && let Some(arguments) = node.child_by_field_name("arguments")
+    {
+        collect_exposed_object_names(arguments, content, names);
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_define_expose_names_recursive(child, content, names);
+    }
+}
+
+fn collect_exposed_object_names(node: Node, content: &str, names: &mut Vec<String>) {
+    match node.kind() {
+        "object" | "object_pattern" => {
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                collect_exposed_property_name(child, content, names);
+            }
+        }
+        _ => {
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                collect_exposed_object_names(child, content, names);
+            }
+        }
+    }
+}
+
+fn collect_exposed_property_name(node: Node, content: &str, names: &mut Vec<String>) {
+    match node.kind() {
+        "pair" => {
+            if let Some(value) = node.child_by_field_name("value")
+                && value.kind() == "identifier"
+            {
+                names.push(get_node_text(&value, content));
+            }
+        }
+        "shorthand_property_identifier" | "shorthand_property_identifier_pattern" => {
+            names.push(get_node_text(&node, content));
+        }
+        _ => {}
+    }
 }
 
 fn with_zero_based_columns(mut symbol: Symbol) -> Symbol {

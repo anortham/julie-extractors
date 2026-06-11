@@ -3,7 +3,13 @@
 /// - Visibility and attribute extraction
 /// - Keyword detection
 use crate::base::BaseExtractor;
+use regex::Regex;
+use std::sync::LazyLock;
 use tree_sitter::Node;
+
+// Static regex compiled once for performance
+static DOC_ATTRIBUTE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"#\[doc\s*=\s*"([^"]+)"\]"#).unwrap());
 
 /// Information about an impl block (stored by byte range for safety)
 #[derive(Debug, Clone)]
@@ -373,9 +379,7 @@ fn find_inner_doc_comment(base: &BaseExtractor, node: Node) -> Option<String> {
 /// Extract doc string from #[doc = "..."] attribute
 pub(super) fn extract_doc_from_attribute(base: &BaseExtractor, node: Node) -> Option<String> {
     let attr_text = base.get_node_text(&node);
-    if let Some(captures) = regex::Regex::new(r#"#\[doc\s*=\s*"([^"]+)"\]"#)
-        .ok()
-        .and_then(|re| re.captures(&attr_text))
+    if let Some(captures) = DOC_ATTRIBUTE_RE.captures(&attr_text)
         && let Some(doc_match) = captures.get(1)
     {
         return Some(doc_match.as_str().to_string());

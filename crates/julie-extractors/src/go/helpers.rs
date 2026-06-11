@@ -1,4 +1,8 @@
+use std::collections::{BTreeSet, HashSet};
+
 use tree_sitter::Node;
+
+use crate::base::{AnnotationMarker, Symbol};
 
 /// Helper methods for Go-specific utilities and node text extraction
 impl super::GoExtractor {
@@ -134,5 +138,239 @@ impl super::GoExtractor {
             }
         }
         None
+    }
+
+    pub(super) fn annotations_from_struct_field_tags(
+        &self,
+        struct_node: Node,
+    ) -> Vec<AnnotationMarker> {
+        let mut tag_keys = BTreeSet::new();
+        collect_struct_field_tag_keys(struct_node, &mut tag_keys, &|node| self.get_node_text(node));
+
+        if tag_keys.is_empty() {
+            return Vec::new();
+        }
+
+        vec![AnnotationMarker {
+            annotation: "field_tags".to_string(),
+            annotation_key: "field_tags".to_string(),
+            raw_text: Some(tag_keys.into_iter().collect::<Vec<_>>().join(", ")),
+            carrier: None,
+        }]
+    }
+
+    pub(super) fn annotations_from_field_tag(&self, tag_text: &str) -> Vec<AnnotationMarker> {
+        parse_go_struct_tag_pairs(tag_text)
+            .into_iter()
+            .map(|(key, raw_fragment)| AnnotationMarker {
+                annotation: raw_fragment.clone(),
+                annotation_key: key,
+                raw_text: Some(raw_fragment),
+                carrier: None,
+            })
+            .collect()
+    }
+
+    pub(super) fn find_function_doc_comment(&self, node: &Node) -> Option<String> {
+        let comments: Vec<String> = self
+            .preceding_comment_texts(node.prev_named_sibling())
+            .into_iter()
+            .filter(|comment| parse_go_compiler_directive(comment).is_none())
+            .collect();
+        select_go_doc_comment_block(&comments)
+    }
+
+    pub(super) fn annotations_from_compiler_directives(
+        &self,
+        node: &Node,
+    ) -> Vec<AnnotationMarker> {
+        let comments = self.preceding_comment_texts(node.prev_named_sibling());
+        let mut seen = HashSet::new();
+        let mut markers = Vec::new();
+
+        for comment in comments.iter().rev() {
+            if let Some(marker) = parse_go_compiler_directive(comment)
+                && seen.insert(marker.annotation_key.clone())
+            {
+                markers.push(marker);
+            }
+        }
+
+        markers
+    }
+
+    fn preceding_comment_texts(&self, mut current: Option<Node>) -> Vec<String> {
+        let mut comments = Vec::new();
+
+        while let Some(sibling) = current {
+            if sibling.kind().contains("comment") {
+                comments.push(self.get_node_text(sibling));
+                current = sibling.prev_named_sibling();
+            } else {
+                break;
+            }
+        }
+
+        comments
+    }
+}
+
+fn collect_struct_field_tag_keys(
+    node: Node,
+    keys: &mut BTreeSet<String>,
+    get_text: &dyn Fn(Node) -> String,
+) {
+    if node.kind() == "field_declaration"
+        && let Some(tag_node) = node.child_by_field_name("tag")
+    {
+        for (key, _) in parse_go_struct_tag_pairs(&get_text(tag_node)) {
+            keys.insert(key);
+        }
+        return;
+    }
+
+    if matches!(
+        node.kind(),
+        "tag" | "field_tag" | "raw_string_literal" | "interpreted_string_literal"
+    ) {
+        for (key, _) in parse_go_struct_tag_pairs(&get_text(node)) {
+            keys.insert(key);
+        }
+        return;
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_struct_field_tag_keys(child, keys, get_text);
+    }
+}
+
+fn parse_go_struct_tag_pairs(tag_text: &str) -> Vec<(String, String)> {
+    let inner = tag_text.trim().trim_matches('`');
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for ch in inner.chars() {
+        if escaped {
+            current.push(ch);
+            escaped = false;
+            continue;
+        }
+        if ch == '\\' && in_string {
+            escaped = true;
+            current.push(ch);
+            continue;
+        }
+        if ch == '"' {
+            in_string = !in_string;
+            current.push(ch);
+            continue;
+        }
+        if ch.is_whitespace() && !in_string {
+            if !current.is_empty() {
+                parts.push(current.clone());
+                current.clear();
+            }
+            continue;
+        }
+        current.push(ch);
+    }
+
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    parts
+        .into_iter()
+        .filter_map(|part| {
+            let (key, _) = part.split_once(':')?;
+            let key = key.trim();
+            if key.is_empty() {
+                return None;
+            }
+            Some((key.to_string(), part))
+        })
+        .collect()
+}
+
+pub(super) fn finalize_function_symbol(mut symbol: Symbol, doc_comment: Option<String>) -> Symbol {
+    if doc_comment.is_none() && !symbol.annotations.is_empty() {
+        symbol.doc_comment = None;
+    }
+    symbol
+}
+
+fn select_go_doc_comment_block(comments_nearest_first: &[String]) -> Option<String> {
+    let spec = crate::language::language_spec("go")?;
+    if comments_nearest_first.is_empty() {
+        return None;
+    }
+
+    let comments_top_down: Vec<_> = comments_nearest_first.iter().rev().collect();
+    for start_index in 0..comments_top_down.len() {
+        let first = comments_top_down[start_index];
+        if !spec.is_doc_comment(first) {
+            continue;
+        }
+
+        if comments_top_down[start_index + 1..]
+            .iter()
+            .all(|comment| spec.continues_doc_comment(comment))
+        {
+            return Some(
+                comments_top_down[start_index..]
+                    .iter()
+                    .map(|comment| comment.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            );
+        }
+    }
+
+    None
+}
+
+fn parse_go_compiler_directive(comment: &str) -> Option<AnnotationMarker> {
+    let trimmed = comment.trim();
+    let body = trimmed.strip_prefix("//")?.trim_start();
+    let directive = body.strip_prefix("go:")?.trim_start();
+    let name = directive
+        .split(|ch: char| ch.is_whitespace() || ch == '(')
+        .next()?
+        .trim();
+    if name.is_empty() {
+        return None;
+    }
+
+    Some(AnnotationMarker {
+        annotation: format!("go:{name}"),
+        annotation_key: name.to_ascii_lowercase(),
+        raw_text: Some(trimmed.to_string()),
+        carrier: None,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_go_compiler_directive, parse_go_struct_tag_pairs};
+
+    #[test]
+    fn parse_struct_tag_pairs_splits_multiple_keys() {
+        let pairs = parse_go_struct_tag_pairs(r#"`json:"id" db:"worker_id"`"#);
+        assert_eq!(pairs.len(), 2);
+        assert_eq!(pairs[0].0, "json");
+        assert_eq!(pairs[0].1, r#"json:"id""#);
+        assert_eq!(pairs[1].0, "db");
+        assert_eq!(pairs[1].1, r#"db:"worker_id""#);
+    }
+
+    #[test]
+    fn parse_compiler_directive_extracts_go_prefix() {
+        let marker = parse_go_compiler_directive("//go:noinline").expect("directive");
+        assert_eq!(marker.annotation_key, "noinline");
+        assert_eq!(marker.annotation, "go:noinline");
+        assert_eq!(marker.raw_text.as_deref(), Some("//go:noinline"));
     }
 }

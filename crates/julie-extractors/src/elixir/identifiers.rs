@@ -2,9 +2,11 @@
 ///
 /// Walks the tree to find: function calls, module references (aliases),
 /// and qualified calls (Module.function).
-use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
+
+use super::helpers::{find_child_by_type, is_elixir_parameterized_type_call};
 
 /// Extract all identifier usages from parsed Elixir source
 pub(super) fn extract_identifiers(
@@ -14,6 +16,7 @@ pub(super) fn extract_identifiers(
 ) -> Vec<Identifier> {
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
     walk_tree_for_identifiers(base, tree.root_node(), &symbol_map);
+    walk_tree_for_typespec_type_arguments(base, tree.root_node(), &symbol_map);
     base.identifiers.clone()
 }
 
@@ -226,5 +229,207 @@ fn elixir_carrier(base: &BaseExtractor, target: Node) -> Option<String> {
             let text = base.get_node_text(&target);
             if text.is_empty() { None } else { Some(text) }
         }
+    }
+}
+
+// ============================================================================
+// Typespec type-argument capture (Miller bridge Phase 2)
+// ============================================================================
+
+/// Walk module attributes and record ordered/nested type-argument usages from
+/// `@type` / `@typep` / `@opaque` / `@spec` / `@callback` typespec trees.
+fn walk_tree_for_typespec_type_arguments(
+    base: &mut BaseExtractor,
+    node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    if node.kind() == "unary_operator" {
+        extract_typespec_type_arguments_from_attribute(base, node, symbol_map);
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_tree_for_typespec_type_arguments(base, child, symbol_map);
+    }
+}
+
+fn extract_typespec_type_arguments_from_attribute(
+    base: &mut BaseExtractor,
+    attr_node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    let Some(operator) = attr_node.child_by_field_name("operator") else {
+        return;
+    };
+    if base.get_node_text(&operator) != "@" {
+        return;
+    }
+    let Some(operand) = attr_node.child_by_field_name("operand") else {
+        return;
+    };
+    if operand.kind() != "call" {
+        return;
+    }
+    let Some(target) = operand.child_by_field_name("target") else {
+        return;
+    };
+    if target.kind() != "identifier" {
+        return;
+    }
+
+    let Some(args) = find_child_by_type(&operand, "arguments") else {
+        return;
+    };
+
+    match base.get_node_text(&target).as_str() {
+        "type" | "typep" | "opaque" => walk_elixir_type_alias_typespec(base, args, symbol_map),
+        "spec" | "callback" => walk_elixir_spec_typespec(base, args, symbol_map),
+        _ => {}
+    }
+}
+
+fn walk_elixir_type_alias_typespec(
+    base: &mut BaseExtractor,
+    node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    if let Some(body) = find_typespec_body_node(node) {
+        if let Some(right) = body.child_by_field_name("right") {
+            walk_elixir_typespec_type_expr(base, right, symbol_map);
+        }
+        return;
+    }
+    walk_elixir_typespec_type_expr(base, node, symbol_map);
+}
+
+fn walk_elixir_spec_typespec(
+    base: &mut BaseExtractor,
+    node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    if let Some(body) = find_typespec_body_node(node) {
+        if let Some(left) = body.child_by_field_name("left") {
+            walk_elixir_spec_function_head(base, left, symbol_map);
+        }
+        if let Some(right) = body.child_by_field_name("right") {
+            walk_elixir_typespec_type_expr(base, right, symbol_map);
+        }
+        return;
+    }
+    walk_elixir_typespec_type_expr(base, node, symbol_map);
+}
+
+fn find_typespec_body_node<'a>(node: Node<'a>) -> Option<Node<'a>> {
+    if node.kind() == "binary_operator" {
+        return Some(node);
+    }
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .find(|child| child.kind() == "binary_operator")
+}
+
+/// Walk a `@spec` / `@callback` function head without recording the head call
+/// itself; parameter types inside the head may still contain generic forms.
+fn walk_elixir_spec_function_head(
+    base: &mut BaseExtractor,
+    node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    if node.kind() == "call" {
+        if let Some(args) = find_child_by_type(&node, "arguments") {
+            walk_elixir_typespec_type_expr_children(base, args, symbol_map);
+        }
+        return;
+    }
+    walk_elixir_typespec_type_expr(base, node, symbol_map);
+}
+
+fn walk_elixir_typespec_type_expr(
+    base: &mut BaseExtractor,
+    node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    if node.kind() == "call"
+        && is_elixir_parameterized_type_call(&node)
+        && !is_nested_in_type_application_args(&node)
+    {
+        record_elixir_type_arguments(base, node, symbol_map);
+        return;
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_elixir_typespec_type_expr(base, child, symbol_map);
+    }
+}
+
+fn walk_elixir_typespec_type_expr_children(
+    base: &mut BaseExtractor,
+    node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        walk_elixir_typespec_type_expr(base, child, symbol_map);
+    }
+}
+
+fn is_nested_in_type_application_args(node: &Node) -> bool {
+    let Some(args) = node.parent() else {
+        return false;
+    };
+    if args.kind() != "arguments" {
+        return false;
+    }
+    let Some(parent_call) = args.parent() else {
+        return false;
+    };
+    parent_call.kind() == "call"
+        && parent_call.id() != node.id()
+        && is_elixir_parameterized_type_call(&parent_call)
+}
+
+fn record_elixir_type_arguments(
+    base: &mut BaseExtractor,
+    call_node: Node,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    let Some(target) = call_node.child_by_field_name("target") else {
+        return;
+    };
+    if target.kind() != "identifier" {
+        return;
+    }
+    let Some(args) = find_child_by_type(&call_node, "arguments") else {
+        return;
+    };
+
+    let name = base.get_node_text(&target);
+    let containing_symbol_id = find_containing_symbol_id(base, call_node, symbol_map);
+    let identifier = base.create_identifier(
+        &target,
+        name,
+        IdentifierKind::TypeUsage,
+        containing_symbol_id,
+    );
+    let arguments = extract_type_arguments(base, args, decompose_elixir_type_arg);
+    base.record_type_arguments(&identifier, arguments);
+}
+
+fn decompose_elixir_type_arg<'a>(
+    base: &BaseExtractor,
+    node: Node<'a>,
+) -> Option<(String, Option<Node<'a>>)> {
+    if !node.is_named() {
+        return None;
+    }
+    match node.kind() {
+        "call" => {
+            let target = node.child_by_field_name("target")?;
+            let name = base.get_node_text(&target);
+            let nested = find_child_by_type(&node, "arguments");
+            Some((name, nested))
+        }
+        _ => Some((base.get_node_text(&node), None)),
     }
 }

@@ -14,6 +14,8 @@
 //!
 //! This enables full-stack symbol tracing from frontend -> API -> database schema.
 
+mod body_spans;
+pub(crate) mod complexity_metrics;
 mod constraints;
 mod error_handling;
 mod helpers;
@@ -78,7 +80,103 @@ impl SqlExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None);
+        self.walk_for_string_literals(tree.root_node(), &symbols);
         symbols
+    }
+
+    fn walk_for_string_literals(&mut self, node: tree_sitter::Node, symbols: &[Symbol]) {
+        if matches!(node.kind(), "string" | "string_literal" | "literal") {
+            let symbol_map: HashMap<String, &Symbol> =
+                symbols.iter().map(|s| (s.id.clone(), s)).collect();
+            let containing_symbol_id = self
+                .base
+                .find_containing_symbol_from_map(&node, &symbol_map)
+                .map(|symbol| symbol.id.clone());
+            if let Some(text) = self.decode_sql_string_literal(&node) {
+                let carrier = self.sql_literal_carrier(&node);
+                self.base
+                    .record_literal(&node, text, carrier, 0, containing_symbol_id);
+            }
+        }
+
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            self.walk_for_string_literals(child, symbols);
+        }
+    }
+
+    fn sql_literal_carrier(&self, node: &tree_sitter::Node) -> Option<String> {
+        if self.literal_is_in_default_clause(node) {
+            return Some("DEFAULT".to_string());
+        }
+        if let Some(column_def) = self.find_ancestor(node, "column_definition") {
+            let name_node = self
+                .base
+                .find_child_by_type(&column_def, "identifier")
+                .or_else(|| self.base.find_child_by_type(&column_def, "column_name"));
+            if let Some(name_node) = name_node {
+                return Some(self.base.get_node_text(&name_node));
+            }
+        }
+        if let Some(parent) = node.parent() {
+            match parent.kind() {
+                "insert" | "insert_statement" | "values" => {
+                    return Some("INSERT".to_string());
+                }
+                _ => {}
+            }
+        }
+        Some("value".to_string())
+    }
+
+    fn find_ancestor<'a>(
+        &self,
+        node: &tree_sitter::Node<'a>,
+        kind: &str,
+    ) -> Option<tree_sitter::Node<'a>> {
+        let mut current = node.parent();
+        while let Some(parent) = current {
+            if parent.kind() == kind {
+                return Some(parent);
+            }
+            current = parent.parent();
+        }
+        None
+    }
+
+    fn literal_is_in_default_clause(&self, node: &tree_sitter::Node) -> bool {
+        let column_def = self.find_ancestor(node, "column_definition");
+        let Some(column_def) = column_def else {
+            return false;
+        };
+        let mut cursor = column_def.walk();
+        let mut saw_default = false;
+        for child in column_def.children(&mut cursor) {
+            if child.kind() == "keyword_default" {
+                saw_default = true;
+            }
+            if descendant_contains(child, *node) {
+                return saw_default;
+            }
+        }
+        false
+    }
+
+    fn decode_sql_string_literal(&self, node: &tree_sitter::Node) -> Option<String> {
+        if node.kind() == "literal" {
+            let raw = self.base.get_node_text(node);
+            if !raw.trim_start().starts_with('\'') && !raw.trim_start().starts_with('"') {
+                return None;
+            }
+            let trimmed = raw.trim().trim_matches(|c| c == '\'' || c == '"').trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        } else {
+            self.base.decode_string_literal(node)
+        }
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
@@ -291,4 +389,17 @@ impl SqlExtractor {
             }
         }
     }
+}
+
+fn descendant_contains(ancestor: tree_sitter::Node, target: tree_sitter::Node) -> bool {
+    if ancestor.id() == target.id() {
+        return true;
+    }
+    let mut cursor = ancestor.walk();
+    for child in ancestor.children(&mut cursor) {
+        if descendant_contains(child, target) {
+            return true;
+        }
+    }
+    false
 }

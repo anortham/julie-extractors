@@ -49,7 +49,7 @@ impl YamlExtractor {
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
     ) {
-        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref());
+        let symbol = self.extract_symbol_from_node(node, parent_id.as_deref(), symbols);
         let mut current_parent_id = parent_id;
 
         if let Some(ref sym) = symbol {
@@ -69,10 +69,11 @@ impl YamlExtractor {
         &mut self,
         node: tree_sitter::Node,
         parent_id: Option<&str>,
+        symbols: &[Symbol],
     ) -> Option<Symbol> {
         match node.kind() {
             // Block mapping pairs are the useful symbols (key: value entries)
-            "block_mapping_pair" => self.extract_mapping_pair(node, parent_id),
+            "block_mapping_pair" => self.extract_mapping_pair(node, parent_id, symbols),
 
             // "document" and "flow_mapping" are noise — generic names with no
             // search value. Their children are still walked and extracted.
@@ -86,6 +87,7 @@ impl YamlExtractor {
         &mut self,
         node: tree_sitter::Node,
         parent_id: Option<&str>,
+        symbols: &[Symbol],
     ) -> Option<Symbol> {
         use crate::base::SymbolOptions;
 
@@ -110,10 +112,11 @@ impl YamlExtractor {
         });
 
         // Determine kind: container keys (with nested mappings) are Module, leaves are Variable
-        let kind = if self.has_nested_mapping(node) {
-            SymbolKind::Module
-        } else {
+        let is_leaf_value = !self.has_nested_mapping(node);
+        let kind = if is_leaf_value {
             SymbolKind::Variable
+        } else {
+            SymbolKind::Module
         };
 
         let options = SymbolOptions {
@@ -121,11 +124,55 @@ impl YamlExtractor {
             visibility: None,
             parent_id: parent_id.map(|s| s.to_string()),
             metadata,
-            doc_comment: None,
+            doc_comment: find_yaml_key_doc_comment(&self.base, node),
             ..Default::default()
         };
 
-        let symbol = self.base.create_symbol(&node, key_name, kind, options);
+        let symbol = self
+            .base
+            .create_symbol(&node, key_name.clone(), kind, options);
+
+        if !is_leaf_value {
+            return Some(symbol);
+        }
+
+        let mut cursor = node.walk();
+        let mut saw_key_container = false;
+        for child in node.children(&mut cursor) {
+            if child.kind() != "flow_node" && child.kind() != "block_node" {
+                continue;
+            }
+            if !saw_key_container {
+                saw_key_container = true;
+                continue;
+            }
+            let mut inner_cursor = child.walk();
+            for scalar in child.children(&mut inner_cursor) {
+                if !matches!(
+                    scalar.kind(),
+                    "double_quote_scalar" | "single_quote_scalar" | "plain_scalar"
+                ) {
+                    continue;
+                }
+                if scalar.kind() == "plain_scalar" {
+                    let text = self.base.get_node_text(&scalar);
+                    if text.contains(':') || text.starts_with('&') || text.starts_with('*') {
+                        continue;
+                    }
+                }
+                let carrier = crate::base::config_literals::build_config_key_carrier(
+                    symbols, parent_id, &key_name,
+                );
+                crate::base::config_literals::record_config_string_literal(
+                    &mut self.base,
+                    &scalar,
+                    &carrier,
+                    Some(symbol.id.clone()),
+                );
+                break;
+            }
+            break;
+        }
 
         Some(symbol)
     }
@@ -157,18 +204,7 @@ impl YamlExtractor {
     /// Check if a block_mapping_pair's value side contains a nested block_mapping.
     /// This distinguishes container keys (database:) from leaf keys (host: localhost).
     fn has_nested_mapping(&self, node: tree_sitter::Node) -> bool {
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if child.kind() == "block_node" {
-                let mut block_cursor = child.walk();
-                for block_child in child.children(&mut block_cursor) {
-                    if block_child.kind() == "block_mapping" {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
+        yaml_pair_has_nested_mapping(node)
     }
 
     /// Extract the key from a block_mapping_pair
@@ -320,4 +356,78 @@ fn anchor_name_from_signature(signature: &str) -> Option<&str> {
 
 fn is_yaml_anchor_char(ch: char) -> bool {
     !ch.is_whitespace() && !matches!(ch, '[' | ']' | '{' | '}' | ',')
+}
+
+/// Attach a single `#` line only when it immediately precedes a leaf mapping key
+/// at the same indentation. File headers and container-key section comments stay
+/// ordinary comments, not symbol documentation.
+fn find_yaml_key_doc_comment(base: &BaseExtractor, node: tree_sitter::Node) -> Option<String> {
+    if node.kind() != "block_mapping_pair" || yaml_pair_has_nested_mapping(node) {
+        return None;
+    }
+
+    let key_column = mapping_key_start_column(base, node)?;
+    let mut comments = Vec::new();
+    let mut current = node.prev_sibling();
+
+    while let Some(sibling) = current {
+        match sibling.kind() {
+            "comment" => {
+                let text = base.get_node_text(&sibling);
+                if !text.trim_start().starts_with('#')
+                    || sibling.start_position().column != key_column
+                {
+                    break;
+                }
+                comments.push(text);
+                current = sibling.prev_sibling();
+            }
+            "blank_line" => {
+                current = sibling.prev_sibling();
+            }
+            _ => break,
+        }
+    }
+
+    comments.reverse();
+    if comments.len() == 1 {
+        Some(comments.into_iter().next().unwrap())
+    } else {
+        None
+    }
+}
+
+fn mapping_key_start_column(_base: &BaseExtractor, pair: tree_sitter::Node) -> Option<usize> {
+    let mut cursor = pair.walk();
+    for child in pair.children(&mut cursor) {
+        if !matches!(child.kind(), "flow_node" | "block_node") {
+            continue;
+        }
+        let mut key_cursor = child.walk();
+        for key_child in child.children(&mut key_cursor) {
+            if matches!(
+                key_child.kind(),
+                "plain_scalar" | "single_quote_scalar" | "double_quote_scalar"
+            ) {
+                return Some(key_child.start_position().column);
+            }
+        }
+    }
+    None
+}
+
+fn yaml_pair_has_nested_mapping(pair: tree_sitter::Node) -> bool {
+    let mut cursor = pair.walk();
+    for child in pair.children(&mut cursor) {
+        if child.kind() != "block_node" {
+            continue;
+        }
+        let mut block_cursor = child.walk();
+        for block_child in child.children(&mut block_cursor) {
+            if block_child.kind() == "block_mapping" {
+                return true;
+            }
+        }
+    }
+    false
 }

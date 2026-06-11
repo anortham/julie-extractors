@@ -2,7 +2,9 @@
 // Following TDD pattern: RED phase - tests should compile but fail
 
 // Submodule declarations
+pub mod canonical_relationships;
 pub mod class_constant_dedup;
+mod complexity;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod doc_comments;
@@ -12,6 +14,7 @@ pub mod literals;
 pub mod properties;
 pub mod rspec;
 pub mod struct_and_module_function;
+pub mod structural_facts;
 pub mod types;
 
 use crate::base::{RelationshipKind, SymbolKind, Visibility};

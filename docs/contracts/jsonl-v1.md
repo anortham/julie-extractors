@@ -1,5 +1,10 @@
 # JSONL v1
 
+> **Superseded.** This contract is historical. The current contract is
+> [jsonl-v3.md](jsonl-v3.md). Artifacts written under this version are
+> rejected by current binaries (no migration path; rescan to produce a
+> current artifact).
+
 ## Scope
 
 JSONL is the secondary export and streaming format. It is derived from the same

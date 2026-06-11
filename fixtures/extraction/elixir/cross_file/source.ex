@@ -8,8 +8,17 @@ defmodule Fixture.Worker do
   alias Phoenix.Router
 
   def entry do
+    total =
+      if local_helper() > 0 do
+        for i <- 1..2, reduce: 0 do
+          acc -> acc + i
+        end
+      else
+        0
+      end
+
     Router.match()
-    local_helper()
+    total + local_helper()
   end
 
   defp local_helper do

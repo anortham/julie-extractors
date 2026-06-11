@@ -246,5 +246,130 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/cross_file/source.swift",
+      "covered_lines": 18,
+      "covered_bytes": 454,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 18,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 454,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/cross_file/source.swift:entry:9:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/cross_file/source.swift",
+      "covered_lines": 4,
+      "covered_bytes": 58,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 24,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 336,
+      "end_byte": 394,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/cross_file/source.swift:localHelper:14:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/cross_file/source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 14,
+      "start_column": 30,
+      "end_line": 16,
+      "end_column": 5,
+      "start_byte": 426,
+      "end_byte": 451,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/cross_file/source.swift",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 75,
+      "start_byte": 0,
+      "end_byte": 75,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/cross_file/source.swift",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 70,
+      "start_byte": 76,
+      "end_byte": 146,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/cross_file/source.swift",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 67,
+      "start_byte": 147,
+      "end_byte": 214,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/cross_file/source.swift",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 66,
+      "start_byte": 215,
+      "end_byte": 281,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

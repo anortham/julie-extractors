@@ -4,3 +4,5 @@
 # time. Locks the no-pending classification.
 
 (?<word>\w+)\s+\k<word>
+(?=lookahead)\w+
+(foo|bar)

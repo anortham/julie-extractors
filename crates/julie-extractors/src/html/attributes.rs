@@ -1,6 +1,12 @@
 use crate::base::BaseExtractor;
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
+
+// Static regex compiled once for performance
+static ATTRIBUTE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(\w+(?:-\w+)*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?"#).unwrap()
+});
 
 /// Attribute handling and signature building
 pub(super) struct AttributeHandler;
@@ -218,10 +224,7 @@ impl AttributeHandler {
         }
 
         // Enhanced attribute parsing
-        let re =
-            Regex::new(r#"(\w+(?:-\w+)*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?"#).unwrap();
-
-        for captures in re.captures_iter(clean_text) {
+        for captures in ATTRIBUTE_RE.captures_iter(clean_text) {
             if let Some(name_match) = captures.get(1) {
                 let name = name_match.as_str().to_string();
                 let value = captures

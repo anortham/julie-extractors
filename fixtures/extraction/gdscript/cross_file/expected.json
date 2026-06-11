@@ -190,5 +190,164 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "gdscript.extends_declaration.v1",
+      "capture_name": "extends_declaration",
+      "node_kind": "extends_statement",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 24,
+      "start_byte": 295,
+      "end_byte": 319,
+      "confidence": "1.000",
+      "metadata": {
+        "base_type": "res://other.gd",
+        "pattern_version": 1,
+        "query_family": "inheritance"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "covered_lines": 14,
+      "covered_bytes": 430,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 430,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/cross_file/source.gd:entry:11:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "covered_lines": 3,
+      "covered_bytes": 45,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 20,
+      "end_line": 13,
+      "end_column": 25,
+      "start_byte": 384,
+      "end_byte": 429,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/cross_file/source.gd:local_helper:8:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 14,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 8,
+      "start_column": 27,
+      "end_line": 9,
+      "end_column": 13,
+      "start_byte": 348,
+      "end_byte": 362,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 77,
+      "start_byte": 0,
+      "end_byte": 77,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 77,
+      "start_byte": 78,
+      "end_byte": 155,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 75,
+      "start_byte": 156,
+      "end_byte": 231,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 61,
+      "start_byte": 232,
+      "end_byte": 293,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 8,
+      "end_line": 6,
+      "end_column": 24,
+      "start_byte": 303,
+      "end_byte": 319,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

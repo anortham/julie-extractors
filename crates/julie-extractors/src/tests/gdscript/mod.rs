@@ -30,6 +30,7 @@ pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relati
 }
 
 pub mod classes;
+pub mod complexity;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod functions;
@@ -40,6 +41,7 @@ pub mod patterns;
 pub mod resources;
 pub mod scenes;
 pub mod signals;
+pub mod structural_facts;
 pub mod test_detection; // GUT (extends GutTest) container detection (base_types metadata)
 pub mod type_arguments;
 pub mod types;

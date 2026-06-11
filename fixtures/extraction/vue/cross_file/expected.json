@@ -9,9 +9,9 @@
       "start_line": 1,
       "start_column": 1,
       "end_line": 21,
-      "end_column": 1,
+      "end_column": 12,
       "start_byte": 0,
-      "end_byte": 477,
+      "end_byte": 488,
       "body_span": {
         "start_line": 7,
         "start_column": 7,
@@ -238,5 +238,141 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 9,
+      "start_byte": 0,
+      "end_byte": 435,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "script",
+        "setup": true
+      }
+    },
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "containing_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 11,
+      "start_byte": 437,
+      "end_byte": 488,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "template",
+        "setup": false
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "covered_lines": 15,
+      "covered_bytes": 410,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 1,
+      "start_byte": 15,
+      "end_byte": 425,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vue/cross_file/source.vue:entry:13:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "covered_lines": 4,
+      "covered_bytes": 41,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 17,
+      "end_line": 16,
+      "end_column": 1,
+      "start_byte": 384,
+      "end_byte": 425,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vue/cross_file/source.vue:local_helper:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "covered_lines": 3,
+      "covered_bytes": 18,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 24,
+      "end_line": 11,
+      "end_column": 1,
+      "start_byte": 347,
+      "end_byte": 365,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/cross_file/source.vue",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 9,
+      "start_byte": 0,
+      "end_byte": 435,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "setup": true
+      }
+    }
+  ],
+  "type_argument_usages": []
 }

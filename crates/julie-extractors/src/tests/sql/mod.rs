@@ -43,6 +43,8 @@ pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relati
     (symbols, relationships)
 }
 
+pub mod body_spans;
+pub mod complexity;
 pub mod cross_file_pending;
 pub mod ddl;
 pub mod dml;
@@ -53,5 +55,6 @@ pub mod procedures;
 pub mod relationships;
 pub mod schema;
 pub mod security;
+pub mod structural_facts;
 pub mod transactions;
 mod types; // Phase 4: Type extraction verification tests

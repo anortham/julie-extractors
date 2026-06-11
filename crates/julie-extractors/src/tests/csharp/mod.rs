@@ -2,6 +2,7 @@
 
 // Submodule declarations
 pub mod extractor;
+mod type_inference;
 
 use crate::base::{Symbol, SymbolKind, Visibility};
 use crate::csharp::CSharpExtractor;
@@ -50,6 +51,7 @@ pub(crate) fn get_csharp_visibility(symbol: &Symbol) -> String {
 }
 
 pub mod annotations;
+pub mod complexity;
 pub mod constructor_relationships;
 pub mod core;
 pub mod cross_file_pending;

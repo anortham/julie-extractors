@@ -9,8 +9,12 @@ import other.Thing
 
 class Worker {
   def entry(): Int = {
+    var total = 0
+    if (localHelper() > 0) {
+      for (i <- 0 until 2) total += i
+    }
     Thing.apply()
-    localHelper()
+    total + localHelper()
   }
 
   def localHelper(): Int = 42

@@ -4,6 +4,7 @@
 //! including parameter extraction and function signatures.
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::sql::body_spans;
 use crate::sql::helpers::{DECLARE_VAR_RE, VAR_DECL_RE};
 use crate::test_detection::is_test_symbol;
 use regex::Regex;
@@ -87,7 +88,9 @@ pub(super) fn extract_stored_procedure(
         annotations: Vec::new(),
     };
 
-    Some(base.create_symbol(&node, name, symbol_kind, options))
+    let mut symbol = base.create_symbol(&node, name, symbol_kind, options);
+    body_spans::finalize_sql_callable_symbol(base, &mut symbol);
+    Some(symbol)
 }
 
 /// Extract procedure/function signature with parameters
@@ -361,8 +364,9 @@ pub(super) fn extract_procedures_from_error(
             annotations: Vec::new(),
         };
 
-        let procedure_symbol =
+        let mut procedure_symbol =
             base.create_symbol(node, name.clone(), SymbolKind::Function, options);
+        body_spans::finalize_sql_callable_symbol(base, &mut procedure_symbol);
         symbols.push(procedure_symbol.clone());
         extract_parameters_from_error_node(base, *node, symbols, &procedure_symbol.id);
     }
@@ -408,7 +412,9 @@ pub(super) fn extract_functions_from_error(
             annotations: Vec::new(),
         };
 
-        let function_symbol = base.create_symbol(node, name.clone(), SymbolKind::Function, options);
+        let mut function_symbol =
+            base.create_symbol(node, name.clone(), SymbolKind::Function, options);
+        body_spans::finalize_sql_callable_symbol(base, &mut function_symbol);
         symbols.push(function_symbol.clone());
         extract_declare_variables(base, *node, symbols, &function_symbol.id);
         return;
@@ -436,7 +442,9 @@ pub(super) fn extract_functions_from_error(
             annotations: Vec::new(),
         };
 
-        let function_symbol = base.create_symbol(node, name.clone(), SymbolKind::Function, options);
+        let mut function_symbol =
+            base.create_symbol(node, name.clone(), SymbolKind::Function, options);
+        body_spans::finalize_sql_callable_symbol(base, &mut function_symbol);
         symbols.push(function_symbol.clone());
         extract_declare_variables(base, *node, symbols, &function_symbol.id);
     }

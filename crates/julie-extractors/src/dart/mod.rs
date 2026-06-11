@@ -34,8 +34,13 @@ pub struct DartExtractor {
     pub(crate) base: BaseExtractor,
     same_file_calls: Vec<(String, String, u32)>,
     /// Byte offsets of `block` nodes already consumed as Dart 3 modifier class bodies.
-    /// Prevents double-visiting when the program-level iteration hits the same block.
+    /// Prevents double-visiting when the source_file-level iteration hits the same block.
     consumed_blocks: HashSet<usize>,
+}
+
+/// tree-sitter-dart roots parsed files at `source_file`, not `program`.
+fn is_dart_top_level_parent(parent: Node) -> bool {
+    parent.kind() == "source_file"
 }
 
 impl DartExtractor {
@@ -132,9 +137,10 @@ impl DartExtractor {
             }
             "type_identifier" => {
                 // `sealed class AsyncValue<T>` — grammar sees the generic `<T>` as a relational
-                // expression, so `sealed` ends up as a standalone type_identifier at program
-                // level rather than inside an ERROR.  Detect the pattern here and recover.
-                if node.parent().is_some_and(|p| p.kind() == "program")
+                // expression, so `sealed` ends up as a standalone type_identifier at
+                // source_file level rather than inside an ERROR. Detect the pattern here
+                // and recover.
+                if node.parent().is_some_and(is_dart_top_level_parent)
                     && let Some((class_sym, body_opt, container_start)) =
                         recover_dart3_generic_modifier_class(
                             &mut self.base,
@@ -143,17 +149,21 @@ impl DartExtractor {
                         )
                 {
                     let class_id = class_sym.id.clone();
-                    // Extract inheritance from source text before pushing symbol
-                    let source = self.base.get_node_text(&node.parent().unwrap());
-                    for (target_name, kind) in extract_inheritance_from_source(&source) {
-                        self.add_pending_relationship(PendingRelationship {
-                            from_symbol_id: class_id.clone(),
-                            callee_name: target_name,
-                            kind,
-                            file_path: self.base.file_path.clone(),
-                            line_number: node.start_position().row as u32 + 1,
-                            confidence: 0.8,
-                        });
+                    // Extract inheritance from source text before pushing symbol.
+                    // Skip inheritance extraction when the node has no parent
+                    // (root-level construct) rather than panicking.
+                    if let Some(parent) = node.parent() {
+                        let source = self.base.get_node_text(&parent);
+                        for (target_name, kind) in extract_inheritance_from_source(&source) {
+                            self.add_pending_relationship(PendingRelationship {
+                                from_symbol_id: class_id.clone(),
+                                callee_name: target_name,
+                                kind,
+                                file_path: self.base.file_path.clone(),
+                                line_number: node.start_position().row as u32 + 1,
+                                confidence: 0.8,
+                            });
+                        }
                     }
                     symbols.push(class_sym);
                     // Prevent the expression_statement/ERROR container from being double-visited
@@ -244,7 +254,7 @@ impl DartExtractor {
                 );
             }
             "ERROR" | "expression_statement"
-                if node.parent().is_some_and(|p| p.kind() == "program") =>
+                if node.parent().is_some_and(is_dart_top_level_parent) =>
             {
                 // Dart 3 class modifier recovery: some parser releases produce
                 // ERROR nodes for base/sealed/final/interface classes. Recover
@@ -271,7 +281,8 @@ impl DartExtractor {
 
                     // The class body is the sibling `block` node immediately after this ERROR.
                     // Recurse into it with the class as parent so members are parented correctly.
-                    // Mark the block as consumed to prevent double-visiting during program iteration.
+                    // Mark the block as consumed to prevent double-visiting during
+                    // source_file iteration.
                     if let Some(sibling) = node.next_sibling()
                         && sibling.kind() == "block"
                     {
@@ -287,7 +298,7 @@ impl DartExtractor {
 
                 // Some parser releases split enhanced enum bodies after the first
                 // enum_constant into ERROR and expression_statement siblings at
-                // program level. Recover symbols generically by detecting enum context.
+                // source_file level. Recover symbols generically by detecting enum context.
                 if let Some(enum_id) = find_enum_context_parent(&node, symbols) {
                     recover_enum_symbols_from_error(&mut self.base, &node, Some(&enum_id), symbols);
                 }
@@ -561,7 +572,7 @@ fn recover_dart3_modifier_class(
 //
 // Some Dart parser releases cannot parse the `<T>` as a generic and instead
 // treat `AsyncValue<T>` as a relational expression. This produces a completely
-// different program-level structure:
+// different source_file-level structure:
 //
 //   type_identifier("sealed")          <- modifier sits outside the ERROR
 //   initialized_identifier_list        <- "class" parsed as variable name
@@ -792,7 +803,7 @@ fn recover_mixin_class_declaration<'a>(
 
 /// Walk backward through previous siblings to find an enum_declaration.
 /// Some parser releases split enhanced enum bodies across sibling nodes at the
-/// program level, so ERROR / expression_statement nodes that immediately follow
+/// source_file level, so ERROR / expression_statement nodes that immediately follow
 /// an enum_declaration likely contain the rest of that enum's body.
 fn find_enum_context_parent(node: &Node, symbols: &[Symbol]) -> Option<String> {
     let mut prev = node.prev_sibling();

@@ -5,12 +5,14 @@
 // Port Status: RED phase - All tests should fail initially until extractor is implemented
 
 // Submodule declarations
+mod complexity;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod edge_cases;
 pub mod identifiers;
 pub mod literals;
 pub mod phpdoc_comments;
+pub mod structural_facts;
 pub mod test_detection;
 
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind, Visibility};

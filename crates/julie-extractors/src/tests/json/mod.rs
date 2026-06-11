@@ -11,6 +11,11 @@ mod task15;
 mod relationships;
 
 #[cfg(test)]
+mod literals;
+
+pub mod structural_facts;
+
+#[cfg(test)]
 mod json_extractor_tests {
     #![allow(unused_imports)]
     #![allow(unused_variables)]

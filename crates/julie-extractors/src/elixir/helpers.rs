@@ -200,3 +200,27 @@ pub(super) fn extract_import_target(base: &BaseExtractor, node: &Node) -> Option
     }
     None
 }
+
+/// True when a typespec `call` applies at least one type parameter, e.g.
+/// `list(integer())` but not zero-argument primitives like `integer()`.
+pub(super) fn is_elixir_parameterized_type_call(node: &Node) -> bool {
+    if node.kind() != "call" {
+        return false;
+    }
+    let Some(target) = node.child_by_field_name("target") else {
+        return false;
+    };
+    if target.kind() != "identifier" {
+        return false;
+    }
+    let Some(args) = find_child_by_type(node, "arguments") else {
+        return false;
+    };
+    elixir_args_has_type_param_call(&args)
+}
+
+fn elixir_args_has_type_param_call(args: &Node) -> bool {
+    let mut cursor = args.walk();
+    args.named_children(&mut cursor)
+        .any(|child| child.kind() == "call")
+}

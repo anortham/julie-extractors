@@ -36,7 +36,7 @@ pub(super) fn extract_defguard(
             visibility: Some(visibility),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: extractor.base.find_doc_comment(node),
+            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]),
             annotations,
         },
     );
@@ -69,7 +69,7 @@ pub(super) fn extract_defdelegate(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: extractor.base.find_doc_comment(node),
+            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]),
             annotations,
         },
     );
@@ -106,7 +106,7 @@ pub(super) fn extract_defexception(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: extractor.base.find_doc_comment(node),
+            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]),
             annotations,
         },
     );
@@ -150,7 +150,7 @@ pub(super) fn extract_defoverridable(
             visibility: Some(Visibility::Public),
             parent_id: parent_id.map(String::from),
             metadata: Some(metadata),
-            doc_comment: extractor.base.find_doc_comment(node),
+            doc_comment: attributes::extract_doc_comment_for_node(&extractor.base, node, &["doc"]),
             annotations: Vec::new(),
         },
     );

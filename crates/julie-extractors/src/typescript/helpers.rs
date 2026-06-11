@@ -14,6 +14,24 @@ pub(super) fn has_modifier(node: Node, modifier_kind: &str) -> bool {
         .any(|child| child.kind() == modifier_kind)
 }
 
+/// Resolve the node that carries a declaration's decorators.
+///
+/// Decorators are direct children of the declaration node, except for
+/// exported declarations (`@Component() export class ...`) where the
+/// grammar attaches them to the wrapping `export_statement`.
+pub(super) fn decorator_carrier_node(node: Node) -> Node {
+    let has_own_decorator = node
+        .children(&mut node.walk())
+        .any(|child| child.kind() == "decorator");
+    if !has_own_decorator
+        && let Some(parent) = node.parent()
+        && parent.kind() == "export_statement"
+    {
+        return parent;
+    }
+    node
+}
+
 /// Extract decorator names from child `decorator` nodes.
 ///
 /// Returns decorator names like `@Component`, `@Injectable`, etc.

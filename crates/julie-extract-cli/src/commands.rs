@@ -25,7 +25,8 @@ use julie_extract_artifact::writer::{
     ArtifactFileSpool, ArtifactSpoolError, ArtifactWriteError, ArtifactWriter,
 };
 use julie_extractors::{
-    CapabilityFlags, KindCoverage, capability_snapshot, detect_language_for_source,
+    CapabilityFlags, CapabilityKindCoverage, KindCoverage, capability_snapshot,
+    detect_language_for_source,
 };
 use rayon::prelude::*;
 use rusqlite::{Connection, OpenFlags};
@@ -806,14 +807,7 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
                 "dependency_status": row.dependency_status,
                 "target_capabilities": flags(row.target_capabilities),
                 "actual_capabilities": flags(row.capabilities),
-                "kind_coverage": json!({
-                    "symbols": kind_coverage_domain(&row.kind_coverage.symbols),
-                    "relationships": kind_coverage_domain(&row.kind_coverage.relationships),
-                    "identifiers": kind_coverage_domain(&row.kind_coverage.identifiers),
-                    "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
-                    "structural_facts": kind_coverage_domain(&row.kind_coverage.structural_facts),
-                    "complexity_metrics": kind_coverage_domain(&row.kind_coverage.complexity_metrics),
-                }),
+                "kind_coverage": kind_coverage_json(&row.kind_coverage),
                 "fixtures": row.fixtures.len(),
                 "capability_gaps": row.capability_gaps.len(),
             })
@@ -2106,14 +2100,7 @@ fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
             dependency_status: row.dependency_status.clone(),
             target_capabilities: artifact_flags(row.target_capabilities),
             actual_capabilities: artifact_flags(row.capabilities),
-            kind_coverage: json!({
-                "symbols": kind_coverage_domain(&row.kind_coverage.symbols),
-                "relationships": kind_coverage_domain(&row.kind_coverage.relationships),
-                "identifiers": kind_coverage_domain(&row.kind_coverage.identifiers),
-                "body_spans": kind_coverage_domain(&row.kind_coverage.body_spans),
-                "structural_facts": kind_coverage_domain(&row.kind_coverage.structural_facts),
-                "complexity_metrics": kind_coverage_domain(&row.kind_coverage.complexity_metrics),
-            }),
+            kind_coverage: kind_coverage_json(&row.kind_coverage),
             fixtures: row
                 .fixtures
                 .iter()
@@ -2351,6 +2338,21 @@ fn artifact_flags(flags: CapabilityFlags) -> ArtifactCapabilityFlags {
         identifiers: flags.identifiers,
         types: flags.types,
     }
+}
+
+fn kind_coverage_json(kind_coverage: &CapabilityKindCoverage) -> Value {
+    json!({
+        "symbols": kind_coverage_domain(&kind_coverage.symbols),
+        "relationships": kind_coverage_domain(&kind_coverage.relationships),
+        "identifiers": kind_coverage_domain(&kind_coverage.identifiers),
+        "body_spans": kind_coverage_domain(&kind_coverage.body_spans),
+        "structural_facts": kind_coverage_domain(&kind_coverage.structural_facts),
+        "complexity_metrics": kind_coverage_domain(&kind_coverage.complexity_metrics),
+        "annotations": kind_coverage_domain(&kind_coverage.annotations),
+        "doc_comments": kind_coverage_domain(&kind_coverage.doc_comments),
+        "literals": kind_coverage_domain(&kind_coverage.literals),
+        "source_regions": kind_coverage_domain(&kind_coverage.source_regions),
+    })
 }
 
 fn kind_coverage_domain(domain: &KindCoverage) -> Value {

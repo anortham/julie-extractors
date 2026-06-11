@@ -210,5 +210,149 @@
   "structured_pending_relationships": [],
   "identifiers": [],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "markdown.heading.v1",
+      "capture_name": "heading",
+      "node_kind": "atx_heading",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 36,
+      "confidence": "1.000",
+      "metadata": {
+        "level": 1,
+        "pattern_version": 1,
+        "query_family": "document_structure",
+        "text": "Cross-file references in Markdown"
+      }
+    },
+    {
+      "pattern_id": "markdown.heading.v1",
+      "capture_name": "heading",
+      "node_kind": "atx_heading",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:11:0",
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 0,
+      "start_byte": 349,
+      "end_byte": 366,
+      "confidence": "1.000",
+      "metadata": {
+        "level": 2,
+        "pattern_version": 1,
+        "query_family": "document_structure",
+        "text": "Local heading"
+      }
+    },
+    {
+      "pattern_id": "markdown.inline_link.v1",
+      "capture_name": "inline_link",
+      "node_kind": "inline_link",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Local heading:9:0",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 31,
+      "start_byte": 316,
+      "end_byte": 347,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "#local-heading",
+        "label": "Local heading",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    },
+    {
+      "pattern_id": "markdown.inline_link.v1",
+      "capture_name": "inline_link",
+      "node_kind": "inline_link",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:the other doc:7:4",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 31,
+      "start_byte": 244,
+      "end_byte": 271,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "./other.md",
+        "label": "the other doc",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    },
+    {
+      "pattern_id": "markdown.link_definition.v1",
+      "capture_name": "link_definition",
+      "node_kind": "link_reference_definition",
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:ext-ref:15:0",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 0,
+      "start_byte": 417,
+      "end_byte": 468,
+      "confidence": "1.000",
+      "metadata": {
+        "destination": "https://example.com/external",
+        "label": "ext-ref",
+        "pattern_version": 1,
+        "query_family": "document_links"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [
+    {
+      "literal_text": "#local-heading",
+      "kind": "other",
+      "carrier": "inline_link",
+      "arg_position": 0,
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 9,
+      "start_column": 16,
+      "end_line": 9,
+      "end_column": 30,
+      "start_byte": 332,
+      "end_byte": 346,
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "./other.md",
+      "kind": "other",
+      "carrier": "inline_link",
+      "arg_position": 0,
+      "language": "markdown",
+      "file_path": "fixtures/extraction/markdown/cross_file/source.md",
+      "start_line": 7,
+      "start_column": 20,
+      "end_line": 7,
+      "end_column": 30,
+      "start_byte": 260,
+      "end_byte": 270,
+      "containing_key": "fixtures/extraction/markdown/cross_file/source.md:Cross-file references in Markdown:1:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [],
+  "type_argument_usages": []
 }

@@ -1,5 +1,10 @@
 # SQLite Schema v2
 
+> **Superseded.** This contract is historical. The current contract is
+> [sqlite-schema-v3.md](sqlite-schema-v3.md). Artifacts written under this version are
+> rejected by current binaries (no migration path; rescan to produce a
+> current artifact).
+
 ## Scope
 
 SQLite is the primary durable artifact for `julie-extractors`.

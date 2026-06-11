@@ -296,4 +296,77 @@ public class ExampleTest {
                 .contains("@Inject public ExampleTest()")
         );
     }
+
+    #[test]
+    fn test_java_annotation_markers_persist_on_classes_and_fields() {
+        let workspace_root = PathBuf::from("/tmp/test");
+        let code = r#"
+@Service
+public class UserService {
+    @Autowired
+    private UserRepository repository;
+
+    @Value("${app.timeout}")
+    private int retries;
+
+    private int plain;
+}
+"#;
+
+        let tree = init_parser(code, "java");
+
+        let mut extractor = JavaExtractor::new(
+            "java".to_string(),
+            "test.java".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+
+        let class_symbol = symbols
+            .iter()
+            .find(|s| s.name == "UserService")
+            .expect("class should be extracted");
+        let class_keys: Vec<_> = class_symbol
+            .annotations
+            .iter()
+            .map(|annotation| annotation.annotation_key.as_str())
+            .collect();
+        assert_eq!(class_keys, vec!["service"]);
+
+        let repository = symbols
+            .iter()
+            .find(|s| s.name == "repository")
+            .expect("field should be extracted");
+        assert_eq!(repository.annotations.len(), 1);
+        assert_eq!(repository.annotations[0].annotation, "Autowired");
+        assert_eq!(repository.annotations[0].annotation_key, "autowired");
+        assert_eq!(
+            repository.annotations[0].raw_text.as_deref(),
+            Some("Autowired")
+        );
+
+        let retries = symbols
+            .iter()
+            .find(|s| s.name == "retries")
+            .expect("annotated field with arguments should be extracted");
+        assert_eq!(retries.annotations.len(), 1);
+        assert_eq!(retries.annotations[0].annotation, "Value");
+        assert_eq!(retries.annotations[0].annotation_key, "value");
+        assert_eq!(
+            retries.annotations[0].raw_text.as_deref(),
+            Some(r#"Value("${app.timeout}")"#)
+        );
+
+        let plain = symbols
+            .iter()
+            .find(|s| s.name == "plain")
+            .expect("unannotated field should be extracted");
+        assert!(
+            plain.annotations.is_empty(),
+            "unannotated field should carry no annotations, got {:?}",
+            plain.annotations
+        );
+    }
 }

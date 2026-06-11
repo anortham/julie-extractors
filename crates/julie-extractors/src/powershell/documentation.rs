@@ -2,7 +2,13 @@
 //! Handles variable classifications, command documentation, variable annotations, and doc comment extraction
 
 use crate::base::BaseExtractor;
+use regex::Regex;
+use std::sync::LazyLock;
 use tree_sitter::Node;
+
+// Static regex compiled once for performance
+static UPPERCASE_ENV_VAR_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[A-Z_][A-Z0-9_]*$").unwrap());
 
 /// Classify and document environment variables
 pub(super) fn is_environment_variable(name: &str) -> bool {
@@ -18,10 +24,7 @@ pub(super) fn is_environment_variable(name: &str) -> bool {
         "AZURE_TENANT_ID",
         "POWERSHELL_TELEMETRY_OPTOUT",
     ];
-    env_vars.contains(&name)
-        || regex::Regex::new(r"^[A-Z_][A-Z0-9_]*$")
-            .unwrap()
-            .is_match(name)
+    env_vars.contains(&name) || UPPERCASE_ENV_VAR_RE.is_match(name)
 }
 
 /// Classify and document automatic variables (PowerShell built-ins)

@@ -2,6 +2,8 @@
   "worker": {
     "id": 1,
     "name": "fixture",
-    "active": true
+    "active": true,
+    "tags": ["fixture", "active"],
+    "api_url": "https://api.example.com/workers/status"
   }
 }

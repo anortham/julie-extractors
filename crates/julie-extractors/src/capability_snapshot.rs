@@ -57,6 +57,14 @@ pub struct CapabilityKindCoverage {
     pub structural_facts: KindCoverage,
     #[serde(default)]
     pub complexity_metrics: KindCoverage,
+    #[serde(default)]
+    pub annotations: KindCoverage,
+    #[serde(default)]
+    pub doc_comments: KindCoverage,
+    #[serde(default)]
+    pub literals: KindCoverage,
+    #[serde(default)]
+    pub source_regions: KindCoverage,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

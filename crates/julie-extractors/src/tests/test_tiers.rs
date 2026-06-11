@@ -83,4 +83,5 @@ fn assert_module_is_feature_gated(content: &str, module: &str, feature: &str) {
 fn read_to_string(path: PathBuf) -> String {
     fs::read_to_string(&path)
         .unwrap_or_else(|err| panic!("failed to read {}: {err}", path.display()))
+        .replace("\r\n", "\n")
 }

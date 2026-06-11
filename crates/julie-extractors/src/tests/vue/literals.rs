@@ -103,6 +103,54 @@ function load(id) {
 }
 
 #[test]
+fn template_attribute_literals_use_tag_attribute_carriers() {
+    let code = r#"
+<template>
+  <a href="/workers">Workers</a>
+  <RouterLink to="/routes">Routes</RouterLink>
+  <button data-action="run" @click.prevent="execute()" :class="{ active: title }">Run</button>
+</template>
+<script setup lang="ts">
+const title = "Worker";
+</script>
+"#;
+    let literals = capture(code);
+    assert_eq!(
+        literals
+            .iter()
+            .find(|literal| literal.literal_text == "/workers")
+            .and_then(|literal| literal.carrier.as_deref()),
+        Some("a.href")
+    );
+    assert_eq!(
+        literals
+            .iter()
+            .find(|literal| literal.literal_text == "/routes")
+            .and_then(|literal| literal.carrier.as_deref()),
+        Some("RouterLink.to")
+    );
+    assert_eq!(
+        literals
+            .iter()
+            .find(|literal| literal.literal_text == "run")
+            .and_then(|literal| literal.carrier.as_deref()),
+        Some("button.data-action")
+    );
+    assert!(
+        literals
+            .iter()
+            .all(|literal| literal.literal_text != "execute()"),
+        "directive expressions should not be recorded as template literals: {literals:?}"
+    );
+    assert!(
+        literals
+            .iter()
+            .all(|literal| literal.literal_text != "{ active: title }"),
+        "bound class expressions should not be recorded as template literals: {literals:?}"
+    );
+}
+
+#[test]
 fn arg_position_counts_full_argument_list() {
     // `request(42, "/api/x")` — the string is the SECOND argument, so
     // arg_position is counted over ALL args and must be 1, not 0.

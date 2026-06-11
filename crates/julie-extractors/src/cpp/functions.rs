@@ -317,6 +317,13 @@ fn extract_standard_attributes(base: &mut BaseExtractor, node: Node) -> Vec<Stri
 
     let mut current = node.prev_sibling();
     while let Some(sibling) = current {
+        if !matches!(
+            sibling.kind(),
+            "attribute_specifier" | "attribute_declaration"
+        ) {
+            break;
+        }
+
         let sibling_text = base.get_node_text(&sibling);
         if !sibling_text.trim_start().starts_with("[[") {
             break;

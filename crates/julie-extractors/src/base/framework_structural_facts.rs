@@ -10,12 +10,23 @@ use super::types::{StructuralFact, Symbol, stable_location_id};
 const ASPNET_MINIMAL_API_ROUTE_PATTERN_ID: &str = "aspnet.minimal_api.route.v1";
 const HTMX_ATTRIBUTE_PATTERN_ID: &str = "htmx.attribute.v1";
 const ALPINE_DIRECTIVE_PATTERN_ID: &str = "alpine.directive.v1";
+const RAZOR_PAGE_DIRECTIVE_PATTERN_ID: &str = "razor.page_directive.v1";
+const RAZOR_CODE_BLOCK_PATTERN_ID: &str = "razor.code_block.v1";
+const RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID: &str = "razor.template_expression.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const CSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[ASPNET_MINIMAL_API_ROUTE_PATTERN_ID];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const MARKUP_FRAMEWORK_PATTERN_IDS: &[&str] =
     &[HTMX_ATTRIBUTE_PATTERN_ID, ALPINE_DIRECTIVE_PATTERN_ID];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
+    ALPINE_DIRECTIVE_PATTERN_ID,
+    HTMX_ATTRIBUTE_PATTERN_ID,
+    RAZOR_CODE_BLOCK_PATTERN_ID,
+    RAZOR_PAGE_DIRECTIVE_PATTERN_ID,
+    RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
+];
 
 const ASPNET_ROUTE_METHODS: &[(&str, &str)] = &[
     ("MapGet", "GET"),
@@ -34,7 +45,14 @@ pub fn collect_framework_structural_facts(
 ) -> Vec<StructuralFact> {
     let mut facts = match language {
         "csharp" => collect_aspnet_minimal_api_routes(language, tree, file_path, content),
-        "html" | "razor" => collect_markup_framework_attributes(language, tree, file_path, content),
+        "html" => collect_markup_framework_attributes(language, tree, file_path, content),
+        "razor" => {
+            let mut razor_facts = collect_razor_structural_facts(tree, file_path, content);
+            razor_facts.extend(collect_markup_framework_attributes(
+                language, tree, file_path, content,
+            ));
+            razor_facts
+        }
         _ => Vec::new(),
     };
 
@@ -49,9 +67,260 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
 ) -> &'static [&'static str] {
     match language {
         "csharp" => CSHARP_FRAMEWORK_PATTERN_IDS,
-        "html" | "razor" => MARKUP_FRAMEWORK_PATTERN_IDS,
+        "html" => MARKUP_FRAMEWORK_PATTERN_IDS,
+        "razor" => RAZOR_FRAMEWORK_PATTERN_IDS,
         _ => &[],
     }
+}
+
+fn collect_razor_structural_facts(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    collect_razor_node(tree.root_node(), file_path, content, &mut facts);
+    facts
+}
+
+fn collect_razor_node(
+    node: Node<'_>,
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    match node.kind() {
+        "razor_page_directive" => {
+            if let Some(fact) = razor_page_directive_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "razor_block" => {
+            if let Some(fact) = razor_code_block_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "razor_expression" | "razor_implicit_expression" => {
+            if let Some(fact) = razor_template_expression_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        _ => {}
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_razor_node(child, file_path, content, facts);
+    }
+}
+
+fn razor_page_directive_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let route = razor_child_text(node, content, "string_literal")?;
+    let route = route.trim_matches('"').trim_matches('\'').to_string();
+    if route.is_empty() {
+        return None;
+    }
+
+    let route_parameters = parse_razor_route_parameters(&route);
+    let has_route_constraints = route_parameters
+        .iter()
+        .any(|parameter| parameter.constraint.is_some());
+
+    let mut metadata = base_metadata("component_routing", "razor");
+    insert_string(&mut metadata, "directive", "page");
+    insert_string(&mut metadata, "route", &route);
+    insert_string(&mut metadata, "route_template", &route);
+    metadata.insert(
+        "route_parameter_count".to_string(),
+        Value::Number(Number::from(route_parameters.len())),
+    );
+    metadata.insert(
+        "has_route_constraints".to_string(),
+        Value::Bool(has_route_constraints),
+    );
+    metadata.insert(
+        "route_parameters".to_string(),
+        Value::Array(
+            route_parameters
+                .into_iter()
+                .map(razor_route_parameter_value)
+                .collect(),
+        ),
+    );
+
+    Some(fact_for_node(
+        file_path,
+        "razor",
+        RAZOR_PAGE_DIRECTIVE_PATTERN_ID,
+        "page_directive",
+        node,
+        metadata,
+    ))
+}
+
+#[derive(Debug, Clone)]
+struct RazorRouteParameter {
+    name: String,
+    constraint: Option<String>,
+    optional: bool,
+    catch_all: bool,
+}
+
+fn parse_razor_route_parameters(route: &str) -> Vec<RazorRouteParameter> {
+    let mut parameters = Vec::new();
+    let mut search_start = 0;
+    while let Some(open_relative) = route[search_start..].find('{') {
+        let open = search_start + open_relative;
+        if route.as_bytes().get(open + 1) == Some(&b'{') {
+            search_start = open + 2;
+            continue;
+        }
+        let Some(close_relative) = route[open + 1..].find('}') else {
+            break;
+        };
+        let close = open + 1 + close_relative;
+        if let Some(parameter) = parse_razor_route_parameter_inner(&route[open + 1..close]) {
+            parameters.push(parameter);
+        }
+        search_start = close + 1;
+    }
+    parameters
+}
+
+fn parse_razor_route_parameter_inner(inner: &str) -> Option<RazorRouteParameter> {
+    let mut remainder = inner.trim();
+    let catch_all = remainder.starts_with('*');
+    if catch_all {
+        remainder = remainder.trim_start_matches('*');
+    }
+    let optional = remainder.ends_with('?');
+    if optional {
+        remainder = &remainder[..remainder.len() - 1];
+    }
+    let (name, constraint) = if let Some(colon) = remainder.find(':') {
+        (
+            remainder[..colon].trim(),
+            Some(remainder[colon + 1..].trim().to_string()),
+        )
+    } else {
+        (remainder.trim(), None)
+    };
+    if name.is_empty() {
+        return None;
+    }
+
+    Some(RazorRouteParameter {
+        name: name.to_string(),
+        constraint: constraint.filter(|value| !value.is_empty()),
+        optional,
+        catch_all,
+    })
+}
+
+fn razor_route_parameter_value(parameter: RazorRouteParameter) -> Value {
+    let mut fields = serde_json::Map::new();
+    fields.insert("name".to_string(), Value::String(parameter.name));
+    fields.insert("optional".to_string(), Value::Bool(parameter.optional));
+    fields.insert("catch_all".to_string(), Value::Bool(parameter.catch_all));
+    if let Some(constraint) = parameter.constraint {
+        fields.insert("constraint".to_string(), Value::String(constraint));
+    }
+    Value::Object(fields)
+}
+
+fn razor_code_block_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
+    let text = node_text(content, node)?;
+    let block_type = if text.contains("@code") {
+        "code"
+    } else if text.contains("@functions") {
+        "functions"
+    } else {
+        return None;
+    };
+
+    let mut metadata = base_metadata("component_code", "razor");
+    insert_string(&mut metadata, "block_type", block_type);
+
+    Some(fact_for_node(
+        file_path,
+        "razor",
+        RAZOR_CODE_BLOCK_PATTERN_ID,
+        "code_block",
+        node,
+        metadata,
+    ))
+}
+
+fn razor_template_expression_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let expression = node_text(content, node)?
+        .trim()
+        .trim_start_matches('@')
+        .trim()
+        .to_string();
+    if expression.is_empty() {
+        return None;
+    }
+
+    let mut metadata = base_metadata("component_template", "razor");
+    insert_string(&mut metadata, "expression", &expression);
+    metadata.insert(
+        "implicit".to_string(),
+        Value::Bool(node.kind() == "razor_implicit_expression"),
+    );
+
+    Some(fact_for_node(
+        file_path,
+        "razor",
+        RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
+        "template_expression",
+        node,
+        metadata,
+    ))
+}
+
+fn fact_for_node(
+    file_path: &str,
+    language: &str,
+    pattern_id: &str,
+    capture_name: &str,
+    node: Node<'_>,
+    metadata: HashMap<String, Value>,
+) -> StructuralFact {
+    let span = NormalizedSpan::from_node(&node);
+    fact_for_span(
+        file_path,
+        language,
+        pattern_id,
+        capture_name,
+        node.kind(),
+        span,
+        metadata,
+    )
+}
+
+fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
+    content.get(node.start_byte()..node.end_byte())
+}
+
+fn razor_child_text<'a>(node: Node<'_>, content: &'a str, child_kind: &str) -> Option<&'a str> {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() == child_kind {
+            return node_text(content, child);
+        }
+        if let Some(text) = razor_child_text(child, content, child_kind) {
+            return Some(text);
+        }
+    }
+    None
 }
 
 fn collect_aspnet_minimal_api_routes(

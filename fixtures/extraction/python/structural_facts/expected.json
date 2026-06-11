@@ -84,5 +84,97 @@
   "structured_pending_relationships": [],
   "identifiers": [],
   "types": [],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "python.decorated_definition.v1",
+      "capture_name": "decorated_definition",
+      "node_kind": "decorated_definition",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 12,
+      "start_byte": 31,
+      "end_byte": 61,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "covered_lines": 8,
+      "covered_bytes": 62,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 62,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/python/structural_facts/source.py:run:6:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "covered_lines": 1,
+      "covered_bytes": 8,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 12,
+      "start_byte": 53,
+      "end_byte": 61,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/python/structural_facts/source.py:timed:1:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "covered_lines": 1,
+      "covered_bytes": 9,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 2,
+      "end_column": 13,
+      "start_byte": 19,
+      "end_byte": 28,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
 }

@@ -45,6 +45,10 @@ impl super::JavaScriptExtractor {
         // Extract JSDoc comment
         let doc_comment = self.base.find_doc_comment(&node);
 
+        // Decorators sit on the class node itself, or on the wrapping
+        // export_statement when the class is exported.
+        let annotations = self.extract_decorator_annotations(node);
+
         Some(self.base.create_symbol(
             &node,
             name,
@@ -55,7 +59,7 @@ impl super::JavaScriptExtractor {
                 parent_id,
                 metadata: Some(metadata),
                 doc_comment,
-                annotations: Vec::new(),
+                annotations,
             },
         ))
     }

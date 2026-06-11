@@ -158,5 +158,143 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "covered_lines": 16,
+      "covered_bytes": 435,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 435,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "covered_lines": 4,
+      "covered_bytes": 56,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 12,
+      "start_column": 12,
+      "end_line": 15,
+      "end_column": 1,
+      "start_byte": 378,
+      "end_byte": 434,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/cross_file/source.cpp:local_helper:8:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "covered_lines": 3,
+      "covered_bytes": 18,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 8,
+      "start_column": 26,
+      "end_line": 10,
+      "end_column": 1,
+      "start_byte": 346,
+      "end_byte": 364,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 78,
+      "start_byte": 0,
+      "end_byte": 78,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 80,
+      "start_byte": 79,
+      "end_byte": 159,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 79,
+      "start_byte": 160,
+      "end_byte": 239,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 58,
+      "start_byte": 240,
+      "end_byte": 298,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "containing_key": null,
+      "start_line": 6,
+      "start_column": 9,
+      "end_line": 6,
+      "end_column": 18,
+      "start_byte": 309,
+      "end_byte": 318,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

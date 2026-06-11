@@ -12,7 +12,7 @@
 //! is at the 500-line limit and cannot accept additional functions.
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
-use crate::sql::{constraints, routines, views};
+use crate::sql::{body_spans, constraints, routines, views};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -137,7 +137,8 @@ fn extract_triggers_from_error(
             annotations: Vec::new(),
         };
 
-        let trigger_symbol = base.create_symbol(node, name, SymbolKind::Method, options);
+        let mut trigger_symbol = base.create_symbol(node, name, SymbolKind::Method, options);
+        body_spans::finalize_sql_callable_symbol(base, &mut trigger_symbol);
         symbols.push(trigger_symbol);
     }
 }

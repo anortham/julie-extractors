@@ -2,6 +2,7 @@
 
 // Submodule declarations
 pub mod classes;
+mod complexity;
 pub mod core;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
@@ -37,3 +38,4 @@ pub mod metatables;
 pub mod modules;
 pub mod oop_patterns;
 pub mod strings;
+pub mod structural_facts;

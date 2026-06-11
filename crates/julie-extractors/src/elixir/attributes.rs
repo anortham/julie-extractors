@@ -189,6 +189,39 @@ fn extract_behaviour_attribute(
     None
 }
 
+/// Resolve symbol-attached documentation from preceding `#` comments or `@doc` /
+/// `@moduledoc` module attributes.
+pub(super) fn extract_doc_comment_for_node(
+    base: &BaseExtractor,
+    node: &Node,
+    attr_names: &[&str],
+) -> Option<String> {
+    base.find_doc_comment(node)
+        .or_else(|| doc_comment_from_preceding_attributes(base, node, attr_names))
+}
+
+pub(super) fn extract_moduledoc_for_module(base: &BaseExtractor, node: &Node) -> Option<String> {
+    base.find_doc_comment(node).or_else(|| {
+        collect_module_annotations(base, node)
+            .into_iter()
+            .find(|text| annotation_name_from_text(text).as_deref() == Some("moduledoc"))
+    })
+}
+
+fn doc_comment_from_preceding_attributes(
+    base: &BaseExtractor,
+    node: &Node,
+    attr_names: &[&str],
+) -> Option<String> {
+    collect_preceding_annotations(base, node, attr_names)
+        .into_iter()
+        .find(|text| {
+            annotation_name_from_text(text)
+                .map(|name| attr_names.contains(&name.as_str()))
+                .unwrap_or(false)
+        })
+}
+
 pub(super) fn collect_preceding_annotations(
     base: &BaseExtractor,
     node: &Node,

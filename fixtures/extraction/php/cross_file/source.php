@@ -11,8 +11,14 @@ use App\Other;
 
 class Worker {
     public function entry(): int {
+        $total = 0;
+        if ($this->localHelper() > 0) {
+            for ($i = 0; $i < 2; $i++) {
+                $total += $i;
+            }
+        }
         $x = new Other();
-        return $this->localHelper();
+        return $total + $this->localHelper();
     }
 
     private function localHelper(): int {

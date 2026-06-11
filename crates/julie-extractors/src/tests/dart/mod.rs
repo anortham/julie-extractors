@@ -3,11 +3,13 @@
 // Direct Implementation of Dart extractor tests (TDD RED phase)
 
 // Submodule declarations
+mod complexity;
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod extractor;
 pub mod identifiers;
 mod literals;
+mod structural_facts;
 mod task14;
 mod test_detection; // Miller bridge test-roles: package:test call-style + @isTest
 mod type_arguments;
@@ -2641,6 +2643,120 @@ mixin class MixinClass {}
                 sealed_sig.contains("sealed"),
                 "sealed class signature should include 'sealed', got: {}",
                 sealed_sig
+            );
+        }
+
+        #[test]
+        fn test_dart_parser_root_is_source_file() {
+            let code = "class Example {}\n";
+            let mut parser = init_parser();
+            let tree = parser.parse(code, None).unwrap();
+            let root_kind = tree.root_node().kind();
+            assert_eq!(
+                root_kind, "source_file",
+                "tree-sitter-dart must root at source_file, not program; got {root_kind}"
+            );
+        }
+
+        #[test]
+        fn test_dart3_generic_modifier_recovery_at_source_file_root() {
+            // Generic-modifier recovery activates when the parser misreads
+            // `sealed class Foo<T>` as a top-level type_identifier + relational
+            // expression. When the grammar parses a clean class_declaration instead,
+            // extraction still succeeds but via the normal class path.
+            let code =
+                "sealed class AsyncValue<T> {\n  const AsyncValue._();\n  bool get isLoading;\n}\n";
+            let mut parser = init_parser();
+            let tree = parser.parse(code, None).unwrap();
+            assert_eq!(tree.root_node().kind(), "source_file");
+
+            let uses_clean_class_parse = tree_contains_kind(tree.root_node(), "class_definition")
+                || tree_contains_kind(tree.root_node(), "class_declaration");
+            let uses_recovery_pattern = {
+                let root = tree.root_node();
+                let mut cursor = root.walk();
+                root.children(&mut cursor).any(|child| {
+                    child.kind() == "type_identifier"
+                        && child.parent().is_some_and(|p| p.kind() == "source_file")
+                })
+            };
+
+            let workspace_root = PathBuf::from("/tmp/test");
+            let mut extractor = DartExtractor::new(
+                "dart".to_string(),
+                "recovery_root.dart".to_string(),
+                code.to_string(),
+                &workspace_root,
+            );
+            let symbols = extractor.extract_symbols(&tree);
+
+            let class_sym = symbols
+                .iter()
+                .find(|s| s.kind == SymbolKind::Class && s.name == "AsyncValue")
+                .expect("should extract AsyncValue class");
+            assert!(
+                class_sym
+                    .signature
+                    .as_deref()
+                    .is_some_and(|sig| sig.contains("sealed")),
+                "AsyncValue signature should include sealed modifier"
+            );
+
+            if uses_clean_class_parse {
+                assert!(
+                    !uses_recovery_pattern,
+                    "clean class parse and recovery pattern should not both be active"
+                );
+            } else {
+                assert!(
+                    uses_recovery_pattern,
+                    "misparsed generic modifier class should surface type_identifier at source_file root"
+                );
+            }
+        }
+
+        #[test]
+        fn test_dart3_generic_modifier_class_as_outermost_construct_no_panic() {
+            // Regression for the dart3 generic-modifier recovery path
+            // (visit_node "type_identifier" arm): it reads the node's parent
+            // to extract inheritance text and previously used `.unwrap()` on
+            // `node.parent()`. This pins the behavior when the construct is
+            // the outermost item in the file: extraction must not panic and
+            // must still produce the class symbol, its members, and its
+            // signature with the dart3 modifier.
+            let code =
+                "sealed class AsyncValue<T> {\n  const AsyncValue._();\n  bool get isLoading;\n}\n";
+            let mut parser = init_parser();
+            let tree = parser.parse(code, None).unwrap();
+            let workspace_root = PathBuf::from("/tmp/test");
+            let mut extractor = DartExtractor::new(
+                "dart".to_string(),
+                "test.dart".to_string(),
+                code.to_string(),
+                &workspace_root,
+            );
+
+            let symbols = extractor.extract_symbols(&tree);
+
+            let class_sym = symbols
+                .iter()
+                .find(|s| s.kind == SymbolKind::Class && s.name == "AsyncValue")
+                .expect("should extract sealed generic class at file root");
+            let sig = class_sym.signature.as_deref().unwrap_or("");
+            assert!(
+                sig.contains("sealed"),
+                "root-level sealed class signature should include 'sealed', got: {}",
+                sig
+            );
+
+            let getter = symbols
+                .iter()
+                .find(|s| s.name == "isLoading")
+                .expect("should extract isLoading member of root-level sealed class");
+            assert_eq!(
+                getter.parent_id.as_deref(),
+                Some(class_sym.id.as_str()),
+                "isLoading should be parented to the root-level sealed class"
             );
         }
 

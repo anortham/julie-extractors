@@ -1,9 +1,21 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use tree_sitter::Node;
 
+use super::helpers::extract_variable_declaration_annotations;
 use super::imports;
+
+// Static regexes compiled once for performance
+static PAREN_PARAMS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\(([^)]+)\)").unwrap());
+static ENUM_BACKING_TYPE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"enum\(([^)]+)\)").unwrap());
+static ERROR_SET_UNION_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"error\s*\{[^}]*\}\s*\|\|\s*(\w+)").unwrap());
+static FN_TYPE_ASSIGNMENT_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"=\s*(fn\s*\([^}]*\).*?)(?:;|$)").unwrap());
+static ASSIGNMENT_VALUE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"=\s*([^;]+)").unwrap());
 
 /// Extract variable and const declarations, including compound declarations
 /// (generic type constructors, struct/union/enum assignments, error sets, function types)
@@ -72,7 +84,7 @@ fn extract_generic_type_constructor(
     is_public: bool,
 ) -> Option<Symbol> {
     let node_text = base.get_node_text(&node);
-    let param_match = Regex::new(r"\(([^)]+)\)").unwrap().find(&node_text);
+    let param_match = PAREN_PARAMS_RE.find(&node_text);
     let params = if let Some(param_match) = param_match {
         param_match.as_str()
     } else {
@@ -192,7 +204,7 @@ fn extract_enum_assignment(
     is_public: bool,
     node_text: &str,
 ) -> Option<Symbol> {
-    let enum_match = Regex::new(r"enum\(([^)]+)\)").unwrap().find(node_text);
+    let enum_match = ENUM_BACKING_TYPE_RE.find(node_text);
     let enum_type = if let Some(enum_match) = enum_match {
         enum_match.as_str().to_string()
     } else {
@@ -232,9 +244,7 @@ fn extract_error_set_assignment(
     let mut signature = format!("const {} = ", name);
 
     if node_text.contains("||") {
-        let union_match = Regex::new(r"error\s*\{[^}]*\}\s*\|\|\s*(\w+)")
-            .unwrap()
-            .captures(node_text);
+        let union_match = ERROR_SET_UNION_RE.captures(node_text);
         if let Some(union_match) = union_match {
             signature.push_str(&format!("error{{...}} || {}", &union_match[1]));
         } else {
@@ -279,9 +289,7 @@ fn extract_function_type_assignment(
     is_public: bool,
     node_text: &str,
 ) -> Option<Symbol> {
-    let fn_type_match = Regex::new(r"=\s*(fn\s*\([^}]*\).*?)(?:;|$)")
-        .unwrap()
-        .captures(node_text);
+    let fn_type_match = FN_TYPE_ASSIGNMENT_RE.captures(node_text);
     let fn_type = if let Some(fn_type_match) = fn_type_match {
         fn_type_match[1].to_string()
     } else {
@@ -337,7 +345,7 @@ fn extract_standard_variable(
     // For type aliases, extract the assignment value
     if var_type == "inferred" && is_const {
         let node_text = base.get_node_text(&node);
-        let assignment_match = Regex::new(r"=\s*([^;]+)").unwrap().captures(&node_text);
+        let assignment_match = ASSIGNMENT_VALUE_RE.captures(&node_text);
         if let Some(assignment_match) = assignment_match {
             var_type = assignment_match[1].trim().to_string();
         }
@@ -375,6 +383,8 @@ fn extract_standard_variable(
         Visibility::Private
     };
 
+    let annotations = extract_variable_declaration_annotations(base, node);
+
     Some(base.create_symbol(
         &node,
         name,
@@ -385,7 +395,7 @@ fn extract_standard_variable(
             parent_id: parent_id.cloned(),
             metadata: None,
             doc_comment: base.extract_documentation(&node),
-            annotations: Vec::new(),
+            annotations,
         },
     ))
 }

@@ -167,7 +167,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "tree-sitter-scala",
         FULL_CAPABILITIES,
         parser_scala,
-        EMPTY,
+        JAVA_DOCS,
     ),
     spec(
         "dart",
@@ -197,7 +197,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "qml",
         &["qml"],
         "tree-sitter-qmljs",
-        PENDING_NO_TYPES_CAPABILITIES,
+        FULL_CAPABILITIES,
         parser_qml,
         EMPTY,
     ),

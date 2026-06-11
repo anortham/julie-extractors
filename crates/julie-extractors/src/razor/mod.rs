@@ -7,7 +7,14 @@
 /// - Data bindings (@bind-Value)
 /// - Event handlers (@onclick, etc.)
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use regex::Regex;
+use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
+
+// Static regexes compiled once for performance
+static INHERITS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@inherits\s+(\S+)").unwrap());
+static RENDERMODE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"@rendermode="([^"]+)""#).unwrap());
 
 // Module declarations
 mod csharp;
@@ -171,11 +178,9 @@ impl RazorExtractor {
         let content = self.base.get_node_text(&node);
 
         // Extract Razor directives from text
-        use regex::Regex;
 
         // Look for @inherits directive
-        let inherits_regex = Regex::new(r"@inherits\s+(\S+)").unwrap();
-        if let Some(captures) = inherits_regex.captures(&content)
+        if let Some(captures) = INHERITS_RE.captures(&content)
             && let Some(base_class) = captures.get(1)
         {
             let symbol = self.base.create_symbol(
@@ -195,8 +200,7 @@ impl RazorExtractor {
         }
 
         // Look for @rendermode directives
-        let rendermode_regex = Regex::new(r#"@rendermode="([^"]+)""#).unwrap();
-        for captures in rendermode_regex.captures_iter(&content) {
+        for captures in RENDERMODE_RE.captures_iter(&content) {
             if let Some(mode) = captures.get(1) {
                 let symbol = self.base.create_symbol(
                     &node,

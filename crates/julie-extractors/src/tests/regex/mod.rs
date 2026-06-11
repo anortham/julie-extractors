@@ -1,6 +1,7 @@
 // Submodule declarations
 pub mod advanced_features;
 pub mod classes;
+pub mod complexity;
 pub mod cross_file_pending;
 pub mod extractor;
 pub mod flags;
@@ -9,6 +10,7 @@ pub mod helpers;
 pub mod identifiers;
 pub mod relationships;
 pub mod signatures;
+pub mod structural_facts;
 #[cfg(test)]
 mod task15;
 

@@ -5,6 +5,136 @@
 
 use crate::base::BaseExtractor;
 
+/// Extract standard C attributes that decorate a declaration.
+pub(super) fn extract_attributes(base: &BaseExtractor, node: tree_sitter::Node) -> Vec<String> {
+    let mut attributes = Vec::new();
+    collect_attributes_from_text(&base.get_node_text(&node), &mut attributes);
+
+    let mut current = node.prev_sibling();
+    while let Some(sibling) = current {
+        if !matches!(
+            sibling.kind(),
+            "attribute_specifier" | "attribute_declaration"
+        ) {
+            break;
+        }
+
+        let sibling_text = base.get_node_text(&sibling);
+        let trimmed = sibling_text.trim_start();
+        if !(trimmed.starts_with("[[") || trimmed.starts_with("__attribute")) {
+            break;
+        }
+
+        let mut sibling_attributes = Vec::new();
+        collect_attributes_from_text(&sibling_text, &mut sibling_attributes);
+        sibling_attributes.extend(attributes);
+        attributes = sibling_attributes;
+        current = sibling.prev_sibling();
+    }
+
+    attributes
+}
+
+fn collect_attributes_from_text(text: &str, attributes: &mut Vec<String>) {
+    collect_standard_attributes_from_text(text, attributes);
+    collect_gnu_attributes_from_text(text, attributes);
+}
+
+fn collect_standard_attributes_from_text(text: &str, attributes: &mut Vec<String>) {
+    let mut remaining = text;
+    while let Some(start) = remaining.find("[[") {
+        let after_start = &remaining[start + 2..];
+        let Some(end) = after_start.find("]]") else {
+            break;
+        };
+        attributes.push(format!("[[{}]]", after_start[..end].trim()));
+        remaining = &after_start[end + 2..];
+    }
+}
+
+fn collect_gnu_attributes_from_text(text: &str, attributes: &mut Vec<String>) {
+    let mut remaining = text;
+    while let Some(start) = find_gnu_attribute_keyword(remaining) {
+        let after_keyword = remaining[start..]
+            .strip_prefix("__attribute__")
+            .or_else(|| remaining[start..].strip_prefix("__attribute"))
+            .unwrap_or(&remaining[start..])
+            .trim_start();
+
+        let Some((inner, consumed)) = extract_gnu_attribute_inner(after_keyword) else {
+            break;
+        };
+
+        attributes.extend(
+            split_top_level_commas(inner)
+                .into_iter()
+                .map(str::to_string),
+        );
+        remaining = &after_keyword[consumed..];
+    }
+}
+
+fn find_gnu_attribute_keyword(text: &str) -> Option<usize> {
+    match (text.find("__attribute__"), text.find("__attribute")) {
+        (Some(long), Some(short)) => Some(long.min(short)),
+        (Some(index), None) | (None, Some(index)) => Some(index),
+        (None, None) => None,
+    }
+}
+
+fn extract_gnu_attribute_inner(text: &str) -> Option<(&str, usize)> {
+    if !text.starts_with("((") {
+        return None;
+    }
+
+    let mut depth = 0usize;
+    for (index, character) in text.char_indices() {
+        match character {
+            '(' => depth += 1,
+            ')' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    if index == 0 {
+                        return None;
+                    }
+                    return Some((&text[2..index - 1], index + character.len_utf8()));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    None
+}
+
+fn split_top_level_commas(text: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut start = 0usize;
+    let mut depth = 0usize;
+
+    for (index, character) in text.char_indices() {
+        match character {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                let part = text[start..index].trim();
+                if !part.is_empty() {
+                    parts.push(part);
+                }
+                start = index + character.len_utf8();
+            }
+            _ => {}
+        }
+    }
+
+    let part = text[start..].trim();
+    if !part.is_empty() {
+        parts.push(part);
+    }
+
+    parts
+}
+
 /// Find a function declarator node within a declaration
 pub(super) fn find_function_declarator<'a>(
     node: tree_sitter::Node<'a>,

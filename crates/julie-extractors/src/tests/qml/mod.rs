@@ -71,6 +71,7 @@ pub fn extract_identifiers(code: &str) -> Vec<Identifier> {
 pub mod animations; // States, transitions, animations
 pub mod basics; // Core QML: imports, objects, basic properties
 pub mod bindings; // Property bindings and expressions
+pub mod complexity;
 pub mod components; // Custom components, loaders, repeaters
 pub mod coverage; // Consolidated coverage for docs/types/visibility/bindings/signal handlers
 pub mod cross_file_pending; // Phase 4b.qml structured pending lock
@@ -84,5 +85,7 @@ pub mod modern; // Qt 5.x/6.x modern features
 pub mod real_world; // Real-world validation (cool-retro-term, KDE)
 pub mod relationships; // Relationship extraction (calls, signal connections, instantiation)
 pub mod signals; // Signals and signal handlers
+pub mod structural_facts;
 pub mod test_detection; // Qt Quick Test container detection (base_types metadata)
 pub mod type_arguments;
+pub mod types;

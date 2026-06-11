@@ -129,6 +129,49 @@ are also SHA-256.
 Artifacts do not store complete source file contents. Consumers that need full
 text should read the matching source tree directly.
 
+## Data Quality
+
+The upcoming `v2.3.0` release is a broad extraction-quality release. It raises
+the supported language matrix from boolean "supported" claims to fixture-backed,
+per-domain evidence. Every advertised language now has explicit coverage data
+for each extraction domain, and the scorecard has no silent cells or
+quality-bar debt.
+
+Current quality scorecard:
+
+- Languages: `36`
+- Silent capability cells: `0`
+- Quality-bar debts: `0`
+- Strict gate: `node scripts/language-data-quality-report.mjs --strict`
+
+| Domain | Fixture-proven native coverage | Applicable closure |
+| --- | ---: | ---: |
+| Symbols | 36/36 | 36/36 |
+| Relationships | 36/36 | 36/36 |
+| Identifiers | 33/36 | 33/33 |
+| Body spans | 35/36 | 35/35 |
+| Structural facts | 36/36 | 36/36 |
+| Complexity metrics | 30/36 | 30/30 |
+| Annotations | 23/36 | 23/23 |
+| Doc comments | 35/36 | 35/35 |
+| Literals | 36/36 | 36/36 |
+| Source regions | 35/36 | 35/35 |
+| Pending relationships | 30/36 | 30/30 |
+| Types | 29/36 | 29/29 |
+| Type argument usages | 20/36 | 20/20 |
+
+"Applicable closure" means the language either has fixture-proven native
+coverage for that domain or a recorded reason why the domain is not a real
+language construct. Missing extractor work cannot be hidden behind
+`not_applicable`; the capability matrix enforces that every positive claim has
+golden fixture evidence.
+
+Dogfood evidence compares this branch with the published `v2.2.1` binary across
+the three dependent projects and representative real-world repositories. The
+branch scanned `12,893` files with `0` failed files, kept parse diagnostics
+unchanged, and added `451,382` structural facts plus `33,687` complexity metrics
+in that corpus.
+
 ## JSONL Export
 
 JSONL v3 is derived from SQLite and is not a separate source of truth. A full
@@ -265,6 +308,8 @@ Public contracts:
 Language support:
 
 - [New language checklist](docs/languages/new-language-checklist.md)
+- [Language data quality plan](docs/plans/2026-06-10-language-data-quality.md)
+- [Language data quality evidence](docs/release-evidence/2026-06-10-language-data-quality.md)
 
 Release and testing:
 

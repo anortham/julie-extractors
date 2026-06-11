@@ -113,19 +113,50 @@ pub(super) fn extract_group(
 
     let doc_comment = base.find_doc_comment(&node);
 
-    Some(base.create_symbol(
+    let symbol = base.create_symbol(
         &node,
-        group_text,
+        group_text.clone(),
         SymbolKind::Class,
         SymbolOptions {
             signature: Some(signature),
             visibility: Some(Visibility::Public),
-            parent_id,
+            parent_id: parent_id.clone(),
             metadata: Some(metadata),
             doc_comment,
             annotations: Vec::new(),
         },
-    ))
+    );
+
+    record_group_literal_fragment(base, &node, &group_text, parent_id);
+
+    Some(symbol)
+}
+
+/// Record fixed literal fragments inside capturing groups, e.g. `(foo)`.
+fn record_group_literal_fragment(
+    base: &mut BaseExtractor,
+    node: &Node,
+    group_text: &str,
+    parent_id: Option<String>,
+) {
+    let inner = group_text
+        .trim()
+        .strip_prefix('(')
+        .and_then(|text| text.strip_suffix(')'))
+        .unwrap_or(group_text);
+    if inner.len() >= 2
+        && inner
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        base.record_literal(
+            node,
+            inner.to_string(),
+            Some("pattern".to_string()),
+            0,
+            parent_id,
+        );
+    }
 }
 
 /// Extract a lookaround symbol

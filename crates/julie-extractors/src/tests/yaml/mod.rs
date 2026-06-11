@@ -5,6 +5,10 @@
 // Common use cases: GitHub Actions, Kubernetes, Docker Compose, Ansible
 
 pub mod cross_file_pending;
+pub mod structural_facts;
+
+#[cfg(test)]
+mod literals;
 
 #[cfg(test)]
 mod yaml_extractor_tests {

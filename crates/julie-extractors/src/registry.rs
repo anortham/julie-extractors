@@ -1,8 +1,12 @@
 use crate::base::ExtractionResults;
+use crate::base::collect_code_structural_facts;
 use crate::base::collect_complexity_metrics;
+use crate::base::collect_data_structural_facts;
 use crate::base::collect_framework_structural_facts;
 use crate::base::collect_source_regions;
+use crate::base::collect_sql_structural_facts;
 use crate::base::collect_structural_facts;
+use crate::base::collect_web_structural_facts;
 use crate::base::structural_facts::sort_structural_facts;
 use crate::factory::convert_types_map;
 use crate::language;
@@ -647,6 +651,7 @@ fn extract_qml(
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
+    let types = ext.infer_types(&symbols);
     let pending_relationships = ext.base.take_pending_relationships();
     let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
@@ -660,7 +665,7 @@ fn extract_qml(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: HashMap::new(),
+        types: convert_types_map(types, "qml"),
         parse_diagnostics: Vec::new(),
     })
 }
@@ -1014,9 +1019,57 @@ pub fn extract_for_language(
             content,
             &results.symbols,
         ));
+    results
+        .structural_facts
+        .extend(collect_web_structural_facts(
+            language,
+            tree,
+            file_path,
+            content,
+            &results.symbols,
+        ));
+    results
+        .structural_facts
+        .extend(collect_code_structural_facts(
+            language,
+            tree,
+            file_path,
+            content,
+            &results.symbols,
+        ));
+    results
+        .structural_facts
+        .extend(collect_data_structural_facts(
+            language,
+            tree,
+            file_path,
+            content,
+            &results.symbols,
+        ));
+    results
+        .structural_facts
+        .extend(collect_sql_structural_facts(
+            language,
+            tree,
+            file_path,
+            content,
+            &results.symbols,
+        ));
     sort_structural_facts(&mut results.structural_facts);
-    results.complexity_metrics =
-        collect_complexity_metrics(language, tree, file_path, &results.symbols);
+    results.complexity_metrics = match language {
+        "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(
+            tree,
+            content,
+            file_path,
+            &results.symbols,
+        ),
+        "regex" => crate::regex::complexity_metrics::collect_complexity_metrics(
+            tree,
+            file_path,
+            &results.symbols,
+        ),
+        _ => collect_complexity_metrics(language, tree, content, file_path, &results.symbols),
+    };
     Ok(results)
 }
 

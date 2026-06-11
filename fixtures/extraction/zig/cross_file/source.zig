@@ -10,6 +10,10 @@ fn local_helper() i32 {
 }
 
 pub fn entry() i32 {
+    var total = local_helper();
+    if (total > 0) {
+        for (0..total) |_| {}
+    }
     _ = m.func();
-    return local_helper();
+    return total;
 }

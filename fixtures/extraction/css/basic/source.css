@@ -2,6 +2,10 @@
     --accent: #0f766e;
 }
 
+.logo {
+    background-image: url("/assets/worker.svg");
+}
+
 .button,
 #save {
     color: var(--accent);

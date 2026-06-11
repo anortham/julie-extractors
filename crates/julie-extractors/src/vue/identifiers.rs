@@ -7,6 +7,7 @@ mod literals;
 mod type_arguments;
 
 use super::parsing::{VueSection, parse_vue_sfc};
+use crate::base::config_literals::{enclosing_element_tag_name, tag_attribute_carrier};
 use crate::base::{
     BaseExtractor, EmbeddedSpanOffset, Identifier, IdentifierKind, NormalizedSpan, Symbol,
     SymbolKind,
@@ -22,10 +23,12 @@ pub(super) fn extract_identifiers(base: &mut BaseExtractor, symbols: &[Symbol]) 
     // Create symbol map for fast lookup
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
-    // Parse Vue SFC to extract script section
+    // Parse Vue SFC to extract script and template sections
     if let Ok(sections) = parse_vue_sfc(&base.content.clone()) {
         for section in &sections {
-            if section.section_type == "script" {
+            if section.section_type == "template" {
+                extract_template_attribute_literals(base, section, &symbol_map);
+            } else if section.section_type == "script" {
                 // Parse script section with JavaScript tree-sitter
                 if let Some(tree) = parse_script_section(section) {
                     let byte_offset = section_byte_offset(&base.content, section.start_line);
@@ -364,6 +367,97 @@ fn create_identifier_with_offset(
 
     base.identifiers.push(identifier.clone());
     identifier
+}
+
+fn extract_template_attribute_literals(
+    base: &mut BaseExtractor,
+    section: &VueSection,
+    symbol_map: &HashMap<String, &Symbol>,
+) {
+    let mut parser = Parser::new();
+    if parser
+        .set_language(&tree_sitter_html::LANGUAGE.into())
+        .is_err()
+    {
+        return;
+    }
+    let Some(tree) = parser.parse(&section.content, None) else {
+        return;
+    };
+    let byte_offset = section_byte_offset(&base.content, section.start_line);
+    let Some(offset) = EmbeddedSpanOffset::from_host_byte(&base.content, byte_offset as usize)
+    else {
+        return;
+    };
+    walk_template_for_literals(base, tree.root_node(), &section.content, symbol_map, offset);
+}
+
+fn walk_template_for_literals(
+    base: &mut BaseExtractor,
+    node: Node,
+    template_content: &str,
+    symbol_map: &HashMap<String, &Symbol>,
+    offset: EmbeddedSpanOffset,
+) {
+    if node.kind() == "attribute" {
+        record_template_attribute_literal(base, node, template_content, symbol_map, offset);
+    }
+
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        walk_template_for_literals(base, child, template_content, symbol_map, offset);
+    }
+}
+
+fn record_template_attribute_literal(
+    base: &mut BaseExtractor,
+    node: Node,
+    template_content: &str,
+    symbol_map: &HashMap<String, &Symbol>,
+    offset: EmbeddedSpanOffset,
+) {
+    let mut attr_name = None;
+    let mut attr_value = None;
+    let mut attr_value_node = None;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        match child.kind() {
+            "attribute_name" => {
+                attr_name = Some(get_node_text_from_content(&child, template_content));
+            }
+            "attribute_value" | "quoted_attribute_value" => {
+                let text = get_node_text_from_content(&child, template_content);
+                attr_value = Some(text.trim_matches(|c| c == '"' || c == '\'').to_string());
+                attr_value_node = Some(child);
+            }
+            _ => {}
+        }
+    }
+
+    let (name, value, value_node) = match (attr_name, attr_value, attr_value_node) {
+        (Some(name), Some(value), Some(value_node)) if !value.is_empty() => {
+            (name, value, value_node)
+        }
+        _ => return,
+    };
+    if !is_static_template_attribute(&name) {
+        return;
+    }
+
+    let tag_name =
+        enclosing_element_tag_name(template_content, node).unwrap_or_else(|| "element".to_string());
+    let carrier = tag_attribute_carrier(&tag_name, &name);
+    let span = offset.apply(NormalizedSpan::from_node(&value_node));
+    let containing_symbol_id = find_containing_symbol_id_for_span(base, span, symbol_map);
+    base.record_literal_at_span(span, value, Some(carrier), 0, containing_symbol_id);
+}
+
+fn is_static_template_attribute(name: &str) -> bool {
+    let name = name.trim();
+    !(name.starts_with(':')
+        || name.starts_with('@')
+        || name.starts_with('#')
+        || name.starts_with("v-"))
 }
 
 fn section_byte_offset(content: &str, start_line: usize) -> u32 {

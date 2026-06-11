@@ -2,6 +2,7 @@
 //
 // Direct Implementation of Kotlin extractor tests (TDD RED phase)
 
+mod complexity;
 mod cross_file_pending;
 mod task14;
 
@@ -2293,6 +2294,7 @@ class Options internal constructor(val value: String) {
 mod cross_file_relationships;
 mod identifiers;
 mod literals;
+mod structural_facts;
 mod test_detection; // Miller bridge Wave-3: Kotest/Spek call-style adapter
 mod type_arguments;
 mod types; // Phase 4: Type extraction verification tests // Cross-file relationship resolution tests

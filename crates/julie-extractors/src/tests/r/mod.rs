@@ -73,6 +73,7 @@ pub fn extract_all(code: &str) -> (Vec<Symbol>, Vec<Relationship>, Vec<Identifie
 // Each module focuses on a specific aspect of R functionality
 pub mod basics; // Core R: functions, assignments, variables
 pub mod classes; // S3, S4, R6 class systems
+pub mod complexity;
 pub mod control_flow; // if/else, loops, vectorized operations
 pub mod cross_file_pending; // Cross-file structured pending shape (Phase 4a)
 pub mod cross_file_relationships; // Cross-file relationship resolution (pending relationships)
@@ -87,5 +88,6 @@ pub mod packages; // library(), require(), package::function syntax
 #[cfg(feature = "test-real-world")]
 pub mod real_world; // Real-world validation (ggplot2, dplyr)
 pub mod relationships; // Relationship extraction (calls, pipes, library usage)
+pub mod structural_facts;
 pub mod test_detection; // testthat call-style test detection (Miller bridge test-roles)
 pub mod tidyverse; // %>% pipes, dplyr verbs, ggplot2 patterns

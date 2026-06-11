@@ -9,18 +9,25 @@
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,
-      "end_column": 14,
+      "end_column": 23,
       "start_byte": 0,
-      "end_byte": 14,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "@page \"/todos\"",
+      "end_byte": 23,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 14,
+        "end_line": 1,
+        "end_column": 22,
+        "start_byte": 14,
+        "end_byte": 22
+      },
+      "body_hash": "70ed90aa867d2969962b1f2baae662ec",
+      "signature": "@page \"/todos/{id:int}\"",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "directiveName": "page",
-        "directiveValue": "\"/todos\"",
+        "directiveValue": "\"/todos/{id:int}\"",
         "type": "razor-directive"
       },
       "annotations": [],
@@ -44,5 +51,173 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "alpine.directive.v1",
+      "capture_name": "directive",
+      "node_kind": "element",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 39,
+      "end_line": 3,
+      "end_column": 62,
+      "start_byte": 64,
+      "end_byte": 87,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "x-data",
+        "expression": "{ open: true }",
+        "framework": "alpine",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "shorthand": false
+      }
+    },
+    {
+      "pattern_id": "alpine.directive.v1",
+      "capture_name": "directive",
+      "node_kind": "element",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 63,
+      "end_line": 3,
+      "end_column": 76,
+      "start_byte": 88,
+      "end_byte": 101,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "x-show",
+        "expression": "open",
+        "framework": "alpine",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "shorthand": false
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "element",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 21,
+      "end_line": 3,
+      "end_column": 38,
+      "start_byte": 46,
+      "end_byte": 63,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-target",
+        "attribute_value": "#list",
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "element",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 5,
+      "end_line": 3,
+      "end_column": 20,
+      "start_byte": 30,
+      "end_byte": 45,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-get",
+        "attribute_value": "/todos",
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "target_path": "/todos",
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "razor.page_directive.v1",
+      "capture_name": "page_directive",
+      "node_kind": "razor_page_directive",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
+      "containing_key": "fixtures/extraction/razor/structural_facts/source.razor:@page:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 23,
+      "start_byte": 0,
+      "end_byte": 23,
+      "confidence": "1.000",
+      "metadata": {
+        "directive": "page",
+        "framework": "razor",
+        "has_route_constraints": true,
+        "pattern_version": 1,
+        "query_family": "component_routing",
+        "route": "/todos/{id:int}",
+        "route_parameter_count": 1,
+        "route_parameters": [
+          {
+            "catch_all": false,
+            "constraint": "int",
+            "name": "id",
+            "optional": false
+          }
+        ],
+        "route_template": "/todos/{id:int}"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
+      "covered_lines": 6,
+      "covered_bytes": 120,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 120,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
+      "containing_key": "fixtures/extraction/razor/structural_facts/source.razor:@page:1:0",
+      "start_line": 1,
+      "start_column": 6,
+      "end_line": 1,
+      "end_column": 23,
+      "start_byte": 6,
+      "end_byte": 23,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
 }

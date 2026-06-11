@@ -471,3 +471,202 @@ button { color: red; }
             == Some("css")
     }));
 }
+
+#[test]
+fn html_embedded_script_region_metadata_includes_host_tag_and_attributes() {
+    let source = r#"<html><body>
+<script TYPE="application/ld+json" SRC="/data.json">{"name":"worker"}</script>
+</body></html>"#;
+
+    let results = extract("index.html", source);
+    let script = results
+        .source_regions
+        .iter()
+        .find(|region| {
+            region.kind == SourceRegionKind::Embedded
+                && region
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("host_node_kind"))
+                    .and_then(|value| value.as_str())
+                    == Some("script_element")
+        })
+        .expect("expected embedded script region");
+
+    let metadata = script.metadata.as_ref().expect("metadata");
+    assert_eq!(
+        metadata.get("host_tag").and_then(|value| value.as_str()),
+        Some("script")
+    );
+    assert_eq!(
+        metadata
+            .get("embedded_language")
+            .and_then(|value| value.as_str()),
+        Some("json")
+    );
+    assert_eq!(
+        metadata.get("type").and_then(|value| value.as_str()),
+        Some("application/ld+json")
+    );
+    assert_eq!(
+        metadata.get("src").and_then(|value| value.as_str()),
+        Some("/data.json")
+    );
+}
+
+#[test]
+fn vue_embedded_regions_include_host_tag_and_script_lang() {
+    let source = r#"<template><button title="hi">Run</button></template>
+<script setup lang="ts">
+const title = "Worker";
+</script>
+<style scoped lang="scss">
+button { color: red; }
+</style>
+"#;
+
+    let results = extract("src/App.vue", source);
+    let embedded = results
+        .source_regions
+        .iter()
+        .filter(|region| region.kind == SourceRegionKind::Embedded)
+        .collect::<Vec<_>>();
+
+    let script = embedded
+        .iter()
+        .find(|region| {
+            region
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("host_node_kind"))
+                .and_then(|value| value.as_str())
+                == Some("script_element")
+        })
+        .expect("expected embedded script region");
+    let script_metadata = script.metadata.as_ref().expect("script metadata");
+    assert_eq!(
+        script_metadata
+            .get("host_tag")
+            .and_then(|value| value.as_str()),
+        Some("script")
+    );
+    assert_eq!(
+        script_metadata
+            .get("embedded_language")
+            .and_then(|value| value.as_str()),
+        Some("typescript")
+    );
+    assert_eq!(
+        script_metadata
+            .get("setup")
+            .and_then(|value| value.as_bool()),
+        Some(true)
+    );
+    assert_eq!(
+        script_metadata.get("lang").and_then(|value| value.as_str()),
+        Some("ts")
+    );
+
+    let style = embedded
+        .iter()
+        .find(|region| {
+            region
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("host_node_kind"))
+                .and_then(|value| value.as_str())
+                == Some("style_element")
+        })
+        .expect("expected embedded style region");
+    let style_metadata = style.metadata.as_ref().expect("style metadata");
+    assert_eq!(
+        style_metadata
+            .get("host_tag")
+            .and_then(|value| value.as_str()),
+        Some("style")
+    );
+    assert_eq!(
+        style_metadata
+            .get("embedded_language")
+            .and_then(|value| value.as_str()),
+        Some("scss")
+    );
+    assert_eq!(
+        style_metadata.get("lang").and_then(|value| value.as_str()),
+        Some("scss")
+    );
+    assert_eq!(
+        style_metadata
+            .get("scoped")
+            .and_then(|value| value.as_bool()),
+        Some(true)
+    );
+}
+
+#[test]
+fn markdown_embedded_code_block_metadata_includes_info_string() {
+    let source = r#"## Usage
+
+```rust
+fn main() {}
+```
+"#;
+
+    let results = extract("README.md", source);
+    let embedded = results
+        .source_regions
+        .iter()
+        .find(|region| region.kind == SourceRegionKind::Embedded)
+        .expect("expected fenced code embedded region");
+    let metadata = embedded.metadata.as_ref().expect("metadata");
+    assert_eq!(
+        metadata
+            .get("host_node_kind")
+            .and_then(|value| value.as_str()),
+        Some("fenced_code_block")
+    );
+    assert_eq!(
+        metadata
+            .get("embedded_language")
+            .and_then(|value| value.as_str()),
+        Some("rust")
+    );
+    assert_eq!(
+        metadata.get("info_string").and_then(|value| value.as_str()),
+        Some("rust")
+    );
+}
+
+#[test]
+fn razor_embedded_block_metadata_includes_block_type() {
+    let source = r#"@page "/worker"
+
+@code {
+    public string Title { get; set; } = "Worker";
+}
+"#;
+
+    let results = extract("Pages/Worker.razor", source);
+    let embedded = results
+        .source_regions
+        .iter()
+        .find(|region| region.kind == SourceRegionKind::Embedded)
+        .expect("expected razor embedded block");
+    let metadata = embedded.metadata.as_ref().expect("metadata");
+    assert_eq!(
+        metadata
+            .get("host_node_kind")
+            .and_then(|value| value.as_str()),
+        Some("razor_block")
+    );
+    assert_eq!(
+        metadata
+            .get("embedded_language")
+            .and_then(|value| value.as_str()),
+        Some("csharp")
+    );
+    assert_eq!(
+        metadata.get("block_type").and_then(|value| value.as_str()),
+        Some("code")
+    );
+}

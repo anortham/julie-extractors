@@ -1,5 +1,10 @@
 # Extracted Data v1
 
+> **Superseded.** This contract is historical. The current contract is
+> [extracted-data-v3.md](extracted-data-v3.md). Artifacts written under this version are
+> rejected by current binaries (no migration path; rescan to produce a
+> current artifact).
+
 This is the contributor-facing list of data `julie-extractors` tries to extract.
 SQLite remains the primary contract; JSONL and reports expose the same facts in
 consumer-friendly shapes.

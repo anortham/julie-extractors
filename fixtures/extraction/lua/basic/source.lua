@@ -1,6 +1,9 @@
+local json = require("json")
+
 local Worker = {}
 Worker.__index = Worker
 
+--- Increment a worker id.
 local function helper(value)
     return value + 1
 end
@@ -16,5 +19,21 @@ end
 function Worker:run()
     return helper(self.id)
 end
+
+local function evaluate(count, enabled)
+    local total = 0
+    if enabled then
+        for i = 1, count do
+            total = total + i
+        end
+    elseif count > 0 then
+        total = count > 10 and 1 or 0
+    end
+    return total
+end
+
+local co = coroutine.create(function()
+    return 1
+end)
 
 return Worker

@@ -1,8 +1,10 @@
 //! Tests for Scala extractor
 
 mod ast_debug;
+mod complexity;
 mod cross_file_pending;
 mod literals;
+mod structural_facts;
 mod task14;
 mod test_detection; // Miller bridge Wave-3: ScalaTest/MUnit call-style adapter
 mod type_arguments;

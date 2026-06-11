@@ -20,8 +20,8 @@ pub fn to_relative_unix_style(absolute: &Path, workspace_root: &Path) -> Result<
     #[cfg(windows)]
     fn strip_unc_prefix(path: &Path) -> std::path::PathBuf {
         let path_str = path.to_string_lossy();
-        if path_str.starts_with(r"\\?\") {
-            std::path::PathBuf::from(&path_str[4..])
+        if let Some(stripped) = path_str.strip_prefix(r"\\?\") {
+            std::path::PathBuf::from(stripped)
         } else {
             path.to_path_buf()
         }

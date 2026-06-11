@@ -34,7 +34,7 @@ pub fn extract_method(
         signature.push_str(&format!(" As {}", rt));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let annotations = normalize_annotations(&helpers::extract_attributes(base, &node), "vbnet");
     let annotation_keys = annotations
         .iter()
@@ -88,7 +88,7 @@ pub fn extract_constructor(
     let params = helpers::extract_parameters(base, &node);
 
     let signature = format!("{}Sub New{}", helpers::modifier_prefix(&modifiers), params);
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, "public");
     let annotations = normalize_annotations(&helpers::extract_attributes(base, &node), "vbnet");
 
@@ -129,7 +129,7 @@ pub fn extract_property(
         signature.push_str(&format!(" As {}", prop_type));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, "public");
     let annotations = normalize_annotations(&helpers::extract_attributes(base, &node), "vbnet");
 
@@ -164,7 +164,7 @@ pub fn extract_fields(
     let mut declarators = Vec::new();
     collect_descendants_of_kind(node, "variable_declarator", &mut declarators);
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, "private");
     let annotations = normalize_annotations(&helpers::extract_attributes(base, &node), "vbnet");
 
@@ -206,7 +206,7 @@ pub fn extract_event(
         signature.push_str(&format!(" As {}", event_type));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, "public");
     let annotations = normalize_annotations(&helpers::extract_attributes(base, &node), "vbnet");
 
@@ -245,7 +245,7 @@ pub fn extract_operator(
         signature.push_str(&format!(" As {}", rt));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, "public");
     let annotations = normalize_annotations(&helpers::extract_attributes(base, &node), "vbnet");
 
@@ -280,7 +280,7 @@ pub fn extract_consts(
     let mut declarators = Vec::new();
     collect_descendants_of_kind(node, "variable_declarator", &mut declarators);
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, "public");
     let annotations = normalize_annotations(&helpers::extract_attributes(base, &node), "vbnet");
 
@@ -443,7 +443,7 @@ pub fn extract_declare(
         signature.push_str(&format!(" As {}", rt));
     }
 
-    let doc_comment = base.find_doc_comment(&node);
+    let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
     let metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
     let annotations = normalize_annotations(&helpers::extract_attributes(base, &node), "vbnet");
 

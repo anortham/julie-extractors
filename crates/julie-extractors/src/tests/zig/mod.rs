@@ -1,4 +1,6 @@
 // Submodule declarations
+mod annotations;
+mod complexity;
 pub mod extractor;
 #[cfg(test)]
 mod task15;
@@ -2032,6 +2034,7 @@ fn example() !void {
 pub mod cross_file_pending;
 pub mod cross_file_relationships;
 pub mod literals;
+pub mod structural_facts;
 pub mod test_detection;
 mod type_arguments;
 mod types; // Phase 4: Type extraction verification tests

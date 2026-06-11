@@ -88,6 +88,77 @@ class Service {
 }
 
 #[test]
+fn test_javascript_decorated_classes_extract_annotation_markers() {
+    let code = r#"
+function singleton(value, context) {
+  return value;
+}
+
+@singleton
+class Registry {
+}
+
+@singleton
+export class ExportedRegistry {
+}
+
+class Plain {
+}
+"#;
+
+    let mut parser = init_parser();
+    let tree = parser.parse(code, None).unwrap();
+    assert!(
+        tree_contains_kind(tree.root_node(), "decorator"),
+        "JavaScript grammar must expose decorator nodes on classes"
+    );
+
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = JavaScriptExtractor::new(
+        "javascript".to_string(),
+        "decorated_classes.js".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+
+    let symbols = extractor.extract_symbols(&tree);
+
+    let registry = symbols
+        .iter()
+        .find(|symbol| symbol.name == "Registry" && symbol.kind == SymbolKind::Class)
+        .expect("decorated class should be extracted");
+    assert_eq!(registry.annotations.len(), 1);
+    assert_eq!(registry.annotations[0].annotation, "singleton");
+    assert_eq!(registry.annotations[0].annotation_key, "singleton");
+    assert_eq!(
+        registry.annotations[0].raw_text.as_deref(),
+        Some("singleton")
+    );
+
+    // Decorators on exported classes attach to the export_statement node.
+    let exported = symbols
+        .iter()
+        .find(|symbol| symbol.name == "ExportedRegistry" && symbol.kind == SymbolKind::Class)
+        .expect("decorated exported class should be extracted");
+    let exported_keys: Vec<_> = exported
+        .annotations
+        .iter()
+        .map(|marker| marker.annotation_key.as_str())
+        .collect();
+    assert_eq!(exported_keys, vec!["singleton"]);
+
+    let plain = symbols
+        .iter()
+        .find(|symbol| symbol.name == "Plain" && symbol.kind == SymbolKind::Class)
+        .expect("plain class should be extracted");
+    assert!(
+        plain.annotations.is_empty(),
+        "undecorated class should carry no annotations, got {:?}",
+        plain.annotations
+    );
+}
+
+#[test]
 fn test_extract_es6_plus_features() {
     let code = r#"
 // ES6 Imports/Exports

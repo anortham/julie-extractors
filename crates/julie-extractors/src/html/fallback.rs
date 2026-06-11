@@ -1,6 +1,7 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use tree_sitter::Node;
 
 use super::attributes::AttributeHandler;
@@ -87,11 +88,12 @@ impl FallbackExtractor {
 
         // Enhanced regex for HTML elements - handles both self-closing and container elements
         // Note: Rust regex doesn't support backreferences, so we match any closing tag
-        let re =
+        static HTML_ELEMENT_RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(r#"<([a-zA-Z][a-zA-Z0-9\-]*)(?:\s+([^>]*?))?\s*(?:/>|>(.*?)</[^>]+>|>)"#)
-                .unwrap();
+                .unwrap()
+        });
 
-        for captures in re.captures_iter(content) {
+        for captures in HTML_ELEMENT_RE.captures_iter(content) {
             if let Some(tag_name_match) = captures.get(1) {
                 // HTML tags are case-insensitive; normalize to lowercase
                 // for consistent filtering and symbol naming

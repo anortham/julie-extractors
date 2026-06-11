@@ -1,4 +1,5 @@
 pub(crate) mod classes;
+pub(crate) mod complexity_metrics;
 pub(crate) mod flags;
 pub(crate) mod groups;
 pub(crate) mod helpers;
@@ -126,8 +127,25 @@ impl RegexExtractor {
             "backreference" => None,
             // Conditionals: semantically meaningful, keep
             "conditional" => patterns::extract_conditional(&mut self.base, node, parent_id.clone()),
-            // Skip individual literals/characters (noise)
-            "literal" | "character" => None,
+            // Word-like pattern literals (e.g. `(foo)`) are useful literal evidence;
+            // single metacharacters stay noise.
+            "literal" | "character" => {
+                let text = self.base.get_node_text(&node);
+                if text.len() >= 2
+                    && text
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+                {
+                    self.base.record_literal(
+                        &node,
+                        text,
+                        Some("pattern".to_string()),
+                        0,
+                        parent_id.clone(),
+                    );
+                }
+                None
+            }
             _ => None,
         };
 

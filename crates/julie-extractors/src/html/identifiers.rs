@@ -1,3 +1,4 @@
+use crate::base::config_literals::{enclosing_element_tag_name, tag_attribute_carrier};
 use crate::base::{BaseExtractor, IdentifierKind, Symbol};
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -34,6 +35,7 @@ impl IdentifierExtractor {
                 let mut cursor = node.walk();
                 let mut attr_name = None;
                 let mut attr_value = None;
+                let mut attr_value_node = None;
 
                 for child in node.children(&mut cursor) {
                     match child.kind() {
@@ -44,9 +46,29 @@ impl IdentifierExtractor {
                             let text = base.get_node_text(&child);
                             attr_value =
                                 Some(text.trim_matches(|c| c == '"' || c == '\'').to_string());
+                            attr_value_node = Some(child);
                         }
                         _ => {}
                     }
+                }
+
+                if let (Some(name), Some(value), Some(value_node)) =
+                    (&attr_name, &attr_value, attr_value_node)
+                    && !value.is_empty()
+                {
+                    let containing_symbol_id =
+                        Self::find_containing_symbol_id(base, node, symbol_map);
+                    let tag_name = enclosing_element_tag_name(&base.content, node)
+                        .map(|tag_name| tag_name.to_ascii_lowercase())
+                        .unwrap_or_else(|| "element".to_string());
+                    let carrier = tag_attribute_carrier(&tag_name, name);
+                    base.record_literal(
+                        &value_node,
+                        value.clone(),
+                        Some(carrier),
+                        0,
+                        containing_symbol_id,
+                    );
                 }
 
                 if let (Some(name), Some(value)) = (attr_name, attr_value) {

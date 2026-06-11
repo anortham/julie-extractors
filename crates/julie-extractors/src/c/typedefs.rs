@@ -8,6 +8,14 @@ use crate::c::CExtractor;
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::LazyLock;
+
+// Static regexes compiled once for performance
+static FUNCTION_POINTER_TYPEDEF_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"typedef\s+[^(]*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)").unwrap()
+});
+static STRUCT_ALIGN_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"typedef\s+struct\s+(ALIGN\([^)]+\))").unwrap());
 
 use super::helpers;
 use super::signatures;
@@ -189,9 +197,8 @@ fn extract_function_pointer_typedef_name(
     node: tree_sitter::Node,
 ) -> Option<String> {
     let signature = base.get_node_text(&node);
-    let re = Regex::new(r"typedef\s+[^(]*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)").ok()?;
 
-    if let Some(captures) = re.captures(&signature)
+    if let Some(captures) = FUNCTION_POINTER_TYPEDEF_RE.captures(&signature)
         && let Some(name_match) = captures.get(1)
     {
         let name = name_match.as_str().to_string();
@@ -205,12 +212,10 @@ fn extract_function_pointer_typedef_name(
 
 /// Fix function pointer typedef names in post-processing
 pub(super) fn fix_function_pointer_typedef_names(symbols: &mut [Symbol]) {
-    let re = Regex::new(r"typedef\s+[^(]*\(\s*\*\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)").unwrap();
-
     for symbol in symbols.iter_mut() {
         if symbol.kind == SymbolKind::Type
             && let Some(signature) = &symbol.signature
-            && let Some(captures) = re.captures(signature)
+            && let Some(captures) = FUNCTION_POINTER_TYPEDEF_RE.captures(signature)
             && let Some(name_match) = captures.get(1)
         {
             let correct_name = name_match.as_str();
@@ -231,14 +236,12 @@ pub(super) fn fix_function_pointer_typedef_names(symbols: &mut [Symbol]) {
 
 /// Fix struct alignment attributes in post-processing
 pub(super) fn fix_struct_alignment_attributes(symbols: &mut [Symbol]) {
-    let re = Regex::new(r"typedef\s+struct\s+(ALIGN\([^)]+\))").unwrap();
-
     for symbol in symbols.iter_mut() {
         if matches!(
             symbol.kind,
             SymbolKind::Type | SymbolKind::Struct | SymbolKind::Union
         ) && let Some(signature) = &symbol.signature
-            && let Some(captures) = re.captures(signature)
+            && let Some(captures) = STRUCT_ALIGN_RE.captures(signature)
             && let Some(align_match) = captures.get(1)
         {
             let align_attr = align_match.as_str();

@@ -3,7 +3,12 @@
 use crate::base::{
     BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility, find_child_by_type,
 };
+use regex::Regex;
+use std::sync::LazyLock;
 use tree_sitter::Node;
+
+// Static regex compiled once for performance
+static ENUM_NAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"enum\s+(\w+)\s*\{").unwrap());
 
 /// Extract enum definition
 pub(super) fn extract_enum_definition(
@@ -17,10 +22,7 @@ pub(super) fn extract_enum_definition(
     } else {
         // Try to extract name from the text pattern: "enum Name { ... }"
         let text = base.get_node_text(&node);
-        if let Some(captures) = regex::Regex::new(r"enum\s+(\w+)\s*\{")
-            .unwrap()
-            .captures(&text)
-        {
+        if let Some(captures) = ENUM_NAME_RE.captures(&text) {
             captures.get(1)?.as_str().to_string()
         } else {
             return None;

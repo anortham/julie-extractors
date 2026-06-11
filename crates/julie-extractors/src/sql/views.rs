@@ -6,6 +6,7 @@
 //! - View columns from ERROR nodes containing CREATE VIEW
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::sql::body_spans;
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -282,7 +283,9 @@ pub(super) fn extract_views_from_error(
             annotations: Vec::new(),
         };
 
-        let view_symbol = base.create_symbol(node, name.clone(), SymbolKind::Interface, options);
+        let mut view_symbol =
+            base.create_symbol(node, name.clone(), SymbolKind::Interface, options);
+        body_spans::finalize_sql_callable_symbol(base, &mut view_symbol);
         symbols.push(view_symbol.clone());
     }
 }

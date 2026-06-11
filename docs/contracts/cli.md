@@ -12,9 +12,14 @@ and inspect extraction artifacts by spawning this binary only.
 Contract version:
 
 - CLI contract: `1`
-- Extraction contract: `2`
-- SQLite schema: `2`
-- JSONL schema: `2`
+- Extraction contract: `3`
+- SQLite schema: `3`
+- JSONL schema: `3`
+
+These values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
+`crates/julie-extract-artifact/src/schema.rs` and `JSONL_SCHEMA_VERSION` in
+`crates/julie-extract-artifact/src/jsonl.rs`; those constants are the source
+of truth when this table drifts.
 
 ## Invariants
 

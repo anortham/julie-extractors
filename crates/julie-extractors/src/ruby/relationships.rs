@@ -2,7 +2,7 @@ use super::helpers::{extract_method_name_from_call, extract_name_from_node};
 /// Relationship extraction for Ruby symbols
 /// Handles inheritance, module inclusion, and other symbol relationships
 use crate::base::{
-    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol,
+    LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
     UnresolvedTarget,
 };
 use tree_sitter::Node;
@@ -248,9 +248,10 @@ fn extract_call_relationships(
             let line_number = (node.start_position().row + 1) as u32;
             let file_path = base.file_path.clone();
 
-            match symbol_index.resolve_call_target(
+            match resolve_ruby_call_target(
+                symbol_index,
                 &method_name_opt,
-                Some(caller_symbol),
+                caller_symbol,
                 target.receiver.as_deref(),
             ) {
                 LocalTargetResolution::Resolved(called_symbol) => {
@@ -290,6 +291,37 @@ fn extract_call_relationships(
             }
         }
     }
+}
+
+fn resolve_ruby_call_target<'a>(
+    symbol_index: &ScopedSymbolIndex<'a>,
+    method_name: &str,
+    caller: &Symbol,
+    receiver: Option<&str>,
+) -> LocalTargetResolution<'a> {
+    if receiver.is_some() {
+        return symbol_index.resolve_call_target(method_name, Some(caller), receiver);
+    }
+
+    if let Some(parent_id) = caller.parent_id.as_deref() {
+        let same_parent_callables: Vec<&Symbol> = symbol_index
+            .candidates_by_name(method_name)
+            .filter(|symbol| {
+                matches!(
+                    symbol.kind,
+                    SymbolKind::Function | SymbolKind::Method | SymbolKind::Constructor
+                ) && symbol.parent_id.as_deref() == Some(parent_id)
+            })
+            .collect();
+
+        match same_parent_callables.as_slice() {
+            [symbol] => return LocalTargetResolution::Resolved(symbol),
+            [] => {}
+            _ => return LocalTargetResolution::Ambiguous,
+        }
+    }
+
+    symbol_index.resolve_call_target(method_name, Some(caller), None)
 }
 
 fn unresolved_ruby_constant(name: String) -> UnresolvedTarget {

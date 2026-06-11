@@ -1,9 +1,10 @@
 [package]
 name = "julie-extract-artifact"
-version = "2.2.1"
+version = "2.3.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 description = "SQLite artifact persistence for julie-extract"
 
 [lints]

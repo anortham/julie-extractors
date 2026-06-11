@@ -133,5 +133,119 @@
       "metadata": null
     }
   ],
-  "parse_diagnostics": []
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "typescript.await_expression.v1",
+      "capture_name": "await_expression",
+      "node_kind": "await_expression",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/structural_facts/source.ts",
+      "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:load:1:7",
+      "start_line": 2,
+      "start_column": 11,
+      "end_line": 2,
+      "end_column": 30,
+      "start_byte": 61,
+      "end_byte": 80,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "async"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/structural_facts/source.ts",
+      "covered_lines": 4,
+      "covered_bytes": 84,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 84,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/structural_facts/source.ts:load:1:7",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/structural_facts/source.ts",
+      "covered_lines": 3,
+      "covered_bytes": 35,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 48,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 48,
+      "end_byte": 83,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/api",
+      "kind": "other",
+      "carrier": "fetch",
+      "arg_position": 0,
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/structural_facts/source.ts",
+      "start_line": 2,
+      "start_column": 23,
+      "end_line": 2,
+      "end_column": 29,
+      "start_byte": 73,
+      "end_byte": 79,
+      "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:load:1:7",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/structural_facts/source.ts",
+      "containing_key": "fixtures/extraction/typescript/structural_facts/source.ts:load:1:7",
+      "start_line": 2,
+      "start_column": 23,
+      "end_line": 2,
+      "end_column": 29,
+      "start_byte": 73,
+      "end_byte": 79,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/typescript/structural_facts/source.ts:Promise:type_usage:1:30",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/structural_facts/source.ts",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Response",
+          "children": []
+        }
+      ]
+    }
+  ]
 }

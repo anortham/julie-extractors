@@ -84,6 +84,16 @@ fn extract_inline_link(
         first_child_text(base, node, "link_destination").map(clean_link_destination)?;
     let title = first_child_text(base, node, "link_title").map(clean_link_title);
 
+    if let Some(destination_node) = first_child_node(node, "link_destination") {
+        base.record_literal(
+            &destination_node,
+            destination.clone(),
+            Some("inline_link".to_string()),
+            0,
+            parent_id.map(str::to_string),
+        );
+    }
+
     let mut metadata = HashMap::new();
     metadata.insert("markdown_kind".to_string(), json!("inline_link"));
     metadata.insert("destination".to_string(), json!(destination));
@@ -199,13 +209,14 @@ fn extract_link_reference_definition(
 }
 
 pub(super) fn extract_line_based_symbols(
-    base: &BaseExtractor,
+    base: &mut BaseExtractor,
     existing_symbols: &[Symbol],
 ) -> Vec<Symbol> {
     let mut symbols = Vec::new();
     let mut byte_offset = 0u32;
 
-    for (line_index, line) in base.content.lines().enumerate() {
+    let lines: Vec<String> = base.content.lines().map(str::to_string).collect();
+    for (line_index, line) in lines.iter().enumerate() {
         let line_number = line_index as u32 + 1;
         let parent_id =
             containing_symbol_at_line(existing_symbols, line_number).map(|s| s.id.clone());
@@ -221,9 +232,27 @@ pub(super) fn extract_line_based_symbols(
             let Some(text) = captures.get(2).map(|matched| matched.as_str()) else {
                 continue;
             };
-            let Some(destination) = captures.get(3).map(|matched| matched.as_str()) else {
+            let Some(destination_match) = captures.get(3) else {
                 continue;
             };
+            let destination = destination_match.as_str();
+
+            let dest_start = byte_offset as usize + destination_match.start();
+            let dest_end = byte_offset as usize + destination_match.end();
+            if let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
+                &base.content,
+                base.line_starts(),
+                dest_start,
+                dest_end,
+            ) {
+                base.record_literal_at_span(
+                    span,
+                    clean_link_destination(destination.to_string()),
+                    Some("inline_link".to_string()),
+                    0,
+                    parent_id.clone(),
+                );
+            }
 
             let mut metadata = HashMap::new();
             metadata.insert("markdown_kind".to_string(), json!("inline_link"));
@@ -367,11 +396,14 @@ fn line_symbol(
     }
 }
 
-fn first_child_text(base: &BaseExtractor, node: Node, kind: &str) -> Option<String> {
+fn first_child_node<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
     node.children(&mut cursor)
         .find(|child| child.kind() == kind)
-        .map(|child| base.get_node_text(&child))
+}
+
+fn first_child_text(base: &BaseExtractor, node: Node, kind: &str) -> Option<String> {
+    first_child_node(node, kind).map(|child| base.get_node_text(&child))
 }
 
 fn child_texts(base: &BaseExtractor, node: Node, kind: &str) -> Vec<String> {

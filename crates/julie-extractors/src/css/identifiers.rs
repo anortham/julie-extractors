@@ -49,21 +49,36 @@ impl IdentifierExtractor {
         match node.kind() {
             // CSS function calls: calc(), var(), rgb(), etc.
             "call_expression" => {
-                // Extract function name
                 let mut cursor = node.walk();
-                for child in node.children(&mut cursor) {
-                    if child.kind() == "function_name" {
-                        let name = base.get_node_text(&child);
-                        let containing_symbol_id =
-                            Self::find_containing_symbol_id(base, node, symbol_map);
+                let mut function_name = None;
+                let containing_symbol_id = Self::find_containing_symbol_id(base, node, symbol_map);
 
-                        base.create_identifier(
-                            &child,
-                            name,
-                            IdentifierKind::Call,
-                            containing_symbol_id,
-                        );
-                        break;
+                for child in node.children(&mut cursor) {
+                    match child.kind() {
+                        "function_name" => {
+                            function_name = Some(base.get_node_text(&child));
+                            base.create_identifier(
+                                &child,
+                                function_name.clone().unwrap_or_default(),
+                                IdentifierKind::Call,
+                                containing_symbol_id.clone(),
+                            );
+                        }
+                        "arguments" => {
+                            let mut arg_cursor = child.walk();
+                            for (pos, arg) in child.named_children(&mut arg_cursor).enumerate() {
+                                if let Some(text) = base.decode_string_literal(&arg) {
+                                    base.record_literal(
+                                        &arg,
+                                        text,
+                                        function_name.clone(),
+                                        pos as u32,
+                                        containing_symbol_id.clone(),
+                                    );
+                                }
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }

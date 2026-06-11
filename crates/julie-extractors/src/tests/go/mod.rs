@@ -1,4 +1,5 @@
 // Test modules for specific Go features
+mod annotations;
 mod build_tags;
 mod concurrency;
 mod cross_file_pending;
