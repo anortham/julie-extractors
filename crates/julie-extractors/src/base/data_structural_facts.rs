@@ -366,10 +366,10 @@ fn markdown_inline_link_fact(
     let mut metadata = base_metadata("document_links");
     insert_string(&mut metadata, "label", &label);
     insert_string(&mut metadata, "destination", &destination);
-    if let Some(title) = child_text(node, content, "link_title").map(clean_markdown_link_title) {
-        if !title.is_empty() {
-            insert_string(&mut metadata, "title", &title);
-        }
+    if let Some(title) = child_text(node, content, "link_title").map(clean_markdown_link_title)
+        && !title.is_empty()
+    {
+        insert_string(&mut metadata, "title", &title);
     }
 
     Some(fact_for_node(
@@ -1427,32 +1427,34 @@ fn yaml_value_kind(value_node: Node<'_>, content: &str) -> &'static str {
     match value_node.kind() {
         "block_node" => {
             let mut cursor = value_node.walk();
-            for child in value_node.children(&mut cursor) {
-                return match child.kind() {
+            if let Some(child) = value_node.children(&mut cursor).next() {
+                match child.kind() {
                     "block_mapping" => "mapping",
                     "block_sequence" => "sequence",
                     "alias" => "alias",
                     "anchor" => "anchor",
                     _ => "other",
-                };
+                }
+            } else {
+                "other"
             }
-            "other"
         }
         "flow_node" => {
             let mut cursor = value_node.walk();
-            for child in value_node.children(&mut cursor) {
-                return match child.kind() {
+            if let Some(child) = value_node.children(&mut cursor).next() {
+                match child.kind() {
                     "plain_scalar" | "double_quote_scalar" | "single_quote_scalar" => "scalar",
                     "flow_mapping" => "mapping",
                     "flow_sequence" => "sequence",
                     "alias" => "alias",
                     "anchor" => "anchor",
                     _ => "other",
-                };
+                }
+            } else {
+                yaml_node_scalar_text(content, value_node)
+                    .map(|_| "scalar")
+                    .unwrap_or("other")
             }
-            yaml_node_scalar_text(content, value_node)
-                .map(|_| "scalar")
-                .unwrap_or("other")
         }
         _ => "other",
     }

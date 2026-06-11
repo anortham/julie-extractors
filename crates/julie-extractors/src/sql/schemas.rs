@@ -107,28 +107,27 @@ pub(super) fn extract_view(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    if node.kind() == "create_view" {
-        if let Some(name_node) = base
+    if node.kind() == "create_view"
+        && let Some(name_node) = base
             .find_child_by_type(&node, "identifier")
             .or_else(|| base.find_child_by_type(&node, "view_name"))
-        {
-            let name = base.get_node_text(&name_node);
-            let mut metadata = HashMap::new();
-            metadata.insert("isView".to_string(), serde_json::Value::Bool(true));
+    {
+        let name = base.get_node_text(&name_node);
+        let mut metadata = HashMap::new();
+        metadata.insert("isView".to_string(), serde_json::Value::Bool(true));
 
-            let options = SymbolOptions {
-                signature: Some(format!("CREATE VIEW {}", name)),
-                visibility: Some(crate::base::Visibility::Public),
-                parent_id: parent_id.map(|s| s.to_string()),
-                doc_comment: base.find_doc_comment(&node),
-                metadata: Some(metadata),
-                annotations: Vec::new(),
-            };
+        let options = SymbolOptions {
+            signature: Some(format!("CREATE VIEW {}", name)),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: parent_id.map(|s| s.to_string()),
+            doc_comment: base.find_doc_comment(&node),
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
 
-            let mut symbol = base.create_symbol(&node, name, SymbolKind::Interface, options);
-            body_spans::finalize_sql_callable_symbol(base, &mut symbol);
-            return Some(symbol);
-        }
+        let mut symbol = base.create_symbol(&node, name, SymbolKind::Interface, options);
+        body_spans::finalize_sql_callable_symbol(base, &mut symbol);
+        return Some(symbol);
     }
 
     let node_text = base.get_node_text(&node);

@@ -106,17 +106,17 @@ fn collect_sql_node(
             if let Some(fact) = column_definition_fact(file_path, content, node) {
                 facts.push(fact);
             }
-            if has_child_kind(node, "keyword_references") {
-                if let Some(fact) = foreign_key_fact(file_path, content, node) {
-                    facts.push(fact);
-                }
+            if has_child_kind(node, "keyword_references")
+                && let Some(fact) = foreign_key_fact(file_path, content, node)
+            {
+                facts.push(fact);
             }
         }
         "constraint" => {
-            if has_child_kind(node, "keyword_foreign") {
-                if let Some(fact) = foreign_key_fact(file_path, content, node) {
-                    facts.push(fact);
-                }
+            if has_child_kind(node, "keyword_foreign")
+                && let Some(fact) = foreign_key_fact(file_path, content, node)
+            {
+                facts.push(fact);
             } else if let Some(fact) = constraint_fact(file_path, content, node) {
                 facts.push(fact);
             }
@@ -664,12 +664,11 @@ fn collect_ordered_column_names(content: &str, node: Node<'_>) -> Vec<String> {
     let mut names = Vec::new();
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "column" {
-            if let Some(identifier) = find_child(child, "identifier") {
-                if let Some(name) = node_text(content, identifier) {
-                    names.push(name.to_string());
-                }
-            }
+        if child.kind() == "column"
+            && let Some(identifier) = find_child(child, "identifier")
+            && let Some(name) = node_text(content, identifier)
+        {
+            names.push(name.to_string());
         }
     }
     names
@@ -707,13 +706,12 @@ fn collect_identifier_names(content: &str, node: Node<'_>) -> Vec<String> {
     let mut names = Vec::new();
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "identifier" {
-            if let Some(name) = node_text(content, child)
+        if child.kind() == "identifier"
+            && let Some(name) = node_text(content, child)
                 .map(str::trim)
                 .filter(|s| !s.is_empty())
-            {
-                names.push(name.to_string());
-            }
+        {
+            names.push(name.to_string());
         }
     }
     names
@@ -728,10 +726,10 @@ fn collect_source_tables_in_node(node: Node<'_>, content: &str) -> Vec<String> {
 }
 
 fn collect_relation_names(node: Node<'_>, content: &str, tables: &mut Vec<String>) {
-    if node.kind() == "relation" || node.kind() == "object_reference" {
-        if let Some(name) = relation_table_name(content, node) {
-            tables.push(name);
-        }
+    if (node.kind() == "relation" || node.kind() == "object_reference")
+        && let Some(name) = relation_table_name(content, node)
+    {
+        tables.push(name);
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
@@ -822,12 +820,8 @@ fn find_object_reference(node: Node<'_>) -> Option<Node<'_>> {
 
 fn find_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        if child.kind() == kind {
-            return Some(child);
-        }
-    }
-    None
+    node.children(&mut cursor)
+        .find(|&child| child.kind() == kind)
 }
 
 fn find_descendant<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {

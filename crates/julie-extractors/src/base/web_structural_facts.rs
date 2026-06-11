@@ -443,15 +443,14 @@ fn count_html_form_controls(node: Node<'_>, content: &str) -> usize {
 }
 
 fn count_html_form_controls_node(node: Node<'_>, content: &str, count: &mut usize) {
-    if node.kind() == "element" {
-        if let Some(tag_name) = html_tag_name(content, node) {
-            if matches!(
-                tag_name.as_str(),
-                "input" | "button" | "select" | "textarea"
-            ) {
-                *count += 1;
-            }
-        }
+    if node.kind() == "element"
+        && let Some(tag_name) = html_tag_name(content, node)
+        && matches!(
+            tag_name.as_str(),
+            "input" | "button" | "select" | "textarea"
+        )
+    {
+        *count += 1;
     }
 
     let mut cursor = node.walk();
@@ -465,10 +464,10 @@ fn html_form_control_owner<'a>(
     form_stack: &'a [HtmlFormContext],
     forms_by_id: &'a std::collections::HashMap<String, HtmlFormContext>,
 ) -> Option<&'a HtmlFormContext> {
-    if let Some(form_id) = attributes.get("form").filter(|value| !value.is_empty()) {
-        if let Some(owner) = forms_by_id.get(form_id) {
-            return Some(owner);
-        }
+    if let Some(form_id) = attributes.get("form").filter(|value| !value.is_empty())
+        && let Some(owner) = forms_by_id.get(form_id)
+    {
+        return Some(owner);
     }
     form_stack.last()
 }

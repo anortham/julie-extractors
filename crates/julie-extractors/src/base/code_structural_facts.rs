@@ -1126,7 +1126,7 @@ fn matches_pattern(language: &str, content: &str, node: Node<'_>, pattern_id: &s
         }
         ("elixir", "elixir.module_attribute.v1") => elixir_is_module_attribute(node),
         ("elixir", "elixir.directive_call.v1") => elixir_directive_kind(content, node).is_some(),
-        ("elixir", "elixir.pipeline_operator.v1") => node_contains_token(node, content, "|>"),
+        ("elixir", "elixir.pipeline_operator.v1") => node_contains_token(node, "|>"),
         ("elixir", "elixir.with_expression.v1") => {
             elixir_call_target(content, node).as_deref() == Some("with")
         }
@@ -1305,10 +1305,10 @@ fn elixir_directive_target(content: &str, node: Node<'_>) -> Option<String> {
         if child.kind() == "identifier" {
             return Some(node_text(content, child));
         }
-        if child.kind() == "call" {
-            if let Some(name) = elixir_call_target(content, child) {
-                return Some(name);
-            }
+        if child.kind() == "call"
+            && let Some(name) = elixir_call_target(content, child)
+        {
+            return Some(name);
         }
     }
     None
@@ -1413,13 +1413,13 @@ fn r_is_pipe_expression(node: Node<'_>) -> bool {
             .is_some_and(|operator| operator.kind() == "|>")
 }
 
-fn node_contains_token(node: Node<'_>, content: &str, token: &str) -> bool {
+fn node_contains_token(node: Node<'_>, token: &str) -> bool {
     if node.kind() == token {
         return true;
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if node_contains_token(child, content, token) {
+        if node_contains_token(child, token) {
             return true;
         }
     }

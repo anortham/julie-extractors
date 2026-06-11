@@ -35,7 +35,7 @@ pub(super) fn extract_script_setup_symbols(
 const COMPONENT_MACROS: [&str; 3] = ["defineOptions", "defineProps", "defineEmits"];
 
 /// Attach script-setup macro metadata to the component symbol and defineExpose targets.
-pub(super) fn apply_script_setup_annotations(symbols: &mut Vec<Symbol>, sections: &[VueSection]) {
+pub(super) fn apply_script_setup_annotations(symbols: &mut [Symbol], sections: &[VueSection]) {
     for section in sections {
         if section.section_type != "script" || !section.is_setup {
             continue;
@@ -102,16 +102,13 @@ fn collect_component_macros(node: Node, content: &str) -> Vec<String> {
 }
 
 fn collect_component_macros_recursive(node: Node, content: &str, macros: &mut Vec<String>) {
-    match node.kind() {
-        "call_expression" => {
-            if let Some(callee) = node.child_by_field_name("function") {
-                let callee_name = get_node_text(&callee, content);
-                if COMPONENT_MACROS.contains(&callee_name.as_str()) {
-                    macros.push(callee_name);
-                }
-            }
+    if node.kind() == "call_expression"
+        && let Some(callee) = node.child_by_field_name("function")
+    {
+        let callee_name = get_node_text(&callee, content);
+        if COMPONENT_MACROS.contains(&callee_name.as_str()) {
+            macros.push(callee_name);
         }
-        _ => {}
     }
 
     let mut cursor = node.walk();

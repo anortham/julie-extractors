@@ -198,10 +198,10 @@ fn is_callable(kind: &SymbolKind) -> bool {
 
 fn metric_span_for_symbol(tree: &Tree, source: &str, symbol: &Symbol) -> NormalizedSpan {
     let declaration_span = symbol_span(symbol);
-    if let Some(body) = symbol.body_span {
-        if body_covers_meaningful_share(declaration_span, body) {
-            return body;
-        }
+    if let Some(body) = symbol.body_span
+        && body_covers_meaningful_share(declaration_span, body)
+    {
+        return body;
     }
     if let Some(block_span) = enclosing_routine_body_span(tree, source, declaration_span) {
         return block_span;

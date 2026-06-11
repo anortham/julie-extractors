@@ -54,22 +54,21 @@ impl IdentifierExtractor {
 
                 if let (Some(name), Some(value), Some(value_node)) =
                     (&attr_name, &attr_value, attr_value_node)
+                    && !value.is_empty()
                 {
-                    if !value.is_empty() {
-                        let containing_symbol_id =
-                            Self::find_containing_symbol_id(base, node, symbol_map);
-                        let tag_name = enclosing_element_tag_name(&base.content, node)
-                            .map(|tag_name| tag_name.to_ascii_lowercase())
-                            .unwrap_or_else(|| "element".to_string());
-                        let carrier = tag_attribute_carrier(&tag_name, name);
-                        base.record_literal(
-                            &value_node,
-                            value.clone(),
-                            Some(carrier),
-                            0,
-                            containing_symbol_id,
-                        );
-                    }
+                    let containing_symbol_id =
+                        Self::find_containing_symbol_id(base, node, symbol_map);
+                    let tag_name = enclosing_element_tag_name(&base.content, node)
+                        .map(|tag_name| tag_name.to_ascii_lowercase())
+                        .unwrap_or_else(|| "element".to_string());
+                    let carrier = tag_attribute_carrier(&tag_name, name);
+                    base.record_literal(
+                        &value_node,
+                        value.clone(),
+                        Some(carrier),
+                        0,
+                        containing_symbol_id,
+                    );
                 }
 
                 if let (Some(name), Some(value)) = (attr_name, attr_value) {

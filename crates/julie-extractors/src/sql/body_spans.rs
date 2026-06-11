@@ -183,10 +183,10 @@ fn span_for_statement_range(
 fn statement_text_from(base: &BaseExtractor, symbol: &Symbol) -> String {
     let start = symbol.start_byte as usize;
     let end = symbol.end_byte as usize;
-    if end > start {
-        if let Some(text) = base.content.get(start..end) {
-            return text.to_string();
-        }
+    if end > start
+        && let Some(text) = base.content.get(start..end)
+    {
+        return text.to_string();
     }
 
     let tail = base.content.get(start..).unwrap_or("");
