@@ -52,9 +52,57 @@ julie-extract languages [--json]
 - `--strict-schema`: fail instead of migrating an older compatible artifact.
 - `--ignore-file <path>`: extra gitignore-style ignore file. Repeatable.
 
-`--ignore-file` only narrows the input set. It does not override hard safety
-exclusions such as binary files, oversized files, artifact output files, or VCS
-storage directories.
+`--ignore-file` rules take precedence over in-tree `.gitignore` and
+`.julieignore` rules. No ignore rule overrides the hard safety exclusions
+such as binary files, oversized files, artifact output files, or VCS storage
+directories.
+
+## File Selection and Ignore Rules
+
+`scan` and `update` select files through layered ignore rules. All layers use
+gitignore pattern syntax. These rules are a stable contract: consumers that
+mirror scan behavior (for example a file watcher deciding which change events
+to forward) must apply the same layers.
+
+1. **Hard safety exclusions.** Always active and not overridable: VCS storage
+   directories (`.git/`, `.hg/`, `.svn/`), dependency and build output
+   directories (`node_modules/`, `vendor/`, `target/`, `dist/`, `build/`,
+   `.cache/`), `.julie/` and `.memories/`, minified and generated JavaScript
+   and TypeScript bundles, files larger than 1 MiB, and the artifact files
+   themselves.
+2. **`--ignore-file <path>`.** Caller-supplied rules for one invocation.
+   Patterns are matched relative to the scan root. These rules are decisive:
+   an ignore or whitelist rule here wins over every in-tree rule, so an
+   explicit invocation-level exclusion cannot be silently re-included by a
+   committed ignore file, and a caller whitelist can re-include a file that
+   in-tree rules ignore. This is the integration point for consumer-side
+   policy such as vendor-file detection: detect on the consumer side, write
+   the result to a file, and pass it here.
+3. **In-tree ignore files.** Applied automatically with git semantics. The
+   scan honors `.gitignore` and `.julieignore` files in the scan root and in
+   subdirectories at any depth (including hidden directories), plus
+   `.gitignore` files in ancestor directories up to the enclosing git root
+   (so a nested workspace inherits repo-level rules). `.julieignore` carries
+   extraction-specific rules a repo owner commits so every consumer gets the
+   same exclusions (for example machine-generated files that are tracked in
+   git but not worth extracting).
+
+In-tree patterns apply relative to the directory of the ignore file that
+declares them, exactly as git treats nested ignore files. Precedence within
+the in-tree layer is also git's: a rule in a deeper directory takes
+precedence over shallower rules for paths below it, later rules in the same
+file win on conflicts, and when `.gitignore` and `.julieignore` exist in the
+same directory, `.julieignore` rules win on conflicts. A whitelist pattern
+(`!pattern`) can re-include a file a shallower rule ignored, but — exactly as
+in git — a file cannot be re-included when one of its parent directories is
+excluded, and ignore files inside excluded directories are not read. `scan`
+and `update` apply identical selection, so an `update` can never insert rows
+for a file a fresh `scan` would not produce.
+
+Symlinked directories are never traversed, for content or for ignore files.
+An in-tree ignore file that cannot be read is reported as a non-fatal entry
+in the report's `errors` array and its rules are skipped; an unreadable or
+invalid `--ignore-file` is a hard CLI error.
 
 ## Path Rules
 

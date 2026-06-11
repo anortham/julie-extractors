@@ -103,6 +103,14 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 Every command accepts `--json` for a stable machine-readable report. Human output
 is intentionally not part of the contract.
 
+`scan` and `update` honor `.gitignore` files automatically (root, ancestors up
+to the git root, and nested subdirectories), plus `.julieignore` files with the
+same semantics for extraction-specific exclusions a repo owner wants to commit,
+plus caller-supplied `--ignore-file` rules, which take precedence over the
+in-tree ignore files. See
+[docs/contracts/cli.md](docs/contracts/cli.md) for the full layering and
+precedence contract.
+
 ## Artifact Contract
 
 SQLite v3 is the source of truth for durable output. It stores:
