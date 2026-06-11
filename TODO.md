@@ -202,3 +202,22 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   real three-file CLI smoke scan writes `aspnet.minimal_api.route.v1`,
   `htmx.attribute.v1`, and `alpine.directive.v1` rows; `cargo xtask test
   default` and `cargo xtask test contract` pass.
+
+## 11. Per-file extraction cost attribution in reports — open
+
+- **Where:** `crates/julie-extract-cli` (`info` command and scan report),
+  `crates/julie-extract-artifact` report surfaces, `docs/contracts/cli.md`.
+- **Why it matters:** The consumer-side vendor policy
+  (`docs/decisions/2026-06-11-vendor-policy-consumer-side.md`) routes
+  exclusions through `--ignore-file` and `.julieignore`, but consumers can
+  only write good ignore rules if they can see which files dominate artifact
+  rows. On openclaw, ten committed `*.tm.jsonl` i18n files produced ~39% of
+  all structural facts — discoverable today only with ad-hoc SQL against
+  schema internals. A stable report surface lets consumers such as Miller
+  automate vendor detection by measured impact instead of name-pattern
+  guesses, and makes artifact size regressions attributable.
+- **Proposed fix:** Design pass first, then implement per-file row counts by
+  row family as a report contract: a top-N offender summary in the scan
+  report and/or a full per-file breakdown in `info --json`. Treat the JSON
+  report shape as an API contract change with docs and focused tests. This is
+  the named closure for the vendor-policy decision's follow-up debt.
