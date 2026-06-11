@@ -31,6 +31,32 @@ and read SQLite or JSONL.
 - `/Users/murphy/source/julie` is maintenance-only while this product is built.
   Do not back-port new extractor features into Julie unless explicitly asked.
 
+## Data Quality Bar
+
+The product goal is best-in-class tree-sitter extraction quality, not parity with
+older Julie coverage. Do not lower the bar to existing weak coverage or mark a
+real extractor gap as complete.
+
+- Capability claims must be backed by golden fixture evidence and recorded in
+  `fixtures/extraction/capabilities.json`.
+- Positive support for a domain means the extractor emits useful rows for that
+  domain, not just that the parser exposes matching syntax.
+- `not_applicable` is valid only when the language genuinely lacks the
+  construct. Missing implementation is `open_gaps` debt until fixed.
+- `open_gaps` entries must include a concrete reason, required closure, and
+  planned closure task.
+- General-purpose languages should aim for rich symbols, body spans, body
+  hashes, doc comments, relationships, identifiers, type facts, type argument
+  usages, literals, source regions, complexity metrics, annotations, and
+  structural facts where the grammar supports them.
+- Data, markup, query, and domain-specific languages should extract their own
+  semantics deeply: schema structure, links, selectors, bindings, routes,
+  anchors, imports, queries, DDL/DML/procedure structure, embedded languages,
+  and comparable domain-native facts.
+- After capability or fixture changes, run
+  `node scripts/language-data-quality-report.mjs --strict` and keep
+  `silent_cells` and `quality_bar_debts` at `0`.
+
 ## Test Discipline
 
 The default test suite must stay fast enough for agents to run repeatedly.

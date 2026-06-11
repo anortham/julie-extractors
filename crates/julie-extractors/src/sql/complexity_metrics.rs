@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use tree_sitter::{Node, Tree};
 
+use crate::base::complexity_metrics::{
+    body_covers_meaningful_share, contains, overlaps, symbol_span,
+};
 use crate::base::kinds::SymbolKind;
 use crate::base::span::NormalizedSpan;
 use crate::base::types::{ComplexityMetric, Symbol, stable_location_id};
@@ -298,34 +301,4 @@ fn expand_split_routine_span(start_node: Node<'_>, source: &str) -> Option<Norma
         sibling = sib.next_sibling();
     }
     NormalizedSpan::from_content_range(source, start_byte, end_byte)
-}
-
-fn body_covers_meaningful_share(declaration_span: NormalizedSpan, body: NormalizedSpan) -> bool {
-    let declaration_bytes = declaration_span
-        .end_byte
-        .saturating_sub(declaration_span.start_byte);
-    if declaration_bytes == 0 {
-        return false;
-    }
-    let body_bytes = body.end_byte.saturating_sub(body.start_byte);
-    body_bytes * 2 >= declaration_bytes
-}
-
-fn symbol_span(symbol: &Symbol) -> NormalizedSpan {
-    NormalizedSpan {
-        start_line: symbol.start_line,
-        start_column: symbol.start_column,
-        end_line: symbol.end_line,
-        end_column: symbol.end_column,
-        start_byte: symbol.start_byte,
-        end_byte: symbol.end_byte,
-    }
-}
-
-fn contains(span: NormalizedSpan, node: Node<'_>) -> bool {
-    (node.start_byte() as u32) >= span.start_byte && (node.end_byte() as u32) <= span.end_byte
-}
-
-fn overlaps(node: Node<'_>, span: NormalizedSpan) -> bool {
-    (node.start_byte() as u32) < span.end_byte && (node.end_byte() as u32) > span.start_byte
 }

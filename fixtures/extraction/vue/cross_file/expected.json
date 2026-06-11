@@ -8,10 +8,10 @@
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
       "start_line": 1,
       "start_column": 1,
-      "end_line": 22,
-      "end_column": 1,
+      "end_line": 21,
+      "end_column": 12,
       "start_byte": 0,
-      "end_byte": 489,
+      "end_byte": 488,
       "body_span": {
         "start_line": 7,
         "start_column": 7,

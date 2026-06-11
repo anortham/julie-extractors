@@ -70,7 +70,17 @@ impl VueExtractor {
                     // Try to extract HTML comment from the beginning of the file
                     let doc_comment = extract_component_doc_comment(&self.base.content);
 
-                    let component_end_line = self.base.content.lines().count() + 1;
+                    // Span the component over the file's real lines: end on the
+                    // last line, one past its final byte, so byte-based
+                    // containment of section facts covers the whole file
+                    // without reporting a line that does not exist.
+                    let component_end_line = self.base.content.lines().count().max(1);
+                    let component_end_column = self
+                        .base
+                        .content
+                        .lines()
+                        .next_back()
+                        .map_or(1, |line| line.len() + 1);
                     let component_symbol = create_symbol_manual(
                         &self.base,
                         &component_name,
@@ -78,7 +88,7 @@ impl VueExtractor {
                         1,
                         1,
                         component_end_line,
-                        1,
+                        component_end_column,
                         Some(format!("<{} />", component_name)),
                         doc_comment.or_else(|| {
                             Some(format!("Vue Single File Component: {}", component_name))

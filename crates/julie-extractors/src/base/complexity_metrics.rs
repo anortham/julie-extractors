@@ -374,7 +374,10 @@ fn complexity_span_for_symbol(
     }
 }
 
-fn body_covers_meaningful_share(declaration_span: NormalizedSpan, body: NormalizedSpan) -> bool {
+pub(crate) fn body_covers_meaningful_share(
+    declaration_span: NormalizedSpan,
+    body: NormalizedSpan,
+) -> bool {
     let declaration_bytes = declaration_span
         .end_byte
         .saturating_sub(declaration_span.start_byte);
@@ -474,7 +477,7 @@ fn is_callable(kind: &SymbolKind) -> bool {
     )
 }
 
-fn symbol_span(symbol: &Symbol) -> NormalizedSpan {
+pub(crate) fn symbol_span(symbol: &Symbol) -> NormalizedSpan {
     NormalizedSpan {
         start_line: symbol.start_line,
         start_column: symbol.start_column,
@@ -485,11 +488,11 @@ fn symbol_span(symbol: &Symbol) -> NormalizedSpan {
     }
 }
 
-fn contains(span: NormalizedSpan, node: Node<'_>) -> bool {
+pub(crate) fn contains(span: NormalizedSpan, node: Node<'_>) -> bool {
     node.start_byte() as u32 >= span.start_byte && node.end_byte() as u32 <= span.end_byte
 }
 
-fn overlaps(node: Node<'_>, span: NormalizedSpan) -> bool {
+pub(crate) fn overlaps(node: Node<'_>, span: NormalizedSpan) -> bool {
     (node.start_byte() as u32) < span.end_byte && (node.end_byte() as u32) > span.start_byte
 }
 

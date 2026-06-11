@@ -45,10 +45,10 @@
       "file_path": "fixtures/extraction/vue/basic/source.vue",
       "start_line": 1,
       "start_column": 1,
-      "end_line": 42,
-      "end_column": 1,
+      "end_line": 41,
+      "end_column": 9,
       "start_byte": 0,
-      "end_byte": 873,
+      "end_byte": 872,
       "body_span": {
         "start_line": 4,
         "start_column": 8,
