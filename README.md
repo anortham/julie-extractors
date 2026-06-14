@@ -14,19 +14,19 @@ extraction results by spawning a binary and reading a durable artifact.
 
 ## Current Release
 
-- Current release: `v2.4.0`
-- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.4.0
-- Published: `2026-06-11T13:37:56Z`
-- Release commit: `adb5b6cb44c6abe1c7a0525773f0a911d9158e89`
-- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/27350286325
-- Release evidence: [docs/release-evidence/2026-06-11-v2-4-0-release.md](docs/release-evidence/2026-06-11-v2-4-0-release.md)
+- Current release: `v2.5.0`
+- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.5.0
+- Published: `2026-06-14T18:24:43Z`
+- Release commit: `b16277b731bdff6d707ff7c69bbf630b88704aca`
+- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/27507767527
+- Release evidence: [docs/release-evidence/2026-06-14-v2-5-0-release.md](docs/release-evidence/2026-06-14-v2-5-0-release.md)
 
 | Platform | Asset | SHA-256 |
 | --- | --- | --- |
-| Linux x86_64 | [`julie-extract-v2.4.0-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.4.0/julie-extract-v2.4.0-x86_64-unknown-linux-gnu.tar.gz) | `7214c17f94c31f149b4eab3382f087e6dc3ddf38d73d7ffc27154b76405bee38` |
-| macOS Apple Silicon | [`julie-extract-v2.4.0-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.4.0/julie-extract-v2.4.0-aarch64-apple-darwin.tar.gz) | `185afdf4142412d65422ca675d83f1f4c412faa40efc1754bf8e21b29ccdf7f4` |
-| macOS Intel | [`julie-extract-v2.4.0-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.4.0/julie-extract-v2.4.0-x86_64-apple-darwin.tar.gz) | `106a25e315321eecf7d6145a35f7f19fea68a6bfea9469993785fc64610af9de` |
-| Windows x86_64 | [`julie-extract-v2.4.0-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.4.0/julie-extract-v2.4.0-x86_64-pc-windows-msvc.zip) | `970173b2758c28f032ba8a39c24ceb4eb2ff4d8c12fa69598e2725d798d30e12` |
+| Linux x86_64 | [`julie-extract-v2.5.0-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.5.0/julie-extract-v2.5.0-x86_64-unknown-linux-gnu.tar.gz) | `fd8721d120b481e96f08a4a73d812e3284756149e947fed22c4bd743113beaa7` |
+| macOS Apple Silicon | [`julie-extract-v2.5.0-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.5.0/julie-extract-v2.5.0-aarch64-apple-darwin.tar.gz) | `29ab69976e1ded8bc5ffd90d4b988e6ee4036eb8def31fbe9603a890ea6e5c4d` |
+| macOS Intel | [`julie-extract-v2.5.0-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.5.0/julie-extract-v2.5.0-x86_64-apple-darwin.tar.gz) | `677c033df6521474bfa7321cc821b9a6ca333800bc9d6265e92b5b14150c9cf4` |
+| Windows x86_64 | [`julie-extract-v2.5.0-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.5.0/julie-extract-v2.5.0-x86_64-pc-windows-msvc.zip) | `70d0d478d1d6ffa1a975b0a7a97ae981784557fc51573ff11d17b79bfaa07736` |
 
 The v2 line starts above the old in-tree Julie extractor crate line, which had
 reached v1.22.0 before this repo became the standalone product.
@@ -39,9 +39,9 @@ Download a published binary archive from the release page, extract it, and put
 Linux example:
 
 ```bash
-curl -L -o julie-extract-v2.4.0-x86_64-unknown-linux-gnu.tar.gz \
-  https://github.com/anortham/julie-extractors/releases/download/v2.4.0/julie-extract-v2.4.0-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf julie-extract-v2.4.0-x86_64-unknown-linux-gnu.tar.gz
+curl -L -o julie-extract-v2.5.0-x86_64-unknown-linux-gnu.tar.gz \
+  https://github.com/anortham/julie-extractors/releases/download/v2.5.0/julie-extract-v2.5.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf julie-extract-v2.5.0-x86_64-unknown-linux-gnu.tar.gz
 ./dist/x86_64-unknown-linux-gnu/julie-extract --version
 ```
 
@@ -323,8 +323,10 @@ Release and testing:
 
 - [Testing strategy](docs/testing-strategy.md)
 - [Release and certification](docs/release.md)
-- [v2.4.0 release notes](docs/release-notes/v2.4.0.md)
-- [v2.4.0 release evidence](docs/release-evidence/2026-06-11-v2-4-0-release.md)
+- [v2.5.0 release notes](docs/release-notes/v2.5.0.md)
+- [v2.5.0 release evidence](docs/release-evidence/2026-06-14-v2-5-0-release.md)
+- [historical v2.4.0 release notes](docs/release-notes/v2.4.0.md)
+- [historical v2.4.0 release evidence](docs/release-evidence/2026-06-11-v2-4-0-release.md)
 - [historical v2.3.0 release notes](docs/release-notes/v2.3.0.md)
 - [historical v2.3.0 release evidence](docs/release-evidence/2026-06-11-v2-3-0-release.md)
 - [historical v2.2.1 release notes](docs/release-notes/v2.2.1.md)
