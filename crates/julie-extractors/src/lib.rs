@@ -51,6 +51,7 @@ mod language_spec;
 pub mod manager;
 pub mod pipeline;
 pub mod registry;
+pub(crate) mod tree_traversal;
 // Compatibility surface for the main crate re-export layer.
 // These modules are thin projections over canonical extraction results,
 // not separate production dispatch paths.

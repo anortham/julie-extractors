@@ -5,6 +5,7 @@
 
 use super::helpers;
 use crate::base::BaseExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Extract return type from a function
 pub(super) fn extract_return_type(base: &BaseExtractor, node: tree_sitter::Node) -> String {
@@ -142,7 +143,18 @@ pub(super) fn extract_variable_type(base: &BaseExtractor, node: tree_sitter::Nod
 
 /// Count all pointer declarators in the tree by traversing all descendants
 fn count_all_pointer_levels(node: &tree_sitter::Node) -> usize {
+    count_all_pointer_levels_at_depth(node, 0)
+}
+
+fn count_all_pointer_levels_at_depth(node: &tree_sitter::Node, depth: u32) -> usize {
+    if !should_visit_tree_depth(depth) {
+        return 0;
+    }
+
     let mut count = 0;
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return count;
+    };
     let mut cursor = node.walk();
 
     for child in node.children(&mut cursor) {
@@ -152,7 +164,7 @@ fn count_all_pointer_levels(node: &tree_sitter::Node) -> usize {
             // Each pointer_declarator represents one level of indirection
         } else {
             // Recurse into other node types to find nested pointer_declarators
-            count += count_all_pointer_levels(&child);
+            count += count_all_pointer_levels_at_depth(&child, child_depth);
         }
     }
 

@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use julie_extract_artifact::reports::{
-    ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput,
-    ReportLanguageProfile, ReportMode, ReportOperation, ReportProfile, ReportRevision,
+    ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportFileRows,
+    ReportInput, ReportLanguageProfile, ReportMode, ReportOperation, ReportProfile, ReportRevision,
     ReportStatus, RowDomainCounts, SQLITE_ROW_DOMAINS, ToolReport,
 };
 use serde_json::json;
@@ -194,6 +194,31 @@ fn report_row_count_keys_are_exhaustive_for_sqlite_v3() {
     }
 }
 
+#[test]
+fn report_counts_include_per_file_row_attribution() {
+    let report = sample_report(ReportStatus::Ok);
+    let value = serde_json::to_value(report).unwrap();
+    let file_rows = value["counts"]["file_rows"].as_array().unwrap();
+
+    assert_eq!(file_rows.len(), 1);
+    assert_eq!(file_rows[0]["path"], "src/a.rs");
+    assert_eq!(file_rows[0]["language"], "rust");
+    assert_eq!(file_rows[0]["status"], "indexed");
+    assert_eq!(file_rows[0]["total_rows"], 48);
+    assert_eq!(file_rows[0]["rows"]["files"], 1);
+    assert_eq!(file_rows[0]["rows"]["symbols"], 4);
+    assert_eq!(file_rows[0]["rows"]["identifiers"], 30);
+    assert_eq!(file_rows[0]["rows"]["source_regions"], 4);
+    assert_eq!(file_rows[0]["rows"]["complexity_metrics"], 2);
+    assert_eq!(file_rows[0]["rows"]["artifact_metadata"], 0);
+    assert_eq!(value["counts"]["file_rows_truncated"], false);
+
+    let rows = file_rows[0]["rows"].as_object().unwrap();
+    for domain in SQLITE_ROW_DOMAINS {
+        assert!(rows.contains_key(*domain), "file rows missing {domain}");
+    }
+}
+
 fn sample_report(status: ReportStatus) -> Report {
     Report {
         status,
@@ -271,6 +296,26 @@ fn sample_report(status: ReportStatus) -> Report {
                 complexity_metrics: 200,
                 ..RowDomainCounts::default()
             },
+            file_rows_truncated: false,
+            file_rows: vec![ReportFileRows {
+                path: "src/a.rs".to_string(),
+                language: "rust".to_string(),
+                status: "indexed".to_string(),
+                total_rows: 48,
+                rows: RowDomainCounts {
+                    files: 1,
+                    symbols: 4,
+                    identifiers: 30,
+                    relationships: 3,
+                    type_facts: 1,
+                    literals: 1,
+                    source_regions: 4,
+                    structural_facts: 1,
+                    complexity_metrics: 2,
+                    parse_diagnostics: 1,
+                    ..RowDomainCounts::default()
+                },
+            }],
         },
         errors: Vec::new(),
         warnings: Vec::new(),

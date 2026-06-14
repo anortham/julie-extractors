@@ -7,6 +7,7 @@
 /// - Data bindings (@bind-Value)
 /// - Event handlers (@onclick, etc.)
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
@@ -56,12 +57,22 @@ impl RazorExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
     /// Visit a node and extract symbols recursively
-    fn visit_node(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<String>) {
+    fn visit_node(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Handle ERROR nodes by falling back to text-based extraction
         if node.kind() == "ERROR" {
             self.extract_from_text_content(node, symbols, parent_id.as_deref());
@@ -162,9 +173,12 @@ impl RazorExtractor {
         };
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, current_parent_id.clone());
+            self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 

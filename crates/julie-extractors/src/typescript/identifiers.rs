@@ -6,6 +6,7 @@
 mod type_arguments;
 
 use crate::base::{Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
@@ -24,7 +25,7 @@ pub(super) fn extract_identifiers(
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map, 0);
 
     // Return the collected identifiers
     extractor.base().identifiers.clone()
@@ -35,14 +36,22 @@ fn walk_tree_for_identifiers(
     extractor: &mut TypeScriptExtractor,
     node: Node,
     symbol_map: &HashMap<String, &Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Extract identifier from this node if applicable
     extract_identifier_from_node(extractor, node, symbol_map);
 
     // Recursively walk children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, symbol_map);
+        walk_tree_for_identifiers(extractor, child, symbol_map, child_depth);
     }
 }
 
@@ -268,20 +277,35 @@ fn terminal_identifier<'tree>(
     extractor: &TypeScriptExtractor,
     node: Node<'tree>,
 ) -> Option<(Node<'tree>, String)> {
+    terminal_identifier_at_depth(extractor, node, 0)
+}
+
+fn terminal_identifier_at_depth<'tree>(
+    extractor: &TypeScriptExtractor,
+    node: Node<'tree>,
+    depth: u32,
+) -> Option<(Node<'tree>, String)> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     match node.kind() {
         "identifier"
         | "property_identifier"
         | "type_identifier"
         | "private_property_identifier" => Some((node, extractor.base().get_node_text(&node))),
-        "member_expression" => node
-            .child_by_field_name("property")
-            .and_then(|property| terminal_identifier(extractor, property)),
+        "member_expression" => {
+            let child_depth = child_tree_depth(depth)?;
+            node.child_by_field_name("property")
+                .and_then(|property| terminal_identifier_at_depth(extractor, property, child_depth))
+        }
         "jsx_namespace_name" | "nested_identifier" => {
+            let child_depth = child_tree_depth(depth)?;
             let mut cursor = node.walk();
             node.named_children(&mut cursor)
                 .filter(|child| matches!(child.kind(), "identifier" | "property_identifier"))
                 .last()
-                .and_then(|child| terminal_identifier(extractor, child))
+                .and_then(|child| terminal_identifier_at_depth(extractor, child, child_depth))
         }
         _ => None,
     }

@@ -1,6 +1,7 @@
 /// Helper utilities for Ruby symbol extraction
 /// Includes node name extraction, type inference, and context checking
 use crate::base::{SymbolKind, Visibility};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// Extract a name from a node by field name
@@ -166,7 +167,13 @@ pub(super) fn find_includes_and_extends(
     base_get_text: impl Fn(&Node) -> String + Copy,
 ) -> Vec<String> {
     let mut includes = Vec::new();
-    find_includes_and_extends_recursive(*node, &mut includes, extract_method_name, base_get_text);
+    find_includes_and_extends_recursive(
+        *node,
+        &mut includes,
+        extract_method_name,
+        base_get_text,
+        0,
+    );
     includes
 }
 
@@ -175,7 +182,12 @@ fn find_includes_and_extends_recursive(
     includes: &mut Vec<String>,
     extract_method_name: impl Fn(Node) -> Option<String> + Copy,
     base_get_text: impl Fn(&Node) -> String + Copy,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Check if this node itself is a call node for include/extend/prepend
     if node.kind() == "call"
         && let Some(method_name) = extract_method_name(node)
@@ -188,9 +200,18 @@ fn find_includes_and_extends_recursive(
     }
 
     // Recursively search children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        find_includes_and_extends_recursive(child, includes, extract_method_name, base_get_text);
+        find_includes_and_extends_recursive(
+            child,
+            includes,
+            extract_method_name,
+            base_get_text,
+            child_depth,
+        );
     }
 }
 

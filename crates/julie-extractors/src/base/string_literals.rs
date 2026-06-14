@@ -1,6 +1,7 @@
 use tree_sitter::Node;
 
 use super::extractor::BaseExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Decode a string-literal node's contents for capture.
 pub(crate) fn decode_string_literal(base: &BaseExtractor, node: &Node) -> Option<String> {
@@ -9,7 +10,7 @@ pub(crate) fn decode_string_literal(base: &BaseExtractor, node: &Node) -> Option
         return None;
     }
     let mut out = String::new();
-    decode_string_children(base, node, &mut out);
+    decode_string_children(base, node, &mut out, 0);
     if out.is_empty() {
         out = strip_string_delimiters(&base.get_node_text(node));
     }
@@ -41,7 +42,13 @@ fn strip_string_delimiters(raw: &str) -> String {
     s.to_string()
 }
 
-fn decode_string_children(base: &BaseExtractor, node: &Node, out: &mut String) {
+fn decode_string_children(base: &BaseExtractor, node: &Node, out: &mut String, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
         let ck = child.kind();
@@ -55,7 +62,7 @@ fn decode_string_children(base: &BaseExtractor, node: &Node, out: &mut String) {
         } else if is_interpolation_hole(ck) {
             out.push_str("{}");
         } else if child.named_child_count() > 0 {
-            decode_string_children(base, &child, out);
+            decode_string_children(base, &child, out, child_depth);
         }
     }
 }

@@ -14,6 +14,7 @@ pub(super) mod test_calls;
 pub(super) mod types;
 
 use crate::base::{BaseExtractor, PendingRelationship, StructuredPendingRelationship, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
 /// Swift extractor for extracting symbols and relationships from Swift source code
@@ -65,11 +66,21 @@ impl SwiftExtractor {
     /// Implementation of extractSymbols method with comprehensive Swift support
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
-    fn visit_node(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<String>) {
+    fn visit_node(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if !node.is_named() {
             return;
         }
@@ -148,9 +159,12 @@ impl SwiftExtractor {
         }
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, current_parent_id.clone());
+            self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 }

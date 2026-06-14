@@ -17,6 +17,7 @@
 //! files — produce no relationships. Symbol extraction is unchanged.
 
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -46,15 +47,22 @@ fn file_basename(file_path: &str) -> Option<String> {
 }
 
 fn walk_tables<F: FnMut(Node)>(node: Node, mut f: F) {
-    fn recurse<F: FnMut(Node)>(node: Node, f: &mut F) {
+    fn recurse<F: FnMut(Node)>(node: Node, f: &mut F, depth: u32) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if matches!(node.kind(), "table" | "table_array_element") {
             f(node);
         }
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         for child in node.children(&mut node.walk()) {
-            recurse(child, f);
+            recurse(child, f, child_depth);
         }
     }
-    recurse(node, &mut f);
+    recurse(node, &mut f, 0);
 }
 
 fn extract_cargo_relationships(

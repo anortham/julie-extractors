@@ -5,6 +5,7 @@ use crate::base::{
     LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
     UnresolvedTarget,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// Extract all relationships from a tree
@@ -22,6 +23,7 @@ pub(super) fn extract_relationships(
         symbols,
         &symbol_index,
         &mut relationships,
+        0,
     );
     relationships
 }
@@ -33,7 +35,12 @@ fn extract_relationships_from_node(
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "class" => {
             extract_inheritance_relationship(extractor, node, symbols, relationships);
@@ -49,9 +56,19 @@ fn extract_relationships_from_node(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_relationships_from_node(extractor, child, symbols, symbol_index, relationships);
+        extract_relationships_from_node(
+            extractor,
+            child,
+            symbols,
+            symbol_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 

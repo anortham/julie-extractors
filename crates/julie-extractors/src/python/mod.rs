@@ -25,6 +25,7 @@ pub(crate) mod types;
 use crate::base::{
     BaseExtractor, Identifier, Relationship, StructuredPendingRelationship, Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -56,11 +57,15 @@ impl PythonExtractor {
     /// Extract all symbols from Python source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.traverse_tree(tree.root_node(), &mut symbols);
+        self.traverse_tree(tree.root_node(), &mut symbols, 0);
         symbols
     }
 
-    fn traverse_tree(&mut self, node: Node, symbols: &mut Vec<Symbol>) {
+    fn traverse_tree(&mut self, node: Node, symbols: &mut Vec<Symbol>, depth: u32) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "class_definition" => {
                 if let Some(symbol) = types::extract_class(self, node) {
@@ -94,9 +99,12 @@ impl PythonExtractor {
         }
 
         // Recursively traverse children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.traverse_tree(child, symbols);
+            self.traverse_tree(child, symbols, child_depth);
         }
     }
 

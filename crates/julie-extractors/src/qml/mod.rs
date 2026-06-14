@@ -11,6 +11,7 @@ use crate::base::{
     Symbol,
 };
 use crate::test_detection::is_test_symbol;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Tree;
 
@@ -37,14 +38,18 @@ impl QmlExtractor {
         self.symbols.clear();
 
         // Start recursive traversal from root
-        self.traverse_node(root_node, None);
+        self.traverse_node(root_node, None, 0);
 
         self.symbols.clone()
     }
 
     /// Recursively traverse the QML AST and extract symbols
-    fn traverse_node(&mut self, node: tree_sitter::Node, parent_id: Option<String>) {
+    fn traverse_node(&mut self, node: tree_sitter::Node, parent_id: Option<String>, depth: u32) {
         use crate::base::{SymbolKind, SymbolOptions};
+
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
 
         let mut current_symbol: Option<Symbol> = None;
 
@@ -330,9 +335,12 @@ impl QmlExtractor {
 
         // Recursively traverse children
         let next_parent_id = current_symbol.as_ref().map(|s| s.id.clone()).or(parent_id);
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.traverse_node(child, next_parent_id.clone());
+            self.traverse_node(child, next_parent_id.clone(), child_depth);
         }
     }
 
@@ -349,7 +357,7 @@ impl QmlExtractor {
         let symbol_map: std::collections::HashMap<String, &Symbol> =
             crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
 
-        self.walk_for_pending_calls(tree.root_node(), &symbol_map);
+        self.walk_for_pending_calls(tree.root_node(), &symbol_map, 0);
     }
 
     /// Walk the tree looking for function calls that are not in the local symbol map
@@ -357,7 +365,12 @@ impl QmlExtractor {
         &mut self,
         node: tree_sitter::Node,
         symbol_map: &std::collections::HashMap<String, &Symbol>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Look for call expressions
         if node.kind() == "call_expression"
             && let Some(function_node) = node.child_by_field_name("function")
@@ -399,9 +412,12 @@ impl QmlExtractor {
         }
 
         // Recursively process children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_for_pending_calls(child, symbol_map);
+            self.walk_for_pending_calls(child, symbol_map, child_depth);
         }
     }
 

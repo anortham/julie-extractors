@@ -3,6 +3,7 @@
 // Extracted from extractor.rs to keep modules under 500 lines
 
 use super::extractor::BaseExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 impl BaseExtractor {
@@ -12,11 +13,18 @@ impl BaseExtractor {
     where
         F: FnMut(&Node, u32),
     {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         visitor(node, depth);
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
 
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32) {
-                self.walk_tree(&child, visitor, depth + 1);
+                self.walk_tree(&child, visitor, child_depth);
             }
         }
     }
@@ -24,7 +32,7 @@ impl BaseExtractor {
     /// Find nodes by type - exact port of findNodesByType
     pub fn find_nodes_by_type<'a>(&self, node: &Node<'a>, node_type: &str) -> Vec<Node<'a>> {
         let mut nodes = Vec::new();
-        self.find_nodes_by_type_recursive(node, node_type, &mut nodes);
+        self.find_nodes_by_type_recursive(node, node_type, &mut nodes, 0);
         nodes
     }
 
@@ -34,14 +42,23 @@ impl BaseExtractor {
         node: &Node<'a>,
         node_type: &str,
         nodes: &mut Vec<Node<'a>>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if node.kind() == node_type {
             nodes.push(*node);
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32) {
-                self.find_nodes_by_type_recursive(&child, node_type, nodes);
+                self.find_nodes_by_type_recursive(&child, node_type, nodes, child_depth);
             }
         }
     }
@@ -88,8 +105,20 @@ impl BaseExtractor {
     where
         F: FnMut(&Node),
     {
+        self.traverse_tree_with_depth(node, callback, 0);
+    }
+
+    #[allow(clippy::only_used_in_recursion)] // &self used in recursive calls
+    fn traverse_tree_with_depth<F>(&self, node: &Node, callback: &mut F, depth: u32)
+    where
+        F: FnMut(&Node),
+    {
         use tracing::debug;
         use tracing::warn;
+
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
 
         // Try to process current node
         match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(node))) {
@@ -100,11 +129,15 @@ impl BaseExtractor {
             }
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+
         // Recursively traverse children with error handling
         for i in 0..node.child_count() {
             if let Some(child) = node.child(i as u32) {
                 match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    self.traverse_tree(&child, callback)
+                    self.traverse_tree_with_depth(&child, callback, child_depth)
                 })) {
                     Ok(_) => {}
                     Err(_) => {

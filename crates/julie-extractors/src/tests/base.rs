@@ -2,6 +2,7 @@
 // These were previously inline tests that have been moved to follow project standards
 
 use crate::base::*;
+use crate::tree_traversal::TREE_TRAVERSAL_DEPTH_LIMIT;
 use tree_sitter::Node;
 
 #[test]
@@ -365,6 +366,84 @@ fn parse_rust(content: &str) -> tree_sitter::Tree {
         .set_language(&tree_sitter_rust::LANGUAGE.into())
         .expect("Error loading Rust grammar");
     parser.parse(content, None).unwrap()
+}
+
+fn deeply_nested_rust_blocks(depth: usize) -> String {
+    format!(
+        "fn main() {{ {}0{}; }}",
+        "{ ".repeat(depth),
+        " }".repeat(depth)
+    )
+}
+
+#[test]
+fn walk_tree_stops_at_depth_budget() {
+    let content = deeply_nested_rust_blocks((TREE_TRAVERSAL_DEPTH_LIMIT + 16) as usize);
+    let workspace_root = std::path::PathBuf::from("/tmp/test");
+    let extractor = BaseExtractor::new(
+        "rust".to_string(),
+        "test.rs".to_string(),
+        content.clone(),
+        &workspace_root,
+    );
+    let tree = parse_rust(&content);
+    let mut max_depth_seen = 0;
+
+    extractor.walk_tree(
+        &tree.root_node(),
+        &mut |_node, depth| {
+            max_depth_seen = max_depth_seen.max(depth);
+        },
+        0,
+    );
+
+    assert!(
+        max_depth_seen <= TREE_TRAVERSAL_DEPTH_LIMIT,
+        "walk_tree visited depth {max_depth_seen}, beyond the traversal depth budget"
+    );
+}
+
+#[test]
+fn traverse_tree_stops_before_deep_leaf_nodes() {
+    let content = deeply_nested_rust_blocks((TREE_TRAVERSAL_DEPTH_LIMIT + 16) as usize);
+    let workspace_root = std::path::PathBuf::from("/tmp/test");
+    let extractor = BaseExtractor::new(
+        "rust".to_string(),
+        "test.rs".to_string(),
+        content.clone(),
+        &workspace_root,
+    );
+    let tree = parse_rust(&content);
+    let mut saw_integer_literal = false;
+
+    extractor.traverse_tree(&tree.root_node(), &mut |node| {
+        saw_integer_literal |= node.kind() == "integer_literal";
+    });
+
+    assert!(
+        !saw_integer_literal,
+        "traverse_tree should not visit leaf nodes beyond the traversal depth budget"
+    );
+}
+
+#[test]
+fn find_nodes_by_type_stops_before_deep_leaf_nodes() {
+    let content = deeply_nested_rust_blocks((TREE_TRAVERSAL_DEPTH_LIMIT + 16) as usize);
+    let workspace_root = std::path::PathBuf::from("/tmp/test");
+    let extractor = BaseExtractor::new(
+        "rust".to_string(),
+        "test.rs".to_string(),
+        content.clone(),
+        &workspace_root,
+    );
+    let tree = parse_rust(&content);
+
+    let deep_literals = extractor.find_nodes_by_type(&tree.root_node(), "integer_literal");
+
+    assert!(
+        deep_literals.is_empty(),
+        "find_nodes_by_type should not return nodes beyond the traversal depth budget"
+    );
 }
 
 #[test]

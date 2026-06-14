@@ -2,6 +2,7 @@
 //! Contains utilities for template parameters, base classes, and node analysis
 
 use crate::base::BaseExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// Extract template parameters from a template_declaration node
@@ -120,13 +121,21 @@ pub(super) fn find_parent_enum(node: Node) -> Option<Node> {
 
 /// Recursively search for function_declarator in a node tree
 pub(super) fn find_function_declarator_in_node(node: Node) -> Option<Node> {
+    find_function_declarator_in_node_at_depth(node, 0)
+}
+
+fn find_function_declarator_in_node_at_depth(node: Node, depth: u32) -> Option<Node> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == "function_declarator" {
         return Some(node);
     }
 
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(result) = find_function_declarator_in_node(child) {
+        if let Some(result) = find_function_declarator_in_node_at_depth(child, child_depth) {
             return Some(result);
         }
     }
@@ -210,6 +219,23 @@ pub(super) fn collect_modifiers_recursive(
     modifiers: &mut Vec<String>,
     modifier_types: &[&str],
 ) {
+    collect_modifiers_recursive_at_depth(base, node, modifiers, modifier_types, 0);
+}
+
+fn collect_modifiers_recursive_at_depth(
+    base: &BaseExtractor,
+    node: Node,
+    modifiers: &mut Vec<String>,
+    modifier_types: &[&str],
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     for child in node.children(&mut node.walk()) {
         // Collect modifiers from both modifier_types and storage_class_specifier
         if modifier_types.contains(&child.kind()) || child.kind() == "storage_class_specifier" {
@@ -220,7 +246,13 @@ pub(super) fn collect_modifiers_recursive(
         }
         // Recursively check children but don't go too deep to avoid function bodies
         if !matches!(child.kind(), "compound_statement" | "function_body") {
-            collect_modifiers_recursive(base, child, modifiers, modifier_types);
+            collect_modifiers_recursive_at_depth(
+                base,
+                child,
+                modifiers,
+                modifier_types,
+                child_depth,
+            );
         }
     }
 }

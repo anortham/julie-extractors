@@ -9,6 +9,7 @@ use crate::base::{
     BaseExtractor, Relationship, RelationshipKind, StructuredPendingRelationship, Symbol,
     SymbolKind, UnresolvedTarget,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -19,7 +20,12 @@ pub(super) fn extract_relationships_internal(
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "create_view" => {
             super::schema_relationships::extract_view_source_relationships(
@@ -79,8 +85,11 @@ pub(super) fn extract_relationships_internal(
     }
 
     // Recursively visit children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     for child in node.children(&mut node.walk()) {
-        extract_relationships_internal(base, child, symbols, relationships);
+        extract_relationships_internal(base, child, symbols, relationships, child_depth);
     }
 }
 

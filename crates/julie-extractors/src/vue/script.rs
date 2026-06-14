@@ -10,6 +10,7 @@ pub(super) use super::manual_symbols::create_symbol_manual;
 use super::parsing::VueSection;
 use crate::base::{BaseExtractor, Symbol, SymbolKind};
 use crate::test_detection::is_test_symbol;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::{Node, Parser};
@@ -20,7 +21,7 @@ pub(super) fn extract_script_symbols(base: &BaseExtractor, section: &VueSection)
     let lines: Vec<&str> = section.content.lines().collect();
 
     if let Some(tree) = parse_script_section(section) {
-        extract_options_api_symbols(base, section, tree.root_node(), &mut symbols);
+        extract_options_api_symbols(base, section, tree.root_node(), &mut symbols, 0);
     }
 
     if !symbols.is_empty() {
@@ -147,16 +148,24 @@ fn extract_options_api_symbols(
     section: &VueSection,
     node: Node,
     symbols: &mut Vec<Symbol>,
+    depth: u32,
 ) {
-    if node.kind() == "pair" {
-        extract_options_pair(base, section, node, symbols);
-    } else if node.kind() == "method_definition" {
-        extract_options_method(base, section, node, symbols);
+    if !should_visit_tree_depth(depth) {
+        return;
     }
 
+    if node.kind() == "pair" {
+        extract_options_pair(base, section, node, symbols, depth);
+    } else if node.kind() == "method_definition" {
+        extract_options_method(base, section, node, symbols, depth);
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_options_api_symbols(base, section, child, symbols);
+        extract_options_api_symbols(base, section, child, symbols, child_depth);
     }
 }
 
@@ -165,6 +174,7 @@ fn extract_options_method(
     section: &VueSection,
     node: Node,
     symbols: &mut Vec<Symbol>,
+    depth: u32,
 ) {
     let Some(name_node) = node
         .child_by_field_name("name")
@@ -182,7 +192,7 @@ fn extract_options_method(
             name_node,
             symbols,
         );
-        extract_data_return_symbols(base, section, node, symbols);
+        extract_data_return_symbols(base, section, node, symbols, depth);
     }
 }
 
@@ -191,6 +201,7 @@ fn extract_options_pair(
     section: &VueSection,
     node: Node,
     symbols: &mut Vec<Symbol>,
+    depth: u32,
 ) {
     let Some(key_node) = node.child_by_field_name("key") else {
         return;
@@ -198,34 +209,56 @@ fn extract_options_pair(
     let key_text = node_text(&key_node, &section.content);
     let key = key_text.trim_matches(['\'', '"']);
     let value_node = node.child_by_field_name("value");
+    let child_depth = child_tree_depth(depth);
 
     match key {
         "props" => {
             push_node_symbol(base, section, key, SymbolKind::Property, key_node, symbols);
-            if let Some(value) = value_node {
-                extract_object_member_symbols(base, section, value, SymbolKind::Property, symbols);
+            if let (Some(value), Some(child_depth)) = (value_node, child_depth) {
+                extract_object_member_symbols(
+                    base,
+                    section,
+                    value,
+                    SymbolKind::Property,
+                    symbols,
+                    child_depth,
+                );
             }
         }
         "emits" => {
             push_node_symbol(base, section, key, SymbolKind::Property, key_node, symbols);
-            if let Some(value) = value_node {
-                extract_emit_symbols(base, section, value, symbols);
+            if let (Some(value), Some(child_depth)) = (value_node, child_depth) {
+                extract_emit_symbols(base, section, value, symbols, child_depth);
             }
         }
         "data" => {
             push_node_symbol(base, section, key, SymbolKind::Function, key_node, symbols);
-            extract_data_return_symbols(base, section, node, symbols);
+            extract_data_return_symbols(base, section, node, symbols, depth);
         }
         "computed" => {
             push_node_symbol(base, section, key, SymbolKind::Property, key_node, symbols);
-            if let Some(value) = value_node {
-                extract_object_member_symbols(base, section, value, SymbolKind::Method, symbols);
+            if let (Some(value), Some(child_depth)) = (value_node, child_depth) {
+                extract_object_member_symbols(
+                    base,
+                    section,
+                    value,
+                    SymbolKind::Method,
+                    symbols,
+                    child_depth,
+                );
             }
         }
         "methods" => {
             push_node_symbol(base, section, key, SymbolKind::Property, key_node, symbols);
-            if let Some(value) = value_node {
-                extract_object_member_symbols(base, section, value, SymbolKind::Method, symbols);
+            if let (Some(value), Some(child_depth)) = (value_node, child_depth) {
+                extract_object_member_symbols(
+                    base,
+                    section,
+                    value,
+                    SymbolKind::Method,
+                    symbols,
+                    child_depth,
+                );
             }
         }
         _ => {}
@@ -238,7 +271,12 @@ fn extract_object_member_symbols(
     node: Node,
     kind: SymbolKind,
     symbols: &mut Vec<Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if matches!(node.kind(), "pair" | "method_definition") {
         if let Some(key_node) = node
             .child_by_field_name("key")
@@ -252,9 +290,12 @@ fn extract_object_member_symbols(
         return;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_object_member_symbols(base, section, child, kind.clone(), symbols);
+        extract_object_member_symbols(base, section, child, kind.clone(), symbols, child_depth);
     }
 }
 
@@ -263,7 +304,12 @@ fn extract_emit_symbols(
     section: &VueSection,
     node: Node,
     symbols: &mut Vec<Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "string" {
         let name = node_text(&node, &section.content)
             .trim_matches(['\'', '"'])
@@ -274,9 +320,12 @@ fn extract_emit_symbols(
         return;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_emit_symbols(base, section, child, symbols);
+        extract_emit_symbols(base, section, child, symbols, child_depth);
     }
 }
 
@@ -285,20 +334,38 @@ fn extract_data_return_symbols(
     section: &VueSection,
     node: Node,
     symbols: &mut Vec<Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "return_statement" {
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             if child.kind() == "object" {
-                extract_object_member_symbols(base, section, child, SymbolKind::Property, symbols);
+                extract_object_member_symbols(
+                    base,
+                    section,
+                    child,
+                    SymbolKind::Property,
+                    symbols,
+                    child_depth,
+                );
             }
         }
         return;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_data_return_symbols(base, section, child, symbols);
+        extract_data_return_symbols(base, section, child, symbols, child_depth);
     }
 }
 

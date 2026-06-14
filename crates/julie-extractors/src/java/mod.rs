@@ -25,6 +25,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
@@ -75,18 +76,36 @@ impl JavaExtractor {
     /// Extract all symbols from Java source code
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.walk_tree(tree.root_node(), &mut symbols, None);
+        self.walk_tree(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
-    fn walk_tree(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<&str>) {
+    fn walk_tree(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<&str>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if node.kind() == "field_declaration" {
             let field_symbols = fields::extract_fields(self, node, parent_id);
             let first_symbol_id = field_symbols.first().map(|symbol| symbol.id.clone());
             symbols.extend(field_symbols);
 
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             for child in node.children(&mut node.walk()) {
-                self.walk_tree(child, symbols, first_symbol_id.as_deref().or(parent_id));
+                self.walk_tree(
+                    child,
+                    symbols,
+                    first_symbol_id.as_deref().or(parent_id),
+                    child_depth,
+                );
             }
             return;
         }
@@ -101,13 +120,19 @@ impl JavaExtractor {
             }
 
             // Walk children with this symbol as parent
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             for child in node.children(&mut node.walk()) {
-                self.walk_tree(child, symbols, Some(&symbol_id));
+                self.walk_tree(child, symbols, Some(&symbol_id), child_depth);
             }
         } else {
             // Walk children with the same parent
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             for child in node.children(&mut node.walk()) {
-                self.walk_tree(child, symbols, parent_id);
+                self.walk_tree(child, symbols, parent_id, child_depth);
             }
         }
     }
@@ -132,7 +157,7 @@ impl JavaExtractor {
     /// Extract relationships from Java code
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships);
+        self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
         dedupe_relationships(&mut relationships);
         relationships
     }
@@ -142,7 +167,12 @@ impl JavaExtractor {
         node: Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "class_declaration"
             | "interface_declaration"
@@ -155,17 +185,32 @@ impl JavaExtractor {
                     relationships,
                 );
                 // Also extract method calls from within this type
-                relationships::extract_call_relationships(self, node, symbols, relationships);
+                relationships::extract_call_relationships(
+                    self,
+                    node,
+                    symbols,
+                    relationships,
+                    depth,
+                );
             }
             "method_declaration" | "constructor_declaration" => {
                 // Extract method calls from within this method/constructor
-                relationships::extract_call_relationships(self, node, symbols, relationships);
+                relationships::extract_call_relationships(
+                    self,
+                    node,
+                    symbols,
+                    relationships,
+                    depth,
+                );
             }
             _ => {}
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         for child in node.children(&mut node.walk()) {
-            self.visit_node_for_relationships(child, symbols, relationships);
+            self.visit_node_for_relationships(child, symbols, relationships, child_depth);
         }
     }
 

@@ -89,6 +89,7 @@ fn symbol_priority(kind: &SymbolKind) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
     use tree_sitter::Parser;
 
     #[test]
@@ -161,13 +162,26 @@ mod tests {
         node: tree_sitter::Node<'a>,
         kind: &str,
     ) -> Option<tree_sitter::Node<'a>> {
+        find_first_node_kind_at_depth(node, kind, 0)
+    }
+
+    fn find_first_node_kind_at_depth<'a>(
+        node: tree_sitter::Node<'a>,
+        kind: &str,
+        depth: u32,
+    ) -> Option<tree_sitter::Node<'a>> {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+
         if node.kind() == kind {
             return Some(node);
         }
 
+        let child_depth = child_tree_depth(depth)?;
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            if let Some(found) = find_first_node_kind(child, kind) {
+            if let Some(found) = find_first_node_kind_at_depth(child, kind, child_depth) {
                 return Some(found);
             }
         }

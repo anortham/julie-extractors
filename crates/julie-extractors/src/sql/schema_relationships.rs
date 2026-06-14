@@ -1,6 +1,7 @@
 //! Relationships for SQL schema objects such as views and triggers.
 
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -255,12 +256,27 @@ fn object_reference_after_keyword<'a>(node: Node<'a>, keyword_kind: &str) -> Opt
 }
 
 fn collect_relation_nodes<'a>(node: Node<'a>, relation_nodes: &mut Vec<Node<'a>>) {
+    collect_relation_nodes_at_depth(node, relation_nodes, 0);
+}
+
+fn collect_relation_nodes_at_depth<'a>(
+    node: Node<'a>,
+    relation_nodes: &mut Vec<Node<'a>>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "relation" {
         relation_nodes.push(node);
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     for child in node.children(&mut node.walk()) {
-        collect_relation_nodes(child, relation_nodes);
+        collect_relation_nodes_at_depth(child, relation_nodes, child_depth);
     }
 }
 

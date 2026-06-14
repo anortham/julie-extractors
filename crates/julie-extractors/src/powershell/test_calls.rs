@@ -34,6 +34,7 @@ use crate::base::{BaseExtractor, Symbol};
 use crate::test_calls::{
     TestCallCategory, TestCallVocab, build_test_call_symbol, classify_call_exact,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// Pester vocabulary.
@@ -114,12 +115,21 @@ fn extract_first_string(base: &mut BaseExtractor, elements: Node) -> Option<Stri
 /// Recursively find the first node whose kind contains "string" within the
 /// given subtree. Returns as soon as the first matching node is found.
 fn find_string_node(node: Node) -> Option<Node> {
+    find_string_node_at_depth(node, 0)
+}
+
+fn find_string_node_at_depth(node: Node, depth: u32) -> Option<Node> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     if node.kind().contains("string") {
         return Some(node);
     }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(found) = find_string_node(child) {
+        if let Some(found) = find_string_node_at_depth(child, child_depth) {
             return Some(found);
         }
     }

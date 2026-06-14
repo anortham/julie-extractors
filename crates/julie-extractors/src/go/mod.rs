@@ -11,6 +11,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -67,7 +68,7 @@ impl GoExtractor {
     /// Extract symbols from Go source code - direct port from reference logic
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.walk_tree(tree.root_node(), &mut symbols, None);
+        self.walk_tree(tree.root_node(), &mut symbols, None, 0);
         self.recover_function_symbols_from_source(&mut symbols);
 
         // Prioritize functions over fields with the same name (reference logic)
@@ -79,7 +80,7 @@ impl GoExtractor {
         let symbol_map = self.build_symbol_map(symbols);
 
         // Extract relationships from the AST
-        self.walk_tree_for_relationships(tree.root_node(), &symbol_map, &mut relationships);
+        self.walk_tree_for_relationships(tree.root_node(), &symbol_map, &mut relationships, 0);
 
         relationships
     }
@@ -120,7 +121,7 @@ impl GoExtractor {
             symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map);
+        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
 
         // Return the collected identifiers
         self.base.identifiers.clone()
@@ -161,7 +162,17 @@ impl GoExtractor {
     }
 
     /// Walk the tree and extract symbols (port from walkTree method)
-    fn walk_tree(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<String>) {
+    fn walk_tree(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Handle declarations that can produce multiple symbols
         match node.kind() {
             "import_declaration" => {
@@ -188,9 +199,12 @@ impl GoExtractor {
                     symbols.push(symbol);
 
                     // Recursively walk children with the new parent_id
+                    let Some(child_depth) = child_tree_depth(depth) else {
+                        return;
+                    };
                     let mut cursor = node.walk();
                     for child in node.children(&mut cursor) {
-                        self.walk_tree(child, symbols, Some(symbol_id.clone()));
+                        self.walk_tree(child, symbols, Some(symbol_id.clone()), child_depth);
                     }
                     return;
                 }
@@ -198,9 +212,12 @@ impl GoExtractor {
         }
 
         // If no symbol was created, continue walking children with same parent_id
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree(child, symbols, parent_id.clone());
+            self.walk_tree(child, symbols, parent_id.clone(), child_depth);
         }
     }
 

@@ -135,6 +135,10 @@ file read + parse + map phase; the SQLite write stays single-writer. Output is
 independent of `--jobs`: the artifact, row ordering, report counts, and per-file
 failure handling are identical for any worker count.
 
+With `--json`, successful scan reports include a bounded `counts.file_rows`
+summary of the largest source files by attributed artifact rows. Use
+`info --json` for the full persisted per-file breakdown.
+
 ### `update`
 
 Extracts exactly one file.
@@ -165,7 +169,7 @@ update new_path
 Reads artifact metadata without mutating the database. `info` is the canonical
 preflight command for schema version, extraction contract version, root path,
 hash algorithm, parser inventory fingerprint, capability snapshot fingerprint,
-and row totals.
+row totals, and full per-file row attribution.
 
 ### `export`
 

@@ -12,6 +12,7 @@ mod text_args;
 use crate::base::{BaseExtractor, Identifier, PendingRelationship, Relationship, Symbol};
 use crate::base::{SymbolKind, SymbolOptions};
 use crate::test_detection::is_test_symbol;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -41,7 +42,7 @@ impl RExtractor {
         let non_s3: std::collections::HashSet<&str> =
             non_s3::NON_S3_DOT_FUNCTIONS.iter().copied().collect();
 
-        self.traverse_node(root_node, None, &non_s3);
+        self.traverse_node(root_node, None, &non_s3, 0);
 
         self.symbols.clone()
     }
@@ -52,7 +53,12 @@ impl RExtractor {
         node: Node,
         parent_id: Option<String>,
         non_s3: &std::collections::HashSet<&str>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let current_symbol: Option<Symbol> = match node.kind() {
             "binary_operator" => self.extract_from_binary_op(node, &parent_id, non_s3),
             "call" => self.extract_from_call(node, &parent_id),
@@ -61,9 +67,12 @@ impl RExtractor {
 
         // Recursively traverse children
         let next_parent_id = current_symbol.as_ref().map(|s| s.id.clone()).or(parent_id);
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.traverse_node(child, next_parent_id.clone(), non_s3);
+            self.traverse_node(child, next_parent_id.clone(), non_s3, child_depth);
         }
     }
 

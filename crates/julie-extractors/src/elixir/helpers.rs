@@ -1,5 +1,6 @@
 /// Helper utilities for Elixir symbol extraction
 use crate::base::BaseExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 pub(super) use crate::base::find_child_by_type;
@@ -155,6 +156,22 @@ pub(super) fn extract_struct_fields(base: &BaseExtractor, node: &Node) -> Vec<(S
 }
 
 fn collect_atom_fields(base: &BaseExtractor, node: &Node, fields: &mut Vec<(String, u32, u32)>) {
+    collect_atom_fields_at_depth(base, node, fields, 0);
+}
+
+fn collect_atom_fields_at_depth(
+    base: &BaseExtractor,
+    node: &Node,
+    fields: &mut Vec<(String, u32, u32)>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == "atom" {
@@ -164,7 +181,7 @@ fn collect_atom_fields(base: &BaseExtractor, node: &Node, fields: &mut Vec<(Stri
                 fields.push((name, child.start_byte() as u32, child.end_byte() as u32));
             }
         } else {
-            collect_atom_fields(base, &child, fields);
+            collect_atom_fields_at_depth(base, &child, fields, child_depth);
         }
     }
 }

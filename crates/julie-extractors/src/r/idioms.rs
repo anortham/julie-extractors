@@ -1,5 +1,6 @@
 use crate::base::{RelationshipKind, Symbol, SymbolKind, SymbolOptions, UnresolvedTarget};
 use crate::r::RExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -350,6 +351,19 @@ fn named_argument_value(extractor: &RExtractor, args: Node, name: &str) -> Optio
 }
 
 fn find_named_argument_value(extractor: &RExtractor, node: Node, name: &str) -> Option<String> {
+    find_named_argument_value_at_depth(extractor, node, name, 0)
+}
+
+fn find_named_argument_value_at_depth(
+    extractor: &RExtractor,
+    node: Node,
+    name: &str,
+    depth: u32,
+) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     if node.kind() == "argument" {
         let argument_name = node.child_by_field_name("name")?;
         let value = node.child_by_field_name("value")?;
@@ -369,9 +383,11 @@ fn find_named_argument_value(extractor: &RExtractor, node: Node, name: &str) -> 
         }
     }
 
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(value) = find_named_argument_value(extractor, child, name) {
+        if let Some(value) = find_named_argument_value_at_depth(extractor, child, name, child_depth)
+        {
             return Some(value);
         }
     }

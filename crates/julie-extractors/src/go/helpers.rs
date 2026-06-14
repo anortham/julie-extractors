@@ -3,6 +3,7 @@ use std::collections::{BTreeSet, HashSet};
 use tree_sitter::Node;
 
 use crate::base::{AnnotationMarker, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Helper methods for Go-specific utilities and node text extraction
 impl super::GoExtractor {
@@ -19,6 +20,14 @@ impl super::GoExtractor {
 
     /// Extract the type string from a type node
     pub(super) fn extract_type_from_node(&self, node: Node) -> String {
+        self.extract_type_from_node_at_depth(node, 0)
+    }
+
+    fn extract_type_from_node_at_depth(&self, node: Node, depth: u32) -> String {
+        if !should_visit_tree_depth(depth) {
+            return self.get_node_text(node);
+        }
+
         match node.kind() {
             "type_identifier" | "primitive_type" => self.get_node_text(node),
             "map_type" => {
@@ -30,20 +39,36 @@ impl super::GoExtractor {
                 parts.join("")
             }
             "slice_type" => {
+                let child_depth = child_tree_depth(depth);
                 let mut cursor = node.walk();
                 for child in node.children(&mut cursor) {
                     if child.kind() != "[" && child.kind() != "]" {
-                        return format!("[]{}", self.extract_type_from_node(child));
+                        return if let Some(child_depth) = child_depth {
+                            format!(
+                                "[]{}",
+                                self.extract_type_from_node_at_depth(child, child_depth)
+                            )
+                        } else {
+                            self.get_node_text(node)
+                        };
                     }
                 }
                 self.get_node_text(node)
             }
             "array_type" => self.get_node_text(node),
             "pointer_type" => {
+                let child_depth = child_tree_depth(depth);
                 let mut cursor = node.walk();
                 for child in node.children(&mut cursor) {
                     if child.kind() != "*" {
-                        return format!("*{}", self.extract_type_from_node(child));
+                        return if let Some(child_depth) = child_depth {
+                            format!(
+                                "*{}",
+                                self.extract_type_from_node_at_depth(child, child_depth)
+                            )
+                        } else {
+                            self.get_node_text(node)
+                        };
                     }
                 }
                 self.get_node_text(node)
@@ -220,6 +245,19 @@ fn collect_struct_field_tag_keys(
     keys: &mut BTreeSet<String>,
     get_text: &dyn Fn(Node) -> String,
 ) {
+    collect_struct_field_tag_keys_at_depth(node, keys, get_text, 0);
+}
+
+fn collect_struct_field_tag_keys_at_depth(
+    node: Node,
+    keys: &mut BTreeSet<String>,
+    get_text: &dyn Fn(Node) -> String,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "field_declaration"
         && let Some(tag_node) = node.child_by_field_name("tag")
     {
@@ -239,9 +277,12 @@ fn collect_struct_field_tag_keys(
         return;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_struct_field_tag_keys(child, keys, get_text);
+        collect_struct_field_tag_keys_at_depth(child, keys, get_text, child_depth);
     }
 }
 

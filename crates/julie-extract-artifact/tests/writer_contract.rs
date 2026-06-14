@@ -14,6 +14,74 @@ use serde_json::json;
 use std::path::PathBuf;
 
 #[test]
+fn writer_module_does_not_own_capability_snapshot_sync_helpers() {
+    let writer_source = include_str!("../src/writer.rs");
+    for forbidden_definition in [
+        "fn load_parser_inventory_keys(",
+        "fn load_language_capability_keys(",
+        "fn load_language_capability_fixture_keys(",
+        "fn load_language_capability_gap_keys(",
+        "fn sync_optional_capability_snapshot_in_tx(",
+        "fn sync_capability_snapshot_in_tx(",
+        "fn upsert_parser_inventory(",
+        "fn upsert_language_capability(",
+        "fn upsert_language_capability_fixture(",
+        "fn upsert_language_capability_gap(",
+        "fn bool_int(",
+        "fn json_string(",
+    ] {
+        assert!(
+            !writer_source.contains(forbidden_definition),
+            "writer.rs still owns capability snapshot sync helper {forbidden_definition}"
+        );
+    }
+}
+
+#[test]
+fn writer_module_does_not_own_row_inserter_helpers() {
+    let writer_source = include_str!("../src/writer.rs");
+    for forbidden_definition in [
+        "struct FileRowInserters",
+        "struct ChildRowInserters",
+        "fn insert_file_row(",
+        "fn insert_revision_file_change_row(",
+        "fn insert_symbol_rows(",
+        "fn update_symbol_parent_rows(",
+        "fn insert_symbol_annotations(",
+        "fn insert_identifiers(",
+        "fn insert_relationships(",
+        "fn insert_pending_relationships(",
+        "fn insert_type_facts(",
+        "fn insert_type_argument_usages(",
+        "fn insert_type_arguments(",
+        "fn insert_literals(",
+        "fn insert_source_regions(",
+        "fn insert_structural_facts(",
+        "fn insert_complexity_metrics(",
+        "fn insert_parse_diagnostics(",
+        "fn insert_parse_diagnostics_rows(",
+        "fn is_preserved_failure(",
+        "fn is_preserved_failure_update(",
+        "fn update_failed_preserved_file(",
+        "fn replace_parse_diagnostics(",
+        "struct SymbolLookup",
+        "fn load_symbol_lookup(",
+        "fn collect_file_symbol_ids(",
+        "fn collect_requested_symbol_ids(",
+        "fn load_symbol_lookup_for_requested_ids(",
+        "fn load_existing_symbol_ids_for_requested_ids(",
+        "fn valid_symbol_id(",
+        "struct IdentifierLookup",
+        "struct TypeArgumentUsageLookup",
+    ] {
+        assert!(
+            !writer_source.contains(forbidden_definition),
+            "writer.rs still owns row inserter helper {forbidden_definition}"
+        );
+    }
+}
+
+#[test]
 fn path_writer_uses_bulk_sqlite_pragmas() {
     let temp_dir = unique_temp_dir("path-writer-pragmas");
     std::fs::create_dir_all(&temp_dir).unwrap();

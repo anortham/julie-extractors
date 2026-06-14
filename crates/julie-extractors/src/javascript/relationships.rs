@@ -11,6 +11,7 @@ use crate::base::{
 };
 use crate::ecmascript_imports::is_ecmascript_global_direct_target;
 use crate::javascript::JavaScriptExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
 type HeritageData = (String, Vec<(UnresolvedTarget, u32)>, String);
@@ -29,6 +30,7 @@ pub(crate) fn extract_relationships(
         symbols,
         &symbol_index,
         &mut relationships,
+        0,
     );
     extract_new_expression_relationships(
         extractor,
@@ -36,8 +38,9 @@ pub(crate) fn extract_relationships(
         symbols,
         &symbol_index,
         &mut relationships,
+        0,
     );
-    extract_inheritance_relationships(extractor, tree.root_node(), symbols, &mut relationships);
+    extract_inheritance_relationships(extractor, tree.root_node(), symbols, &mut relationships, 0);
     relationships
 }
 
@@ -47,7 +50,12 @@ fn extract_new_expression_relationships(
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "new_expression"
         && let Some(constructor_node) = node.child_by_field_name("constructor")
     {
@@ -104,6 +112,9 @@ fn extract_new_expression_relationships(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         extract_new_expression_relationships(
@@ -112,6 +123,7 @@ fn extract_new_expression_relationships(
             symbols,
             symbol_index,
             relationships,
+            child_depth,
         );
     }
 }
@@ -135,7 +147,12 @@ fn extract_call_relationships(
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Look for call expressions
     if node.kind() == "call_expression"
         && let Some(function_node) = node.child_by_field_name("function")
@@ -179,9 +196,19 @@ fn extract_call_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_call_relationships(extractor, child, symbols, symbol_index, relationships);
+        extract_call_relationships(
+            extractor,
+            child,
+            symbols,
+            symbol_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 
@@ -244,7 +271,12 @@ fn extract_inheritance_relationships(
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Phase 1: Collect data using immutable borrow
     let heritage_data = match node.kind() {
         "extends_clause" | "class_heritage" => collect_heritage_data(extractor, node, symbols),
@@ -293,9 +325,12 @@ fn extract_inheritance_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_inheritance_relationships(extractor, child, symbols, relationships);
+        extract_inheritance_relationships(extractor, child, symbols, relationships, child_depth);
     }
 }
 
@@ -348,7 +383,12 @@ fn collect_heritage_data(
 fn extract_terminal_heritage_identifier(
     extractor: &JavaScriptExtractor,
     node: Node,
+    depth: u32,
 ) -> Option<(UnresolvedTarget, u32)> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     match node.kind() {
         "identifier" | "type_identifier" | "property_identifier" => {
             let name = extractor.base().get_node_text(&node);
@@ -364,8 +404,9 @@ fn extract_terminal_heritage_identifier(
                 .or_else(|| node.child_by_field_name("right"))?;
 
             // Restrict to explicit identifier/member chains.
-            extract_terminal_heritage_identifier(extractor, object)?;
-            let (_, line) = extract_terminal_heritage_identifier(extractor, property)?;
+            let child_depth = child_tree_depth(depth)?;
+            extract_terminal_heritage_identifier(extractor, object, child_depth)?;
+            let (_, line) = extract_terminal_heritage_identifier(extractor, property, child_depth)?;
             let display_name = extractor.base().get_node_text(&node).replace(' ', "");
             let segments: Vec<String> = display_name
                 .split('.')
@@ -391,13 +432,16 @@ fn extract_terminal_heritage_identifier(
         }
         "parenthesized_expression" => {
             let expression = node.child_by_field_name("expression")?;
-            extract_terminal_heritage_identifier(extractor, expression)
+            extract_terminal_heritage_identifier(extractor, expression, child_tree_depth(depth)?)
         }
         "call_expression" | "new_expression" => None,
         _ => {
+            let child_depth = child_tree_depth(depth)?;
             let mut cursor = node.walk();
             for child in node.named_children(&mut cursor) {
-                if let Some(candidate) = extract_terminal_heritage_identifier(extractor, child) {
+                if let Some(candidate) =
+                    extract_terminal_heritage_identifier(extractor, child, child_depth)
+                {
                     return Some(candidate);
                 }
             }
@@ -413,7 +457,7 @@ fn collect_explicit_superclass_targets(
 ) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some((name, line)) = extract_terminal_heritage_identifier(extractor, child) {
+        if let Some((name, line)) = extract_terminal_heritage_identifier(extractor, child, 0) {
             base_types.push((name, line));
             break;
         }

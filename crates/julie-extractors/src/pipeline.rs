@@ -1,9 +1,10 @@
-use crate::ExtractionResults;
 use std::path::Path;
 use tree_sitter::{Node, Parser, Tree};
 
+use crate::ExtractionResults;
 use crate::base::RecordOffset;
 use crate::base::{NormalizedSpan, ParseDiagnostic, ParseDiagnosticKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 pub fn extract_canonical(
     file_path: &str,
@@ -172,11 +173,15 @@ fn content_end_position(content: &str) -> (u32, u32) {
 
 pub fn parse_diagnostics_for_tree(tree: &Tree) -> Vec<ParseDiagnostic> {
     let mut diagnostics = Vec::new();
-    collect_parse_diagnostics(tree.root_node(), &mut diagnostics);
+    collect_parse_diagnostics(tree.root_node(), &mut diagnostics, 0);
     diagnostics
 }
 
-fn collect_parse_diagnostics(node: Node<'_>, diagnostics: &mut Vec<ParseDiagnostic>) {
+fn collect_parse_diagnostics(node: Node<'_>, diagnostics: &mut Vec<ParseDiagnostic>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.is_error() {
         diagnostics.push(parse_diagnostic_for_node(node, ParseDiagnosticKind::Error));
     }
@@ -191,9 +196,13 @@ fn collect_parse_diagnostics(node: Node<'_>, diagnostics: &mut Vec<ParseDiagnost
         return;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_parse_diagnostics(child, diagnostics);
+        collect_parse_diagnostics(child, diagnostics, child_depth);
     }
 }
 

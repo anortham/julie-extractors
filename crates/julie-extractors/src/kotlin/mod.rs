@@ -23,6 +23,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
@@ -71,11 +72,21 @@ impl KotlinExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
-    fn visit_node(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<String>) {
+    fn visit_node(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if !node.is_named() {
             return; // Skip unnamed nodes
         }
@@ -185,9 +196,12 @@ impl KotlinExtractor {
         }
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, new_parent_id.clone());
+            self.visit_node(child, symbols, new_parent_id.clone(), child_depth);
         }
     }
 
@@ -213,7 +227,7 @@ impl KotlinExtractor {
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships);
+        self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
         dedupe_relationships(&mut relationships);
         relationships
     }
@@ -223,7 +237,12 @@ impl KotlinExtractor {
         node: Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "class_declaration"
             | "enum_declaration"
@@ -236,18 +255,33 @@ impl KotlinExtractor {
                     relationships,
                 );
                 // Also extract method calls from within this type
-                relationships::extract_call_relationships(self, node, symbols, relationships);
+                relationships::extract_call_relationships(
+                    self,
+                    node,
+                    symbols,
+                    relationships,
+                    depth,
+                );
             }
             "function_declaration" => {
                 // Extract function calls from within this function
-                relationships::extract_call_relationships(self, node, symbols, relationships);
+                relationships::extract_call_relationships(
+                    self,
+                    node,
+                    symbols,
+                    relationships,
+                    depth,
+                );
             }
             _ => {}
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node_for_relationships(child, symbols, relationships);
+            self.visit_node_for_relationships(child, symbols, relationships, child_depth);
         }
     }
 

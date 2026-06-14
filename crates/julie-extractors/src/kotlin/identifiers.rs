@@ -4,6 +4,7 @@
 //! identifier usages for LSP-quality find_references support.
 
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -15,7 +16,7 @@ pub(super) fn extract_identifiers(
 ) -> Vec<Identifier> {
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map);
+    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
 
     base.identifiers.clone()
 }
@@ -25,12 +26,20 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     symbol_map: &HashMap<String, &Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     extract_identifier_from_node(base, node, symbol_map);
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map);
+        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
     }
 }
 
@@ -239,6 +248,18 @@ fn extract_kotlin_type_node_info<'a>(
     base: &BaseExtractor,
     node: Node<'a>,
 ) -> Option<(String, Option<Node<'a>>)> {
+    extract_kotlin_type_node_info_at_depth(base, node, 0)
+}
+
+fn extract_kotlin_type_node_info_at_depth<'a>(
+    base: &BaseExtractor,
+    node: Node<'a>,
+    depth: u32,
+) -> Option<(String, Option<Node<'a>>)> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     match node.kind() {
         "user_type" => {
             let children: Vec<Node<'a>> = {
@@ -258,7 +279,8 @@ fn extract_kotlin_type_node_info<'a>(
             let mut cursor = node.walk();
             let inner = node.named_children(&mut cursor).next();
             if let Some(inner) = inner {
-                extract_kotlin_type_node_info(base, inner)
+                let child_depth = child_tree_depth(depth)?;
+                extract_kotlin_type_node_info_at_depth(base, inner, child_depth)
                     .map(|(name, nested)| (format!("{}?", name), nested))
             } else {
                 Some((base.get_node_text(&node), None))

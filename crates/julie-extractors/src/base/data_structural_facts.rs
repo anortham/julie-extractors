@@ -8,6 +8,7 @@ use tree_sitter::{Node, Tree};
 use super::span::NormalizedSpan;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol, stable_location_id};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 // Markdown
 const MARKDOWN_FRONTMATTER_PATTERN_ID: &str = "markdown.frontmatter.v1";
@@ -135,7 +136,7 @@ fn collect_markdown_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_markdown_node(tree.root_node(), file_path, content, &mut facts);
+    collect_markdown_node(tree.root_node(), file_path, content, &mut facts, 0);
     append_markdown_inline_link_facts(file_path, content, &mut facts);
     facts
 }
@@ -222,7 +223,12 @@ fn collect_markdown_node(
     file_path: &str,
     content: &str,
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "minus_metadata" | "plus_metadata" => {
             if let Some(fact) = markdown_frontmatter_fact(file_path, content, node) {
@@ -257,9 +263,12 @@ fn collect_markdown_node(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_markdown_node(child, file_path, content, facts);
+        collect_markdown_node(child, file_path, content, facts, child_depth);
     }
 }
 
@@ -440,7 +449,7 @@ fn collect_json_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_json_node(tree.root_node(), file_path, content, &[], 0, &mut facts);
+    collect_json_node(tree.root_node(), file_path, content, &[], 0, &mut facts, 0);
     facts
 }
 
@@ -451,7 +460,12 @@ fn collect_json_node(
     path: &[String],
     depth: usize,
     facts: &mut Vec<StructuralFact>,
+    traversal_depth: u32,
 ) {
+    if !should_visit_tree_depth(traversal_depth) {
+        return;
+    }
+
     match node.kind() {
         "object" => {
             let mut metadata = base_metadata("data_structure");
@@ -495,6 +509,9 @@ fn collect_json_node(
         _ => {}
     }
 
+    let Some(child_traversal_depth) = child_tree_depth(traversal_depth) else {
+        return;
+    };
     if node.kind() == "pair" {
         let key = json_pair_key(content, node);
         let value_node = json_pair_value(node);
@@ -510,12 +527,21 @@ fn collect_json_node(
                 &child_path,
                 depth + 1,
                 facts,
+                child_traversal_depth,
             );
         }
     } else {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            collect_json_node(child, file_path, content, path, depth + 1, facts);
+            collect_json_node(
+                child,
+                file_path,
+                content,
+                path,
+                depth + 1,
+                facts,
+                child_traversal_depth,
+            );
         }
     }
 }
@@ -553,7 +579,7 @@ fn collect_toml_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_toml_node(tree.root_node(), file_path, content, &[], &mut facts);
+    collect_toml_node(tree.root_node(), file_path, content, &[], &mut facts, 0);
     facts
 }
 
@@ -563,7 +589,12 @@ fn collect_toml_node(
     content: &str,
     table_path: &[String],
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "table" => {
             if let Some(table_name) = toml_table_name(content, node) {
@@ -586,7 +617,7 @@ fn collect_toml_node(
 
                 let mut child_path = table_path.to_vec();
                 child_path.push(table_name);
-                walk_toml_children(node, file_path, content, &child_path, facts);
+                walk_toml_children(node, file_path, content, &child_path, facts, depth);
                 return;
             }
         }
@@ -611,7 +642,7 @@ fn collect_toml_node(
 
                 let mut child_path = table_path.to_vec();
                 child_path.push(table_name);
-                walk_toml_children(node, file_path, content, &child_path, facts);
+                walk_toml_children(node, file_path, content, &child_path, facts, depth);
                 return;
             }
         }
@@ -627,7 +658,14 @@ fn collect_toml_node(
                     {
                         let mut inline_path = table_path.to_vec();
                         inline_path.push(key);
-                        walk_toml_children(value_node, file_path, content, &inline_path, facts);
+                        walk_toml_children(
+                            value_node,
+                            file_path,
+                            content,
+                            &inline_path,
+                            facts,
+                            depth,
+                        );
                     }
                     return;
                 }
@@ -636,7 +674,7 @@ fn collect_toml_node(
         _ => {}
     }
 
-    walk_toml_children(node, file_path, content, table_path, facts);
+    walk_toml_children(node, file_path, content, table_path, facts, depth);
 }
 
 fn walk_toml_children(
@@ -645,10 +683,14 @@ fn walk_toml_children(
     content: &str,
     table_path: &[String],
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_toml_node(child, file_path, content, table_path, facts);
+        collect_toml_node(child, file_path, content, table_path, facts, child_depth);
     }
 }
 
@@ -708,7 +750,7 @@ fn collect_yaml_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_yaml_node(tree.root_node(), file_path, content, &[], &mut facts);
+    collect_yaml_node(tree.root_node(), file_path, content, &[], &mut facts, 0);
     facts
 }
 
@@ -718,7 +760,12 @@ fn collect_yaml_node(
     content: &str,
     path: &[String],
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "document" => {
             let mut metadata = base_metadata("config_structure");
@@ -776,7 +823,16 @@ fn collect_yaml_node(
 
                 let mut child_path = path.to_vec();
                 child_path.push(key);
-                collect_yaml_node(value_node, file_path, content, &child_path, facts);
+                if let Some(child_depth) = child_tree_depth(depth) {
+                    collect_yaml_node(
+                        value_node,
+                        file_path,
+                        content,
+                        &child_path,
+                        facts,
+                        child_depth,
+                    );
+                }
                 return;
             }
         }
@@ -829,9 +885,12 @@ fn collect_yaml_node(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_yaml_node(child, file_path, content, path, facts);
+        collect_yaml_node(child, file_path, content, path, facts, child_depth);
     }
 }
 
@@ -848,6 +907,7 @@ fn collect_regex_structural_facts(
         content,
         &mut facts,
         &mut capture_index,
+        0,
     );
     append_missing_regex_lookaround_facts(file_path, content, &mut facts);
     facts
@@ -964,7 +1024,12 @@ fn collect_regex_node(
     content: &str,
     facts: &mut Vec<StructuralFact>,
     capture_index: &mut usize,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "named_capturing_group" => {
             *capture_index += 1;
@@ -1028,9 +1093,12 @@ fn collect_regex_node(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_regex_node(child, file_path, content, facts, capture_index);
+        collect_regex_node(child, file_path, content, facts, capture_index, child_depth);
     }
 }
 
@@ -1317,9 +1385,19 @@ fn markdown_table_column_count(node: Node<'_>) -> usize {
 }
 
 fn has_child_kind(node: Node<'_>, child_kind: &str) -> bool {
+    has_child_kind_at_depth(node, child_kind, 0)
+}
+
+fn has_child_kind_at_depth(node: Node<'_>, child_kind: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == child_kind || has_child_kind(child, child_kind) {
+        if child.kind() == child_kind || has_child_kind_at_depth(child, child_kind, child_depth) {
             return true;
         }
     }
@@ -1406,6 +1484,13 @@ fn yaml_pair_key_and_value<'a>(content: &str, node: Node<'a>) -> Option<(String,
 }
 
 fn yaml_node_scalar_text(content: &str, node: Node<'_>) -> Option<String> {
+    yaml_node_scalar_text_at_depth(content, node, 0)
+}
+
+fn yaml_node_scalar_text_at_depth(content: &str, node: Node<'_>, depth: u32) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if matches!(
         node.kind(),
         "plain_scalar" | "double_quote_scalar" | "single_quote_scalar"
@@ -1414,9 +1499,10 @@ fn yaml_node_scalar_text(content: &str, node: Node<'_>) -> Option<String> {
         return Some(text.trim_matches('"').trim_matches('\'').trim().to_string());
     }
 
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(text) = yaml_node_scalar_text(content, child) {
+        if let Some(text) = yaml_node_scalar_text_at_depth(content, child, child_depth) {
             return Some(text);
         }
     }
@@ -1514,6 +1600,14 @@ fn count_json_array_elements(node: Node<'_>) -> usize {
 }
 
 fn toml_table_name(content: &str, node: Node<'_>) -> Option<String> {
+    toml_table_name_at_depth(content, node, 0)
+}
+
+fn toml_table_name_at_depth(content: &str, node: Node<'_>, depth: u32) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
@@ -1522,7 +1616,7 @@ fn toml_table_name(content: &str, node: Node<'_>) -> Option<String> {
                 return Some(name.trim_matches('"').trim_matches('\'').to_string());
             }
             _ => {
-                if let Some(name) = toml_table_name(content, child) {
+                if let Some(name) = toml_table_name_at_depth(content, child, child_depth) {
                     return Some(name);
                 }
             }

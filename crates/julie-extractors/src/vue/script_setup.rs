@@ -10,6 +10,7 @@ use super::parsing::VueSection;
 use super::script::create_symbol_manual;
 use crate::base::{AnnotationMarker, BaseExtractor, Symbol, SymbolKind, normalize_annotations};
 use crate::test_detection::is_test_symbol;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::{Node, Parser};
@@ -27,7 +28,7 @@ pub(super) fn extract_script_setup_symbols(
     let mut symbols = Vec::new();
     let root = tree.root_node();
 
-    walk_for_symbols(base, root, section, &mut symbols);
+    walk_for_symbols(base, root, section, &mut symbols, 0);
 
     symbols
 }
@@ -95,13 +96,22 @@ fn vue_macro_annotations(macro_names: &[String]) -> Vec<AnnotationMarker> {
 
 fn collect_component_macros(node: Node, content: &str) -> Vec<String> {
     let mut macros = Vec::new();
-    collect_component_macros_recursive(node, content, &mut macros);
+    collect_component_macros_recursive(node, content, &mut macros, 0);
     macros.sort();
     macros.dedup();
     macros
 }
 
-fn collect_component_macros_recursive(node: Node, content: &str, macros: &mut Vec<String>) {
+fn collect_component_macros_recursive(
+    node: Node,
+    content: &str,
+    macros: &mut Vec<String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression"
         && let Some(callee) = node.child_by_field_name("function")
     {
@@ -111,36 +121,58 @@ fn collect_component_macros_recursive(node: Node, content: &str, macros: &mut Ve
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_component_macros_recursive(child, content, macros);
+        collect_component_macros_recursive(child, content, macros, child_depth);
     }
 }
 
 fn collect_define_expose_names(node: Node, content: &str) -> Vec<String> {
     let mut names = Vec::new();
-    collect_define_expose_names_recursive(node, content, &mut names);
+    collect_define_expose_names_recursive(node, content, &mut names, 0);
     names.sort();
     names.dedup();
     names
 }
 
-fn collect_define_expose_names_recursive(node: Node, content: &str, names: &mut Vec<String>) {
+fn collect_define_expose_names_recursive(
+    node: Node,
+    content: &str,
+    names: &mut Vec<String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression"
         && let Some(callee) = node.child_by_field_name("function")
         && get_node_text(&callee, content) == "defineExpose"
         && let Some(arguments) = node.child_by_field_name("arguments")
     {
-        collect_exposed_object_names(arguments, content, names);
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+        collect_exposed_object_names(arguments, content, names, child_depth);
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_define_expose_names_recursive(child, content, names);
+        collect_define_expose_names_recursive(child, content, names, child_depth);
     }
 }
 
-fn collect_exposed_object_names(node: Node, content: &str, names: &mut Vec<String>) {
+fn collect_exposed_object_names(node: Node, content: &str, names: &mut Vec<String>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "object" | "object_pattern" => {
             let mut cursor = node.walk();
@@ -149,9 +181,12 @@ fn collect_exposed_object_names(node: Node, content: &str, names: &mut Vec<Strin
             }
         }
         _ => {
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                collect_exposed_object_names(child, content, names);
+                collect_exposed_object_names(child, content, names, child_depth);
             }
         }
     }
@@ -201,7 +236,12 @@ fn walk_for_symbols(
     node: Node,
     section: &VueSection,
     symbols: &mut Vec<Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "function_declaration" => {
             if let Some(sym) = extract_function_declaration(base, node, section) {
@@ -223,6 +263,9 @@ fn walk_for_symbols(
     }
 
     // Recurse into children, but skip nodes we've already fully handled
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
@@ -233,11 +276,11 @@ fn walk_for_symbols(
             | "expression_statement" => {
                 // Only recurse at top level (program node)
                 if node.kind() == "program" {
-                    walk_for_symbols(base, child, section, symbols);
+                    walk_for_symbols(base, child, section, symbols, child_depth);
                 }
             }
             _ => {
-                walk_for_symbols(base, child, section, symbols);
+                walk_for_symbols(base, child, section, symbols, child_depth);
             }
         }
     }

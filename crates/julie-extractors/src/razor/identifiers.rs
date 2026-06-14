@@ -1,5 +1,6 @@
 /// LSP-quality identifier extraction for find_references support
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -16,21 +17,33 @@ impl super::RazorExtractor {
             symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map);
+        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
 
         // Return the collected identifiers
         self.base.identifiers.clone()
     }
 
     /// Recursively walk tree extracting identifiers from each node
-    fn walk_tree_for_identifiers(&mut self, node: Node, symbol_map: &HashMap<String, &Symbol>) {
+    fn walk_tree_for_identifiers(
+        &mut self,
+        node: Node,
+        symbol_map: &HashMap<String, &Symbol>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Extract identifier from this node if applicable
         self.extract_identifier_from_node(node, symbol_map);
 
         // Recursively walk children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map);
+            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
         }
     }
 

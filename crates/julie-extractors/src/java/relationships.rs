@@ -4,6 +4,7 @@ use crate::base::{
     UnresolvedTarget,
 };
 use crate::java::JavaExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -145,6 +146,7 @@ pub(super) fn extract_call_relationships(
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
     let symbol_index = ScopedSymbolIndex::new(symbols);
     let symbol_map = ScopedSymbolIndex::unique_symbol_map(symbols);
@@ -157,6 +159,7 @@ pub(super) fn extract_call_relationships(
         &symbol_map,
         symbols,
         relationships,
+        depth,
     );
 }
 
@@ -167,7 +170,12 @@ fn walk_tree_for_calls(
     symbol_map: &HashMap<String, &Symbol>,
     all_symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "method_invocation" {
         extract_method_call_relationship(extractor, node, symbol_index, all_symbols, relationships);
     }
@@ -183,6 +191,9 @@ fn walk_tree_for_calls(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         walk_tree_for_calls(
@@ -192,6 +203,7 @@ fn walk_tree_for_calls(
             symbol_map,
             all_symbols,
             relationships,
+            child_depth,
         );
     }
 }

@@ -8,6 +8,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use std::path::Path;
 use tree_sitter::Tree;
@@ -31,7 +32,7 @@ impl JsonExtractor {
 
     pub fn extract_symbols(&mut self, tree: &tree_sitter::Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None);
+        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
@@ -41,7 +42,12 @@ impl JsonExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let symbol = self.extract_symbol_from_node(node, parent_id.as_deref(), symbols);
         let mut current_parent_id = parent_id;
 
@@ -51,9 +57,12 @@ impl JsonExtractor {
         }
 
         // Recursively process child nodes
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone());
+            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 
@@ -171,6 +180,7 @@ impl JsonExtractor {
             tree.root_node(),
             symbols,
             &mut relationships,
+            0,
         );
         relationships
     }

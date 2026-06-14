@@ -10,6 +10,7 @@ use literals::{record_rust_call_arg_literals, record_rust_macro_arg_literals};
 
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
 use crate::rust::RustExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Tree;
 
 /// Extract all identifiers (references/usages) for LSP-quality reference tracking
@@ -28,7 +29,7 @@ pub(super) fn extract_identifiers(
     let file_path = extractor.get_base_mut().file_path.clone();
     let containing_symbols = ContainingSymbolIndex::new(symbols, &file_path);
 
-    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &containing_symbols, 0);
 
     // Return extracted identifiers from base extractor
     extractor.get_base_mut().identifiers.clone()
@@ -39,14 +40,22 @@ fn walk_tree_for_identifiers(
     extractor: &mut RustExtractor,
     node: tree_sitter::Node,
     containing_symbols: &ContainingSymbolIndex<'_>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Extract identifier from this node if applicable
     extract_identifier_from_node(extractor, node, containing_symbols);
 
     // Recursively walk children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, containing_symbols);
+        walk_tree_for_identifiers(extractor, child, containing_symbols, child_depth);
     }
 }
 

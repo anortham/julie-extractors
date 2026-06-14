@@ -3,6 +3,7 @@
 //! function pointer typedefs, and typedef structs.
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// Extract typedef / type alias declaration (`type_definition` node)
@@ -97,12 +98,24 @@ fn find_typedef_name(base: &BaseExtractor, node: Node) -> Option<String> {
 
 /// Recursively search for a type_identifier node in a subtree
 fn find_type_identifier_recursive(base: &BaseExtractor, node: Node) -> Option<String> {
+    find_type_identifier_recursive_at_depth(base, node, 0)
+}
+
+fn find_type_identifier_recursive_at_depth(
+    base: &BaseExtractor,
+    node: Node,
+    depth: u32,
+) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == "type_identifier" {
         return Some(base.get_node_text(&node));
     }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(name) = find_type_identifier_recursive(base, child) {
+        if let Some(name) = find_type_identifier_recursive_at_depth(base, child, child_depth) {
             return Some(name);
         }
     }

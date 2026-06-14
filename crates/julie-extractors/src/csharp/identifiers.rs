@@ -1,6 +1,7 @@
 // C# Identifier Extraction
 
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -11,7 +12,7 @@ pub fn extract_identifiers(
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map);
+    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
     base.identifiers.clone()
 }
 
@@ -19,11 +20,19 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     symbol_map: &HashMap<String, &Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     extract_identifier_from_node(base, node, symbol_map);
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map);
+        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
     }
 }
 

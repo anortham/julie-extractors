@@ -1,5 +1,6 @@
 use super::resolve_alias_anchor_target;
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
@@ -17,6 +18,7 @@ pub(super) fn extract_relationships(
         symbols,
         &mut relationships,
         &mut seen,
+        0,
     );
     relationships
 }
@@ -27,14 +29,22 @@ fn walk_tree(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
     seen: &mut HashSet<(String, String, u32, String)>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "alias" {
         extract_alias_relationship(base, node, symbols, relationships, seen);
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree(base, child, symbols, relationships, seen);
+        walk_tree(base, child, symbols, relationships, seen, child_depth);
     }
 }
 

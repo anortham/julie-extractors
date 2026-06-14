@@ -5,6 +5,7 @@ use super::super::base::{
     UnresolvedTarget,
 };
 use super::{PythonExtractor, helpers};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
 /// Extract relationships from Python code
@@ -24,6 +25,7 @@ pub(crate) fn extract_relationships(
         symbols,
         &symbol_index,
         &mut relationships,
+        0,
     );
 
     relationships
@@ -36,7 +38,12 @@ fn visit_node_for_relationships(
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "class_definition" => {
             extract_class_relationships(extractor, node, symbol_index, relationships);
@@ -48,9 +55,19 @@ fn visit_node_for_relationships(
     }
 
     // Recursively visit all children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        visit_node_for_relationships(extractor, child, symbols, symbol_index, relationships);
+        visit_node_for_relationships(
+            extractor,
+            child,
+            symbols,
+            symbol_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 

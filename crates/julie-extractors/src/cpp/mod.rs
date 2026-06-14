@@ -27,6 +27,7 @@ use crate::base::{
     BaseExtractor, PendingRelationship, Relationship, StructuredPendingRelationship, Symbol,
     SymbolKind, SymbolOptions, Visibility,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
@@ -85,7 +86,7 @@ impl CppExtractor {
         self.processed_nodes.clear();
         self.additional_symbols.clear();
 
-        self.walk_tree(tree.root_node(), &mut symbols, None);
+        self.walk_tree(tree.root_node(), &mut symbols, None, 0);
 
         // Add any additional symbols collected from ERROR nodes
         symbols.extend(self.additional_symbols.clone());
@@ -109,7 +110,7 @@ impl CppExtractor {
             symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map);
+        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
 
         // Return the collected identifiers from the base extractor
         self.base.identifiers.clone()
@@ -125,7 +126,17 @@ impl CppExtractor {
     // ========================================================================
 
     /// Walk the tree recursively
-    fn walk_tree(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<String>) {
+    fn walk_tree(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Handle field_declaration specially (can produce multiple symbols)
         if node.kind() == "field_declaration" {
             let field_symbols =
@@ -157,17 +168,27 @@ impl CppExtractor {
             symbols.push(symbol);
 
             // Continue with children using this symbol as parent
-            self.walk_children(node, symbols, current_parent_id);
+            self.walk_children(node, symbols, current_parent_id, depth);
         } else {
             // No symbol extracted, continue with same parent
-            self.walk_children(node, symbols, parent_id);
+            self.walk_children(node, symbols, parent_id, depth);
         }
     }
 
-    fn walk_children(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<String>) {
+    fn walk_children(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree(child, symbols, parent_id.clone());
+            self.walk_tree(child, symbols, parent_id.clone(), child_depth);
         }
     }
 

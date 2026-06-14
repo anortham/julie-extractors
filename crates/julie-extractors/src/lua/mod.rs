@@ -53,7 +53,7 @@ impl LuaExtractor {
         self.base.clear_pending_relationships();
 
         // Use core module to traverse and extract symbols
-        core::traverse_tree(&mut self.symbols, &mut self.base, tree.root_node(), None);
+        core::traverse_tree(&mut self.symbols, &mut self.base, tree.root_node(), None, 0);
 
         // Post-process to detect Lua class patterns
         classes::detect_lua_classes(&mut self.symbols);

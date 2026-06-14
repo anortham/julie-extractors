@@ -4,6 +4,7 @@ use crate::base::{
     normalize_annotations,
 };
 use crate::test_detection::is_test_symbol;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 pub fn extract_method(
@@ -397,12 +398,28 @@ fn extract_flat_consts(
 }
 
 fn collect_descendants_of_kind<'a>(node: Node<'a>, kind: &str, matches: &mut Vec<Node<'a>>) {
+    collect_descendants_of_kind_at_depth(node, kind, matches, 0);
+}
+
+fn collect_descendants_of_kind_at_depth<'a>(
+    node: Node<'a>,
+    kind: &str,
+    matches: &mut Vec<Node<'a>>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == kind {
             matches.push(child);
         }
-        collect_descendants_of_kind(child, kind, matches);
+        collect_descendants_of_kind_at_depth(child, kind, matches, child_depth);
     }
 }
 

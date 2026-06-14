@@ -9,6 +9,7 @@ mod relationships;
 pub(crate) mod signatures;
 
 use crate::base::{BaseExtractor, Identifier, NormalizedSpan, Relationship, Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
@@ -39,6 +40,7 @@ impl RegexExtractor {
             None,
             &referenced_capture_numbers,
             &mut capture_index,
+            0,
         );
         self.extract_missing_lookarounds_from_source(tree.root_node(), &mut symbols);
         self.extract_missing_unicode_properties_from_source(tree.root_node(), &mut symbols);
@@ -52,7 +54,12 @@ impl RegexExtractor {
         parent_id: Option<String>,
         referenced_capture_numbers: &HashSet<usize>,
         capture_index: &mut usize,
+        depth: u32,
     ) -> Option<String> {
+        if !should_visit_tree_depth(depth) {
+            return parent_id;
+        }
+
         let symbol = match node.kind() {
             // Top-level patterns: only extract if no parent (root-level)
             "pattern" | "regex" | "expression" => {
@@ -162,6 +169,9 @@ impl RegexExtractor {
         };
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return current_parent_id;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             self.visit_node(
@@ -170,6 +180,7 @@ impl RegexExtractor {
                 current_parent_id.clone(),
                 referenced_capture_numbers,
                 capture_index,
+                child_depth,
             );
         }
 

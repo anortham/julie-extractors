@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -106,7 +107,14 @@ pub fn collect_structural_facts(
     }
 
     let mut facts = Vec::new();
-    collect_node(tree.root_node(), language, file_path, patterns, &mut facts);
+    collect_node(
+        tree.root_node(),
+        language,
+        file_path,
+        patterns,
+        &mut facts,
+        0,
+    );
     attach_containing_symbols(&mut facts, symbols);
     sort_structural_facts(&mut facts);
     facts
@@ -145,16 +153,24 @@ fn collect_node(
     file_path: &str,
     patterns: &[StructuralPattern],
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     for pattern in patterns {
         if pattern.node_kinds.contains(&node.kind()) {
             facts.push(fact_for_node(file_path, language, node, *pattern));
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_node(child, language, file_path, patterns, facts);
+        collect_node(child, language, file_path, patterns, facts, child_depth);
     }
 }
 

@@ -2,6 +2,7 @@
 //! Provides utilities for navigating the PowerShell AST and extracting node information
 
 use crate::base::BaseExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::sync::LazyLock;
 use tree_sitter::Node;
@@ -341,7 +342,18 @@ pub(super) fn extract_property_type(base: &BaseExtractor, node: Node) -> Option<
 /// Recursively find all nodes of a given type
 #[allow(clippy::only_used_in_recursion)] // &self used in recursive calls
 pub(super) fn find_nodes_by_type<'a>(node: Node<'a>, node_type: &str) -> Vec<Node<'a>> {
+    find_nodes_by_type_at_depth(node, node_type, 0)
+}
+
+fn find_nodes_by_type_at_depth<'a>(node: Node<'a>, node_type: &str, depth: u32) -> Vec<Node<'a>> {
+    if !should_visit_tree_depth(depth) {
+        return Vec::new();
+    }
+
     let mut result = Vec::new();
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return result;
+    };
     let mut cursor = node.walk();
 
     // Check direct children first
@@ -350,7 +362,7 @@ pub(super) fn find_nodes_by_type<'a>(node: Node<'a>, node_type: &str) -> Vec<Nod
             result.push(child);
         }
         // Recursively search in children
-        result.extend(find_nodes_by_type(child, node_type));
+        result.extend(find_nodes_by_type_at_depth(child, node_type, child_depth));
     }
 
     result

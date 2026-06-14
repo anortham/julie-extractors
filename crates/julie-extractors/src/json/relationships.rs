@@ -19,6 +19,7 @@ use crate::base::{
     BaseExtractor, Relationship, RelationshipKind, StructuredPendingRelationship, Symbol,
     UnresolvedTarget,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -27,14 +28,22 @@ pub(super) fn extract_relationships_internal(
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "pair"
         && let Some((value_text, value_node)) = ref_pair_value(base, node)
     {
         handle_ref_pair(base, node, value_node, &value_text, symbols, relationships);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     for child in node.children(&mut node.walk()) {
-        extract_relationships_internal(base, child, symbols, relationships);
+        extract_relationships_internal(base, child, symbols, relationships, child_depth);
     }
 }
 

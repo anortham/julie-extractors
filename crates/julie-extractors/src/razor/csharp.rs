@@ -1,6 +1,7 @@
 /// C# symbol extraction within Razor code blocks
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::test_detection::is_test_symbol;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -25,6 +26,20 @@ impl super::RazorExtractor {
         symbols: &mut Vec<Symbol>,
         parent_id: Option<&str>,
     ) {
+        self.visit_csharp_node_at_depth(node, symbols, parent_id, 0);
+    }
+
+    fn visit_csharp_node_at_depth(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<&str>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let mut symbol = None;
         let current_parent_id = parent_id;
 
@@ -73,9 +88,12 @@ impl super::RazorExtractor {
         };
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_csharp_node(child, symbols, new_parent_id);
+            self.visit_csharp_node_at_depth(child, symbols, new_parent_id, child_depth);
         }
     }
 

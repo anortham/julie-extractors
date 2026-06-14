@@ -6,6 +6,7 @@ use super::super::base::{
     StructuredPendingRelationship, Symbol, SymbolKind, UnresolvedTarget,
 };
 use super::GDScriptExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
 /// Extract relationships from GDScript code
@@ -26,6 +27,7 @@ pub(super) fn extract_relationships(
         symbols,
         &scoped_index,
         &mut relationships,
+        0,
     );
 
     relationships
@@ -130,7 +132,12 @@ fn visit_node_for_relationships(
     symbols: &[Symbol],
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "call" | "call_expression" => {
             extract_call_relationships(extractor, node, symbols, scoped_index, relationships);
@@ -142,9 +149,19 @@ fn visit_node_for_relationships(
     }
 
     // Recursively visit all children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        visit_node_for_relationships(extractor, child, symbols, scoped_index, relationships);
+        visit_node_for_relationships(
+            extractor,
+            child,
+            symbols,
+            scoped_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 

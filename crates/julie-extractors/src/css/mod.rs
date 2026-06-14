@@ -16,6 +16,7 @@ mod relationships;
 mod rules;
 
 use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use animations::AnimationExtractor;
 use at_rules::AtRuleExtractor;
 use identifiers::IdentifierExtractor;
@@ -42,7 +43,7 @@ impl CSSExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
@@ -52,7 +53,12 @@ impl CSSExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let mut current_parent_id = parent_id;
 
         match node.kind() {
@@ -137,9 +143,12 @@ impl CSSExtractor {
         }
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, current_parent_id.clone());
+            self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 

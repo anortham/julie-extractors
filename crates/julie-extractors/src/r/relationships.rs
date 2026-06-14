@@ -5,6 +5,7 @@ use crate::base::{
     Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::r::RExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
 /// Extract all relationships from R code
@@ -21,6 +22,7 @@ pub(super) fn extract_relationships(
         symbols,
         &symbol_index,
         &mut relationships,
+        0,
     );
     extract_pipe_relationships(
         extractor,
@@ -28,8 +30,9 @@ pub(super) fn extract_relationships(
         symbols,
         &symbol_index,
         &mut relationships,
+        0,
     );
-    extract_member_access_relationships(extractor, tree.root_node(), symbols);
+    extract_member_access_relationships(extractor, tree.root_node(), symbols, 0);
     relationships
 }
 
@@ -40,7 +43,12 @@ fn extract_call_relationships(
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // R function calls are represented as "call" nodes
     if node.kind() == "call" {
         // The function being called is the first child
@@ -121,9 +129,19 @@ fn extract_call_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_call_relationships(extractor, child, symbols, symbol_index, relationships);
+        extract_call_relationships(
+            extractor,
+            child,
+            symbols,
+            symbol_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 
@@ -134,7 +152,12 @@ fn extract_pipe_relationships(
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Pipe operators in R are binary operators
     if node.kind() == "binary_operator"
         && let Some(operator) = node.child(1)
@@ -207,14 +230,33 @@ fn extract_pipe_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_pipe_relationships(extractor, child, symbols, symbol_index, relationships);
+        extract_pipe_relationships(
+            extractor,
+            child,
+            symbols,
+            symbol_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 
 /// Extract member access relationships ($ operator)
-fn extract_member_access_relationships(extractor: &mut RExtractor, node: Node, symbols: &[Symbol]) {
+fn extract_member_access_relationships(
+    extractor: &mut RExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // R uses extract_operator for $ and @
     if node.kind() == "extract_operator" {
         // The member being accessed is the third child (index 2)
@@ -252,9 +294,12 @@ fn extract_member_access_relationships(extractor: &mut RExtractor, node: Node, s
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_member_access_relationships(extractor, child, symbols);
+        extract_member_access_relationships(extractor, child, symbols, child_depth);
     }
 }
 

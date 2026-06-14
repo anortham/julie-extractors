@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Parser, Tree};
 
 use super::embedded_span::EmbeddedSpanOffset;
@@ -278,15 +279,31 @@ fn find_elixir_def_call<'tree>(
     source: &str,
     span: NormalizedSpan,
 ) -> Option<Node<'tree>> {
+    find_elixir_def_call_at_depth(node, source, span, 0)
+}
+
+fn find_elixir_def_call_at_depth<'tree>(
+    node: Node<'tree>,
+    source: &str,
+    span: NormalizedSpan,
+    depth: u32,
+) -> Option<Node<'tree>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     if !overlaps(node, span) {
         return None;
     }
     if contains(span, node) && call_target_matches(node, source, &["def", "defp"]) {
         return Some(node);
     }
+    let child_depth = child_tree_depth(depth);
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(found) = find_elixir_def_call(child, source, span) {
+        if let Some(child_depth) = child_depth
+            && let Some(found) = find_elixir_def_call_at_depth(child, source, span, child_depth)
+        {
             return Some(found);
         }
     }
@@ -337,13 +354,27 @@ fn child_by_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
 }
 
 fn count_container_parameters(container: Node<'_>, config: ComplexityLanguageConfig) -> u32 {
+    count_container_parameters_at_depth(container, config, 0)
+}
+
+fn count_container_parameters_at_depth(
+    container: Node<'_>,
+    config: ComplexityLanguageConfig,
+    depth: u32,
+) -> u32 {
+    if !should_visit_tree_depth(depth) {
+        return 0;
+    }
+
     let mut count = 0;
     let mut cursor = container.walk();
     for child in container.children(&mut cursor) {
         if config.parameter_node_kinds.contains(&child.kind()) {
             count += parameter_arity(child);
-        } else if config.parameter_group_node_kinds.contains(&child.kind()) {
-            count += count_container_parameters(child, config);
+        } else if config.parameter_group_node_kinds.contains(&child.kind())
+            && let Some(child_depth) = child_tree_depth(depth)
+        {
+            count += count_container_parameters_at_depth(child, config, child_depth);
         }
     }
     count
@@ -421,15 +452,32 @@ fn find_first_parameter_container<'tree>(
     span: NormalizedSpan,
     config: ComplexityLanguageConfig,
 ) -> Option<Node<'tree>> {
+    find_first_parameter_container_at_depth(node, span, config, 0)
+}
+
+fn find_first_parameter_container_at_depth<'tree>(
+    node: Node<'tree>,
+    span: NormalizedSpan,
+    config: ComplexityLanguageConfig,
+    depth: u32,
+) -> Option<Node<'tree>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     if !overlaps(node, span) {
         return None;
     }
     if contains(span, node) && config.parameter_container_node_kinds.contains(&node.kind()) {
         return Some(node);
     }
+    let child_depth = child_tree_depth(depth);
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(found) = find_first_parameter_container(child, span, config) {
+        if let Some(child_depth) = child_depth
+            && let Some(found) =
+                find_first_parameter_container_at_depth(child, span, config, child_depth)
+        {
             return Some(found);
         }
     }

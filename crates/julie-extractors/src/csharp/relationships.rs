@@ -10,6 +10,7 @@ use crate::csharp::member_type_relationships::{
     extract_field_type_relationships, extract_parameter_type_name,
     extract_property_type_relationships, find_containing_class,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Tree;
 
 /// Extract relationships from the tree
@@ -19,7 +20,7 @@ pub fn extract_relationships(
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
-    visit_relationships(extractor, tree.root_node(), symbols, &mut relationships);
+    visit_relationships(extractor, tree.root_node(), symbols, &mut relationships, 0);
     partial_classes::add_linkage_relationships(symbols, &mut relationships);
     relationships
 }
@@ -29,7 +30,12 @@ fn visit_relationships(
     node: tree_sitter::Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "class_declaration" | "struct_declaration" | "record_declaration" => {
             extract_inheritance_relationships(extractor, node, symbols, relationships);
@@ -62,9 +68,12 @@ fn visit_relationships(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        visit_relationships(extractor, child, symbols, relationships);
+        visit_relationships(extractor, child, symbols, relationships, child_depth);
     }
 }
 
@@ -357,12 +366,25 @@ fn find_first_type_identifier(
     base: &crate::base::BaseExtractor,
     node: tree_sitter::Node,
 ) -> Option<String> {
+    find_first_type_identifier_at_depth(base, node, 0)
+}
+
+fn find_first_type_identifier_at_depth(
+    base: &crate::base::BaseExtractor,
+    node: tree_sitter::Node,
+    depth: u32,
+) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
             "identifier" => return Some(base.get_node_text(&child)),
             "qualified_name" | "generic_name" | "predefined_type" => {
-                if let Some(name) = find_first_type_identifier(base, child) {
+                if let Some(name) = find_first_type_identifier_at_depth(base, child, child_depth) {
                     return Some(name);
                 }
                 return Some(base.get_node_text(&child));
@@ -516,10 +538,31 @@ fn unresolved_call_target(
     node: tree_sitter::Node,
     fallback_name: &str,
 ) -> UnresolvedTarget {
+    unresolved_call_target_at_depth(extractor, node, fallback_name, 0)
+}
+
+fn unresolved_call_target_at_depth(
+    extractor: &CSharpExtractor,
+    node: tree_sitter::Node,
+    fallback_name: &str,
+    depth: u32,
+) -> UnresolvedTarget {
+    if !should_visit_tree_depth(depth) {
+        return UnresolvedTarget::simple(fallback_name.to_string());
+    }
+
     if node.kind() == "invocation_expression" {
         let mut cursor = node.walk();
         if let Some(first_child) = node.children(&mut cursor).next() {
-            return unresolved_call_target(extractor, first_child, fallback_name);
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return UnresolvedTarget::simple(fallback_name.to_string());
+            };
+            return unresolved_call_target_at_depth(
+                extractor,
+                first_child,
+                fallback_name,
+                child_depth,
+            );
         }
     }
 

@@ -1,5 +1,6 @@
 use crate::base::{BaseExtractor, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget};
 use crate::lua::{LuaExtractor, helpers};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -7,14 +8,19 @@ use tree_sitter::{Node, Tree};
 pub(super) fn extract_relationships(extractor: &mut LuaExtractor, tree: &Tree, symbols: &[Symbol]) {
     let symbol_map = crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
 
-    traverse_tree_for_relationships(extractor, tree.root_node(), &symbol_map);
+    traverse_tree_for_relationships(extractor, tree.root_node(), &symbol_map, 0);
 }
 
 fn traverse_tree_for_relationships<'a>(
     extractor: &mut LuaExtractor,
     node: Node<'a>,
     symbol_map: &HashMap<String, &'a Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "function_call" {
         // `require(...)` is handled during symbol extraction as an import symbol.
         if let Some(identifier) = helpers::find_child_by_type(&node, "identifier") {
@@ -39,9 +45,12 @@ fn traverse_tree_for_relationships<'a>(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        traverse_tree_for_relationships(extractor, child, symbol_map);
+        traverse_tree_for_relationships(extractor, child, symbol_map, child_depth);
     }
 }
 

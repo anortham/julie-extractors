@@ -9,6 +9,7 @@ use super::helpers;
 use super::test_calls;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
 use crate::test_detection::is_test_symbol;
+use crate::tree_traversal::child_tree_depth;
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -23,10 +24,11 @@ pub(super) fn dispatch_call(
     node: &Node,
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
+    depth: u32,
 ) -> Option<(Symbol, bool)> {
     let target_name = helpers::extract_call_target_name(&extractor.base, node)?;
     match target_name.as_str() {
-        "defmodule" => extract_defmodule(extractor, node, symbols, parent_id),
+        "defmodule" => extract_defmodule(extractor, node, symbols, parent_id, depth),
         "def" => extract_def(extractor, node, parent_id, Visibility::Public),
         "defp" => extract_def(extractor, node, parent_id, Visibility::Private),
         "defmacro" => extract_defmacro(extractor, node, parent_id, Visibility::Public),
@@ -38,8 +40,8 @@ pub(super) fn dispatch_call(
             definition_forms::extract_defguard(extractor, node, parent_id, Visibility::Private)
         }
         "defdelegate" => definition_forms::extract_defdelegate(extractor, node, parent_id),
-        "defprotocol" => extract_defprotocol(extractor, node, symbols, parent_id),
-        "defimpl" => extract_defimpl(extractor, node, symbols, parent_id),
+        "defprotocol" => extract_defprotocol(extractor, node, symbols, parent_id, depth),
+        "defimpl" => extract_defimpl(extractor, node, symbols, parent_id, depth),
         "defstruct" => extract_defstruct(extractor, node, symbols, parent_id),
         "defexception" => {
             definition_forms::extract_defexception(extractor, node, symbols, parent_id)
@@ -50,7 +52,7 @@ pub(super) fn dispatch_call(
         "alias" => extract_alias_call(extractor, node, parent_id),
         "require" => extract_require_call(extractor, node, parent_id),
         "test" => test_calls::extract_test(extractor, node, parent_id),
-        "describe" => test_calls::extract_describe(extractor, node, symbols, parent_id),
+        "describe" => test_calls::extract_describe(extractor, node, symbols, parent_id, depth),
         "setup" | "setup_all" => {
             test_calls::extract_setup(extractor, node, &target_name, parent_id)
         }
@@ -67,6 +69,7 @@ fn extract_defmodule(
     node: &Node,
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
+    depth: u32,
 ) -> Option<(Symbol, bool)> {
     let module_name = helpers::extract_module_name(&extractor.base, node)?;
 
@@ -97,8 +100,10 @@ fn extract_defmodule(
     extractor.module_stack.push(module_name);
 
     // Visit do_block children to extract nested definitions
-    if let Some(do_block) = helpers::extract_do_block(node) {
-        extractor.traverse_children(&do_block, symbols, Some(&sym_id));
+    if let Some(do_block) = helpers::extract_do_block(node)
+        && let Some(child_depth) = child_tree_depth(depth)
+    {
+        extractor.traverse_children(&do_block, symbols, Some(&sym_id), child_depth);
     }
 
     extractor.module_stack.pop();
@@ -221,6 +226,7 @@ fn extract_defprotocol(
     node: &Node,
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
+    depth: u32,
 ) -> Option<(Symbol, bool)> {
     let protocol_name = helpers::extract_module_name(&extractor.base, node)?;
 
@@ -245,8 +251,10 @@ fn extract_defprotocol(
 
     extractor.module_stack.push(protocol_name);
 
-    if let Some(do_block) = helpers::extract_do_block(node) {
-        extractor.traverse_children(&do_block, symbols, Some(&sym_id));
+    if let Some(do_block) = helpers::extract_do_block(node)
+        && let Some(child_depth) = child_tree_depth(depth)
+    {
+        extractor.traverse_children(&do_block, symbols, Some(&sym_id), child_depth);
     }
 
     extractor.module_stack.pop();
@@ -263,6 +271,7 @@ fn extract_defimpl(
     node: &Node,
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
+    depth: u32,
 ) -> Option<(Symbol, bool)> {
     let protocol_name = helpers::extract_impl_protocol_name(&extractor.base, node)?;
     let for_type = helpers::extract_keyword_value(&extractor.base, node, "for").unwrap_or_default();
@@ -305,8 +314,10 @@ fn extract_defimpl(
 
     extractor.module_stack.push(impl_name);
 
-    if let Some(do_block) = helpers::extract_do_block(node) {
-        extractor.traverse_children(&do_block, symbols, Some(&sym_id));
+    if let Some(do_block) = helpers::extract_do_block(node)
+        && let Some(child_depth) = child_tree_depth(depth)
+    {
+        extractor.traverse_children(&do_block, symbols, Some(&sym_id), child_depth);
     }
 
     extractor.module_stack.pop();

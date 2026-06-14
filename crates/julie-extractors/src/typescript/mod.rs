@@ -31,6 +31,7 @@ use crate::ecmascript_imports::{
     ImportSourceKind, import_source_from_symbol, import_source_kind,
     is_ecmascript_global_direct_target,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::{HashMap, HashSet};
 use tree_sitter::Tree;
 
@@ -80,7 +81,7 @@ impl TypeScriptExtractor {
         let symbol_map: std::collections::HashMap<String, &Symbol> =
             crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
 
-        self.walk_for_pending_calls(tree.root_node(), symbols, &symbol_map, None);
+        self.walk_for_pending_calls(tree.root_node(), symbols, &symbol_map, None, 0);
     }
 
     /// Walk the tree looking for function calls that reference imported symbols
@@ -90,7 +91,12 @@ impl TypeScriptExtractor {
         symbols: &'a [Symbol],
         symbol_map: &std::collections::HashMap<String, &'a Symbol>,
         current_caller: Option<&'a Symbol>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let current_caller = self
             .caller_for_pending_scope_node(node, symbols, symbol_map)
             .or(current_caller);
@@ -141,9 +147,18 @@ impl TypeScriptExtractor {
         }
 
         // Recursively process children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         for index in 0..node.named_child_count() {
             if let Some(child) = node.named_child(index as u32) {
-                self.walk_for_pending_calls(child, symbols, symbol_map, current_caller);
+                self.walk_for_pending_calls(
+                    child,
+                    symbols,
+                    symbol_map,
+                    current_caller,
+                    child_depth,
+                );
             }
         }
     }

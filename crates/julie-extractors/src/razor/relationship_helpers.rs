@@ -1,5 +1,6 @@
 /// Helper functions for relationship extraction (identifier/invocation resolution, symbol lookup)
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -271,14 +272,23 @@ impl super::RazorExtractor {
     }
 
     fn extract_first_string_literal(&self, node: Node) -> Option<String> {
+        self.extract_first_string_literal_at_depth(node, 0)
+    }
+
+    fn extract_first_string_literal_at_depth(&self, node: Node, depth: u32) -> Option<String> {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+
         if node.kind() == "string_literal" {
             let text = self.base.get_node_text(&node);
             return Some(trim_quotes(&text).to_string());
         }
 
+        let child_depth = child_tree_depth(depth)?;
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            if let Some(value) = self.extract_first_string_literal(child) {
+            if let Some(value) = self.extract_first_string_literal_at_depth(child, child_depth) {
                 return Some(value);
             }
         }

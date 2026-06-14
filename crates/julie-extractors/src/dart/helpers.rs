@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 pub(super) use crate::base::find_child_by_type;
 use crate::base::{AnnotationMarker, normalize_annotations};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Get text content of a node - THREAD-SAFE PER-THREAD CACHE
 /// Uses thread-local storage to avoid race conditions in parallel tests
@@ -40,11 +41,25 @@ pub(super) fn traverse_tree<F>(node: Node, callback: &mut F)
 where
     F: FnMut(Node),
 {
+    traverse_tree_with_depth(node, callback, 0);
+}
+
+fn traverse_tree_with_depth<F>(node: Node, callback: &mut F, depth: u32)
+where
+    F: FnMut(Node),
+{
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     callback(node);
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        traverse_tree(child, callback);
+        traverse_tree_with_depth(child, callback, child_depth);
     }
 }
 
@@ -155,6 +170,14 @@ fn check_node_for_override_annotation(node: &Node) -> bool {
 }
 
 fn find_override_annotation_in_subtree(node: &Node) -> bool {
+    find_override_annotation_in_subtree_at_depth(node, 0)
+}
+
+fn find_override_annotation_in_subtree_at_depth(node: &Node, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+
     // Check current node
     let node_text = get_node_text(node);
     if is_annotation_node(node.kind()) && node_text.contains("@override") {
@@ -162,9 +185,12 @@ fn find_override_annotation_in_subtree(node: &Node) -> bool {
     }
 
     // Check children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if find_override_annotation_in_subtree(&child) {
+        if find_override_annotation_in_subtree_at_depth(&child, child_depth) {
             return true;
         }
     }
@@ -234,6 +260,21 @@ fn annotation_parent_should_be_used(kind: &str) -> bool {
 }
 
 fn collect_annotations_from_subtree(node: &Node, annotations: &mut Vec<String>) {
+    collect_annotations_from_subtree_at_depth(node, annotations, 0);
+}
+
+fn collect_annotations_from_subtree_at_depth(
+    node: &Node,
+    annotations: &mut Vec<String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
@@ -244,7 +285,9 @@ fn collect_annotations_from_subtree(node: &Node, annotations: &mut Vec<String>) 
                     annotations.push(name);
                 }
             }
-            "metadata" | "metadata_star" => collect_annotations_from_subtree(&child, annotations),
+            "metadata" | "metadata_star" => {
+                collect_annotations_from_subtree_at_depth(&child, annotations, child_depth);
+            }
             _ => {}
         }
     }

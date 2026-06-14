@@ -6,6 +6,7 @@
 
 use super::helpers::find_child_by_type;
 use crate::base::{Symbol, SymbolKind, UnresolvedTarget};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -15,7 +16,12 @@ impl super::DartExtractor {
         &mut self,
         node: Node,
         symbol_map: &HashMap<String, &Symbol>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if node.kind() == "identifier" {
             self.check_identifier_call(node, symbol_map);
         }
@@ -24,9 +30,12 @@ impl super::DartExtractor {
             self.check_member_access_call(&node, symbol_map);
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_for_pending_calls(child, symbol_map);
+            self.walk_for_pending_calls(child, symbol_map, child_depth);
         }
     }
 

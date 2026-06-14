@@ -17,6 +17,7 @@
 mod relationships;
 
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Relationship, Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::Path;
@@ -38,7 +39,7 @@ impl YamlExtractor {
 
     pub fn extract_symbols(&mut self, tree: &tree_sitter::Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None);
+        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
@@ -48,7 +49,12 @@ impl YamlExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let symbol = self.extract_symbol_from_node(node, parent_id.as_deref(), symbols);
         let mut current_parent_id = parent_id;
 
@@ -58,9 +64,12 @@ impl YamlExtractor {
         }
 
         // Recursively process child nodes
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone());
+            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 
@@ -267,13 +276,29 @@ impl YamlExtractor {
 
     /// Walk the tree looking for alias nodes (*name) and create VariableRef identifiers
     fn walk_tree_for_aliases(&mut self, node: tree_sitter::Node, symbols: &[Symbol]) {
+        self.walk_tree_for_aliases_at_depth(node, symbols, 0);
+    }
+
+    fn walk_tree_for_aliases_at_depth(
+        &mut self,
+        node: tree_sitter::Node,
+        symbols: &[Symbol],
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if node.kind() == "alias" {
             self.extract_alias_identifier(node, symbols);
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_aliases(child, symbols);
+            self.walk_tree_for_aliases_at_depth(child, symbols, child_depth);
         }
     }
 

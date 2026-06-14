@@ -5,6 +5,7 @@
 
 use crate::base::{Identifier, IdentifierKind, Symbol};
 use crate::c::CExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 
 /// Extract all identifiers from the syntax tree
@@ -17,7 +18,7 @@ pub(super) fn extract_identifiers(
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map);
+    walk_tree_for_identifiers(extractor, tree.root_node(), &symbol_map, 0);
 
     // Return the collected identifiers
     extractor.base.identifiers.clone()
@@ -28,14 +29,22 @@ fn walk_tree_for_identifiers(
     extractor: &mut CExtractor,
     node: tree_sitter::Node,
     symbol_map: &HashMap<String, &Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Extract identifier from this node if applicable
     extract_identifier_from_node(extractor, node, symbol_map);
 
     // Recursively walk children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(extractor, child, symbol_map);
+        walk_tree_for_identifiers(extractor, child, symbol_map, child_depth);
     }
 }
 

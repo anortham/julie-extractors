@@ -5,13 +5,14 @@
 
 use super::{classes, functions, imports_exports, interfaces};
 use crate::base::{Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
 use tree_sitter::{Node, Tree};
 
 /// Extract all symbols from the syntax tree
 pub(super) fn extract_symbols(extractor: &mut TypeScriptExtractor, tree: &Tree) -> Vec<Symbol> {
     let mut symbols = Vec::new();
-    visit_node(extractor, tree.root_node(), &mut symbols, None);
+    visit_node(extractor, tree.root_node(), &mut symbols, None, 0);
     symbols
 }
 
@@ -28,7 +29,12 @@ fn visit_node(
     node: Node,
     symbols: &mut Vec<Symbol>,
     parent_id: Option<String>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     let mut symbol: Option<Symbol> = None;
     let mut next_parent_id = parent_id.clone();
 
@@ -162,9 +168,18 @@ fn visit_node(
     }
 
     // Recursively visit children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        visit_node(extractor, child, symbols, next_parent_id.clone());
+        visit_node(
+            extractor,
+            child,
+            symbols,
+            next_parent_id.clone(),
+            child_depth,
+        );
     }
 }
 

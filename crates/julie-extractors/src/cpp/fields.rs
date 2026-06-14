@@ -2,6 +2,7 @@
 //! Handles class/struct member fields and multi-declarator statements like `int x, y, z;`
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 use super::helpers;
@@ -150,14 +151,23 @@ fn extract_fields_without_declarators(
 /// Extract field name from various declarator types
 /// Handles: field_declarator, pointer_declarator, init_declarator, etc.
 fn extract_field_name_from_declarator(declarator: Node) -> Option<Node> {
+    extract_field_name_from_declarator_at_depth(declarator, 0)
+}
+
+fn extract_field_name_from_declarator_at_depth(declarator: Node, depth: u32) -> Option<Node> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     // For pointer_declarator: need to recursively find field_identifier
     if declarator.kind() == "pointer_declarator" {
+        let child_depth = child_tree_depth(depth)?;
         return declarator.children(&mut declarator.walk()).find_map(|c| {
             if c.kind() == "field_identifier" || c.kind() == "identifier" {
                 Some(c)
             } else if matches!(c.kind(), "pointer_declarator" | "field_declarator") {
                 // Recursively search nested declarators (e.g., double**)
-                extract_field_name_from_declarator(c)
+                extract_field_name_from_declarator_at_depth(c, child_depth)
             } else {
                 None
             }

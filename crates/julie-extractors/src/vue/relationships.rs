@@ -1,6 +1,7 @@
 use super::parsing::{VueSection, parse_vue_sfc};
 use crate::base::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -111,6 +112,7 @@ pub(super) fn extract_structured_pending_relationships(
                     &imported_modules,
                     &mut pending,
                     &mut seen_script,
+                    0,
                 );
             }
             _ => {}
@@ -171,7 +173,12 @@ fn visit_script_pending_node(
     imports: &HashMap<String, String>,
     pending: &mut Vec<StructuredPendingRelationship>,
     seen: &mut HashSet<(String, u32)>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression"
         && let Some(function_node) = node.child_by_field_name("function")
         && let Some(name) = call_name(function_node, script_content)
@@ -195,6 +202,9 @@ fn visit_script_pending_node(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         visit_script_pending_node(
@@ -207,6 +217,7 @@ fn visit_script_pending_node(
             imports,
             pending,
             seen,
+            child_depth,
         );
     }
 }
@@ -231,6 +242,7 @@ fn collect_script_relationships(
         local_symbols,
         relationships,
         seen,
+        0,
     );
 }
 
@@ -244,7 +256,12 @@ fn visit_script_node(
     local_symbols: &HashMap<String, &Symbol>,
     relationships: &mut Vec<Relationship>,
     seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression"
         && let Some(function_node) = node.child_by_field_name("function")
         && let Some(name) = call_name(function_node, script_content)
@@ -262,6 +279,9 @@ fn visit_script_node(
         );
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         visit_script_node(
@@ -273,6 +293,7 @@ fn visit_script_node(
             local_symbols,
             relationships,
             seen,
+            child_depth,
         );
     }
 }

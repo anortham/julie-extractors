@@ -4,6 +4,7 @@
 //! C constructs, and navigating the syntax tree.
 
 use crate::base::BaseExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Extract standard C attributes that decorate a declaration.
 pub(super) fn extract_attributes(base: &BaseExtractor, node: tree_sitter::Node) -> Vec<String> {
@@ -179,13 +180,24 @@ pub(super) fn find_variable_declarators<'a>(
 pub(super) fn find_deepest_identifier<'a>(
     node: tree_sitter::Node<'a>,
 ) -> Option<tree_sitter::Node<'a>> {
+    find_deepest_identifier_at_depth(node, 0)
+}
+
+fn find_deepest_identifier_at_depth<'a>(
+    node: tree_sitter::Node<'a>,
+    depth: u32,
+) -> Option<tree_sitter::Node<'a>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == "identifier" {
         return Some(node);
     }
 
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(result) = find_deepest_identifier(child) {
+        if let Some(result) = find_deepest_identifier_at_depth(child, child_depth) {
             return Some(result);
         }
     }
@@ -198,13 +210,25 @@ pub(super) fn find_node_by_type<'a>(
     node: tree_sitter::Node<'a>,
     node_type: &str,
 ) -> Option<tree_sitter::Node<'a>> {
+    find_node_by_type_at_depth(node, node_type, 0)
+}
+
+fn find_node_by_type_at_depth<'a>(
+    node: tree_sitter::Node<'a>,
+    node_type: &str,
+    depth: u32,
+) -> Option<tree_sitter::Node<'a>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == node_type {
         return Some(node);
     }
 
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(result) = find_node_by_type(child, node_type) {
+        if let Some(result) = find_node_by_type_at_depth(child, node_type, child_depth) {
             return Some(result);
         }
     }
@@ -340,15 +364,31 @@ pub(super) fn collect_all_identifiers(
     node: tree_sitter::Node,
     identifiers: &mut Vec<String>,
 ) {
+    collect_all_identifiers_at_depth(base, node, identifiers, 0);
+}
+
+fn collect_all_identifiers_at_depth(
+    base: &BaseExtractor,
+    node: tree_sitter::Node,
+    identifiers: &mut Vec<String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "identifier" | "type_identifier" | "primitive_type" => {
             let text = base.get_node_text(&node);
             identifiers.push(text);
         }
         _ => {
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                collect_all_identifiers(base, child, identifiers);
+                collect_all_identifiers_at_depth(base, child, identifiers, child_depth);
             }
         }
     }
@@ -356,13 +396,23 @@ pub(super) fn collect_all_identifiers(
 
 /// Check if a tree contains a struct specifier
 pub(super) fn contains_struct(node: tree_sitter::Node) -> bool {
+    contains_struct_at_depth(node, 0)
+}
+
+fn contains_struct_at_depth(node: tree_sitter::Node, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
     if node.kind() == "struct_specifier" {
         return true;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if contains_struct(child) {
+        if contains_struct_at_depth(child, child_depth) {
             return true;
         }
     }
@@ -372,13 +422,23 @@ pub(super) fn contains_struct(node: tree_sitter::Node) -> bool {
 
 /// Check if a tree contains a union specifier
 pub(super) fn contains_union(node: tree_sitter::Node) -> bool {
+    contains_union_at_depth(node, 0)
+}
+
+fn contains_union_at_depth(node: tree_sitter::Node, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
     if node.kind() == "union_specifier" {
         return true;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if contains_union(child) {
+        if contains_union_at_depth(child, child_depth) {
             return true;
         }
     }
@@ -465,12 +525,24 @@ pub(super) fn find_field_identifier_name(
     base: &BaseExtractor,
     node: tree_sitter::Node,
 ) -> Option<String> {
+    find_field_identifier_name_at_depth(base, node, 0)
+}
+
+fn find_field_identifier_name_at_depth(
+    base: &BaseExtractor,
+    node: tree_sitter::Node,
+    depth: u32,
+) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == "field_identifier" {
         return Some(base.get_node_text(&node));
     }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(name) = find_field_identifier_name(base, child) {
+        if let Some(name) = find_field_identifier_name_at_depth(base, child, child_depth) {
             return Some(name);
         }
     }

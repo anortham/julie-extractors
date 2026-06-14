@@ -1,6 +1,7 @@
 use super::helpers::{
     extract_method_name_from_call, extract_singleton_method_target, find_includes_and_extends,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 /// Signature building for Ruby symbols
 /// Handles construction of method signatures, class signatures, and module signatures
 use tree_sitter::Node;
@@ -109,6 +110,22 @@ fn extract_return_statements_from_body(
     signature: &mut String,
     base_get_text: impl Fn(&Node) -> String + Copy,
 ) {
+    extract_return_statements_from_body_at_depth(body_node, signature, base_get_text, 0);
+}
+
+fn extract_return_statements_from_body_at_depth(
+    body_node: &Node,
+    signature: &mut String,
+    base_get_text: impl Fn(&Node) -> String + Copy,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = body_node.walk();
     for child in body_node.children(&mut cursor) {
         if child.kind() == "return" {
@@ -118,7 +135,12 @@ fn extract_return_statements_from_body(
             }
         } else {
             // Recursively search for return statements in nested blocks
-            extract_return_statements_from_body(&child, signature, base_get_text);
+            extract_return_statements_from_body_at_depth(
+                &child,
+                signature,
+                base_get_text,
+                child_depth,
+            );
         }
     }
 }

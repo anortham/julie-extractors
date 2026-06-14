@@ -1,6 +1,7 @@
 //! Identifier extraction for GDScript (function calls, member access, type annotations, etc.)
 
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol, extract_type_arguments};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -11,7 +12,7 @@ pub(super) fn extract_identifiers(
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map);
+    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
     base.identifiers.clone()
 }
 
@@ -20,12 +21,20 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     symbol_map: &HashMap<String, &Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     extract_identifier_from_node(base, node, symbol_map);
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map);
+        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
     }
 }
 
@@ -246,6 +255,14 @@ fn decompose_gdscript_type_arg<'a>(
 }
 
 fn rightmost_identifier_descendant(node: Node) -> Option<Node> {
+    rightmost_identifier_descendant_at_depth(node, 0)
+}
+
+fn rightmost_identifier_descendant_at_depth(node: Node, depth: u32) -> Option<Node> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     if node.kind() == "attribute_call" {
         return None;
     }
@@ -254,10 +271,11 @@ fn rightmost_identifier_descendant(node: Node) -> Option<Node> {
         return Some(node);
     }
 
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     let children: Vec<Node> = node.children(&mut cursor).collect();
     for child in children.into_iter().rev() {
-        if let Some(found) = rightmost_identifier_descendant(child) {
+        if let Some(found) = rightmost_identifier_descendant_at_depth(child, child_depth) {
             return Some(found);
         }
     }

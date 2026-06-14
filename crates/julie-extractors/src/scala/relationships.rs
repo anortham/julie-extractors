@@ -7,6 +7,7 @@ use crate::base::{
     Symbol, SymbolKind, UnresolvedTarget,
 };
 use crate::scala::ScalaExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -149,10 +150,18 @@ pub(super) fn extract_call_relationships(
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
     let symbol_index = ScopedSymbolIndex::new(symbols);
 
-    walk_tree_for_calls(extractor, node, &symbol_index, symbols, relationships);
+    walk_tree_for_calls(
+        extractor,
+        node,
+        &symbol_index,
+        symbols,
+        relationships,
+        depth,
+    );
 }
 
 fn walk_tree_for_calls(
@@ -161,14 +170,29 @@ fn walk_tree_for_calls(
     symbol_index: &ScopedSymbolIndex<'_>,
     all_symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression" {
         extract_single_call(extractor, node, symbol_index, all_symbols, relationships);
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_calls(extractor, child, symbol_index, all_symbols, relationships);
+        walk_tree_for_calls(
+            extractor,
+            child,
+            symbol_index,
+            all_symbols,
+            relationships,
+            child_depth,
+        );
     }
 }
 
@@ -314,12 +338,28 @@ fn unresolved_call_target(
 }
 
 fn collect_identifiers(extractor: &ScalaExtractor, node: Node, identifiers: &mut Vec<String>) {
+    collect_identifiers_at_depth(extractor, node, identifiers, 0);
+}
+
+fn collect_identifiers_at_depth(
+    extractor: &ScalaExtractor,
+    node: Node,
+    identifiers: &mut Vec<String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "identifier" {
         identifiers.push(extractor.base().get_node_text(&node));
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_identifiers(extractor, child, identifiers);
+        collect_identifiers_at_depth(extractor, child, identifiers, child_depth);
     }
 }

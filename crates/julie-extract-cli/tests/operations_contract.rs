@@ -7,6 +7,31 @@ use serde_json::{Value, json};
 use tempfile::TempDir;
 
 const CAPABILITIES_JSON: &str = include_str!("../../../fixtures/extraction/capabilities.json");
+const FILE_ATTRIBUTED_ROW_DOMAINS: &[&str] = &[
+    "files",
+    "symbols",
+    "symbol_annotations",
+    "identifiers",
+    "relationships",
+    "pending_relationships",
+    "type_facts",
+    "type_argument_usages",
+    "type_arguments",
+    "literals",
+    "source_regions",
+    "structural_facts",
+    "complexity_metrics",
+    "parse_diagnostics",
+];
+const NON_FILE_ATTRIBUTED_ROW_DOMAINS: &[&str] = &[
+    "artifact_metadata",
+    "parser_inventory",
+    "language_capabilities",
+    "language_capability_fixtures",
+    "language_capability_gaps",
+    "extraction_revisions",
+    "revision_file_changes",
+];
 
 fn julie_extract(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_julie-extract"))
@@ -135,6 +160,8 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         report["counts"]["totals"]["language_capability_gaps"],
         language_capability_gaps
     );
+    assert_eq!(report["counts"]["file_rows_truncated"], false);
+    assert_eq!(report["counts"]["file_rows"].as_array().unwrap().len(), 2);
     assert_eq!(report["revision"]["created_revision_id"], 1);
 
     assert_eq!(table_count(&db, "files"), 2);
@@ -1043,6 +1070,65 @@ fn info_is_read_only_for_artifact_metadata_and_revisions() {
 }
 
 #[test]
+fn info_json_reports_per_file_extraction_row_attribution() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+    let before = artifact_fingerprint(&db);
+
+    let output = julie_extract(&["info", "--db", path_str(&db), "--json"]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    let file_rows = report["counts"]["file_rows"]
+        .as_array()
+        .expect("info reports should include file row attribution");
+    assert_eq!(report["counts"]["file_rows_truncated"], false);
+    assert_eq!(file_rows.len(), 2);
+    assert_eq!(file_rows[0]["path"], "src/a.rs");
+    assert_eq!(file_rows[0]["language"], "rust");
+    assert_eq!(file_rows[0]["status"], "indexed");
+    assert!(
+        file_rows[0]["total_rows"].as_i64().unwrap() > file_rows[1]["total_rows"].as_i64().unwrap(),
+        "file_rows should be sorted by descending artifact row footprint: {file_rows:#?}"
+    );
+    assert_eq!(file_rows[1]["path"], "src/b.rs");
+
+    let attributed_total: i64 = file_rows
+        .iter()
+        .map(|entry| entry["total_rows"].as_i64().unwrap())
+        .sum();
+    let domain_total: i64 = FILE_ATTRIBUTED_ROW_DOMAINS
+        .iter()
+        .map(|domain| report["counts"]["totals"][*domain].as_i64().unwrap())
+        .sum();
+    assert_eq!(attributed_total, domain_total);
+
+    for domain in FILE_ATTRIBUTED_ROW_DOMAINS {
+        assert_eq!(
+            sum_report_file_rows(file_rows, domain),
+            report["counts"]["totals"][*domain].as_i64().unwrap(),
+            "per-file {domain} rows should sum to artifact totals"
+        );
+    }
+    for domain in NON_FILE_ATTRIBUTED_ROW_DOMAINS {
+        assert_eq!(
+            sum_report_file_rows(file_rows, domain),
+            0,
+            "{domain} rows are artifact/revision-level and should not be attributed to files"
+        );
+    }
+    assert_eq!(artifact_fingerprint(&db), before);
+}
+
+#[test]
 fn info_reports_missing_noncritical_metadata_as_warning() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -1720,6 +1806,13 @@ fn latest_revision_counts(db: &Path) -> Value {
         )
         .unwrap();
     serde_json::from_str(&counts_json).unwrap()
+}
+
+fn sum_report_file_rows(file_rows: &[Value], domain: &str) -> i64 {
+    file_rows
+        .iter()
+        .map(|entry| entry["rows"][domain].as_i64().unwrap())
+        .sum()
 }
 
 fn assert_sha256_fingerprint(value: &str) {

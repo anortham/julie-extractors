@@ -2,6 +2,7 @@ use super::helpers::{extract_method_name_from_call, is_assignment_target};
 /// Identifier extraction for Ruby symbols
 /// Handles LSP-quality find_references functionality
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -16,7 +17,7 @@ pub(super) fn extract_identifiers(
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map);
+    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
 
     // Return the collected identifiers
     base.identifiers.clone()
@@ -27,14 +28,22 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     symbol_map: &HashMap<String, &Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Extract identifier from this node if applicable
     extract_identifier_from_node(base, node, symbol_map);
 
     // Recursively walk children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map);
+        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
     }
 }
 

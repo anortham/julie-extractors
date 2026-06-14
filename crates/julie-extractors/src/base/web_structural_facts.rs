@@ -6,6 +6,7 @@ use tree_sitter::{Node, Tree};
 use super::span::NormalizedSpan;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol, stable_location_id};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const CSS_SELECTOR_RULE_PATTERN_ID: &str = "css.selector_rule.v1";
 const CSS_CUSTOM_PROPERTY_PATTERN_ID: &str = "css.custom_property.v1";
@@ -77,7 +78,7 @@ fn collect_css_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_css_node(tree.root_node(), file_path, content, &mut facts);
+    collect_css_node(tree.root_node(), file_path, content, &mut facts, 0);
     facts
 }
 
@@ -86,7 +87,12 @@ fn collect_css_node(
     file_path: &str,
     content: &str,
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "rule_set" => {
             if let Some(fact) = css_selector_rule_fact(file_path, content, node) {
@@ -111,9 +117,12 @@ fn collect_css_node(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_css_node(child, file_path, content, facts);
+        collect_css_node(child, file_path, content, facts, child_depth);
     }
 }
 
@@ -223,7 +232,7 @@ fn collect_html_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut forms_by_id = std::collections::HashMap::new();
-    register_html_forms(tree.root_node(), content, &mut forms_by_id);
+    register_html_forms(tree.root_node(), content, &mut forms_by_id, 0);
 
     let mut facts = Vec::new();
     let mut form_stack = Vec::new();
@@ -234,6 +243,7 @@ fn collect_html_structural_facts(
         &forms_by_id,
         &mut form_stack,
         &mut facts,
+        0,
     );
     facts
 }
@@ -242,7 +252,12 @@ fn register_html_forms(
     node: Node<'_>,
     content: &str,
     forms_by_id: &mut std::collections::HashMap<String, HtmlFormContext>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "element" && html_tag_name(content, node).as_deref() == Some("form") {
         let attributes = html_element_attributes(content, node);
         let context = html_form_context(&attributes);
@@ -251,9 +266,12 @@ fn register_html_forms(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        register_html_forms(child, content, forms_by_id);
+        register_html_forms(child, content, forms_by_id, child_depth);
     }
 }
 
@@ -264,7 +282,12 @@ fn collect_html_node(
     forms_by_id: &std::collections::HashMap<String, HtmlFormContext>,
     form_stack: &mut Vec<HtmlFormContext>,
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "script_element" => {
             let attributes = html_element_attributes(content, node);
@@ -304,16 +327,19 @@ fn collect_html_node(
                             facts.push(fact);
                         }
                         form_stack.push(context);
-                        let mut cursor = node.walk();
-                        for child in node.children(&mut cursor) {
-                            collect_html_node(
-                                child,
-                                file_path,
-                                content,
-                                forms_by_id,
-                                form_stack,
-                                facts,
-                            );
+                        if let Some(child_depth) = child_tree_depth(depth) {
+                            let mut cursor = node.walk();
+                            for child in node.children(&mut cursor) {
+                                collect_html_node(
+                                    child,
+                                    file_path,
+                                    content,
+                                    forms_by_id,
+                                    form_stack,
+                                    facts,
+                                    child_depth,
+                                );
+                            }
                         }
                         form_stack.pop();
                         return;
@@ -338,9 +364,20 @@ fn collect_html_node(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_html_node(child, file_path, content, forms_by_id, form_stack, facts);
+        collect_html_node(
+            child,
+            file_path,
+            content,
+            forms_by_id,
+            form_stack,
+            facts,
+            child_depth,
+        );
     }
 }
 
@@ -438,11 +475,15 @@ fn html_is_static_path(value: &str) -> bool {
 
 fn count_html_form_controls(node: Node<'_>, content: &str) -> usize {
     let mut count = 0;
-    count_html_form_controls_node(node, content, &mut count);
+    count_html_form_controls_node(node, content, &mut count, 0);
     count
 }
 
-fn count_html_form_controls_node(node: Node<'_>, content: &str, count: &mut usize) {
+fn count_html_form_controls_node(node: Node<'_>, content: &str, count: &mut usize, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "element"
         && let Some(tag_name) = html_tag_name(content, node)
         && matches!(
@@ -453,9 +494,12 @@ fn count_html_form_controls_node(node: Node<'_>, content: &str, count: &mut usiz
         *count += 1;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        count_html_form_controls_node(child, content, count);
+        count_html_form_controls_node(child, content, count, child_depth);
     }
 }
 
@@ -827,10 +871,20 @@ fn css_selector_kind(selector: &str) -> &'static str {
 }
 
 fn count_css_declarations(node: Node<'_>) -> usize {
+    count_css_declarations_at_depth(node, 0)
+}
+
+fn count_css_declarations_at_depth(node: Node<'_>, depth: u32) -> usize {
+    if !should_visit_tree_depth(depth) {
+        return 0;
+    }
     let mut count = usize::from(node.kind() == "declaration");
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return count;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        count += count_css_declarations(child);
+        count += count_css_declarations_at_depth(child, child_depth);
     }
     count
 }

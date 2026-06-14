@@ -8,6 +8,7 @@ use crate::base::{
     UnresolvedTarget,
 };
 use crate::c::CExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 
 use super::helpers;
@@ -20,7 +21,7 @@ pub(super) fn extract_relationships_from_node(
     relationships: &mut Vec<Relationship>,
 ) {
     let scoped_index = ScopedSymbolIndex::new(symbols);
-    walk_relationships(extractor, node, symbols, &scoped_index, relationships);
+    walk_relationships(extractor, node, symbols, &scoped_index, relationships, 0);
 }
 
 fn walk_relationships(
@@ -29,7 +30,12 @@ fn walk_relationships(
     symbols: &[Symbol],
     scoped_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "call_expression" => {
             extract_function_call_relationships(
@@ -49,9 +55,19 @@ fn walk_relationships(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_relationships(extractor, child, symbols, scoped_index, relationships);
+        walk_relationships(
+            extractor,
+            child,
+            symbols,
+            scoped_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 

@@ -15,6 +15,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -51,14 +52,14 @@ impl PhpExtractor {
     /// Extract symbols from PHP code - main extraction method
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
     /// Extract relationships from PHP code - relationship extraction
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        self.visit_relationships(tree.root_node(), symbols, &mut relationships);
+        self.visit_relationships(tree.root_node(), symbols, &mut relationships, 0);
         relationships
     }
 
@@ -95,14 +96,24 @@ impl PhpExtractor {
             symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
         // Walk the tree and extract identifiers
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map);
+        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
 
         // Return the collected identifiers
         self.base.identifiers.clone()
     }
 
     /// Recursive node visitor following visitNode pattern
-    fn visit_node(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<String>) {
+    fn visit_node(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if node.kind().is_empty() {
             return; // Skip invalid nodes
         }
@@ -143,9 +154,12 @@ impl PhpExtractor {
         }
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, current_parent_id.clone());
+            self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 
@@ -155,7 +169,12 @@ impl PhpExtractor {
         node: Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "class_declaration" => {
                 extract_class_relationships(self, node, symbols, relationships);
@@ -172,21 +191,36 @@ impl PhpExtractor {
             _ => {}
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_relationships(child, symbols, relationships);
+            self.visit_relationships(child, symbols, relationships, child_depth);
         }
     }
 
     /// Recursively walk tree extracting identifiers from each node
-    fn walk_tree_for_identifiers(&mut self, node: Node, symbol_map: &HashMap<String, &Symbol>) {
+    fn walk_tree_for_identifiers(
+        &mut self,
+        node: Node,
+        symbol_map: &HashMap<String, &Symbol>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Extract identifier from this node if applicable
         extract_identifier_from_node(self, node, symbol_map);
 
         // Recursively walk children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map);
+            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
         }
     }
 

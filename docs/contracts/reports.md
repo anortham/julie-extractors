@@ -100,7 +100,39 @@ part of this contract.
       "structural_facts": 12,
       "complexity_metrics": 200,
       "parse_diagnostics": 0
-    }
+    },
+    "file_rows_truncated": false,
+    "file_rows": [
+      {
+        "path": "src/main.rs",
+        "language": "rust",
+        "status": "indexed",
+        "total_rows": 61,
+        "rows": {
+          "artifact_metadata": 0,
+          "parser_inventory": 0,
+          "language_capabilities": 0,
+          "language_capability_fixtures": 0,
+          "language_capability_gaps": 0,
+          "extraction_revisions": 0,
+          "revision_file_changes": 0,
+          "files": 1,
+          "symbols": 12,
+          "symbol_annotations": 0,
+          "identifiers": 30,
+          "relationships": 4,
+          "pending_relationships": 2,
+          "type_facts": 3,
+          "type_argument_usages": 0,
+          "type_arguments": 0,
+          "literals": 1,
+          "source_regions": 4,
+          "structural_facts": 1,
+          "complexity_metrics": 2,
+          "parse_diagnostics": 1
+        }
+      }
+    ]
   },
   "profile": {
     "total_duration_ms": 1234,
@@ -153,6 +185,29 @@ Commands that do not use an artifact, such as `languages`, set `artifact` and
 `counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v3
 row domains. Commands must emit every key with `0` when that row kind is not
 written or not present.
+
+## Per-File Row Attribution
+
+`counts.file_rows` attributes durable extraction rows to source files. Entries
+are sorted by descending `total_rows`, then ascending root-relative `path`.
+
+Fields:
+
+- `path`: root-relative source path using `/` separators.
+- `language`: canonical language name from the `files` row.
+- `status`: file status from SQLite, such as `indexed`, `unsupported`, or
+  `failed_preserved`.
+- `total_rows`: sum of file-attributed row domains for that file.
+- `rows`: exhaustive row-domain counts for the file. Artifact-level and
+  revision-level domains are present with `0` because they are not owned by a
+  single source file.
+- `counts.file_rows_truncated`: `true` when the report includes only the largest
+  files. Use `info --json` for the full persisted breakdown.
+
+File-attributed domains are `files`, `symbols`, `symbol_annotations`,
+`identifiers`, `relationships`, `pending_relationships`, `type_facts`,
+`type_argument_usages`, `type_arguments`, `literals`, `source_regions`,
+`structural_facts`, `complexity_metrics`, and `parse_diagnostics`.
 
 ## Profile Shape
 
@@ -252,6 +307,8 @@ Warnings use the same shape and may use warning-only codes such as
   revision when a mutation happened.
 - Must include `profile` on successful reports. Write failures after extraction
   should include the partial scan profile available at the failure point.
+- Successful reports include a top-N `counts.file_rows` offender summary for
+  the persisted artifact.
 
 ### `update`
 
@@ -276,6 +333,7 @@ Warnings use the same shape and may use warning-only codes such as
 - `mode`: `read_only`
 - Must not mutate the artifact.
 - Must include metadata, totals, and missing metadata warnings.
+- Must include a full `counts.file_rows` breakdown for every persisted file.
 
 ### `export`
 

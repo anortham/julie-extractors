@@ -8,6 +8,7 @@ use crate::base::{
     UnresolvedTarget,
 };
 use crate::ecmascript_imports::is_ecmascript_global_direct_target;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
 use tree_sitter::{Node, Tree};
 
@@ -31,6 +32,7 @@ pub(crate) fn extract_relationships(
         symbols,
         &symbol_index,
         &mut relationships,
+        0,
     );
     extract_new_expression_relationships(
         extractor,
@@ -38,8 +40,9 @@ pub(crate) fn extract_relationships(
         symbols,
         &symbol_index,
         &mut relationships,
+        0,
     );
-    extract_inheritance_relationships(extractor, tree.root_node(), symbols, &mut relationships);
+    extract_inheritance_relationships(extractor, tree.root_node(), symbols, &mut relationships, 0);
     relationships
 }
 
@@ -49,7 +52,12 @@ fn extract_new_expression_relationships(
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "new_expression"
         && let Some(constructor_node) = node.child_by_field_name("constructor")
     {
@@ -108,6 +116,9 @@ fn extract_new_expression_relationships(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         extract_new_expression_relationships(
@@ -116,6 +127,7 @@ fn extract_new_expression_relationships(
             symbols,
             symbol_index,
             relationships,
+            child_depth,
         );
     }
 }
@@ -139,7 +151,12 @@ fn extract_call_relationships(
     symbols: &[Symbol],
     symbol_index: &ScopedSymbolIndex<'_>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Look for call expressions
     if node.kind() == "call_expression"
         && let Some(function_node) = node.child_by_field_name("function")
@@ -183,9 +200,19 @@ fn extract_call_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_call_relationships(extractor, child, symbols, symbol_index, relationships);
+        extract_call_relationships(
+            extractor,
+            child,
+            symbols,
+            symbol_index,
+            relationships,
+            child_depth,
+        );
     }
 }
 
@@ -248,7 +275,12 @@ fn extract_inheritance_relationships(
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Phase 1: Collect data using immutable borrow
     let heritage_data = match node.kind() {
         "extends_clause"
@@ -310,9 +342,12 @@ fn extract_inheritance_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_inheritance_relationships(extractor, child, symbols, relationships);
+        extract_inheritance_relationships(extractor, child, symbols, relationships, child_depth);
     }
 }
 
@@ -386,7 +421,12 @@ fn collect_heritage_data(
 fn extract_terminal_heritage_identifier(
     extractor: &TypeScriptExtractor,
     node: Node,
+    depth: u32,
 ) -> Option<(UnresolvedTarget, u32)> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     match node.kind() {
         "identifier" | "type_identifier" | "property_identifier" => {
             let name = extractor.base().get_node_text(&node);
@@ -435,8 +475,10 @@ fn extract_terminal_heritage_identifier(
                 .or_else(|| node.child_by_field_name("right"));
 
             if let (Some(left), Some(right)) = (left, right) {
-                extract_terminal_heritage_identifier(extractor, left)?;
-                let (_, line) = extract_terminal_heritage_identifier(extractor, right)?;
+                let child_depth = child_tree_depth(depth)?;
+                extract_terminal_heritage_identifier(extractor, left, child_depth)?;
+                let (_, line) =
+                    extract_terminal_heritage_identifier(extractor, right, child_depth)?;
                 let display_name = extractor.base().get_node_text(&node).replace(' ', "");
                 let segments: Vec<String> = display_name
                     .split('.')
@@ -463,8 +505,11 @@ fn extract_terminal_heritage_identifier(
 
             let mut cursor = node.walk();
             let mut named_children: Vec<Node> = node.named_children(&mut cursor).collect();
+            let child_depth = child_tree_depth(depth)?;
             while let Some(child) = named_children.pop() {
-                if let Some(target) = extract_terminal_heritage_identifier(extractor, child) {
+                if let Some(target) =
+                    extract_terminal_heritage_identifier(extractor, child, child_depth)
+                {
                     return Some(target);
                 }
             }
@@ -487,7 +532,7 @@ fn collect_clause_targets(
             continue;
         }
 
-        if let Some((name, line)) = extract_terminal_heritage_identifier(extractor, child) {
+        if let Some((name, line)) = extract_terminal_heritage_identifier(extractor, child, 0) {
             base_types.push((name, line, relationship_kind.clone()));
             // TypeScript only allows a single superclass in extends_clause;
             // break after the first target to match JS semantics.

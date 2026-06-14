@@ -1,6 +1,7 @@
 // CSS Extractor Identifiers - Extract identifier usages (function calls, classes, IDs)
 
 use crate::base::{BaseExtractor, Identifier, IdentifierKind, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -18,7 +19,7 @@ impl IdentifierExtractor {
             symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
         // Walk the tree and extract identifiers
-        Self::walk_tree_for_identifiers(base, tree.root_node(), &symbol_map);
+        Self::walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
 
         // Return the collected identifiers
         base.identifiers.clone()
@@ -29,14 +30,22 @@ impl IdentifierExtractor {
         base: &mut BaseExtractor,
         node: Node,
         symbol_map: &HashMap<String, &Symbol>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Extract identifier from this node if applicable
         Self::extract_identifier_from_node(base, node, symbol_map);
 
         // Recursively walk children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            Self::walk_tree_for_identifiers(base, child, symbol_map);
+            Self::walk_tree_for_identifiers(base, child, symbol_map, child_depth);
         }
     }
 

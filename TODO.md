@@ -203,7 +203,7 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   `htmx.attribute.v1`, and `alpine.directive.v1` rows; `cargo xtask test
   default` and `cargo xtask test contract` pass.
 
-## 11. Per-file extraction cost attribution in reports — open
+## 11. Per-file extraction cost attribution in reports — complete
 
 - **Where:** `crates/julie-extract-cli` (`info` command and scan report),
   `crates/julie-extract-artifact` report surfaces, `docs/contracts/cli.md`.
@@ -221,3 +221,122 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   report and/or a full per-file breakdown in `info --json`. Treat the JSON
   report shape as an API contract change with docs and focused tests. This is
   the named closure for the vendor-policy decision's follow-up debt.
+- **Completed slice:** Added stable `counts.file_rows` entries with `path`,
+  `language`, `status`, `total_rows`, and exhaustive per-row-family `rows`
+  counts. Successful scan reports include a bounded largest-file summary with
+  `counts.file_rows_truncated`; `info --json` includes the full persisted
+  per-file breakdown. Attribution is computed as a read-side SQLite view over
+  existing artifact tables, so the writer and SQLite schema stay unchanged.
+- **Verification:** RED tests failed for the missing report type/field and
+  missing `info --json` attribution before implementation. After implementation,
+  `cargo test -p julie-extract-artifact --test report_contract`, `cargo test -p
+  julie-extract-cli --test operations_contract`, `cargo fmt --all --check`,
+  `cargo clippy --workspace --all-targets --all-features --no-deps -- -D
+  warnings`, `cargo xtask test contract`, and `cargo xtask test default` pass.
+
+## 12. Depth-bounded tree traversal — complete
+
+- **Where:** Shared traversal helpers in
+  `crates/julie-extractors/src/base/tree_methods.rs`; parse-diagnostic walks in
+  `crates/julie-extractors/src/pipeline.rs`; parser-comparison walks in
+  `crates/julie-extractors/src/language_spec/mod.rs`; follow-up audit for raw
+  per-language recursive walkers under `crates/julie-extractors/src/**`.
+- **Why it matters:** Many extractor paths recurse through tree-sitter nodes.
+  Rust stack overflow can abort the process, so CLI panic isolation is not a
+  complete safety boundary for adversarially deep source trees. Shared helpers
+  should enforce a fixed traversal depth budget before language-specific
+  cleanup happens.
+- **Completed slices:** Added a shared internal traversal depth budget, enforced
+  it in the base traversal helpers, parse-diagnostic walks, and C/C++ header
+  parser-comparison error walks. Focused tests prove `walk_tree`,
+  `traverse_tree`, and `find_nodes_by_type` do not visit nodes beyond the
+  budget. A follow-up slice guarded the direct recursive symbol walkers in
+  Rust, Go, Java, C#, VB.NET, and C++; the Rust regression first reproduced a
+  real stack overflow from a deeply nested `function_item`.
+- **Completed follow-up:** The main per-language extraction phases now use the
+  shared depth budget across direct symbol, identifier, relationship, pending
+  relationship, and data-language relationship walks. This includes the
+  JavaScript/TypeScript canonical passes, Dart/QML pending-call walks, Vue
+  script/template relationship and symbol walks, HTML identifier/resource
+  pending walks, YAML alias walks, Zig relationships, and the supported
+  code/data language identifier and relationship visitors.
+- **Completed helper pass:** Shared structural-fact, source-region, complexity,
+  type-argument, string-literal, SQL/web/framework/data structural helpers, and
+  remaining language helper recursion now route through the same traversal
+  budget. A stricter recursive-function audit reports zero unguarded true
+  child-recursive tree-sitter walkers.
+- **Verification:** The deeply nested Rust and JavaScript regressions pass.
+  `cargo xtask test language` passes for Rust, JavaScript, TypeScript, C, C++,
+  C#, Go, Java, Kotlin, Scala, Swift, Python, Ruby, PHP, Dart, GDScript, QML, R,
+  Lua, Elixir, Bash, PowerShell, SQL, JSON, TOML, YAML, Markdown, Regex, Razor,
+  CSS, HTML, VB.NET, Zig, and Vue. `cargo fmt --all --check`,
+  `cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings`,
+  and `cargo xtask test default` pass.
+
+## 13. Split CLI command orchestration — complete
+
+- **Where:** `crates/julie-extract-cli/src/commands.rs`.
+- **Why it matters:** The command module is over 3,200 lines and `scan()`
+  mixes path handling, existing artifact checks, discovery, extraction spooling,
+  writing, report shaping, profiling, and exit-code mapping. That makes CLI
+  contract changes harder to localize and review.
+- **What changed:** Split stable helper families into focused internal modules:
+  `capability_snapshot.rs` owns capability/parser fingerprint and snapshot
+  mapping, `reports.rs` owns report/output/error mapping, and
+  `artifact_access.rs` owns read-only artifact opening, metadata/version
+  checks, root checks, content-hash loading, artifact report assembly, row
+  totals, and JSONL count mapping. `commands.rs` now keeps command dispatch,
+  high-level scan/update/delete orchestration, extraction spooling, and
+  write-flow decisions.
+- **Guardrail:** Added CLI convention tests that fail if capability snapshot,
+  report/error, or artifact-access helpers drift back into `commands.rs`.
+- **Verification:** Focused red/green convention tests passed after each move.
+  `cargo test -p julie-extract-cli --test cli_contract`,
+  `cargo test -p julie-extract-cli --test operations_contract`, and
+  `cargo test -p julie-extract-cli --test path_policy` pass locally.
+  `cargo fmt --all --check`,
+  `cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings`,
+  and `cargo xtask test default` also pass.
+
+## 14. Modularize artifact writer internals — complete
+
+- **Where:** `crates/julie-extract-artifact/src/writer.rs`.
+- **Why it matters:** `ArtifactWriter` earns its public interface, but the file
+  combines capability snapshot sync, revision semantics, row-family insertion,
+  deletion, prepared statements, and the data-loss guard. New row families have
+  to touch several distant sections.
+- **What changed:** Kept the public `ArtifactWriter` API and transaction
+  orchestration in `writer.rs`, and moved stable private helper families into
+  focused submodules. `writer/capabilities.rs` owns capability snapshot key
+  loading, deletions, upserts, and JSON/boolean mapping. `writer/rows.rs` owns
+  file/child row inserters, row-family insert functions, preserved-failure row
+  updates, parse-diagnostic replacement, and symbol/identifier/type-argument
+  lookup helpers.
+- **Guardrail:** Added writer convention tests that fail if capability sync or
+  row-inserter helper definitions drift back into `writer.rs`.
+- **Verification:** Focused red/green convention tests passed. `cargo test -p
+  julie-extract-artifact`, `cargo test -p julie-extract-artifact --test
+  writer_performance`, `cargo fmt --all --check`,
+  `cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings`,
+  and `cargo xtask test default` pass locally.
+
+## 15. Reuse tree-sitter parsers per scan worker — complete
+
+- **Where:** `crates/julie-extractors/src/pipeline.rs`.
+- **Why it matters:** `parse_for_language` creates and configures a fresh
+  `tree_sitter::Parser` for every file. That is a Rust-specific cold-scan cost
+  on large repositories with many files of the same language.
+- **Decision:** Do not add a thread-local parser cache now. The profile did not
+  confirm meaningful scan-time savings, and a cache would add mutable
+  thread-local state to a hot parser path for a very small measured win.
+- **Evidence:** A focused local profiler compared 2,000 tiny Rust parses through
+  the current `parse_for_language` path against one configured parser reused for
+  all parses. Debug mode measured 41 ms vs. 38 ms; release mode measured 10 ms
+  vs. 8 ms. That is at most a few milliseconds across 2,000 tiny files, so
+  parser setup is not currently a top bottleneck.
+- **Verification:** The profiling was run with:
+  `cargo test -p julie-extractors pipeline::tests::parser_setup_profile_reports_reuse_baseline -- --ignored --nocapture`
+  and
+  `cargo test -p julie-extractors --release pipeline::tests::parser_setup_profile_reports_reuse_baseline -- --ignored --nocapture`.
+  The temporary profiler/test scaffolding was removed after recording the
+  evidence.

@@ -7,6 +7,7 @@ use tree_sitter::{Node, Tree};
 use super::span::NormalizedSpan;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol, stable_location_id};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const TABLE_DEFINITION_PATTERN_ID: &str = "sql.table_definition.v1";
 const VIEW_DEFINITION_PATTERN_ID: &str = "sql.view_definition.v1";
@@ -59,7 +60,7 @@ pub fn collect_sql_structural_facts(
     }
 
     let mut facts = Vec::new();
-    collect_sql_node(tree.root_node(), file_path, content, &mut facts);
+    collect_sql_node(tree.root_node(), file_path, content, &mut facts, 0);
     attach_containing_symbols(&mut facts, symbols);
     sort_structural_facts(&mut facts);
     facts
@@ -80,7 +81,12 @@ fn collect_sql_node(
     file_path: &str,
     content: &str,
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "create_table" => {
             if let Some(fact) = table_definition_fact(file_path, content, node) {
@@ -154,9 +160,12 @@ fn collect_sql_node(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_sql_node(child, file_path, content, facts);
+        collect_sql_node(child, file_path, content, facts, child_depth);
     }
 }
 
@@ -719,21 +728,28 @@ fn collect_identifier_names(content: &str, node: Node<'_>) -> Vec<String> {
 
 fn collect_source_tables_in_node(node: Node<'_>, content: &str) -> Vec<String> {
     let mut tables = Vec::new();
-    collect_relation_names(node, content, &mut tables);
+    collect_relation_names(node, content, &mut tables, 0);
     tables.sort();
     tables.dedup();
     tables
 }
 
-fn collect_relation_names(node: Node<'_>, content: &str, tables: &mut Vec<String>) {
+fn collect_relation_names(node: Node<'_>, content: &str, tables: &mut Vec<String>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if (node.kind() == "relation" || node.kind() == "object_reference")
         && let Some(name) = relation_table_name(content, node)
     {
         tables.push(name);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_relation_names(child, content, tables);
+        collect_relation_names(child, content, tables, child_depth);
     }
 }
 
@@ -825,12 +841,20 @@ fn find_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
 }
 
 fn find_descendant<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    find_descendant_at_depth(node, kind, 0)
+}
+
+fn find_descendant_at_depth<'a>(node: Node<'a>, kind: &str, depth: u32) -> Option<Node<'a>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == kind {
         return Some(node);
     }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(found) = find_descendant(child, kind) {
+        if let Some(found) = find_descendant_at_depth(child, kind, child_depth) {
             return Some(found);
         }
     }
@@ -848,12 +872,22 @@ fn first_child_kind(node: Node<'_>, kinds: &[&str]) -> Option<String> {
 }
 
 fn has_child_kind(node: Node<'_>, child_kind: &str) -> bool {
+    has_child_kind_at_depth(node, child_kind, 0)
+}
+
+fn has_child_kind_at_depth(node: Node<'_>, child_kind: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
     if node.kind() == child_kind {
         return true;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if has_child_kind(child, child_kind) {
+        if has_child_kind_at_depth(child, child_kind, child_depth) {
             return true;
         }
     }

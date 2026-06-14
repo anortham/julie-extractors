@@ -10,6 +10,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
@@ -88,7 +89,7 @@ impl RustExtractor {
         // Phase 1: Extract symbols (skip impl block methods)
         self.impl_blocks.clear();
         self.is_processing_impl_blocks = false;
-        self.walk_tree(tree.root_node(), &mut symbols, None);
+        self.walk_tree(tree.root_node(), &mut symbols, None, 0);
 
         // Phase 2: Process impl blocks after all symbols are extracted
         // SAFETY FIX: Pass tree reference so we can reconstruct nodes from byte ranges
@@ -98,21 +99,37 @@ impl RustExtractor {
         symbols
     }
 
-    fn walk_tree(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<String>) {
+    fn walk_tree(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<String>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if let Some(symbol) = self.extract_symbol(node, parent_id.clone()) {
             let symbol_id = symbol.id.clone();
             symbols.push(symbol);
 
             // Continue traversing with new parent_id for nested symbols
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                self.walk_tree(child, symbols, Some(symbol_id.clone()));
+                self.walk_tree(child, symbols, Some(symbol_id.clone()), child_depth);
             }
         } else {
             // No symbol extracted, continue with current parent_id
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                self.walk_tree(child, symbols, parent_id.clone());
+                self.walk_tree(child, symbols, parent_id.clone(), child_depth);
             }
         }
     }

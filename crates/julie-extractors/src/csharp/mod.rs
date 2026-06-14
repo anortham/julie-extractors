@@ -29,6 +29,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Tree;
 
@@ -138,7 +139,7 @@ impl CSharpExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         let root = tree.root_node();
-        self.walk_tree(root, &mut symbols, None);
+        self.walk_tree(root, &mut symbols, None, 0);
         self.ensure_file_scope_symbol(root, &mut symbols);
         symbols
     }
@@ -149,7 +150,12 @@ impl CSharpExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if node.kind() == "field_declaration" {
             let field_symbols = fields::extract_fields(&mut self.base, node, parent_id.clone());
             let current_parent_id = field_symbols
@@ -158,9 +164,12 @@ impl CSharpExtractor {
                 .or(parent_id);
             symbols.extend(field_symbols);
 
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                self.walk_tree(child, symbols, current_parent_id.clone());
+                self.walk_tree(child, symbols, current_parent_id.clone(), child_depth);
             }
             return;
         }
@@ -173,9 +182,12 @@ impl CSharpExtractor {
                 .or(parent_id);
             symbols.extend(event_symbols);
 
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                self.walk_tree(child, symbols, current_parent_id.clone());
+                self.walk_tree(child, symbols, current_parent_id.clone(), child_depth);
             }
             return;
         }
@@ -189,9 +201,12 @@ impl CSharpExtractor {
         };
 
         // Recursively process children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree(child, symbols, current_parent_id.clone());
+            self.walk_tree(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 

@@ -4,6 +4,7 @@
 
 use crate::base::relationship_resolution::StructuredPendingRelationship;
 use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -42,7 +43,7 @@ impl HTMLExtractor {
         // Check if tree is valid and has a root node - start from actual root standard format
         let root_node = tree.root_node();
         if root_node.child_count() > 0 {
-            self.visit_node(root_node, &mut symbols, None);
+            self.visit_node(root_node, &mut symbols, None, 0);
         } else {
             // Fallback extraction when normal parsing fails
             return fallback::FallbackExtractor::extract_basic_structure(&mut self.base, tree);
@@ -65,22 +66,38 @@ impl HTMLExtractor {
         }
     }
 
-    fn visit_node(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<&str>) {
+    fn visit_node(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<&str>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let node_symbols = self.extract_node_symbols(node, parent_id);
         if !node_symbols.is_empty() {
             let symbol_id = node_symbols.first().map(|symbol| symbol.id.clone());
             symbols.extend(node_symbols);
 
             // Recursively visit children with the new symbol as parent
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                self.visit_node(child, symbols, symbol_id.as_deref());
+                self.visit_node(child, symbols, symbol_id.as_deref(), child_depth);
             }
         } else {
             // If no symbol was extracted, continue with children using current parent
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                self.visit_node(child, symbols, parent_id);
+                self.visit_node(child, symbols, parent_id, child_depth);
             }
         }
     }
@@ -115,7 +132,7 @@ impl HTMLExtractor {
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
 
-        self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships);
+        self.visit_node_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
 
         relationships
     }
@@ -144,7 +161,12 @@ impl HTMLExtractor {
         node: Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "element" => {
                 relationships::RelationshipExtractor::extract_element_relationships(
@@ -165,9 +187,12 @@ impl HTMLExtractor {
             _ => {}
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node_for_relationships(child, symbols, relationships);
+            self.visit_node_for_relationships(child, symbols, relationships, child_depth);
         }
     }
 

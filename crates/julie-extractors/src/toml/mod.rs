@@ -9,6 +9,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use std::path::Path;
 use tree_sitter::Tree;
@@ -32,7 +33,7 @@ impl TomlExtractor {
 
     pub fn extract_symbols(&mut self, tree: &tree_sitter::Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None);
+        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
@@ -42,7 +43,12 @@ impl TomlExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let symbol = self.extract_symbol_from_node(node, parent_id.as_deref(), symbols);
         let mut current_parent_id = parent_id;
 
@@ -52,9 +58,12 @@ impl TomlExtractor {
         }
 
         // Recursively process child nodes
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone());
+            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 
@@ -205,6 +214,19 @@ impl TomlExtractor {
 
     /// Extract the table name from children nodes
     fn extract_table_name(&self, children: &[tree_sitter::Node]) -> Option<String> {
+        self.extract_table_name_at_depth(children, 0)
+    }
+
+    fn extract_table_name_at_depth(
+        &self,
+        children: &[tree_sitter::Node],
+        depth: u32,
+    ) -> Option<String> {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+
+        let child_depth = child_tree_depth(depth);
         for child in children {
             match child.kind() {
                 "bare_key" | "quoted_key" | "dotted_key" => {
@@ -217,7 +239,10 @@ impl TomlExtractor {
                     // Recursively check children
                     let mut cursor = child.walk();
                     let nested_children: Vec<_> = child.children(&mut cursor).collect();
-                    if let Some(name) = self.extract_table_name(&nested_children) {
+                    if let Some(child_depth) = child_depth
+                        && let Some(name) =
+                            self.extract_table_name_at_depth(&nested_children, child_depth)
+                    {
                         return Some(name);
                     }
                 }

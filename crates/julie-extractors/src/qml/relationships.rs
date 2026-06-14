@@ -3,6 +3,7 @@
 
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind};
 use crate::qml::QmlExtractor;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -20,13 +21,21 @@ pub(super) fn extract_relationships(
         symbols,
         &symbol_map,
         &mut relationships,
+        0,
     );
-    extract_instantiation_relationships(extractor, tree.root_node(), symbols, &mut relationships);
+    extract_instantiation_relationships(
+        extractor,
+        tree.root_node(),
+        symbols,
+        &mut relationships,
+        0,
+    );
     extract_property_binding_relationships(
         extractor,
         tree.root_node(),
         symbols,
         &mut relationships,
+        0,
     );
     relationships
 }
@@ -38,7 +47,12 @@ fn extract_call_relationships(
     symbols: &[Symbol],
     symbol_map: &HashMap<String, &Symbol>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Match JavaScript call expressions (QML uses TypeScript/JavaScript grammar)
     if node.kind() == "call_expression"
         && let Some(function_node) = node.child_by_field_name("function")
@@ -94,9 +108,19 @@ fn extract_call_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_call_relationships(extractor, child, symbols, symbol_map, relationships);
+        extract_call_relationships(
+            extractor,
+            child,
+            symbols,
+            symbol_map,
+            relationships,
+            child_depth,
+        );
     }
 }
 
@@ -139,7 +163,12 @@ fn extract_instantiation_relationships(
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // QML component definitions are ui_object_definition nodes
     if node.kind() == "ui_object_definition"
         && let Some(type_name_node) = node.child_by_field_name("type_name")
@@ -178,9 +207,12 @@ fn extract_instantiation_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_instantiation_relationships(extractor, child, symbols, relationships);
+        extract_instantiation_relationships(extractor, child, symbols, relationships, child_depth);
     }
 }
 
@@ -190,7 +222,12 @@ fn extract_property_binding_relationships(
     node: Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Look for member expressions anywhere (they represent property access)
     if node.kind() == "member_expression"
         && let Some(property_node) = node.child_by_field_name("property")
@@ -227,9 +264,18 @@ fn extract_property_binding_relationships(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        extract_property_binding_relationships(extractor, child, symbols, relationships);
+        extract_property_binding_relationships(
+            extractor,
+            child,
+            symbols,
+            relationships,
+            child_depth,
+        );
     }
 }
 

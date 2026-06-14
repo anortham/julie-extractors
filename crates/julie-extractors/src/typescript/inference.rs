@@ -4,6 +4,7 @@
 //! based on their assignments and return statements.
 
 use crate::base::Symbol;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::typescript::TypeScriptExtractor;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -46,6 +47,20 @@ pub(crate) fn infer_types_from_tree(
     symbols: &[Symbol],
     types: &mut HashMap<String, String>,
 ) {
+    infer_types_from_tree_at_depth(extractor, node, symbols, types, 0);
+}
+
+fn infer_types_from_tree_at_depth(
+    extractor: &TypeScriptExtractor,
+    node: Node,
+    symbols: &[Symbol],
+    types: &mut HashMap<String, String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Look for variable declarations and assignments
     if node.kind() == "variable_declarator" {
         if let Some(name_node) = node.child_by_field_name("name") {
@@ -77,9 +92,12 @@ pub(crate) fn infer_types_from_tree(
     }
 
     // Recursively process children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        infer_types_from_tree(extractor, child, symbols, types);
+        infer_types_from_tree_at_depth(extractor, child, symbols, types, child_depth);
     }
 }
 
@@ -156,6 +174,19 @@ pub(crate) fn collect_return_types(
     node: &Node,
     return_types: &mut Vec<String>,
 ) {
+    collect_return_types_at_depth(extractor, node, return_types, 0);
+}
+
+fn collect_return_types_at_depth(
+    extractor: &TypeScriptExtractor,
+    node: &Node,
+    return_types: &mut Vec<String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "return_statement"
         && let Some(value_node) = node.child_by_field_name("argument")
     {
@@ -164,8 +195,11 @@ pub(crate) fn collect_return_types(
     }
 
     // Recursively search children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_return_types(extractor, &child, return_types);
+        collect_return_types_at_depth(extractor, &child, return_types, child_depth);
     }
 }

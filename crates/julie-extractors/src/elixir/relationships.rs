@@ -5,6 +5,7 @@ use super::helpers;
 use crate::base::{
     BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind, UnresolvedTarget,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -24,6 +25,7 @@ pub(super) fn extract_relationships(
         symbols,
         &symbol_map,
         &mut relationships,
+        0,
     );
     relationships
 }
@@ -34,7 +36,12 @@ fn walk_for_relationships(
     symbols: &[Symbol],
     symbol_map: &HashMap<String, &Symbol>,
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "call" => {
             if let Some(target_name) = helpers::extract_call_target_name(&extractor.base, &node) {
@@ -69,9 +76,19 @@ fn walk_for_relationships(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_for_relationships(extractor, child, symbols, symbol_map, relationships);
+        walk_for_relationships(
+            extractor,
+            child,
+            symbols,
+            symbol_map,
+            relationships,
+            child_depth,
+        );
     }
 }
 
@@ -256,12 +273,21 @@ fn extract_alias_argument(base: &BaseExtractor, node: &Node) -> Option<String> {
 }
 
 fn find_alias_like_node(base: &BaseExtractor, node: &Node) -> Option<String> {
+    find_alias_like_node_at_depth(base, node, 0)
+}
+
+fn find_alias_like_node_at_depth(base: &BaseExtractor, node: &Node, depth: u32) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
             "alias" | "dot" => return Some(base.get_node_text(&child)),
             _ => {
-                if let Some(name) = find_alias_like_node(base, &child) {
+                if let Some(name) = find_alias_like_node_at_depth(base, &child, child_depth) {
                     return Some(name);
                 }
             }

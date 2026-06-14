@@ -3,6 +3,7 @@ use crate::base::{
     LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
     UnresolvedTarget,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use crate::vbnet::VbNetExtractor;
 use tree_sitter::Tree;
 
@@ -12,7 +13,7 @@ pub fn extract_relationships(
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
     let mut relationships = Vec::new();
-    visit_relationships(extractor, tree.root_node(), symbols, &mut relationships);
+    visit_relationships(extractor, tree.root_node(), symbols, &mut relationships, 0);
     relationships
 }
 
@@ -21,7 +22,12 @@ fn visit_relationships(
     node: tree_sitter::Node,
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "class_block" | "structure_block" => {
             extract_type_relationships(extractor, node, symbols, relationships);
@@ -47,9 +53,12 @@ fn visit_relationships(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        visit_relationships(extractor, child, symbols, relationships);
+        visit_relationships(extractor, child, symbols, relationships, child_depth);
     }
 }
 
@@ -597,12 +606,25 @@ fn find_first_identifier(
     base: &crate::base::BaseExtractor,
     node: tree_sitter::Node,
 ) -> Option<String> {
+    find_first_identifier_at_depth(base, node, 0)
+}
+
+fn find_first_identifier_at_depth(
+    base: &crate::base::BaseExtractor,
+    node: tree_sitter::Node,
+    depth: u32,
+) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     if node.kind() == "identifier" {
         return Some(base.get_node_text(&node));
     }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(name) = find_first_identifier(base, child) {
+        if let Some(name) = find_first_identifier_at_depth(base, child, child_depth) {
             return Some(name);
         }
     }
@@ -698,13 +720,29 @@ fn collect_identifiers(
     node: tree_sitter::Node,
     identifiers: &mut Vec<String>,
 ) {
+    collect_identifiers_at_depth(extractor, node, identifiers, 0);
+}
+
+fn collect_identifiers_at_depth(
+    extractor: &VbNetExtractor,
+    node: tree_sitter::Node,
+    identifiers: &mut Vec<String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "identifier" {
         identifiers.push(extractor.get_base().get_node_text(&node));
         return;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_identifiers(extractor, child, identifiers);
+        collect_identifiers_at_depth(extractor, child, identifiers, child_depth);
     }
 }

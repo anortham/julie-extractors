@@ -25,6 +25,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Tree;
 
 pub struct BashExtractor {
@@ -74,7 +75,7 @@ impl BashExtractor {
             symbols.push(symbol);
         }
 
-        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None);
+        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
@@ -84,7 +85,12 @@ impl BashExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if node.kind() == "declaration_command" {
             let declaration_symbols = self.extract_declarations(node, parent_id.as_deref());
             let mut current_parent_id = parent_id;
@@ -95,9 +101,12 @@ impl BashExtractor {
 
             symbols.extend(declaration_symbols);
 
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                self.walk_tree_for_symbols(child, symbols, current_parent_id.clone());
+                self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
             }
             return;
         }
@@ -118,9 +127,12 @@ impl BashExtractor {
         }
 
         // Recursively process child nodes
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone());
+            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 
@@ -151,7 +163,7 @@ impl BashExtractor {
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        self.walk_tree_for_relationships(tree.root_node(), symbols, &mut relationships);
+        self.walk_tree_for_relationships(tree.root_node(), symbols, &mut relationships, 0);
         relationships
     }
 
@@ -161,7 +173,12 @@ impl BashExtractor {
         node: tree_sitter::Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "command" | "simple_command" => {
                 self.extract_command_relationships(node, symbols, relationships);
@@ -170,9 +187,12 @@ impl BashExtractor {
         }
 
         // Recursively process child nodes
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_relationships(child, symbols, relationships);
+            self.walk_tree_for_relationships(child, symbols, relationships, child_depth);
         }
     }
 
@@ -180,7 +200,7 @@ impl BashExtractor {
         // Call the identifiers module implementation
         let symbol_map: std::collections::HashMap<String, &Symbol> =
             symbols.iter().map(|s| (s.id.clone(), s)).collect();
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map);
+        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
         self.base.identifiers.clone()
     }
 
@@ -194,11 +214,19 @@ impl BashExtractor {
         &mut self,
         node: tree_sitter::Node,
         symbol_map: &std::collections::HashMap<String, &Symbol>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         self.extract_identifier_from_node(node, symbol_map);
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_identifiers(child, symbol_map);
+            self.walk_tree_for_identifiers(child, symbol_map, child_depth);
         }
     }
 

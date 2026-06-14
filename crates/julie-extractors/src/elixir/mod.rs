@@ -7,6 +7,7 @@
 /// - Relationships: protocol implementation, behaviour adoption, function calls
 /// - Identifier extraction for LSP-quality find_references
 use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -53,7 +54,7 @@ impl ElixirExtractor {
         self.module_stack.clear();
         self.specs.clear();
 
-        self.traverse_node(&tree.root_node(), &mut symbols, None);
+        self.traverse_node(&tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
@@ -81,16 +82,21 @@ impl ElixirExtractor {
         node: &Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<&str>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "call" => {
                 if let Some((symbol, children_visited)) =
-                    calls::dispatch_call(self, node, symbols, parent_id)
+                    calls::dispatch_call(self, node, symbols, parent_id, depth)
                 {
                     let sym_id = symbol.id.clone();
                     symbols.push(symbol);
                     if !children_visited {
-                        self.traverse_children(node, symbols, Some(&sym_id));
+                        self.traverse_children(node, symbols, Some(&sym_id), depth);
                     }
                     return; // Don't double-traverse children
                 }
@@ -106,7 +112,7 @@ impl ElixirExtractor {
         }
 
         // Default: traverse children
-        self.traverse_children(node, symbols, parent_id);
+        self.traverse_children(node, symbols, parent_id, depth);
     }
 
     pub(crate) fn traverse_children(
@@ -114,10 +120,15 @@ impl ElixirExtractor {
         node: &Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<&str>,
+        depth: u32,
     ) {
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
+
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.traverse_node(&child, symbols, parent_id);
+            self.traverse_node(&child, symbols, parent_id, child_depth);
         }
     }
 

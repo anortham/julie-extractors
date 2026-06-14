@@ -1,4 +1,5 @@
 use crate::base::TypeArgument;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 use super::get_node_text_from_content;
@@ -9,8 +10,21 @@ pub(super) fn extract_vue_type_arguments<'a>(
     arg_list_node: Node<'a>,
     script_content: &str,
 ) -> Vec<TypeArgument> {
+    extract_vue_type_arguments_at_depth(arg_list_node, script_content, 0)
+}
+
+fn extract_vue_type_arguments_at_depth<'a>(
+    arg_list_node: Node<'a>,
+    script_content: &str,
+    depth: u32,
+) -> Vec<TypeArgument> {
+    if !should_visit_tree_depth(depth) {
+        return Vec::new();
+    }
+
     let mut arguments = Vec::new();
     let mut ordinal: u32 = 0;
+    let child_depth = child_tree_depth(depth);
     let children: Vec<Node<'a>> = arg_list_node.children(&mut arg_list_node.walk()).collect();
     for child in children {
         if !child.is_named() {
@@ -28,7 +42,11 @@ pub(super) fn extract_vue_type_arguments<'a>(
                     .find(|c| c.kind() == "type_arguments")
                     .copied();
                 let children = nested_arg_list
-                    .map(|nested| extract_vue_type_arguments(nested, script_content))
+                    .and_then(|nested| {
+                        child_depth.map(|depth| {
+                            extract_vue_type_arguments_at_depth(nested, script_content, depth)
+                        })
+                    })
                     .unwrap_or_default();
                 arguments.push(TypeArgument {
                     ordinal,

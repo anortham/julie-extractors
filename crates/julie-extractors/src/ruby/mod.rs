@@ -12,6 +12,7 @@ use crate::base::{
     BaseExtractor, Identifier, Relationship, StructuredPendingRelationship, Symbol, SymbolKind,
     Visibility,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::{Node, Tree};
 
@@ -129,7 +130,7 @@ impl RubyExtractor {
     // ========================================================================
 
     fn traverse_tree(&mut self, node: Node, symbols: &mut Vec<Symbol>) {
-        self.traverse_tree_with_parent(node, symbols, None);
+        self.traverse_tree_with_parent(node, symbols, None, 0);
     }
 
     fn traverse_tree_with_parent(
@@ -137,7 +138,12 @@ impl RubyExtractor {
         node: Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let mut symbol_opt: Option<Symbol> = None;
 
         match node.kind() {
@@ -274,16 +280,23 @@ impl RubyExtractor {
 
         // Recursively traverse children with updated parent context
         let old_visibility = self.current_visibility.clone();
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            // Check if child is a visibility modifier that affects subsequent siblings
-            if child.kind() == "identifier" {
-                let text = self.base.get_node_text(&child);
-                if let Some(new_visibility) = helpers::parse_visibility(&text) {
-                    self.current_visibility = new_visibility;
+        if let Some(child_depth) = child_tree_depth(depth) {
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                // Check if child is a visibility modifier that affects subsequent siblings
+                if child.kind() == "identifier" {
+                    let text = self.base.get_node_text(&child);
+                    if let Some(new_visibility) = helpers::parse_visibility(&text) {
+                        self.current_visibility = new_visibility;
+                    }
                 }
+                self.traverse_tree_with_parent(
+                    child,
+                    symbols,
+                    current_parent_id.clone(),
+                    child_depth,
+                );
             }
-            self.traverse_tree_with_parent(child, symbols, current_parent_id.clone());
         }
         self.current_visibility = old_visibility; // Restore previous visibility
     }

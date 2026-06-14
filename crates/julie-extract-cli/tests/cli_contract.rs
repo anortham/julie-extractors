@@ -58,6 +58,76 @@ fn binary_declares_only_contract_commands() {
 }
 
 #[test]
+fn commands_module_does_not_own_capability_snapshot_mapping() {
+    let commands_source = include_str!("../src/commands.rs");
+    for forbidden_definition in [
+        "fn artifact_capability_snapshot(",
+        "fn cargo_lock_packages(",
+        "fn parser_inventory_fingerprint(",
+        "fn capability_snapshot_fingerprint(",
+        "fn artifact_flags(",
+        "fn kind_coverage_json(",
+    ] {
+        assert!(
+            !commands_source.contains(forbidden_definition),
+            "commands.rs still owns capability snapshot helper {forbidden_definition}"
+        );
+    }
+}
+
+#[test]
+fn commands_module_does_not_own_report_error_mapping() {
+    let commands_source = include_str!("../src/commands.rs");
+    for forbidden_definition in [
+        "struct CommandOutcome",
+        "enum ReportStream",
+        "fn base_report(",
+        "fn command_error(",
+        "fn diagnostic(",
+        "fn path_error_outcome(",
+        "fn extract_error_outcome(",
+        "fn write_error_outcome(",
+        "fn spool_error_outcome(",
+        "fn write_outcome(",
+        "fn display_path(",
+    ] {
+        assert!(
+            !commands_source.contains(forbidden_definition),
+            "commands.rs still owns report/error helper {forbidden_definition}"
+        );
+    }
+}
+
+#[test]
+fn commands_module_does_not_own_artifact_access_mapping() {
+    let commands_source = include_str!("../src/commands.rs");
+    for forbidden_definition in [
+        "struct OpenArtifact",
+        "struct OpenInfoArtifact",
+        "struct ExistingArtifact",
+        "fn artifact_report_from_connection(",
+        "fn open_artifact(",
+        "fn open_artifact_for_info(",
+        "fn open_artifact_for_root(",
+        "fn existing_artifact_for_root(",
+        "fn load_existing_content_hashes(",
+        "fn check_versions(",
+        "fn artifact_report(",
+        "fn artifact_metadata_from_rows(",
+        "fn metadata_string(",
+        "fn metadata_i64(",
+        "fn table_totals(",
+        "fn latest_revision_id(",
+        "fn jsonl_counts(",
+    ] {
+        assert!(
+            !commands_source.contains(forbidden_definition),
+            "commands.rs still owns artifact access helper {forbidden_definition}"
+        );
+    }
+}
+
+#[test]
 fn contract_subcommands_parse_their_documented_flags() {
     let output = julie_extract(&["scan", "--help"]);
     assert_help_contains(

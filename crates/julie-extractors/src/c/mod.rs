@@ -16,6 +16,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Tree;
 
 // Internal modules
@@ -82,7 +83,7 @@ impl CExtractor {
     /// Extract all symbols from the syntax tree
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
 
         // Post-process: Fix function pointer typedef names and struct alignment attributes
         typedefs::fix_function_pointer_typedef_names(&mut symbols);
@@ -165,7 +166,12 @@ impl CExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if !node.is_named() {
             return;
         }
@@ -274,9 +280,12 @@ impl CExtractor {
         };
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, current_parent_id.clone());
+            self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 }

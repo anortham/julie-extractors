@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
 use super::span::NormalizedSpan;
@@ -32,6 +33,7 @@ pub fn collect_source_regions(
         content,
         config,
         &mut regions,
+        0,
     );
     attach_containing_symbols(&mut regions, symbols);
     regions.sort_by(|left, right| {
@@ -51,7 +53,12 @@ fn collect_node(
     content: &str,
     config: RegionLanguageConfig,
     regions: &mut Vec<SourceRegion>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     let node_kind = node.kind();
     if config.embedded_node_kinds.contains(&node_kind) {
         regions.push(region_for_node(
@@ -108,9 +115,20 @@ fn collect_node(
         ));
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_node(child, language, file_path, content, config, regions);
+        collect_node(
+            child,
+            language,
+            file_path,
+            content,
+            config,
+            regions,
+            child_depth,
+        );
     }
 }
 
@@ -471,12 +489,28 @@ fn fenced_code_language(
 }
 
 fn child_text<'a>(node: Node<'_>, content: &'a str, child_kind: &str) -> Option<&'a str> {
+    child_text_at_depth(node, content, child_kind, 0)
+}
+
+fn child_text_at_depth<'a>(
+    node: Node<'_>,
+    content: &'a str,
+    child_kind: &str,
+    depth: u32,
+) -> Option<&'a str> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
+    let child_depth = child_tree_depth(depth);
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == child_kind {
             return node_text(content, child).map(str::trim);
         }
-        if let Some(text) = child_text(child, content, child_kind) {
+        if let Some(child_depth) = child_depth
+            && let Some(text) = child_text_at_depth(child, content, child_kind, child_depth)
+        {
             return Some(text);
         }
     }

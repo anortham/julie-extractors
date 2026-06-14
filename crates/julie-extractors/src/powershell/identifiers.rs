@@ -4,6 +4,7 @@
 use crate::base::{
     BaseExtractor, Identifier, IdentifierKind, Symbol, SymbolKind, extract_type_arguments,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -19,7 +20,7 @@ pub(super) fn extract_identifiers(
     let symbol_map: HashMap<String, &Symbol> = symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
     // Walk the tree and extract identifiers
-    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map);
+    walk_tree_for_identifiers(base, tree.root_node(), &symbol_map, 0);
 
     // Return the collected identifiers
     base.identifiers.clone()
@@ -30,14 +31,22 @@ fn walk_tree_for_identifiers(
     base: &mut BaseExtractor,
     node: Node,
     symbol_map: &HashMap<String, &Symbol>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Extract identifier from this node if applicable
     extract_identifier_from_node(base, node, symbol_map);
 
     // Recursively walk children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers(base, child, symbol_map);
+        walk_tree_for_identifiers(base, child, symbol_map, child_depth);
     }
 }
 
@@ -302,13 +311,24 @@ fn record_command_arg_literals(
 /// the first string-bearing node (kind contains `string`) so the wrapper and its
 /// inner variant are never double-counted.
 fn collect_string_literals<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>) {
+    collect_string_literals_at_depth(node, out, 0);
+}
+
+fn collect_string_literals_at_depth<'a>(node: Node<'a>, out: &mut Vec<Node<'a>>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind().contains("string") {
         out.push(node);
         return;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_string_literals(child, out);
+        collect_string_literals_at_depth(child, out, child_depth);
     }
 }
 
@@ -353,14 +373,25 @@ fn decode_ps_string_literal(base: &BaseExtractor, node: &Node) -> Option<String>
 /// `$(...)` sub-expression is recorded whole (its nested `$vars` are not descended
 /// into) so the entire expression collapses to a single `{}`.
 fn collect_ps_interpolation_holes(node: Node, out: &mut Vec<(usize, usize)>) {
+    collect_ps_interpolation_holes_at_depth(node, out, 0);
+}
+
+fn collect_ps_interpolation_holes_at_depth(node: Node, out: &mut Vec<(usize, usize)>, depth: u32) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "variable" | "sub_expression" => {
             out.push((node.start_byte(), node.end_byte()));
         }
         _ => {
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
-                collect_ps_interpolation_holes(child, out);
+                collect_ps_interpolation_holes_at_depth(child, out, child_depth);
             }
         }
     }

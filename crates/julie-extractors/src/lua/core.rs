@@ -9,6 +9,7 @@ use crate::base::{
     BaseExtractor, RelationshipKind, Symbol, SymbolKind, SymbolOptions, UnresolvedTarget,
     Visibility,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -19,7 +20,12 @@ pub(super) fn traverse_tree(
     base: &mut BaseExtractor,
     node: Node,
     parent_id: Option<String>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     let mut symbol: Option<Symbol> = None;
 
     match node.kind() {
@@ -80,9 +86,12 @@ pub(super) fn traverse_tree(
 
     // Traverse children with current symbol as parent (if extracted) or keep same parent
     let current_parent_id = symbol.as_ref().map(|s| s.id.clone()).or(parent_id);
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        traverse_tree(symbols, base, child, current_parent_id.clone());
+        traverse_tree(symbols, base, child, current_parent_id.clone(), child_depth);
     }
 }
 

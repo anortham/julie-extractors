@@ -6,6 +6,7 @@ use tree_sitter::Node;
 
 use super::BaseExtractor;
 use super::type_models::TypeArgument;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Maps a candidate child of a type-argument list to its applied argument.
 ///
@@ -30,13 +31,30 @@ pub fn extract_type_arguments(
     arg_list_node: Node<'_>,
     decompose: TypeArgDecomposer,
 ) -> Vec<TypeArgument> {
+    extract_type_arguments_at_depth(base, arg_list_node, decompose, 0)
+}
+
+fn extract_type_arguments_at_depth(
+    base: &BaseExtractor,
+    arg_list_node: Node<'_>,
+    decompose: TypeArgDecomposer,
+    depth: u32,
+) -> Vec<TypeArgument> {
+    if !should_visit_tree_depth(depth) {
+        return Vec::new();
+    }
+
     let mut arguments = Vec::new();
     let mut cursor = arg_list_node.walk();
     let mut ordinal: u32 = 0;
     for child in arg_list_node.children(&mut cursor) {
         if let Some((type_name, nested)) = decompose(base, child) {
             let children = match nested {
-                Some(nested_list) => extract_type_arguments(base, nested_list, decompose),
+                Some(nested_list) => child_tree_depth(depth)
+                    .map(|child_depth| {
+                        extract_type_arguments_at_depth(base, nested_list, decompose, child_depth)
+                    })
+                    .unwrap_or_default(),
                 None => Vec::new(),
             };
             arguments.push(TypeArgument {

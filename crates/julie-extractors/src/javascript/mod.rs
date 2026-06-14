@@ -27,6 +27,7 @@ use crate::ecmascript_imports::{
     ImportSourceKind, import_source_from_symbol, import_source_kind,
     is_ecmascript_global_direct_target,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
@@ -67,7 +68,7 @@ impl JavaScriptExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
@@ -84,7 +85,7 @@ impl JavaScriptExtractor {
         let symbol_map: HashMap<String, &Symbol> =
             crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
 
-        self.walk_for_pending_calls(tree.root_node(), symbols, &symbol_map, None);
+        self.walk_for_pending_calls(tree.root_node(), symbols, &symbol_map, None, 0);
     }
 
     /// Walk the tree looking for function calls that reference imported symbols
@@ -94,7 +95,12 @@ impl JavaScriptExtractor {
         symbols: &'a [Symbol],
         symbol_map: &HashMap<String, &'a Symbol>,
         current_caller: Option<&'a Symbol>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let current_caller = self
             .caller_for_pending_scope_node(node, symbols, symbol_map)
             .or(current_caller);
@@ -145,9 +151,18 @@ impl JavaScriptExtractor {
         }
 
         // Recursively process children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         for index in 0..node.named_child_count() {
             if let Some(child) = node.named_child(index as u32) {
-                self.walk_for_pending_calls(child, symbols, symbol_map, current_caller);
+                self.walk_for_pending_calls(
+                    child,
+                    symbols,
+                    symbol_map,
+                    current_caller,
+                    child_depth,
+                );
             }
         }
     }
@@ -661,7 +676,12 @@ impl JavaScriptExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let mut symbol: Option<Symbol> = None;
 
         // Port switch statement exactly
@@ -758,9 +778,12 @@ impl JavaScriptExtractor {
         };
 
         // Recursively visit children (pattern)
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, current_parent_id.clone());
+            self.visit_node(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 

@@ -1,4 +1,5 @@
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
@@ -23,11 +24,13 @@ pub(super) fn extract_relationships(
         &numbered_groups,
         &mut relationships,
         &mut seen,
+        0,
     );
 
     relationships
 }
 
+#[allow(clippy::too_many_arguments)]
 fn visit_node(
     base: &BaseExtractor,
     node: Node,
@@ -36,7 +39,12 @@ fn visit_node(
     numbered_groups: &HashMap<usize, &Symbol>,
     relationships: &mut Vec<Relationship>,
     seen: &mut HashSet<(String, String, u32, usize)>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if let Some(group_name) = named_backreference_name(base, node)
         && let Some(target) = named_groups.get(&group_name)
         && let Some(source) = base.find_containing_symbol(&node, symbols)
@@ -69,6 +77,9 @@ fn visit_node(
         );
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         visit_node(
@@ -79,6 +90,7 @@ fn visit_node(
             numbered_groups,
             relationships,
             seen,
+            child_depth,
         );
     }
 }
@@ -186,7 +198,7 @@ fn numeric_backreference_number(base: &BaseExtractor, node: Node) -> Option<usiz
 
 pub(super) fn referenced_capture_numbers(base: &BaseExtractor, tree: &Tree) -> HashSet<usize> {
     let mut numbers = HashSet::new();
-    collect_referenced_capture_numbers(base, tree.root_node(), &mut numbers);
+    collect_referenced_capture_numbers(base, tree.root_node(), &mut numbers, 0);
     numbers
 }
 
@@ -194,13 +206,21 @@ fn collect_referenced_capture_numbers(
     base: &BaseExtractor,
     node: Node,
     numbers: &mut HashSet<usize>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if let Some(number) = numeric_backreference_number(base, node) {
         numbers.insert(number);
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_referenced_capture_numbers(base, child, numbers);
+        collect_referenced_capture_numbers(base, child, numbers, child_depth);
     }
 }

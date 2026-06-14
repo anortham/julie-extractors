@@ -2,6 +2,8 @@ use anyhow::Result;
 use std::path::Path;
 use std::sync::OnceLock;
 
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+
 type ParserFn = fn() -> tree_sitter::Language;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -331,18 +333,26 @@ fn parse_error_count(language: tree_sitter::Language, content: &str) -> Option<u
     let mut parser = tree_sitter::Parser::new();
     parser.set_language(&language).ok()?;
     let tree = parser.parse(content, None)?;
-    Some(count_parse_errors(tree.root_node()))
+    Some(count_parse_errors(tree.root_node(), 0))
 }
 
-fn count_parse_errors(node: tree_sitter::Node<'_>) -> usize {
+fn count_parse_errors(node: tree_sitter::Node<'_>, depth: u32) -> usize {
+    if !should_visit_tree_depth(depth) {
+        return 0;
+    }
+
     let mut count = usize::from(node.is_error()) + usize::from(node.is_missing());
     if !node.has_error() {
         return count;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return count;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        count += count_parse_errors(child);
+        count += count_parse_errors(child, child_depth);
     }
     count
 }

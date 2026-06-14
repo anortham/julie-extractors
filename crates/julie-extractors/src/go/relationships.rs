@@ -73,7 +73,12 @@ impl super::GoExtractor {
         node: Node,
         symbol_map: &HashMap<String, &Symbol>,
         relationships: &mut Vec<Relationship>,
+        depth: u32,
     ) {
+        if !crate::tree_traversal::should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Handle interface implementations (implicit in Go)
         if node.kind() == "method_declaration" {
             self.extract_method_relationships_from_node(node, symbol_map, relationships);
@@ -85,9 +90,12 @@ impl super::GoExtractor {
         }
 
         // Recursively process children
+        let Some(child_depth) = crate::tree_traversal::child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_relationships(child, symbol_map, relationships);
+            self.walk_tree_for_relationships(child, symbol_map, relationships, child_depth);
         }
     }
 

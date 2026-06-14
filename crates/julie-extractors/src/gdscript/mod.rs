@@ -24,6 +24,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
@@ -121,7 +122,7 @@ impl GDScriptExtractor {
         }
 
         // Second pass: extract symbols with implicit class context
-        self.traverse_node(root_node, implicit_class_id.as_ref(), &mut symbols);
+        self.traverse_node(root_node, implicit_class_id.as_ref(), &mut symbols, 0);
 
         symbols
     }
@@ -186,7 +187,17 @@ impl GDScriptExtractor {
     }
 
     /// Main tree traversal for symbol extraction
-    fn traverse_node(&mut self, node: Node, parent_id: Option<&String>, symbols: &mut Vec<Symbol>) {
+    fn traverse_node(
+        &mut self,
+        node: Node,
+        parent_id: Option<&String>,
+        symbols: &mut Vec<Symbol>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         // Create position-based key to prevent double processing
         let position_key = helpers::get_position_key(node);
 
@@ -338,16 +349,22 @@ impl GDScriptExtractor {
             symbols.push(symbol);
 
             // Traverse children with current symbol as parent
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             for i in 0..node.child_count() {
                 if let Some(child) = node.child(i as u32) {
-                    self.traverse_node(child, Some(&symbol_id), symbols);
+                    self.traverse_node(child, Some(&symbol_id), symbols, child_depth);
                 }
             }
         } else {
             // Traverse children with current parent
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             for i in 0..node.child_count() {
                 if let Some(child) = node.child(i as u32) {
-                    self.traverse_node(child, parent_id, symbols);
+                    self.traverse_node(child, parent_id, symbols, child_depth);
                 }
             }
         }

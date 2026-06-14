@@ -1,6 +1,7 @@
 use super::ElixirExtractor;
 use super::helpers;
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::tree_traversal::child_tree_depth;
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -41,6 +42,7 @@ pub(super) fn extract_describe(
     node: &Node,
     symbols: &mut Vec<Symbol>,
     parent_id: Option<&str>,
+    depth: u32,
 ) -> Option<(Symbol, bool)> {
     let description = helpers::extract_first_string_arg(&extractor.base, node)?;
     let signature = format!("describe \"{}\"", description);
@@ -63,8 +65,10 @@ pub(super) fn extract_describe(
     );
 
     let sym_id = symbol.id.clone();
-    if let Some(do_block) = helpers::extract_do_block(node) {
-        extractor.traverse_children(&do_block, symbols, Some(&sym_id));
+    if let Some(do_block) = helpers::extract_do_block(node)
+        && let Some(child_depth) = child_tree_depth(depth)
+    {
+        extractor.traverse_children(&do_block, symbols, Some(&sym_id), child_depth);
     }
 
     Some((symbol, true))

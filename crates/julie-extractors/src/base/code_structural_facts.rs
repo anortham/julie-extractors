@@ -6,6 +6,7 @@ use tree_sitter::{Node, Tree};
 use super::span::NormalizedSpan;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol, stable_location_id};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 #[derive(Debug, Clone, Copy)]
 struct CodeStructuralPattern {
@@ -601,6 +602,7 @@ pub fn collect_code_structural_facts(
         content,
         patterns,
         &mut facts,
+        0,
     );
     attach_containing_symbols(&mut facts, symbols);
     sort_structural_facts(&mut facts);
@@ -661,7 +663,12 @@ fn collect_node(
     content: &str,
     patterns: &[CodeStructuralPattern],
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     for pattern in patterns {
         if pattern.node_kinds.contains(&node.kind()) {
             if pattern.pattern_id == "swift.actor_declaration.v1"
@@ -676,9 +683,20 @@ fn collect_node(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_node(child, language, file_path, content, patterns, facts);
+        collect_node(
+            child,
+            language,
+            file_path,
+            content,
+            patterns,
+            facts,
+            child_depth,
+        );
     }
 }
 
@@ -1074,12 +1092,25 @@ fn swift_actor_name(content: &str, node: Node<'_>) -> Option<String> {
 }
 
 fn first_named_identifier(content: &str, node: Node<'_>, kinds: &[&str]) -> Option<String> {
+    first_named_identifier_at_depth(content, node, kinds, 0)
+}
+
+fn first_named_identifier_at_depth(
+    content: &str,
+    node: Node<'_>,
+    kinds: &[&str],
+    depth: u32,
+) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if kinds.contains(&node.kind()) {
         return Some(node_text(content, node));
     }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(name) = first_named_identifier(content, child, kinds) {
+        if let Some(name) = first_named_identifier_at_depth(content, child, kinds, child_depth) {
             return Some(name);
         }
     }
@@ -1087,12 +1118,24 @@ fn first_named_identifier(content: &str, node: Node<'_>, kinds: &[&str]) -> Opti
 }
 
 fn find_descendant<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
+    find_descendant_at_depth(node, kind, 0)
+}
+
+fn find_descendant_at_depth<'tree>(
+    node: Node<'tree>,
+    kind: &str,
+    depth: u32,
+) -> Option<Node<'tree>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == kind {
         return Some(node);
     }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(found) = find_descendant(child, kind) {
+        if let Some(found) = find_descendant_at_depth(child, kind, child_depth) {
             return Some(found);
         }
     }
@@ -1414,12 +1457,22 @@ fn r_is_pipe_expression(node: Node<'_>) -> bool {
 }
 
 fn node_contains_token(node: Node<'_>, token: &str) -> bool {
+    node_contains_token_at_depth(node, token, 0)
+}
+
+fn node_contains_token_at_depth(node: Node<'_>, token: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
     if node.kind() == token {
         return true;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if node_contains_token(child, token) {
+        if node_contains_token_at_depth(child, token, child_depth) {
             return true;
         }
     }
@@ -1427,12 +1480,24 @@ fn node_contains_token(node: Node<'_>, token: &str) -> bool {
 }
 
 fn first_descendant_of_kind<'tree>(node: Node<'tree>, kind: &str) -> Option<Node<'tree>> {
+    first_descendant_of_kind_at_depth(node, kind, 0)
+}
+
+fn first_descendant_of_kind_at_depth<'tree>(
+    node: Node<'tree>,
+    kind: &str,
+    depth: u32,
+) -> Option<Node<'tree>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.kind() == kind {
         return Some(node);
     }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(found) = first_descendant_of_kind(child, kind) {
+        if let Some(found) = first_descendant_of_kind_at_depth(child, kind, child_depth) {
             return Some(found);
         }
     }

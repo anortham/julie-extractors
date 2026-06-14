@@ -184,6 +184,17 @@ pub struct ReportCounts {
     pub files_failed: i64,
     pub rows_written: RowDomainCounts,
     pub totals: RowDomainCounts,
+    pub file_rows_truncated: bool,
+    pub file_rows: Vec<ReportFileRows>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReportFileRows {
+    pub path: String,
+    pub language: String,
+    pub status: String,
+    pub total_rows: i64,
+    pub rows: RowDomainCounts,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

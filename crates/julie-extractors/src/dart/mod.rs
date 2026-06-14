@@ -20,6 +20,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol, SymbolKind, SymbolOptions, Visibility,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use helpers::{find_child_by_type, get_node_text};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
@@ -62,11 +63,21 @@ impl DartExtractor {
         helpers::set_dart_content_cache(&self.base.content);
 
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
     }
 
-    fn visit_node(&mut self, node: Node, symbols: &mut Vec<Symbol>, parent_id: Option<&str>) {
+    fn visit_node(
+        &mut self,
+        node: Node,
+        symbols: &mut Vec<Symbol>,
+        parent_id: Option<&str>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if node.kind().is_empty() {
             return;
         }
@@ -169,9 +180,12 @@ impl DartExtractor {
                     // Prevent the expression_statement/ERROR container from being double-visited
                     self.consumed_blocks.insert(container_start);
                     if let Some(body_node) = body_opt {
+                        let Some(child_depth) = child_tree_depth(depth) else {
+                            return;
+                        };
                         let mut cursor = body_node.walk();
                         for child in body_node.children(&mut cursor) {
-                            self.visit_node(child, symbols, Some(&class_id));
+                            self.visit_node(child, symbols, Some(&class_id), child_depth);
                         }
                     }
                     return;
@@ -201,9 +215,12 @@ impl DartExtractor {
                     }
                     symbols.push(class_sym);
                     if let Some(body_node) = find_child_by_type(&node, "class_body") {
+                        let Some(child_depth) = child_tree_depth(depth) else {
+                            return;
+                        };
                         let mut cursor = body_node.walk();
                         for child in body_node.children(&mut cursor) {
-                            self.visit_node(child, symbols, Some(&class_id));
+                            self.visit_node(child, symbols, Some(&class_id), child_depth);
                         }
                     }
                     return;
@@ -287,9 +304,12 @@ impl DartExtractor {
                         && sibling.kind() == "block"
                     {
                         self.consumed_blocks.insert(sibling.start_byte());
+                        let Some(child_depth) = child_tree_depth(depth) else {
+                            return;
+                        };
                         let mut cursor = sibling.walk();
                         for child in sibling.children(&mut cursor) {
-                            self.visit_node(child, symbols, Some(&class_id));
+                            self.visit_node(child, symbols, Some(&class_id), child_depth);
                         }
                     }
                     // Skip normal child recursion for this ERROR node; we handled it.
@@ -315,9 +335,12 @@ impl DartExtractor {
         };
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_node(child, symbols, next_parent_id);
+            self.visit_node(child, symbols, next_parent_id, child_depth);
         }
     }
 
@@ -352,7 +375,7 @@ impl DartExtractor {
     fn extract_pending_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) {
         let symbol_map: HashMap<String, &Symbol> =
             crate::base::ScopedSymbolIndex::unique_symbol_map(symbols);
-        self.walk_for_pending_calls(tree.root_node(), &symbol_map);
+        self.walk_for_pending_calls(tree.root_node(), &symbol_map, 0);
     }
 
     pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
@@ -385,7 +408,7 @@ impl DartExtractor {
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
         let symbol_map: HashMap<String, &Symbol> =
             symbols.iter().map(|s| (s.id.clone(), s)).collect();
-        identifiers::walk_tree_for_identifiers(&mut self.base, tree.root_node(), &symbol_map);
+        identifiers::walk_tree_for_identifiers(&mut self.base, tree.root_node(), &symbol_map, 0);
         self.base.identifiers.clone()
     }
 
@@ -658,12 +681,26 @@ fn recover_dart3_generic_modifier_class<'a>(
 /// `relational_expression > relational_expression > identifier` — the
 /// deepest-left identifier is the class name (e.g. `AsyncValue` in `AsyncValue<T>`).
 fn find_leftmost_identifier_in_relational<'a>(node: &Node<'a>) -> Option<Node<'a>> {
+    find_leftmost_identifier_in_relational_at_depth(node, 0)
+}
+
+fn find_leftmost_identifier_in_relational_at_depth<'a>(
+    node: &Node<'a>,
+    depth: u32,
+) -> Option<Node<'a>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         match child.kind() {
             "identifier" | "type_identifier" => return Some(child),
             "relational_expression" => {
-                if let Some(found) = find_leftmost_identifier_in_relational(&child) {
+                if let Some(found) =
+                    find_leftmost_identifier_in_relational_at_depth(&child, child_depth)
+                {
                     return Some(found);
                 }
             }
@@ -675,12 +712,21 @@ fn find_leftmost_identifier_in_relational<'a>(node: &Node<'a>) -> Option<Node<'a
 
 /// Recursively search for the first `set_or_map_literal` node in a subtree.
 fn find_set_or_map_literal_in_node<'a>(node: &Node<'a>) -> Option<Node<'a>> {
+    find_set_or_map_literal_in_node_at_depth(node, 0)
+}
+
+fn find_set_or_map_literal_in_node_at_depth<'a>(node: &Node<'a>, depth: u32) -> Option<Node<'a>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == "set_or_map_literal" {
             return Some(child);
         }
-        if let Some(found) = find_set_or_map_literal_in_node(&child) {
+        if let Some(found) = find_set_or_map_literal_in_node_at_depth(&child, child_depth) {
             return Some(found);
         }
     }
@@ -843,7 +889,7 @@ fn recover_enum_symbols_from_error(
 ) {
     // Collect names already extracted so we skip duplicates
     let already_extracted: HashSet<String> = symbols.iter().map(|s| s.name.clone()).collect();
-    recover_from_node_recursive(base, node, parent_id, symbols, &already_extracted);
+    recover_from_node_recursive(base, node, parent_id, symbols, &already_extracted, 0);
 }
 
 /// Recursively walk a subtree recovering enum members and constructors.
@@ -861,7 +907,12 @@ fn recover_from_node_recursive(
     parent_id: Option<&str>,
     symbols: &mut Vec<Symbol>,
     already_extracted: &HashSet<String>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "member_access" => {
             // e.g. green('Green') parses as member_access with identifier "green"
@@ -920,9 +971,19 @@ fn recover_from_node_recursive(
     }
 
     // Recurse into children for other node types
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        recover_from_node_recursive(base, &child, parent_id, symbols, already_extracted);
+        recover_from_node_recursive(
+            base,
+            &child,
+            parent_id,
+            symbols,
+            already_extracted,
+            child_depth,
+        );
     }
 }
 

@@ -8,6 +8,7 @@ mod relationships;
 mod semantic_symbols;
 
 use crate::base::{BaseExtractor, Identifier, Relationship, Symbol, SymbolKind, SymbolOptions};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::Path;
@@ -30,7 +31,7 @@ impl MarkdownExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None);
+        self.walk_tree_for_symbols(tree.root_node(), &mut symbols, None, 0);
         symbols.extend(semantic_symbols::extract_line_based_symbols(
             &mut self.base,
             &symbols,
@@ -44,7 +45,12 @@ impl MarkdownExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<String>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let symbol = self.extract_symbol_from_node(node, parent_id.as_deref());
         let mut current_parent_id = parent_id;
 
@@ -54,9 +60,12 @@ impl MarkdownExtractor {
         }
 
         // Recursively process child nodes
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone());
+            self.walk_tree_for_symbols(child, symbols, current_parent_id.clone(), child_depth);
         }
     }
 

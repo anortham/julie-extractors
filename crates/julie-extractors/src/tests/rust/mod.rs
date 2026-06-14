@@ -20,6 +20,7 @@ pub mod types;
 
 use crate::base::{SymbolKind, Visibility};
 use crate::rust::RustExtractor;
+use crate::tree_traversal::TREE_TRAVERSAL_DEPTH_LIMIT;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 
@@ -415,6 +416,41 @@ impl SymbolDatabase {
             assert!(
                 drop_method.visibility.as_ref().unwrap() == &Visibility::Private,
                 "non-pub methods in impls should remain private"
+            );
+        }
+
+        #[test]
+        fn test_symbol_extraction_stops_at_traversal_depth_budget() {
+            let mut rust_code = String::from("fn main() {\n");
+            for _ in 0..(TREE_TRAVERSAL_DEPTH_LIMIT + 16) {
+                rust_code.push_str("{\n");
+            }
+            rust_code.push_str("fn too_deep() {}\n");
+            for _ in 0..(TREE_TRAVERSAL_DEPTH_LIMIT + 16) {
+                rust_code.push_str("}\n");
+            }
+            rust_code.push_str("}\n");
+
+            let mut parser = init_parser();
+            let tree = parser.parse(&rust_code, None).unwrap();
+
+            let workspace_root = test_workspace_root();
+            let mut extractor = RustExtractor::new(
+                "rust".to_string(),
+                "test.rs".to_string(),
+                rust_code,
+                &workspace_root,
+            );
+
+            let symbols = extractor.extract_symbols(&tree);
+
+            assert!(
+                symbols.iter().any(|s| s.name == "main"),
+                "shallow function should still be extracted"
+            );
+            assert!(
+                !symbols.iter().any(|s| s.name == "too_deep"),
+                "symbol walker should not visit function_item nodes beyond the traversal budget"
             );
         }
     }

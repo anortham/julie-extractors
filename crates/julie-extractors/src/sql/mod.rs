@@ -30,6 +30,7 @@ use crate::base::{
     BaseExtractor, Identifier, PendingRelationship, Relationship, StructuredPendingRelationship,
     Symbol,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Tree;
 
@@ -79,12 +80,21 @@ impl SqlExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
-        self.visit_node(tree.root_node(), &mut symbols, None);
-        self.walk_for_string_literals(tree.root_node(), &symbols);
+        self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        self.walk_for_string_literals(tree.root_node(), &symbols, 0);
         symbols
     }
 
-    fn walk_for_string_literals(&mut self, node: tree_sitter::Node, symbols: &[Symbol]) {
+    fn walk_for_string_literals(
+        &mut self,
+        node: tree_sitter::Node,
+        symbols: &[Symbol],
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if matches!(node.kind(), "string" | "string_literal" | "literal") {
             let symbol_map: HashMap<String, &Symbol> =
                 symbols.iter().map(|s| (s.id.clone(), s)).collect();
@@ -99,9 +109,12 @@ impl SqlExtractor {
             }
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.walk_for_string_literals(child, symbols);
+            self.walk_for_string_literals(child, symbols, child_depth);
         }
     }
 
@@ -186,6 +199,7 @@ impl SqlExtractor {
             tree.root_node(),
             symbols,
             &mut relationships,
+            0,
         );
         relationships
     }
@@ -242,7 +256,7 @@ impl SqlExtractor {
         let symbol_map: HashMap<String, &Symbol> =
             symbols.iter().map(|s| (s.id.clone(), s)).collect();
 
-        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map);
+        self.walk_tree_for_identifiers(tree.root_node(), &symbol_map, 0);
         self.base.identifiers.clone()
     }
 
@@ -252,7 +266,12 @@ impl SqlExtractor {
         node: tree_sitter::Node,
         symbols: &mut Vec<Symbol>,
         parent_id: Option<&str>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         let mut symbol: Option<Symbol> = None;
 
         match node.kind() {
@@ -379,25 +398,46 @@ impl SqlExtractor {
 
             // Continue with this symbol as parent
             let new_parent_id = Some(symbol.id.as_str());
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             for child in node.children(&mut node.walk()) {
-                self.visit_node(child, symbols, new_parent_id);
+                self.visit_node(child, symbols, new_parent_id, child_depth);
             }
         } else {
             // No symbol extracted, continue with current parent
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
             for child in node.children(&mut node.walk()) {
-                self.visit_node(child, symbols, parent_id);
+                self.visit_node(child, symbols, parent_id, child_depth);
             }
         }
     }
 }
 
 fn descendant_contains(ancestor: tree_sitter::Node, target: tree_sitter::Node) -> bool {
+    descendant_contains_with_depth(ancestor, target, 0)
+}
+
+fn descendant_contains_with_depth(
+    ancestor: tree_sitter::Node,
+    target: tree_sitter::Node,
+    depth: u32,
+) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+
     if ancestor.id() == target.id() {
         return true;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
     let mut cursor = ancestor.walk();
     for child in ancestor.children(&mut cursor) {
-        if descendant_contains(child, target) {
+        if descendant_contains_with_depth(child, target, child_depth) {
             return true;
         }
     }

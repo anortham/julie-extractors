@@ -2,6 +2,7 @@ use crate::base::{
     LocalTargetResolution, Relationship, RelationshipKind, ScopedSymbolIndex, Symbol, SymbolKind,
     UnresolvedTarget,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -29,6 +30,7 @@ impl SwiftExtractor {
             &symbol_index,
             &import_context,
             &mut relationships,
+            0,
         );
         relationships
     }
@@ -40,7 +42,12 @@ impl SwiftExtractor {
         symbol_index: &ScopedSymbolIndex<'a>,
         import_context: &SwiftImportContext,
         relationships: &mut Vec<Relationship>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "class_declaration"
             | "struct_declaration"
@@ -66,6 +73,9 @@ impl SwiftExtractor {
         }
 
         // Recursively visit children
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             self.visit_node_for_relationships(
@@ -74,6 +84,7 @@ impl SwiftExtractor {
                 symbol_index,
                 import_context,
                 relationships,
+                child_depth,
             );
         }
     }
@@ -497,7 +508,16 @@ impl SwiftExtractor {
 
     /// Extract the rightmost simple_identifier from a call node
     fn extract_rightmost_call_identifier(&self, node: Node) -> Option<String> {
+        self.extract_rightmost_call_identifier_at_depth(node, 0)
+    }
+
+    fn extract_rightmost_call_identifier_at_depth(&self, node: Node, depth: u32) -> Option<String> {
+        if !should_visit_tree_depth(depth) {
+            return None;
+        }
+
         let mut result = None;
+        let child_depth = child_tree_depth(depth);
         let mut cursor = node.walk();
 
         for child in node.children(&mut cursor) {
@@ -508,7 +528,10 @@ impl SwiftExtractor {
                 || child.kind() == "navigation_expression"
             {
                 // Recursively look in nested expressions
-                if let Some(inner) = self.extract_rightmost_call_identifier(child) {
+                if let Some(child_depth) = child_depth
+                    && let Some(inner) =
+                        self.extract_rightmost_call_identifier_at_depth(child, child_depth)
+                {
                     result = Some(inner);
                 }
             }

@@ -5,6 +5,8 @@
 
 use tree_sitter::Node;
 
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
+
 impl super::BashExtractor {
     /// Find the name node for a function definition
     pub(super) fn find_name_node<'a>(&self, node: Node<'a>) -> Option<Node<'a>> {
@@ -100,13 +102,29 @@ impl super::BashExtractor {
         node: Node<'a>,
         param_nodes: &mut Vec<Node<'a>>,
     ) {
+        self.collect_parameter_nodes_at_depth(node, param_nodes, 0);
+    }
+
+    fn collect_parameter_nodes_at_depth<'a>(
+        &self,
+        node: Node<'a>,
+        param_nodes: &mut Vec<Node<'a>>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         if matches!(node.kind(), "simple_expansion" | "expansion") {
             param_nodes.push(node);
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.collect_parameter_nodes(child, param_nodes);
+            self.collect_parameter_nodes_at_depth(child, param_nodes, child_depth);
         }
     }
 }

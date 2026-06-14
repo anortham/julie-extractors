@@ -6,6 +6,7 @@ use tree_sitter::{Node, Tree};
 use super::span::NormalizedSpan;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol, stable_location_id};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const ASPNET_MINIMAL_API_ROUTE_PATTERN_ID: &str = "aspnet.minimal_api.route.v1";
 const HTMX_ATTRIBUTE_PATTERN_ID: &str = "htmx.attribute.v1";
@@ -79,7 +80,7 @@ fn collect_razor_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_razor_node(tree.root_node(), file_path, content, &mut facts);
+    collect_razor_node(tree.root_node(), file_path, content, &mut facts, 0);
     facts
 }
 
@@ -88,7 +89,12 @@ fn collect_razor_node(
     file_path: &str,
     content: &str,
     facts: &mut Vec<StructuralFact>,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "razor_page_directive" => {
             if let Some(fact) = razor_page_directive_fact(file_path, content, node) {
@@ -108,9 +114,12 @@ fn collect_razor_node(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_razor_node(child, file_path, content, facts);
+        collect_razor_node(child, file_path, content, facts, child_depth);
     }
 }
 
@@ -311,12 +320,25 @@ fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str> {
 }
 
 fn razor_child_text<'a>(node: Node<'_>, content: &'a str, child_kind: &str) -> Option<&'a str> {
+    razor_child_text_at_depth(node, content, child_kind, 0)
+}
+
+fn razor_child_text_at_depth<'a>(
+    node: Node<'_>,
+    content: &'a str,
+    child_kind: &str,
+    depth: u32,
+) -> Option<&'a str> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let child_depth = child_tree_depth(depth)?;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == child_kind {
             return node_text(content, child);
         }
-        if let Some(text) = razor_child_text(child, content, child_kind) {
+        if let Some(text) = razor_child_text_at_depth(child, content, child_kind, child_depth) {
             return Some(text);
         }
     }
@@ -1094,13 +1116,30 @@ fn smallest_node_covering_range<'tree>(
     start_byte: usize,
     end_byte: usize,
 ) -> Option<Node<'tree>> {
+    smallest_node_covering_range_at_depth(node, start_byte, end_byte, 0)
+}
+
+fn smallest_node_covering_range_at_depth<'tree>(
+    node: Node<'tree>,
+    start_byte: usize,
+    end_byte: usize,
+    depth: u32,
+) -> Option<Node<'tree>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
     if node.start_byte() > start_byte || node.end_byte() < end_byte {
         return None;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return Some(node);
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(descendant) = smallest_node_covering_range(child, start_byte, end_byte) {
+        if let Some(descendant) =
+            smallest_node_covering_range_at_depth(child, start_byte, end_byte, child_depth)
+        {
             return Some(descendant);
         }
     }

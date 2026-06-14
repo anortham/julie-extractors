@@ -12,6 +12,7 @@ use crate::base::{
     BaseExtractor, EmbeddedSpanOffset, Identifier, IdentifierKind, NormalizedSpan, Symbol,
     SymbolKind,
 };
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use literals::record_vue_call_arg_literals;
 use std::collections::HashMap;
 use tree_sitter::{Node, Parser};
@@ -46,6 +47,7 @@ pub(super) fn extract_identifiers(base: &mut BaseExtractor, symbols: &[Symbol]) 
                         &symbol_map,
                         &section.content,
                         offset,
+                        0,
                     );
                 }
             }
@@ -82,14 +84,29 @@ fn walk_tree_for_identifiers_with_content(
     symbol_map: &HashMap<String, &Symbol>,
     script_content: &str,
     offset: EmbeddedSpanOffset,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     // Extract identifier from this node if applicable
     extract_identifier_from_node_with_content(base, node, symbol_map, script_content, offset);
 
     // Recursively walk children
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_tree_for_identifiers_with_content(base, child, symbol_map, script_content, offset);
+        walk_tree_for_identifiers_with_content(
+            base,
+            child,
+            symbol_map,
+            script_content,
+            offset,
+            child_depth,
+        );
     }
 }
 
@@ -389,7 +406,14 @@ fn extract_template_attribute_literals(
     else {
         return;
     };
-    walk_template_for_literals(base, tree.root_node(), &section.content, symbol_map, offset);
+    walk_template_for_literals(
+        base,
+        tree.root_node(),
+        &section.content,
+        symbol_map,
+        offset,
+        0,
+    );
 }
 
 fn walk_template_for_literals(
@@ -398,14 +422,29 @@ fn walk_template_for_literals(
     template_content: &str,
     symbol_map: &HashMap<String, &Symbol>,
     offset: EmbeddedSpanOffset,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "attribute" {
         record_template_attribute_literal(base, node, template_content, symbol_map, offset);
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_template_for_literals(base, child, template_content, symbol_map, offset);
+        walk_template_for_literals(
+            base,
+            child,
+            template_content,
+            symbol_map,
+            offset,
+            child_depth,
+        );
     }
 }
 

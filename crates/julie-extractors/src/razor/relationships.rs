@@ -1,5 +1,6 @@
 /// Relationship extraction (component usage, bindings, method calls)
 use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -19,7 +20,7 @@ impl super::RazorExtractor {
         symbols: &[Symbol],
     ) -> Vec<Relationship> {
         let mut relationships = Vec::new();
-        self.visit_relationships(tree.root_node(), symbols, &mut relationships);
+        self.visit_relationships(tree.root_node(), symbols, &mut relationships, 0);
         self.extract_using_line_relationships(tree.root_node(), symbols, &mut relationships);
         relationships
     }
@@ -30,7 +31,12 @@ impl super::RazorExtractor {
         node: Node,
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
+        depth: u32,
     ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "razor_component" => self.extract_component_relationships(node, symbols, relationships),
             "using_directive" => self.extract_using_relationships(node, symbols, relationships),
@@ -46,9 +52,12 @@ impl super::RazorExtractor {
             _ => {}
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            self.visit_relationships(child, symbols, relationships);
+            self.visit_relationships(child, symbols, relationships, child_depth);
         }
     }
 

@@ -1,5 +1,6 @@
 use crate::base::relationship_resolution::{StructuredPendingRelationship, UnresolvedTarget};
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -175,6 +176,20 @@ impl RelationshipExtractor {
         symbols: &[Symbol],
         pending: &mut Vec<StructuredPendingRelationship>,
     ) {
+        Self::collect_structured_pending_at_depth(base, node, symbols, pending, 0);
+    }
+
+    fn collect_structured_pending_at_depth(
+        base: &BaseExtractor,
+        node: Node,
+        symbols: &[Symbol],
+        pending: &mut Vec<StructuredPendingRelationship>,
+        depth: u32,
+    ) {
+        if !should_visit_tree_depth(depth) {
+            return;
+        }
+
         match node.kind() {
             "script_element" => {
                 Self::emit_resource_pending(base, node, symbols, "src", "html-script-src", pending);
@@ -205,9 +220,12 @@ impl RelationshipExtractor {
             _ => {}
         }
 
+        let Some(child_depth) = child_tree_depth(depth) else {
+            return;
+        };
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            Self::collect_structured_pending(base, child, symbols, pending);
+            Self::collect_structured_pending_at_depth(base, child, symbols, pending, child_depth);
         }
     }
 
