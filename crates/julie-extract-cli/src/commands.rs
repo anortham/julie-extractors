@@ -1848,7 +1848,7 @@ mod tests {
         let changed = fixture.write("src/a_changed.rs", "pub fn a() {}\n");
         let unchanged = fixture.write("src/b_unchanged.rs", "pub fn b() {}\n");
         let bad_path = fixture.root().join("src/c_bad.rs");
-        std::fs::write(&bad_path, [0xff, 0xfe, 0x00, 0x9f]).unwrap();
+        std::fs::write(&bad_path, [0xff, 0xfe, 0x00]).unwrap();
         let bad = FileTarget {
             absolute_path: bad_path,
             root_relative_path: "src/c_bad.rs".to_string(),
@@ -1890,7 +1890,7 @@ mod tests {
         assert_eq!(
             extracted.errors.len(),
             1,
-            "only the unreadable file should error"
+            "only the malformed file should error"
         );
         assert_eq!(extracted.errors[0].root_relative_path, "src/c_bad.rs");
 

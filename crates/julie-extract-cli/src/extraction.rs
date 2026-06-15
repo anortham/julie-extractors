@@ -45,6 +45,15 @@ pub(crate) struct SourceSnapshot {
     pub line_count: Option<i64>,
 }
 
+#[derive(Debug)]
+enum SourceDecodeError {
+    Utf8(FromUtf8Error),
+    Utf16 {
+        encoding: &'static str,
+        message: String,
+    },
+}
+
 pub(crate) fn extract_artifact_file(
     root: &Path,
     target: &FileTarget,
@@ -68,14 +77,48 @@ pub(crate) fn read_source_snapshot(
     })?;
     let content_hash = content_hash_bytes(&bytes);
     let content_bytes = bytes.len() as i64;
-    let content = String::from_utf8(bytes)
-        .map_err(|error| utf8_error(target, error, &content_hash, content_bytes))?;
+    let content = decode_source_content(bytes)
+        .map_err(|error| decode_error(target, error, &content_hash, content_bytes))?;
 
     Ok(SourceSnapshot {
         content_hash,
         content_bytes,
         line_count: Some(line_count(&content)),
         content,
+    })
+}
+
+fn decode_source_content(bytes: Vec<u8>) -> Result<String, SourceDecodeError> {
+    if let Some(content_bytes) = bytes.strip_prefix(&[0xff, 0xfe]) {
+        return decode_utf16_content("UTF-16LE", content_bytes, u16::from_le_bytes);
+    }
+
+    if let Some(content_bytes) = bytes.strip_prefix(&[0xfe, 0xff]) {
+        return decode_utf16_content("UTF-16BE", content_bytes, u16::from_be_bytes);
+    }
+
+    String::from_utf8(bytes).map_err(SourceDecodeError::Utf8)
+}
+
+fn decode_utf16_content(
+    encoding: &'static str,
+    bytes: &[u8],
+    decode_unit: fn([u8; 2]) -> u16,
+) -> Result<String, SourceDecodeError> {
+    let chunks = bytes.chunks_exact(2);
+    if !chunks.remainder().is_empty() {
+        return Err(SourceDecodeError::Utf16 {
+            encoding,
+            message: "odd byte length after UTF-16 byte order mark".to_string(),
+        });
+    }
+
+    let units = chunks
+        .map(|chunk| decode_unit([chunk[0], chunk[1]]))
+        .collect::<Vec<_>>();
+    String::from_utf16(&units).map_err(|error| SourceDecodeError::Utf16 {
+        encoding,
+        message: error.to_string(),
     })
 }
 
@@ -814,6 +857,25 @@ where
     format!("{prefix}-{}", &hex[..32])
 }
 
+fn decode_error(
+    target: &FileTarget,
+    error: SourceDecodeError,
+    content_hash: &str,
+    content_bytes: i64,
+) -> ExtractFileError {
+    match error {
+        SourceDecodeError::Utf8(error) => utf8_error(target, error, content_hash, content_bytes),
+        SourceDecodeError::Utf16 { encoding, message } => ExtractFileError {
+            kind: ExtractFileErrorKind::Read,
+            path: target.absolute_path.display().to_string(),
+            root_relative_path: target.root_relative_path.clone(),
+            message: format!("source file could not be read as {encoding}: {message}"),
+            content_hash: Some(content_hash.to_string()),
+            content_bytes: Some(content_bytes),
+        },
+    }
+}
+
 fn utf8_error(
     target: &FileTarget,
     error: FromUtf8Error,
@@ -879,6 +941,35 @@ mod tests {
             content_bytes: 0,
             line_count: Some(0),
         }
+    }
+
+    fn utf16le_bom_bytes(content: &str) -> Vec<u8> {
+        let mut bytes = vec![0xff, 0xfe];
+        for unit in content.encode_utf16() {
+            bytes.extend_from_slice(&unit.to_le_bytes());
+        }
+        bytes
+    }
+
+    #[test]
+    fn read_source_snapshot_decodes_utf16le_bom_source() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let path = temp_dir.path().join("dbo.SqlCommandType.sql");
+        let source = "MERGE dbo.SqlCommandType;\nSELECT N'run';\n";
+        let bytes = utf16le_bom_bytes(source);
+        fs::write(&path, &bytes).expect("write UTF-16LE fixture");
+
+        let target = FileTarget {
+            absolute_path: path,
+            root_relative_path: "dbo.SqlCommandType.sql".to_string(),
+        };
+
+        let snapshot = read_source_snapshot(&target).expect("UTF-16LE source should decode");
+
+        assert_eq!(snapshot.content, source);
+        assert_eq!(snapshot.content_bytes, bytes.len() as i64);
+        assert_eq!(snapshot.content_hash, content_hash_bytes(&bytes));
+        assert_eq!(snapshot.line_count, Some(2));
     }
 
     #[test]
