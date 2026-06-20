@@ -9,6 +9,7 @@ published.
 
 Current notes:
 
+- `v2.5.2.md`
 - `v2.5.1.md`
 - `v2.5.0.md`
 - `v2.4.0.md`
