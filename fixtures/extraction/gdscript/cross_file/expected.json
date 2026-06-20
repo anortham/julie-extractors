@@ -24,7 +24,7 @@
       "signature": "func entry() -> int:",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -55,8 +55,37 @@
       "signature": "func local_helper() -> int:",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
       "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
+      "name": "source",
+      "kind": "class",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 24,
+      "start_byte": 295,
+      "end_byte": 319,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "extends res://other.gd",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "baseClass": "res://other.gd",
+        "base_types": [
+          "res://other.gd"
+        ]
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -82,6 +111,14 @@
       "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
       "line_number": 12,
       "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
+      "callee_name": "res://other.gd",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+      "line_number": 6,
+      "confidence": "0.800"
     }
   ],
   "structured_pending_relationships": [
@@ -102,6 +139,24 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/gdscript/cross_file/source.gd:entry:11:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
+        "callee_name": "res://other.gd",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
+        "line_number": 6,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "res://other.gd",
+        "terminal_name": "res://other.gd",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0"
     }
   ],
   "identifiers": [
@@ -198,7 +253,7 @@
       "node_kind": "extends_statement",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
       "start_line": 6,
       "start_column": 0,
       "end_line": 6,
@@ -339,7 +394,7 @@
       "kind": "string_literal",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
       "start_line": 6,
       "start_column": 8,
       "end_line": 6,

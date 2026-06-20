@@ -3,16 +3,20 @@ use crate::razor::RazorExtractor;
 use crate::tests::helpers::init_parser;
 use std::path::PathBuf;
 
-fn extract_symbols(code: &str) -> Vec<Symbol> {
+fn extract_symbols_for_file(file_path: &str, code: &str) -> Vec<Symbol> {
     let workspace_root = PathBuf::from("/tmp/test");
     let tree = init_parser(code, "razor");
     let mut extractor = RazorExtractor::new(
         "razor".to_string(),
-        "test.razor".to_string(),
+        file_path.to_string(),
         code.to_string(),
         &workspace_root,
     );
     extractor.extract_symbols(&tree)
+}
+
+fn extract_symbols(code: &str) -> Vec<Symbol> {
+    extract_symbols_for_file("test.razor", code)
 }
 
 fn extract_relationships(code: &str, symbols: &[Symbol]) -> Vec<Relationship> {
@@ -98,6 +102,67 @@ fn test_razor_using_blocks_do_not_emit_fake_namespace_relationships() {
 #[cfg(test)]
 mod razor_extractor_tests {
     use super::*;
+
+    #[test]
+    fn test_razor_component_file_emits_top_level_symbol_from_filename_and_namespace() {
+        let razor_code = r#"@namespace Eros.Dashboard.Components.Dashboard
+
+<div class="project-tests-dashboard">
+    <h2>Project Tests</h2>
+</div>
+"#;
+
+        let symbols = extract_symbols_for_file(
+            "src/Eros.Dashboard/Components/Dashboard/ProjectTestsDashboard.razor",
+            razor_code,
+        );
+
+        let component = symbols
+            .iter()
+            .find(|symbol| symbol.name == "ProjectTestsDashboard")
+            .expect("Razor component file should emit a symbol named from the filename");
+
+        assert_eq!(component.kind, SymbolKind::Class);
+        assert_eq!(component.language, "razor");
+        assert_eq!(
+            component.file_path,
+            "src/Eros.Dashboard/Components/Dashboard/ProjectTestsDashboard.razor"
+        );
+        assert_eq!(component.start_line, 1);
+        assert_eq!(component.parent_id, None);
+        assert_eq!(
+            component.signature.as_deref(),
+            Some("component Eros.Dashboard.Components.Dashboard.ProjectTestsDashboard")
+        );
+        assert_eq!(
+            component
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("type"))
+                .and_then(|value| value.as_str()),
+            Some("razor-component")
+        );
+    }
+
+    #[test]
+    fn test_razor_component_file_emits_simple_symbol_without_namespace() {
+        let razor_code = r#"<p>Standalone component</p>
+"#;
+
+        let symbols = extract_symbols_for_file("Components/StandalonePanel.razor", razor_code);
+
+        let component = symbols
+            .iter()
+            .find(|symbol| symbol.name == "StandalonePanel")
+            .expect("Razor component file should emit a filename-derived symbol");
+
+        assert_eq!(component.kind, SymbolKind::Class);
+        assert_eq!(component.parent_id, None);
+        assert_eq!(
+            component.signature.as_deref(),
+            Some("component StandalonePanel")
+        );
+    }
 
     #[test]
     fn test_extract_page_directives_model_bindings_and_basic_syntax() {

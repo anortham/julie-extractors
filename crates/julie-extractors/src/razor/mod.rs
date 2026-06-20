@@ -9,11 +9,17 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
+use std::collections::HashMap;
+use std::path::Path;
 use std::sync::LazyLock;
 use tree_sitter::{Node, Tree};
 
 // Static regexes compiled once for performance
 static INHERITS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@inherits\s+(\S+)").unwrap());
+static NAMESPACE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^\s*@namespace\s+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\b")
+        .unwrap()
+});
 static RENDERMODE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"@rendermode="([^"]+)""#).unwrap());
 
@@ -57,8 +63,69 @@ impl RazorExtractor {
 
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
+        if let Some(component_symbol) = self.extract_component_symbol(tree.root_node()) {
+            symbols.push(component_symbol);
+        }
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
         symbols
+    }
+
+    fn extract_component_symbol(&mut self, root_node: Node) -> Option<Symbol> {
+        if !self.is_razor_component_file() {
+            return None;
+        }
+
+        let component_name = self.component_name_from_file_path()?;
+        let qualified_name = self
+            .component_namespace()
+            .map(|namespace| format!("{namespace}.{component_name}"))
+            .unwrap_or_else(|| component_name.clone());
+
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "type".to_string(),
+            serde_json::Value::String("razor-component".to_string()),
+        );
+        metadata.insert(
+            "qualifiedName".to_string(),
+            serde_json::Value::String(qualified_name.clone()),
+        );
+
+        Some(self.base.create_symbol(
+            &root_node,
+            component_name,
+            SymbolKind::Class,
+            SymbolOptions {
+                signature: Some(format!("component {qualified_name}")),
+                visibility: Some(Visibility::Public),
+                parent_id: None,
+                metadata: Some(metadata),
+                doc_comment: None,
+                annotations: Vec::new(),
+            },
+        ))
+    }
+
+    fn is_razor_component_file(&self) -> bool {
+        Path::new(&self.base.file_path)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            == Some("razor")
+    }
+
+    fn component_name_from_file_path(&self) -> Option<String> {
+        Path::new(&self.base.file_path)
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .filter(|stem| !stem.is_empty())
+            .map(ToOwned::to_owned)
+    }
+
+    fn component_namespace(&self) -> Option<String> {
+        NAMESPACE_RE
+            .captures(&self.base.content)
+            .and_then(|captures| captures.get(1))
+            .map(|namespace| namespace.as_str().to_string())
     }
 
     /// Visit a node and extract symbols recursively

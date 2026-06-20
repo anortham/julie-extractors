@@ -20,6 +20,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "source-regions-v1",
         "structural-facts-v1",
         "complexity-metrics-v1",
+        "file-derived-component-symbols-v1",
     ] {
         assert!(
             version.contains(marker),

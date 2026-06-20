@@ -34,6 +34,40 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/structural_facts/source.razor:source:1:0",
+      "name": "source",
+      "kind": "class",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 120,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 14,
+        "end_line": 3,
+        "end_column": 61,
+        "start_byte": 14,
+        "end_byte": 86
+      },
+      "body_hash": "01bd6af419c3a7b292fc46753e3a97e7",
+      "signature": "component source",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "qualifiedName": "source",
+        "type": "razor-component"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -43,6 +77,15 @@
   "types": [
     {
       "symbol_key": "fixtures/extraction/razor/structural_facts/source.razor:@page:1:0",
+      "resolved_type": "unknown",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/structural_facts/source.razor:source:1:0",
       "resolved_type": "unknown",
       "generic_params": null,
       "constraints": null,
@@ -59,7 +102,7 @@
       "node_kind": "element",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/structural_facts/source.razor:source:1:0",
       "start_line": 3,
       "start_column": 39,
       "end_line": 3,
@@ -82,7 +125,7 @@
       "node_kind": "element",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/structural_facts/source.razor:source:1:0",
       "start_line": 3,
       "start_column": 63,
       "end_line": 3,
@@ -105,7 +148,7 @@
       "node_kind": "element",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/structural_facts/source.razor:source:1:0",
       "start_line": 3,
       "start_column": 21,
       "end_line": 3,
@@ -127,7 +170,7 @@
       "node_kind": "element",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/structural_facts/source.razor",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/structural_facts/source.razor:source:1:0",
       "start_line": 3,
       "start_column": 5,
       "end_line": 3,

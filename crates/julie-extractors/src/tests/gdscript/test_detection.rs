@@ -5,7 +5,7 @@
 //! `base_types = ["GutTest"]` on it. Artifact v1 preserves that metadata
 //! evidence but does not copy old Julie's test-container classifier.
 
-use super::extract_symbols;
+use super::{extract_symbols, extract_symbols_for_file};
 use crate::base::SymbolKind;
 
 /// Pull the `base_types` metadata array (strings) off a symbol, if present.
@@ -58,4 +58,30 @@ func _ready():
         .find(|s| s.kind == SymbolKind::Class)
         .unwrap_or_else(|| panic!("expected an implicit file-class, got {symbols:?}"));
     assert_eq!(base_types(implicit_class), vec!["Node2D".to_string()]);
+}
+
+#[test]
+fn resource_path_extends_emits_filename_implicit_class() {
+    let code = r#"extends "res://base_controller.gd"
+
+func run() -> void:
+    pass
+"#;
+
+    let symbols = extract_symbols_for_file("actors/ResourceExtends.gd", code);
+    let implicit_class = symbols
+        .iter()
+        .find(|s| s.name == "ResourceExtends" && s.kind == SymbolKind::Class)
+        .unwrap_or_else(|| {
+            panic!("expected filename-derived implicit class for resource extends, got {symbols:?}")
+        });
+
+    assert_eq!(
+        implicit_class.signature.as_deref(),
+        Some("extends res://base_controller.gd")
+    );
+    assert_eq!(
+        base_types(implicit_class),
+        vec!["res://base_controller.gd".to_string()]
+    );
 }

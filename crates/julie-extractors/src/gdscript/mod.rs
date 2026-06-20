@@ -72,10 +72,8 @@ impl GDScriptExtractor {
         for i in 0..root_node.child_count() {
             if let Some(child) = root_node.child(i as u32)
                 && child.kind() == "extends_statement"
-                && let Some(type_node) = helpers::find_child_by_type(&child, "type")
+                && let Some(base_class_name) = self.extract_extends_base_class_name(child)
             {
-                let base_class_name = self.base.get_node_text(&type_node);
-
                 // Create implicit class based on file name
                 let file_name = self
                     .base
@@ -125,6 +123,31 @@ impl GDScriptExtractor {
         self.traverse_node(root_node, implicit_class_id.as_ref(), &mut symbols, 0);
 
         symbols
+    }
+
+    fn extract_extends_base_class_name(&self, extends_node: Node) -> Option<String> {
+        if let Some(type_node) = helpers::find_child_by_type(&extends_node, "type") {
+            return Some(self.base.get_node_text(&type_node));
+        }
+
+        let text = self.base.get_node_text(&extends_node);
+        let target = text.trim().strip_prefix("extends")?.trim();
+        let target = target
+            .strip_prefix('"')
+            .and_then(|value| value.strip_suffix('"'))
+            .or_else(|| {
+                target
+                    .strip_prefix('\'')
+                    .and_then(|value| value.strip_suffix('\''))
+            })
+            .unwrap_or(target)
+            .trim();
+
+        if target.is_empty() {
+            None
+        } else {
+            Some(target.to_string())
+        }
     }
 
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {

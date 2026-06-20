@@ -124,7 +124,7 @@ pub use capability_snapshot::{
 ///
 /// **Stable.** Bump the suffix after `v` when the canonical extraction shape
 /// changes in a way downstream consumers must observe.
-pub const EXTRACTION_CONTRACT_VERSION: &str = "2026-06-03.ecmascript-swift-shape-v3.source-regions-v1.structural-facts-v1.complexity-metrics-v1";
+pub const EXTRACTION_CONTRACT_VERSION: &str = "2026-06-20.ecmascript-swift-shape-v3.source-regions-v1.structural-facts-v1.complexity-metrics-v1.file-derived-component-symbols-v1";
 
 // Re-export BaseExtractor for language implementors
 pub use base::BaseExtractor;

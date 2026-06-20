@@ -498,6 +498,40 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+      "name": "source",
+      "kind": "class",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 67,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 1352,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 6,
+        "end_line": 66,
+        "end_column": 1,
+        "start_byte": 48,
+        "end_byte": 1351
+      },
+      "body_hash": "5f1e09341074d99b3aee589ebbe8466d",
+      "signature": "component source",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "qualifiedName": "source",
+        "type": "razor-component"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/razor/basic/source.razor:total:28:12",
       "name": "total",
       "kind": "variable",
@@ -581,6 +615,17 @@
       "metadata": {
         "method": "RecordRun"
       }
+    },
+    {
+      "from_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+      "to_key": "fixtures/extraction/razor/basic/source.razor:Format:21:8",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/basic/source.razor",
+      "line_number": 3,
+      "confidence": "0.900",
+      "metadata": {
+        "method": "Format"
+      }
     }
   ],
   "pending_relationships": [],
@@ -630,7 +675,7 @@
       "end_column": 11,
       "start_byte": 22,
       "end_byte": 28,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -843,6 +888,15 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
+      "resolved_type": "unknown",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/razor/basic/source.razor:total:28:12",
       "resolved_type": "int",
       "generic_params": null,
@@ -860,7 +914,7 @@
       "node_kind": "razor_block",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "start_line": 5,
       "start_column": 0,
       "end_line": 66,
@@ -907,7 +961,7 @@
       "node_kind": "razor_implicit_expression",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "start_line": 3,
       "start_column": 4,
       "end_line": 3,

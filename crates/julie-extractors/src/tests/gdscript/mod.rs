@@ -3,16 +3,20 @@ use crate::gdscript::GDScriptExtractor;
 use crate::tests::helpers::init_parser;
 use std::path::PathBuf;
 
-pub fn extract_symbols(code: &str) -> Vec<Symbol> {
+pub fn extract_symbols_for_file(file_path: &str, code: &str) -> Vec<Symbol> {
     let tree = init_parser(code, "gdscript");
     let workspace_root = PathBuf::from("/tmp/test");
     let mut extractor = GDScriptExtractor::new(
         "gdscript".to_string(),
-        "test.gd".to_string(),
+        file_path.to_string(),
         code.to_string(),
         &workspace_root,
     );
     extractor.extract_symbols(&tree)
+}
+
+pub fn extract_symbols(code: &str) -> Vec<Symbol> {
+    extract_symbols_for_file("test.gd", code)
 }
 
 pub fn extract_symbols_and_relationships(code: &str) -> (Vec<Symbol>, Vec<Relationship>) {
