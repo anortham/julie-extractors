@@ -699,8 +699,18 @@ CREATE INDEX idx_identifiers_target ON identifiers(target_symbol_id);
 CREATE INDEX idx_relationships_from ON relationships(from_symbol_id);
 CREATE INDEX idx_relationships_to ON relationships(to_symbol_id);
 CREATE INDEX idx_relationships_kind ON relationships(kind);
+CREATE INDEX idx_relationships_file ON relationships(file_id);
 CREATE INDEX idx_pending_terminal ON pending_relationships(target_terminal_name);
 CREATE INDEX idx_pending_file ON pending_relationships(file_id);
+CREATE INDEX idx_pending_from ON pending_relationships(from_symbol_id);
+CREATE INDEX idx_pending_caller_scope ON pending_relationships(caller_scope_symbol_id);
+CREATE INDEX idx_type_facts_symbol ON type_facts(symbol_id);
+CREATE INDEX idx_symbol_annotations_symbol ON symbol_annotations(symbol_id);
+CREATE INDEX idx_type_argument_usages_identifier ON type_argument_usages(identifier_id);
+CREATE INDEX idx_type_argument_usages_file ON type_argument_usages(file_id);
+CREATE INDEX idx_type_arguments_usage ON type_arguments(usage_id);
+CREATE INDEX idx_type_arguments_parent ON type_arguments(parent_type_argument_id);
+CREATE INDEX idx_literals_file ON literals(file_id);
 CREATE INDEX idx_source_regions_file_span ON source_regions(file_id, start_byte, end_byte);
 CREATE INDEX idx_source_regions_kind_file ON source_regions(kind, file_id, start_byte);
 CREATE INDEX idx_source_regions_symbol ON source_regions(containing_symbol_id);
@@ -711,6 +721,7 @@ CREATE INDEX idx_complexity_metrics_file_scope ON complexity_metrics(file_id, sc
 CREATE INDEX idx_complexity_metrics_scope_language ON complexity_metrics(scope, language, path);
 CREATE INDEX idx_complexity_metrics_symbol ON complexity_metrics(symbol_id);
 CREATE INDEX idx_diagnostics_path ON parse_diagnostics(path);
+CREATE INDEX idx_diagnostics_file ON parse_diagnostics(file_id);
 ```
 
 These indexes protect the v3 access patterns. Implementations may add more

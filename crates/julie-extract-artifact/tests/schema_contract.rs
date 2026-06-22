@@ -114,6 +114,68 @@ fn query_plan_uses_required_lookup_indexes() {
 }
 
 #[test]
+fn query_plan_uses_required_writer_delete_indexes() {
+    let conn = open_schema();
+
+    assert_query_uses_index(
+        &conn,
+        "DELETE FROM type_arguments
+         WHERE usage_id IN (
+           SELECT usage_id FROM type_argument_usages WHERE file_id = ?1
+         )",
+        ["file-1"],
+        "idx_type_arguments_usage",
+    );
+    assert_query_uses_index(
+        &conn,
+        "DELETE FROM type_arguments
+         WHERE usage_id IN (
+           SELECT usage_id FROM type_argument_usages WHERE file_id = ?1
+         )",
+        ["file-1"],
+        "idx_type_argument_usages_file",
+    );
+    assert_query_uses_index(
+        &conn,
+        "DELETE FROM type_argument_usages WHERE file_id = ?1",
+        ["file-1"],
+        "idx_type_argument_usages_file",
+    );
+    assert_query_uses_index(
+        &conn,
+        "DELETE FROM literals WHERE file_id = ?1",
+        ["file-1"],
+        "idx_literals_file",
+    );
+    assert_query_uses_index(
+        &conn,
+        "DELETE FROM relationships WHERE file_id = ?1",
+        ["file-1"],
+        "idx_relationships_file",
+    );
+    assert_query_uses_index(
+        &conn,
+        "DELETE FROM type_facts
+         WHERE symbol_id IN (SELECT symbol_id FROM symbols WHERE file_id = ?1)",
+        ["file-1"],
+        "idx_type_facts_symbol",
+    );
+    assert_query_uses_index(
+        &conn,
+        "DELETE FROM symbol_annotations
+         WHERE symbol_id IN (SELECT symbol_id FROM symbols WHERE file_id = ?1)",
+        ["file-1"],
+        "idx_symbol_annotations_symbol",
+    );
+    assert_query_uses_index(
+        &conn,
+        "DELETE FROM parse_diagnostics WHERE file_id = ?1",
+        ["file-1"],
+        "idx_diagnostics_file",
+    );
+}
+
+#[test]
 fn metadata_required_keys_are_inserted_and_readable() {
     let conn = open_schema();
     let metadata = sample_metadata();
@@ -742,6 +804,11 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             columns: vec!["kind"],
         },
         ExpectedIndex {
+            name: "idx_relationships_file",
+            table: "relationships",
+            columns: vec!["file_id"],
+        },
+        ExpectedIndex {
             name: "idx_pending_terminal",
             table: "pending_relationships",
             columns: vec!["target_terminal_name"],
@@ -749,6 +816,51 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
         ExpectedIndex {
             name: "idx_pending_file",
             table: "pending_relationships",
+            columns: vec!["file_id"],
+        },
+        ExpectedIndex {
+            name: "idx_pending_from",
+            table: "pending_relationships",
+            columns: vec!["from_symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_pending_caller_scope",
+            table: "pending_relationships",
+            columns: vec!["caller_scope_symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_type_facts_symbol",
+            table: "type_facts",
+            columns: vec!["symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_symbol_annotations_symbol",
+            table: "symbol_annotations",
+            columns: vec!["symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_type_argument_usages_identifier",
+            table: "type_argument_usages",
+            columns: vec!["identifier_id"],
+        },
+        ExpectedIndex {
+            name: "idx_type_argument_usages_file",
+            table: "type_argument_usages",
+            columns: vec!["file_id"],
+        },
+        ExpectedIndex {
+            name: "idx_type_arguments_usage",
+            table: "type_arguments",
+            columns: vec!["usage_id"],
+        },
+        ExpectedIndex {
+            name: "idx_type_arguments_parent",
+            table: "type_arguments",
+            columns: vec!["parent_type_argument_id"],
+        },
+        ExpectedIndex {
+            name: "idx_literals_file",
+            table: "literals",
             columns: vec!["file_id"],
         },
         ExpectedIndex {
@@ -800,6 +912,11 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_diagnostics_path",
             table: "parse_diagnostics",
             columns: vec!["path"],
+        },
+        ExpectedIndex {
+            name: "idx_diagnostics_file",
+            table: "parse_diagnostics",
+            columns: vec!["file_id"],
         },
     ]
 }
