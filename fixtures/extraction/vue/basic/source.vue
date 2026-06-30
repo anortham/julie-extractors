@@ -2,12 +2,14 @@
   <section class="worker" v-if="title">
     <HeaderBar />
     <h1>{{ title }}</h1>
-    <RouterLink to="/todos">Todos</RouterLink>
+    <RouterLink to="/calendar">Calendar</RouterLink>
     <button @click.prevent="evaluate(1, true)" :class="{ active: title }">Run</button>
   </section>
 </template>
 
 <script setup lang="ts">
+import CalendarView from "../views/CalendarView.vue";
+
 defineOptions({ name: "Worker" });
 
 const props = defineProps<{ title: string }>();
@@ -15,6 +17,7 @@ const emit = defineEmits<{ update: [] }>();
 
 const title = format("Worker");
 const workerIndex: Map<string, Array<number>> = new Map();
+const routes = [{ path: "/calendar", name: "calendar", component: CalendarView }];
 
 function format(value: string): string {
     return value.trim();

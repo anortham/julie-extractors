@@ -99,19 +99,43 @@ The supported completion-slice patterns are:
 | `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C preprocessor definition. |
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGet`/`MapPost`/`MapPut`/`MapPatch`/`MapDelete` route call with a literal route template. |
+| `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGroup` route group with a literal route prefix. |
 | `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
+| `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Vue Router link target such as `<RouterLink to="/calendar">`. |
+| `vue.route_definition.v1` | `vue` | `route_definition` | `object` | `frontend_navigation` | A static Vue Router route-table entry with a literal `path`. |
+| `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static React Router `Link` or `NavLink` target imported from React Router. |
+| `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `frontend_navigation` | A static React Router route object or `<Route>` element with a literal `path` or `index`. |
+| `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static `next/link` target from a string `href` or object `pathname`. |
+| `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
+
+Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
+function-built routes, and lazy component imports are not emitted as static route
+facts in this slice.
+Dynamic React Router `to`/`path` values, arbitrary local `Link` components, and
+Next.js `href` values without a static string or object `pathname` are not
+emitted as static route facts in this slice.
 
 Framework-fact rows add framework-specific metadata:
 
 - `aspnet.minimal_api.route.v1`: `framework = "aspnet"`,
   `api_style = "minimal_api"`, `verb`, `route_template`, `route_source`, and
-  optional `handler_kind` / `handler_name`.
+  optional `handler_kind` / `handler_name`. Grouped route calls may also include
+  `route_group_prefix`, `effective_route_template`, and `route_group_source`.
+- `aspnet.minimal_api.route_group.v1`: `framework = "aspnet"`,
+  `api_style = "minimal_api"`, `route_prefix`, `route_source`,
+  `source_kind = "map_group"`, and optional `group_variable`.
 - `htmx.attribute.v1`: `framework = "htmx"`, `attribute_name`, optional
   `attribute_value`, and optional `verb` / `target_path` for request
   attributes.
 - `alpine.directive.v1`: `framework = "alpine"`, `directive`, optional
   `argument`, optional `modifiers`, optional `expression`, and `shorthand`.
+- `vue.route_reference.v1`: `framework = "vue"`, `target_path`,
+  `source_kind = "router_link"`, `route_source = "string_literal"`, and
+  `attribute_name = "to"`.
+- `vue.route_definition.v1`: `framework = "vue"`, `target_path`,
+  `source_kind = "vue_router_route"`, `route_source = "string_literal"`, and
+  optional `route_name`, `component_name`, and `component_path`.
 
 `fixtures/extraction/capabilities.json` publishes these exact ids under
 `kind_coverage.structural_facts.supported`. Languages with no current structural

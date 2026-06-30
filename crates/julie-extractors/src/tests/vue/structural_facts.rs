@@ -244,3 +244,70 @@ fn vue_emits_route_reference_facts() {
             .all(|fact| metadata_str(fact, "target_path") != Some("/class"))
     );
 }
+
+#[test]
+fn vue_emits_static_route_definition_facts() {
+    let source = r#"<template>
+  <nav>
+    <RouterLink to="/calendar">Calendar</RouterLink>
+    <router-link to="/settings">Settings</router-link>
+    <RouterLink :to="{ name: 'dynamic' }">Dynamic</RouterLink>
+  </nav>
+</template>
+
+<script setup lang="ts">
+import CalendarView from '../views/CalendarView.vue'
+import SettingsView from '../views/SettingsView.vue'
+
+const routes = [
+  {
+    path: '/calendar',
+    name: 'calendar',
+    component: CalendarView,
+  },
+  { path: '/settings', component: SettingsView },
+  { path: dynamicPath, component: CalendarView },
+]
+</script>
+"#;
+
+    let results = extract(source);
+    let definitions = facts_with_pattern(&results, "vue.route_definition.v1");
+    assert_eq!(definitions.len(), 2);
+    assert_eq!(
+        definitions
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "target_path"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/calendar", "/settings"])
+    );
+    let calendar_definition = definitions
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/calendar"))
+        .expect("expected calendar route definition");
+    assert_eq!(
+        metadata_str(calendar_definition, "query_family"),
+        Some("frontend_navigation")
+    );
+    assert_eq!(metadata_str(calendar_definition, "framework"), Some("vue"));
+    assert_eq!(
+        metadata_str(calendar_definition, "source_kind"),
+        Some("vue_router_route")
+    );
+    assert_eq!(
+        metadata_str(calendar_definition, "route_source"),
+        Some("string_literal")
+    );
+    assert_eq!(
+        metadata_str(calendar_definition, "route_name"),
+        Some("calendar")
+    );
+    assert_eq!(
+        metadata_str(calendar_definition, "component_name"),
+        Some("CalendarView")
+    );
+    assert_eq!(
+        metadata_str(calendar_definition, "component_path"),
+        Some("../views/CalendarView.vue")
+    );
+}

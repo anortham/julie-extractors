@@ -50,6 +50,7 @@ pub mod python;
 pub mod qml;
 pub mod r;
 pub mod razor;
+pub mod react;
 pub mod regex;
 pub mod relationship_precision;
 pub mod review_regressions;

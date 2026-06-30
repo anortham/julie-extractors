@@ -500,8 +500,22 @@ Supported patterns are advertised in
 | `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C preprocessor definition. |
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGet`/`MapPost`/`MapPut`/`MapPatch`/`MapDelete` route call with a literal route template. |
+| `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGroup` route group with a literal route prefix. |
 | `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
+| `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Vue Router link target such as `<RouterLink to="/calendar">`. |
+| `vue.route_definition.v1` | `vue` | `route_definition` | `object` | `frontend_navigation` | A static Vue Router route-table entry with a literal `path`. |
+| `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static React Router `Link` or `NavLink` target imported from React Router. |
+| `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `frontend_navigation` | A static React Router route object or `<Route>` element with a literal `path` or `index`. |
+| `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static `next/link` target from a string `href` or object `pathname`. |
+| `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
+
+Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
+function-built routes, and lazy component imports are not emitted as static route
+facts in this contract version.
+Dynamic React Router `to`/`path` values, arbitrary local `Link` components, and
+Next.js `href` values without a static string or object `pathname` are not
+emitted as static route facts in this contract version.
 
 Metadata:
 
@@ -509,9 +523,14 @@ Metadata:
 - `query_family`: string matching the table above.
 - Framework facts may also include framework-specific keys:
   `framework`, `api_style`, `verb`, `route_template`, `route_source`,
-  `handler_kind`, `handler_name`, `attribute_name`, `attribute_value`,
-  `target_path`, `directive`, `argument`, `modifiers`, `expression`, and
-  `shorthand`.
+  `handler_kind`, `handler_name`, `route_prefix`, `group_variable`,
+  `source_kind`, `route_group_prefix`, `effective_route_template`,
+  `route_group_source`, `attribute_name`, `attribute_value`, `target_path`,
+  `route_name`, `component_name`, `component_path`, `route_path`,
+  `route_component`, `route_id`, `index_route`, `import_source`, `library`,
+  `router`, `file_convention`, `normalized_route_template`,
+  `dynamic_segments`, `route_group_segments`, `directive`, `argument`,
+  `modifiers`, `expression`, and `shorthand`.
 
 ## Complexity Metrics
 

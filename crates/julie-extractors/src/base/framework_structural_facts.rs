@@ -9,6 +9,7 @@ use super::types::{StructuralFact, Symbol, stable_location_id};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const ASPNET_MINIMAL_API_ROUTE_PATTERN_ID: &str = "aspnet.minimal_api.route.v1";
+const ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID: &str = "aspnet.minimal_api.route_group.v1";
 const HTMX_ATTRIBUTE_PATTERN_ID: &str = "htmx.attribute.v1";
 const ALPINE_DIRECTIVE_PATTERN_ID: &str = "alpine.directive.v1";
 const RAZOR_PAGE_DIRECTIVE_PATTERN_ID: &str = "razor.page_directive.v1";
@@ -16,7 +17,10 @@ const RAZOR_CODE_BLOCK_PATTERN_ID: &str = "razor.code_block.v1";
 const RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID: &str = "razor.template_expression.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
-const CSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[ASPNET_MINIMAL_API_ROUTE_PATTERN_ID];
+const CSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[
+    ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
+    ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
+];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const MARKUP_FRAMEWORK_PATTERN_IDS: &[&str] =
     &[HTMX_ATTRIBUTE_PATTERN_ID, ALPINE_DIRECTIVE_PATTERN_ID];
@@ -352,6 +356,17 @@ fn collect_aspnet_minimal_api_routes(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
+    let route_groups = collect_aspnet_minimal_api_route_groups(language, tree, file_path, content);
+    let group_prefixes = route_groups
+        .iter()
+        .filter_map(|fact| {
+            let metadata = fact.metadata.as_ref()?;
+            let group_variable = metadata.get("group_variable")?.as_str()?;
+            let route_prefix = metadata.get("route_prefix")?.as_str()?;
+            Some((group_variable.to_string(), route_prefix.to_string()))
+        })
+        .collect::<HashMap<_, _>>();
+    facts.extend(route_groups);
 
     for (method_name, verb) in ASPNET_ROUTE_METHODS {
         let mut search_start = 0;
@@ -395,6 +410,17 @@ fn collect_aspnet_minimal_api_routes(
             insert_string(&mut metadata, "verb", verb);
             insert_string(&mut metadata, "route_template", &route_template);
             insert_string(&mut metadata, "route_source", route_source);
+            if let Some(receiver) = parse_csharp_member_receiver(content, method_start)
+                && let Some(route_group_prefix) = group_prefixes.get(receiver)
+            {
+                insert_string(&mut metadata, "route_group_prefix", route_group_prefix);
+                insert_string(
+                    &mut metadata,
+                    "effective_route_template",
+                    &join_route_templates(route_group_prefix, &route_template),
+                );
+                insert_string(&mut metadata, "route_group_source", "map_group");
+            }
 
             if let Some(handler) = parse_handler_argument(content, route_arg_end, close_paren) {
                 insert_string(&mut metadata, "handler_kind", handler.kind);
@@ -416,6 +442,118 @@ fn collect_aspnet_minimal_api_routes(
     }
 
     facts
+}
+
+fn collect_aspnet_minimal_api_route_groups(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    let method_name = "MapGroup";
+    let mut search_start = 0;
+
+    while let Some(relative_start) = content[search_start..].find(method_name) {
+        let method_start = search_start + relative_start;
+        search_start = method_start + method_name.len();
+
+        if !is_identifier_boundary(content, method_start, method_name.len()) {
+            continue;
+        }
+
+        let open_paren = skip_ascii_whitespace(content, search_start);
+        if content.as_bytes().get(open_paren) != Some(&b'(') {
+            continue;
+        }
+
+        let Some(close_paren) = find_matching_paren(content, open_paren) else {
+            continue;
+        };
+        let Some((route_prefix, _, route_source)) =
+            parse_first_route_argument(content, open_paren + 1, close_paren)
+        else {
+            continue;
+        };
+        let Some(node) =
+            smallest_node_covering_range(tree.root_node(), method_start, close_paren + 1)
+        else {
+            continue;
+        };
+        if is_comment_or_string_node(node.kind()) {
+            continue;
+        }
+        let Some(span) = NormalizedSpan::from_content_range(content, method_start, close_paren + 1)
+        else {
+            continue;
+        };
+
+        let mut metadata = base_metadata("framework", "aspnet");
+        insert_string(&mut metadata, "api_style", "minimal_api");
+        insert_string(&mut metadata, "route_prefix", &route_prefix);
+        insert_string(&mut metadata, "route_source", route_source);
+        insert_string(&mut metadata, "source_kind", "map_group");
+        if let Some(group_variable) = parse_map_group_assignment_variable(content, method_start) {
+            insert_string(&mut metadata, "group_variable", &group_variable);
+        }
+
+        facts.push(fact_for_span(
+            file_path,
+            language,
+            ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
+            "route_group",
+            node.kind(),
+            span,
+            metadata,
+        ));
+    }
+
+    facts
+}
+
+fn parse_map_group_assignment_variable(content: &str, method_start: usize) -> Option<String> {
+    let statement_start = content[..method_start]
+        .rfind(['\n', ';', '{'])
+        .map(|index| index + 1)
+        .unwrap_or(0);
+    let before_method = content.get(statement_start..method_start)?;
+    let equals = before_method.rfind('=')?;
+    let candidate = before_method[..equals].split_whitespace().last()?;
+    is_csharp_identifier(candidate).then(|| candidate.to_string())
+}
+
+fn parse_csharp_member_receiver(content: &str, method_start: usize) -> Option<&str> {
+    let bytes = content.as_bytes();
+    let mut dot = method_start;
+    while dot > 0 && bytes.get(dot - 1).is_some_and(u8::is_ascii_whitespace) {
+        dot -= 1;
+    }
+    if dot == 0 || bytes.get(dot - 1) != Some(&b'.') {
+        return None;
+    }
+
+    let mut end = dot - 1;
+    while end > 0 && bytes.get(end - 1).is_some_and(u8::is_ascii_whitespace) {
+        end -= 1;
+    }
+    let mut start = end;
+    while start > 0 && bytes.get(start - 1).is_some_and(is_csharp_identifier_byte) {
+        start -= 1;
+    }
+    let receiver = content.get(start..end)?;
+    is_csharp_identifier(receiver).then_some(receiver)
+}
+
+fn is_csharp_identifier_byte(byte: &u8) -> bool {
+    matches!(byte, b'_' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9')
+}
+
+fn join_route_templates(prefix: &str, route_template: &str) -> String {
+    match (prefix.ends_with('/'), route_template.starts_with('/')) {
+        (true, true) => format!("{}{}", prefix.trim_end_matches('/'), route_template),
+        (false, false) => format!("{prefix}/{route_template}"),
+        _ => format!("{prefix}{route_template}"),
+    }
 }
 
 fn collect_markup_framework_attributes(

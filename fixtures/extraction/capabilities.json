@@ -689,6 +689,11 @@
           "name": "structural_facts",
           "source": "fixtures/extraction/typescript/structural_facts/source.ts",
           "expected": "fixtures/extraction/typescript/structural_facts/expected.json"
+        },
+        {
+          "name": "nextjs_file_route",
+          "source": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+          "expected": "fixtures/extraction/typescript/nextjs_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -748,6 +753,8 @@
         },
         "structural_facts": {
           "supported": [
+            "nextjs.file_route.v1",
+            "react.route_definition.v1",
             "typescript.await_expression.v1"
           ],
           "not_applicable": [],
@@ -822,6 +829,11 @@
           "name": "structural_facts",
           "source": "fixtures/extraction/tsx/structural_facts/source.tsx",
           "expected": "fixtures/extraction/tsx/structural_facts/expected.json"
+        },
+        {
+          "name": "nextjs_file_route",
+          "source": "fixtures/extraction/tsx/nextjs_file_route/app/(marketing)/blog/[slug]/page.tsx",
+          "expected": "fixtures/extraction/tsx/nextjs_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -876,6 +888,10 @@
         },
         "structural_facts": {
           "supported": [
+            "nextjs.file_route.v1",
+            "nextjs.route_reference.v1",
+            "react.route_definition.v1",
+            "react.route_reference.v1",
             "tsx.await_expression.v1"
           ],
           "not_applicable": [],
@@ -952,6 +968,11 @@
           "name": "structural_facts",
           "source": "fixtures/extraction/javascript/structural_facts/source.js",
           "expected": "fixtures/extraction/javascript/structural_facts/expected.json"
+        },
+        {
+          "name": "nextjs_file_route",
+          "source": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js",
+          "expected": "fixtures/extraction/javascript/nextjs_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1004,7 +1025,11 @@
         },
         "structural_facts": {
           "supported": [
-            "javascript.await_expression.v1"
+            "javascript.await_expression.v1",
+            "nextjs.file_route.v1",
+            "nextjs.route_reference.v1",
+            "react.route_definition.v1",
+            "react.route_reference.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1078,6 +1103,11 @@
           "name": "structural_facts",
           "source": "fixtures/extraction/jsx/structural_facts/source.jsx",
           "expected": "fixtures/extraction/jsx/structural_facts/expected.json"
+        },
+        {
+          "name": "nextjs_file_route",
+          "source": "fixtures/extraction/jsx/nextjs_file_route/app/blog/page.jsx",
+          "expected": "fixtures/extraction/jsx/nextjs_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1125,7 +1155,11 @@
         },
         "structural_facts": {
           "supported": [
-            "jsx.await_expression.v1"
+            "jsx.await_expression.v1",
+            "nextjs.file_route.v1",
+            "nextjs.route_reference.v1",
+            "react.route_definition.v1",
+            "react.route_reference.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1526,6 +1560,7 @@
         },
         "structural_facts": {
           "supported": [
+            "vue.route_definition.v1",
             "vue.route_reference.v1",
             "vue.sfc_section.v1",
             "vue.template_directive.v1"
@@ -1914,6 +1949,7 @@
         },
         "structural_facts": {
           "supported": [
+            "aspnet.minimal_api.route_group.v1",
             "aspnet.minimal_api.route.v1"
           ],
           "not_applicable": [],

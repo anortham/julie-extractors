@@ -1,0 +1,239 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:handler:1:0",
+      "name": "handler",
+      "kind": "export",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 85,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 51,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 51,
+        "end_byte": 85
+      },
+      "body_hash": "bf0f4f855920cd34377011bcfff64ddd",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:handler:1:7",
+      "name": "handler",
+      "kind": "function",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "start_line": 1,
+      "start_column": 7,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 7,
+      "end_byte": 85,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 51,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 51,
+        "end_byte": 85
+      },
+      "body_hash": "bf0f4f855920cd34377011bcfff64ddd",
+      "signature": "handler(): : Promise<Response>",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": true,
+        "isGenerator": false,
+        "parameters": [],
+        "returnType": ": Promise<Response>",
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:Promise:type_usage:1:33",
+      "name": "Promise",
+      "kind": "type_usage",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "start_line": 1,
+      "start_column": 33,
+      "end_line": 1,
+      "end_column": 40,
+      "start_byte": 33,
+      "end_byte": 40,
+      "containing_key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:handler:1:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:Response:call:2:15",
+      "name": "Response",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "start_line": 2,
+      "start_column": 15,
+      "end_line": 2,
+      "end_column": 23,
+      "start_byte": 68,
+      "end_byte": 76,
+      "containing_key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:handler:1:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:Response:type_usage:1:41",
+      "name": "Response",
+      "kind": "type_usage",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "start_line": 1,
+      "start_column": 41,
+      "end_line": 1,
+      "end_column": 49,
+      "start_byte": 41,
+      "end_byte": 49,
+      "containing_key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:handler:1:7",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:handler:1:0",
+      "resolved_type": "Promise<any>",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "typescript",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nextjs.file_route.v1",
+      "capture_name": "file_route",
+      "node_kind": "file",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 86,
+      "confidence": "1.000",
+      "metadata": {
+        "file_convention": "page",
+        "framework": "nextjs",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_path": "/api/status",
+        "router": "pages",
+        "source_kind": "nextjs_file_route"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "covered_lines": 4,
+      "covered_bytes": 86,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 86,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:handler:1:7",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "covered_lines": 3,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 51,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 51,
+      "end_byte": 85,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "containing_key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:handler:1:7",
+      "start_line": 2,
+      "start_column": 24,
+      "end_line": 2,
+      "end_column": 28,
+      "start_byte": 77,
+      "end_byte": 81,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts:Promise:type_usage:1:33",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "Response",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

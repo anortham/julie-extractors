@@ -110,6 +110,75 @@ static IResult DeleteTodo(int id) => Results.Ok();
 }
 
 #[test]
+fn csharp_minimal_api_route_groups_emit_group_and_effective_route_facts() {
+    let source = r#"using Microsoft.AspNetCore.Builder;
+
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+var admin = app.MapGroup("/admin/connectors");
+admin.MapPost("/save", SaveAsync);
+admin.MapGet("/preview-email", PreviewEmailAsync);
+
+RouteGroupBuilder reports = app.MapGroup("/reports");
+reports.MapGet("/daily", () => Results.Ok());
+
+app.MapGet("/health", () => "ok");
+
+// var skipped = app.MapGroup("/commented");
+var text = "app.MapGroup(\"/string\")";
+
+static IResult SaveAsync() => Results.Ok();
+static IResult PreviewEmailAsync() => Results.Ok();
+"#;
+
+    let results = extract("src/Program.cs", source);
+    let groups = facts_with_pattern(&results, "aspnet.minimal_api.route_group.v1");
+    assert_eq!(groups.len(), 2);
+    assert_eq!(
+        groups
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "route_prefix"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/admin/connectors", "/reports"])
+    );
+    let admin_group = groups
+        .iter()
+        .find(|fact| metadata_str(fact, "group_variable") == Some("admin"))
+        .expect("expected admin route group fact");
+    assert_common_framework_fact(admin_group, "route_group", "framework");
+    assert_eq!(metadata_str(admin_group, "framework"), Some("aspnet"));
+    assert_eq!(metadata_str(admin_group, "api_style"), Some("minimal_api"));
+    assert_eq!(
+        metadata_str(admin_group, "route_source"),
+        Some("string_literal")
+    );
+    assert_eq!(metadata_str(admin_group, "source_kind"), Some("map_group"));
+
+    let routes = facts_with_pattern(&results, "aspnet.minimal_api.route.v1");
+    let save = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/save"))
+        .expect("expected grouped save route fact");
+    assert_eq!(
+        metadata_str(save, "route_group_prefix"),
+        Some("/admin/connectors")
+    );
+    assert_eq!(
+        metadata_str(save, "effective_route_template"),
+        Some("/admin/connectors/save")
+    );
+    assert_eq!(metadata_str(save, "route_group_source"), Some("map_group"));
+
+    let health = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/health"))
+        .expect("expected ungrouped health route fact");
+    assert_eq!(metadata_str(health, "route_group_prefix"), None);
+    assert_eq!(metadata_str(health, "effective_route_template"), None);
+}
+
+#[test]
 fn html_htmx_and_alpine_attributes_emit_structural_facts() {
     let source = r##"<div id="list"
     hx-get="/todos"

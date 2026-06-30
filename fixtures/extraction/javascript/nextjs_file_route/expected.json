@@ -1,0 +1,157 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js:Page:1:0",
+      "name": "Page",
+      "kind": "export",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 51,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 31,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 31,
+        "end_byte": 51
+      },
+      "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
+      "signature": "export default function Page() {\n    return null;\n}",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "Page",
+        "isDefault": true,
+        "isNamed": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js:Page:1:15",
+      "name": "Page",
+      "kind": "function",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 15,
+      "end_byte": 51,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 31,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 31,
+        "end_byte": 51
+      },
+      "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
+      "signature": "function Page()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js:Page:1:0",
+      "metadata": {
+        "isArrowFunction": false,
+        "isAsync": false,
+        "isExpression": false,
+        "isGenerator": false,
+        "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nextjs.file_route.v1",
+      "capture_name": "file_route",
+      "node_kind": "file",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 52,
+      "confidence": "1.000",
+      "metadata": {
+        "file_convention": "page",
+        "framework": "nextjs",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_path": "/blog",
+        "router": "app",
+        "source_kind": "nextjs_file_route"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js",
+      "covered_lines": 4,
+      "covered_bytes": 52,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 52,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js:Page:1:15",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js",
+      "covered_lines": 3,
+      "covered_bytes": 20,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 31,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 31,
+      "end_byte": 51,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

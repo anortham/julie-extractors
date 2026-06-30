@@ -7,6 +7,9 @@ app.MapGet("/todos", () => "ok");
 app.MapPost("/todos", CreateTodo);
 app.MapDelete("/todos/{id}", DeleteTodo);
 
+var admin = app.MapGroup("/admin/connectors");
+admin.MapPost("/save", CreateTodo);
+
 var dynamicRoute = "/dynamic";
 app.MapGet(dynamicRoute, () => "skip");
 app.MapGet($"/computed/{id}", () => "skip");
