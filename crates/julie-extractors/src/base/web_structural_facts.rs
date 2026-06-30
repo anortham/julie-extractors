@@ -18,6 +18,7 @@ const HTML_FORM_PATTERN_ID: &str = "html.form.v1";
 const HTML_FORM_CONTROL_PATTERN_ID: &str = "html.form_control.v1";
 const VUE_SFC_SECTION_PATTERN_ID: &str = "vue.sfc_section.v1";
 const VUE_TEMPLATE_DIRECTIVE_PATTERN_ID: &str = "vue.template_directive.v1";
+const VUE_ROUTE_REFERENCE_PATTERN_ID: &str = "vue.route_reference.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const CSS_WEB_PATTERN_IDS: &[&str] = &[
@@ -37,6 +38,7 @@ const HTML_WEB_PATTERN_IDS: &[&str] = &[
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const VUE_WEB_PATTERN_IDS: &[&str] = &[
+    VUE_ROUTE_REFERENCE_PATTERN_ID,
     VUE_SFC_SECTION_PATTERN_ID,
     VUE_TEMPLATE_DIRECTIVE_PATTERN_ID,
 ];
@@ -704,7 +706,13 @@ fn collect_vue_structural_facts(file_path: &str, content: &str) -> Vec<Structura
             for attribute in
                 scan_markup_attributes(content, section.content_start, section.content_end)
             {
-                if let Some(directive) = parse_vue_directive(&attribute.name) {
+                let directive = parse_vue_directive(&attribute.name);
+                if let Some(route_fact) =
+                    vue_route_reference_fact(file_path, &attribute, directive.as_ref())
+                {
+                    facts.push(route_fact);
+                }
+                if let Some(directive) = directive {
                     facts.push(vue_template_directive_fact(
                         file_path, &attribute, directive,
                     ));
@@ -767,6 +775,33 @@ fn vue_template_directive_fact(
         attribute.span,
         metadata,
     )
+}
+
+fn vue_route_reference_fact(
+    file_path: &str,
+    attribute: &MarkupAttribute,
+    directive: Option<&VueDirective>,
+) -> Option<StructuralFact> {
+    let reference = vue_route_reference(attribute, directive)?;
+    let mut metadata = base_metadata("frontend_navigation");
+    insert_string(&mut metadata, "framework", "vue");
+    insert_string(&mut metadata, "source_kind", reference.source_kind);
+    insert_string(&mut metadata, "target_path", &reference.target_path);
+    insert_string(&mut metadata, "verb", "GET");
+    insert_string(&mut metadata, "attribute_name", &attribute.name);
+    if let Some(expression) = reference.expression.as_deref() {
+        insert_string(&mut metadata, "expression", expression);
+    }
+
+    Some(fact_for_span(
+        file_path,
+        "vue",
+        VUE_ROUTE_REFERENCE_PATTERN_ID,
+        "route_reference",
+        "template_attribute",
+        attribute.span,
+        metadata,
+    ))
 }
 
 fn fact_for_node(
@@ -957,9 +992,16 @@ fn next_vue_section_start(content: &str, cursor: usize) -> Option<(usize, &'stat
 
 #[derive(Debug)]
 struct MarkupAttribute {
+    tag_name: String,
     name: String,
     value: Option<String>,
     span: NormalizedSpan,
+}
+
+struct VueRouteReference {
+    source_kind: &'static str,
+    target_path: String,
+    expression: Option<String>,
 }
 
 fn scan_markup_attributes(content: &str, start: usize, end: usize) -> Vec<MarkupAttribute> {
@@ -995,6 +1037,10 @@ fn scan_tag_attributes(
     while cursor < tag_end && is_attr_name_byte(bytes[cursor]) {
         cursor += 1;
     }
+    let tag_name = content
+        .get(tag_start + 1..cursor)
+        .unwrap_or_default()
+        .to_ascii_lowercase();
 
     while cursor < tag_end {
         cursor = skip_ascii_whitespace_until(content, cursor, tag_end);
@@ -1031,6 +1077,7 @@ fn scan_tag_attributes(
             continue;
         };
         attributes.push(MarkupAttribute {
+            tag_name: tag_name.clone(),
             name: name.to_string(),
             value,
             span,
@@ -1210,6 +1257,95 @@ fn parse_vue_directive(attribute_name: &str) -> Option<VueDirective> {
         modifiers,
         shorthand: false,
     })
+}
+
+fn vue_route_reference(
+    attribute: &MarkupAttribute,
+    directive: Option<&VueDirective>,
+) -> Option<VueRouteReference> {
+    if is_vue_router_link_tag(&attribute.tag_name) {
+        if attribute.name == "to" {
+            let target_path = attribute.value.as_deref()?.trim();
+            if is_vue_route_path(target_path) {
+                return Some(VueRouteReference {
+                    source_kind: "router_link",
+                    target_path: target_path.to_string(),
+                    expression: None,
+                });
+            }
+        }
+
+        if is_vue_to_binding(directive) {
+            let expression = attribute.value.as_deref()?.trim();
+            let target_path = parse_vue_string_literal(expression)?;
+            if is_vue_route_path(&target_path) {
+                return Some(VueRouteReference {
+                    source_kind: "router_link",
+                    target_path,
+                    expression: Some(expression.to_string()),
+                });
+            }
+        }
+    }
+
+    if directive.is_some_and(|directive| directive.name == "v-on") {
+        let expression = attribute.value.as_deref()?.trim();
+        let target_path = parse_vue_router_navigation_literal(expression)?;
+        return Some(VueRouteReference {
+            source_kind: "router_navigation_expression",
+            target_path,
+            expression: Some(expression.to_string()),
+        });
+    }
+
+    None
+}
+
+fn is_vue_router_link_tag(tag_name: &str) -> bool {
+    matches!(tag_name, "router-link" | "routerlink")
+}
+
+fn is_vue_to_binding(directive: Option<&VueDirective>) -> bool {
+    directive.is_some_and(|directive| {
+        directive.name == "v-bind" && directive.argument.as_deref() == Some("to")
+    })
+}
+
+fn parse_vue_router_navigation_literal(expression: &str) -> Option<String> {
+    let open_paren = expression.find('(')?;
+    let receiver = expression[..open_paren].trim();
+    if !matches!(
+        receiver,
+        "$router.push" | "$router.replace" | "router.push" | "router.replace"
+    ) {
+        return None;
+    }
+
+    let close_paren = expression.rfind(')')?;
+    if !expression[close_paren + 1..].trim().is_empty() {
+        return None;
+    }
+
+    let target_path = parse_vue_string_literal(expression[open_paren + 1..close_paren].trim())?;
+    is_vue_route_path(&target_path).then_some(target_path)
+}
+
+fn parse_vue_string_literal(expression: &str) -> Option<String> {
+    let trimmed = expression.trim();
+    let bytes = trimmed.as_bytes();
+    let quote = *bytes.first()?;
+    if !matches!(quote, b'\'' | b'"') || bytes.last().copied() != Some(quote) {
+        return None;
+    }
+    let inner = trimmed.get(1..trimmed.len().saturating_sub(1))?;
+    if inner.as_bytes().contains(&b'\\') {
+        return None;
+    }
+    Some(inner.to_string())
+}
+
+fn is_vue_route_path(value: &str) -> bool {
+    value.starts_with('/') && !value.starts_with("//")
 }
 
 fn split_argument_and_modifiers(value: &str) -> (Option<String>, Vec<String>) {

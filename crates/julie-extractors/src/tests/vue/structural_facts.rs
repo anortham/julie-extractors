@@ -33,6 +33,13 @@ fn metadata_bool(fact: &StructuralFact, key: &str) -> Option<bool> {
         .and_then(|value| value.as_bool())
 }
 
+fn metadata_i64(fact: &StructuralFact, key: &str) -> Option<i64> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_i64())
+}
+
 fn metadata_array<'a>(fact: &'a StructuralFact, key: &str) -> Vec<&'a str> {
     fact.metadata
         .as_ref()
@@ -137,4 +144,103 @@ function submit() {}
         .expect("expected v-model directive");
     assert_eq!(metadata_array(model, "modifiers"), vec!["trim"]);
     assert_eq!(metadata_str(model, "expression"), Some("title"));
+}
+
+#[test]
+fn vue_emits_route_reference_facts() {
+    let source = r#"<template>
+  <nav>
+    <RouterLink to="/todos">Todos</RouterLink>
+    <router-link to="/admin">Admin</router-link>
+    <RouterLink :to="'/projects'">Projects</RouterLink>
+    <RouterLink :to="computedRoute">Computed</RouterLink>
+    <button @click="$router.push('/settings')">Settings</button>
+    <input v-if="$router.push('/false-positive')" v-model="/model" :class="'/class'" />
+  </nav>
+</template>
+"#;
+
+    let results = extract(source);
+    let route_refs = facts_with_pattern(&results, "vue.route_reference.v1");
+
+    assert_eq!(
+        route_refs
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "target_path"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/admin", "/projects", "/settings", "/todos"])
+    );
+    assert!(
+        route_refs
+            .iter()
+            .all(|fact| metadata_str(fact, "query_family") == Some("frontend_navigation"))
+    );
+    assert!(
+        route_refs
+            .iter()
+            .all(|fact| metadata_str(fact, "framework") == Some("vue"))
+    );
+    assert!(
+        route_refs
+            .iter()
+            .all(|fact| metadata_str(fact, "verb") == Some("GET"))
+    );
+    assert!(
+        route_refs
+            .iter()
+            .all(|fact| metadata_i64(fact, "pattern_version") == Some(1))
+    );
+
+    let todos = route_refs
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/todos"))
+        .expect("expected plain RouterLink to route fact");
+    assert_eq!(metadata_str(todos, "source_kind"), Some("router_link"));
+    assert_eq!(metadata_str(todos, "attribute_name"), Some("to"));
+    assert_eq!(metadata_str(todos, "expression"), None);
+
+    let admin = route_refs
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/admin"))
+        .expect("expected plain router-link to route fact");
+    assert_eq!(metadata_str(admin, "source_kind"), Some("router_link"));
+    assert_eq!(metadata_str(admin, "attribute_name"), Some("to"));
+
+    let projects = route_refs
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/projects"))
+        .expect("expected bound literal RouterLink route fact");
+    assert_eq!(metadata_str(projects, "source_kind"), Some("router_link"));
+    assert_eq!(metadata_str(projects, "attribute_name"), Some(":to"));
+    assert_eq!(metadata_str(projects, "expression"), Some("'/projects'"));
+
+    let settings = route_refs
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/settings"))
+        .expect("expected router push route fact");
+    assert_eq!(
+        metadata_str(settings, "source_kind"),
+        Some("router_navigation_expression")
+    );
+    assert_eq!(metadata_str(settings, "attribute_name"), Some("@click"));
+    assert_eq!(
+        metadata_str(settings, "expression"),
+        Some("$router.push('/settings')")
+    );
+
+    assert!(
+        route_refs
+            .iter()
+            .all(|fact| metadata_str(fact, "target_path") != Some("/false-positive"))
+    );
+    assert!(
+        route_refs
+            .iter()
+            .all(|fact| metadata_str(fact, "target_path") != Some("/model"))
+    );
+    assert!(
+        route_refs
+            .iter()
+            .all(|fact| metadata_str(fact, "target_path") != Some("/class"))
+    );
 }
