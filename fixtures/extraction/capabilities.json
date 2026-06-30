@@ -1526,6 +1526,7 @@
         },
         "structural_facts": {
           "supported": [
+            "vue.route_reference.v1",
             "vue.sfc_section.v1",
             "vue.template_directive.v1"
           ],
