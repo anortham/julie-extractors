@@ -1172,13 +1172,15 @@ fn collect_react_router_jsx_route_definitions(
         facts.push(react_route_definition_fact(
             file_path,
             language,
-            "jsx_route",
-            path.map(|(value, _)| value),
-            index_route,
-            route_component,
-            None,
-            span,
-            "jsx_element",
+            ReactRouteDefinitionFact {
+                source_kind: "jsx_route",
+                route_path: path.map(|(value, _)| value),
+                index_route,
+                route_component,
+                route_id: None,
+                span,
+                node_kind: "jsx_element",
+            },
         ));
     }
 
@@ -1231,13 +1233,15 @@ fn collect_react_router_route_object_definitions(
         facts.push(react_route_definition_fact(
             file_path,
             language,
-            "route_object",
-            Some(route_path),
-            false,
-            react_route_object_component_name(content, span_start, span_end),
-            parse_object_string_property(content, span_start, span_end, "id"),
-            span,
-            "object",
+            ReactRouteDefinitionFact {
+                source_kind: "route_object",
+                route_path: Some(route_path),
+                index_route: false,
+                route_component: react_route_object_component_name(content, span_start, span_end),
+                route_id: parse_object_string_property(content, span_start, span_end, "id"),
+                span,
+                node_kind: "object",
+            },
         ));
     }
 
@@ -1279,47 +1283,53 @@ fn collect_react_router_route_object_definitions(
         facts.push(react_route_definition_fact(
             file_path,
             language,
-            "route_object",
-            None,
-            true,
-            react_route_object_component_name(content, span_start, span_end),
-            parse_object_string_property(content, span_start, span_end, "id"),
-            span,
-            "object",
+            ReactRouteDefinitionFact {
+                source_kind: "route_object",
+                route_path: None,
+                index_route: true,
+                route_component: react_route_object_component_name(content, span_start, span_end),
+                route_id: parse_object_string_property(content, span_start, span_end, "id"),
+                span,
+                node_kind: "object",
+            },
         ));
     }
 
     facts
 }
 
-fn react_route_definition_fact(
-    file_path: &str,
-    language: &str,
-    source_kind: &str,
+struct ReactRouteDefinitionFact<'a> {
+    source_kind: &'a str,
     route_path: Option<String>,
     index_route: bool,
     route_component: Option<String>,
     route_id: Option<String>,
     span: NormalizedSpan,
-    node_kind: &str,
+    node_kind: &'a str,
+}
+
+fn react_route_definition_fact(
+    file_path: &str,
+    language: &str,
+    fact: ReactRouteDefinitionFact<'_>,
 ) -> StructuralFact {
     let mut metadata = base_metadata("frontend_navigation");
     insert_string(&mut metadata, "framework", "react");
     insert_string(&mut metadata, "library", "react_router");
-    insert_string(&mut metadata, "source_kind", source_kind);
-    if let Some(route_path) = route_path {
+    insert_string(&mut metadata, "source_kind", fact.source_kind);
+    if let Some(route_path) = fact.route_path {
         insert_string(&mut metadata, "route_path", &route_path);
         insert_string(&mut metadata, "route_source", "string_literal");
-    } else if index_route {
+    } else if fact.index_route {
         insert_string(&mut metadata, "route_source", "index_route");
     }
-    if index_route {
+    if fact.index_route {
         metadata.insert("index_route".to_string(), Value::Bool(true));
     }
-    if let Some(route_component) = route_component {
+    if let Some(route_component) = fact.route_component {
         insert_string(&mut metadata, "route_component", &route_component);
     }
-    if let Some(route_id) = route_id {
+    if let Some(route_id) = fact.route_id {
         insert_string(&mut metadata, "route_id", &route_id);
     }
 
@@ -1328,8 +1338,8 @@ fn react_route_definition_fact(
         language,
         REACT_ROUTE_DEFINITION_PATTERN_ID,
         "route_definition",
-        node_kind,
-        span,
+        fact.node_kind,
+        fact.span,
         metadata,
     )
 }
