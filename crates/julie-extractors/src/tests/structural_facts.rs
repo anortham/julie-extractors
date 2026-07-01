@@ -179,6 +179,31 @@ static IResult PreviewEmailAsync() => Results.Ok();
 }
 
 #[test]
+fn csharp_minimal_api_chained_route_groups_emit_effective_route_facts() {
+    let source = r#"using Microsoft.AspNetCore.Builder;
+
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapGroup("/admin").MapGet("/users", () => "ok");
+"#;
+
+    let results = extract("src/Program.cs", source);
+    let routes = facts_with_pattern(&results, "aspnet.minimal_api.route.v1");
+    let users = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/users"))
+        .expect("expected chained group route fact");
+
+    assert_eq!(metadata_str(users, "route_group_prefix"), Some("/admin"));
+    assert_eq!(
+        metadata_str(users, "effective_route_template"),
+        Some("/admin/users")
+    );
+    assert_eq!(metadata_str(users, "route_group_source"), Some("map_group"));
+}
+
+#[test]
 fn html_htmx_and_alpine_attributes_emit_structural_facts() {
     let source = r##"<div id="list"
     hx-get="/todos"

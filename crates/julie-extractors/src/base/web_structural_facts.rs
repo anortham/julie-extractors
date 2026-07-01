@@ -78,9 +78,9 @@ pub fn collect_web_structural_facts(
     let mut facts = match language {
         "css" => collect_css_structural_facts(tree, file_path, content),
         "html" => collect_html_structural_facts(tree, file_path, content),
-        "vue" => collect_vue_structural_facts(file_path, content),
+        "vue" => collect_vue_structural_facts(tree, file_path, content),
         "javascript" | "jsx" | "typescript" | "tsx" => {
-            collect_react_nextjs_structural_facts(language, file_path, content)
+            collect_react_nextjs_structural_facts(language, tree, file_path, content)
         }
         _ => Vec::new(),
     };
@@ -726,7 +726,11 @@ fn insert_optional_string(
     }
 }
 
-fn collect_vue_structural_facts(file_path: &str, content: &str) -> Vec<StructuralFact> {
+fn collect_vue_structural_facts(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
 
     if let Some(fact) = nuxt_file_route_fact("vue", file_path, content) {
@@ -754,7 +758,9 @@ fn collect_vue_structural_facts(file_path: &str, content: &str) -> Vec<Structura
                 }
             }
         } else if section.section_type == "script" {
-            facts.extend(collect_vue_route_definitions(file_path, content, &section));
+            facts.extend(collect_vue_route_definitions(
+                tree, file_path, content, &section,
+            ));
         }
     }
 
@@ -905,81 +911,123 @@ fn collect_nuxt_route_references(
 }
 
 fn collect_vue_route_definitions(
+    tree: &Tree,
     file_path: &str,
     content: &str,
     section: &VueSectionSpan,
 ) -> Vec<StructuralFact> {
     let imports = collect_vue_static_imports(content, section);
     let mut facts = Vec::new();
-    let mut cursor = section.content_start;
+    let ranges = vue_route_definition_ranges(content, section);
 
-    while cursor < section.content_end {
-        let Some(relative_path_start) = content[cursor..section.content_end].find("path") else {
-            break;
-        };
-        let path_start = cursor + relative_path_start;
-        cursor = path_start + "path".len();
+    for (range_start, range_end) in ranges {
+        let mut cursor = range_start;
+        while cursor < range_end {
+            let Some(relative_path_start) = content[cursor..range_end].find("path") else {
+                break;
+            };
+            let path_start = cursor + relative_path_start;
+            cursor = path_start + "path".len();
 
-        if !is_identifier_boundary(content, path_start, "path".len()) {
-            continue;
+            if !is_identifier_boundary(content, path_start, "path".len()) {
+                continue;
+            }
+            if is_ignored_syntax_range(tree, path_start, cursor) {
+                continue;
+            }
+            let colon = skip_ascii_whitespace_until(content, cursor, range_end);
+            if content.as_bytes().get(colon) != Some(&b':') {
+                continue;
+            }
+            let value_start = skip_ascii_whitespace_until(content, colon + 1, range_end);
+            let Some((target_path, path_end)) = parse_js_string_literal(content, value_start)
+                .filter(|(value, end)| *end <= range_end && is_static_route_path(value))
+            else {
+                continue;
+            };
+
+            let (span_start, span_end) =
+                find_enclosing_object_range(content, range_start, range_end, path_start)
+                    .unwrap_or((path_start, path_end));
+            let Some(span) = NormalizedSpan::from_content_range(content, span_start, span_end)
+            else {
+                continue;
+            };
+
+            let route_name = parse_object_string_property(content, span_start, span_end, "name");
+            let component_name =
+                parse_object_identifier_property(content, span_start, span_end, "component");
+            let component_path = component_name
+                .as_ref()
+                .and_then(|name| imports.get(name))
+                .cloned();
+
+            let mut metadata = base_metadata("frontend_navigation");
+            insert_string(&mut metadata, "framework", "vue");
+            insert_string(&mut metadata, "target_path", &target_path);
+            insert_string(&mut metadata, "source_kind", "vue_router_route");
+            insert_string(&mut metadata, "route_source", "string_literal");
+            if let Some(route_name) = route_name {
+                insert_string(&mut metadata, "route_name", &route_name);
+            }
+            if let Some(component_name) = component_name {
+                insert_string(&mut metadata, "component_name", &component_name);
+            }
+            if let Some(component_path) = component_path {
+                insert_string(&mut metadata, "component_path", &component_path);
+            }
+
+            facts.push(fact_for_span(
+                file_path,
+                "vue",
+                VUE_ROUTE_DEFINITION_PATTERN_ID,
+                "route_definition",
+                "object",
+                span,
+                metadata,
+            ));
         }
-        let colon = skip_ascii_whitespace_until(content, cursor, section.content_end);
-        if content.as_bytes().get(colon) != Some(&b':') {
-            continue;
-        }
-        let value_start = skip_ascii_whitespace_until(content, colon + 1, section.content_end);
-        let Some((target_path, path_end)) = parse_js_string_literal(content, value_start)
-            .filter(|(value, end)| *end <= section.content_end && is_static_route_path(value))
-        else {
-            continue;
-        };
-
-        let (span_start, span_end) = find_enclosing_object_range(
-            content,
-            section.content_start,
-            section.content_end,
-            path_start,
-        )
-        .unwrap_or((path_start, path_end));
-        let Some(span) = NormalizedSpan::from_content_range(content, span_start, span_end) else {
-            continue;
-        };
-
-        let route_name = parse_object_string_property(content, span_start, span_end, "name");
-        let component_name =
-            parse_object_identifier_property(content, span_start, span_end, "component");
-        let component_path = component_name
-            .as_ref()
-            .and_then(|name| imports.get(name))
-            .cloned();
-
-        let mut metadata = base_metadata("frontend_navigation");
-        insert_string(&mut metadata, "framework", "vue");
-        insert_string(&mut metadata, "target_path", &target_path);
-        insert_string(&mut metadata, "source_kind", "vue_router_route");
-        insert_string(&mut metadata, "route_source", "string_literal");
-        if let Some(route_name) = route_name {
-            insert_string(&mut metadata, "route_name", &route_name);
-        }
-        if let Some(component_name) = component_name {
-            insert_string(&mut metadata, "component_name", &component_name);
-        }
-        if let Some(component_path) = component_path {
-            insert_string(&mut metadata, "component_path", &component_path);
-        }
-
-        facts.push(fact_for_span(
-            file_path,
-            "vue",
-            VUE_ROUTE_DEFINITION_PATTERN_ID,
-            "route_definition",
-            "object",
-            span,
-            metadata,
-        ));
     }
 
     facts
+}
+
+fn vue_route_definition_ranges(content: &str, section: &VueSectionSpan) -> Vec<(usize, usize)> {
+    let mut ranges = Vec::new();
+
+    if let Some(range) = find_js_array_initializer_range_in(
+        content,
+        "routes",
+        section.content_start,
+        section.content_end,
+    ) {
+        ranges.push(range);
+    }
+
+    let mut cursor = section.content_start;
+    while cursor < section.content_end {
+        let Some(relative_start) = content[cursor..section.content_end].find("createRouter") else {
+            break;
+        };
+        let api_start = cursor + relative_start;
+        cursor = api_start + "createRouter".len();
+        if !is_identifier_boundary(content, api_start, "createRouter".len()) {
+            continue;
+        }
+        let open_paren = skip_ascii_whitespace_until(content, cursor, section.content_end);
+        if content.as_bytes().get(open_paren) != Some(&b'(') {
+            continue;
+        }
+        let Some(close_paren) = find_matching_paren(content, open_paren, section.content_end)
+        else {
+            continue;
+        };
+        ranges.push((open_paren + 1, close_paren));
+    }
+
+    ranges.sort_unstable();
+    ranges.dedup();
+    ranges
 }
 
 #[derive(Debug, Default)]
@@ -1008,19 +1056,20 @@ struct NextFileRoute {
 
 fn collect_react_nextjs_structural_facts(
     language: &str,
+    tree: &Tree,
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
     let imports = collect_js_imports(content);
     let mut facts = Vec::new();
     facts.extend(collect_react_router_route_references(
-        language, file_path, content, &imports,
+        language, tree, file_path, content, &imports,
     ));
     facts.extend(collect_react_router_route_definitions(
-        language, file_path, content, &imports,
+        language, tree, file_path, content, &imports,
     ));
     facts.extend(collect_nextjs_route_references(
-        language, file_path, content, &imports,
+        language, tree, file_path, content, &imports,
     ));
     if let Some(fact) = nextjs_file_route_fact(language, file_path, content) {
         facts.push(fact);
@@ -1045,15 +1094,7 @@ fn collect_js_imports(content: &str) -> JsImportIndex {
             continue;
         }
 
-        let statement_end = content[import_start..]
-            .find(';')
-            .map(|relative_end| import_start + relative_end + 1)
-            .or_else(|| {
-                content[import_start..]
-                    .find('\n')
-                    .map(|relative_end| import_start + relative_end)
-            })
-            .unwrap_or(content.len());
+        let statement_end = js_import_statement_end(content, import_start);
         let Some(statement) = content.get(import_start..statement_end) else {
             continue;
         };
@@ -1096,6 +1137,50 @@ fn collect_js_imports(content: &str) -> JsImportIndex {
     }
 
     imports
+}
+
+fn js_import_statement_end(content: &str, import_start: usize) -> usize {
+    let bytes = content.as_bytes();
+    let mut cursor = import_start;
+    let mut brace_depth = 0usize;
+    let mut paren_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut quote = None;
+    let mut escaped = false;
+
+    while cursor < bytes.len() {
+        let byte = bytes[cursor];
+        if let Some(active_quote) = quote {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == active_quote {
+                quote = None;
+            }
+        } else if byte == b'\'' || byte == b'"' {
+            quote = Some(byte);
+        } else if byte == b'{' {
+            brace_depth += 1;
+        } else if byte == b'}' {
+            brace_depth = brace_depth.saturating_sub(1);
+        } else if byte == b'(' {
+            paren_depth += 1;
+        } else if byte == b')' {
+            paren_depth = paren_depth.saturating_sub(1);
+        } else if byte == b'[' {
+            bracket_depth += 1;
+        } else if byte == b']' {
+            bracket_depth = bracket_depth.saturating_sub(1);
+        } else if byte == b';' && brace_depth == 0 && paren_depth == 0 && bracket_depth == 0 {
+            return cursor + 1;
+        } else if byte == b'\n' && brace_depth == 0 && paren_depth == 0 && bracket_depth == 0 {
+            return cursor;
+        }
+        cursor += 1;
+    }
+
+    content.len()
 }
 
 fn parse_import_source(statement: &str) -> Option<String> {
@@ -1152,6 +1237,7 @@ fn parse_default_import(statement: &str) -> Option<String> {
 
 fn collect_react_router_route_references(
     language: &str,
+    tree: &Tree,
     file_path: &str,
     content: &str,
     imports: &JsImportIndex,
@@ -1165,6 +1251,9 @@ fn collect_react_router_route_references(
             break;
         };
         cursor = tag_end + 1;
+        if is_ignored_syntax_range(tree, tag_start, tag_end + 1) {
+            continue;
+        }
         let Some(import_source) = imports.react_router_links.get(tag_name) else {
             continue;
         };
@@ -1201,20 +1290,22 @@ fn collect_react_router_route_references(
 
 fn collect_react_router_route_definitions(
     language: &str,
+    tree: &Tree,
     file_path: &str,
     content: &str,
     imports: &JsImportIndex,
 ) -> Vec<StructuralFact> {
     let mut facts =
-        collect_react_router_jsx_route_definitions(language, file_path, content, imports);
+        collect_react_router_jsx_route_definitions(language, tree, file_path, content, imports);
     facts.extend(collect_react_router_route_object_definitions(
-        language, file_path, content, imports,
+        language, tree, file_path, content, imports,
     ));
     facts
 }
 
 fn collect_react_router_jsx_route_definitions(
     language: &str,
+    tree: &Tree,
     file_path: &str,
     content: &str,
     imports: &JsImportIndex,
@@ -1228,6 +1319,9 @@ fn collect_react_router_jsx_route_definitions(
             break;
         };
         cursor = tag_end + 1;
+        if is_ignored_syntax_range(tree, tag_start, tag_end + 1) {
+            continue;
+        }
         if !imports.react_router_routes.contains_key(tag_name) {
             continue;
         }
@@ -1266,6 +1360,7 @@ fn collect_react_router_jsx_route_definitions(
 
 fn collect_react_router_route_object_definitions(
     language: &str,
+    tree: &Tree,
     file_path: &str,
     content: &str,
     imports: &JsImportIndex,
@@ -1275,7 +1370,7 @@ fn collect_react_router_route_object_definitions(
     }
 
     let mut facts = Vec::new();
-    for (range_start, range_end) in react_router_route_api_argument_ranges(content, imports) {
+    for (range_start, range_end) in react_router_route_api_argument_ranges(tree, content, imports) {
         let mut cursor = range_start;
         while cursor < range_end {
             let Some(relative_path_start) = content[cursor..range_end].find("path") else {
@@ -1284,6 +1379,9 @@ fn collect_react_router_route_object_definitions(
             let path_start = cursor + relative_path_start;
             cursor = path_start + "path".len();
             if !is_identifier_boundary(content, path_start, "path".len()) {
+                continue;
+            }
+            if is_ignored_syntax_range(tree, path_start, cursor) {
                 continue;
             }
             let colon = skip_ascii_whitespace_until(content, cursor, range_end);
@@ -1336,6 +1434,9 @@ fn collect_react_router_route_object_definitions(
             if !is_identifier_boundary(content, index_start, "index".len()) {
                 continue;
             }
+            if is_ignored_syntax_range(tree, index_start, cursor) {
+                continue;
+            }
             let colon = skip_ascii_whitespace_until(content, cursor, range_end);
             if content.as_bytes().get(colon) != Some(&b':') {
                 continue;
@@ -1381,6 +1482,7 @@ fn collect_react_router_route_object_definitions(
 }
 
 fn react_router_route_api_argument_ranges(
+    tree: &Tree,
     content: &str,
     imports: &JsImportIndex,
 ) -> Vec<(usize, usize)> {
@@ -1394,6 +1496,9 @@ fn react_router_route_api_argument_ranges(
             let api_start = cursor + relative_start;
             cursor = api_start + api_name.len();
             if !is_identifier_boundary(content, api_start, api_name.len()) {
+                continue;
+            }
+            if is_ignored_syntax_range(tree, api_start, cursor) {
                 continue;
             }
             let open_paren = skip_ascii_whitespace_until(content, cursor, content.len());
@@ -1487,6 +1592,7 @@ fn parse_object_jsx_element_property_component(
 
 fn collect_nextjs_route_references(
     language: &str,
+    tree: &Tree,
     file_path: &str,
     content: &str,
     imports: &JsImportIndex,
@@ -1500,6 +1606,9 @@ fn collect_nextjs_route_references(
             break;
         };
         cursor = tag_end + 1;
+        if is_ignored_syntax_range(tree, tag_start, tag_end + 1) {
+            continue;
+        }
         let Some(import_source) = imports.next_links.get(tag_name) else {
             continue;
         };
@@ -1544,6 +1653,9 @@ fn nextjs_file_route_fact(
     content: &str,
 ) -> Option<StructuralFact> {
     let route = nextjs_file_route(file_path)?;
+    if route.router == "pages" && has_nuxt_page_signal(content) {
+        return None;
+    }
     let span = NormalizedSpan::from_content_range(content, 0, content.len())?;
     let mut metadata = base_metadata("frontend_navigation");
     insert_string(&mut metadata, "framework", "nextjs");
@@ -1578,6 +1690,13 @@ fn nextjs_file_route_fact(
 
 fn nuxt_file_route_fact(language: &str, file_path: &str, content: &str) -> Option<StructuralFact> {
     let route = nuxt_file_route(file_path)?;
+    if route.router == "pages"
+        && is_non_vue_file_path(file_path)
+        && !has_nuxt_page_signal(content)
+        && !has_nuxt_app_pages_route(file_path)
+    {
+        return None;
+    }
     let span = NormalizedSpan::from_content_range(content, 0, content.len())?;
     let mut metadata = base_metadata("frontend_navigation");
     insert_string(&mut metadata, "framework", "nuxt");
@@ -1616,11 +1735,19 @@ fn nextjs_file_route(file_path: &str) -> Option<NextFileRoute> {
         .split('/')
         .filter(|segment| !segment.is_empty())
         .collect::<Vec<_>>();
-    if let Some(app_index) = segments.iter().position(|segment| *segment == "app") {
-        return nextjs_app_file_route(&segments, app_index);
-    }
-    if let Some(pages_index) = segments.iter().position(|segment| *segment == "pages") {
-        return nextjs_pages_file_route(&segments, pages_index);
+    if let Some(route) = segments
+        .iter()
+        .enumerate()
+        .rev()
+        .find_map(|(index, segment)| match *segment {
+            "app" => nextjs_app_file_route(&segments, index),
+            "pages" if segments.get(index.wrapping_sub(1)) != Some(&"app") => {
+                nextjs_pages_file_route(&segments, index)
+            }
+            _ => None,
+        })
+    {
+        return Some(route);
     }
     None
 }
@@ -1633,11 +1760,18 @@ fn nuxt_file_route(file_path: &str) -> Option<NextFileRoute> {
         .collect::<Vec<_>>();
     if let Some(app_index) = segments
         .windows(2)
-        .position(|window| window == ["app", "pages"])
+        .enumerate()
+        .rev()
+        .find_map(|(index, window)| (window == ["app", "pages"]).then_some(index))
     {
         return nuxt_pages_file_route(&segments, app_index + 1);
     }
-    if let Some(pages_index) = segments.iter().position(|segment| *segment == "pages") {
+    if let Some(pages_index) = segments
+        .iter()
+        .enumerate()
+        .rev()
+        .find_map(|(index, segment)| (*segment == "pages").then_some(index))
+    {
         return nuxt_pages_file_route(&segments, pages_index);
     }
     None
@@ -1771,7 +1905,7 @@ fn nextjs_dynamic_segment_metadata(segment: &str) -> Option<(String, String)> {
             .trim_start_matches("[[...")
             .trim_end_matches("]]")
             .to_string();
-        return Some((name.clone(), format!(":{name}*")));
+        return Some((name.clone(), format!(":{name}*?")));
     }
     if segment.starts_with("[...") && segment.ends_with(']') {
         let name = segment
@@ -1801,6 +1935,39 @@ fn is_javascript_like_extension(extension: &str) -> bool {
 
 fn is_nuxt_page_extension(extension: &str) -> bool {
     matches!(extension, "vue" | "js" | "jsx" | "mjs" | "ts" | "tsx")
+}
+
+fn is_non_vue_file_path(file_path: &str) -> bool {
+    let normalized = file_path.replace('\\', "/");
+    let Some(file_name) = normalized.split('/').rfind(|segment| !segment.is_empty()) else {
+        return false;
+    };
+    split_file_name(file_name).is_some_and(|(_, extension)| extension != "vue")
+}
+
+fn has_nuxt_app_pages_route(file_path: &str) -> bool {
+    let normalized = file_path.replace('\\', "/");
+    normalized
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>()
+        .windows(2)
+        .any(|window| window == ["app", "pages"])
+}
+
+fn has_nuxt_page_signal(content: &str) -> bool {
+    [
+        "defineComponent",
+        "defineNuxtComponent",
+        "definePageMeta",
+        "defineNuxtRouteMiddleware",
+        "useNuxtApp",
+        "#app",
+        "#imports",
+        "nuxt/app",
+    ]
+    .iter()
+    .any(|signal| content.contains(signal))
 }
 
 fn next_markup_tag(content: &str, start: usize, end: usize) -> Option<(usize, usize, &str)> {
@@ -1932,18 +2099,37 @@ fn find_jsx_attribute(
     tag_end: usize,
     attribute_name: &str,
 ) -> Option<JsxAttributeSpan> {
+    let bytes = content.as_bytes();
     let mut cursor = tag_start + 1;
+    while cursor < tag_end && is_attr_name_byte(bytes[cursor]) {
+        cursor += 1;
+    }
+
     while cursor < tag_end {
-        let Some(relative_start) = content[cursor..tag_end].find(attribute_name) else {
-            break;
-        };
-        let attribute_start = cursor + relative_start;
-        cursor = attribute_start + attribute_name.len();
-        if !is_identifier_boundary(content, attribute_start, attribute_name.len()) {
+        cursor = skip_ascii_whitespace_until(content, cursor, tag_end);
+        if cursor >= tag_end || bytes[cursor] == b'/' {
+            cursor += 1;
             continue;
         }
+
+        let attribute_start = cursor;
+        while cursor < tag_end && is_attr_name_byte(bytes[cursor]) {
+            cursor += 1;
+        }
+        if cursor == attribute_start {
+            cursor += 1;
+            continue;
+        }
+
+        let attribute_end = cursor;
+        let Some(name) = content.get(attribute_start..attribute_end) else {
+            continue;
+        };
         let after_name = skip_ascii_whitespace_until(content, cursor, tag_end);
         if content.as_bytes().get(after_name) != Some(&b'=') {
+            if name != attribute_name {
+                continue;
+            }
             let span = NormalizedSpan::from_content_range(content, attribute_start, cursor)?;
             return Some(JsxAttributeSpan {
                 value_start: None,
@@ -1953,6 +2139,10 @@ fn find_jsx_attribute(
         }
         let value_start = skip_ascii_whitespace_until(content, after_name + 1, tag_end);
         let value_end = jsx_attribute_value_end(content, value_start, tag_end)?;
+        cursor = value_end;
+        if name != attribute_name {
+            continue;
+        }
         let span = NormalizedSpan::from_content_range(content, attribute_start, value_end)?;
         return Some(JsxAttributeSpan {
             value_start: Some(value_start),
@@ -1985,7 +2175,8 @@ fn jsx_attribute_value_end(content: &str, value_start: usize, tag_end: usize) ->
 }
 
 fn is_static_react_route_path(value: &str) -> bool {
-    !value.trim().is_empty()
+    let value = value.trim();
+    !value.is_empty() && !value.starts_with("//") && !value.contains("://")
 }
 
 fn markup_tag_name(content: &str, tag_start: usize, tag_end: usize) -> Option<&str> {
@@ -2163,6 +2354,63 @@ fn is_js_identifier_byte(byte: u8) -> bool {
     is_js_identifier_start_byte(byte) || byte.is_ascii_digit()
 }
 
+fn is_ignored_syntax_range(tree: &Tree, start_byte: usize, end_byte: usize) -> bool {
+    smallest_node_covering_range(tree.root_node(), start_byte, end_byte)
+        .is_some_and(|node| node_or_parent_is_comment_or_string(node))
+}
+
+fn smallest_node_covering_range<'tree>(
+    node: Node<'tree>,
+    start_byte: usize,
+    end_byte: usize,
+) -> Option<Node<'tree>> {
+    smallest_node_covering_range_at_depth(node, start_byte, end_byte, 0)
+}
+
+fn smallest_node_covering_range_at_depth<'tree>(
+    node: Node<'tree>,
+    start_byte: usize,
+    end_byte: usize,
+    depth: u32,
+) -> Option<Node<'tree>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    if node.start_byte() > start_byte || node.end_byte() < end_byte {
+        return None;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return Some(node);
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if let Some(found) =
+            smallest_node_covering_range_at_depth(child, start_byte, end_byte, child_depth)
+        {
+            return Some(found);
+        }
+    }
+
+    Some(node)
+}
+
+fn node_or_parent_is_comment_or_string(mut node: Node<'_>) -> bool {
+    loop {
+        if is_comment_or_string_node(node.kind()) {
+            return true;
+        }
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        node = parent;
+    }
+}
+
+fn is_comment_or_string_node(node_kind: &str) -> bool {
+    node_kind.contains("comment") || node_kind.contains("string")
+}
+
 fn find_enclosing_object_range(
     content: &str,
     start: usize,
@@ -2333,9 +2581,18 @@ fn find_top_level_comma_or_end(content: &str, start: usize, end: usize) -> usize
 }
 
 fn find_js_array_initializer_range(content: &str, identifier: &str) -> Option<(usize, usize)> {
-    let mut cursor = 0;
-    while cursor < content.len() {
-        let Some(relative_start) = content[cursor..].find(identifier) else {
+    find_js_array_initializer_range_in(content, identifier, 0, content.len())
+}
+
+fn find_js_array_initializer_range_in(
+    content: &str,
+    identifier: &str,
+    start: usize,
+    end: usize,
+) -> Option<(usize, usize)> {
+    let mut cursor = start;
+    while cursor < end {
+        let Some(relative_start) = content[cursor..end].find(identifier) else {
             break;
         };
         let identifier_start = cursor + relative_start;
@@ -2343,15 +2600,15 @@ fn find_js_array_initializer_range(content: &str, identifier: &str) -> Option<(u
         if !is_identifier_boundary(content, identifier_start, identifier.len()) {
             continue;
         }
-        let equals = skip_ascii_whitespace_until(content, cursor, content.len());
+        let equals = skip_ascii_whitespace_until(content, cursor, end);
         if content.as_bytes().get(equals) != Some(&b'=') {
             continue;
         }
-        let array_start = skip_ascii_whitespace_until(content, equals + 1, content.len());
+        let array_start = skip_ascii_whitespace_until(content, equals + 1, end);
         if content.as_bytes().get(array_start) != Some(&b'[') {
             continue;
         }
-        let array_end = find_matching_bracket(content, array_start, content.len())?;
+        let array_end = find_matching_bracket(content, array_start, end)?;
         return Some((array_start, array_end + 1));
     }
     None
@@ -2686,11 +2943,16 @@ fn find_tag_end(content: &str, tag_start: usize) -> Option<usize> {
     let mut cursor = tag_start + 1;
     let mut quote = None;
     let mut brace_depth = 0usize;
+    let mut escaped = false;
 
     while cursor < bytes.len() {
         let byte = bytes[cursor];
         if let Some(active_quote) = quote {
-            if byte == active_quote {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == active_quote {
                 quote = None;
             }
         } else if byte == b'"' || byte == b'\'' {

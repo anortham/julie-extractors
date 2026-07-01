@@ -311,3 +311,24 @@ const routes = [
         Some("../views/CalendarView.vue")
     );
 }
+
+#[test]
+fn vue_route_definitions_require_router_context() {
+    let source = r#"<script setup lang="ts">
+const unrelatedWidget = {
+  path: '/not-a-route',
+  component: Widget,
+}
+</script>
+
+<template>
+  <div />
+</template>
+"#;
+
+    let results = extract(source);
+    assert!(
+        facts_with_pattern(&results, "vue.route_definition.v1").is_empty(),
+        "plain objects with path properties are not Vue Router route definitions"
+    );
+}

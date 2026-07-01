@@ -410,14 +410,15 @@ fn collect_aspnet_minimal_api_routes(
             insert_string(&mut metadata, "verb", verb);
             insert_string(&mut metadata, "route_template", &route_template);
             insert_string(&mut metadata, "route_source", route_source);
-            if let Some(receiver) = parse_csharp_member_receiver(content, method_start)
-                && let Some(route_group_prefix) = group_prefixes.get(receiver)
-            {
-                insert_string(&mut metadata, "route_group_prefix", route_group_prefix);
+            let route_group_prefix = parse_csharp_member_receiver(content, method_start)
+                .and_then(|receiver| group_prefixes.get(receiver).cloned())
+                .or_else(|| parse_chained_map_group_prefix(content, method_start));
+            if let Some(route_group_prefix) = route_group_prefix {
+                insert_string(&mut metadata, "route_group_prefix", &route_group_prefix);
                 insert_string(
                     &mut metadata,
                     "effective_route_template",
-                    &join_route_templates(route_group_prefix, &route_template),
+                    &join_route_templates(&route_group_prefix, &route_template),
                 );
                 insert_string(&mut metadata, "route_group_source", "map_group");
             }
@@ -542,6 +543,50 @@ fn parse_csharp_member_receiver(content: &str, method_start: usize) -> Option<&s
     }
     let receiver = content.get(start..end)?;
     is_csharp_identifier(receiver).then_some(receiver)
+}
+
+fn parse_chained_map_group_prefix(content: &str, method_start: usize) -> Option<String> {
+    let bytes = content.as_bytes();
+    let mut dot = method_start;
+    while dot > 0 && bytes.get(dot - 1).is_some_and(u8::is_ascii_whitespace) {
+        dot -= 1;
+    }
+    if dot == 0 || bytes.get(dot - 1) != Some(&b'.') {
+        return None;
+    }
+
+    let mut cursor = dot - 1;
+    while cursor > 0 && bytes.get(cursor - 1).is_some_and(u8::is_ascii_whitespace) {
+        cursor -= 1;
+    }
+    if cursor == 0 || bytes.get(cursor - 1) != Some(&b')') {
+        return None;
+    }
+    let close_paren = cursor - 1;
+    let open_paren = find_matching_paren_backwards(content, close_paren)?;
+
+    let mut method_end = open_paren;
+    while method_end > 0
+        && bytes
+            .get(method_end - 1)
+            .is_some_and(u8::is_ascii_whitespace)
+    {
+        method_end -= 1;
+    }
+    let mut method_name_start = method_end;
+    while method_name_start > 0
+        && bytes
+            .get(method_name_start - 1)
+            .is_some_and(is_csharp_identifier_byte)
+    {
+        method_name_start -= 1;
+    }
+    if content.get(method_name_start..method_end) != Some("MapGroup") {
+        return None;
+    }
+
+    parse_first_route_argument(content, open_paren + 1, close_paren)
+        .map(|(route_prefix, _, _)| route_prefix)
 }
 
 fn is_csharp_identifier_byte(byte: &u8) -> bool {
@@ -1124,6 +1169,24 @@ fn split_argument_and_modifiers(value: &str) -> (Option<String>, Vec<String>) {
 
 fn find_matching_paren(content: &str, open_paren: usize) -> Option<usize> {
     find_matching_delimiter(content, open_paren, b'(', b')')
+}
+
+fn find_matching_paren_backwards(content: &str, close_paren: usize) -> Option<usize> {
+    if content.as_bytes().get(close_paren) != Some(&b')') {
+        return None;
+    }
+    let mut candidates = Vec::new();
+    let mut cursor = 0;
+    while cursor <= close_paren {
+        if content.as_bytes().get(cursor) == Some(&b'(')
+            && let Some(candidate_close) = find_matching_paren(content, cursor)
+            && candidate_close == close_paren
+        {
+            candidates.push(cursor);
+        }
+        cursor += 1;
+    }
+    candidates.pop()
 }
 
 fn find_matching_delimiter(content: &str, open_byte: usize, open: u8, close: u8) -> Option<usize> {

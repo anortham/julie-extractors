@@ -138,6 +138,10 @@ fn nuxt_emits_file_route_facts() {
     let about_routes = facts_with_pattern(&about, "nuxt.file_route.v1");
     assert_eq!(about_routes.len(), 1);
     assert_eq!(metadata_str(about_routes[0], "route_path"), Some("/about"));
+    assert!(
+        facts_with_pattern(&about, "nextjs.file_route.v1").is_empty(),
+        "Nuxt page files must not emit Next.js file routes"
+    );
 
     let server_api = extract(
         "server/api/status.ts",

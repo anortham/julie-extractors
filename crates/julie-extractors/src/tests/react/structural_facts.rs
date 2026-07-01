@@ -286,6 +286,10 @@ export default function Page() {
         metadata_str(pages_routes[0], "route_path"),
         Some("/dashboard")
     );
+    assert!(
+        facts_with_pattern(&pages_results, "nuxt.file_route.v1").is_empty(),
+        "Next.js Pages Router files must not emit Nuxt file routes"
+    );
 
     let api_results = extract(
         "pages/api/status.ts",
@@ -295,5 +299,76 @@ export default function Page() {
     assert!(
         api_routes.is_empty(),
         "Next.js API routes should not emit page-route facts"
+    );
+}
+
+#[test]
+fn react_router_route_scanners_ignore_non_code_and_import_asi() {
+    let source = r#"
+import { Link } from "react-router-dom"
+import { Route } from "react-router-dom"
+const x = 1;
+const message = "<Link to='/from-string'>String only</Link>";
+
+export default function App() {
+  return (
+    <>
+      <Link title="Go to settings" to="/settings">Settings</Link>
+      <Link title="a \"to\" b" to="/escaped">Escaped</Link>
+      <Link to="https://example.com/settings">External</Link>
+      <Route path="/profile" element={<Profile />} />
+    </>
+  );
+}
+"#;
+
+    let results = extract("src/App.tsx", source);
+
+    let references = facts_with_pattern(&results, "react.route_reference.v1");
+    assert_eq!(
+        references
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "target_path"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/escaped", "/settings"])
+    );
+
+    let definitions = facts_with_pattern(&results, "react.route_definition.v1");
+    assert_eq!(definitions.len(), 1);
+    assert_eq!(metadata_str(definitions[0], "route_path"), Some("/profile"));
+}
+
+#[test]
+fn file_routes_keep_framework_and_segment_semantics_precise() {
+    let optional_slug_results = extract(
+        "app/docs/[[...slug]]/page.tsx",
+        "export default function Page() { return <h1>Docs</h1>; }",
+    );
+    let optional_slug_routes = facts_with_pattern(&optional_slug_results, "nextjs.file_route.v1");
+    assert_eq!(optional_slug_routes.len(), 1);
+    assert_eq!(
+        metadata_str(optional_slug_routes[0], "route_path"),
+        Some("/docs/[[...slug]]")
+    );
+    assert_eq!(
+        metadata_str(optional_slug_routes[0], "normalized_route_template"),
+        Some("/docs/:slug*?")
+    );
+
+    let nested_app_pages_results = extract(
+        "packages/app/pages/dashboard.tsx",
+        "export default function Dashboard() { return <h1>Dashboard</h1>; }",
+    );
+    assert!(facts_with_pattern(&nested_app_pages_results, "nextjs.file_route.v1").is_empty());
+    let nested_app_pages_routes =
+        facts_with_pattern(&nested_app_pages_results, "nuxt.file_route.v1");
+    assert_eq!(nested_app_pages_routes.len(), 1);
+    assert_eq!(
+        metadata_str(nested_app_pages_routes[0], "framework"),
+        Some("nuxt")
+    );
+    assert_eq!(
+        metadata_str(nested_app_pages_routes[0], "route_path"),
+        Some("/dashboard")
     );
 }
