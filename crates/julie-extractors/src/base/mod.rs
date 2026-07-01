@@ -22,6 +22,7 @@ pub mod embedded_span;
 pub mod extractor;
 pub mod framework_structural_facts;
 pub mod kinds;
+mod markup_scan;
 pub mod relationship_resolution;
 mod results_normalization;
 pub mod source_regions;
