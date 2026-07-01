@@ -1,9 +1,9 @@
 ---
 id: julie-extractors-best-tree-sitter-implementation-f
 title: julie-extractors Best Tree-Sitter Implementation Focus
-status: active
+status: completed
 created: 2026-06-10T11:32:05.902Z
-updated: 2026-06-10T11:32:05.902Z
+updated: 2026-07-01T22:46:01.292Z
 tags:
   - julie-extractors
   - language-quality
