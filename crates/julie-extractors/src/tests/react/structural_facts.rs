@@ -371,4 +371,47 @@ fn file_routes_keep_framework_and_segment_semantics_precise() {
         metadata_str(nested_app_pages_routes[0], "route_path"),
         Some("/dashboard")
     );
+
+    let nested_app_pages_page_results = extract(
+        "app/pages/about/page.tsx",
+        "export default function About() { return <h1>About</h1>; }",
+    );
+    let next_app_pages_page_routes =
+        facts_with_pattern(&nested_app_pages_page_results, "nextjs.file_route.v1");
+    assert_eq!(next_app_pages_page_routes.len(), 1);
+    assert_eq!(
+        metadata_str(next_app_pages_page_routes[0], "router"),
+        Some("app")
+    );
+    assert_eq!(
+        metadata_str(next_app_pages_page_routes[0], "route_path"),
+        Some("/pages/about")
+    );
+    assert!(
+        facts_with_pattern(&nested_app_pages_page_results, "nuxt.file_route.v1").is_empty(),
+        "app/pages route segments with page files must not emit competing Nuxt file routes"
+    );
+}
+
+#[test]
+fn nextjs_file_routes_ignore_nuxt_signals_in_comments_and_strings() {
+    let results = extract(
+        "pages/settings.tsx",
+        r#"
+// definePageMeta would be a Nuxt signal in executable code.
+const note = "useNuxtApp";
+export default function Settings() { return <h1>Settings</h1>; }
+"#,
+    );
+
+    let next_routes = facts_with_pattern(&results, "nextjs.file_route.v1");
+    assert_eq!(next_routes.len(), 1);
+    assert_eq!(
+        metadata_str(next_routes[0], "route_path"),
+        Some("/settings")
+    );
+    assert!(
+        facts_with_pattern(&results, "nuxt.file_route.v1").is_empty(),
+        "Nuxt signal text in comments or strings must not suppress Next.js file routes"
+    );
 }

@@ -733,7 +733,7 @@ fn collect_vue_structural_facts(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
 
-    if let Some(fact) = nuxt_file_route_fact("vue", file_path, content) {
+    if let Some(fact) = nuxt_file_route_fact("vue", tree, file_path, content) {
         facts.push(fact);
     }
 
@@ -1023,11 +1023,27 @@ fn vue_route_definition_ranges(content: &str, section: &VueSectionSpan) -> Vec<(
             continue;
         };
         ranges.push((open_paren + 1, close_paren));
+        if let Some(routes_identifier) =
+            create_router_routes_identifier(content, open_paren + 1, close_paren)
+            && let Some(range) = find_js_array_initializer_range_in(
+                content,
+                &routes_identifier,
+                section.content_start,
+                section.content_end,
+            )
+        {
+            ranges.push(range);
+        }
     }
 
     ranges.sort_unstable();
     ranges.dedup();
     ranges
+}
+
+fn create_router_routes_identifier(content: &str, start: usize, end: usize) -> Option<String> {
+    let routes_value_start = find_object_property_value_start(content, start, end, "routes")?;
+    parse_js_identifier(content, routes_value_start, end).map(|(identifier, _)| identifier)
 }
 
 #[derive(Debug, Default)]
@@ -1071,10 +1087,10 @@ fn collect_react_nextjs_structural_facts(
     facts.extend(collect_nextjs_route_references(
         language, tree, file_path, content, &imports,
     ));
-    if let Some(fact) = nextjs_file_route_fact(language, file_path, content) {
+    if let Some(fact) = nextjs_file_route_fact(language, tree, file_path, content) {
         facts.push(fact);
     }
-    if let Some(fact) = nuxt_file_route_fact(language, file_path, content) {
+    if let Some(fact) = nuxt_file_route_fact(language, tree, file_path, content) {
         facts.push(fact);
     }
     facts
@@ -1649,11 +1665,14 @@ fn collect_nextjs_route_references(
 
 fn nextjs_file_route_fact(
     language: &str,
+    tree: &Tree,
     file_path: &str,
     content: &str,
 ) -> Option<StructuralFact> {
     let route = nextjs_file_route(file_path)?;
-    if route.router == "pages" && has_nuxt_page_signal(content) {
+    if has_nuxt_page_signal(tree, content)
+        && (route.router == "pages" || has_nuxt_app_pages_route(file_path))
+    {
         return None;
     }
     let span = NormalizedSpan::from_content_range(content, 0, content.len())?;
@@ -1688,12 +1707,17 @@ fn nextjs_file_route_fact(
     ))
 }
 
-fn nuxt_file_route_fact(language: &str, file_path: &str, content: &str) -> Option<StructuralFact> {
+fn nuxt_file_route_fact(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Option<StructuralFact> {
     let route = nuxt_file_route(file_path)?;
     if route.router == "pages"
         && is_non_vue_file_path(file_path)
-        && !has_nuxt_page_signal(content)
-        && !has_nuxt_app_pages_route(file_path)
+        && !has_nuxt_page_signal(tree, content)
+        && (!has_nuxt_app_pages_route(file_path) || has_app_pages_page_file_route(file_path))
     {
         return None;
     }
@@ -1955,19 +1979,78 @@ fn has_nuxt_app_pages_route(file_path: &str) -> bool {
         .any(|window| window == ["app", "pages"])
 }
 
-fn has_nuxt_page_signal(content: &str) -> bool {
+fn has_app_pages_page_file_route(file_path: &str) -> bool {
+    let normalized = file_path.replace('\\', "/");
+    let segments = normalized
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>();
+    if !segments.windows(2).any(|window| window == ["app", "pages"]) {
+        return false;
+    }
+    let Some(file_name) = segments.last() else {
+        return false;
+    };
+    split_file_name(file_name)
+        .is_some_and(|(stem, extension)| stem == "page" && is_javascript_like_extension(extension))
+}
+
+fn has_nuxt_page_signal(tree: &Tree, content: &str) -> bool {
     [
-        "defineComponent",
         "defineNuxtComponent",
         "definePageMeta",
         "defineNuxtRouteMiddleware",
         "useNuxtApp",
-        "#app",
-        "#imports",
-        "nuxt/app",
     ]
     .iter()
-    .any(|signal| content.contains(signal))
+    .any(|signal| has_executable_identifier_signal(tree, content, signal))
+        || ["#app", "#imports", "nuxt/app"]
+            .iter()
+            .any(|source| has_static_import_source(tree, content, source))
+}
+
+fn has_executable_identifier_signal(tree: &Tree, content: &str, signal: &str) -> bool {
+    let mut cursor = 0;
+    while cursor < content.len() {
+        let Some(relative_start) = content[cursor..].find(signal) else {
+            break;
+        };
+        let signal_start = cursor + relative_start;
+        cursor = signal_start + signal.len();
+        if is_identifier_boundary(content, signal_start, signal.len())
+            && !is_ignored_syntax_range(tree, signal_start, cursor)
+        {
+            return true;
+        }
+    }
+    false
+}
+
+fn has_static_import_source(tree: &Tree, content: &str, expected_source: &str) -> bool {
+    let mut cursor = 0;
+    while cursor < content.len() {
+        let Some(relative_import) = content[cursor..].find("import") else {
+            break;
+        };
+        let import_start = cursor + relative_import;
+        cursor = import_start + "import".len();
+        if !is_identifier_boundary(content, import_start, "import".len())
+            || is_ignored_syntax_range(tree, import_start, cursor)
+        {
+            continue;
+        }
+
+        let statement_end = js_import_statement_end(content, import_start);
+        let Some(statement) = content.get(import_start..statement_end) else {
+            continue;
+        };
+        cursor = statement_end;
+
+        if parse_import_source(statement).as_deref() == Some(expected_source) {
+            return true;
+        }
+    }
+    false
 }
 
 fn next_markup_tag(content: &str, start: usize, end: usize) -> Option<(usize, usize, &str)> {

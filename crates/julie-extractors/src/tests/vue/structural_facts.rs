@@ -332,3 +332,41 @@ const unrelatedWidget = {
         "plain objects with path properties are not Vue Router route definitions"
     );
 }
+
+#[test]
+fn vue_route_definitions_follow_create_router_routes_identifier() {
+    let source = r#"<script setup lang="ts">
+import { createRouter, createWebHistory } from 'vue-router'
+import DashboardView from '../views/DashboardView.vue'
+
+const appRoutes = [
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: DashboardView,
+  },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: appRoutes,
+})
+</script>
+
+<template>
+  <RouterView />
+</template>
+"#;
+
+    let results = extract(source);
+    let definitions = facts_with_pattern(&results, "vue.route_definition.v1");
+    assert_eq!(definitions.len(), 1);
+    assert_eq!(
+        metadata_str(definitions[0], "target_path"),
+        Some("/dashboard")
+    );
+    assert_eq!(
+        metadata_str(definitions[0], "component_path"),
+        Some("../views/DashboardView.vue")
+    );
+}

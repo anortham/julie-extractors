@@ -133,7 +133,7 @@ fn nuxt_emits_file_route_facts() {
 
     let about = extract(
         "pages/about.ts",
-        "export default defineComponent({ render: () => h('h1', 'About') });",
+        "export default defineNuxtComponent({ render: () => h('h1', 'About') });",
     );
     let about_routes = facts_with_pattern(&about, "nuxt.file_route.v1");
     assert_eq!(about_routes.len(), 1);
