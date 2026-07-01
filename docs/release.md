@@ -47,6 +47,36 @@ cargo xtask release preflight --version <version>
 cargo xtask release package --version <version> --target <target> --out-dir <path> --binary <path>
 ```
 
+## Source-Control Release Closeout
+
+A release is not complete until source control is reconciled in the primary
+checkout. Worktrees may be used for implementation, but the primary checkout
+must be returned to a clean, current `main` before the release is called done.
+
+Required closeout checks:
+
+```bash
+git fetch origin --tags
+test "$(git branch --show-current)" = "main"
+git status --short --branch
+git rev-parse HEAD origin/main "v<version>"
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+test "$(git rev-parse "v<version>")" = "$(git rev-parse origin/main)"
+git diff --quiet "v<version>"..origin/main
+```
+
+Rules:
+
+- Do not publish from a stale primary checkout.
+- Do not leave release work only in a temporary worktree.
+- Do not declare a release complete while `origin/main` contains untagged
+  source, contract, fixture, release-note, README, or checkpoint changes.
+- If post-release evidence is committed after publishing, either publish a
+  superseding patch release from that final commit or record the commit as an
+  explicitly approved evidence-only follow-up that is not part of the release.
+- Preserve any dirty or untracked work before cleanup with a rescue branch or
+  equivalent artifact that captures tracked and untracked files.
+
 ## Package Contents
 
 Release packages contain only:
