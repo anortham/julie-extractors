@@ -696,6 +696,11 @@
           "expected": "fixtures/extraction/typescript/nextjs_file_route/expected.json"
         },
         {
+          "name": "nextjs_pages_route",
+          "source": "fixtures/extraction/typescript/nextjs_pages_route/src/pages/home.ts",
+          "expected": "fixtures/extraction/typescript/nextjs_pages_route/expected.json"
+        },
+        {
           "name": "nuxt_file_route",
           "source": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
           "expected": "fixtures/extraction/typescript/nuxt_file_route/expected.json"
@@ -761,7 +766,8 @@
             "nextjs.file_route.v1",
             "nuxt.file_route.v1",
             "react.route_definition.v1",
-            "typescript.await_expression.v1"
+            "typescript.await_expression.v1",
+            "vue.route_definition.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -842,6 +848,21 @@
           "expected": "fixtures/extraction/tsx/nextjs_file_route/expected.json"
         },
         {
+          "name": "nextjs_parallel_route",
+          "source": "fixtures/extraction/tsx/nextjs_parallel_route/app/@modal/login/page.tsx",
+          "expected": "fixtures/extraction/tsx/nextjs_parallel_route/expected.json"
+        },
+        {
+          "name": "nextjs_intercepting_route",
+          "source": "fixtures/extraction/tsx/nextjs_intercepting_route/app/feed/(..)photo/[id]/page.tsx",
+          "expected": "fixtures/extraction/tsx/nextjs_intercepting_route/expected.json"
+        },
+        {
+          "name": "react_spa_pages",
+          "source": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx",
+          "expected": "fixtures/extraction/tsx/react_spa_pages/expected.json"
+        },
+        {
           "name": "nuxt_file_route",
           "source": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx",
           "expected": "fixtures/extraction/tsx/nuxt_file_route/expected.json"
@@ -904,7 +925,8 @@
             "nuxt.file_route.v1",
             "react.route_definition.v1",
             "react.route_reference.v1",
-            "tsx.await_expression.v1"
+            "tsx.await_expression.v1",
+            "vue.route_definition.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1047,7 +1069,8 @@
             "nextjs.route_reference.v1",
             "nuxt.file_route.v1",
             "react.route_definition.v1",
-            "react.route_reference.v1"
+            "react.route_reference.v1",
+            "vue.route_definition.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1183,7 +1206,8 @@
             "nextjs.route_reference.v1",
             "nuxt.file_route.v1",
             "react.route_definition.v1",
-            "react.route_reference.v1"
+            "react.route_reference.v1",
+            "vue.route_definition.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1543,6 +1567,16 @@
           "name": "nuxt_file_route",
           "source": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue",
           "expected": "fixtures/extraction/vue/nuxt_file_route/expected.json"
+        },
+        {
+          "name": "nuxt_optional_file_route",
+          "source": "fixtures/extraction/vue/nuxt_optional_file_route/pages/users/[[id]].vue",
+          "expected": "fixtures/extraction/vue/nuxt_optional_file_route/expected.json"
+        },
+        {
+          "name": "nuxt_partial_file_route",
+          "source": "fixtures/extraction/vue/nuxt_partial_file_route/pages/users-[group]/[id].vue",
+          "expected": "fixtures/extraction/vue/nuxt_partial_file_route/expected.json"
         }
       ],
       "target_capabilities": {

@@ -24,7 +24,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "framework-route-facts-v1",
         "react-nextjs-route-facts-v1",
         "nuxt-route-facts-v1",
-        "web-route-facts-v2",
+        "web-route-facts-v3",
     ] {
         assert!(
             version.contains(marker),

@@ -60,12 +60,14 @@ const JS_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
     NUXT_FILE_ROUTE_PATTERN_ID,
     REACT_ROUTE_DEFINITION_PATTERN_ID,
     REACT_ROUTE_REFERENCE_PATTERN_ID,
+    VUE_ROUTE_DEFINITION_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const TS_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
     NEXTJS_FILE_ROUTE_PATTERN_ID,
     NUXT_FILE_ROUTE_PATTERN_ID,
     REACT_ROUTE_DEFINITION_PATTERN_ID,
+    VUE_ROUTE_DEFINITION_PATTERN_ID,
 ];
 
 pub fn collect_web_structural_facts(
@@ -759,7 +761,7 @@ fn collect_vue_structural_facts(
             }
         } else if section.section_type == "script" {
             facts.extend(collect_vue_route_definitions(
-                tree, file_path, content, &section,
+                "vue", tree, file_path, content, &section,
             ));
         }
     }
@@ -911,6 +913,7 @@ fn collect_nuxt_route_references(
 }
 
 fn collect_vue_route_definitions(
+    language: &str,
     tree: &Tree,
     file_path: &str,
     content: &str,
@@ -918,7 +921,7 @@ fn collect_vue_route_definitions(
 ) -> Vec<StructuralFact> {
     let imports = collect_vue_static_imports(content, section);
     let mut facts = Vec::new();
-    let ranges = vue_route_definition_ranges(content, section);
+    let ranges = vue_route_definition_ranges(content, section, language == "vue");
 
     for (range_start, range_end) in ranges {
         let mut cursor = range_start;
@@ -941,7 +944,7 @@ fn collect_vue_route_definitions(
             }
             let value_start = skip_ascii_whitespace_until(content, colon + 1, range_end);
             let Some((target_path, path_end)) = parse_js_string_literal(content, value_start)
-                .filter(|(value, end)| *end <= range_end && is_static_route_path(value))
+                .filter(|(value, end)| *end <= range_end && is_static_route_definition_path(value))
             else {
                 continue;
             };
@@ -961,12 +964,33 @@ fn collect_vue_route_definitions(
                 .as_ref()
                 .and_then(|name| imports.get(name))
                 .cloned();
+            let parent_route_path = parent_route_path_for_object(
+                tree,
+                content,
+                range_start,
+                range_end,
+                span_start,
+                span_end,
+            );
+            let effective_route_template = parent_route_path
+                .as_ref()
+                .map(|parent| join_frontend_route_paths(parent, &target_path));
 
             let mut metadata = base_metadata("frontend_navigation");
             insert_string(&mut metadata, "framework", "vue");
             insert_string(&mut metadata, "target_path", &target_path);
             insert_string(&mut metadata, "source_kind", "vue_router_route");
             insert_string(&mut metadata, "route_source", "string_literal");
+            if let Some(parent_route_path) = parent_route_path {
+                insert_string(&mut metadata, "parent_route_path", &parent_route_path);
+            }
+            if let Some(effective_route_template) = effective_route_template {
+                insert_string(
+                    &mut metadata,
+                    "effective_route_template",
+                    &effective_route_template,
+                );
+            }
             if let Some(route_name) = route_name {
                 insert_string(&mut metadata, "route_name", &route_name);
             }
@@ -979,7 +1003,7 @@ fn collect_vue_route_definitions(
 
             facts.push(fact_for_span(
                 file_path,
-                "vue",
+                language,
                 VUE_ROUTE_DEFINITION_PATTERN_ID,
                 "route_definition",
                 "object",
@@ -992,15 +1016,21 @@ fn collect_vue_route_definitions(
     facts
 }
 
-fn vue_route_definition_ranges(content: &str, section: &VueSectionSpan) -> Vec<(usize, usize)> {
+fn vue_route_definition_ranges(
+    content: &str,
+    section: &VueSectionSpan,
+    include_loose_routes_array: bool,
+) -> Vec<(usize, usize)> {
     let mut ranges = Vec::new();
 
-    if let Some(range) = find_js_array_initializer_range_in(
-        content,
-        "routes",
-        section.content_start,
-        section.content_end,
-    ) {
+    if include_loose_routes_array
+        && let Some(range) = find_js_array_initializer_range_in(
+            content,
+            "routes",
+            section.content_start,
+            section.content_end,
+        )
+    {
         ranges.push(range);
     }
 
@@ -1068,6 +1098,9 @@ struct NextFileRoute {
     normalized_route_template: Option<String>,
     dynamic_segments: Vec<String>,
     route_group_segments: Vec<String>,
+    parallel_route_segments: Vec<String>,
+    intercepting_route_markers: Vec<String>,
+    intercepted_route_segments: Vec<String>,
 }
 
 fn collect_react_nextjs_structural_facts(
@@ -1087,6 +1120,9 @@ fn collect_react_nextjs_structural_facts(
     facts.extend(collect_nextjs_route_references(
         language, tree, file_path, content, &imports,
     ));
+    facts.extend(collect_vue_router_route_definitions(
+        language, tree, file_path, content,
+    ));
     if let Some(fact) = nextjs_file_route_fact(language, tree, file_path, content) {
         facts.push(fact);
     }
@@ -1094,6 +1130,31 @@ fn collect_react_nextjs_structural_facts(
         facts.push(fact);
     }
     facts
+}
+
+fn collect_vue_router_route_definitions(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    if !has_static_import_source(tree, content, "vue-router") {
+        return Vec::new();
+    }
+
+    let Some(start_span) = NormalizedSpan::from_content_range(content, 0, content.len()) else {
+        return Vec::new();
+    };
+    let section = VueSectionSpan {
+        section_type: "script",
+        lang: None,
+        setup: false,
+        scoped: false,
+        start_span,
+        content_start: 0,
+        content_end: content.len(),
+    };
+    collect_vue_route_definitions(language, tree, file_path, content, &section)
 }
 
 fn collect_js_imports(content: &str) -> JsImportIndex {
@@ -1289,6 +1350,7 @@ fn collect_react_router_route_references(
         insert_string(&mut metadata, "import_source", import_source);
         insert_string(&mut metadata, "route_source", "string_literal");
         insert_string(&mut metadata, "source_kind", "react_router_link");
+        insert_string(&mut metadata, "verb", "GET");
 
         facts.push(fact_for_span(
             file_path,
@@ -1365,6 +1427,8 @@ fn collect_react_router_jsx_route_definitions(
                 index_route,
                 route_component,
                 route_id: None,
+                parent_route_path: None,
+                effective_route_template: None,
                 span,
                 node_kind: "jsx_element",
             },
@@ -1423,6 +1487,18 @@ fn collect_react_router_route_object_definitions(
                 continue;
             }
 
+            let parent_route_path = parent_route_path_for_object(
+                tree,
+                content,
+                range_start,
+                range_end,
+                span_start,
+                span_end,
+            );
+            let effective_route_template = parent_route_path
+                .as_ref()
+                .map(|parent| join_frontend_route_paths(parent, &route_path));
+
             facts.push(react_route_definition_fact(
                 file_path,
                 language,
@@ -1434,6 +1510,8 @@ fn collect_react_router_route_object_definitions(
                         content, span_start, span_end,
                     ),
                     route_id: parse_object_string_property(content, span_start, span_end, "id"),
+                    parent_route_path,
+                    effective_route_template,
                     span,
                     node_kind: "object",
                 },
@@ -1476,6 +1554,15 @@ fn collect_react_router_route_object_definitions(
             else {
                 continue;
             };
+            let parent_route_path = parent_route_path_for_object(
+                tree,
+                content,
+                range_start,
+                range_end,
+                span_start,
+                span_end,
+            );
+            let effective_route_template = parent_route_path.clone();
             facts.push(react_route_definition_fact(
                 file_path,
                 language,
@@ -1487,6 +1574,8 @@ fn collect_react_router_route_object_definitions(
                         content, span_start, span_end,
                     ),
                     route_id: parse_object_string_property(content, span_start, span_end, "id"),
+                    parent_route_path,
+                    effective_route_template,
                     span,
                     node_kind: "object",
                 },
@@ -1551,6 +1640,8 @@ struct ReactRouteDefinitionFact<'a> {
     index_route: bool,
     route_component: Option<String>,
     route_id: Option<String>,
+    parent_route_path: Option<String>,
+    effective_route_template: Option<String>,
     span: NormalizedSpan,
     node_kind: &'a str,
 }
@@ -1578,6 +1669,16 @@ fn react_route_definition_fact(
     }
     if let Some(route_id) = fact.route_id {
         insert_string(&mut metadata, "route_id", &route_id);
+    }
+    if let Some(parent_route_path) = fact.parent_route_path {
+        insert_string(&mut metadata, "parent_route_path", &parent_route_path);
+    }
+    if let Some(effective_route_template) = fact.effective_route_template {
+        insert_string(
+            &mut metadata,
+            "effective_route_template",
+            &effective_route_template,
+        );
     }
 
     fact_for_span(
@@ -1648,6 +1749,7 @@ fn collect_nextjs_route_references(
         insert_string(&mut metadata, "import_source", import_source);
         insert_string(&mut metadata, "route_source", route_source);
         insert_string(&mut metadata, "source_kind", "next_link");
+        insert_string(&mut metadata, "verb", "GET");
 
         facts.push(fact_for_span(
             file_path,
@@ -1675,6 +1777,9 @@ fn nextjs_file_route_fact(
     {
         return None;
     }
+    if route.router == "pages" && !has_nextjs_page_signal(tree, content) {
+        return None;
+    }
     let span = NormalizedSpan::from_content_range(content, 0, content.len())?;
     let mut metadata = base_metadata("frontend_navigation");
     insert_string(&mut metadata, "framework", "nextjs");
@@ -1693,6 +1798,27 @@ fn nextjs_file_route_fact(
             &mut metadata,
             "route_group_segments",
             route.route_group_segments,
+        );
+    }
+    if !route.parallel_route_segments.is_empty() {
+        insert_string_array(
+            &mut metadata,
+            "parallel_route_segments",
+            route.parallel_route_segments,
+        );
+    }
+    if !route.intercepting_route_markers.is_empty() {
+        insert_string_array(
+            &mut metadata,
+            "intercepting_route_markers",
+            route.intercepting_route_markers,
+        );
+    }
+    if !route.intercepted_route_segments.is_empty() {
+        insert_string_array(
+            &mut metadata,
+            "intercepted_route_segments",
+            route.intercepted_route_segments,
         );
     }
 
@@ -1739,6 +1865,27 @@ fn nuxt_file_route_fact(
             &mut metadata,
             "route_group_segments",
             route.route_group_segments,
+        );
+    }
+    if !route.parallel_route_segments.is_empty() {
+        insert_string_array(
+            &mut metadata,
+            "parallel_route_segments",
+            route.parallel_route_segments,
+        );
+    }
+    if !route.intercepting_route_markers.is_empty() {
+        insert_string_array(
+            &mut metadata,
+            "intercepting_route_markers",
+            route.intercepting_route_markers,
+        );
+    }
+    if !route.intercepted_route_segments.is_empty() {
+        insert_string_array(
+            &mut metadata,
+            "intercepted_route_segments",
+            route.intercepted_route_segments,
         );
     }
 
@@ -1810,22 +1957,36 @@ fn nextjs_app_file_route(segments: &[&str], app_index: usize) -> Option<NextFile
 
     let mut route_segments = Vec::new();
     let mut route_group_segments = Vec::new();
+    let mut parallel_route_segments = Vec::new();
+    let mut intercepting_route_markers = Vec::new();
+    let mut intercepted_route_segments = Vec::new();
     for segment in &segments[app_index + 1..segments.len().saturating_sub(1)] {
         if segment.starts_with('(') && segment.ends_with(')') && segment.len() > 2 {
             route_group_segments.push(segment[1..segment.len() - 1].to_string());
+        } else if segment.starts_with('@') && segment.len() > 1 {
+            parallel_route_segments.push(segment[1..].to_string());
+        } else if let Some((marker, intercepted_segment)) =
+            nextjs_intercepting_route_segment(segment)
+        {
+            intercepting_route_markers.push(marker);
+            intercepted_route_segments.push(intercepted_segment.clone());
+            route_segments.push(intercepted_segment);
         } else {
             route_segments.push((*segment).to_string());
         }
     }
 
     let (route_path, normalized_route_template, dynamic_segments) =
-        nextjs_route_path_metadata(&route_segments);
+        route_path_metadata(&route_segments, "nextjs");
     Some(NextFileRoute {
         router: "app",
         route_path,
         normalized_route_template,
         dynamic_segments,
         route_group_segments,
+        parallel_route_segments,
+        intercepting_route_markers,
+        intercepted_route_segments,
     })
 }
 
@@ -1848,13 +2009,16 @@ fn nextjs_pages_file_route(segments: &[&str], pages_index: usize) -> Option<Next
     }
 
     let (route_path, normalized_route_template, dynamic_segments) =
-        nextjs_route_path_metadata(&route_segments);
+        route_path_metadata(&route_segments, "nextjs");
     Some(NextFileRoute {
         router: "pages",
         route_path,
         normalized_route_template,
         dynamic_segments,
         route_group_segments: Vec::new(),
+        parallel_route_segments: Vec::new(),
+        intercepting_route_markers: Vec::new(),
+        intercepted_route_segments: Vec::new(),
     })
 }
 
@@ -1882,25 +2046,31 @@ fn nuxt_pages_file_route(segments: &[&str], pages_index: usize) -> Option<NextFi
     }
 
     let (route_path, normalized_route_template, dynamic_segments) =
-        nextjs_route_path_metadata(&route_segments);
+        route_path_metadata(&route_segments, "nuxt");
     Some(NextFileRoute {
         router: "pages",
         route_path,
         normalized_route_template,
         dynamic_segments,
         route_group_segments,
+        parallel_route_segments: Vec::new(),
+        intercepting_route_markers: Vec::new(),
+        intercepted_route_segments: Vec::new(),
     })
 }
 
-fn nextjs_route_path_metadata(route_segments: &[String]) -> (String, Option<String>, Vec<String>) {
+fn route_path_metadata(
+    route_segments: &[String],
+    framework: &str,
+) -> (String, Option<String>, Vec<String>) {
     let mut normalized_segments = Vec::new();
     let mut dynamic_segments = Vec::new();
     let mut has_dynamic = false;
 
     for segment in route_segments {
-        if let Some((name, normalized)) = nextjs_dynamic_segment_metadata(segment) {
+        if let Some((names, normalized)) = dynamic_segment_metadata(framework, segment) {
             has_dynamic = true;
-            dynamic_segments.push(name);
+            dynamic_segments.extend(names);
             normalized_segments.push(normalized);
         } else {
             normalized_segments.push(segment.clone());
@@ -1921,6 +2091,13 @@ fn nextjs_route_path_metadata(route_segments: &[String]) -> (String, Option<Stri
     });
 
     (route_path, normalized_route_template, dynamic_segments)
+}
+
+fn dynamic_segment_metadata(framework: &str, segment: &str) -> Option<(Vec<String>, String)> {
+    if framework == "nuxt" {
+        return nuxt_dynamic_segment_metadata(segment);
+    }
+    nextjs_dynamic_segment_metadata(segment).map(|(name, normalized)| (vec![name], normalized))
 }
 
 fn nextjs_dynamic_segment_metadata(segment: &str) -> Option<(String, String)> {
@@ -1946,6 +2123,78 @@ fn nextjs_dynamic_segment_metadata(segment: &str) -> Option<(String, String)> {
         return Some((name.clone(), format!(":{name}")));
     }
     None
+}
+
+fn nuxt_dynamic_segment_metadata(segment: &str) -> Option<(Vec<String>, String)> {
+    let mut cursor = 0usize;
+    let mut names = Vec::new();
+    let mut normalized = String::new();
+
+    while cursor < segment.len() {
+        if let Some((name, replacement, next_cursor)) =
+            parse_nuxt_dynamic_part(segment, cursor, "[[...", "]]", "*?")
+        {
+            names.push(format!("{name}*?"));
+            normalized.push_str(&replacement);
+            cursor = next_cursor;
+        } else if let Some((name, replacement, next_cursor)) =
+            parse_nuxt_dynamic_part(segment, cursor, "[[", "]]", "?")
+        {
+            names.push(format!("{name}?"));
+            normalized.push_str(&replacement);
+            cursor = next_cursor;
+        } else if let Some((name, replacement, next_cursor)) =
+            parse_nuxt_dynamic_part(segment, cursor, "[...", "]", "*")
+        {
+            names.push(name);
+            normalized.push_str(&replacement);
+            cursor = next_cursor;
+        } else if let Some((name, replacement, next_cursor)) =
+            parse_nuxt_dynamic_part(segment, cursor, "[", "]", "")
+        {
+            names.push(name);
+            normalized.push_str(&replacement);
+            cursor = next_cursor;
+        } else {
+            let ch = segment.get(cursor..)?.chars().next()?;
+            normalized.push(ch);
+            cursor += ch.len_utf8();
+        }
+    }
+
+    (!names.is_empty()).then_some((names, normalized))
+}
+
+fn parse_nuxt_dynamic_part(
+    segment: &str,
+    cursor: usize,
+    open: &str,
+    close: &str,
+    suffix: &str,
+) -> Option<(String, String, usize)> {
+    let remaining = segment.get(cursor..)?;
+    if !remaining.starts_with(open) {
+        return None;
+    }
+    let name_start = cursor + open.len();
+    let close_start = segment.get(name_start..)?.find(close)? + name_start;
+    if close_start == name_start {
+        return None;
+    }
+    let name = segment.get(name_start..close_start)?.to_string();
+    let next_cursor = close_start + close.len();
+    Some((name.clone(), format!(":{name}{suffix}"), next_cursor))
+}
+
+fn nextjs_intercepting_route_segment(segment: &str) -> Option<(String, String)> {
+    ["(..)(..)", "(...)", "(..)", "(.)"]
+        .iter()
+        .find_map(|marker| {
+            segment
+                .strip_prefix(marker)
+                .filter(|intercepted| !intercepted.is_empty())
+                .map(|intercepted| ((*marker).to_string(), intercepted.to_string()))
+        })
 }
 
 fn split_file_name(file_name: &str) -> Option<(&str, &str)> {
@@ -2007,6 +2256,27 @@ fn has_nuxt_page_signal(tree: &Tree, content: &str) -> bool {
         || ["#app", "#imports", "nuxt/app"]
             .iter()
             .any(|source| has_static_import_source(tree, content, source))
+}
+
+fn has_nextjs_page_signal(tree: &Tree, content: &str) -> bool {
+    [
+        "getStaticProps",
+        "getServerSideProps",
+        "getStaticPaths",
+        "NextPage",
+    ]
+    .iter()
+    .any(|signal| has_executable_identifier_signal(tree, content, signal))
+        || [
+            "next",
+            "next/head",
+            "next/image",
+            "next/link",
+            "next/router",
+            "next/navigation",
+        ]
+        .iter()
+        .any(|source| has_static_import_source(tree, content, source))
 }
 
 fn has_executable_identifier_signal(tree: &Tree, content: &str, signal: &str) -> bool {
@@ -2262,6 +2532,11 @@ fn is_static_react_route_path(value: &str) -> bool {
     !value.is_empty() && !value.starts_with("//") && !value.contains("://")
 }
 
+fn is_static_route_definition_path(value: &str) -> bool {
+    let value = value.trim();
+    !value.is_empty() && !value.starts_with("//") && !value.contains("://")
+}
+
 fn markup_tag_name(content: &str, tag_start: usize, tag_end: usize) -> Option<&str> {
     let bytes = content.as_bytes();
     let mut cursor = tag_start + 1;
@@ -2494,15 +2769,93 @@ fn is_comment_or_string_node(node_kind: &str) -> bool {
     node_kind.contains("comment") || node_kind.contains("string")
 }
 
+fn parent_route_path_for_object(
+    tree: &Tree,
+    content: &str,
+    range_start: usize,
+    range_end: usize,
+    object_start: usize,
+    object_end: usize,
+) -> Option<String> {
+    let mut best: Option<(usize, String)> = None;
+    let mut cursor = range_start;
+    while cursor < range_end {
+        let Some(relative_path_start) = content[cursor..range_end].find("path") else {
+            break;
+        };
+        let path_start = cursor + relative_path_start;
+        cursor = path_start + "path".len();
+        if !is_identifier_boundary(content, path_start, "path".len()) {
+            continue;
+        }
+        if is_ignored_syntax_range(tree, path_start, cursor) {
+            continue;
+        }
+        let colon = skip_ascii_whitespace_until(content, cursor, range_end);
+        if content.as_bytes().get(colon) != Some(&b':') {
+            continue;
+        }
+        let value_start = skip_ascii_whitespace_until(content, colon + 1, range_end);
+        let Some((route_path, _)) = parse_js_string_literal(content, value_start) else {
+            continue;
+        };
+        let Some((candidate_start, candidate_end)) =
+            find_enclosing_object_range(content, range_start, range_end, path_start)
+        else {
+            continue;
+        };
+        if candidate_start >= object_start || candidate_end < object_end {
+            continue;
+        }
+        let candidate_len = candidate_end - candidate_start;
+        if best
+            .as_ref()
+            .map(|(best_len, _)| candidate_len < *best_len)
+            .unwrap_or(true)
+        {
+            best = Some((candidate_len, route_path));
+        }
+    }
+    best.map(|(_, route_path)| route_path)
+}
+
+fn join_frontend_route_paths(parent: &str, child: &str) -> String {
+    if child.starts_with('/') {
+        return child.to_string();
+    }
+    let parent = parent.trim_end_matches('/');
+    let child = child.trim_start_matches('/');
+    if parent.is_empty() {
+        format!("/{child}")
+    } else if child.is_empty() {
+        parent.to_string()
+    } else {
+        format!("{parent}/{child}")
+    }
+}
+
 fn find_enclosing_object_range(
     content: &str,
     start: usize,
     end: usize,
     position: usize,
 ) -> Option<(usize, usize)> {
-    let object_start = content.get(start..position)?.rfind('{')? + start;
-    let object_end = find_matching_brace(content, object_start, end)?;
-    Some((object_start, object_end + 1))
+    let mut cursor = start;
+    let mut candidate = None;
+    while cursor < position {
+        let Some(relative_open) = content[cursor..position].find('{') else {
+            break;
+        };
+        let object_start = cursor + relative_open;
+        cursor = object_start + 1;
+        let Some(object_end) = find_matching_brace(content, object_start, end) else {
+            continue;
+        };
+        if object_end >= position {
+            candidate = Some((object_start, object_end + 1));
+        }
+    }
+    candidate
 }
 
 fn find_matching_brace(content: &str, open_brace: usize, end: usize) -> Option<usize> {
@@ -2850,13 +3203,13 @@ fn scan_vue_sections(content: &str) -> Vec<VueSectionSpan> {
         let Some(open_tag_end) = find_tag_end(content, tag_start) else {
             break;
         };
-        let close_tag = format!("</{section_type}>");
         let content_start = open_tag_end + 1;
-        let Some(close_relative) = content[content_start..].find(&close_tag) else {
+        let Some(content_end) = find_vue_section_content_end(content, section_type, content_start)
+        else {
             cursor = content_start;
             continue;
         };
-        let content_end = content_start + close_relative;
+        let close_tag = format!("</{section_type}>");
         let tag_end = content_end + close_tag.len();
         let Some(span) = NormalizedSpan::from_content_range(content, tag_start, tag_end) else {
             cursor = tag_end;
@@ -2877,6 +3230,63 @@ fn scan_vue_sections(content: &str) -> Vec<VueSectionSpan> {
     }
 
     sections
+}
+
+fn find_vue_section_content_end(
+    content: &str,
+    section_type: &str,
+    content_start: usize,
+) -> Option<usize> {
+    if section_type != "template" {
+        let close_tag = format!("</{section_type}>");
+        return content[content_start..]
+            .find(&close_tag)
+            .map(|relative| content_start + relative);
+    }
+
+    let mut cursor = content_start;
+    let mut depth = 1usize;
+    while let Some(relative_tag_start) = content[cursor..].find('<') {
+        let tag_start = cursor + relative_tag_start;
+        if vue_tag_name_matches(content, tag_start, "template", true) {
+            let tag_end = find_tag_end(content, tag_start)?;
+            depth = depth.saturating_sub(1);
+            if depth == 0 {
+                return Some(tag_start);
+            }
+            cursor = tag_end + 1;
+        } else if vue_tag_name_matches(content, tag_start, "template", false) {
+            let tag_end = find_tag_end(content, tag_start)?;
+            depth += 1;
+            cursor = tag_end + 1;
+        } else {
+            cursor = tag_start + 1;
+        }
+    }
+    None
+}
+
+fn vue_tag_name_matches(
+    content: &str,
+    tag_start: usize,
+    expected_name: &str,
+    closing: bool,
+) -> bool {
+    let Some(after_open) = tag_start.checked_add(1) else {
+        return false;
+    };
+    let name_start = after_open + usize::from(closing);
+    if closing && content.as_bytes().get(after_open) != Some(&b'/') {
+        return false;
+    }
+    let name_end = name_start + expected_name.len();
+    if content.get(name_start..name_end) != Some(expected_name) {
+        return false;
+    }
+    content
+        .as_bytes()
+        .get(name_end)
+        .is_some_and(|byte| byte.is_ascii_whitespace() || matches!(*byte, b'>' | b'/'))
 }
 
 fn next_vue_section_start(content: &str, cursor: usize) -> Option<(usize, &'static str)> {

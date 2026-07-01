@@ -1,5 +1,6 @@
 import { Link as RouterLink, Route, createBrowserRouter } from "react-router-dom";
 import NextLink from "next/link";
+import { createRouter, createWebHistory } from "vue-router";
 
 export async function View() {
     const data = await load();
@@ -19,3 +20,12 @@ const routes = [
 ];
 
 export const router = createBrowserRouter(routes);
+
+const vueRoutes = [
+    { path: "/vue-dashboard", component: VueDashboard }
+];
+
+export const vueRouter = createRouter({
+    history: createWebHistory(),
+    routes: vueRoutes
+});

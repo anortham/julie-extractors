@@ -3,12 +3,17 @@
     <HeaderBar />
     <h1>{{ title }}</h1>
     <RouterLink to="/calendar">Calendar</RouterLink>
+    <template #actions>
+      <RouterLink to="/inside-slot">Inside</RouterLink>
+    </template>
+    <RouterLink to="/after-slot">After</RouterLink>
     <button @click.prevent="evaluate(1, true)" :class="{ active: title }">Run</button>
   </section>
 </template>
 
 <script setup lang="ts">
 import CalendarView from "../views/CalendarView.vue";
+import SettingsView from "../views/SettingsView.vue";
 
 defineOptions({ name: "Worker" });
 
@@ -17,7 +22,15 @@ const emit = defineEmits<{ update: [] }>();
 
 const title = format("Worker");
 const workerIndex: Map<string, Array<number>> = new Map();
-const routes = [{ path: "/calendar", name: "calendar", component: CalendarView }];
+const routes = [
+    {
+        meta: { requiresAuth: true },
+        path: "/calendar",
+        name: "calendar",
+        component: CalendarView,
+        children: [{ path: "settings", component: SettingsView }]
+    }
+];
 
 function format(value: string): string {
     return value.trim();

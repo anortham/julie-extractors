@@ -1,0 +1,137 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx:Home:1:0",
+      "name": "Home",
+      "kind": "export",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 58,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 23,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 23,
+        "end_byte": 58
+      },
+      "body_hash": "2d24096045659da0ece0fa3a29ade1eb",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx:Home:1:7",
+      "name": "Home",
+      "kind": "function",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx",
+      "start_line": 1,
+      "start_column": 7,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 7,
+      "end_byte": 58,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 23,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 23,
+        "end_byte": 58
+      },
+      "body_hash": "2d24096045659da0ece0fa3a29ade1eb",
+      "signature": "Home()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "parameters": [],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx:Home:1:0",
+      "resolved_type": "function",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx",
+      "covered_lines": 4,
+      "covered_bytes": 59,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 59,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx:Home:1:7",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/react_spa_pages/src/pages/Home.tsx",
+      "covered_lines": 3,
+      "covered_bytes": 35,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 23,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 23,
+      "end_byte": 58,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

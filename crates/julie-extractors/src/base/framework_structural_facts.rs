@@ -610,8 +610,16 @@ fn collect_markup_framework_attributes(
     let mut facts = Vec::new();
 
     for attribute in scan_markup_attributes(content) {
-        if attribute.name.starts_with("hx-")
-            && let Some(fact) = htmx_attribute_fact(language, tree, file_path, content, &attribute)
+        if let Some((attribute_name, data_prefix)) = canonical_htmx_attribute_name(&attribute.name)
+            && let Some(fact) = htmx_attribute_fact(
+                language,
+                tree,
+                file_path,
+                content,
+                &attribute,
+                &attribute_name,
+                data_prefix,
+            )
         {
             facts.push(fact);
         }
@@ -633,6 +641,8 @@ fn htmx_attribute_fact(
     file_path: &str,
     content: &str,
     attribute: &MarkupAttribute,
+    attribute_name: &str,
+    data_prefix: bool,
 ) -> Option<StructuralFact> {
     let node =
         smallest_node_covering_range(tree.root_node(), attribute.start_byte, attribute.end_byte)?;
@@ -643,11 +653,14 @@ fn htmx_attribute_fact(
         NormalizedSpan::from_content_range(content, attribute.start_byte, attribute.end_byte)?;
     let mut metadata = base_metadata("frontend_interaction", "htmx");
 
-    insert_string(&mut metadata, "attribute_name", &attribute.name);
+    insert_string(&mut metadata, "attribute_name", attribute_name);
+    if data_prefix {
+        metadata.insert("data_prefix".to_string(), Value::Bool(true));
+    }
     if let Some(value) = attribute.value.as_deref() {
         insert_string(&mut metadata, "attribute_value", value);
     }
-    if let Some(verb) = htmx_request_verb(&attribute.name) {
+    if let Some(verb) = htmx_request_verb(attribute_name) {
         insert_string(&mut metadata, "verb", verb);
         if let Some(target_path) = attribute
             .value
@@ -667,6 +680,16 @@ fn htmx_attribute_fact(
         span,
         metadata,
     ))
+}
+
+fn canonical_htmx_attribute_name(attribute_name: &str) -> Option<(String, bool)> {
+    let normalized = attribute_name.to_ascii_lowercase();
+    if normalized.starts_with("hx-") {
+        return Some((normalized, false));
+    }
+    normalized
+        .strip_prefix("data-hx-")
+        .map(|suffix| (format!("hx-{suffix}"), true))
 }
 
 fn alpine_directive_fact(

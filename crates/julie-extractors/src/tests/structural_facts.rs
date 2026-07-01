@@ -269,6 +269,51 @@ const markup = "<div hx-get='/todos' x-data='{ open: true }'></div>";
 }
 
 #[test]
+fn data_hx_attributes_emit_canonical_htmx_facts() {
+    let html = extract(
+        "src/index.html",
+        r#"<form data-hx-post="/todos" DATA-HX-GET="/todos">
+  <button>Save</button>
+</form>
+"#,
+    );
+    let html_htmx = facts_with_pattern(&html, "htmx.attribute.v1");
+    assert_eq!(html_htmx.len(), 2);
+    assert_eq!(
+        html_htmx
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "attribute_name"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["hx-get", "hx-post"])
+    );
+    assert!(
+        html_htmx
+            .iter()
+            .all(|fact| metadata_bool(fact, "data_prefix") == Some(true))
+    );
+    let post = html_htmx
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_name") == Some("hx-post"))
+        .expect("expected data-hx-post fact");
+    assert_eq!(metadata_str(post, "target_path"), Some("/todos"));
+    assert_eq!(metadata_str(post, "verb"), Some("POST"));
+
+    let razor = extract(
+        "Components/Todos.razor",
+        r#"<button data-hx-delete="/todos/1">Delete</button>"#,
+    );
+    let razor_htmx = facts_with_pattern(&razor, "htmx.attribute.v1");
+    assert_eq!(razor_htmx.len(), 1);
+    assert_eq!(
+        metadata_str(razor_htmx[0], "attribute_name"),
+        Some("hx-delete")
+    );
+    assert_eq!(metadata_bool(razor_htmx[0], "data_prefix"), Some(true));
+    assert_eq!(metadata_str(razor_htmx[0], "verb"), Some("DELETE"));
+    assert_eq!(metadata_str(razor_htmx[0], "target_path"), Some("/todos/1"));
+}
+
+#[test]
 fn razor_htmx_and_alpine_attributes_emit_structural_facts() {
     let source = r##"@page "/todos"
 

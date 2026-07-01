@@ -510,16 +510,16 @@ Supported patterns are advertised in `language_capability` records under
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","verb":"GET","route_template":"/todos","route_source":"string_literal"}` plus optional `handler_kind` and `handler_name` |
 | `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","route_prefix":"/admin","route_source":"string_literal","source_kind":"map_group"}` plus optional `group_variable` |
-| `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"htmx","attribute_name":"hx-get","attribute_value":"/todos"}` plus optional `verb` and `target_path` |
+| `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"htmx","attribute_name":"hx-get","attribute_value":"/todos"}` plus optional `verb`, `target_path`, and `data_prefix` |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"alpine","directive":"x-on","argument":"click","expression":"open = !open","shorthand":true}` plus optional `modifiers` |
-| `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"router_link","route_source":"string_literal","attribute_name":"to"}` |
-| `vue.route_definition.v1` | `vue` | `route_definition` | `object` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"vue_router_route","route_source":"string_literal"}` plus optional `route_name`, `component_name`, and `component_path` |
-| `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nuxt","target_path":"/about","source_kind":"nuxt_link","route_source":"string_literal","attribute_name":"to","component_name":"NuxtLink"}` |
+| `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"router_link","route_source":"string_literal","attribute_name":"to","verb":"GET"}` |
+| `vue.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `route_definition` | `object` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"vue_router_route","route_source":"string_literal"}` plus optional `route_name`, `component_name`, `component_path`, `parent_route_path`, and `effective_route_template` |
+| `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nuxt","target_path":"/about","source_kind":"nuxt_link","route_source":"string_literal","attribute_name":"to","component_name":"NuxtLink","verb":"GET"}` |
 | `nuxt.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nuxt","router":"pages","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"route_group_segments":["marketing"],"source_kind":"nuxt_file_route"}` |
-| `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","target_path":"/dashboard","source_kind":"react_router_link","route_source":"string_literal","attribute_name":"to","component_name":"RouterLink","import_source":"react-router-dom"}` |
-| `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","route_path":"/dashboard","source_kind":"route_object","route_source":"string_literal"}` plus optional `route_component`, `route_id`, and `index_route` |
-| `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","target_path":"/dashboard","source_kind":"next_link","route_source":"string_literal","attribute_name":"href","component_name":"Link","import_source":"next/link"}` |
-| `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","router":"app","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"source_kind":"nextjs_file_route"}` plus optional `route_group_segments` |
+| `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","target_path":"/dashboard","source_kind":"react_router_link","route_source":"string_literal","attribute_name":"to","component_name":"RouterLink","import_source":"react-router-dom","verb":"GET"}` |
+| `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","route_path":"/dashboard","source_kind":"route_object","route_source":"string_literal"}` plus optional `route_component`, `route_id`, `index_route`, `parent_route_path`, and `effective_route_template` |
+| `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","target_path":"/dashboard","source_kind":"next_link","route_source":"string_literal","attribute_name":"href","component_name":"Link","import_source":"next/link","verb":"GET"}` |
+| `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","router":"app","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"source_kind":"nextjs_file_route"}` plus optional `route_group_segments`, `parallel_route_segments`, `intercepting_route_markers`, and `intercepted_route_segments` |
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route
@@ -530,6 +530,28 @@ contract version.
 Dynamic React Router `to`/`path` values, arbitrary local `Link` components, and
 Next.js `href` values without a static string or object `pathname` are not
 emitted as static route facts in this contract version.
+
+Route reference facts use `target_path`; route definition and file-route facts
+use `route_path`, except Vue route definitions keep `target_path` for backward
+compatibility with the original Vue fact family. Vue and React child route
+definitions may include `parent_route_path` and `effective_route_template`.
+Navigation reference facts for Vue, Nuxt, React Router, and Next.js include
+`verb="GET"` as an implied navigation verb, not source-attested HTTP evidence.
+`htmx.attribute.v1` keeps source-attested request verbs. `data-hx-*` attributes
+normalize to canonical `hx-*` `attribute_name` values and include
+`data_prefix=true`.
+
+Next.js Pages Router file-route facts require local Next evidence in the file,
+such as a `next/*` import or `getStaticProps`, `getServerSideProps`, or
+`getStaticPaths`. App Router `app/**/page.*` conventions emit from the file path
+alone. Next.js app-route `@slot` segments are excluded from `route_path` and
+listed in `parallel_route_segments`; intercepting-route markers are stripped
+from `route_path` and recorded in `intercepting_route_markers` with the target
+segments in `intercepted_route_segments`.
+
+Nuxt file-route normalization supports optional params (`[[id]]` ->
+`:id?`, `dynamic_segments:["id?"]`) and mixed static/dynamic segments such as
+`users-[group]` -> `users-:group`.
 
 ### `parse_diagnostic`
 

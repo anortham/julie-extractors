@@ -246,6 +246,31 @@ fn vue_emits_route_reference_facts() {
 }
 
 #[test]
+fn vue_template_route_references_survive_nested_template_blocks() {
+    let source = r#"<template>
+  <LayoutShell>
+    <template #actions>
+      <RouterLink to="/inside-slot">Inside</RouterLink>
+    </template>
+
+    <RouterLink to="/after-slot">After</RouterLink>
+  </LayoutShell>
+</template>
+"#;
+
+    let results = extract(source);
+    let route_refs = facts_with_pattern(&results, "vue.route_reference.v1");
+
+    assert_eq!(
+        route_refs
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "target_path"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/after-slot", "/inside-slot"])
+    );
+}
+
+#[test]
 fn vue_emits_static_route_definition_facts() {
     let source = r#"<template>
   <nav>
@@ -309,6 +334,81 @@ const routes = [
     assert_eq!(
         metadata_str(calendar_definition, "component_path"),
         Some("../views/CalendarView.vue")
+    );
+}
+
+#[test]
+fn vue_route_definitions_use_owning_object_and_child_context() {
+    let source = r#"<script setup lang="ts">
+import AdminView from '../views/AdminView.vue'
+import BillingView from '../views/BillingView.vue'
+import SettingsView from '../views/SettingsView.vue'
+
+const routes = [
+  {
+    meta: {
+      requiresAuth: true,
+    },
+    path: '/admin',
+    component: AdminView,
+    children: [
+      {
+        path: 'settings',
+        component: SettingsView,
+      },
+      {
+        path: '/billing',
+        component: BillingView,
+      },
+    ],
+  },
+]
+</script>
+
+<template>
+  <RouterView />
+</template>
+"#;
+
+    let results = extract(source);
+    let definitions = facts_with_pattern(&results, "vue.route_definition.v1");
+    assert_eq!(
+        definitions
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "target_path"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/admin", "/billing", "settings"])
+    );
+
+    let admin = definitions
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/admin"))
+        .expect("expected parent admin route");
+    assert_eq!(metadata_str(admin, "component_name"), Some("AdminView"));
+
+    let settings = definitions
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("settings"))
+        .expect("expected child settings route");
+    assert_eq!(
+        metadata_str(settings, "component_name"),
+        Some("SettingsView")
+    );
+    assert_eq!(metadata_str(settings, "parent_route_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(settings, "effective_route_template"),
+        Some("/admin/settings")
+    );
+
+    let billing = definitions
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/billing"))
+        .expect("expected absolute child billing route");
+    assert_eq!(metadata_str(billing, "component_name"), Some("BillingView"));
+    assert_eq!(metadata_str(billing, "parent_route_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(billing, "effective_route_template"),
+        Some("/billing")
     );
 }
 

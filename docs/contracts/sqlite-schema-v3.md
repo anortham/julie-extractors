@@ -501,10 +501,10 @@ Supported patterns are advertised in
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGet`/`MapPost`/`MapPut`/`MapPatch`/`MapDelete` route call with a literal route template. |
 | `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGroup` route group with a literal route prefix. |
-| `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` attribute, including request verb and static target path metadata when applicable. |
+| `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` or `data-hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Vue Router link target such as `<RouterLink to="/calendar">`. |
-| `vue.route_definition.v1` | `vue` | `route_definition` | `object` | `frontend_navigation` | A static Vue Router route-table entry with a literal `path`. |
+| `vue.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `route_definition` | `object` | `frontend_navigation` | A static Vue Router route-table entry with a literal `path`, including `vue-router` JS/TS modules. |
 | `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Nuxt `NuxtLink` or `nuxt-link` target with a literal `to` path. |
 | `nuxt.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `file_route` | `file` | `frontend_navigation` | A Nuxt `app/pages/**` or `pages/**` page route derived from the file path. |
 | `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static React Router `Link` or `NavLink` target imported from React Router. |
@@ -522,6 +522,28 @@ Dynamic React Router `to`/`path` values, arbitrary local `Link` components, and
 Next.js `href` values without a static string or object `pathname` are not
 emitted as static route facts in this contract version.
 
+Route reference facts use `target_path`; route definition and file-route facts
+use `route_path`, except Vue route definitions keep `target_path` for backward
+compatibility with the original Vue fact family. Vue and React child route
+definitions may include `parent_route_path` and `effective_route_template`.
+Navigation reference facts for Vue, Nuxt, React Router, and Next.js include
+`verb="GET"` as an implied navigation verb, not source-attested HTTP evidence.
+`htmx.attribute.v1` keeps source-attested request verbs. `data-hx-*` attributes
+normalize to canonical `hx-*` `attribute_name` values and include
+`data_prefix=true` in metadata JSON.
+
+Next.js Pages Router file-route facts require local Next evidence in the file,
+such as a `next/*` import or `getStaticProps`, `getServerSideProps`, or
+`getStaticPaths`. App Router `app/**/page.*` conventions emit from the file path
+alone. Next.js app-route `@slot` segments are excluded from `route_path` and
+listed in `parallel_route_segments`; intercepting-route markers are stripped
+from `route_path` and recorded in `intercepting_route_markers` with the target
+segments in `intercepted_route_segments`.
+
+Nuxt file-route normalization supports optional params (`[[id]]` ->
+`:id?`, `dynamic_segments:["id?"]`) and mixed static/dynamic segments such as
+`users-[group]` -> `users-:group`.
+
 Metadata:
 
 - `pattern_version`: integer, currently `1`.
@@ -531,11 +553,13 @@ Metadata:
   `handler_kind`, `handler_name`, `route_prefix`, `group_variable`,
   `source_kind`, `route_group_prefix`, `effective_route_template`,
   `route_group_source`, `attribute_name`, `attribute_value`, `target_path`,
-  `route_name`, `component_name`, `component_path`, `route_path`,
-  `route_component`, `route_id`, `index_route`, `import_source`, `library`,
-  `router`, `file_convention`, `normalized_route_template`,
-  `dynamic_segments`, `route_group_segments`, `directive`, `argument`,
-  `modifiers`, `expression`, and `shorthand`.
+  `data_prefix`, `route_name`, `component_name`, `component_path`,
+  `route_path`, `parent_route_path`, `route_component`, `route_id`,
+  `index_route`, `import_source`, `library`, `router`, `file_convention`,
+  `normalized_route_template`, `dynamic_segments`, `route_group_segments`,
+  `parallel_route_segments`, `intercepting_route_markers`,
+  `intercepted_route_segments`, `directive`, `argument`, `modifiers`,
+  `expression`, and `shorthand`.
 
 ## Complexity Metrics
 

@@ -116,6 +116,7 @@ export function AppRoutes() {
         metadata_str(dashboard_link, "import_source"),
         Some("react-router-dom")
     );
+    assert_eq!(metadata_str(dashboard_link, "verb"), Some("GET"));
 
     let definitions = facts_with_pattern(&results, "react.route_definition.v1");
     assert_eq!(
@@ -178,6 +179,121 @@ export function AppRoutes() {
 }
 
 #[test]
+fn react_route_definitions_emit_child_parent_context() {
+    let source = r#"
+import { createBrowserRouter } from "react-router-dom";
+
+const routes = [
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
+      { path: "settings", element: <Settings /> },
+      { path: "users/:id", element: <UserDetails /> },
+      { path: "/audit", element: <Audit /> },
+    ],
+  },
+];
+
+export const router = createBrowserRouter(routes);
+"#;
+
+    let results = extract("src/routes.tsx", source);
+    let definitions = facts_with_pattern(&results, "react.route_definition.v1");
+
+    assert_eq!(
+        definitions
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "route_path"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/admin", "/audit", "settings", "users/:id"])
+    );
+
+    let settings = definitions
+        .iter()
+        .find(|fact| metadata_str(fact, "route_path") == Some("settings"))
+        .expect("expected child settings route");
+    assert_eq!(metadata_str(settings, "parent_route_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(settings, "effective_route_template"),
+        Some("/admin/settings")
+    );
+
+    let users = definitions
+        .iter()
+        .find(|fact| metadata_str(fact, "route_path") == Some("users/:id"))
+        .expect("expected child users route");
+    assert_eq!(metadata_str(users, "parent_route_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(users, "effective_route_template"),
+        Some("/admin/users/:id")
+    );
+
+    let audit = definitions
+        .iter()
+        .find(|fact| metadata_str(fact, "route_path") == Some("/audit"))
+        .expect("expected absolute child audit route");
+    assert_eq!(metadata_str(audit, "parent_route_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(audit, "effective_route_template"),
+        Some("/audit")
+    );
+}
+
+#[test]
+fn plain_vue_router_modules_emit_vue_route_definitions() {
+    let source = r#"
+import { createBrowserRouter } from "react-router-dom";
+import { createRouter, createWebHistory } from "vue-router";
+import DashboardView from "./views/DashboardView.vue";
+
+const routes = [
+  { path: "/react-only", element: <ReactOnly /> },
+];
+
+export const reactRouter = createBrowserRouter(routes);
+
+const vueRoutes = [
+  {
+    path: "/dashboard",
+    component: DashboardView,
+  },
+];
+
+export const router = createRouter({
+  history: createWebHistory(),
+  routes: vueRoutes,
+});
+"#;
+
+    let results = extract("src/router.ts", source);
+    let definitions = facts_with_pattern(&results, "vue.route_definition.v1");
+    assert_eq!(definitions.len(), 1);
+    assert_eq!(
+        metadata_str(definitions[0], "target_path"),
+        Some("/dashboard")
+    );
+    assert_eq!(
+        metadata_str(definitions[0], "component_name"),
+        Some("DashboardView")
+    );
+    assert_eq!(metadata_str(definitions[0], "framework"), Some("vue"));
+
+    let no_vue_router_results = extract(
+        "src/routes.ts",
+        r#"
+const routes = [
+  { path: "/not-vue-router", component: Widget },
+];
+"#,
+    );
+    assert!(
+        facts_with_pattern(&no_vue_router_results, "vue.route_definition.v1").is_empty(),
+        "plain route-shaped objects must require vue-router evidence"
+    );
+}
+
+#[test]
 fn nextjs_static_route_facts() {
     let app_source = r#"
 import Link from "next/link";
@@ -230,6 +346,7 @@ export default function Page() {
         metadata_str(dashboard_link, "import_source"),
         Some("next/link")
     );
+    assert_eq!(metadata_str(dashboard_link, "verb"), Some("GET"));
 
     let about_link = references
         .iter()
@@ -277,7 +394,13 @@ export default function Page() {
 
     let pages_results = extract(
         "pages/dashboard.tsx",
-        "export default function Dashboard() { return <h1>Dashboard</h1>; }",
+        r#"
+export async function getStaticProps() {
+  return { props: {} };
+}
+
+export default function Dashboard() { return <h1>Dashboard</h1>; }
+"#,
     );
     let pages_routes = facts_with_pattern(&pages_results, "nextjs.file_route.v1");
     assert_eq!(pages_routes.len(), 1);
@@ -300,6 +423,77 @@ export default function Page() {
         api_routes.is_empty(),
         "Next.js API routes should not emit page-route facts"
     );
+}
+
+#[test]
+fn nextjs_file_routes_strip_parallel_and_intercepting_segments() {
+    let slot_results = extract(
+        "app/@modal/login/page.tsx",
+        "export default function Page() { return <h1>Login</h1>; }",
+    );
+    let slot_routes = facts_with_pattern(&slot_results, "nextjs.file_route.v1");
+    assert_eq!(slot_routes.len(), 1);
+    assert_eq!(metadata_str(slot_routes[0], "route_path"), Some("/login"));
+    assert_eq!(
+        metadata_array(slot_routes[0], "parallel_route_segments"),
+        vec!["modal"]
+    );
+
+    let intercepted_results = extract(
+        "app/feed/(..)photo/[id]/page.tsx",
+        "export default function Page() { return <h1>Photo</h1>; }",
+    );
+    let intercepted_routes = facts_with_pattern(&intercepted_results, "nextjs.file_route.v1");
+    assert_eq!(intercepted_routes.len(), 1);
+    assert_eq!(
+        metadata_str(intercepted_routes[0], "route_path"),
+        Some("/feed/photo/[id]")
+    );
+    assert_eq!(
+        metadata_array(intercepted_routes[0], "intercepting_route_markers"),
+        vec!["(..)"]
+    );
+    assert_eq!(
+        metadata_array(intercepted_routes[0], "intercepted_route_segments"),
+        vec!["photo"]
+    );
+    assert_eq!(
+        metadata_str(intercepted_routes[0], "normalized_route_template"),
+        Some("/feed/photo/:id")
+    );
+}
+
+#[test]
+fn nextjs_pages_routes_require_next_evidence() {
+    let spa_results = extract(
+        "src/pages/Home.tsx",
+        r#"
+export function Home() {
+  return <h1>Client app</h1>;
+}
+"#,
+    );
+    assert!(
+        facts_with_pattern(&spa_results, "nextjs.file_route.v1").is_empty(),
+        "React SPA source folders named pages must not imply Next.js Pages Router"
+    );
+
+    let next_results = extract(
+        "src/pages/Home.tsx",
+        r#"
+export async function getServerSideProps() {
+  return { props: {} };
+}
+
+export default function Home() {
+  return <h1>Next page</h1>;
+}
+"#,
+    );
+    let next_routes = facts_with_pattern(&next_results, "nextjs.file_route.v1");
+    assert_eq!(next_routes.len(), 1);
+    assert_eq!(metadata_str(next_routes[0], "router"), Some("pages"));
+    assert_eq!(metadata_str(next_routes[0], "route_path"), Some("/Home"));
 }
 
 #[test]
@@ -400,6 +594,9 @@ fn nextjs_file_routes_ignore_nuxt_signals_in_comments_and_strings() {
         r#"
 // definePageMeta would be a Nuxt signal in executable code.
 const note = "useNuxtApp";
+export async function getStaticProps() {
+  return { props: {} };
+}
 export default function Settings() { return <h1>Settings</h1>; }
 "#,
     );

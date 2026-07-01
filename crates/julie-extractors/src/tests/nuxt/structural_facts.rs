@@ -161,3 +161,44 @@ fn nuxt_emits_file_route_facts() {
     );
     assert!(facts_with_pattern(&named_view, "nuxt.file_route.v1").is_empty());
 }
+
+#[test]
+fn nuxt_file_routes_normalize_optional_and_partial_dynamic_segments() {
+    let optional = extract(
+        "pages/users/[[id]].vue",
+        "<template><h1>User</h1></template>",
+    );
+    let optional_routes = facts_with_pattern(&optional, "nuxt.file_route.v1");
+    assert_eq!(optional_routes.len(), 1);
+    assert_eq!(
+        metadata_str(optional_routes[0], "route_path"),
+        Some("/users/[[id]]")
+    );
+    assert_eq!(
+        metadata_str(optional_routes[0], "normalized_route_template"),
+        Some("/users/:id?")
+    );
+    assert_eq!(
+        metadata_array(optional_routes[0], "dynamic_segments"),
+        vec!["id?"]
+    );
+
+    let partial = extract(
+        "pages/users-[group]/[id].vue",
+        "<template><h1>User</h1></template>",
+    );
+    let partial_routes = facts_with_pattern(&partial, "nuxt.file_route.v1");
+    assert_eq!(partial_routes.len(), 1);
+    assert_eq!(
+        metadata_str(partial_routes[0], "route_path"),
+        Some("/users-[group]/[id]")
+    );
+    assert_eq!(
+        metadata_str(partial_routes[0], "normalized_route_template"),
+        Some("/users-:group/:id")
+    );
+    assert_eq!(
+        metadata_array(partial_routes[0], "dynamic_segments"),
+        vec!["group", "id"]
+    );
+}

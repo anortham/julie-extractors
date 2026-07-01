@@ -1,0 +1,110 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/vue/nuxt_optional_file_route/pages/users/[[id]].vue:[[id]]:1:1",
+      "name": "[[id]]",
+      "kind": "class",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_optional_file_route/pages/users/[[id]].vue",
+      "start_line": 1,
+      "start_column": 1,
+      "end_line": 3,
+      "end_column": 12,
+      "start_byte": 0,
+      "end_byte": 38,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 10,
+        "end_line": 3,
+        "end_column": 0,
+        "start_byte": 10,
+        "end_byte": 27
+      },
+      "body_hash": "f7d9e3a02d8529211df891dead3584ce",
+      "signature": "<[[id]] />",
+      "doc_comment": "Vue Single File Component: [[id]]",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "sections": "template",
+        "type": "vue-sfc"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/vue/nuxt_optional_file_route/pages/users/[[id]].vue:[[id]]:1:1",
+      "resolved_type": "vue-sfc",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nuxt.file_route.v1",
+      "capture_name": "file_route",
+      "node_kind": "file",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_optional_file_route/pages/users/[[id]].vue",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 39,
+      "confidence": "1.000",
+      "metadata": {
+        "dynamic_segments": [
+          "id?"
+        ],
+        "file_convention": "page",
+        "framework": "nuxt",
+        "normalized_route_template": "/users/:id?",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_path": "/users/[[id]]",
+        "router": "pages",
+        "source_kind": "nuxt_file_route"
+      }
+    },
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_optional_file_route/pages/users/[[id]].vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_optional_file_route/pages/users/[[id]].vue:[[id]]:1:1",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 11,
+      "start_byte": 0,
+      "end_byte": 38,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "template",
+        "setup": false
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

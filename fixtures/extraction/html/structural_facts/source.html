@@ -1,6 +1,7 @@
 <div id="list"
     hx-get="/todos"
     hx-post="/todos"
+    data-hx-delete="/todos/1"
     hx-target="#list"
     x-data="{ open: false }">
     <button @click.prevent="open = !open" :class="{ active: open }">Toggle</button>
