@@ -4,16 +4,21 @@ use serde_json::Value;
 use tree_sitter::Tree;
 
 use super::fact_builders::{base_metadata, fact_for_span, insert_string};
+use super::js_object_scan::{
+    find_enclosing_object_range, find_js_array_initializer_range_in, find_matching_paren,
+    find_object_property_value_start, is_identifier_boundary, is_ignored_syntax_range,
+    is_js_identifier, join_frontend_route_paths, parent_route_path_for_object, parse_js_identifier,
+    parse_js_string_literal, parse_object_identifier_property, parse_object_string_property,
+    skip_ascii_whitespace_until,
+};
+use super::jsx_scan::{has_boolean_attr, next_markup_tag, parse_attr_value};
+use super::nextjs_nuxt::{
+    has_static_import_source, is_nuxt_external_attribute, is_nuxt_link_tag, is_nuxt_route_path,
+    is_static_route_definition_path, nuxt_file_route_fact,
+};
 use super::{
     NUXT_ROUTE_REFERENCE_PATTERN_ID, VUE_ROUTE_DEFINITION_PATTERN_ID,
     VUE_ROUTE_REFERENCE_PATTERN_ID, VUE_SFC_SECTION_PATTERN_ID, VUE_TEMPLATE_DIRECTIVE_PATTERN_ID,
-    find_enclosing_object_range, find_js_array_initializer_range_in, find_matching_paren,
-    find_object_property_value_start, has_boolean_attr, has_static_import_source,
-    is_identifier_boundary, is_ignored_syntax_range, is_js_identifier, is_nuxt_external_attribute,
-    is_nuxt_link_tag, is_nuxt_route_path, is_static_route_definition_path,
-    join_frontend_route_paths, next_markup_tag, nuxt_file_route_fact, parent_route_path_for_object,
-    parse_attr_value, parse_js_identifier, parse_js_string_literal,
-    parse_object_identifier_property, parse_object_string_property, skip_ascii_whitespace_until,
 };
 use crate::base::markup_scan::{
     MarkupAttribute, find_tag_end, scan_markup_attributes, scan_tag_attributes,

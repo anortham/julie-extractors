@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{
+use super::js_object_scan::{
     find_matching_brace, is_identifier_boundary, parse_js_identifier, parse_js_string_literal,
     skip_ascii_whitespace_until,
 };
