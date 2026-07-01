@@ -629,3 +629,32 @@ fn metadata_array<'a>(fact: &'a StructuralFact, key: &str) -> Vec<&'a str> {
         .map(|values| values.iter().filter_map(|value| value.as_str()).collect())
         .unwrap_or_default()
 }
+
+#[test]
+fn web_structural_facts_mod_does_not_own_extracted_submodule_helpers() {
+    let mod_source = include_str!("../base/web_structural_facts/mod.rs");
+    for forbidden_definition in [
+        "fn collect_css_node",
+        "fn html_form_fact",
+        "fn scan_vue_sections",
+        "fn collect_react_router_route_object_definitions",
+        "fn nextjs_app_file_route",
+        "fn find_enclosing_object_range",
+    ] {
+        assert!(
+            !mod_source.contains(forbidden_definition),
+            "web_structural_facts/mod.rs still owns extracted submodule helper {forbidden_definition}"
+        );
+    }
+}
+
+#[test]
+fn framework_structural_facts_does_not_own_shared_markup_scanner() {
+    let framework_source = include_str!("../base/framework_structural_facts.rs");
+    for forbidden_definition in ["fn scan_markup_attributes(", "struct MarkupAttribute {"] {
+        assert!(
+            !framework_source.contains(forbidden_definition),
+            "framework_structural_facts.rs still owns shared markup scanner {forbidden_definition}"
+        );
+    }
+}
