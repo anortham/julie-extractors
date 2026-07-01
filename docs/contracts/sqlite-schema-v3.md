@@ -505,6 +505,8 @@ Supported patterns are advertised in
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Vue Router link target such as `<RouterLink to="/calendar">`. |
 | `vue.route_definition.v1` | `vue` | `route_definition` | `object` | `frontend_navigation` | A static Vue Router route-table entry with a literal `path`. |
+| `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Nuxt `NuxtLink` or `nuxt-link` target with a literal `to` path. |
+| `nuxt.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `file_route` | `file` | `frontend_navigation` | A Nuxt `app/pages/**` or `pages/**` page route derived from the file path. |
 | `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static React Router `Link` or `NavLink` target imported from React Router. |
 | `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `frontend_navigation` | A static React Router route object or `<Route>` element with a literal `path` or `index`. |
 | `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static `next/link` target from a string `href` or object `pathname`. |
@@ -513,6 +515,9 @@ Supported patterns are advertised in
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route
 facts in this contract version.
+Dynamic Nuxt `to` bindings, named-route objects, external `NuxtLink` targets, and
+Nuxt named-view page files are not emitted as static route facts in this
+contract version.
 Dynamic React Router `to`/`path` values, arbitrary local `Link` components, and
 Next.js `href` values without a static string or object `pathname` are not
 emitted as static route facts in this contract version.

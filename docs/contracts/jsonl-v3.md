@@ -514,6 +514,8 @@ Supported patterns are advertised in `language_capability` records under
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"alpine","directive":"x-on","argument":"click","expression":"open = !open","shorthand":true}` plus optional `modifiers` |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"router_link","route_source":"string_literal","attribute_name":"to"}` |
 | `vue.route_definition.v1` | `vue` | `route_definition` | `object` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"vue_router_route","route_source":"string_literal"}` plus optional `route_name`, `component_name`, and `component_path` |
+| `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nuxt","target_path":"/about","source_kind":"nuxt_link","route_source":"string_literal","attribute_name":"to","component_name":"NuxtLink"}` |
+| `nuxt.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nuxt","router":"pages","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"route_group_segments":["marketing"],"source_kind":"nuxt_file_route"}` |
 | `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","target_path":"/dashboard","source_kind":"react_router_link","route_source":"string_literal","attribute_name":"to","component_name":"RouterLink","import_source":"react-router-dom"}` |
 | `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","route_path":"/dashboard","source_kind":"route_object","route_source":"string_literal"}` plus optional `route_component`, `route_id`, and `index_route` |
 | `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","target_path":"/dashboard","source_kind":"next_link","route_source":"string_literal","attribute_name":"href","component_name":"Link","import_source":"next/link"}` |
@@ -522,6 +524,9 @@ Supported patterns are advertised in `language_capability` records under
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route
 facts in this contract version.
+Dynamic Nuxt `to` bindings, named-route objects, external `NuxtLink` targets, and
+Nuxt named-view page files are not emitted as static route facts in this
+contract version.
 Dynamic React Router `to`/`path` values, arbitrary local `Link` components, and
 Next.js `href` values without a static string or object `pathname` are not
 emitted as static route facts in this contract version.

@@ -1,0 +1,460 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "name": "Source",
+      "kind": "class",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "start_line": 1,
+      "start_column": 1,
+      "end_line": 12,
+      "end_column": 10,
+      "start_byte": 0,
+      "end_byte": 326,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 19,
+        "end_line": 11,
+        "end_column": 24,
+        "start_byte": 130,
+        "end_byte": 316
+      },
+      "body_hash": "308228b621773d03c7dbd06e45934f98",
+      "signature": "<Source />",
+      "doc_comment": "Vue Single File Component: Source",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "sections": "template,script",
+        "type": "vue-sfc"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vue/nuxt_routes/source.vue:post:11:6",
+      "name": "post",
+      "kind": "variable",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "start_line": 11,
+      "start_column": 6,
+      "end_line": 11,
+      "end_column": 24,
+      "start_byte": 298,
+      "end_byte": 316,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 13,
+        "end_line": 11,
+        "end_column": 24,
+        "start_byte": 305,
+        "end_byte": 316
+      },
+      "body_hash": "9684a7697bffce963981161aeb0620de",
+      "signature": "const post",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "callee_name": "NuxtLink",
+      "kind": "references",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "callee_name": "NuxtLink",
+      "kind": "references",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "line_number": 5,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "callee_name": "NuxtLink",
+      "kind": "references",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "line_number": 6,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "callee_name": "nuxt-link",
+      "kind": "references",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "line_number": 4,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+        "callee_name": "NuxtLink",
+        "kind": "references",
+        "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "NuxtLink",
+        "terminal_name": "NuxtLink",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+        "callee_name": "NuxtLink",
+        "kind": "references",
+        "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+        "line_number": 5,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "NuxtLink",
+        "terminal_name": "NuxtLink",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+        "callee_name": "NuxtLink",
+        "kind": "references",
+        "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+        "line_number": 6,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "NuxtLink",
+        "terminal_name": "NuxtLink",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+        "callee_name": "nuxt-link",
+        "kind": "references",
+        "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+        "line_number": 4,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "nuxt-link",
+        "terminal_name": "nuxt-link",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1"
+    }
+  ],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "resolved_type": "vue-sfc",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nuxt.route_reference.v1",
+      "capture_name": "route_reference",
+      "node_kind": "template_attribute",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 3,
+      "start_column": 14,
+      "end_line": 3,
+      "end_column": 25,
+      "start_byte": 33,
+      "end_byte": 44,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "to",
+        "component_name": "NuxtLink",
+        "framework": "nuxt",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_source": "string_literal",
+        "source_kind": "nuxt_link",
+        "target_path": "/about",
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "nuxt.route_reference.v1",
+      "capture_name": "route_reference",
+      "node_kind": "template_attribute",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 4,
+      "start_column": 15,
+      "end_line": 4,
+      "end_column": 28,
+      "start_byte": 77,
+      "end_byte": 90,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "to",
+        "component_name": "nuxt-link",
+        "framework": "nuxt",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_source": "string_literal",
+        "source_kind": "nuxt_link",
+        "target_path": "/contact",
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 11,
+      "start_byte": 0,
+      "end_byte": 275,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "template",
+        "setup": false
+      }
+    },
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 9,
+      "start_byte": 277,
+      "end_byte": 326,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "script",
+        "setup": true
+      }
+    },
+    {
+      "pattern_id": "vue.template_directive.v1",
+      "capture_name": "directive",
+      "node_kind": "template_attribute",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 5,
+      "start_column": 14,
+      "end_line": 5,
+      "end_column": 65,
+      "start_byte": 125,
+      "end_byte": 176,
+      "confidence": "1.000",
+      "metadata": {
+        "argument": "to",
+        "attribute_name": ":to",
+        "directive": "v-bind",
+        "expression": "{ name: 'posts-id', params: { id: post.id } }",
+        "pattern_version": 1,
+        "query_family": "component_template",
+        "shorthand": true
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "covered_lines": 1,
+      "covered_bytes": 24,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 11,
+      "end_column": 24,
+      "start_byte": 292,
+      "end_byte": 316,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/about",
+      "kind": "other",
+      "carrier": "NuxtLink.to",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 25,
+      "start_byte": 36,
+      "end_byte": 44,
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/contact",
+      "kind": "other",
+      "carrier": "nuxt-link.to",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "start_line": 4,
+      "start_column": 18,
+      "end_line": 4,
+      "end_column": 28,
+      "start_byte": 80,
+      "end_byte": 90,
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/download.pdf",
+      "kind": "other",
+      "carrier": "NuxtLink.to",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "start_line": 6,
+      "start_column": 17,
+      "end_line": 6,
+      "end_column": 32,
+      "start_byte": 210,
+      "end_byte": 225,
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": null,
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 9,
+      "start_byte": 277,
+      "end_byte": 326,
+      "metadata": {
+        "embedded_language": "javascript",
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "setup": true
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 25,
+      "start_byte": 36,
+      "end_byte": 44,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 4,
+      "start_column": 18,
+      "end_line": 4,
+      "end_column": 28,
+      "start_byte": 80,
+      "end_byte": 90,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 5,
+      "start_column": 18,
+      "end_line": 5,
+      "end_column": 65,
+      "start_byte": 129,
+      "end_byte": 176,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/nuxt_routes/source.vue",
+      "containing_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "start_line": 6,
+      "start_column": 17,
+      "end_line": 6,
+      "end_column": 32,
+      "start_byte": 210,
+      "end_byte": 225,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

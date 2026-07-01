@@ -1,0 +1,139 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts:setup:2:2",
+      "name": "setup",
+      "kind": "method",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
+      "start_line": 2,
+      "start_column": 2,
+      "end_line": 4,
+      "end_column": 3,
+      "start_byte": 35,
+      "end_byte": 63,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 10,
+        "end_line": 4,
+        "end_column": 3,
+        "start_byte": 43,
+        "end_byte": 63
+      },
+      "body_hash": "3a8bab0d15ee0393c97587780528bc54",
+      "signature": "setup()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "isStatic": false,
+        "parameters": [],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts:defineComponent:call:1:15",
+      "name": "defineComponent",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 30,
+      "start_byte": 15,
+      "end_byte": 30,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nuxt.file_route.v1",
+      "capture_name": "file_route",
+      "node_kind": "file",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 69,
+      "confidence": "1.000",
+      "metadata": {
+        "file_convention": "page",
+        "framework": "nuxt",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_path": "/about",
+        "router": "pages",
+        "source_kind": "nuxt_file_route"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
+      "covered_lines": 6,
+      "covered_bytes": 69,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 69,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts:setup:2:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
+      "covered_lines": 3,
+      "covered_bytes": 20,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 2,
+      "start_column": 10,
+      "end_line": 4,
+      "end_column": 3,
+      "start_byte": 43,
+      "end_byte": 63,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

@@ -23,6 +23,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "file-derived-component-symbols-v1",
         "framework-route-facts-v1",
         "react-nextjs-route-facts-v1",
+        "nuxt-route-facts-v1",
     ] {
         assert!(
             version.contains(marker),

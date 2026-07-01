@@ -1,0 +1,157 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx:Dashboard:1:0",
+      "name": "Dashboard",
+      "kind": "export",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 72,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 36,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 36,
+        "end_byte": 72
+      },
+      "body_hash": "c0e7315f574543af064491133b7b2c44",
+      "signature": "export default function Dashboard() {\n  return <main>Dashboard</main>;\n}",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "Dashboard",
+        "isDefault": true,
+        "isNamed": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx:Dashboard:1:15",
+      "name": "Dashboard",
+      "kind": "function",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 15,
+      "end_byte": 72,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 36,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 36,
+        "end_byte": 72
+      },
+      "body_hash": "c0e7315f574543af064491133b7b2c44",
+      "signature": "function Dashboard()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx:Dashboard:1:0",
+      "metadata": {
+        "isArrowFunction": false,
+        "isAsync": false,
+        "isExpression": false,
+        "isGenerator": false,
+        "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nuxt.file_route.v1",
+      "capture_name": "file_route",
+      "node_kind": "file",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 73,
+      "confidence": "1.000",
+      "metadata": {
+        "file_convention": "page",
+        "framework": "nuxt",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_path": "/dashboard",
+        "router": "pages",
+        "source_kind": "nuxt_file_route"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx",
+      "covered_lines": 4,
+      "covered_bytes": 73,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 73,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx:Dashboard:1:15",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx",
+      "covered_lines": 3,
+      "covered_bytes": 36,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 36,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 36,
+      "end_byte": 72,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

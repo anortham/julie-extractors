@@ -1,0 +1,162 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx:Profile:1:0",
+      "name": "Profile",
+      "kind": "export",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 68,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 34,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 34,
+        "end_byte": 68
+      },
+      "body_hash": "19421ed236db67296bda0acbd95ca603",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx:Profile:1:15",
+      "name": "Profile",
+      "kind": "function",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 15,
+      "end_byte": 68,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 34,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 34,
+        "end_byte": 68
+      },
+      "body_hash": "19421ed236db67296bda0acbd95ca603",
+      "signature": "Profile()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "isAsync": false,
+        "isGenerator": false,
+        "parameters": [],
+        "typeParameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx:Profile:1:0",
+      "resolved_type": "function",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "tsx",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nuxt.file_route.v1",
+      "capture_name": "file_route",
+      "node_kind": "file",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 69,
+      "confidence": "1.000",
+      "metadata": {
+        "file_convention": "page",
+        "framework": "nuxt",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_path": "/profile",
+        "router": "pages",
+        "source_kind": "nuxt_file_route"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx",
+      "covered_lines": 4,
+      "covered_bytes": 69,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 69,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx:Profile:1:15",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx",
+      "covered_lines": 3,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 34,
+      "end_line": 3,
+      "end_column": 1,
+      "start_byte": 34,
+      "end_byte": 68,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

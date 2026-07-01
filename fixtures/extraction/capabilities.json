@@ -692,8 +692,13 @@
         },
         {
           "name": "nextjs_file_route",
-          "source": "fixtures/extraction/typescript/nextjs_file_route/pages/api/status.ts",
+          "source": "fixtures/extraction/typescript/nextjs_file_route/app/settings/page.ts",
           "expected": "fixtures/extraction/typescript/nextjs_file_route/expected.json"
+        },
+        {
+          "name": "nuxt_file_route",
+          "source": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
+          "expected": "fixtures/extraction/typescript/nuxt_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -754,6 +759,7 @@
         "structural_facts": {
           "supported": [
             "nextjs.file_route.v1",
+            "nuxt.file_route.v1",
             "react.route_definition.v1",
             "typescript.await_expression.v1"
           ],
@@ -834,6 +840,11 @@
           "name": "nextjs_file_route",
           "source": "fixtures/extraction/tsx/nextjs_file_route/app/(marketing)/blog/[slug]/page.tsx",
           "expected": "fixtures/extraction/tsx/nextjs_file_route/expected.json"
+        },
+        {
+          "name": "nuxt_file_route",
+          "source": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx",
+          "expected": "fixtures/extraction/tsx/nuxt_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -890,6 +901,7 @@
           "supported": [
             "nextjs.file_route.v1",
             "nextjs.route_reference.v1",
+            "nuxt.file_route.v1",
             "react.route_definition.v1",
             "react.route_reference.v1",
             "tsx.await_expression.v1"
@@ -973,6 +985,11 @@
           "name": "nextjs_file_route",
           "source": "fixtures/extraction/javascript/nextjs_file_route/app/blog/page.js",
           "expected": "fixtures/extraction/javascript/nextjs_file_route/expected.json"
+        },
+        {
+          "name": "nuxt_file_route",
+          "source": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js",
+          "expected": "fixtures/extraction/javascript/nuxt_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1028,6 +1045,7 @@
             "javascript.await_expression.v1",
             "nextjs.file_route.v1",
             "nextjs.route_reference.v1",
+            "nuxt.file_route.v1",
             "react.route_definition.v1",
             "react.route_reference.v1"
           ],
@@ -1108,6 +1126,11 @@
           "name": "nextjs_file_route",
           "source": "fixtures/extraction/jsx/nextjs_file_route/app/blog/page.jsx",
           "expected": "fixtures/extraction/jsx/nextjs_file_route/expected.json"
+        },
+        {
+          "name": "nuxt_file_route",
+          "source": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx",
+          "expected": "fixtures/extraction/jsx/nuxt_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1158,6 +1181,7 @@
             "jsx.await_expression.v1",
             "nextjs.file_route.v1",
             "nextjs.route_reference.v1",
+            "nuxt.file_route.v1",
             "react.route_definition.v1",
             "react.route_reference.v1"
           ],
@@ -1509,6 +1533,16 @@
           "name": "cross_file",
           "source": "fixtures/extraction/vue/cross_file/source.vue",
           "expected": "fixtures/extraction/vue/cross_file/expected.json"
+        },
+        {
+          "name": "nuxt_routes",
+          "source": "fixtures/extraction/vue/nuxt_routes/source.vue",
+          "expected": "fixtures/extraction/vue/nuxt_routes/expected.json"
+        },
+        {
+          "name": "nuxt_file_route",
+          "source": "fixtures/extraction/vue/nuxt_file_route/app/pages/(marketing)/blog/[slug].vue",
+          "expected": "fixtures/extraction/vue/nuxt_file_route/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1560,6 +1594,8 @@
         },
         "structural_facts": {
           "supported": [
+            "nuxt.file_route.v1",
+            "nuxt.route_reference.v1",
             "vue.route_definition.v1",
             "vue.route_reference.v1",
             "vue.sfc_section.v1",

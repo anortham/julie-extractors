@@ -50,6 +50,8 @@ fn react_router_static_route_facts() {
 import { Link as RouterLink, NavLink, Route, createBrowserRouter, useRoutes } from "react-router-dom";
 import { Link } from "./design-system";
 
+const unrelatedWidget = { path: "/not-a-route", index: false, element: <NotRoute /> };
+
 const routes = [
   { path: "/dashboard", element: <Dashboard />, id: "dashboard" },
   { index: true, element: <Home /> },
@@ -283,5 +285,15 @@ export default function Page() {
     assert_eq!(
         metadata_str(pages_routes[0], "route_path"),
         Some("/dashboard")
+    );
+
+    let api_results = extract(
+        "pages/api/status.ts",
+        "export async function handler(): Promise<Response> { return new Response(\"ok\"); }",
+    );
+    let api_routes = facts_with_pattern(&api_results, "nextjs.file_route.v1");
+    assert!(
+        api_routes.is_empty(),
+        "Next.js API routes should not emit page-route facts"
     );
 }
