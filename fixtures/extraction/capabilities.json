@@ -2149,6 +2149,7 @@
         },
         "annotations": {
           "supported": [
+            "class",
             "method"
           ],
           "not_applicable": [],
