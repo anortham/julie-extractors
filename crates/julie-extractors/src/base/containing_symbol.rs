@@ -73,12 +73,16 @@ fn byte_containing_symbol<'a>(fact: &StructuralFact, symbols: &'a [Symbol]) -> O
 }
 
 /// Fallback pass: narrowest scope-bearing symbol whose line span contains the
-/// fact. Ties broken by narrowest byte span, then earliest `start_byte`.
+/// fact and whose byte span is not contained by the fact. Ties broken by
+/// narrowest byte span, then earliest `start_byte`.
 fn line_containing_symbol<'a>(fact: &StructuralFact, symbols: &'a [Symbol]) -> Option<&'a Symbol> {
     symbols
         .iter()
         .filter(|symbol| is_scope_bearing(symbol))
         .filter(|symbol| symbol.start_line <= fact.start_line && symbol.end_line >= fact.end_line)
+        .filter(|symbol| {
+            !(symbol.start_byte >= fact.start_byte && symbol.end_byte <= fact.end_byte)
+        })
         .min_by(|left, right| {
             line_span(left)
                 .cmp(&line_span(right))
@@ -267,6 +271,20 @@ mod tests {
         ];
         let fact = make_fact(0, 5, 3, 3);
         assert_eq!(bind(&fact, &symbols).as_deref(), Some("earlier"));
+    }
+
+    #[test]
+    fn line_fallback_rejects_child_symbol_byte_contained_by_fact() {
+        let symbols = vec![make_symbol(
+            "child-property",
+            SymbolKind::Property,
+            150,
+            170,
+            10,
+            10,
+        )];
+        let fact = make_fact(100, 200, 10, 10);
+        assert_eq!(bind(&fact, &symbols), None);
     }
 
     #[test]

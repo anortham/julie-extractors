@@ -1073,6 +1073,42 @@ fn nextjs_const_arrow_route_handler_binds_its_function_symbol() {
     );
 }
 
+#[test]
+fn react_route_object_does_not_bind_child_property_symbol() {
+    // Repro (2026-07-02): same-line route object facts could bind `id`,
+    // `index`, or `path` property symbols because the line fallback accepted
+    // any symbol sharing the route object's line, even when the symbol's bytes
+    // were inside the fact instead of containing it.
+    let source = r#"
+import { createBrowserRouter } from "react-router-dom";
+
+const routes = [
+  { path: "/dashboard", Component: Dashboard, id: "dashboard" },
+  { index: true, Component: Home }
+];
+
+export const router = createBrowserRouter(routes);
+"#;
+    let results = extract("src/routes.jsx", source);
+    let facts = facts_with_pattern(&results, "react.route_definition.v1");
+    assert_eq!(facts.len(), 2, "expected two route object facts");
+
+    for fact in facts {
+        if let Some(bound_id) = fact.containing_symbol_id.as_deref() {
+            let bound = results
+                .symbols
+                .iter()
+                .find(|symbol| symbol.id == bound_id)
+                .expect("bound symbol id must resolve to a real symbol");
+            assert!(
+                !matches!(bound.name.as_str(), "id" | "index" | "path"),
+                "route object fact must not bind child property symbol `{}`",
+                bound.name
+            );
+        }
+    }
+}
+
 fn facts_with_pattern<'a>(
     results: &'a crate::ExtractionResults,
     pattern_id: &str,

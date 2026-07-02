@@ -39,6 +39,8 @@
 **Acceptance criteria:**
 - [x] Six collector copies replaced by one shared binder; `source_regions.rs` untouched.
 - [x] Both Miller repro cases fixed and locked by named tests; bare-call binding locked.
+- [x] Release-review follow-up fixed: same-line route object facts do not bind
+  child property symbols (`id`, `index`, `path`) through line fallback.
 - [x] Final kind denylist reported with vocabulary evidence. (`{Variable, Constant, EnumMember, Import}` after the lead adjudication dropping Field/Property; SymbolKind vocabulary at base/kinds.rs:77-102.)
 - [x] Worker-scope verification passes, committed. (41b8964 + fix round 62c3ba5.)
 

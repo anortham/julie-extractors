@@ -488,9 +488,10 @@ scope-bearing symbol. `variable`, `constant`, `enum_member`, and `import`
 symbols are value holders, not scopes, so they are never containment
 candidates. When no byte-containing candidate exists (for example, a fact whose
 span starts on an `export const` head that sits outside its value symbol), a
-line-containment fallback selects the narrowest line-spanning candidate, with
-deterministic tie-breaks (narrowest byte span, then earliest start byte).
-Module-scope facts with no enclosing scope-bearing symbol are `NULL`.
+line-containment fallback selects the narrowest line-spanning candidate whose
+byte span is not contained by the fact, with deterministic tie-breaks (narrowest
+byte span, then earliest start byte). Module-scope facts with no enclosing
+scope-bearing symbol are `NULL`.
 
 Supported patterns are advertised in
 `language_capabilities.kind_coverage_json` under
