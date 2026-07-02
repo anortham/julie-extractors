@@ -186,11 +186,11 @@ Add `javascript`, `jsx`, `typescript`, `tsx` (JSX attributes) and `vue` (templat
 **Approach:** Use tree-sitter to find attribute nodes and their owning class/method declarations rather than raw text association — attribution correctness is the risk here. `[controller]` substitution uses the class identifier minus a trailing `Controller`; `[action]` uses the method identifier; record substitutions in `route_tokens`. Attributes with non-literal arguments stay silent. `ApiController` without route attributes emits nothing (conventional routing is out of scope — document this exclusion in the contract).
 
 **Acceptance criteria:**
-- [ ] `[Route("api/[controller]")]` class + `[HttpGet("{id}")]` method emits `effective_route_template=/api/users/{id}` for `UsersController.Get`, with `route_tokens=["controller"]`.
-- [ ] Bare `[HttpPost]` emits verb with controller-level effective template.
-- [ ] Minimal-API goldens byte-identical; conventional-routing exclusion documented.
-- [ ] Contract docs + capability rows + goldens; strict report clean.
-- [ ] Worker-scope verification passes, committed.
+- [x] `[Route("api/[controller]")]` class + `[HttpGet("{id}")]` method emits `effective_route_template=/api/users/{id}` for `UsersController.Get`, with `route_tokens=["controller"]`.
+- [x] Bare `[HttpPost]` emits verb with controller-level effective template.
+- [x] Minimal-API goldens byte-identical; conventional-routing exclusion documented.
+- [x] Contract docs + capability rows + goldens; strict report clean.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 6: htmx Coverage in JSX and Vue Templates
 
@@ -209,10 +209,10 @@ Add `javascript`, `jsx`, `typescript`, `tsx` (JSX attributes) and `vue` (templat
 **Approach:** Language parity: claim all four JS-family languages plus vue together. Plain `javascript`/`typescript` files without JSX will simply emit nothing — the capability claim needs jsx/tsx fixtures and a decision recorded in capabilities.json evidence for js/ts (fixture with JSX-in-js if the parser accepts it; otherwise claim jsx/tsx/vue only — decide against parser reality, and record which).
 
 **Acceptance criteria:**
-- [ ] `<button hx-post="/clicked">` in a TSX component emits the same fact shape as in HTML.
-- [ ] `data-hx-get` normalization holds in the new languages; dynamic values silent.
-- [ ] html/razor htmx goldens byte-identical; capability matrix + strict report clean.
-- [ ] Worker-scope verification passes, committed.
+- [x] `<button hx-post="/clicked">` in a TSX component emits the same fact shape as in HTML.
+- [x] `data-hx-get` normalization holds in the new languages; dynamic values silent.
+- [x] html/razor htmx goldens byte-identical; capability matrix + strict report clean.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 7: Contract Sweep + Release for Miller Pin Bump
 
