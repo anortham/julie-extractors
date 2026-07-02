@@ -1049,3 +1049,174 @@ fn framework_structural_facts_does_not_own_shared_markup_scanner() {
         );
     }
 }
+
+/// Emission-agreement pinning for the four HTTP boundary fact families
+/// (2026-07-01 plan, Task 7): the exact metadata key sets asserted here must
+/// match the rows documented in `docs/contracts/jsonl-v3.md` and
+/// `docs/contracts/sqlite-schema-v3.md`. A failure here means either emission
+/// or the contract docs changed without the other.
+#[test]
+fn http_boundary_families_emit_documented_metadata_keys() {
+    fn metadata_keys(fact: &StructuralFact) -> Vec<&str> {
+        let mut keys: Vec<&str> = fact
+            .metadata
+            .as_ref()
+            .map(|metadata| metadata.keys().map(String::as_str).collect())
+            .unwrap_or_default();
+        keys.sort_unstable();
+        keys
+    }
+
+    // http.client_request.v1 — fetch carries no import_source; axios adds it.
+    let fetch = extract(
+        "src/save.js",
+        r#"export const save = (body) => fetch("/api/users", { method: "POST", body });"#,
+    );
+    let fetch_facts = facts_with_pattern(&fetch, "http.client_request.v1");
+    assert_eq!(fetch_facts.len(), 1);
+    assert_eq!(
+        metadata_keys(fetch_facts[0]),
+        [
+            "client",
+            "framework",
+            "pattern_version",
+            "query_family",
+            "target_path",
+            "url_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    let axios = extract(
+        "src/load.ts",
+        "import axios from \"axios\";\nexport const load = () => axios.get<User[]>(\"/api/users\");\n",
+    );
+    let axios_facts = facts_with_pattern(&axios, "http.client_request.v1");
+    assert_eq!(axios_facts.len(), 1);
+    assert_eq!(
+        metadata_keys(axios_facts[0]),
+        [
+            "client",
+            "framework",
+            "import_source",
+            "pattern_version",
+            "query_family",
+            "target_path",
+            "url_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    // nextjs.route_handler.v1 — one fact per exported verb handler.
+    let handler = extract(
+        "app/api/users/[id]/route.ts",
+        "export async function GET(request: Request) {\n  return Response.json({});\n}\n",
+    );
+    let handler_facts = facts_with_pattern(&handler, "nextjs.route_handler.v1");
+    assert_eq!(handler_facts.len(), 1);
+    assert_eq!(
+        metadata_keys(handler_facts[0]),
+        [
+            "dynamic_segments",
+            "file_convention",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_path",
+            "router",
+            "source_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    // nuxt.server_route.v1 — verb/normalization keys only when attested by
+    // the filename; a suffix-less static route carries the minimal set.
+    let verbed = extract(
+        "server/api/users/[id].get.ts",
+        "export default defineEventHandler((event) => ({}));\n",
+    );
+    let verbed_facts = facts_with_pattern(&verbed, "nuxt.server_route.v1");
+    assert_eq!(verbed_facts.len(), 1);
+    assert_eq!(
+        metadata_keys(verbed_facts[0]),
+        [
+            "dynamic_segments",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_path",
+            "router",
+            "source_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    let suffixless = extract(
+        "server/routes/health.ts",
+        "export default defineEventHandler(() => \"ok\");\n",
+    );
+    let suffixless_facts = facts_with_pattern(&suffixless, "nuxt.server_route.v1");
+    assert_eq!(suffixless_facts.len(), 1);
+    assert_eq!(
+        metadata_keys(suffixless_facts[0]),
+        [
+            "framework",
+            "pattern_version",
+            "query_family",
+            "route_path",
+            "router",
+            "source_kind",
+        ]
+    );
+
+    // aspnet.attribute_route.v1 — verb only on http_method facts;
+    // controller_route_template only under a controller-level [Route].
+    let controller = extract(
+        "src/UsersController.cs",
+        "[Route(\"api/[controller]\")]\npublic class UsersController\n{\n    [HttpGet(\"{id}\")]\n    public string Get(int id) => \"\";\n}\n",
+    );
+    let attribute_facts = facts_with_pattern(&controller, "aspnet.attribute_route.v1");
+    assert_eq!(attribute_facts.len(), 2);
+    let controller_route = attribute_facts
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_kind") == Some("controller_route"))
+        .expect("controller_route fact");
+    assert_eq!(
+        metadata_keys(controller_route),
+        [
+            "api_style",
+            "attribute_kind",
+            "effective_route_template",
+            "framework",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "route_tokens",
+        ]
+    );
+    let http_method = attribute_facts
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_kind") == Some("http_method"))
+        .expect("http_method fact");
+    assert_eq!(
+        metadata_keys(http_method),
+        [
+            "api_style",
+            "attribute_kind",
+            "controller_route_template",
+            "effective_route_template",
+            "framework",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "route_tokens",
+            "verb",
+        ]
+    );
+}
