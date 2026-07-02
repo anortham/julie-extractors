@@ -612,3 +612,118 @@ export default function Settings() { return <h1>Settings</h1>; }
         "Nuxt signal text in comments or strings must not suppress Next.js file routes"
     );
 }
+
+#[test]
+fn nextjs_route_handlers_emit_one_fact_per_exported_verb() {
+    let results = extract(
+        "app/api/users/[id]/route.ts",
+        r#"
+import { NextResponse } from "next/server";
+
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  return NextResponse.json({ id: params.id });
+}
+
+export const DELETE = async (request: Request) => {
+  return new Response(null, { status: 204 });
+};
+
+// Helpers and non-verb exports stay silent.
+export function helper() {
+  return "not a handler";
+}
+
+export const get = () => new Response("lowercase is not a verb export");
+"#,
+    );
+
+    let handlers = facts_with_pattern(&results, "nextjs.route_handler.v1");
+    assert_eq!(
+        handlers.len(),
+        2,
+        "only exported HTTP-verb handlers emit route_handler facts"
+    );
+
+    let verbs = handlers
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "verb"))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(verbs, BTreeSet::from(["DELETE", "GET"]));
+
+    for fact in &handlers {
+        assert_eq!(metadata_str(fact, "query_family"), Some("framework"));
+        assert_eq!(metadata_str(fact, "framework"), Some("nextjs"));
+        assert_eq!(metadata_str(fact, "router"), Some("app"));
+        assert_eq!(metadata_str(fact, "file_convention"), Some("route"));
+        assert_eq!(metadata_str(fact, "route_path"), Some("/api/users/[id]"));
+        assert_eq!(
+            metadata_str(fact, "normalized_route_template"),
+            Some("/api/users/:id")
+        );
+        assert_eq!(metadata_array(fact, "dynamic_segments"), vec!["id"]);
+        assert_eq!(metadata_str(fact, "verb_source"), Some("attested"));
+        assert_eq!(
+            metadata_str(fact, "source_kind"),
+            Some("nextjs_route_handler")
+        );
+        assert_eq!(fact.capture_name, "route_handler");
+    }
+}
+
+#[test]
+fn nextjs_route_handlers_gate_on_app_router_route_files() {
+    // page.ts files never emit route_handler facts, even with verb-named exports.
+    let page_results = extract(
+        "app/dashboard/page.ts",
+        r#"
+export function GET() { return new Response("not a route handler"); }
+export default function Page() { return null; }
+"#,
+    );
+    assert!(
+        facts_with_pattern(&page_results, "nextjs.route_handler.v1").is_empty(),
+        "page files must not emit route_handler facts"
+    );
+
+    // route files outside app/ (e.g. pages/api) emit nothing.
+    let non_app_results = extract(
+        "lib/route.ts",
+        r#"export async function GET() { return new Response("ok"); }"#,
+    );
+    assert!(
+        facts_with_pattern(&non_app_results, "nextjs.route_handler.v1").is_empty(),
+        "route files outside app/ must not emit route_handler facts"
+    );
+
+    // jsx/tsx route files are nonstandard and stay silent.
+    let tsx_results = extract(
+        "app/api/things/route.tsx",
+        r#"export async function GET() { return new Response("ok"); }"#,
+    );
+    assert!(
+        facts_with_pattern(&tsx_results, "nextjs.route_handler.v1").is_empty(),
+        "non-.js/.ts route files must not emit route_handler facts"
+    );
+}
+
+#[test]
+fn nextjs_route_handlers_share_app_router_segment_semantics() {
+    let results = extract(
+        "src/app/(marketing)/api/leads/route.js",
+        r#"export async function POST(request) { return new Response(null, { status: 201 }); }"#,
+    );
+
+    let handlers = facts_with_pattern(&results, "nextjs.route_handler.v1");
+    assert_eq!(handlers.len(), 1);
+    assert_eq!(metadata_str(handlers[0], "verb"), Some("POST"));
+    assert_eq!(metadata_str(handlers[0], "route_path"), Some("/api/leads"));
+    assert_eq!(
+        metadata_array(handlers[0], "route_group_segments"),
+        vec!["marketing"]
+    );
+    // Route groups do not appear in the route path, matching the page fact.
+    assert!(
+        metadata_str(handlers[0], "normalized_route_template").is_none(),
+        "static route handlers omit normalized_route_template"
+    );
+}

@@ -520,6 +520,7 @@ Supported patterns are advertised in `language_capability` records under
 | `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","route_path":"/dashboard","source_kind":"route_object","route_source":"string_literal"}` plus optional `route_component`, `route_id`, `index_route`, `parent_route_path`, and `effective_route_template` |
 | `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","target_path":"/dashboard","source_kind":"next_link","route_source":"string_literal","attribute_name":"href","component_name":"Link","import_source":"next/link","verb":"GET"}` |
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","router":"app","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"source_kind":"nextjs_file_route"}` plus optional `route_group_segments`, `parallel_route_segments`, `intercepting_route_markers`, and `intercepted_route_segments` |
+| `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `{"pattern_version":1,"query_family":"framework","framework":"nextjs","router":"app","file_convention":"route","route_path":"/api/users/[id]","normalized_route_template":"/api/users/:id","dynamic_segments":["id"],"verb":"GET","verb_source":"attested","source_kind":"nextjs_route_handler"}` plus optional `route_group_segments`, `parallel_route_segments`, `intercepting_route_markers`, and `intercepted_route_segments` |
 | `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` | `{"pattern_version":1,"query_family":"web.http_client","framework":"fetch","client":"fetch","target_path":"/api/users","url_kind":"path","verb":"POST","verb_source":"attested"}` — axios calls additionally carry `"client":"axios"`, `"framework":"axios"`, and `"import_source":"axios"` |
 
 `fetch()` and axios calls emit `http.client_request.v1` only when the first
@@ -546,6 +547,26 @@ verb from the method name (generic type arguments as in
 `<script>`/`<script setup>` section content only — template sections never
 produce client-request facts — and the axios import gate is local to the
 script section that declares it.
+
+`nextjs.route_handler.v1` emits one fact per exported HTTP-verb handler in an
+App Router `route.{js,ts}` file (`app/**/route.js`, `app/**/route.ts`,
+including `src/app/**`). Recognized export forms are `export [async] function
+GET(...)` and `export const|let|var GET = ...` (a `=` assignment or a `:` typed
+binding). Recognized verbs are `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`,
+and `OPTIONS`; `verb` is the verb name and `verb_source` is always `attested`
+because the export name is the source-of-truth verb. Next.js auto-implements
+`OPTIONS` when it is not exported, but that synthesized handler is not attested
+source, so only a literally exported `OPTIONS` emits a fact. `route_path`,
+`normalized_route_template`, `dynamic_segments`, and the optional
+`route_group_segments`/`parallel_route_segments`/`intercepting_route_markers`/`intercepted_route_segments`
+keys are derived from the App Router directory segments with the same segment
+walk `nextjs.file_route.v1` uses, so a `route` file and a sibling `page` file
+resolve identical route paths. The span runs from the `export` keyword through
+the handler name so `containing_symbol_id` binds to the handler symbol.
+Re-exports (`export { GET } from ...`), default exports, non-verb exports
+(`export function helper`), lowercase names (`export const get`), `.jsx`/`.tsx`
+route files, `page` files, and route files outside an `app` directory all stay
+silent, as do matches inside comments or string literals.
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route

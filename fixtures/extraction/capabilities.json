@@ -696,6 +696,11 @@
           "expected": "fixtures/extraction/typescript/nextjs_file_route/expected.json"
         },
         {
+          "name": "nextjs_route_handler",
+          "source": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
+          "expected": "fixtures/extraction/typescript/nextjs_route_handler/expected.json"
+        },
+        {
           "name": "nextjs_pages_route",
           "source": "fixtures/extraction/typescript/nextjs_pages_route/src/pages/home.ts",
           "expected": "fixtures/extraction/typescript/nextjs_pages_route/expected.json"
@@ -775,6 +780,7 @@
           "supported": [
             "http.client_request.v1",
             "nextjs.file_route.v1",
+            "nextjs.route_handler.v1",
             "nuxt.file_route.v1",
             "react.route_definition.v1",
             "typescript.await_expression.v1",
@@ -1031,6 +1037,11 @@
           "expected": "fixtures/extraction/javascript/nextjs_file_route/expected.json"
         },
         {
+          "name": "nextjs_route_handler",
+          "source": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js",
+          "expected": "fixtures/extraction/javascript/nextjs_route_handler/expected.json"
+        },
+        {
           "name": "nuxt_file_route",
           "source": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js",
           "expected": "fixtures/extraction/javascript/nuxt_file_route/expected.json"
@@ -1099,6 +1110,7 @@
             "http.client_request.v1",
             "javascript.await_expression.v1",
             "nextjs.file_route.v1",
+            "nextjs.route_handler.v1",
             "nextjs.route_reference.v1",
             "nuxt.file_route.v1",
             "react.route_definition.v1",
