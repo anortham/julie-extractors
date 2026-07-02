@@ -2604,6 +2604,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 "Route parameter names discovered in the normalized template.",
             ),
             key(
+                "host",
+                STR,
+                OPT,
+                "Host portion when the Go 1.22+ pattern is host-scoped.",
+            ),
+            key(
                 "verb",
                 STR,
                 OPT,
@@ -2621,7 +2627,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("api_style", STR, ALWAYS, "Routing style (\"mux_routing\")."),
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"call_routing\").",
+            ),
             key("route_template", STR, ALWAYS, "Raw static route path."),
             key(
                 "normalized_route_template",
@@ -2655,7 +2666,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("api_style", STR, ALWAYS, "Routing style (\"mux_routing\")."),
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"call_routing\").",
+            ),
             key("route_template", STR, ALWAYS, "Raw static route path."),
             key(
                 "normalized_route_template",

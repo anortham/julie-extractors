@@ -1,17 +1,21 @@
 use std::collections::HashMap;
 
-use serde_json::Value;
 use tree_sitter::Tree;
 
 use super::helpers::{
-    base_metadata, fact_for_span, insert_string, is_comment_or_string_node, is_identifier_boundary,
-    skip_ascii_whitespace_until, smallest_node_covering_range,
+    base_metadata, fact_for_span, insert_string, insert_string_array, is_ascii_identifier,
+    is_comment_or_string_node, is_identifier_boundary, skip_ascii_whitespace_until,
+    smallest_node_covering_range,
+};
+use super::scan::{
+    MaskLanguage, RouteFactSpec, SourceMask, find_matching_bracket_within, find_matching_paren,
+    find_top_level_comma_or_end, parse_python_string_literal, route_fact,
 };
 use super::{
     DJANGO_URL_INCLUDE_PATTERN_ID, DJANGO_URL_PATTERN_ID, FASTAPI_INCLUDE_ROUTER_PATTERN_ID,
     FASTAPI_ROUTE_PATTERN_ID, FLASK_BLUEPRINT_REGISTRATION_PATTERN_ID, FLASK_ROUTE_PATTERN_ID,
 };
-use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
+use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 
@@ -20,6 +24,7 @@ struct PythonFactContext<'a> {
     tree: &'a Tree,
     file_path: &'a str,
     content: &'a str,
+    mask: &'a SourceMask,
 }
 
 struct MountCallSpec<'a> {
@@ -48,26 +53,27 @@ pub(super) fn collect_python_web_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let imports = collect_imports(content);
-    let fastapi = collect_fastapi_receivers(content, &imports);
-    let flask = collect_flask_receivers(content, &imports);
+    if imports.is_empty() {
+        return Vec::new();
+    }
+    let mask = SourceMask::new(content, MaskLanguage::Python);
+    let context = PythonFactContext {
+        language,
+        tree,
+        file_path,
+        content,
+        mask: &mask,
+    };
+    let fastapi = collect_fastapi_receivers(&context, &imports);
+    let flask = collect_flask_receivers(&context, &imports);
 
     let mut facts = Vec::new();
-    facts.extend(collect_fastapi_routes(
-        language, tree, file_path, content, &fastapi,
-    ));
-    facts.extend(collect_fastapi_includes(
-        language, tree, file_path, content, &fastapi,
-    ));
-    facts.extend(collect_flask_routes(
-        language, tree, file_path, content, &flask,
-    ));
-    facts.extend(collect_flask_blueprint_registrations(
-        language, tree, file_path, content, &flask,
-    ));
+    facts.extend(collect_fastapi_routes(&context, &fastapi));
+    facts.extend(collect_fastapi_includes(&context, &fastapi));
+    facts.extend(collect_flask_routes(&context, &flask));
+    facts.extend(collect_flask_blueprint_registrations(&context, &flask));
     if imports.django_path.is_some() || imports.django_re_path.is_some() {
-        facts.extend(collect_django_urls(
-            language, tree, file_path, content, &imports,
-        ));
+        facts.extend(collect_django_urls(&context, &imports));
     }
     facts
 }
@@ -81,6 +87,18 @@ struct PythonImports {
     django_path: Option<String>,
     django_re_path: Option<String>,
     django_include: Option<String>,
+}
+
+impl PythonImports {
+    fn is_empty(&self) -> bool {
+        self.fastapi_class.is_none()
+            && self.api_router_class.is_none()
+            && self.flask_class.is_none()
+            && self.blueprint_class.is_none()
+            && self.django_path.is_none()
+            && self.django_re_path.is_none()
+            && self.django_include.is_none()
+    }
 }
 
 #[derive(Clone)]
@@ -163,12 +181,12 @@ fn parse_from_import_items(rest: &str) -> Vec<(String, String)> {
 }
 
 fn collect_fastapi_receivers(
-    content: &str,
+    context: &PythonFactContext<'_>,
     imports: &PythonImports,
 ) -> HashMap<String, FastApiReceiver> {
     let mut receivers = HashMap::new();
     if let Some(class_name) = imports.fastapi_class.as_deref() {
-        for assignment in collect_constructor_assignments(content, class_name) {
+        for assignment in collect_constructor_assignments(context, class_name) {
             receivers.insert(
                 assignment.name,
                 FastApiReceiver {
@@ -179,7 +197,7 @@ fn collect_fastapi_receivers(
         }
     }
     if let Some(class_name) = imports.api_router_class.as_deref() {
-        for assignment in collect_constructor_assignments(content, class_name) {
+        for assignment in collect_constructor_assignments(context, class_name) {
             receivers.insert(
                 assignment.name,
                 FastApiReceiver {
@@ -193,12 +211,12 @@ fn collect_fastapi_receivers(
 }
 
 fn collect_flask_receivers(
-    content: &str,
+    context: &PythonFactContext<'_>,
     imports: &PythonImports,
 ) -> HashMap<String, FlaskReceiver> {
     let mut receivers = HashMap::new();
     if let Some(class_name) = imports.flask_class.as_deref() {
-        for assignment in collect_constructor_assignments(content, class_name) {
+        for assignment in collect_constructor_assignments(context, class_name) {
             receivers.insert(
                 assignment.name,
                 FlaskReceiver {
@@ -210,7 +228,7 @@ fn collect_flask_receivers(
         }
     }
     if let Some(class_name) = imports.blueprint_class.as_deref() {
-        for assignment in collect_constructor_assignments(content, class_name) {
+        for assignment in collect_constructor_assignments(context, class_name) {
             let blueprint_name = positional_string_arg(&assignment.args, 0);
             receivers.insert(
                 assignment.name,
@@ -230,18 +248,22 @@ struct ConstructorAssignment {
     args: String,
 }
 
-fn collect_constructor_assignments(content: &str, class_name: &str) -> Vec<ConstructorAssignment> {
+fn collect_constructor_assignments(
+    context: &PythonFactContext<'_>,
+    class_name: &str,
+) -> Vec<ConstructorAssignment> {
+    let content = context.content;
     let mut assignments = Vec::new();
     let needle = format!("{class_name}(");
     let mut cursor = 0;
     while let Some(relative) = content[cursor..].find(&needle) {
         let class_start = cursor + relative;
         cursor = class_start + needle.len();
-        if is_in_python_string_or_comment(content, class_start) {
+        if context.mask.is_string_or_comment(class_start) {
             continue;
         }
         let open = class_start + class_name.len();
-        let Some(close) = find_matching_paren(content, open) else {
+        let Some(close) = find_matching_paren(content, context.mask, open) else {
             continue;
         };
         let statement_start = content[..class_start]
@@ -253,7 +275,7 @@ fn collect_constructor_assignments(content: &str, class_name: &str) -> Vec<Const
             .split('=')
             .next()
             .map(str::trim)
-            .filter(|value| is_python_identifier(value))
+            .filter(|value| is_ascii_identifier(value))
         else {
             continue;
         };
@@ -266,14 +288,11 @@ fn collect_constructor_assignments(content: &str, class_name: &str) -> Vec<Const
 }
 
 fn collect_fastapi_routes(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    context: &PythonFactContext<'_>,
     receivers: &HashMap<String, FastApiReceiver>,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    for decorator in collect_decorator_calls(content) {
+    for decorator in collect_decorator_calls(context) {
         let Some(receiver) = receivers.get(&decorator.receiver) else {
             continue;
         };
@@ -295,20 +314,24 @@ fn collect_fastapi_routes(
         }
         for verb in verbs {
             if let Some(fact) = route_fact(
-                language,
-                tree,
-                file_path,
-                content,
+                context.language,
+                context.tree,
+                context.file_path,
+                context.content,
                 decorator.start,
                 decorator.end,
-                "fastapi",
-                FASTAPI_ROUTE_PATTERN_ID,
-                route_template,
-                Some(&verb),
-                Some("attested"),
-                "decorator_routing",
-                ParamFlavor::Braces,
-                receiver.prefix.as_deref(),
+                RouteFactSpec {
+                    framework: "fastapi",
+                    pattern_id: FASTAPI_ROUTE_PATTERN_ID,
+                    capture_name: "route",
+                    api_style: "decorator_routing",
+                    route_template,
+                    verb: Some(&verb),
+                    verb_source: Some("attested"),
+                    flavor: ParamFlavor::Braces,
+                    prefix: receiver.prefix.as_deref(),
+                    prefix_key: None,
+                },
                 |metadata| {
                     if let Some(prefix) = receiver.prefix.as_deref() {
                         insert_string(metadata, "router_prefix", prefix);
@@ -323,25 +346,16 @@ fn collect_fastapi_routes(
 }
 
 fn collect_fastapi_includes(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    context: &PythonFactContext<'_>,
     receivers: &HashMap<String, FastApiReceiver>,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    let context = PythonFactContext {
-        language,
-        tree,
-        file_path,
-        content,
-    };
     for receiver in receivers.iter().filter_map(|(name, receiver)| {
         (receiver.framework_kind == FastApiReceiverKind::App).then_some(name)
     }) {
         let needle = format!("{receiver}.include_router");
         collect_mount_calls(
-            &context,
+            context,
             MountCallSpec {
                 needle: &needle,
                 framework: "fastapi",
@@ -356,14 +370,11 @@ fn collect_fastapi_includes(
 }
 
 fn collect_flask_routes(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    context: &PythonFactContext<'_>,
     receivers: &HashMap<String, FlaskReceiver>,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    for decorator in collect_decorator_calls(content) {
+    for decorator in collect_decorator_calls(context) {
         let Some(receiver) = receivers.get(&decorator.receiver) else {
             continue;
         };
@@ -396,20 +407,24 @@ fn collect_flask_routes(
                 "attested"
             };
             if let Some(fact) = route_fact(
-                language,
-                tree,
-                file_path,
-                content,
+                context.language,
+                context.tree,
+                context.file_path,
+                context.content,
                 decorator.start,
                 decorator.end,
-                "flask",
-                FLASK_ROUTE_PATTERN_ID,
-                route_template,
-                Some(&verb),
-                Some(verb_source),
-                "decorator_routing",
-                ParamFlavor::AngleBrackets,
-                receiver.prefix.as_deref(),
+                RouteFactSpec {
+                    framework: "flask",
+                    pattern_id: FLASK_ROUTE_PATTERN_ID,
+                    capture_name: "route",
+                    api_style: "decorator_routing",
+                    route_template,
+                    verb: Some(&verb),
+                    verb_source: Some(verb_source),
+                    flavor: ParamFlavor::AngleBrackets,
+                    prefix: receiver.prefix.as_deref(),
+                    prefix_key: None,
+                },
                 |metadata| {
                     if let Some(prefix) = receiver.prefix.as_deref() {
                         insert_string(metadata, "url_prefix", prefix);
@@ -427,26 +442,17 @@ fn collect_flask_routes(
 }
 
 fn collect_flask_blueprint_registrations(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    context: &PythonFactContext<'_>,
     receivers: &HashMap<String, FlaskReceiver>,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    let context = PythonFactContext {
-        language,
-        tree,
-        file_path,
-        content,
-    };
     for receiver in receivers
         .iter()
         .filter_map(|(name, receiver)| (receiver.kind == FlaskReceiverKind::App).then_some(name))
     {
         let needle = format!("{receiver}.register_blueprint");
         collect_mount_calls(
-            &context,
+            context,
             MountCallSpec {
                 needle: &needle,
                 framework: "flask",
@@ -461,19 +467,13 @@ fn collect_flask_blueprint_registrations(
 }
 
 fn collect_django_urls(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    context: &PythonFactContext<'_>,
     imports: &PythonImports,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     if let Some(path_name) = imports.django_path.as_deref() {
         collect_django_calls(
-            language,
-            tree,
-            file_path,
-            content,
+            context,
             path_name,
             "path",
             imports.django_include.as_deref(),
@@ -482,10 +482,7 @@ fn collect_django_urls(
     }
     if let Some(re_path_name) = imports.django_re_path.as_deref() {
         collect_django_calls(
-            language,
-            tree,
-            file_path,
-            content,
+            context,
             re_path_name,
             "regex",
             imports.django_include.as_deref(),
@@ -495,39 +492,30 @@ fn collect_django_urls(
     facts
 }
 
-#[allow(clippy::too_many_arguments)]
 fn collect_django_calls(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    context: &PythonFactContext<'_>,
     function_name: &str,
     route_syntax: &str,
     include_name: Option<&str>,
     facts: &mut Vec<StructuralFact>,
 ) {
+    let content = context.content;
     let needle = format!("{function_name}(");
-    let context = PythonFactContext {
-        language,
-        tree,
-        file_path,
-        content,
-    };
     let mut cursor = 0;
     while let Some(relative) = content[cursor..].find(&needle) {
         let call_start = cursor + relative;
         cursor = call_start + needle.len();
         if !is_identifier_boundary(content, call_start, function_name.len())
-            || is_in_python_string_or_comment(content, call_start)
+            || context.mask.is_string_or_comment(call_start)
         {
             continue;
         }
         let open = call_start + function_name.len();
-        let Some(close) = find_matching_paren(content, open) else {
+        let Some(close) = find_matching_paren(content, context.mask, open) else {
             continue;
         };
         let first_start = skip_ascii_whitespace_until(content, open + 1, close);
-        let first_end = find_top_level_comma_or_end(content, first_start, close);
+        let first_end = find_top_level_comma_or_end(content, context.mask, first_start, close);
         let Some((route_template, route_end)) = parse_python_string_literal(content, first_start)
         else {
             continue;
@@ -535,12 +523,20 @@ fn collect_django_calls(
         if skip_ascii_whitespace_until(content, route_end, first_end) != first_end {
             continue;
         }
+        // A path()/re_path() call needs a view (or include) second argument;
+        // single-argument calls have nothing to bind and stay silent.
         let second_start = skip_ascii_whitespace_until(content, first_end + 1, close);
-        let second_end = find_top_level_comma_or_end(content, second_start, close);
+        if second_start >= close {
+            continue;
+        }
+        let second_end = find_top_level_comma_or_end(content, context.mask, second_start, close);
         let second = content[second_start..second_end].trim();
+        if second.is_empty() {
+            continue;
+        }
         if include_name.is_some_and(|name| second.starts_with(&format!("{name}("))) {
             if let Some(fact) = django_include_fact(
-                &context,
+                context,
                 call_start,
                 close + 1,
                 &route_template,
@@ -552,7 +548,7 @@ fn collect_django_calls(
             continue;
         }
         if let Some(fact) = django_route_fact(
-            &context,
+            context,
             call_start,
             close + 1,
             &route_template,
@@ -574,7 +570,8 @@ struct DecoratorCall {
     first_arg: Option<String>,
 }
 
-fn collect_decorator_calls(content: &str) -> Vec<DecoratorCall> {
+fn collect_decorator_calls(context: &PythonFactContext<'_>) -> Vec<DecoratorCall> {
+    let content = context.content;
     let mut decorators = Vec::new();
     let mut offset = 0;
     for line in content.split_inclusive('\n') {
@@ -582,7 +579,7 @@ fn collect_decorator_calls(content: &str) -> Vec<DecoratorCall> {
         let leading = line.len() - trimmed.len();
         if let Some(after_at) = trimmed.strip_prefix('@') {
             let start = offset + leading;
-            if is_in_python_string_or_comment(content, start) {
+            if context.mask.is_string_or_comment(start) {
                 offset += line.len();
                 continue;
             }
@@ -597,12 +594,12 @@ fn collect_decorator_calls(content: &str) -> Vec<DecoratorCall> {
                 continue;
             };
             let method = rest[..open_relative].trim();
-            if !is_python_identifier(receiver) || !is_python_identifier(method) {
+            if !is_ascii_identifier(receiver) || !is_ascii_identifier(method) {
                 offset += line.len();
                 continue;
             }
             let open = start + 1 + dot + 1 + open_relative;
-            let Some(close) = find_matching_paren(content, open) else {
+            let Some(close) = find_matching_paren(content, context.mask, open) else {
                 offset += line.len();
                 continue;
             };
@@ -610,7 +607,7 @@ fn collect_decorator_calls(content: &str) -> Vec<DecoratorCall> {
                 next_def_line_range(content, close + 1).unwrap_or((start, close + 1));
             let args = content[open + 1..close].to_string();
             let first_start = skip_ascii_whitespace_until(content, open + 1, close);
-            let first_end = find_top_level_comma_or_end(content, first_start, close);
+            let first_end = find_top_level_comma_or_end(content, context.mask, first_start, close);
             let first_arg = parse_python_string_literal(content, first_start)
                 .filter(|(_, end)| {
                     skip_ascii_whitespace_until(content, *end, first_end) == first_end
@@ -640,72 +637,6 @@ fn next_def_line_range(content: &str, start: usize) -> Option<(usize, usize)> {
     Some((def_start, def_end))
 }
 
-#[allow(clippy::too_many_arguments)]
-fn route_fact<F>(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
-    start: usize,
-    end: usize,
-    framework: &str,
-    pattern_id: &str,
-    route_template: &str,
-    verb: Option<&str>,
-    verb_source: Option<&str>,
-    api_style: &str,
-    flavor: ParamFlavor,
-    prefix: Option<&str>,
-    enrich: F,
-) -> Option<StructuralFact>
-where
-    F: FnOnce(&mut HashMap<String, Value>),
-{
-    let node = smallest_node_covering_range(tree.root_node(), start, end)?;
-    if is_comment_or_string_node(node.kind()) {
-        return None;
-    }
-    let span = NormalizedSpan::from_content_range(content, start, end)?;
-    let mut metadata = base_metadata("framework", framework);
-    insert_string(&mut metadata, "api_style", api_style);
-    insert_string(&mut metadata, "route_template", route_template);
-    let mut normalized_source = route_template.to_string();
-    if let Some(prefix) = prefix {
-        let effective = join_route_templates(prefix, route_template);
-        insert_string(&mut metadata, "effective_route_template", &effective);
-        normalized_source = effective;
-    }
-    let normalized = normalize_route_template(&normalized_source, flavor);
-    insert_string(
-        &mut metadata,
-        "normalized_route_template",
-        &normalized.template,
-    );
-    if !normalized.dynamic_segments.is_empty() {
-        insert_string_array(
-            &mut metadata,
-            "dynamic_segments",
-            normalized.dynamic_segments,
-        );
-    }
-    if let Some(verb) = verb {
-        insert_string(&mut metadata, "verb", verb);
-    }
-    if let Some(verb_source) = verb_source {
-        insert_string(&mut metadata, "verb_source", verb_source);
-    }
-    enrich(&mut metadata);
-    Some(fact_for_span(
-        file_path,
-        language,
-        pattern_id,
-        "route",
-        node.kind(),
-        span,
-        metadata,
-    ))
-}
-
 fn collect_mount_calls(
     context: &PythonFactContext<'_>,
     spec: MountCallSpec<'_>,
@@ -716,18 +647,18 @@ fn collect_mount_calls(
     while let Some(relative) = content[cursor..].find(spec.needle) {
         let call_start = cursor + relative;
         cursor = call_start + spec.needle.len();
-        if is_in_python_string_or_comment(content, call_start) {
+        if context.mask.is_string_or_comment(call_start) {
             continue;
         }
         let open = skip_ascii_whitespace_until(content, cursor, content.len());
         if content.as_bytes().get(open) != Some(&b'(') {
             continue;
         }
-        let Some(close) = find_matching_paren(content, open) else {
+        let Some(close) = find_matching_paren(content, context.mask, open) else {
             continue;
         };
         let first_start = skip_ascii_whitespace_until(content, open + 1, close);
-        let first_end = find_top_level_comma_or_end(content, first_start, close);
+        let first_end = find_top_level_comma_or_end(content, context.mask, first_start, close);
         let mount_target = content[first_start..first_end].trim();
         if mount_target.is_empty() || mount_target.starts_with(['\'', '"']) {
             continue;
@@ -859,7 +790,8 @@ fn methods_keyword(args: &str) -> Vec<String> {
     if args.as_bytes().get(value_start) != Some(&b'[') {
         return Vec::new();
     }
-    let Some(end) = find_matching_delimiter(args, value_start, b'[', b']') else {
+    let args_mask = SourceMask::new(args, MaskLanguage::Python);
+    let Some(end) = find_matching_bracket_within(args, &args_mask, value_start, args.len()) else {
         return Vec::new();
     };
     let mut methods = Vec::new();
@@ -887,10 +819,11 @@ fn keyword_string_arg(args: &str, key: &str) -> Option<String> {
 }
 
 fn positional_string_arg(args: &str, index: usize) -> Option<String> {
+    let args_mask = SourceMask::new(args, MaskLanguage::Python);
     let mut cursor = 0;
     for current in 0..=index {
         cursor = skip_ascii_whitespace_until(args, cursor, args.len());
-        let end = find_top_level_comma_or_end(args, cursor, args.len());
+        let end = find_top_level_comma_or_end(args, &args_mask, cursor, args.len());
         if current == index {
             return parse_python_string_literal(args, cursor)
                 .filter(|(_, literal_end)| {
@@ -915,157 +848,4 @@ fn keyword_value_start(args: &str, key: &str) -> Option<usize> {
         return Some(skip_ascii_whitespace_until(args, cursor, args.len()));
     }
     None
-}
-
-fn insert_string_array(metadata: &mut HashMap<String, Value>, key: &str, values: Vec<String>) {
-    metadata.insert(
-        key.to_string(),
-        Value::Array(values.into_iter().map(Value::String).collect()),
-    );
-}
-
-fn parse_python_string_literal(content: &str, start: usize) -> Option<(String, usize)> {
-    let bytes = content.as_bytes();
-    let mut cursor = start;
-    while matches!(bytes.get(cursor).copied(), Some(b'r' | b'R' | b'u' | b'U')) {
-        cursor += 1;
-    }
-    if matches!(bytes.get(cursor).copied(), Some(b'f' | b'F' | b'b' | b'B')) {
-        return None;
-    }
-    let quote = bytes
-        .get(cursor)
-        .copied()
-        .filter(|byte| matches!(*byte, b'\'' | b'"'))?;
-    let mut index = cursor + 1;
-    let mut value = String::new();
-    while index < content.len() {
-        let byte = bytes[index];
-        if byte == b'\\' {
-            let escaped_start = index + 1;
-            let escaped = content.get(escaped_start..)?.chars().next()?;
-            value.push(escaped);
-            index = escaped_start + escaped.len_utf8();
-        } else if byte == quote {
-            return Some((value, index + 1));
-        } else {
-            let ch = content.get(index..)?.chars().next()?;
-            value.push(ch);
-            index += ch.len_utf8();
-        }
-    }
-    None
-}
-
-fn find_matching_paren(content: &str, open: usize) -> Option<usize> {
-    find_matching_delimiter(content, open, b'(', b')')
-}
-
-fn find_matching_delimiter(content: &str, open: usize, left: u8, right: u8) -> Option<usize> {
-    if content.as_bytes().get(open) != Some(&left) {
-        return None;
-    }
-    let bytes = content.as_bytes();
-    let mut cursor = open;
-    let mut depth = 0usize;
-    let mut quote = None;
-    let mut escaped = false;
-    while cursor < content.len() {
-        let byte = bytes[cursor];
-        if let Some(active_quote) = quote {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == active_quote {
-                quote = None;
-            }
-        } else if matches!(byte, b'\'' | b'"') {
-            quote = Some(byte);
-        } else if byte == left {
-            depth += 1;
-        } else if byte == right {
-            depth = depth.saturating_sub(1);
-            if depth == 0 {
-                return Some(cursor);
-            }
-        }
-        cursor += 1;
-    }
-    None
-}
-
-fn find_top_level_comma_or_end(content: &str, start: usize, end: usize) -> usize {
-    let bytes = content.as_bytes();
-    let mut cursor = start;
-    let mut paren_depth = 0usize;
-    let mut bracket_depth = 0usize;
-    let mut brace_depth = 0usize;
-    let mut quote = None;
-    let mut escaped = false;
-    while cursor < end {
-        let byte = bytes[cursor];
-        if let Some(active_quote) = quote {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == active_quote {
-                quote = None;
-            }
-        } else if matches!(byte, b'\'' | b'"') {
-            quote = Some(byte);
-        } else {
-            match byte {
-                b'(' => paren_depth += 1,
-                b')' => paren_depth = paren_depth.saturating_sub(1),
-                b'[' => bracket_depth += 1,
-                b']' => bracket_depth = bracket_depth.saturating_sub(1),
-                b'{' => brace_depth += 1,
-                b'}' => brace_depth = brace_depth.saturating_sub(1),
-                b',' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
-                    return cursor;
-                }
-                _ => {}
-            }
-        }
-        cursor += 1;
-    }
-    end
-}
-
-fn is_python_identifier(value: &str) -> bool {
-    let mut chars = value.chars();
-    let Some(first) = chars.next() else {
-        return false;
-    };
-    (first == '_' || first.is_ascii_alphabetic())
-        && chars.all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
-}
-
-fn is_in_python_string_or_comment(content: &str, target: usize) -> bool {
-    let bytes = content.as_bytes();
-    let mut cursor = 0;
-    let mut quote = None;
-    let mut escaped = false;
-    while cursor < target {
-        let byte = bytes[cursor];
-        if let Some(active_quote) = quote {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == active_quote {
-                quote = None;
-            }
-        } else if byte == b'#' {
-            while cursor < target && bytes.get(cursor) != Some(&b'\n') {
-                cursor += 1;
-            }
-        } else if matches!(byte, b'\'' | b'"') {
-            quote = Some(byte);
-        }
-        cursor += 1;
-    }
-    quote.is_some()
 }

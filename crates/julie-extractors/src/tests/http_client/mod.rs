@@ -754,6 +754,59 @@ func load() {
 }
 
 #[test]
+fn go_backtick_raw_string_urls_emit_client_requests() {
+    let source = r#"
+package main
+
+import "net/http"
+
+func load() {
+    http.Get(`https://api.example.com/users`)
+}
+"#;
+    let results = extract("client.go", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata_str(facts[0], "target_path"),
+        Some("https://api.example.com/users")
+    );
+    assert_eq!(metadata_str(facts[0], "verb"), Some("GET"));
+}
+
+#[test]
+fn go_client_calls_on_longer_identifiers_stay_silent() {
+    let source = r#"
+package main
+
+import "net/http"
+
+func load() {
+    myhttp.Get("/not-a-real-client-call")
+}
+"#;
+    let results = extract("client.go", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "{facts:#?}");
+}
+
+#[test]
+fn java_builder_on_longer_type_names_stays_silent() {
+    let source = r#"
+import java.net.http.*;
+
+class Client {
+    void load() {
+        MyHttpRequest.newBuilder(URI.create("/not-a-real-request")).GET();
+    }
+}
+"#;
+    let results = extract("Client.java", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "{facts:#?}");
+}
+
+#[test]
 fn ruby_net_http_uri_calls_emit_client_requests() {
     let source = r#"
 require "net/http"

@@ -27,6 +27,7 @@ def flask_user(user_id):
 flask_app.register_blueprint(bp, url_prefix="/v1")
 
 urlpatterns = [
+    path("healthz"),
     path("users/<int:pk>/", views.detail, name="user-detail"),
     re_path(r"^legacy/(?P<slug>[-\\w]+)/$", views.legacy, name="legacy"),
     path("api/", include("app.urls"), namespace="api"),
@@ -35,3 +36,5 @@ urlpatterns = [
 def call_clients():
     requests.get("https://api.example.com/users")
     httpx.post("/items")
+
+NOTES = '''Bob's notebook: @flask_app.route("/fake-in-string") must stay silent.'''

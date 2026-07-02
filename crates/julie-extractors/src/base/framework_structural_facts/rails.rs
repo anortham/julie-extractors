@@ -1,16 +1,24 @@
-use std::collections::HashMap;
-
-use serde_json::Value;
 use tree_sitter::Tree;
 
 use super::helpers::{
-    base_metadata, fact_for_span, insert_string, is_comment_or_string_node,
+    base_metadata, fact_for_span, insert_string, insert_string_array, is_comment_or_string_node,
     skip_ascii_whitespace_until, smallest_node_covering_range,
 };
+use super::scan::parse_ruby_string_literal;
 use super::{RAILS_MOUNT_PATTERN_ID, RAILS_RESOURCE_ROUTE_PATTERN_ID, RAILS_ROUTE_PATTERN_ID};
 use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+
+/// The kinds of `do ... end` (and keyword) blocks tracked while walking a
+/// routes file. Only `namespace`/`scope` blocks contribute to the scope path;
+/// every other block still needs a stack entry so its `end` does not pop an
+/// enclosing scope early.
+enum BlockKind {
+    Draw,
+    Scope,
+    Other,
+}
 
 pub(super) fn collect_rails_routes(
     language: &str,
@@ -18,18 +26,38 @@ pub(super) fn collect_rails_routes(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    if !file_path.contains("config/routes") && !content.contains("Rails.application.routes.draw") {
+    // Rails 6.1+ split route files (`config/routes/*.rb`, loaded via
+    // `draw :name`) hold top-level DSL; everything else requires the DSL to
+    // sit inside a `routes.draw do ... end` block.
+    let split_route_file = file_path.contains("config/routes/");
+    if !split_route_file && !content.contains(".routes.draw") {
         return Vec::new();
     }
     let mut facts = Vec::new();
     let mut offset = 0;
     let mut scope_stack: Vec<String> = Vec::new();
+    let mut block_stack: Vec<BlockKind> = Vec::new();
+    let mut draw_depth = 0usize;
     for line in content.split_inclusive('\n') {
         let trimmed = line.trim();
-        if let Some(scope) = rails_scope_path(trimmed) {
-            scope_stack.push(scope);
+        let opens_block = rails_opens_block(trimmed);
+        if opens_block {
+            if trimmed.contains(".routes.draw") {
+                block_stack.push(BlockKind::Draw);
+                draw_depth += 1;
+            } else if let Some(scope) = rails_scope_path(trimmed) {
+                scope_stack.push(scope);
+                block_stack.push(BlockKind::Scope);
+            } else {
+                block_stack.push(BlockKind::Other);
+            }
         }
         let scope_path = joined_scope(&scope_stack);
+        let active = split_route_file || draw_depth > 0;
+        if !active {
+            offset += line.len();
+            continue;
+        }
         if let Some((verb, route_template)) = rails_verb_route(trimmed) {
             push_rails_route(
                 language,
@@ -102,12 +130,35 @@ pub(super) fn collect_rails_routes(
                 &mut facts,
             );
         }
-        if trimmed == "end" {
-            scope_stack.pop();
+        if trimmed == "end" || trimmed.starts_with("end ") {
+            match block_stack.pop() {
+                Some(BlockKind::Scope) => {
+                    scope_stack.pop();
+                }
+                Some(BlockKind::Draw) => {
+                    draw_depth = draw_depth.saturating_sub(1);
+                }
+                _ => {}
+            }
         }
         offset += line.len();
     }
     facts
+}
+
+/// A routes-file line opens a block when it ends in a `do` (with or without
+/// block parameters) or starts with a block keyword. Trailing `if`/`unless`
+/// modifiers do not open blocks and are not matched here.
+fn rails_opens_block(line: &str) -> bool {
+    if line == "do" || line.ends_with(" do") || line.contains(" do |") {
+        return true;
+    }
+    [
+        "if ", "unless ", "case ", "while ", "until ", "def ", "class ", "module ",
+    ]
+    .iter()
+    .any(|keyword| line.starts_with(keyword))
+        || line == "begin"
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -399,36 +450,4 @@ fn symbol_array_keyword(source: &str, key: &str) -> Option<Vec<String>> {
             })
             .collect(),
     )
-}
-
-fn parse_ruby_string_literal(content: &str, start: usize) -> Option<(String, usize)> {
-    let quote = content.as_bytes().get(start).copied()?;
-    if !matches!(quote, b'\'' | b'"') {
-        return None;
-    }
-    let mut cursor = start + 1;
-    let mut value = String::new();
-    while cursor < content.len() {
-        let byte = content.as_bytes()[cursor];
-        if byte == b'\\' {
-            let escaped_start = cursor + 1;
-            let escaped = content.get(escaped_start..)?.chars().next()?;
-            value.push(escaped);
-            cursor = escaped_start + escaped.len_utf8();
-        } else if byte == quote {
-            return Some((value, cursor + 1));
-        } else {
-            let ch = content.get(cursor..)?.chars().next()?;
-            value.push(ch);
-            cursor += ch.len_utf8();
-        }
-    }
-    None
-}
-
-fn insert_string_array(metadata: &mut HashMap<String, Value>, key: &str, values: Vec<String>) {
-    metadata.insert(
-        key.to_string(),
-        Value::Array(values.into_iter().map(Value::String).collect()),
-    );
 }

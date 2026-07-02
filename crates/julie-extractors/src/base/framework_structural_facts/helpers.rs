@@ -80,6 +80,17 @@ pub(super) fn insert_string(metadata: &mut HashMap<String, Value>, key: &str, va
     metadata.insert(key.to_string(), Value::String(value.to_string()));
 }
 
+pub(super) fn insert_string_array(
+    metadata: &mut HashMap<String, Value>,
+    key: &str,
+    values: Vec<String>,
+) {
+    metadata.insert(
+        key.to_string(),
+        Value::Array(values.into_iter().map(Value::String).collect()),
+    );
+}
+
 pub(super) fn parse_first_route_argument(
     content: &str,
     args_start: usize,
@@ -214,6 +225,12 @@ fn parse_identifier_path(expression: &str) -> Option<String> {
 }
 
 pub(super) fn is_csharp_identifier(value: &str) -> bool {
+    is_ascii_identifier(value)
+}
+
+/// The identifier shape shared by the C#, Python, Go, Java, and Ruby scanners.
+/// (JavaScript identifiers additionally allow `$` — see `js_object_scan`.)
+pub(super) fn is_ascii_identifier(value: &str) -> bool {
     let mut chars = value.chars();
     let Some(first) = chars.next() else {
         return false;

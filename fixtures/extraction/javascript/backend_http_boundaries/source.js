@@ -8,6 +8,12 @@ export function routes() {
   router.get("/users/:id", showUser);
   app.route("/items/:id").get(showItem).post(updateItem);
 
+  app.get("port");
+  app.route("/multi/:id")
+    .get(readMulti)
+    .post(writeMulti);
+  app.route("/cache").get((req, res) => res.json(cache.get(key)));
+
   const server = fastify();
   server.route({ method: ["GET", "POST"], url: "/fast/:id", handler });
 }

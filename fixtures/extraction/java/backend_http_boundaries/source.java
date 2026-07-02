@@ -16,3 +16,12 @@ class UserController {
         HttpRequest post = HttpRequest.newBuilder().uri(URI.create("/items")).POST(body).build();
     }
 }
+
+@RestController
+class HealthController {
+    @GetMapping(value = "/healthz", produces = "application/json")
+    public String health() { return "ok"; }
+
+    @RequestMapping("/legacy")
+    public String legacy() { return "ok"; }
+}

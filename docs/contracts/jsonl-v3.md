@@ -566,7 +566,7 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `ruby` | `client_request` | parser-covered call span |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `ruby` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Minimal API route calls compute it from
@@ -602,12 +602,39 @@ verb from the method name (generic type arguments as in
 produce client-request facts — and the axios import gate is local to the
 script section that declares it.
 
+Backend route facts share these gates. Express and Fastify routes are
+import-gated and receiver-traced in-file; a Fastify plugin parameter named
+`fastify` attests the framework by itself, while a generic `app` parameter
+counts only when the file also imports fastify. A verb-method call whose only
+argument is a string literal (Express's `app.get('setting')` getter) is not a
+route. Spring `@RequestMapping`-family templates come only from the positional
+value or `value =`/`path =` annotation elements; `produces`/`consumes`/
+`params`/`headers` literals never become routes. Method-level shortcut
+annotations (`@GetMapping`, ...) emit `attribute_kind="http_method"`;
+`@RequestMapping` on a method emits `attribute_kind="request_mapping"` with
+`verb` present only when a `method =` element names it. Each class declaration
+resets the class-level template, so one controller's prefix cannot leak into
+the next. Go `net/http` patterns follow Go 1.22 `[METHOD ][HOST]/[PATH]`
+parsing: `route_template` carries the path part, `verb` the method token, and
+`host` the host part when present. gin/echo routes emit
+`api_style="call_routing"` (`mux_routing` is reserved for `go.net_http.route.v1`);
+nested `Group` calls compose literal prefixes, and a non-literal prefix poisons
+the chain so its routes emit `route_template` only. The echo import gate
+accepts any major version of `github.com/labstack/echo`. Rails DSL facts
+require `config/routes.rb` routes to sit inside a `routes.draw do ... end`
+block; split files under `config/routes/` allow top-level DSL. Every
+`do ... end` block is depth-tracked, so `member`/`collection`/`constraints`
+blocks do not pop enclosing `namespace`/`scope` prefixes early.
+
 Backend-language client collectors emit the same `http.client_request.v1`
 metadata shape for static string URL arguments: Python module-qualified
 `requests`/`httpx` calls, C# `HttpClient` method calls and
 `HttpRequestMessage`, Go `net/http` package calls, Java `HttpRequest` builder
 chains, and Ruby `Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)`
-arguments. Instance/session clients and dynamic URL expressions stay silent.
+arguments. Java builder-chain facts span the enclosing statement (the URL and
+verb are resolved statement-locally), so their `node_kind` is the statement
+node rather than a call node. Instance/session clients and dynamic URL
+expressions stay silent.
 
 `nextjs.route_handler.v1` emits one fact per exported HTTP-verb handler in an
 App Router `route.{js,ts}` file (`app/**/route.js`, `app/**/route.ts`,

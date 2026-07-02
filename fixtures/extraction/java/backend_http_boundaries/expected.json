@@ -1,6 +1,43 @@
 {
   "symbols": [
     {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:HealthController:20:0",
+      "name": "HealthController",
+      "kind": "class",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 20,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 1,
+      "start_byte": 616,
+      "end_byte": 845,
+      "body_span": {
+        "start_line": 21,
+        "start_column": 23,
+        "end_line": 27,
+        "end_column": 1,
+        "start_byte": 655,
+        "end_byte": 845
+      },
+      "body_hash": "964e10291249cab1e5420b926f1139e1",
+      "signature": "@RestController class HealthController",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "RestController",
+          "annotation_key": "restcontroller",
+          "raw_text": "RestController"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:HttpRequest:2:0",
       "name": "HttpRequest",
       "kind": "import",
@@ -176,6 +213,80 @@
           "annotation": "GetMapping",
           "annotation_key": "getmapping",
           "raw_text": "GetMapping(\"/users/{id}\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "name": "health",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 43,
+      "start_byte": 661,
+      "end_byte": 767,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 27,
+        "end_line": 23,
+        "end_column": 43,
+        "start_byte": 751,
+        "end_byte": 767
+      },
+      "body_hash": "cd81735eb2ced2d63be600316b9489ac",
+      "signature": "@GetMapping(value = \"/healthz\", produces = \"application/json\") public String health()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:HealthController:20:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "GetMapping",
+          "annotation_key": "getmapping",
+          "raw_text": "GetMapping(value = \"/healthz\", produces = \"application/json\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:legacy:25:4",
+      "name": "legacy",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 25,
+      "start_column": 4,
+      "end_line": 26,
+      "end_column": 43,
+      "start_byte": 773,
+      "end_byte": 843,
+      "body_span": {
+        "start_line": 26,
+        "start_column": 27,
+        "end_line": 26,
+        "end_column": 43,
+        "start_byte": 827,
+        "end_byte": 843
+      },
+      "body_hash": "cd81735eb2ced2d63be600316b9489ac",
+      "signature": "@RequestMapping(\"/legacy\") public String legacy()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:HealthController:20:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "RequestMapping",
+          "annotation_key": "requestmapping",
+          "raw_text": "RequestMapping(\"/legacy\")"
         }
       ],
       "semantic_group": null,
@@ -723,6 +834,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:String:type_usage:23:11",
+      "name": "String",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 23,
+      "start_column": 11,
+      "end_line": 23,
+      "end_column": 17,
+      "start_byte": 735,
+      "end_byte": 741,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:String:type_usage:26:11",
+      "name": "String",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 26,
+      "start_column": 11,
+      "end_line": 26,
+      "end_column": 17,
+      "start_byte": 811,
+      "end_byte": 817,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:legacy:25:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/java/backend_http_boundaries/source.java:User:type_usage:12:11",
       "name": "User",
       "kind": "type_usage",
@@ -887,6 +1030,24 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:legacy:25:4",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
       "resolved_type": "User",
       "generic_params": null,
@@ -994,6 +1155,46 @@
       "node_kind": "annotation",
       "language": "java",
       "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 22,
+      "end_column": 66,
+      "start_byte": 661,
+      "end_byte": 723,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "GetMapping",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "java.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:legacy:25:4",
+      "start_line": 25,
+      "start_column": 4,
+      "end_line": 25,
+      "end_column": 30,
+      "start_byte": 773,
+      "end_byte": 799,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "RequestMapping",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "java.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
       "start_line": 11,
       "start_column": 4,
@@ -1004,6 +1205,26 @@
       "confidence": "1.000",
       "metadata": {
         "annotation_name": "RequestMapping",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "java.marker_annotation.v1",
+      "capture_name": "marker_annotation",
+      "node_kind": "marker_annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:HealthController:20:0",
+      "start_line": 20,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 15,
+      "start_byte": 616,
+      "end_byte": 631,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "RestController",
         "pattern_version": 1,
         "query_family": "metadata"
       }
@@ -1089,6 +1310,56 @@
       "node_kind": "method_declaration",
       "language": "java",
       "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "start_line": 23,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 43,
+      "start_byte": 728,
+      "end_byte": 767,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "annotation_routing",
+        "attribute_kind": "http_method",
+        "framework": "spring",
+        "normalized_route_template": "/healthz",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/healthz",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "spring.request_mapping.v1",
+      "capture_name": "request_mapping",
+      "node_kind": "method_declaration",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:legacy:25:4",
+      "start_line": 26,
+      "start_column": 4,
+      "end_line": 26,
+      "end_column": 43,
+      "start_byte": 804,
+      "end_byte": 843,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "annotation_routing",
+        "attribute_kind": "request_mapping",
+        "framework": "spring",
+        "normalized_route_template": "/legacy",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/legacy"
+      }
+    },
+    {
+      "pattern_id": "spring.request_mapping.v1",
+      "capture_name": "request_mapping",
+      "node_kind": "method_declaration",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
       "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
       "start_line": 12,
       "start_column": 4,
@@ -1099,7 +1370,7 @@
       "confidence": "1.000",
       "metadata": {
         "api_style": "annotation_routing",
-        "attribute_kind": "http_method",
+        "attribute_kind": "request_mapping",
         "class_route_template": "/api",
         "dynamic_segments": [
           "term"
@@ -1130,7 +1401,7 @@
       "confidence": "1.000",
       "metadata": {
         "api_style": "annotation_routing",
-        "attribute_kind": "http_method",
+        "attribute_kind": "request_mapping",
         "class_route_template": "/api",
         "dynamic_segments": [
           "term"
@@ -1153,18 +1424,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "java",
       "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
-      "covered_lines": 19,
-      "covered_bytes": 615,
+      "covered_lines": 28,
+      "covered_bytes": 846,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 19,
+      "end_line": 28,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 615,
+      "end_byte": 846,
       "metadata": {
         "metric_version": 1
       }
@@ -1209,6 +1480,50 @@
       "end_column": 42,
       "start_byte": 226,
       "end_byte": 242,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 23,
+      "start_column": 27,
+      "end_line": 23,
+      "end_column": 43,
+      "start_byte": 751,
+      "end_byte": 767,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:legacy:25:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 26,
+      "start_column": 27,
+      "end_line": 26,
+      "end_column": 43,
+      "start_byte": 827,
+      "end_byte": 843,
       "metadata": {
         "metric_version": 1
       }
@@ -1321,6 +1636,71 @@
       "end_column": 29,
       "start_byte": 185,
       "end_byte": 198,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "start_line": 22,
+      "start_column": 24,
+      "end_line": 22,
+      "end_column": 34,
+      "start_byte": 681,
+      "end_byte": 691,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "start_line": 22,
+      "start_column": 47,
+      "end_line": 22,
+      "end_column": 65,
+      "start_byte": 704,
+      "end_byte": 722,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:health:22:4",
+      "start_line": 23,
+      "start_column": 36,
+      "end_line": 23,
+      "end_column": 40,
+      "start_byte": 760,
+      "end_byte": 764,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:legacy:25:4",
+      "start_line": 25,
+      "start_column": 20,
+      "end_line": 25,
+      "end_column": 29,
+      "start_byte": 789,
+      "end_byte": 798,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:legacy:25:4",
+      "start_line": 26,
+      "start_column": 36,
+      "end_line": 26,
+      "end_column": 40,
+      "start_byte": 836,
+      "end_byte": 840,
       "metadata": null
     },
     {

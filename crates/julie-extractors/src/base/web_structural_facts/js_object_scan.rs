@@ -49,7 +49,10 @@ pub(super) fn find_object_property_value_start(
     None
 }
 
-pub(super) fn parse_js_string_literal(content: &str, start: usize) -> Option<(String, usize)> {
+pub(in crate::base) fn parse_js_string_literal(
+    content: &str,
+    start: usize,
+) -> Option<(String, usize)> {
     let bytes = content.as_bytes();
     let quote = bytes
         .get(start)
@@ -77,7 +80,7 @@ pub(super) fn parse_js_string_literal(content: &str, start: usize) -> Option<(St
     None
 }
 
-pub(super) fn parse_js_identifier(
+pub(in crate::base) fn parse_js_identifier(
     content: &str,
     start: usize,
     end: usize,
@@ -98,7 +101,7 @@ pub(super) fn parse_js_identifier(
     Some((content.get(start..cursor)?.to_string(), cursor))
 }
 
-pub(super) fn is_js_identifier(value: &str) -> bool {
+pub(in crate::base) fn is_js_identifier(value: &str) -> bool {
     let mut bytes = value.bytes();
     let Some(first) = bytes.next() else {
         return false;

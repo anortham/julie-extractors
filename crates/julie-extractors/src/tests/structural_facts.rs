@@ -1819,9 +1819,13 @@ fn http_boundary_families_emit_documented_metadata_keys() {
         ]
     );
     let rails_resources = facts_with_pattern(&ruby_routes, "rails.resource_route.v1");
-    assert_eq!(rails_resources.len(), 1);
+    assert_eq!(rails_resources.len(), 2);
+    let rails_accounts = rails_resources
+        .iter()
+        .find(|fact| metadata_str(fact, "resource_name") == Some("accounts"))
+        .expect("accounts resource fact");
     assert_eq!(
-        metadata_keys(rails_resources[0]),
+        metadata_keys(rails_accounts),
         [
             "api_style",
             "framework",

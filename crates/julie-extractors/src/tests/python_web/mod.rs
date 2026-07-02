@@ -176,6 +176,37 @@ app.register_blueprint(bp, url_prefix="/v1")
 }
 
 #[test]
+fn flask_routes_survive_module_docstrings_with_apostrophes() {
+    let source = r#"'''Routes for Bob's service.'''
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/health")
+def health():
+    pass
+"#;
+    let results = extract("app.py", source);
+    let routes = facts_with_pattern(&results, FLASK_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "route_template"), Some("/health"));
+}
+
+#[test]
+fn django_single_argument_path_calls_stay_silent() {
+    let source = r#"
+from django.urls import path
+
+urlpatterns = [
+    path("healthz"),
+]
+"#;
+    let results = extract("project/urls.py", source);
+    let routes = facts_with_pattern(&results, DJANGO_URL_PATTERN_ID);
+    assert!(routes.is_empty(), "{routes:#?}");
+}
+
+#[test]
 fn django_path_re_path_and_include_emit_boundary_facts() {
     let source = r#"
 from django.urls import path, re_path, include

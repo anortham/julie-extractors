@@ -1,13 +1,11 @@
 use tree_sitter::Tree;
 
-use super::super::HTTP_CLIENT_REQUEST_PATTERN_ID;
-use super::super::helpers::{
-    fact_for_span, is_comment_or_string_node, skip_ascii_whitespace_until,
-    smallest_node_covering_range,
-};
-use crate::base::http_boundary::client_request_metadata;
-use crate::base::span::NormalizedSpan;
+use super::super::helpers::{is_identifier_boundary, skip_ascii_whitespace_until};
+use super::super::scan::{MaskLanguage, SourceMask, parse_java_string_literal, statement_end};
+use super::client_fact;
 use crate::base::types::StructuralFact;
+
+const BUILDER_NEEDLE: &str = "HttpRequest.newBuilder";
 
 pub(super) fn collect_java_http_client_requests(
     language: &str,
@@ -20,15 +18,18 @@ pub(super) fn collect_java_http_client_requests(
     {
         return Vec::new();
     }
+    let mask = SourceMask::new(content, MaskLanguage::Java);
     let mut facts = Vec::new();
     let mut cursor = 0;
-    while let Some(relative) = content[cursor..].find("HttpRequest.newBuilder") {
+    while let Some(relative) = content[cursor..].find(BUILDER_NEEDLE) {
         let start = cursor + relative;
-        cursor = start + "HttpRequest.newBuilder".len();
-        if is_in_java_string_or_comment(content, start) {
+        cursor = start + BUILDER_NEEDLE.len();
+        if !is_identifier_boundary(content, start, BUILDER_NEEDLE.len())
+            || mask.is_string_or_comment(start)
+        {
             continue;
         }
-        let end = statement_end(content, start);
+        let end = statement_end(content, &mask, start, false);
         let statement = &content[start..end];
         let Some(target_path) = uri_create_literal(statement) else {
             continue;
@@ -41,42 +42,16 @@ pub(super) fn collect_java_http_client_requests(
             content,
             start,
             end,
+            "java.net.http",
             &target_path,
             &verb,
             source,
+            None,
         ) {
             facts.push(fact);
         }
     }
     facts
-}
-
-#[allow(clippy::too_many_arguments)]
-fn client_fact(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
-    start: usize,
-    end: usize,
-    target_path: &str,
-    verb: &str,
-    verb_source: &str,
-) -> Option<StructuralFact> {
-    let node = smallest_node_covering_range(tree.root_node(), start, end)?;
-    if is_comment_or_string_node(node.kind()) {
-        return None;
-    }
-    let span = NormalizedSpan::from_content_range(content, start, end)?;
-    Some(fact_for_span(
-        file_path,
-        language,
-        HTTP_CLIENT_REQUEST_PATTERN_ID,
-        "client_request",
-        node.kind(),
-        span,
-        client_request_metadata("java.net.http", target_path, verb, verb_source, None),
-    ))
 }
 
 fn uri_create_literal(statement: &str) -> Option<String> {
@@ -104,98 +79,4 @@ fn request_builder_verb(statement: &str) -> (String, &'static str) {
         }
     }
     ("GET".to_string(), "default")
-}
-
-fn parse_java_string_literal(content: &str, start: usize) -> Option<(String, usize)> {
-    if content.as_bytes().get(start) != Some(&b'"') {
-        return None;
-    }
-    let mut cursor = start + 1;
-    let mut value = String::new();
-    while cursor < content.len() {
-        let byte = content.as_bytes()[cursor];
-        if byte == b'\\' {
-            let escaped_start = cursor + 1;
-            let escaped = content.get(escaped_start..)?.chars().next()?;
-            value.push(escaped);
-            cursor = escaped_start + escaped.len_utf8();
-        } else if byte == b'"' {
-            return Some((value, cursor + 1));
-        } else {
-            let ch = content.get(cursor..)?.chars().next()?;
-            value.push(ch);
-            cursor += ch.len_utf8();
-        }
-    }
-    None
-}
-
-fn statement_end(content: &str, start: usize) -> usize {
-    let mut cursor = start;
-    let mut paren_depth = 0usize;
-    let mut quote = false;
-    let mut escaped = false;
-    while cursor < content.len() {
-        let byte = content.as_bytes()[cursor];
-        if quote {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == b'"' {
-                quote = false;
-            }
-        } else if byte == b'"' {
-            quote = true;
-        } else if byte == b'(' {
-            paren_depth += 1;
-        } else if byte == b')' {
-            paren_depth = paren_depth.saturating_sub(1);
-        } else if byte == b';' && paren_depth == 0 {
-            return cursor + 1;
-        }
-        cursor += 1;
-    }
-    content.len()
-}
-
-fn is_in_java_string_or_comment(content: &str, target: usize) -> bool {
-    let bytes = content.as_bytes();
-    let mut cursor = 0;
-    let mut line_comment = false;
-    let mut block_comment = false;
-    let mut quote = false;
-    let mut escaped = false;
-    while cursor < target {
-        let byte = bytes[cursor];
-        let next = bytes.get(cursor + 1).copied();
-        if line_comment {
-            if byte == b'\n' {
-                line_comment = false;
-            }
-        } else if block_comment {
-            if byte == b'*' && next == Some(b'/') {
-                block_comment = false;
-                cursor += 1;
-            }
-        } else if quote {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == b'"' {
-                quote = false;
-            }
-        } else if byte == b'/' && next == Some(b'/') {
-            line_comment = true;
-            cursor += 1;
-        } else if byte == b'/' && next == Some(b'*') {
-            block_comment = true;
-            cursor += 1;
-        } else if byte == b'"' {
-            quote = true;
-        }
-        cursor += 1;
-    }
-    line_comment || block_comment || quote
 }

@@ -108,6 +108,33 @@ export default async function routes(fastify) {
 }
 
 #[test]
+fn module_exports_app_parameter_without_fastify_import_stays_silent() {
+    let source = r#"
+module.exports = function (app) {
+  app.get("/health", handler);
+};
+"#;
+    let results = extract("src/routes.js", source);
+    let facts = routes(&results);
+    assert!(facts.is_empty(), "{facts:#?}");
+}
+
+#[test]
+fn fastify_plugin_app_parameter_with_import_emits() {
+    let source = r#"
+const fastify = require("fastify");
+
+module.exports = async function routes(app) {
+  app.get("/health", handler);
+};
+"#;
+    let results = extract("src/routes.js", source);
+    let facts = routes(&results);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "verb"), Some("GET"));
+}
+
+#[test]
 fn fastify_dynamic_or_untraceable_routes_stay_silent() {
     let source = r#"
 import fastify from "fastify";

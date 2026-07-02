@@ -126,6 +126,55 @@ export function registerRoutes() {
 }
 
 #[test]
+fn express_settings_getter_calls_stay_silent() {
+    let source = r#"
+import express from "express";
+
+const app = express();
+const port = app.get("port");
+const engine = app.get("view engine");
+app.get("/real", handler);
+"#;
+    let results = extract("src/server.js", source);
+    let routes = facts_with_pattern(&results, EXPRESS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "route_template"), Some("/real"));
+}
+
+#[test]
+fn express_multi_line_route_chains_emit_per_verb_facts() {
+    let source = r#"
+import express from "express";
+
+const app = express();
+app.route("/users")
+  .get(list)
+  .post(create);
+"#;
+    let results = extract("src/server.js", source);
+    let routes = facts_with_pattern(&results, EXPRESS_ROUTE_PATTERN_ID);
+    let verbs = routes
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "verb"))
+        .collect::<Vec<_>>();
+    assert_eq!(verbs, vec!["GET", "POST"], "{routes:#?}");
+}
+
+#[test]
+fn express_chain_scan_ignores_calls_inside_handler_bodies() {
+    let source = r#"
+import express from "express";
+
+const app = express();
+app.route("/x").get((req, res) => res.json(cache.get(key)));
+"#;
+    let results = extract("src/server.js", source);
+    let routes = facts_with_pattern(&results, EXPRESS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "verb"), Some("GET"));
+}
+
+#[test]
 fn express_dynamic_or_untraceable_routes_stay_silent() {
     let source = r#"
 import express from "express";

@@ -767,7 +767,7 @@
         "value_type": "string"
       },
       {
-        "description": "Routing style (\"mux_routing\").",
+        "description": "Routing style (\"call_routing\").",
         "key": "api_style",
         "presence": "always",
         "value_type": "string"
@@ -1562,7 +1562,7 @@
         "value_type": "string"
       },
       {
-        "description": "Routing style (\"mux_routing\").",
+        "description": "Routing style (\"call_routing\").",
         "key": "api_style",
         "presence": "always",
         "value_type": "string"
@@ -1704,6 +1704,12 @@
         "key": "dynamic_segments",
         "presence": "optional",
         "value_type": "string_array"
+      },
+      {
+        "description": "Host portion when the Go 1.22+ pattern is host-scoped.",
+        "key": "host",
+        "presence": "optional",
+        "value_type": "string"
       },
       {
         "description": "Method prefix when the Go pattern names one.",

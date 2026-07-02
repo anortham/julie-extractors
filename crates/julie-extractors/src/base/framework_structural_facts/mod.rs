@@ -7,6 +7,7 @@ mod node;
 mod python_web;
 mod rails;
 mod razor;
+mod scan;
 mod spring;
 
 use tree_sitter::Tree;
@@ -149,13 +150,7 @@ pub fn collect_framework_structural_facts(
             ));
             js_facts
         }
-        "typescript" => {
-            let mut ts_facts = collect_node_http_boundary_facts(language, tree, file_path, content);
-            ts_facts.extend(collect_backend_http_client_requests(
-                language, tree, file_path, content,
-            ));
-            ts_facts
-        }
+        "typescript" => collect_node_http_boundary_facts(language, tree, file_path, content),
         "java" => {
             let mut java_facts =
                 collect_spring_request_mappings(language, tree, file_path, content);

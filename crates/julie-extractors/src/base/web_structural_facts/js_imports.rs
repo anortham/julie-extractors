@@ -130,7 +130,7 @@ fn is_in_js_comment_or_string(content: &str, target: usize) -> bool {
     line_comment || block_comment || quote.is_some()
 }
 
-pub(super) fn js_import_statement_end(content: &str, import_start: usize) -> usize {
+pub(in crate::base) fn js_import_statement_end(content: &str, import_start: usize) -> usize {
     let bytes = content.as_bytes();
     let mut cursor = import_start;
     let mut brace_depth = 0usize;
@@ -174,7 +174,7 @@ pub(super) fn js_import_statement_end(content: &str, import_start: usize) -> usi
     content.len()
 }
 
-pub(super) fn parse_import_source(statement: &str) -> Option<String> {
+pub(in crate::base) fn parse_import_source(statement: &str) -> Option<String> {
     let from_start = statement.rfind("from")?;
     if !is_identifier_boundary(statement, from_start, "from".len()) {
         return None;
@@ -216,7 +216,7 @@ fn parse_named_imports(statement: &str) -> Vec<(String, String)> {
 }
 
 /// Parses `import * as local from "..."`, returning the local binding.
-fn parse_namespace_import(statement: &str) -> Option<String> {
+pub(in crate::base) fn parse_namespace_import(statement: &str) -> Option<String> {
     let after_import = skip_ascii_whitespace_until(statement, "import".len(), statement.len());
     if statement.as_bytes().get(after_import) != Some(&b'*') {
         return None;
@@ -232,7 +232,7 @@ fn parse_namespace_import(statement: &str) -> Option<String> {
     parse_js_identifier(statement, local_start, statement.len()).map(|(identifier, _)| identifier)
 }
 
-fn parse_default_import(statement: &str) -> Option<String> {
+pub(in crate::base) fn parse_default_import(statement: &str) -> Option<String> {
     let after_import = skip_ascii_whitespace_until(statement, "import".len(), statement.len());
     if matches!(
         statement.as_bytes().get(after_import),

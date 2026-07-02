@@ -101,3 +101,77 @@ end
         Some("/admin/jobs")
     );
 }
+
+#[test]
+fn rails_nested_non_scope_blocks_do_not_pop_namespace_scopes() {
+    let source = r#"
+Rails.application.routes.draw do
+  namespace :api do
+    resources :posts do
+      member do
+        get "activate"
+      end
+    end
+    get "health", to: "health#show"
+  end
+end
+"#;
+    let results = extract("config/routes.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    let health = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("health"))
+        .expect("health route");
+    assert_eq!(metadata_str(health, "scope_path"), Some("/api"));
+    assert_eq!(
+        metadata_str(health, "normalized_route_template"),
+        Some("/api/health")
+    );
+}
+
+#[test]
+fn rails_dsl_outside_the_draw_block_stays_silent() {
+    let source = r#"
+get "/before", to: "legacy#before"
+
+Rails.application.routes.draw do
+  get "/inside", to: "pages#inside"
+end
+
+get "/after", to: "legacy#after"
+"#;
+    let results = extract("config/routes.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "route_template"), Some("/inside"));
+}
+
+#[test]
+fn rails_split_route_files_emit_top_level_dsl() {
+    let source = r#"
+namespace :admin do
+  get "reports", to: "reports#index"
+end
+"#;
+    let results = extract("config/routes/admin.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "scope_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(routes[0], "normalized_route_template"),
+        Some("/admin/reports")
+    );
+}
+
+#[test]
+fn rails_controller_files_stay_silent() {
+    let source = r#"
+class UsersController < ApplicationController
+  def show
+    get "not-a-route"
+  end
+end
+"#;
+    let results = extract("app/controllers/users_controller.rb", source);
+    assert!(facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID).is_empty());
+}
