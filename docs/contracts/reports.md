@@ -178,6 +178,15 @@ Fields:
   profiling is available.
 - `errors`: typed errors.
 - `warnings`: typed warnings that did not change the exit code.
+- `structural_fact_patterns`: additive top-level array published only by the
+  `languages` report (omitted from every other command's report). It is the
+  structural-fact pattern registry, produced by the same serializer as the
+  checked-in `docs/contracts/structural-fact-patterns.json` contract, so
+  consumers can validate structural-fact metadata payloads at runtime without
+  vendoring the repo file. See that file and
+  `crates/julie-extractors/src/base/structural_fact_registry.rs` for the object
+  shape and key catalog (source of truth). This is additive:
+  `report_schema_version` stays `3`.
 
 Commands that do not use an artifact, such as `languages`, set `artifact` and
 `revision` to `null`.
@@ -349,6 +358,11 @@ Warnings use the same shape and may use warning-only codes such as
 - `artifact`: `null`
 - The report includes capability counts and may include the full snapshot under
   a `languages` field.
+- Includes the additive top-level `structural_fact_patterns` array (the
+  structural-fact pattern registry). It is content-equivalent to
+  `docs/contracts/structural-fact-patterns.json` and produced by the same
+  registry serializer. This section is unique to the `languages` report;
+  `report_schema_version` remains `3`.
 
 ## stdout And stderr
 

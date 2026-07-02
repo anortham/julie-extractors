@@ -184,6 +184,14 @@ stdout and the JSON report uses stderr.
 Prints the supported language and capability snapshot. It does not require a
 source root or SQLite artifact.
 
+The `--json` report also carries an additive top-level `structural_fact_patterns`
+array: the structural-fact pattern registry, content-equivalent to
+`docs/contracts/structural-fact-patterns.json` and produced by the same
+serializer. Consumers can read it to validate structural-fact metadata payloads
+at runtime without vendoring the repo file. The section is additive and unique to
+this report; `report_schema_version` stays `3`. See `docs/contracts/reports.md`
+for the field description.
+
 ## Status Values
 
 `status` is the broad command result in JSON reports:

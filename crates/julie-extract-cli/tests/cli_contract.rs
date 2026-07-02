@@ -200,6 +200,29 @@ fn languages_json_report_matches_report_contract() {
 }
 
 #[test]
+fn languages_json_report_publishes_structural_fact_pattern_registry() {
+    let output = julie_extract(&["languages", "--json"]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+
+    let patterns = &report["structural_fact_patterns"];
+    assert!(
+        patterns.is_array(),
+        "languages --json must publish a top-level structural_fact_patterns array, got: {patterns}"
+    );
+    assert!(
+        !patterns.as_array().unwrap().is_empty(),
+        "structural_fact_patterns must be a non-empty array"
+    );
+    assert_eq!(
+        *patterns,
+        julie_extractors::base::structural_fact_patterns_json(),
+        "structural_fact_patterns must equal the extractor registry serializer output byte-for-byte"
+    );
+}
+
+#[test]
 fn exit_codes_and_json_errors_match_contract() {
     let temp = TempDir::new().unwrap();
     let missing_db = temp.path().join("missing.sqlite");

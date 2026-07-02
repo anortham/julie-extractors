@@ -171,6 +171,7 @@ pub(crate) fn base_report(
         errors: Vec::new(),
         warnings: Vec::new(),
         languages: None,
+        structural_fact_patterns: None,
     }
 }
 
@@ -280,6 +281,7 @@ pub(crate) trait ReportBuilder {
     fn with_error(self, error: ReportDiagnostic) -> Self;
     fn with_warning(self, warning: ReportDiagnostic) -> Self;
     fn with_languages(self, languages: Value) -> Self;
+    fn with_structural_fact_patterns(self, structural_fact_patterns: Value) -> Self;
 }
 
 impl ReportBuilder for Report {
@@ -315,6 +317,11 @@ impl ReportBuilder for Report {
 
     fn with_languages(mut self, languages: Value) -> Self {
         self.languages = Some(languages);
+        self
+    }
+
+    fn with_structural_fact_patterns(mut self, structural_fact_patterns: Value) -> Self {
+        self.structural_fact_patterns = Some(structural_fact_patterns);
         self
     }
 }

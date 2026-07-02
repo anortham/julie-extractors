@@ -321,5 +321,6 @@ fn sample_report(status: ReportStatus) -> Report {
         warnings: Vec::new(),
         profile: None,
         languages: None,
+        structural_fact_patterns: None,
     }
 }

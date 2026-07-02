@@ -34,6 +34,7 @@ use crate::artifact_access::{
 };
 use crate::capability_snapshot::{
     artifact_capability_snapshot, current_capability_fingerprints, flags, kind_coverage_json,
+    structural_fact_patterns_json,
 };
 use crate::discovery::{DiscoveryPolicy, FileSelection, canonicalize_ignore_files};
 use crate::extraction::{
@@ -827,7 +828,8 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
     .with_languages(json!({
         "total": languages.len(),
         "languages": languages,
-    }));
+    }))
+    .with_structural_fact_patterns(structural_fact_patterns_json());
     outcome(report, 0, args.json, ReportStream::Stdout)
 }
 

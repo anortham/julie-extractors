@@ -311,3 +311,13 @@ pub(crate) fn flags(flags: CapabilityFlags) -> Value {
         "types": flags.types,
     })
 }
+
+/// Structural-fact pattern registry section for the `languages --json` report.
+///
+/// Direct passthrough of the single extractor-side serializer so the report
+/// section stays byte-equivalent to the checked-in
+/// `docs/contracts/structural-fact-patterns.json` contract. No re-serialization
+/// through CLI structs — the registry is the sole source of truth.
+pub(crate) fn structural_fact_patterns_json() -> Value {
+    julie_extractors::base::structural_fact_patterns_json()
+}

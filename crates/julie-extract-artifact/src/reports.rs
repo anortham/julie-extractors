@@ -44,6 +44,12 @@ pub struct Report {
     pub errors: Vec<ReportDiagnostic>,
     pub warnings: Vec<ReportDiagnostic>,
     pub languages: Option<serde_json::Value>,
+    /// Additive `languages` report section: the structural-fact pattern
+    /// registry payload. Present only when the command populates it (the
+    /// `languages` command); serialized as the top-level `structural_fact_patterns`
+    /// key when `Some`, and omitted entirely when `None` so every other command's
+    /// report shape is byte-unchanged.
+    pub structural_fact_patterns: Option<serde_json::Value>,
 }
 
 impl Serialize for Report {
@@ -51,8 +57,10 @@ impl Serialize for Report {
     where
         S: serde::Serializer,
     {
-        let field_count =
-            11 + usize::from(self.profile.is_some()) + usize::from(self.languages.is_some());
+        let field_count = 11
+            + usize::from(self.profile.is_some())
+            + usize::from(self.languages.is_some())
+            + usize::from(self.structural_fact_patterns.is_some());
         let mut state = serializer.serialize_struct("Report", field_count)?;
         state.serialize_field("report_schema_version", &REPORT_SCHEMA_VERSION)?;
         state.serialize_field("status", &self.status)?;
@@ -70,6 +78,9 @@ impl Serialize for Report {
         state.serialize_field("warnings", &self.warnings)?;
         if let Some(languages) = &self.languages {
             state.serialize_field("languages", languages)?;
+        }
+        if let Some(structural_fact_patterns) = &self.structural_fact_patterns {
+            state.serialize_field("structural_fact_patterns", structural_fact_patterns)?;
         }
         state.end()
     }
