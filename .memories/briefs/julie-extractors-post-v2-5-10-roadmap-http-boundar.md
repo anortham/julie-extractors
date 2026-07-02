@@ -1,9 +1,9 @@
 ---
 id: julie-extractors-post-v2-5-10-roadmap-http-boundar
 title: "julie-extractors Post-v2.5.10 Roadmap: HTTP Boundary Facts and Hardening"
-status: active
+status: completed
 created: 2026-07-01T22:46:22.563Z
-updated: 2026-07-01T22:56:12.564Z
+updated: 2026-07-02T14:49:42.578Z
 tags:
   - julie-extractors
   - roadmap
