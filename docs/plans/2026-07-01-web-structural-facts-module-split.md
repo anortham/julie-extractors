@@ -66,10 +66,10 @@ Known signature differences between the duplicates: web's `scan_markup_attribute
 **Approach:** Diff the two copies function-by-function before deleting either — they drifted independently (web's copy handles Vue directive shorthand ranges). Where bodies differ, keep the superset behavior only if both collectors' tests stay green; otherwise keep two thin wrappers over shared internals and note the residual difference in a code comment. Emission must not change for either collector.
 
 **Acceptance criteria:**
-- [ ] `MarkupAttribute` and the scanner family exist only in `base/markup_scan.rs`; both collectors import them.
-- [ ] `cargo test -p julie-extractors structural_facts` passes (covers razor/html/vue/react/nuxt fact tests).
-- [ ] Golden fixtures byte-identical (lead affected-change scope).
-- [ ] Worker-scope verification passes, committed.
+- [x] `MarkupAttribute` and the scanner family exist only in `base/markup_scan.rs`; both collectors import them.
+- [x] `cargo test -p julie-extractors structural_facts` passes (covers razor/html/vue/react/nuxt fact tests).
+- [x] Golden fixtures byte-identical (lead affected-change scope).
+- [x] Worker-scope verification passes, committed.
 
 ## Task 2: Create the Directory Module; Move CSS + HTML + Fact Builders
 
@@ -89,9 +89,9 @@ Known signature differences between the duplicates: web's `scan_markup_attribute
 **Approach:** `git mv` semantics: keep function bodies byte-identical; only adjust `use` paths and visibility (`fn` → `pub(super) fn` where cross-submodule). Keep pattern-id constants in `mod.rs` since multiple submodules and the capability arrays reference them.
 
 **Acceptance criteria:**
-- [ ] `web_structural_facts.rs` no longer exists as a single file; directory module compiles.
-- [ ] `cargo test -p julie-extractors structural_facts` passes.
-- [ ] Worker-scope verification passes, committed.
+- [x] `web_structural_facts.rs` no longer exists as a single file; directory module compiles.
+- [x] `cargo test -p julie-extractors structural_facts` passes.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 3: Move Vue + JS Imports
 
@@ -108,8 +108,8 @@ Known signature differences between the duplicates: web's `scan_markup_attribute
 **Approach:** `collect_vue_router_route_definitions` (:1135) is Vue-owned but called from the JS/TS dispatch path — keep it in `vue.rs` and have `mod.rs` dispatch call it, preserving the H3 wiring from the 2026-07-01 hardening plan.
 
 **Acceptance criteria:**
-- [ ] Vue/Nuxt-reference structural-fact tests pass (`cargo test -p julie-extractors structural_facts`).
-- [ ] Worker-scope verification passes, committed.
+- [x] Vue/Nuxt-reference structural-fact tests pass (`cargo test -p julie-extractors structural_facts`).
+- [x] Worker-scope verification passes, committed.
 
 ## Task 4: Move React + Next/Nuxt + JSX/Object Scanners
 
@@ -128,9 +128,9 @@ Known signature differences between the duplicates: web's `scan_markup_attribute
 **Approach:** Pure motion again. `jsx_scan` and `js_object_scan` are shared by both `react.rs` and `nextjs_nuxt.rs` (and `vue.rs` for object walking) — keep them sibling modules, not children of either framework module.
 
 **Acceptance criteria:**
-- [ ] `cargo test -p julie-extractors structural_facts` passes.
-- [ ] `cargo test -p julie-extractors test_public_contract_version_marks_current_fact_families` passes (no marker change expected).
-- [ ] Worker-scope verification passes, committed.
+- [x] `cargo test -p julie-extractors structural_facts` passes.
+- [x] `cargo test -p julie-extractors test_public_contract_version_marks_current_fact_families` passes (no marker change expected).
+- [x] Worker-scope verification passes, committed.
 
 ## Task 5: Convention-Test Guardrails + Size Check
 
@@ -146,9 +146,9 @@ Known signature differences between the duplicates: web's `scan_markup_attribute
 **Approach:** Match the existing convention-test naming and failure-message style so the guardrail family reads consistently across the three splits.
 
 **Acceptance criteria:**
-- [ ] Convention tests fail when a forbidden definition is reintroduced (verified red by temporarily pasting one back), then pass.
-- [ ] `mod.rs` is under 400 lines; no submodule exceeds ~800 lines.
-- [ ] Worker-scope verification passes, committed.
+- [x] Convention tests fail when a forbidden definition is reintroduced (verified red by temporarily pasting one back), then pass.
+- [x] `mod.rs` is under 400 lines; no submodule exceeds ~800 lines.
+- [x] Worker-scope verification passes, committed.
 
 ## Verification Strategy
 
