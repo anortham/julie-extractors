@@ -359,10 +359,10 @@ Tasks 1-8 are implemented in branch `codex/backend-http-boundary-v27`. Task 9 re
 **What to build:** Branch/main gate, release notes calling out: the 16 new pattern ids, the `http.client_request.v1` five-language extension, the ASP.NET `normalized_route_template` addition, the `.backend-http-boundary-v1` marker, the Cross-Family Doctrine (normalized join key + mount-fact rule), and per-family documented exclusions. Do not publish without explicit user approval.
 
 **Acceptance criteria:**
-- [ ] `EXTRACTION_CONTRACT_VERSION` ends with `.backend-http-boundary-v1`; api_surface marker test green.
-- [ ] Branch gate green; release notes list every consumer-visible change.
-- [ ] User approval obtained before publishing.
-- [ ] Miller handoff noted: companion plan to extend the fetch↔handler bridge to the new families — client `target_path` joins against `normalized_route_template` across all server families; mount facts (`express.router_mount.v1`, `fastapi.include_router.v1`, `flask.blueprint_registration.v1`, `django.url_include.v1`) are Miller's cross-file prefix-join inputs; `rails.resource_route.v1` is join-input requiring Rails-semantics expansion on Miller's side if desired.
+- [x] `EXTRACTION_CONTRACT_VERSION` ends with `.backend-http-boundary-v1`; api_surface marker test green.
+- [x] Branch gate green; release notes list every consumer-visible change.
+- [x] User approval obtained before publishing (approved 2026-07-02; released as `v2.7.0` at `09e5121`).
+- [x] Miller handoff noted: companion plan to extend the fetch↔handler bridge to the new families — client `target_path` joins against `normalized_route_template` across all server families; mount facts (`express.router_mount.v1`, `fastapi.include_router.v1`, `flask.blueprint_registration.v1`, `django.url_include.v1`) are Miller's cross-file prefix-join inputs; `rails.resource_route.v1` is join-input requiring Rails-semantics expansion on Miller's side if desired.
 
 ## Verification Strategy
 
