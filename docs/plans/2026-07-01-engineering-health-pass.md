@@ -33,10 +33,10 @@
 **Approach:** Keep dispatch behavior byte-identical for the release path. Real-world tiers clone external corpora — check the xtask real-world commands for network/corpus assumptions that could flake nightly; if `real-world-release` requires release-only preconditions, keep it dispatch-only too and say so in a workflow comment. Verify the YAML with `gh workflow view` or a dry parse; trigger one manual dispatch after merge to confirm nothing regressed.
 
 **Acceptance criteria:**
-- [ ] Nightly schedule present; `release-package` (and any release-preconditioned job) skips on schedule events.
-- [ ] Manual dispatch still runs all jobs with inputs.
-- [ ] First scheduled or manually-triggered run is green (or failures are real regressions, reported).
-- [ ] Worker-scope verification passes, committed.
+- [x] Nightly schedule present; `release-package` (and any release-preconditioned job) skips on schedule events. (Evidence-verified: all four no-input jobs run in-repo tests/fixtures only, nothing cloned; only `release-package` consumes `inputs.*`.)
+- [x] Manual dispatch still runs all jobs with inputs.
+- [ ] First scheduled or manually-triggered run is green (or failures are real regressions, reported). (Post-merge, lead-owned.)
+- [x] Worker-scope verification passes, committed.
 
 ## Task 2: Collapse `registry.rs` Extractor Wrappers into a Macro
 
@@ -52,9 +52,9 @@
 **Approach:** Inventory first: diff all wrappers against the canonical shape; only byte-shape-identical ones (modulo extractor type and language string) go through the macro. This is where a new `ExtractionResults` field currently requires ~20 synchronized edits — after this task it requires one.
 
 **Acceptance criteria:**
-- [ ] All standard-shape wrappers macro-generated; deviating wrappers unchanged and listed in the commit message.
-- [ ] `cargo xtask test default` and golden fixtures pass with zero diffs.
-- [ ] Worker-scope verification passes, committed.
+- [x] All standard-shape wrappers macro-generated; deviating wrappers unchanged and listed in the commit message. (13 folded into the existing `define_structured_full_language_extractors!` macro — no duplicate macro added; 7 hand-written holdouts with deviations listed.)
+- [x] `cargo xtask test default` and golden fixtures pass with zero diffs.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 3: Unwrap Audit — SQL Schemas and Vue Helpers
 
@@ -72,10 +72,10 @@
 **Approach:** Not every unwrap is wrong — an unwrap on an infallible invariant may stay, converted to `expect("<invariant>")` with the invariant stated. The deliverable is zero *unjustified* panics: each remaining `expect` documents why it cannot fire. Add a regression test per file exercising a previously-panicking path (a malformed/truncated SQL DDL fixture for `schemas.rs`; a malformed SFC construct for `vue/helpers.rs`) now skipping gracefully with the rest of the file's rows intact.
 
 **Acceptance criteria:**
-- [ ] Zero bare `unwrap()` outside `#[cfg(test)]` in both files; remaining `expect`s state their invariant.
-- [ ] At least one new regression test per file exercising a previously-panicking path now skipping gracefully.
-- [ ] `cargo xtask test language sql` and `cargo xtask test language vue` pass; golden fixtures byte-identical.
-- [ ] Worker-scope verification passes, committed.
+- [x] Zero bare `unwrap()` outside `#[cfg(test)]` in both files; remaining `expect`s state their invariant. (28 sites: 7 skip-fallbacks + 21 documented expects.)
+- [x] At least one new regression test per file exercising a previously-panicking path now skipping gracefully. (Execution finding: none of the 28 sites was input-reachable to panic — static regex literals and mandatory capture groups — so the tests are graceful-skip regression locks asserting sibling rows stay intact, not RED→GREEN conversions. The plan's "panic-prone" premise was shape-level, not input-reachable.)
+- [x] `cargo xtask test language sql` and `cargo xtask test language vue` pass; golden fixtures byte-identical.
+- [x] Worker-scope verification passes, committed.
 
 ## Verification Strategy
 
