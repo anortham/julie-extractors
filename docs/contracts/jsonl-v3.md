@@ -496,34 +496,51 @@ Fields:
 Supported patterns are advertised in `language_capability` records under
 `kind_coverage.structural_facts.supported`.
 
-| Pattern ID | Language | Capture | Node Kind(s) | Metadata |
-| --- | --- | --- | --- | --- |
-| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` | `{"pattern_version":1,"query_family":"safety"}` |
-| `go.goroutine_launch.v1` | `go` | `go_statement` | `go_statement` | `{"pattern_version":1,"query_family":"concurrency"}` |
-| `go.defer_statement.v1` | `go` | `defer_statement` | `defer_statement` | `{"pattern_version":1,"query_family":"lifecycle"}` |
-| `python.decorated_definition.v1` | `python` | `decorated_definition` | `decorated_definition` | `{"pattern_version":1,"query_family":"metadata"}` |
-| `javascript.await_expression.v1` | `javascript` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
-| `jsx.await_expression.v1` | `jsx` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
-| `typescript.await_expression.v1` | `typescript` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
-| `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` | `{"pattern_version":1,"query_family":"async"}` |
-| `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
-| `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
-| `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","verb":"GET","route_template":"/todos","route_source":"string_literal"}` plus optional `handler_kind` and `handler_name` |
-| `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","route_prefix":"/admin","route_source":"string_literal","source_kind":"map_group"}` plus optional `group_variable` |
-| `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"attribute_routing","attribute_kind":"http_method","verb":"GET","route_template":"{id}","controller_route_template":"api/[controller]","effective_route_template":"/api/users/{id}","route_tokens":["controller"]}` — `attribute_kind` is one of `controller_route`/`http_method`/`route`; `verb` only on `http_method`; `route_template`/`controller_route_template` present only when a literal template exists; `effective_route_template` is the server-side join key |
-| `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"htmx","attribute_name":"hx-get","attribute_value":"/todos"}` plus optional `verb`, `target_path`, and `data_prefix` |
-| `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"alpine","directive":"x-on","argument":"click","expression":"open = !open","shorthand":true}` plus optional `modifiers` |
-| `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"router_link","route_source":"string_literal","attribute_name":"to","verb":"GET"}` |
-| `vue.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `route_definition` | `object` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"vue_router_route","route_source":"string_literal"}` plus optional `route_name`, `component_name`, `component_path`, `parent_route_path`, and `effective_route_template` |
-| `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nuxt","target_path":"/about","source_kind":"nuxt_link","route_source":"string_literal","attribute_name":"to","component_name":"NuxtLink","verb":"GET"}` |
-| `nuxt.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nuxt","router":"pages","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"route_group_segments":["marketing"],"source_kind":"nuxt_file_route"}` |
-| `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","target_path":"/dashboard","source_kind":"react_router_link","route_source":"string_literal","attribute_name":"to","component_name":"RouterLink","import_source":"react-router-dom","verb":"GET"}` |
-| `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","route_path":"/dashboard","source_kind":"route_object","route_source":"string_literal"}` plus optional `route_component`, `route_id`, `index_route`, `parent_route_path`, and `effective_route_template` |
-| `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","target_path":"/dashboard","source_kind":"next_link","route_source":"string_literal","attribute_name":"href","component_name":"Link","import_source":"next/link","verb":"GET"}` |
-| `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","router":"app","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"source_kind":"nextjs_file_route"}` plus optional `route_group_segments`, `parallel_route_segments`, `intercepting_route_markers`, and `intercepted_route_segments` |
-| `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `{"pattern_version":1,"query_family":"framework","framework":"nextjs","router":"app","file_convention":"route","route_path":"/api/users/[id]","normalized_route_template":"/api/users/:id","dynamic_segments":["id"],"verb":"GET","verb_source":"attested","source_kind":"nextjs_route_handler"}` plus optional `route_group_segments`, `parallel_route_segments`, `intercepting_route_markers`, and `intercepted_route_segments` |
-| `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `{"pattern_version":1,"query_family":"framework","framework":"nuxt","router":"server","route_path":"/api/users/[id]","normalized_route_template":"/api/users/:id","dynamic_segments":["id"],"verb":"GET","verb_source":"attested","source_kind":"nuxt_server_route"}` — `verb`/`verb_source` and `normalized_route_template`/`dynamic_segments` are present only when the filename carries a method suffix or the route has dynamic segments |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` | `{"pattern_version":1,"query_family":"web.http_client","framework":"fetch","client":"fetch","target_path":"/api/users","url_kind":"path","verb":"POST","verb_source":"attested"}` — axios calls additionally carry `"client":"axios"`, `"framework":"axios"`, and `"import_source":"axios"` |
+The table below lists the structural-fact patterns and where they fire. The full
+per-pattern metadata payload — every key each `pattern_id` can carry, with its
+JSON value type and presence rule — is published as a machine-readable contract
+at [`structural-fact-patterns.json`](./structural-fact-patterns.json), generated
+from the in-process pattern registry
+(`crates/julie-extractors/src/base/structural_fact_registry.rs`). Treat that file
+as the source of truth for structural-fact metadata payloads. Regenerate the
+checked-in file after an intentional registry change with:
+
+```
+UPDATE_CONTRACT_JSON=1 cargo test -p julie-extractors structural_fact_registry
+```
+
+Every fact carries the base keys `pattern_version` (integer, currently `1`) and
+`query_family` (string); framework and web route/http facts additionally carry a
+`framework` key.
+
+| Pattern ID | Language | Capture | Node Kind(s) |
+| --- | --- | --- | --- |
+| `rust.unsafe_block.v1` | `rust` | `unsafe_block` | `unsafe_block` |
+| `go.goroutine_launch.v1` | `go` | `go_statement` | `go_statement` |
+| `go.defer_statement.v1` | `go` | `defer_statement` | `defer_statement` |
+| `python.decorated_definition.v1` | `python` | `decorated_definition` | `decorated_definition` |
+| `javascript.await_expression.v1` | `javascript` | `await_expression` | `await_expression` |
+| `jsx.await_expression.v1` | `jsx` | `await_expression` | `await_expression` |
+| `typescript.await_expression.v1` | `typescript` | `await_expression` | `await_expression` |
+| `tsx.await_expression.v1` | `tsx` | `await_expression` | `await_expression` |
+| `c.preprocessor_definition.v1` | `c` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` |
+| `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` |
+| `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span |
+| `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span |
+| `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` |
+| `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span |
+| `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span |
+| `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` |
+| `vue.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `route_definition` | `object` |
+| `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` |
+| `nuxt.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `file_route` | `file` |
+| `react.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` |
+| `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` |
+| `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` |
+| `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` |
+| `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` |
+| `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` |
 
 `fetch()` and axios calls emit `http.client_request.v1` only when the first
 argument is a plain static string literal (`'...'` or `"..."`). `url_kind` is
@@ -633,12 +650,14 @@ Dynamic React Router `to`/`path` values, arbitrary local `Link` components, and
 Next.js `href` values without a static string or object `pathname` are not
 emitted as static route facts in this contract version.
 
-Route reference facts use `target_path`; route definition and file-route facts
-use `route_path`, except Vue route definitions keep `target_path` for backward
-compatibility with the original Vue fact family. Vue and React child route
-definitions may include `parent_route_path` and `effective_route_template`.
-Navigation reference facts for Vue, Nuxt, React Router, and Next.js include
-`verb="GET"` as an implied navigation verb, not source-attested HTTP evidence.
+Route reference facts, `html.form.v1`, and `http.client_request.v1` use
+`target_path`; route definition and file-route facts use `route_path`, except
+Vue route definitions keep `target_path` for backward compatibility with the
+original Vue fact family. The HTTP method is always carried as `verb`
+(upper-cased), never `http_method`. Vue and React child route definitions may
+include `parent_route_path` and `effective_route_template`. Navigation reference
+facts for Vue, Nuxt, React Router, and Next.js include `verb="GET"` as an
+implied navigation verb, not source-attested HTTP evidence.
 `htmx.attribute.v1` keeps source-attested request verbs. `data-hx-*` attributes
 normalize to canonical `hx-*` `attribute_name` values and include
 `data_prefix=true`. Beyond `html`/`razor`, the family also covers JSX/TSX

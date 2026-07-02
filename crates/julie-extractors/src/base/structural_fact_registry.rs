@@ -3285,6 +3285,104 @@ const SPECS: &[StructuralFactPatternSpec] = &[
     },
 ];
 
+// ---------------------------------------------------------------------------
+// JSON serialization: the checked-in contract artifact and the
+// `languages --json` report section share this one serializer, so the file and
+// the report stay byte-equivalent in content.
+// ---------------------------------------------------------------------------
+
+/// Stable lower_snake token a `MetadataValueType` serializes to in the JSON
+/// contract. This mapping is itself a contract: renames are lead-adjudicated.
+fn value_type_token(value_type: MetadataValueType) -> &'static str {
+    match value_type {
+        MetadataValueType::String => "string",
+        MetadataValueType::Bool => "bool",
+        MetadataValueType::Number => "number",
+        MetadataValueType::StringArray => "string_array",
+        MetadataValueType::ObjectArray => "object_array",
+    }
+}
+
+/// Stable lower_snake token a `KeyPresence` serializes to in the JSON contract.
+fn presence_token(presence: KeyPresence) -> &'static str {
+    match presence {
+        KeyPresence::Always => "always",
+        KeyPresence::Optional => "optional",
+    }
+}
+
+/// The structural-fact pattern registry serialized as a deterministic JSON
+/// array — the machine-readable, source-of-truth metadata-payload contract.
+///
+/// Determinism: specs are sorted by `pattern_id` (unique, so a total order),
+/// and every object emits its keys in a fixed order matching the Rust struct
+/// fields. Spec objects emit `pattern_id`, `languages`, `query_family`,
+/// `description`, `metadata_keys`; each metadata-key object emits `key`,
+/// `value_type`, `presence`, `description`. A pattern's `languages` and
+/// `metadata_keys` keep their authored order (both already fixed and unique in
+/// the registry). Insertion order survives because serde_json's
+/// `preserve_order` feature is active in this workspace's build graph; the
+/// checked-in-file sync test (`tests/structural_fact_registry.rs`) is the
+/// tripwire if that ever regresses.
+///
+/// This is the single serializer behind both
+/// `docs/contracts/structural-fact-patterns.json` (Task 3) and the
+/// `structural_fact_patterns` section of `languages --json` (Task 4).
+pub fn structural_fact_patterns_json() -> serde_json::Value {
+    let mut specs: Vec<&StructuralFactPatternSpec> =
+        structural_fact_pattern_specs().iter().collect();
+    specs.sort_by(|a, b| a.pattern_id.cmp(b.pattern_id));
+
+    let specs_json: Vec<serde_json::Value> = specs
+        .into_iter()
+        .map(|spec| {
+            let metadata_keys: Vec<serde_json::Value> = spec
+                .metadata_keys
+                .iter()
+                .map(|meta| {
+                    let mut obj = serde_json::Map::new();
+                    obj.insert("key".to_string(), meta.key.into());
+                    obj.insert(
+                        "value_type".to_string(),
+                        value_type_token(meta.value_type).into(),
+                    );
+                    obj.insert("presence".to_string(), presence_token(meta.presence).into());
+                    obj.insert("description".to_string(), meta.description.into());
+                    serde_json::Value::Object(obj)
+                })
+                .collect();
+
+            let languages: Vec<serde_json::Value> =
+                spec.languages.iter().map(|lang| (*lang).into()).collect();
+
+            let mut obj = serde_json::Map::new();
+            obj.insert("pattern_id".to_string(), spec.pattern_id.into());
+            obj.insert("languages".to_string(), serde_json::Value::Array(languages));
+            obj.insert("query_family".to_string(), spec.query_family.into());
+            obj.insert("description".to_string(), spec.description.into());
+            obj.insert(
+                "metadata_keys".to_string(),
+                serde_json::Value::Array(metadata_keys),
+            );
+            serde_json::Value::Object(obj)
+        })
+        .collect();
+
+    serde_json::Value::Array(specs_json)
+}
+
+/// Exact byte contents of `docs/contracts/structural-fact-patterns.json`:
+/// [`structural_fact_patterns_json`] pretty-printed with 2-space indent and a
+/// trailing newline (repo JSON convention). Both the sync test's comparison and
+/// its regeneration path use this one function, so they can never diverge on
+/// formatting.
+pub fn structural_fact_patterns_contract_json() -> String {
+    let mut rendered = serde_json::to_string_pretty(&structural_fact_patterns_json())
+        .expect("structural-fact registry is always JSON-serializable");
+    rendered.push('\n');
+    rendered
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -501,7 +501,7 @@ Supported patterns are advertised in
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGet`/`MapPost`/`MapPut`/`MapPatch`/`MapDelete` route call with a literal route template. |
 | `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGroup` route group with a literal route prefix. |
-| `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` | `framework` | An attribute-routed ASP.NET controller class or action method (tree-sitter attribution of attribute -> owning declaration). One fact per routing attribute. Metadata: `framework` (`aspnet`), `api_style` (`attribute_routing`), `attribute_kind` (`controller_route`/`http_method`/`route`), `verb` (upper-cased, `http_method` only), `route_template` (literal template as written, when present), `controller_route_template` (enclosing class template, method facts), `effective_route_template` (server-side join key with `[controller]`/`[action]` substituted lowercase and a normalized leading `/`), and `route_tokens` (tokens substituted). Non-literal templates, `[ApiController]` without routes, and conventional (non-attribute) routing stay silent. |
+| `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` | `framework` | An attribute-routed ASP.NET controller class or action method (tree-sitter attribution of attribute -> owning declaration). One fact per routing attribute (`attribute_kind` is `controller_route`, `http_method`, or `route`). Non-literal templates, `[ApiController]` without routes, and conventional (non-attribute) routing stay silent. Metadata payload keys: see the JSON contract linked below. |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` or `data-hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Vue Router link target such as `<RouterLink to="/calendar">`. |
@@ -512,9 +512,9 @@ Supported patterns are advertised in
 | `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `frontend_navigation` | A static React Router route object or `<Route>` element with a literal `path` or `index`. |
 | `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static `next/link` target from a string `href` or object `pathname`. |
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
-| `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `framework` | An exported HTTP-verb handler (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`HEAD`/`OPTIONS`) in an App Router `route.{js,ts}` file. One fact per exported verb. Metadata: `framework` (`nextjs`), `router` (`app`), `file_convention` (`route`), `route_path`/`normalized_route_template`/`dynamic_segments` (shared with `nextjs.file_route.v1`), `verb` (upper-cased), `verb_source` (`attested`), `source_kind` (`nextjs_route_handler`), plus optional `route_group_segments`/`parallel_route_segments`/`intercepting_route_markers`/`intercepted_route_segments`. |
-| `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `framework` | A Nitro server route under `server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). One fact per file. Metadata: `framework` (`nuxt`), `router` (`server`), `route_path` (bracket form), `source_kind` (`nuxt_server_route`), plus `normalized_route_template`/`dynamic_segments` when dynamic (same Nuxt normalization as `nuxt.file_route.v1`), and `verb` (upper-cased)/`verb_source` (`attested`) only when the filename carries a method suffix (`users.get.ts`). Emission requires a `defineEventHandler`/`eventHandler` identifier or a method suffix; a wrapped custom handler with neither is a documented residual miss. `server/middleware`, `server/plugins`, and `server/utils` are excluded. Claims the `server/**` space `nuxt.file_route.v1` excludes. |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` | `web.http_client` | A global `fetch()` call or import-gated axios call whose first argument is a static string URL. Metadata: `client` (`fetch`/`axios`), `framework` (mirrors `client`), `target_path` (URL as written), `url_kind` (`path`/`relative`/`absolute`), `verb` (upper-cased HTTP method), `verb_source` (`attested` from an axios verb method or static `method:` property, else `default` GET), and `import_source` (`axios`, axios facts only). |
+| `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `framework` | An exported HTTP-verb handler (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`HEAD`/`OPTIONS`) in an App Router `route.{js,ts}` file. One fact per exported verb. Route paths are derived with the same segment walk as `nextjs.file_route.v1`. Metadata payload keys: see the JSON contract linked below. |
+| `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `framework` | A Nitro server route under `server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). One fact per file; `verb`/`verb_source` are present only when the filename carries a method suffix (`users.get.ts`). Emission requires a `defineEventHandler`/`eventHandler` identifier or a method suffix; a wrapped custom handler with neither is a documented residual miss. `server/middleware`, `server/plugins`, and `server/utils` are excluded. Claims the `server/**` space `nuxt.file_route.v1` excludes. Metadata payload keys: see the JSON contract linked below. |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` | `web.http_client` | A global `fetch()` call or import-gated axios call whose first argument is a static string URL. Metadata payload keys: see the JSON contract linked below. |
 
 `fetch()` and axios calls emit `http.client_request.v1` only when the first
 argument is a plain static string literal (`'...'` or `"..."`). Template
@@ -539,12 +539,14 @@ Dynamic React Router `to`/`path` values, arbitrary local `Link` components, and
 Next.js `href` values without a static string or object `pathname` are not
 emitted as static route facts in this contract version.
 
-Route reference facts use `target_path`; route definition and file-route facts
-use `route_path`, except Vue route definitions keep `target_path` for backward
-compatibility with the original Vue fact family. Vue and React child route
-definitions may include `parent_route_path` and `effective_route_template`.
-Navigation reference facts for Vue, Nuxt, React Router, and Next.js include
-`verb="GET"` as an implied navigation verb, not source-attested HTTP evidence.
+Route reference facts, `html.form.v1`, and `http.client_request.v1` use
+`target_path`; route definition and file-route facts use `route_path`, except
+Vue route definitions keep `target_path` for backward compatibility with the
+original Vue fact family. The HTTP method is always carried as `verb`
+(upper-cased), never `http_method`. Vue and React child route definitions may
+include `parent_route_path` and `effective_route_template`. Navigation reference
+facts for Vue, Nuxt, React Router, and Next.js include `verb="GET"` as an
+implied navigation verb, not source-attested HTTP evidence.
 `htmx.attribute.v1` keeps source-attested request verbs. `data-hx-*` attributes
 normalize to canonical `hx-*` `attribute_name` values and include
 `data_prefix=true` in metadata JSON. Beyond `html`/`razor`, the family also
@@ -568,23 +570,26 @@ Nuxt file-route normalization supports optional params (`[[id]]` ->
 `:id?`, `dynamic_segments:["id?"]`) and mixed static/dynamic segments such as
 `users-[group]` -> `users-:group`.
 
-Metadata:
+### Structural-fact metadata payload
 
-- `pattern_version`: integer, currently `1`.
-- `query_family`: string matching the table above.
-- Framework facts may also include framework-specific keys:
-  `framework`, `api_style`, `verb`, `route_template`, `route_source`,
-  `handler_kind`, `handler_name`, `route_prefix`, `group_variable`,
-  `source_kind`, `route_group_prefix`, `effective_route_template`,
-  `route_group_source`, `attribute_name`, `attribute_value`, `target_path`,
-  `data_prefix`, `route_name`, `component_name`, `component_path`,
-  `route_path`, `parent_route_path`, `route_component`, `route_id`,
-  `index_route`, `import_source`, `library`, `router`, `file_convention`,
-  `normalized_route_template`, `dynamic_segments`, `route_group_segments`,
-  `parallel_route_segments`, `intercepting_route_markers`,
-  `intercepted_route_segments`, `directive`, `argument`, `modifiers`,
-  `expression`, `shorthand`, `attribute_kind`, `controller_route_template`,
-  and `route_tokens`.
+The full per-pattern metadata payload — every key each `pattern_id` can carry,
+with its JSON value type and presence rule — is published as a machine-readable
+contract at
+[`structural-fact-patterns.json`](./structural-fact-patterns.json). That file is
+generated from the in-process pattern registry
+(`crates/julie-extractors/src/base/structural_fact_registry.rs`); treat it as the
+source of truth for structural-fact metadata payloads. Regenerate the checked-in
+file after an intentional registry change with:
+
+```
+UPDATE_CONTRACT_JSON=1 cargo test -p julie-extractors structural_fact_registry
+```
+
+Every fact carries the base keys `pattern_version` (integer, currently `1`) and
+`query_family` (string, matching the table above); framework and web
+route/http facts additionally carry a `framework` key. The `route_path` vs
+`target_path` and `verb` naming policy above is stable across the payload
+contract and stays documented here as prose, not in the JSON.
 
 ## Complexity Metrics
 

@@ -207,3 +207,67 @@ mod golden_corpus {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// Ungated checked-in-JSON sync test (Task 3).
+//
+// The registry is published as a checked-in JSON contract at
+// `docs/contracts/structural-fact-patterns.json` so downstream consumers
+// (Miller and others) can vendor/pin the metadata-payload shape without linking
+// the Rust crate. This test proves the artifact never drifts from the
+// serializer. It only serializes the in-memory registry and reads one file, so
+// it is a sub-second default-suite test — unlike the golden-corpus conformance
+// test above, it is intentionally NOT gated behind `test-golden`.
+//
+// Regenerate the artifact after an intentional registry change with:
+//   UPDATE_CONTRACT_JSON=1 cargo test -p julie-extractors structural_fact_registry
+// ---------------------------------------------------------------------------
+
+/// Repository root, derived from this crate's manifest dir. Mirrors the helper
+/// inside `golden_corpus`, but lives at file scope so the ungated sync test can
+/// use it whether or not `test-golden` is enabled.
+fn contract_workspace_root() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(std::path::Path::parent)
+        .expect("julie-extractors crate should live under crates/")
+        .to_path_buf()
+}
+
+/// The checked-in JSON contract must byte-match the registry serializer that
+/// produces it (the same function Task 4 embeds in `languages --json`).
+#[test]
+fn structural_fact_patterns_json_matches_checked_in_contract() {
+    let contract_path =
+        contract_workspace_root().join("docs/contracts/structural-fact-patterns.json");
+    let generated = crate::base::structural_fact_patterns_contract_json();
+
+    // Regeneration path: rewrite the artifact from the registry and stop.
+    if std::env::var_os("UPDATE_CONTRACT_JSON").is_some() {
+        if let Some(parent) = contract_path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(&contract_path, &generated).unwrap_or_else(|err| {
+            panic!(
+                "failed to write structural-fact contract artifact at {}: {err}",
+                contract_path.display()
+            )
+        });
+        return;
+    }
+
+    let checked_in = std::fs::read_to_string(&contract_path).unwrap_or_else(|err| {
+        panic!(
+            "missing structural-fact contract artifact at {}: {err}. \
+             Regenerate with `UPDATE_CONTRACT_JSON=1 cargo test -p julie-extractors structural_fact_registry`",
+            contract_path.display()
+        )
+    });
+
+    assert_eq!(
+        checked_in, generated,
+        "docs/contracts/structural-fact-patterns.json is out of sync with the structural-fact \
+         pattern registry. Regenerate with \
+         `UPDATE_CONTRACT_JSON=1 cargo test -p julie-extractors structural_fact_registry`."
+    );
+}

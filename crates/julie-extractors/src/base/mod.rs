@@ -55,7 +55,8 @@ pub use span::{NormalizedSpan, RecordOffset, normalize_file_path};
 pub use sql_structural_facts::collect_sql_structural_facts;
 pub use structural_fact_registry::{
     KeyPresence, MetadataKeySpec, MetadataValueType, StructuralFactPatternSpec,
-    structural_fact_pattern_specs,
+    structural_fact_pattern_specs, structural_fact_patterns_contract_json,
+    structural_fact_patterns_json,
 };
 pub use structural_facts::collect_structural_facts;
 pub use tree_methods::{find_child_by_type, find_child_by_types};
