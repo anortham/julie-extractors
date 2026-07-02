@@ -1,0 +1,101 @@
+use std::path::Path;
+
+use crate::base::StructuralFact;
+
+const SPRING_REQUEST_MAPPING_PATTERN_ID: &str = "spring.request_mapping.v1";
+
+fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
+    crate::pipeline::extract_canonical(file_path, source, Path::new("/repo"))
+        .expect("canonical extraction should succeed")
+}
+
+fn routes(results: &crate::ExtractionResults) -> Vec<&StructuralFact> {
+    results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == SPRING_REQUEST_MAPPING_PATTERN_ID)
+        .collect()
+}
+
+fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_str())
+}
+
+fn metadata_array<'a>(fact: &'a StructuralFact, key: &str) -> Vec<&'a str> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_array())
+        .map(|values| values.iter().filter_map(|value| value.as_str()).collect())
+        .unwrap_or_default()
+}
+
+fn binding_symbol_name<'a>(
+    results: &'a crate::ExtractionResults,
+    fact: &StructuralFact,
+) -> Option<&'a str> {
+    let id = fact.containing_symbol_id.as_deref()?;
+    results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.id == id)
+        .map(|symbol| symbol.name.as_str())
+}
+
+#[test]
+fn spring_class_and_method_mappings_emit_boundary_facts() {
+    let source = r#"
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api")
+class UserController {
+    @GetMapping("/users/{id}")
+    public User getUser() { return null; }
+
+    @PostMapping({"/users", "/members"})
+    public User create() { return null; }
+
+    @RequestMapping(method = {RequestMethod.GET, RequestMethod.POST}, path = "/search/{term}")
+    public User search() { return null; }
+}
+"#;
+    let results = extract("src/UserController.java", source);
+    let facts = routes(&results);
+    assert_eq!(facts.len(), 6, "{facts:#?}");
+
+    let class_route = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_kind") == Some("class_route"))
+        .expect("class route");
+    assert_eq!(metadata_str(class_route, "route_template"), Some("/api"));
+
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/users/{id}"))
+        .expect("get route");
+    assert_eq!(metadata_str(get, "attribute_kind"), Some("http_method"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "verb_source"), Some("attested"));
+    assert_eq!(metadata_str(get, "class_route_template"), Some("/api"));
+    assert_eq!(
+        metadata_str(get, "effective_route_template"),
+        Some("/api/users/{id}")
+    );
+    assert_eq!(
+        metadata_str(get, "normalized_route_template"),
+        Some("/api/users/:id")
+    );
+    assert_eq!(metadata_array(get, "dynamic_segments"), vec!["id"]);
+    assert_eq!(binding_symbol_name(&results, get), Some("getUser"));
+
+    let search_verbs = facts
+        .iter()
+        .filter(|fact| metadata_str(fact, "route_template") == Some("/search/{term}"))
+        .filter_map(|fact| metadata_str(fact, "verb"))
+        .collect::<Vec<_>>();
+    assert_eq!(search_verbs, vec!["GET", "POST"]);
+}

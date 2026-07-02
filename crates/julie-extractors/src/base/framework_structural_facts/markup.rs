@@ -2,10 +2,13 @@ use serde_json::Value;
 use tree_sitter::Tree;
 
 use super::helpers::{
-    base_metadata, fact_for_span, insert_string, is_ignored_markup_node, smallest_node_covering_range,
+    base_metadata, fact_for_span, insert_string, is_ignored_markup_node,
+    smallest_node_covering_range,
 };
 use super::{ALPINE_DIRECTIVE_PATTERN_ID, HTMX_ATTRIBUTE_PATTERN_ID};
-use crate::base::markup_scan::{MarkupAttribute, scan_markup_attributes, split_argument_and_modifiers};
+use crate::base::markup_scan::{
+    MarkupAttribute, scan_markup_attributes, split_argument_and_modifiers,
+};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 

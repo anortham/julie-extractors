@@ -621,6 +621,204 @@
     "query_family": "async"
   },
   {
+    "description": "A Django include mount inside a path() URL pattern.",
+    "languages": [
+      "python"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw path() prefix string.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized mount path.",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Included module literal or source text.",
+        "key": "included_module",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Literal namespace= value.",
+        "key": "namespace",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "django.url_include.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Django path/re_path URL pattern with a static route argument.",
+    "languages": [
+      "python"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dsl_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route string.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "\"path\" or \"regex\".",
+        "key": "route_syntax",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized route template for path syntax.",
+        "key": "normalized_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in path syntax.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Literal name= value.",
+        "key": "route_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the view argument.",
+        "key": "view_target",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "django.url_pattern.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "An echo route registration on a traced Echo or group receiver.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"mux_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file group prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Group prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "echo.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An Elixir `defmodule` definition.",
     "languages": [
       "elixir"
@@ -753,6 +951,451 @@
     ],
     "pattern_id": "elixir.with_expression.v1",
     "query_family": "control_flow"
+  },
+  {
+    "description": "A static Express route registration on an in-file traced app/router receiver.",
+    "languages": [
+      "javascript",
+      "jsx",
+      "typescript",
+      "tsx"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path passed to the Express registration call.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and Express :param segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "HTTP method for verb-restricted registrations; omitted for app.all.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\" for Express verb methods).",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Same-file app.use mount prefix resolved onto a router route.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Mount prefix joined with the route template when same-file resolution applies.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "express.route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static Express app.use/router.use mount point with a literal mount path.",
+    "languages": [
+      "javascript",
+      "jsx",
+      "typescript",
+      "tsx"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static mount path passed as the first app.use argument.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized mount path.",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the mounted router or middleware expression.",
+        "key": "mount_target",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "express.router_mount.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A FastAPI include_router mount call.",
+    "languages": [
+      "python"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the included router argument.",
+        "key": "mount_target",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Literal prefix mount path, when present.",
+        "key": "mount_path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized mount path, when a literal prefix is present.",
+        "key": "normalized_mount_path",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fastapi.include_router.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static FastAPI path-operation decorator on a traced FastAPI/APIRouter receiver.",
+    "languages": [
+      "python"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"decorator_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the decorator.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Same-file APIRouter prefix.",
+        "key": "router_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Router prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fastapi.route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static Fastify shorthand or object-form route registration.",
+    "languages": [
+      "javascript",
+      "jsx",
+      "typescript",
+      "tsx"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path passed to the Fastify registration.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with Fastify :param segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "HTTP method for verb-restricted registrations; omitted for all-method registrations.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\" for Fastify method names or method properties).",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "fastify.route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Flask register_blueprint mount call.",
+    "languages": [
+      "python"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the blueprint argument.",
+        "key": "mount_target",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Literal url_prefix mount path, when present.",
+        "key": "mount_path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized mount path, when a literal url_prefix is present.",
+        "key": "normalized_mount_path",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "flask.blueprint_registration.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static Flask route decorator on a traced Flask/Blueprint receiver.",
+    "languages": [
+      "python"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"decorator_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the decorator.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Default or attested verb source.",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Blueprint name literal for blueprint-owned routes.",
+        "key": "blueprint",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Same-file Blueprint url_prefix.",
+        "key": "url_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Blueprint prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "flask.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A GDScript `class_name` registration.",
@@ -895,6 +1538,82 @@
     "query_family": "signals"
   },
   {
+    "description": "A gin route registration on a traced router or group receiver.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"mux_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file group prefix.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Group prefix joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "gin.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Go `defer call()` statement.",
     "languages": [
       "go"
@@ -937,6 +1656,70 @@
     ],
     "pattern_id": "go.goroutine_launch.v1",
     "query_family": "concurrency"
+  },
+  {
+    "description": "A Go net/http Handle or HandleFunc route registration.",
+    "languages": [
+      "go"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"mux_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route path portion of the pattern.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Method prefix when the Go pattern names one.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "go.net_http.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "An HTML `<form>` element.",
@@ -1312,13 +2095,18 @@
     "query_family": "frontend_interaction"
   },
   {
-    "description": "An outbound HTTP client request (fetch or axios).",
+    "description": "An outbound HTTP client request with a static URL literal.",
     "languages": [
       "vue",
       "javascript",
       "jsx",
       "tsx",
-      "typescript"
+      "typescript",
+      "python",
+      "csharp",
+      "go",
+      "java",
+      "ruby"
     ],
     "metadata_keys": [
       {
@@ -1340,7 +2128,7 @@
         "value_type": "string"
       },
       {
-        "description": "HTTP client used (\"fetch\" or \"axios\").",
+        "description": "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http).",
         "key": "client",
         "presence": "always",
         "value_type": "string"
@@ -1370,7 +2158,7 @@
         "value_type": "string"
       },
       {
-        "description": "Axios import module; present only for axios calls.",
+        "description": "Import/module source when the collector has one.",
         "key": "import_source",
         "presence": "optional",
         "value_type": "string"
@@ -3095,6 +3883,210 @@
     "query_family": "pipeline"
   },
   {
+    "description": "A Rails mount route for a Rack app or engine.",
+    "languages": [
+      "ruby"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw mount path literal.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized mount path including same-file scope.",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of mounted app/engine.",
+        "key": "mount_target",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Enclosing namespace/scope path.",
+        "key": "scope_path",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "rails.mount.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Rails resources/resource declaration.",
+    "languages": [
+      "ruby"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dsl_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared resource name.",
+        "key": "resource_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "collection or singular.",
+        "key": "resource_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Literal only: action list.",
+        "key": "only",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Literal except: action list.",
+        "key": "except",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Enclosing namespace/scope path.",
+        "key": "scope_path",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "rails.resource_route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Rails routes DSL handler route.",
+    "languages": [
+      "ruby"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dsl_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw route path from the DSL call.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Enclosing namespace/scope path.",
+        "key": "scope_path",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Scope path joined with route template.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method when verb-restricted.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Literal controller#action target.",
+        "key": "controller_action",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Literal/as-symbol route name.",
+        "key": "route_name",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "rails.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Razor `@code`/`@functions` block.",
     "languages": [
       "razor"
@@ -3860,6 +4852,88 @@
     ],
     "pattern_id": "scala.given_definition.v1",
     "query_family": "typeclass"
+  },
+  {
+    "description": "A Spring MVC request-mapping annotation on a class or method.",
+    "languages": [
+      "java"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"annotation_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "class_route/http_method/request_mapping shape.",
+        "key": "attribute_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route template.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family normalized route template.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Nearest class-level route template.",
+        "key": "class_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Class and method templates joined.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method when verb-restricted.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "spring.request_mapping.v1",
+    "query_family": "framework"
   },
   {
     "description": "A SQL column definition inside a CREATE TABLE.",

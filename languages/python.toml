@@ -15,6 +15,7 @@ url = [
     "httpx.delete",
     "httpx.patch",
     "httpx.head",
+    "httpx.options",
     "httpx.request",
     "urlopen",
     "urlretrieve",

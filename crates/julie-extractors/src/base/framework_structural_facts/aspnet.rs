@@ -4,16 +4,17 @@ use serde_json::Value;
 use tree_sitter::{Node, Tree};
 
 use super::helpers::{
-    base_metadata, fact_for_node, fact_for_span, find_matching_paren, find_matching_paren_backwards,
-    insert_string, is_comment_or_string_node, is_csharp_identifier, is_identifier_boundary,
-    node_text, parse_csharp_string_literal, parse_first_route_argument, parse_handler_argument,
-    skip_ascii_whitespace, skip_ascii_whitespace_until, smallest_node_covering_range,
+    base_metadata, fact_for_node, fact_for_span, find_matching_paren,
+    find_matching_paren_backwards, insert_string, is_comment_or_string_node, is_csharp_identifier,
+    is_identifier_boundary, node_text, parse_csharp_string_literal, parse_first_route_argument,
+    parse_handler_argument, skip_ascii_whitespace, skip_ascii_whitespace_until,
+    smallest_node_covering_range,
 };
 use super::{
     ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID, ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
     ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
 };
-use crate::base::http_boundary::{normalize_route_template, ParamFlavor};
+use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -269,14 +270,6 @@ fn parse_chained_map_group_prefix(content: &str, method_start: usize) -> Option<
 
 fn is_csharp_identifier_byte(byte: &u8) -> bool {
     matches!(byte, b'_' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9')
-}
-
-fn join_route_templates(prefix: &str, route_template: &str) -> String {
-    match (prefix.ends_with('/'), route_template.starts_with('/')) {
-        (true, true) => format!("{}{}", prefix.trim_end_matches('/'), route_template),
-        (false, false) => format!("{prefix}/{route_template}"),
-        _ => format!("{prefix}{route_template}"),
-    }
 }
 
 /// Collect `aspnet.attribute_route.v1` facts for attribute-routed controllers.

@@ -42,10 +42,18 @@ pub(crate) fn normalize_route_template(template: &str, flavor: ParamFlavor) -> N
 pub(crate) fn classify_url(literal: &str) -> &'static str {
     if literal.starts_with('/') {
         "path"
-    } else if literal.starts_with("./") || literal.starts_with("../") {
-        "relative"
-    } else {
+    } else if literal.contains("://") {
         "absolute"
+    } else {
+        "relative"
+    }
+}
+
+pub(crate) fn join_route_templates(prefix: &str, route_template: &str) -> String {
+    match (prefix.ends_with('/'), route_template.starts_with('/')) {
+        (true, true) => format!("{}{}", prefix.trim_end_matches('/'), route_template),
+        (false, false) => format!("{prefix}/{route_template}"),
+        _ => format!("{prefix}{route_template}"),
     }
 }
 
@@ -206,13 +214,18 @@ fn replace_delimited_params(
 
 #[cfg(test)]
 mod tests {
-    use super::{ParamFlavor, classify_url, normalize_route_template};
+    use super::{ParamFlavor, classify_url, join_route_templates, normalize_route_template};
 
     #[test]
     fn normalizes_parameter_flavors_to_colon_segments() {
         let cases = [
             ("users/:id", ParamFlavor::Colon, "/users/:id", vec!["id"]),
-            ("users/{id:int}", ParamFlavor::Braces, "/users/:id", vec!["id"]),
+            (
+                "users/{id:int}",
+                ParamFlavor::Braces,
+                "/users/:id",
+                vec!["id"],
+            ),
             (
                 "users/<int:user_id>/",
                 ParamFlavor::AngleBrackets,
@@ -259,8 +272,17 @@ mod tests {
     #[test]
     fn classifies_http_client_url_literals() {
         assert_eq!(classify_url("/api/users"), "path");
+        assert_eq!(classify_url("api/users"), "relative");
         assert_eq!(classify_url("./users"), "relative");
         assert_eq!(classify_url("../users"), "relative");
         assert_eq!(classify_url("https://api.example.com/users"), "absolute");
+    }
+
+    #[test]
+    fn joins_route_prefixes_without_duplicate_slashes() {
+        assert_eq!(join_route_templates("/api", "/users"), "/api/users");
+        assert_eq!(join_route_templates("/api/", "/users"), "/api/users");
+        assert_eq!(join_route_templates("/api", "users"), "/api/users");
+        assert_eq!(join_route_templates("/api/", "users"), "/api/users");
     }
 }

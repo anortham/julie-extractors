@@ -512,6 +512,22 @@ Supported patterns are advertised in
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGet`/`MapPost`/`MapPut`/`MapPatch`/`MapDelete` route call with a literal route template. |
 | `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGroup` route group with a literal route prefix. |
 | `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` | `framework` | An attribute-routed ASP.NET controller class or action method (tree-sitter attribution of attribute -> owning declaration). One fact per routing attribute (`attribute_kind` is `controller_route`, `http_method`, or `route`). Non-literal templates, `[ApiController]` without routes, and conventional (non-attribute) routing stay silent. Metadata payload keys: see the JSON contract linked below. |
+| `express.route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_call` | parser-covered call span | `framework` | A static Express route registration on an import-gated, in-file traced receiver. |
+| `express.router_mount.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `router_mount` | parser-covered call span | `framework` | A static Express `app.use`/`router.use` mount point. |
+| `fastify.route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_call` | parser-covered call span | `framework` | A static Fastify shorthand or object-form route registration. |
+| `fastapi.route.v1` | `python` | `route` | decorated function declaration span | `framework` | A FastAPI path-operation decorator on a traced FastAPI/APIRouter receiver. |
+| `fastapi.include_router.v1` | `python` | `include_router` | parser-covered call span | `framework` | A FastAPI `include_router` mount call. |
+| `flask.route.v1` | `python` | `route` | decorated function declaration span | `framework` | A Flask route decorator on a traced Flask/Blueprint receiver. |
+| `flask.blueprint_registration.v1` | `python` | `blueprint_registration` | parser-covered call span | `framework` | A Flask `register_blueprint` mount call. |
+| `django.url_pattern.v1` | `python` | `url_pattern` | parser-covered call span | `framework` | A Django `path` or `re_path` URL pattern. |
+| `django.url_include.v1` | `python` | `url_include` | parser-covered call span | `framework` | A Django `include` mount inside a `path` URL pattern. |
+| `spring.request_mapping.v1` | `java` | `request_mapping` | class or method declaration line | `framework` | A Spring MVC request-mapping annotation on a class or method. |
+| `go.net_http.route.v1` | `go` | `route_call` | parser-covered call span | `framework` | A Go `net/http` route registration through package-level or ServeMux calls. |
+| `gin.route.v1` | `go` | `route_call` | parser-covered call span | `framework` | A gin route registration on a traced router or group receiver. |
+| `echo.route.v1` | `go` | `route_call` | parser-covered call span | `framework` | An echo route registration on a traced Echo or group receiver. |
+| `rails.route.v1` | `ruby` | `route` | parser-covered DSL call span | `framework` | A Rails routes DSL handler route. |
+| `rails.resource_route.v1` | `ruby` | `resource_route` | parser-covered DSL call span | `framework` | A Rails `resources` or `resource` declaration. |
+| `rails.mount.v1` | `ruby` | `mount` | parser-covered DSL call span | `framework` | A Rails `mount` route for a Rack app or engine. |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` or `data-hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Vue Router link target such as `<RouterLink to="/calendar">`. |
@@ -524,7 +540,7 @@ Supported patterns are advertised in
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `framework` | An exported HTTP-verb handler (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`HEAD`/`OPTIONS`) in an App Router `route.{js,ts}` file. One fact per exported verb. Route paths are derived with the same segment walk as `nextjs.file_route.v1`. Metadata payload keys: see the JSON contract linked below. |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `framework` | A Nitro server route under `server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). One fact per file; `verb`/`verb_source` are present only when the filename carries a method suffix (`users.get.ts`). Emission requires a `defineEventHandler`/`eventHandler` identifier or a method suffix; a wrapped custom handler with neither is a documented residual miss. `server/middleware`, `server/plugins`, and `server/utils` are excluded. Claims the `server/**` space `nuxt.file_route.v1` excludes. Metadata payload keys: see the JSON contract linked below. |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` | `web.http_client` | A global `fetch()` call or import-gated axios call whose first argument is a static string URL. Metadata payload keys: see the JSON contract linked below. |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `ruby` | `client_request` | parser-covered call span | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Metadata payload keys: see the JSON contract linked below. |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Raw `route_template`, `route_prefix`, and
@@ -544,6 +560,13 @@ axios import and matched on the LOCAL binding (`import http from "axios"`
 gates `http.*`). In Vue SFCs the scan covers `<script>`/`<script setup>`
 section content only, and the axios import gate is local to the declaring
 script section.
+
+Backend-language client collectors emit the same `http.client_request.v1`
+metadata shape for static string URL arguments: Python module-qualified
+`requests`/`httpx` calls, C# `HttpClient` method calls and
+`HttpRequestMessage`, Go `net/http` package calls, Java `HttpRequest` builder
+chains, and Ruby `Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)`
+arguments. Instance/session clients and dynamic URL expressions stay silent.
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route

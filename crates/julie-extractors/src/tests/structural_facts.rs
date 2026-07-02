@@ -1,7 +1,9 @@
 use std::collections::BTreeSet;
+use std::fs;
 use std::path::Path;
 
 use crate::base::StructuralFact;
+use serde_json::Value;
 
 fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
     crate::pipeline::extract_canonical(file_path, source, Path::new("/repo"))
@@ -1396,5 +1398,523 @@ fn http_boundary_families_emit_documented_metadata_keys() {
             "route_tokens",
             "verb",
         ]
+    );
+
+    let node_routes = extract(
+        "fixtures/extraction/javascript/backend_http_boundaries/source.js",
+        include_str!(
+            "../../../../fixtures/extraction/javascript/backend_http_boundaries/source.js"
+        ),
+    );
+    let express_routes = facts_with_pattern(&node_routes, "express.route.v1");
+    let grouped_express_route = express_routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_group_prefix") == Some("/api"))
+        .expect("grouped express route fact");
+    assert_eq!(
+        metadata_keys(grouped_express_route),
+        [
+            "api_style",
+            "dynamic_segments",
+            "effective_route_template",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_group_prefix",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let direct_express_route = express_routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/items/:id"))
+        .expect("direct express route fact");
+    assert_eq!(
+        metadata_keys(direct_express_route),
+        [
+            "api_style",
+            "dynamic_segments",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let express_mounts = facts_with_pattern(&node_routes, "express.router_mount.v1");
+    assert_eq!(express_mounts.len(), 1);
+    assert_eq!(
+        metadata_keys(express_mounts[0]),
+        [
+            "framework",
+            "mount_path",
+            "mount_target",
+            "normalized_mount_path",
+            "pattern_version",
+            "query_family",
+        ]
+    );
+    let fastify_routes = facts_with_pattern(&node_routes, "fastify.route.v1");
+    assert_eq!(fastify_routes.len(), 2);
+    assert_eq!(
+        metadata_keys(fastify_routes[0]),
+        [
+            "api_style",
+            "dynamic_segments",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    let python_routes = extract(
+        "fixtures/extraction/python/backend_http_boundaries/source.py",
+        include_str!("../../../../fixtures/extraction/python/backend_http_boundaries/source.py"),
+    );
+    let fastapi_routes = facts_with_pattern(&python_routes, "fastapi.route.v1");
+    assert_eq!(fastapi_routes.len(), 1);
+    assert_eq!(
+        metadata_keys(fastapi_routes[0]),
+        [
+            "api_style",
+            "dynamic_segments",
+            "effective_route_template",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "router_prefix",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let fastapi_mounts = facts_with_pattern(&python_routes, "fastapi.include_router.v1");
+    assert_eq!(fastapi_mounts.len(), 1);
+    assert_eq!(
+        metadata_keys(fastapi_mounts[0]),
+        [
+            "framework",
+            "mount_path",
+            "mount_target",
+            "normalized_mount_path",
+            "pattern_version",
+            "query_family",
+        ]
+    );
+    let flask_routes = facts_with_pattern(&python_routes, "flask.route.v1");
+    let flask_default_route = flask_routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/health"))
+        .expect("default flask route fact");
+    assert_eq!(
+        metadata_keys(flask_default_route),
+        [
+            "api_style",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let flask_blueprint_route = flask_routes
+        .iter()
+        .find(|fact| metadata_str(fact, "blueprint") == Some("users"))
+        .expect("blueprint flask route fact");
+    assert_eq!(
+        metadata_keys(flask_blueprint_route),
+        [
+            "api_style",
+            "blueprint",
+            "dynamic_segments",
+            "effective_route_template",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "url_prefix",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let flask_mounts = facts_with_pattern(&python_routes, "flask.blueprint_registration.v1");
+    assert_eq!(flask_mounts.len(), 1);
+    assert_eq!(
+        metadata_keys(flask_mounts[0]),
+        [
+            "framework",
+            "mount_path",
+            "mount_target",
+            "normalized_mount_path",
+            "pattern_version",
+            "query_family",
+        ]
+    );
+    let django_patterns = facts_with_pattern(&python_routes, "django.url_pattern.v1");
+    let django_path = django_patterns
+        .iter()
+        .find(|fact| metadata_str(fact, "route_syntax") == Some("path"))
+        .expect("django path fact");
+    assert_eq!(
+        metadata_keys(django_path),
+        [
+            "api_style",
+            "dynamic_segments",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_name",
+            "route_syntax",
+            "route_template",
+            "view_target",
+        ]
+    );
+    let django_regex = django_patterns
+        .iter()
+        .find(|fact| metadata_str(fact, "route_syntax") == Some("regex"))
+        .expect("django regex fact");
+    assert_eq!(
+        metadata_keys(django_regex),
+        [
+            "api_style",
+            "framework",
+            "pattern_version",
+            "query_family",
+            "route_name",
+            "route_syntax",
+            "route_template",
+            "view_target",
+        ]
+    );
+    let django_mounts = facts_with_pattern(&python_routes, "django.url_include.v1");
+    assert_eq!(django_mounts.len(), 1);
+    assert_eq!(
+        metadata_keys(django_mounts[0]),
+        [
+            "framework",
+            "included_module",
+            "mount_path",
+            "namespace",
+            "normalized_mount_path",
+            "pattern_version",
+            "query_family",
+        ]
+    );
+    let python_clients = facts_with_pattern(&python_routes, "http.client_request.v1");
+    assert_eq!(
+        metadata_keys(python_clients[0]),
+        [
+            "client",
+            "framework",
+            "import_source",
+            "pattern_version",
+            "query_family",
+            "target_path",
+            "url_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    let csharp_clients = extract(
+        "fixtures/extraction/csharp/http_client/source.cs",
+        include_str!("../../../../fixtures/extraction/csharp/http_client/source.cs"),
+    );
+    let csharp_client_facts = facts_with_pattern(&csharp_clients, "http.client_request.v1");
+    assert_eq!(
+        metadata_keys(csharp_client_facts[0]),
+        [
+            "client",
+            "framework",
+            "pattern_version",
+            "query_family",
+            "target_path",
+            "url_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    let java_routes = extract(
+        "fixtures/extraction/java/backend_http_boundaries/source.java",
+        include_str!("../../../../fixtures/extraction/java/backend_http_boundaries/source.java"),
+    );
+    let spring_routes = facts_with_pattern(&java_routes, "spring.request_mapping.v1");
+    let spring_class = spring_routes
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_kind") == Some("class_route"))
+        .expect("spring class route fact");
+    assert_eq!(
+        metadata_keys(spring_class),
+        [
+            "api_style",
+            "attribute_kind",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+        ]
+    );
+    let spring_method = spring_routes
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_kind") == Some("http_method"))
+        .expect("spring method route fact");
+    assert_eq!(
+        metadata_keys(spring_method),
+        [
+            "api_style",
+            "attribute_kind",
+            "class_route_template",
+            "dynamic_segments",
+            "effective_route_template",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let java_clients = facts_with_pattern(&java_routes, "http.client_request.v1");
+    assert_eq!(
+        metadata_keys(java_clients[0]),
+        [
+            "client",
+            "framework",
+            "pattern_version",
+            "query_family",
+            "target_path",
+            "url_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    let go_routes = extract(
+        "fixtures/extraction/go/backend_http_boundaries/source.go",
+        include_str!("../../../../fixtures/extraction/go/backend_http_boundaries/source.go"),
+    );
+    let net_http_routes = facts_with_pattern(&go_routes, "go.net_http.route.v1");
+    assert_eq!(
+        metadata_keys(net_http_routes[0]),
+        [
+            "api_style",
+            "dynamic_segments",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let gin_routes = facts_with_pattern(&go_routes, "gin.route.v1");
+    assert_eq!(
+        metadata_keys(gin_routes[0]),
+        [
+            "api_style",
+            "dynamic_segments",
+            "effective_route_template",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_group_prefix",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let echo_routes = facts_with_pattern(&go_routes, "echo.route.v1");
+    assert_eq!(
+        metadata_keys(echo_routes[0]),
+        [
+            "api_style",
+            "dynamic_segments",
+            "effective_route_template",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_group_prefix",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let go_clients = facts_with_pattern(&go_routes, "http.client_request.v1");
+    assert_eq!(
+        metadata_keys(go_clients[0]),
+        [
+            "client",
+            "framework",
+            "import_source",
+            "pattern_version",
+            "query_family",
+            "target_path",
+            "url_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+
+    let ruby_routes = extract(
+        "fixtures/extraction/ruby/backend_http_boundaries/source.rb",
+        include_str!("../../../../fixtures/extraction/ruby/backend_http_boundaries/source.rb"),
+    );
+    let rails_routes = facts_with_pattern(&ruby_routes, "rails.route.v1");
+    let rails_scoped_route = rails_routes
+        .iter()
+        .find(|fact| metadata_str(fact, "scope_path") == Some("/admin"))
+        .expect("scoped rails route fact");
+    assert_eq!(
+        metadata_keys(rails_scoped_route),
+        [
+            "api_style",
+            "controller_action",
+            "dynamic_segments",
+            "effective_route_template",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_name",
+            "route_template",
+            "scope_path",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let rails_root_route = rails_routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/"))
+        .expect("rails root route fact");
+    assert_eq!(
+        metadata_keys(rails_root_route),
+        [
+            "api_style",
+            "framework",
+            "normalized_route_template",
+            "pattern_version",
+            "query_family",
+            "route_template",
+            "verb",
+            "verb_source",
+        ]
+    );
+    let rails_resources = facts_with_pattern(&ruby_routes, "rails.resource_route.v1");
+    assert_eq!(rails_resources.len(), 1);
+    assert_eq!(
+        metadata_keys(rails_resources[0]),
+        [
+            "api_style",
+            "framework",
+            "only",
+            "pattern_version",
+            "query_family",
+            "resource_kind",
+            "resource_name",
+            "scope_path",
+        ]
+    );
+    let rails_mounts = facts_with_pattern(&ruby_routes, "rails.mount.v1");
+    assert_eq!(rails_mounts.len(), 1);
+    assert_eq!(
+        metadata_keys(rails_mounts[0]),
+        [
+            "framework",
+            "mount_path",
+            "mount_target",
+            "normalized_mount_path",
+            "pattern_version",
+            "query_family",
+            "scope_path",
+        ]
+    );
+    let ruby_clients = facts_with_pattern(&ruby_routes, "http.client_request.v1");
+    assert_eq!(
+        metadata_keys(ruby_clients[0]),
+        [
+            "client",
+            "framework",
+            "pattern_version",
+            "query_family",
+            "target_path",
+            "url_kind",
+            "verb",
+            "verb_source",
+        ]
+    );
+}
+
+#[test]
+fn normalized_route_templates_use_colon_param_flavor_in_golden_corpus() {
+    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let capabilities_path = workspace_root.join("fixtures/extraction/capabilities.json");
+    let capabilities: Value = serde_json::from_str(
+        &fs::read_to_string(&capabilities_path)
+            .unwrap_or_else(|err| panic!("failed to read {capabilities_path:?}: {err}")),
+    )
+    .expect("capabilities.json should parse");
+    let mut checked = 0usize;
+
+    for row in capabilities["languages"]
+        .as_array()
+        .expect("languages should be an array")
+    {
+        for fixture in row["fixtures"]
+            .as_array()
+            .expect("fixtures should be an array")
+        {
+            let expected_path = fixture["expected"]
+                .as_str()
+                .expect("fixture expected path should be a string");
+            let expected_file = workspace_root.join(expected_path);
+            let expected: Value = serde_json::from_str(
+                &fs::read_to_string(&expected_file)
+                    .unwrap_or_else(|err| panic!("failed to read {expected_file:?}: {err}")),
+            )
+            .unwrap_or_else(|err| panic!("failed to parse {expected_file:?}: {err}"));
+
+            for fact in expected["structural_facts"]
+                .as_array()
+                .expect("structural_facts should be an array")
+            {
+                let Some(template) = fact["metadata"]["normalized_route_template"].as_str() else {
+                    continue;
+                };
+                checked += 1;
+                assert!(
+                    !template.contains('{')
+                        && !template.contains('}')
+                        && !template.contains('<')
+                        && !template.contains('>'),
+                    "{} in {} leaked a source-style parameter into normalized_route_template={template:?}",
+                    fact["pattern_id"].as_str().unwrap_or("<unknown>"),
+                    expected_path,
+                );
+            }
+        }
+    }
+
+    assert!(
+        checked > 0,
+        "expected normalized route templates in fixture corpus"
     );
 }

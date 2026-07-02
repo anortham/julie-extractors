@@ -662,7 +662,34 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/basic/source.go",
+      "containing_key": "fixtures/extraction/go/basic/source.go:FetchStatus:41:0",
+      "start_line": 42,
+      "start_column": 11,
+      "end_line": 42,
+      "end_column": 61,
+      "start_byte": 747,
+      "end_byte": 797,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "net/http",
+        "framework": "net/http",
+        "import_source": "net/http",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/workers/status",
+        "url_kind": "absolute",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

@@ -1,0 +1,1341 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:HttpRequest:2:0",
+      "name": "HttpRequest",
+      "kind": "import",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 33,
+      "start_byte": 21,
+      "end_byte": 54,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import java.net.http.HttpRequest",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:URI:1:0",
+      "name": "URI",
+      "kind": "import",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 20,
+      "start_byte": 0,
+      "end_byte": 20,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import java.net.URI",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
+      "name": "UserController",
+      "kind": "class",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 18,
+      "end_column": 1,
+      "start_byte": 106,
+      "end_byte": 614,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 21,
+        "end_line": 18,
+        "end_column": 1,
+        "start_byte": 167,
+        "end_byte": 614
+      },
+      "body_hash": "a7663d9e2e1c0b06334fcb59b0afd998",
+      "signature": "@RestController @RequestMapping(\"/api\") class UserController",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "RestController",
+          "annotation_key": "restcontroller",
+          "raw_text": "RestController"
+        },
+        {
+          "annotation": "RequestMapping",
+          "annotation_key": "requestmapping",
+          "raw_text": "RequestMapping(\"/api\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:annotation:3:0",
+      "name": "annotation",
+      "kind": "import",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 49,
+      "start_byte": 55,
+      "end_byte": 104,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import org.springframework.web.bind.annotation.*",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "name": "callClient",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 14,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 5,
+      "start_byte": 386,
+      "end_byte": 612,
+      "body_span": {
+        "start_line": 14,
+        "start_column": 22,
+        "end_line": 17,
+        "end_column": 5,
+        "start_byte": 404,
+        "end_byte": 612
+      },
+      "body_hash": "74dc90f8371ea1e084b3dabb00594333",
+      "signature": "void callClient()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:getUser:8:4",
+      "name": "getUser",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 42,
+      "start_byte": 173,
+      "end_byte": 242,
+      "body_span": {
+        "start_line": 9,
+        "start_column": 26,
+        "end_line": 9,
+        "end_column": 42,
+        "start_byte": 226,
+        "end_byte": 242
+      },
+      "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
+      "signature": "@GetMapping(\"/users/{id}\") public User getUser()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "GetMapping",
+          "annotation_key": "getmapping",
+          "raw_text": "GetMapping(\"/users/{id}\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "name": "search",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 41,
+      "start_byte": 248,
+      "end_byte": 380,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 25,
+        "end_line": 12,
+        "end_column": 41,
+        "start_byte": 364,
+        "end_byte": 380
+      },
+      "body_hash": "e070e6c21a3a1a78ba58c0e669a825cd",
+      "signature": "@RequestMapping(method = {RequestMethod.GET, RequestMethod.POST}, path = \"/search/{term}\") public User search()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "RequestMapping",
+          "annotation_key": "requestmapping",
+          "raw_text": "RequestMapping(method = {RequestMethod.GET, RequestMethod.POST}, path = \"/search/{term}\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "HttpRequest.newBuilder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "HttpRequest.newBuilder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "HttpRequest.newBuilder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "HttpRequest.newBuilder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "POST",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "POST",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "URI.create",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "URI.create",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "URI.create",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "URI.create",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 15,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "build",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "uri",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "callee_name": "uri",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "line_number": 16,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "HttpRequest.newBuilder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpRequest.newBuilder",
+        "terminal_name": "newBuilder",
+        "receiver": "HttpRequest",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "HttpRequest.newBuilder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpRequest.newBuilder",
+        "terminal_name": "newBuilder",
+        "receiver": "HttpRequest",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "HttpRequest.newBuilder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpRequest.newBuilder",
+        "terminal_name": "newBuilder",
+        "receiver": "HttpRequest",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "HttpRequest.newBuilder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpRequest.newBuilder",
+        "terminal_name": "newBuilder",
+        "receiver": "HttpRequest",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "POST",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "POST",
+        "terminal_name": "POST",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "POST",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "POST",
+        "terminal_name": "POST",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "URI.create",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "URI.create",
+        "terminal_name": "create",
+        "receiver": "URI",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "URI.create",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "URI.create",
+        "terminal_name": "create",
+        "receiver": "URI",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "URI.create",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "URI.create",
+        "terminal_name": "create",
+        "receiver": "URI",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "URI.create",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "URI.create",
+        "terminal_name": "create",
+        "receiver": "URI",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "build",
+        "terminal_name": "build",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "build",
+        "terminal_name": "build",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "build",
+        "terminal_name": "build",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "build",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "build",
+        "terminal_name": "build",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "uri",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "uri",
+        "terminal_name": "uri",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+        "callee_name": "uri",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "uri",
+        "terminal_name": "uri",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:GET:member_access:11:44",
+      "name": "GET",
+      "kind": "member_access",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 11,
+      "start_column": 44,
+      "end_line": 11,
+      "end_column": 47,
+      "start_byte": 288,
+      "end_byte": 291,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:HttpRequest:type_usage:15:8",
+      "name": "HttpRequest",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 15,
+      "start_column": 8,
+      "end_line": 15,
+      "end_column": 19,
+      "start_byte": 414,
+      "end_byte": 425,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:HttpRequest:type_usage:16:8",
+      "name": "HttpRequest",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 16,
+      "start_column": 8,
+      "end_line": 16,
+      "end_column": 19,
+      "start_byte": 517,
+      "end_byte": 528,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:POST:call:16:78",
+      "name": "POST",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 16,
+      "start_column": 78,
+      "end_line": 16,
+      "end_column": 82,
+      "start_byte": 587,
+      "end_byte": 591,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:POST:member_access:11:63",
+      "name": "POST",
+      "kind": "member_access",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 11,
+      "start_column": 63,
+      "end_line": 11,
+      "end_column": 67,
+      "start_byte": 307,
+      "end_byte": 311,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:User:type_usage:12:11",
+      "name": "User",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 12,
+      "start_column": 11,
+      "end_line": 12,
+      "end_column": 15,
+      "start_byte": 350,
+      "end_byte": 354,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:User:type_usage:9:11",
+      "name": "User",
+      "kind": "type_usage",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 9,
+      "start_column": 11,
+      "end_line": 9,
+      "end_column": 15,
+      "start_byte": 211,
+      "end_byte": 215,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:getUser:8:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:build:call:15:94",
+      "name": "build",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 15,
+      "start_column": 94,
+      "end_line": 15,
+      "end_column": 99,
+      "start_byte": 500,
+      "end_byte": 505,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:build:call:16:89",
+      "name": "build",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 16,
+      "start_column": 89,
+      "end_line": 16,
+      "end_column": 94,
+      "start_byte": 598,
+      "end_byte": 603,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:create:call:15:53",
+      "name": "create",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 15,
+      "start_column": 53,
+      "end_line": 15,
+      "end_column": 59,
+      "start_byte": 459,
+      "end_byte": 465,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:create:call:16:60",
+      "name": "create",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 16,
+      "start_column": 60,
+      "end_line": 16,
+      "end_column": 66,
+      "start_byte": 569,
+      "end_byte": 575,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:newBuilder:call:15:38",
+      "name": "newBuilder",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 15,
+      "start_column": 38,
+      "end_line": 15,
+      "end_column": 48,
+      "start_byte": 444,
+      "end_byte": 454,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:newBuilder:call:16:39",
+      "name": "newBuilder",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 16,
+      "start_column": 39,
+      "end_line": 16,
+      "end_column": 49,
+      "start_byte": 548,
+      "end_byte": 558,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/java/backend_http_boundaries/source.java:uri:call:16:52",
+      "name": "uri",
+      "kind": "call",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 16,
+      "start_column": 52,
+      "end_line": 16,
+      "end_column": 55,
+      "start_byte": 561,
+      "end_byte": 564,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:getUser:8:4",
+      "resolved_type": "User",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "resolved_type": "User",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "local_variable_declaration",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "start_line": 15,
+      "start_column": 26,
+      "end_line": 15,
+      "end_column": 102,
+      "start_byte": 432,
+      "end_byte": 508,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "java.net.http",
+        "framework": "java.net.http",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/users",
+        "url_kind": "absolute",
+        "verb": "GET",
+        "verb_source": "default"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "local_variable_declaration",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "start_line": 16,
+      "start_column": 27,
+      "end_line": 16,
+      "end_column": 97,
+      "start_byte": 536,
+      "end_byte": 606,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "java.net.http",
+        "framework": "java.net.http",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/items",
+        "url_kind": "path",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "java.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 23,
+      "start_byte": 122,
+      "end_byte": 145,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "RequestMapping",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "java.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:getUser:8:4",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 30,
+      "start_byte": 173,
+      "end_byte": 199,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "GetMapping",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "java.annotation.v1",
+      "capture_name": "annotation",
+      "node_kind": "annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 11,
+      "end_column": 94,
+      "start_byte": 248,
+      "end_byte": 338,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "RequestMapping",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "java.marker_annotation.v1",
+      "capture_name": "marker_annotation",
+      "node_kind": "marker_annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 15,
+      "start_byte": 106,
+      "end_byte": 121,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "RestController",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "spring.request_mapping.v1",
+      "capture_name": "request_mapping",
+      "node_kind": "class_declaration",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 22,
+      "start_byte": 146,
+      "end_byte": 168,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "annotation_routing",
+        "attribute_kind": "class_route",
+        "framework": "spring",
+        "normalized_route_template": "/api",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/api"
+      }
+    },
+    {
+      "pattern_id": "spring.request_mapping.v1",
+      "capture_name": "request_mapping",
+      "node_kind": "method_declaration",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:getUser:8:4",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 42,
+      "start_byte": 204,
+      "end_byte": 242,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "annotation_routing",
+        "attribute_kind": "http_method",
+        "class_route_template": "/api",
+        "dynamic_segments": [
+          "id"
+        ],
+        "effective_route_template": "/api/users/{id}",
+        "framework": "spring",
+        "normalized_route_template": "/api/users/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/users/{id}",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "spring.request_mapping.v1",
+      "capture_name": "request_mapping",
+      "node_kind": "method_declaration",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 41,
+      "start_byte": 343,
+      "end_byte": 380,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "annotation_routing",
+        "attribute_kind": "http_method",
+        "class_route_template": "/api",
+        "dynamic_segments": [
+          "term"
+        ],
+        "effective_route_template": "/api/search/{term}",
+        "framework": "spring",
+        "normalized_route_template": "/api/search/:term",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/search/{term}",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "spring.request_mapping.v1",
+      "capture_name": "request_mapping",
+      "node_kind": "method_declaration",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 41,
+      "start_byte": 343,
+      "end_byte": 380,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "annotation_routing",
+        "attribute_kind": "http_method",
+        "class_route_template": "/api",
+        "dynamic_segments": [
+          "term"
+        ],
+        "effective_route_template": "/api/search/{term}",
+        "framework": "spring",
+        "normalized_route_template": "/api/search/:term",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "/search/{term}",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "covered_lines": 19,
+      "covered_bytes": 615,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 615,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "covered_lines": 4,
+      "covered_bytes": 208,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 14,
+      "start_column": 22,
+      "end_line": 17,
+      "end_column": 5,
+      "start_byte": 404,
+      "end_byte": 612,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:getUser:8:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 26,
+      "end_line": 9,
+      "end_column": 42,
+      "start_byte": 226,
+      "end_byte": 242,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 12,
+      "start_column": 25,
+      "end_line": 12,
+      "end_column": 41,
+      "start_byte": 364,
+      "end_byte": 380,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/items",
+      "kind": "other",
+      "carrier": "URI.create",
+      "arg_position": 0,
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 16,
+      "start_column": 67,
+      "end_line": 16,
+      "end_column": 75,
+      "start_byte": 576,
+      "end_byte": 584,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/users",
+      "kind": "other",
+      "carrier": "URI.create",
+      "arg_position": 0,
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "start_line": 15,
+      "start_column": 60,
+      "end_line": 15,
+      "end_column": 91,
+      "start_byte": 466,
+      "end_byte": 497,
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:UserController:5:0",
+      "start_line": 6,
+      "start_column": 16,
+      "end_line": 6,
+      "end_column": 22,
+      "start_byte": 138,
+      "end_byte": 144,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "start_line": 15,
+      "start_column": 60,
+      "end_line": 15,
+      "end_column": 91,
+      "start_byte": 466,
+      "end_byte": 497,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "start_line": 16,
+      "start_column": 67,
+      "end_line": 16,
+      "end_column": 75,
+      "start_byte": 576,
+      "end_byte": 584,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:getUser:8:4",
+      "start_line": 8,
+      "start_column": 16,
+      "end_line": 8,
+      "end_column": 29,
+      "start_byte": 185,
+      "end_byte": 198,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/backend_http_boundaries/source.java",
+      "containing_key": "fixtures/extraction/java/backend_http_boundaries/source.java:search:11:4",
+      "start_line": 11,
+      "start_column": 77,
+      "end_line": 11,
+      "end_column": 93,
+      "start_byte": 321,
+      "end_byte": 337,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

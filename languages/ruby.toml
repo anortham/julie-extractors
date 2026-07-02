@@ -3,6 +3,7 @@
 url = [
     "Net::HTTP.get",
     "Net::HTTP.post",
+    "Net::HTTP.post_form",
     "Net::HTTP.get_response",
     "HTTParty.get",
     "HTTParty.post",

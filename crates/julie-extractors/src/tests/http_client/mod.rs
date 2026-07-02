@@ -563,3 +563,223 @@ export async function load() {
     assert_eq!(name, "load");
     assert_eq!(kind, &crate::base::SymbolKind::Function);
 }
+
+#[test]
+fn python_requests_and_httpx_imported_module_calls_emit_client_requests() {
+    let source = r#"
+import requests as req
+import httpx
+
+def load():
+    req.get("https://api.example.com/users")
+    httpx.post("/items")
+    req.request("PATCH", "/users/1")
+"#;
+    let results = extract("src/client.py", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 3, "{facts:#?}");
+
+    let requests_get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/users"))
+        .expect("requests get");
+    assert_eq!(metadata_str(requests_get, "client"), Some("requests"));
+    assert_eq!(
+        metadata_str(requests_get, "import_source"),
+        Some("requests")
+    );
+    assert_eq!(metadata_str(requests_get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(requests_get, "url_kind"), Some("absolute"));
+
+    let httpx_post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/items"))
+        .expect("httpx post");
+    assert_eq!(metadata_str(httpx_post, "client"), Some("httpx"));
+    assert_eq!(metadata_str(httpx_post, "verb"), Some("POST"));
+    assert_eq!(metadata_str(httpx_post, "url_kind"), Some("path"));
+
+    let request_call = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/users/1"))
+        .expect("request call");
+    assert_eq!(metadata_str(request_call, "verb"), Some("PATCH"));
+}
+
+#[test]
+fn python_unimported_or_instance_client_calls_stay_silent() {
+    let source = r#"
+def load(session, path):
+    requests.get("/unimported")
+    session.get("/session")
+    httpx.get(path)
+"#;
+    let results = extract("src/client.py", source);
+    assert!(client_requests(&results).is_empty());
+}
+
+#[test]
+fn csharp_httpclient_methods_and_request_messages_emit_client_requests() {
+    let source = r#"
+using System.Net.Http;
+using System.Net.Http.Json;
+
+public class Api {
+    public async Task Load(HttpClient client) {
+        await client.GetFromJsonAsync<User>("/api/users/1");
+        await client.PostAsJsonAsync("https://api.example.com/items", payload);
+        var req = new HttpRequestMessage(HttpMethod.Patch, @"/api/users/1");
+    }
+}
+"#;
+    let results = extract("src/Api.cs", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 3, "{facts:#?}");
+
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/api/users/1"))
+        .expect("get request");
+    assert_eq!(metadata_str(get, "client"), Some("httpclient"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "verb_source"), Some("attested"));
+    assert_eq!(metadata_str(get, "url_kind"), Some("path"));
+
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/items"))
+        .expect("post request");
+    assert_eq!(metadata_str(post, "verb"), Some("POST"));
+    assert_eq!(metadata_str(post, "url_kind"), Some("absolute"));
+
+    let patch = facts
+        .iter()
+        .filter(|fact| metadata_str(fact, "target_path") == Some("/api/users/1"))
+        .find(|fact| metadata_str(fact, "verb") == Some("PATCH"))
+        .expect("request message patch");
+    assert_eq!(metadata_str(patch, "client"), Some("httpclient"));
+}
+
+#[test]
+fn csharp_httpclient_non_url_or_interpolated_literals_stay_silent() {
+    let source = r#"
+public class Api {
+    public async Task Load(HttpClient client, string id) {
+        await cache.GetAsync("user-key");
+        await client.GetAsync($"https://api.example.com/{id}");
+        await client.PostAsync("relative/path", body);
+    }
+}
+"#;
+    let results = extract("src/Api.cs", source);
+    assert!(client_requests(&results).is_empty());
+}
+
+#[test]
+fn java_http_request_builder_chains_emit_client_requests() {
+    let source = r#"
+import java.net.URI;
+import java.net.http.HttpRequest;
+
+class Api {
+    void load() {
+        HttpRequest get = HttpRequest.newBuilder(URI.create("https://api.example.com/users")).build();
+        HttpRequest post = HttpRequest.newBuilder().uri(URI.create("/items")).POST(body).build();
+        HttpRequest custom = HttpRequest.newBuilder().uri(URI.create("/users/1")).method("PATCH", body).build();
+    }
+}
+"#;
+    let results = extract("src/Api.java", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 3, "{facts:#?}");
+
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/users"))
+        .expect("default get");
+    assert_eq!(metadata_str(get, "client"), Some("java.net.http"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "verb_source"), Some("default"));
+
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/items"))
+        .expect("post");
+    assert_eq!(metadata_str(post, "verb"), Some("POST"));
+
+    let custom = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/users/1"))
+        .expect("custom");
+    assert_eq!(metadata_str(custom, "verb"), Some("PATCH"));
+}
+
+#[test]
+fn go_net_http_client_calls_emit_client_requests() {
+    let source = r#"
+package main
+
+import "net/http"
+
+func load() {
+    http.Get("https://api.example.com/users")
+    http.Post("/items", "application/json", body)
+    http.NewRequest("PATCH", "/users/1", nil)
+    http.NewRequestWithContext(ctx, "DELETE", "/users/2", nil)
+}
+"#;
+    let results = extract("client.go", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 4, "{facts:#?}");
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "verb") == Some("GET"))
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "verb") == Some("POST"))
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "verb") == Some("PATCH"))
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "verb") == Some("DELETE"))
+    );
+}
+
+#[test]
+fn ruby_net_http_uri_calls_emit_client_requests() {
+    let source = r#"
+require "net/http"
+require "uri"
+
+def load
+  Net::HTTP.get(URI("https://api.example.com/users"))
+  Net::HTTP.post_form(URI.parse("/items"), { "name" => "x" })
+end
+"#;
+    let results = extract("client.rb", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "verb") == Some("GET"))
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "verb") == Some("POST"))
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "client") == Some("net::http"))
+    );
+}

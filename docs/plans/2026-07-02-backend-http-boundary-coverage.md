@@ -184,12 +184,12 @@ Language: `ruby`. Same gate as `rails.route.v1`. Forms: `mount X => "/lit"` and 
 **Approach:** Receiver tracing is the risk: keep it to single-assignment tracking (`const app = express()`), no dataflow. Negative cases that must stay silent: verb calls on untraceable receivers, template-literal paths, `app.use(fn)` without a path, `router.get` where `router` is a function parameter (except the two documented Fastify plugin-param exceptions). Vue is explicitly out (server frameworks don't live in SFCs); claim javascript/jsx/typescript/tsx parity.
 
 **Acceptance criteria:**
-- [ ] `const app = express(); app.get("/users/:id", h)` emits `verb=GET`, `route_template=/users/:id`, `normalized_route_template=/users/:id`, `dynamic_segments=["id"]` in all four JS-family languages.
-- [ ] `app.route("/x").get(h).post(h)` emits two facts; `app.all` omits verb; `app.use("/api", usersRouter)` emits a mount fact with `mount_target=usersRouter`; when `usersRouter` is defined in the same file its route facts also carry `route_group_prefix=/api` and joined `effective_route_template`, and when it is not traceable only the mount fact emits.
-- [ ] Fastify instance and plugin-param forms emit; `f.route({method:["GET","POST"], url:"/x"})` emits two facts; non-literal `url` stays silent.
-- [ ] Binding assertion: route facts bind to the enclosing function/module symbol per v2.6.1 semantics.
-- [ ] Registry conformance + JSON sync green; contract docs updated; capability rows + goldens for four languages; strict report clean.
-- [ ] Worker-scope verification passes, committed; branch gate green before merge.
+- [x] `const app = express(); app.get("/users/:id", h)` emits `verb=GET`, `route_template=/users/:id`, `normalized_route_template=/users/:id`, `dynamic_segments=["id"]` in all four JS-family languages.
+- [x] `app.route("/x").get(h).post(h)` emits two facts; `app.all` omits verb; `app.use("/api", usersRouter)` emits a mount fact with `mount_target=usersRouter`; when `usersRouter` is defined in the same file its route facts also carry `route_group_prefix=/api` and joined `effective_route_template`, and when it is not traceable only the mount fact emits.
+- [x] Fastify instance and plugin-param forms emit; `f.route({method:["GET","POST"], url:"/x"})` emits two facts; non-literal `url` stays silent.
+- [x] Binding assertion: route facts bind to the enclosing function/module symbol per v2.6.1 semantics.
+- [x] Registry conformance + JSON sync green; contract docs updated; capability rows + goldens for four languages; strict report clean.
+- [x] Worker-scope verification passes, committed; branch gate green before merge.
 
 ## Task 3: Python — FastAPI, Flask, Django + requests/httpx Clients
 
@@ -211,12 +211,12 @@ Language: `ruby`. Same gate as `rails.route.v1`. Forms: `mount X => "/lit"` and 
 **Approach:** Python string subtleties: only plain string literals emit — f-strings, concatenation, and `str.format` stay silent; raw strings (`r"..."`) are literals and DO emit (Django re_path uses them). Flask default-verb rule: bare `@app.route` emits exactly one `GET`/`default` fact (not HEAD/OPTIONS — those are framework-implicit, not written). Decorator facts span the decorator node; assert binding to the decorated function symbol.
 
 **Acceptance criteria:**
-- [ ] `@app.get("/users/{user_id}")` (FastAPI) emits `verb=GET` attested, `normalized_route_template=/users/:user_id`; `APIRouter(prefix="/api")` same-file yields `effective_route_template=/api/users/:user_id`.
-- [ ] `@app.route("/x")` (Flask) emits GET/default; `methods=["GET","POST"]` emits two attested facts; Blueprint `url_prefix` joins.
-- [ ] `path("users/<int:pk>/", views.detail, name="user-detail")` emits `route_syntax=path`, `normalized_route_template=/users/:pk/` (trailing slash preserved), `route_name=user-detail`, no verb; `re_path` emits `route_syntax=regex` with no normalized template; `path("api/", include("app.urls"))` emits `django.url_include.v1` rather than a handler-pattern fact.
-- [ ] `requests.get("https://api.example.com/users")` and `httpx.post("/x")` emit client facts with correct `client`/`import_source`; `session.get(...)` stays silent; un-imported `requests.get` stays silent.
-- [ ] Binding assertions; registry conformance + JSON sync; contract docs; `languages/python.toml` url carriers cover the detected client methods; capability rows + goldens; strict report clean.
-- [ ] Worker-scope verification passes, committed; branch gate green before merge.
+- [x] `@app.get("/users/{user_id}")` (FastAPI) emits `verb=GET` attested, `normalized_route_template=/users/:user_id`; `APIRouter(prefix="/api")` same-file yields `effective_route_template=/api/users/:user_id`.
+- [x] `@app.route("/x")` (Flask) emits GET/default; `methods=["GET","POST"]` emits two attested facts; Blueprint `url_prefix` joins.
+- [x] `path("users/<int:pk>/", views.detail, name="user-detail")` emits `route_syntax=path`, `normalized_route_template=/users/:pk/` (trailing slash preserved), `route_name=user-detail`, no verb; `re_path` emits `route_syntax=regex` with no normalized template; `path("api/", include("app.urls"))` emits `django.url_include.v1` rather than a handler-pattern fact.
+- [x] `requests.get("https://api.example.com/users")` and `httpx.post("/x")` emit client facts with correct `client`/`import_source`; `session.get(...)` stays silent; un-imported `requests.get` stays silent.
+- [x] Binding assertions; registry conformance + JSON sync; contract docs; `languages/python.toml` url carriers cover the detected client methods; capability rows + goldens; strict report clean.
+- [x] Worker-scope verification passes, committed; branch gate green before merge.
 
 ## Task 4: C# — HttpClient Client Requests
 
@@ -237,10 +237,10 @@ Language: `ruby`. Same gate as `rails.route.v1`. Forms: `mount X => "/lit"` and 
 **Approach:** The URL-shape gate is the false-positive defense — `cache.GetAsync("user-key")` must stay silent. Verbatim strings (`@"/api/x"`) and raw string literals are literals and emit; interpolated strings (`$"..."`) stay silent. Verb derivation: method-name prefix before `Async`/`AsJsonAsync`/`FromJsonAsync`/`StringAsync`/etc. maps to GET/POST/PUT/PATCH/DELETE, always attested.
 
 **Acceptance criteria:**
-- [ ] `await client.GetFromJsonAsync<User>("/api/users/1")` emits `client=httpclient`, `verb=GET` attested, `url_kind=path`; `cache.GetAsync("user-key")` stays silent (bare-word literal).
-- [ ] `new HttpRequestMessage(HttpMethod.Post, "https://api.example.com/x")` emits `verb=POST`.
-- [ ] Interpolated-string URLs stay silent; registry/JSON/docs/carriers/capabilities/goldens updated; strict report clean.
-- [ ] Worker-scope verification passes, committed; branch gate green before merge.
+- [x] `await client.GetFromJsonAsync<User>("/api/users/1")` emits `client=httpclient`, `verb=GET` attested, `url_kind=path`; `cache.GetAsync("user-key")` stays silent (bare-word literal).
+- [x] `new HttpRequestMessage(HttpMethod.Post, "https://api.example.com/x")` emits `verb=POST`.
+- [x] Interpolated-string URLs stay silent; registry/JSON/docs/carriers/capabilities/goldens updated; strict report clean.
+- [x] Worker-scope verification passes, committed; branch gate green before merge.
 
 ## Task 5: Java — Spring Handlers + java.net.http Client
 
@@ -262,11 +262,11 @@ Language: `ruby`. Same gate as `rails.route.v1`. Forms: `mount X => "/lit"` and 
 **Approach:** Annotation-element parsing must handle: single string, `value=`/`path=` named elements, string arrays, and `method = RequestMethod.X` / `method = {RequestMethod.GET, RequestMethod.POST}`. Constants (`static final String PATH`) stay silent — literal-only doctrine. Kotlin Spring is a documented deferral (matrix cut line), recorded in capabilities notes, not `open_gaps` (the Kotlin language lacks no construct; the framework claim is simply not made).
 
 **Acceptance criteria:**
-- [ ] `@RestController @RequestMapping("/api/users")` class + `@GetMapping("/{id}")` method emits `effective_route_template=/api/users/{id}`, `normalized_route_template=/api/users/:id`, `verb=GET` attested, `attribute_kind=http_method`.
-- [ ] `@RequestMapping(method = RequestMethod.POST, path = "/x")` emits POST; method-less `@RequestMapping` on a method omits verb; array templates emit one fact per template.
-- [ ] `HttpRequest.newBuilder(URI.create("https://api.example.com/users")).GET()` emits attested GET; builder without a verb call emits GET/default; non-literal URIs stay silent.
-- [ ] Binding assertions (class facts bind to class symbol, method facts to method symbol); registry/JSON/docs/carriers/capabilities/goldens; strict report clean.
-- [ ] Worker-scope verification passes, committed; branch gate green before merge.
+- [x] `@RestController @RequestMapping("/api/users")` class + `@GetMapping("/{id}")` method emits `effective_route_template=/api/users/{id}`, `normalized_route_template=/api/users/:id`, `verb=GET` attested, `attribute_kind=http_method`.
+- [x] `@RequestMapping(method = RequestMethod.POST, path = "/x")` emits POST; method-less `@RequestMapping` on a method omits verb; array templates emit one fact per template.
+- [x] `HttpRequest.newBuilder(URI.create("https://api.example.com/users")).GET()` emits attested GET; builder without a verb call emits GET/default; non-literal URIs stay silent.
+- [x] Binding assertions (class facts bind to class symbol, method facts to method symbol); registry/JSON/docs/carriers/capabilities/goldens; strict report clean.
+- [x] Worker-scope verification passes, committed; branch gate green before merge.
 
 ## Task 6: Go — net/http, gin, echo Handlers + net/http Client
 
@@ -288,12 +288,12 @@ Language: `ruby`. Same gate as `rails.route.v1`. Forms: `mount X => "/lit"` and 
 **Approach:** Import alias handling is mandatory in Go (`import g "github.com/gin-gonic/gin"`). Group tracing composes: `v1 := r.Group("/v1"); users := v1.Group("/users"); users.GET("/:id", h)` → `effective_route_template=/v1/users/:id`. Non-literal group prefixes poison the chain — routes registered on them emit with `route_template` only (no effective/prefix keys), never a guessed prefix.
 
 **Acceptance criteria:**
-- [ ] `mux.HandleFunc("GET /users/{id}", h)` emits `verb=GET` attested, `normalized_route_template=/users/:id`; pattern without method prefix omits verb; `"GET example.com/users/{id}"` emits `host=example.com` with `normalized_route_template=/users/:id` (path part only).
-- [ ] Nested gin groups compose into `effective_route_template`; `r.Any` omits verb; `r.Handle("PUT", "/x", h)` emits PUT.
-- [ ] echo routes emit; `*` wildcard keeps `*` in normalized with no dynamic segment.
-- [ ] `http.NewRequest("POST", "https://api.example.com/x", body)` emits attested POST; aliased imports work; un-imported `http.Get` stays silent.
-- [ ] Binding assertions; registry/JSON/docs/carriers/capabilities/goldens; strict report clean.
-- [ ] Worker-scope verification passes, committed; branch gate green before merge.
+- [x] `mux.HandleFunc("GET /users/{id}", h)` emits `verb=GET` attested, `normalized_route_template=/users/:id`; pattern without method prefix omits verb; `"GET example.com/users/{id}"` emits `host=example.com` with `normalized_route_template=/users/:id` (path part only).
+- [x] Nested gin groups compose into `effective_route_template`; `r.Any` omits verb; `r.Handle("PUT", "/x", h)` emits PUT.
+- [x] echo routes emit; `*` wildcard keeps `*` in normalized with no dynamic segment.
+- [x] `http.NewRequest("POST", "https://api.example.com/x", body)` emits attested POST; aliased imports work; un-imported `http.Get` stays silent.
+- [x] Binding assertions; registry/JSON/docs/carriers/capabilities/goldens; strict report clean.
+- [x] Worker-scope verification passes, committed; branch gate green before merge.
 
 ## Task 7: Ruby — Rails Routes + Net::HTTP Client
 
@@ -315,13 +315,13 @@ Language: `ruby`. Same gate as `rails.route.v1`. Forms: `mount X => "/lit"` and 
 **Approach:** Block nesting is the core mechanism: walk tree-sitter `do_block`/`block` ancestry from each route call, collecting literal `namespace :x` (→ `/x`) and `scope "/y"` prefixes in order. Symbols (`:api`) and strings are both literal; interpolation or variables poison the prefix chain (emit with `route_template` only). `to:` with non-literal values → omit `controller_action`, still emit the route fact.
 
 **Acceptance criteria:**
-- [ ] `namespace :api do get "users/:id", to: "users#show" end` emits `verb=GET`, `scope_path=/api`, `effective_route_template=/api/users/:id`, `controller_action=users#show`.
-- [ ] `resources :users, only: [:index, :show]` emits one resource fact with `resource_name=users`, `only=["index","show"]`; nested resources record parent in `scope_path`.
-- [ ] `root "home#index"` emits GET `/`; `match "legacy", via: [:get, :post]` emits two facts; `mount Sidekiq::Web => "/sidekiq"` emits a mount fact with `mount_target=Sidekiq::Web`.
-- [ ] A `config/routes/admin.rb` draw file with top-level DSL (no draw block) emits; routes outside `config/routes*` paths stay silent; a controller file with a `get` method call stays silent; DSL in `config/routes.rb` outside a draw block stays silent.
-- [ ] `Net::HTTP.get(URI("https://api.example.com/users"))` emits GET; `Net::HTTP.post_form(URI.parse("/x"), …)` emits POST; non-literal URIs stay silent.
-- [ ] Binding assertions; registry/JSON/docs/carriers/capabilities/goldens; strict report clean.
-- [ ] Worker-scope verification passes, committed; branch gate green before merge.
+- [x] `namespace :api do get "users/:id", to: "users#show" end` emits `verb=GET`, `scope_path=/api`, `effective_route_template=/api/users/:id`, `controller_action=users#show`.
+- [x] `resources :users, only: [:index, :show]` emits one resource fact with `resource_name=users`, `only=["index","show"]`; nested resources record parent in `scope_path`.
+- [x] `root "home#index"` emits GET `/`; `match "legacy", via: [:get, :post]` emits two facts; `mount Sidekiq::Web => "/sidekiq"` emits a mount fact with `mount_target=Sidekiq::Web`.
+- [x] A `config/routes/admin.rb` draw file with top-level DSL (no draw block) emits; routes outside `config/routes*` paths stay silent; a controller file with a `get` method call stays silent; DSL in `config/routes.rb` outside a draw block stays silent.
+- [x] `Net::HTTP.get(URI("https://api.example.com/users"))` emits GET; `Net::HTTP.post_form(URI.parse("/x"), …)` emits POST; non-literal URIs stay silent.
+- [x] Binding assertions; registry/JSON/docs/carriers/capabilities/goldens; strict report clean.
+- [x] Worker-scope verification passes, committed; branch gate green before merge.
 
 ## Task 8: Contract Sweep + Emission-Agreement Tests
 
@@ -337,10 +337,15 @@ Language: `ruby`. Same gate as `rails.route.v1`. Forms: `mount X => "/lit"` and 
 **What to build:** One pinned key-set test per new family (asserting exactly the documented always/optional keys appear); a doctrine test asserting every handler family that emits `normalized_route_template` produces `:param`-flavor output (property-style over the golden corpus); a cross-language client test asserting `http.client_request.v1` emits the identical key set in all ten languages.
 
 **Acceptance criteria:**
-- [ ] Pinned key-set tests exist and pass for all 16 families + the client extension.
-- [ ] Doctrine test proves `:param` flavor holds corpus-wide; registry JSON matches registry code (sync test).
-- [ ] Contract docs audited key-by-key against emission; discrepancies fixed on the emission side unless the doc is wrong (adjudicate, record).
-- [ ] Worker-scope verification passes, committed.
+- [x] Pinned key-set tests exist and pass for all 16 families + the client extension.
+- [x] Doctrine test proves `:param` flavor holds corpus-wide; registry JSON matches registry code (sync test).
+- [x] Contract docs audited key-by-key against emission; discrepancies fixed on the emission side unless the doc is wrong (adjudicate, record).
+- [x] Worker-scope verification passes, committed.
+
+
+### Implementation Progress Note - 2026-07-02
+
+Tasks 1-8 are implemented in branch `codex/backend-http-boundary-v27`. Task 9 remains open because version bump, release notes, publishing, pushing, and Miller handoff require an explicit release/approval step.
 
 ## Task 9: Release v2.7.0 + Miller Handoff
 

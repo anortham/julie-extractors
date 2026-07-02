@@ -538,6 +538,22 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span |
 | `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span |
 | `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` |
+| `express.route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_call` | parser-covered call span |
+| `express.router_mount.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `router_mount` | parser-covered call span |
+| `fastify.route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_call` | parser-covered call span |
+| `fastapi.route.v1` | `python` | `route` | decorated function declaration span |
+| `fastapi.include_router.v1` | `python` | `include_router` | parser-covered call span |
+| `flask.route.v1` | `python` | `route` | decorated function declaration span |
+| `flask.blueprint_registration.v1` | `python` | `blueprint_registration` | parser-covered call span |
+| `django.url_pattern.v1` | `python` | `url_pattern` | parser-covered call span |
+| `django.url_include.v1` | `python` | `url_include` | parser-covered call span |
+| `spring.request_mapping.v1` | `java` | `request_mapping` | class or method declaration line |
+| `go.net_http.route.v1` | `go` | `route_call` | parser-covered call span |
+| `gin.route.v1` | `go` | `route_call` | parser-covered call span |
+| `echo.route.v1` | `go` | `route_call` | parser-covered call span |
+| `rails.route.v1` | `ruby` | `route` | parser-covered DSL call span |
+| `rails.resource_route.v1` | `ruby` | `resource_route` | parser-covered DSL call span |
+| `rails.mount.v1` | `ruby` | `mount` | parser-covered DSL call span |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` |
@@ -550,7 +566,7 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `ruby` | `client_request` | parser-covered call span |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Minimal API route calls compute it from
@@ -585,6 +601,13 @@ verb from the method name (generic type arguments as in
 `<script>`/`<script setup>` section content only — template sections never
 produce client-request facts — and the axios import gate is local to the
 script section that declares it.
+
+Backend-language client collectors emit the same `http.client_request.v1`
+metadata shape for static string URL arguments: Python module-qualified
+`requests`/`httpx` calls, C# `HttpClient` method calls and
+`HttpRequestMessage`, Go `net/http` package calls, Java `HttpRequest` builder
+chains, and Ruby `Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)`
+arguments. Instance/session clients and dynamic URL expressions stay silent.
 
 `nextjs.route_handler.v1` emits one fact per exported HTTP-verb handler in an
 App Router `route.{js,ts}` file (`app/**/route.js`, `app/**/route.ts`,
