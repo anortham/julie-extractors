@@ -439,12 +439,20 @@ def run():
     return await fetch("/api");
 }
 "#,
-            expected: &[ExpectedStructuralFact {
-                pattern_id: "javascript.await_expression.v1",
-                capture_name: "await_expression",
-                query_family: "async",
-                node_kinds: &["await_expression"],
-            }],
+            expected: &[
+                ExpectedStructuralFact {
+                    pattern_id: "javascript.await_expression.v1",
+                    capture_name: "await_expression",
+                    query_family: "async",
+                    node_kinds: &["await_expression"],
+                },
+                ExpectedStructuralFact {
+                    pattern_id: "http.client_request.v1",
+                    capture_name: "client_request",
+                    query_family: "web.http_client",
+                    node_kinds: &["call_expression"],
+                },
+            ],
         },
         StructuralFactCase {
             file_path: "src/View.jsx",
@@ -466,12 +474,20 @@ def run():
     return await fetch("/api");
 }
 "#,
-            expected: &[ExpectedStructuralFact {
-                pattern_id: "typescript.await_expression.v1",
-                capture_name: "await_expression",
-                query_family: "async",
-                node_kinds: &["await_expression"],
-            }],
+            expected: &[
+                ExpectedStructuralFact {
+                    pattern_id: "typescript.await_expression.v1",
+                    capture_name: "await_expression",
+                    query_family: "async",
+                    node_kinds: &["await_expression"],
+                },
+                ExpectedStructuralFact {
+                    pattern_id: "http.client_request.v1",
+                    capture_name: "client_request",
+                    query_family: "web.http_client",
+                    node_kinds: &["call_expression"],
+                },
+            ],
         },
         StructuralFactCase {
             file_path: "src/View.tsx",

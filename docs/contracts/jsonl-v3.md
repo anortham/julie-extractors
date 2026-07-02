@@ -520,6 +520,19 @@ Supported patterns are advertised in `language_capability` records under
 | `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"react","library":"react_router","route_path":"/dashboard","source_kind":"route_object","route_source":"string_literal"}` plus optional `route_component`, `route_id`, `index_route`, `parent_route_path`, and `effective_route_template` |
 | `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","target_path":"/dashboard","source_kind":"next_link","route_source":"string_literal","attribute_name":"href","component_name":"Link","import_source":"next/link","verb":"GET"}` |
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","router":"app","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"source_kind":"nextjs_file_route"}` plus optional `route_group_segments`, `parallel_route_segments`, `intercepting_route_markers`, and `intercepted_route_segments` |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `client_request` | `call_expression` | `{"pattern_version":1,"query_family":"web.http_client","framework":"fetch","client":"fetch","target_path":"/api/users","url_kind":"path","verb":"POST","verb_source":"attested"}` |
+
+Global `fetch()` calls emit `http.client_request.v1` only when the first argument
+is a plain static string literal (`'...'` or `"..."`). `url_kind` is `path` for a
+leading `/`, `absolute` for a URL with a scheme such as `http://`/`https://`, and
+`relative` otherwise. `verb_source` is `attested` when the options object carries a
+static string `method:` property (upper-cased into `verb`), or `default` when no
+options object or `method` property is present (fetch's spec default `GET`).
+Template literals (even without interpolation), identifier/expression URLs,
+concatenated URLs, `obj.fetch(...)` property calls, and matches inside comments or
+string literals stay silent. When a `method:` property is present but its value is
+not a static string literal, the whole call emits nothing rather than silently
+degrading to `GET`. `fetch` is a global, so no import is required.
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route

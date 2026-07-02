@@ -900,6 +900,31 @@
   "parse_diagnostics": [],
   "structural_facts": [
     {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/structural_facts/source.js",
+      "containing_key": "fixtures/extraction/javascript/structural_facts/source.js:load:5:7",
+      "start_line": 6,
+      "start_column": 17,
+      "end_line": 6,
+      "end_column": 30,
+      "start_byte": 227,
+      "end_byte": 240,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "fetch",
+        "framework": "fetch",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/api",
+        "url_kind": "path",
+        "verb": "GET",
+        "verb_source": "default"
+      }
+    },
+    {
       "pattern_id": "javascript.await_expression.v1",
       "capture_name": "await_expression",
       "node_kind": "await_expression",

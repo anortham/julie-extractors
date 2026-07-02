@@ -6,6 +6,7 @@ use super::types::{StructuralFact, Symbol};
 mod css;
 mod fact_builders;
 mod html;
+mod http_client;
 mod js_imports;
 mod js_object_scan;
 mod jsx_scan;
@@ -16,6 +17,7 @@ mod vue;
 use css::collect_css_structural_facts;
 use fact_builders::attach_containing_symbols;
 use html::collect_html_structural_facts;
+use http_client::collect_http_client_requests;
 use js_imports::collect_js_imports;
 use nextjs_nuxt::{collect_nextjs_route_references, nextjs_file_route_fact, nuxt_file_route_fact};
 use react::{collect_react_router_route_definitions, collect_react_router_route_references};
@@ -39,6 +41,7 @@ const NEXTJS_ROUTE_REFERENCE_PATTERN_ID: &str = "nextjs.route_reference.v1";
 const NEXTJS_FILE_ROUTE_PATTERN_ID: &str = "nextjs.file_route.v1";
 const NUXT_ROUTE_REFERENCE_PATTERN_ID: &str = "nuxt.route_reference.v1";
 const NUXT_FILE_ROUTE_PATTERN_ID: &str = "nuxt.file_route.v1";
+const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const CSS_WEB_PATTERN_IDS: &[&str] = &[
@@ -68,6 +71,7 @@ const VUE_WEB_PATTERN_IDS: &[&str] = &[
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const JS_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
     NEXTJS_FILE_ROUTE_PATTERN_ID,
     NEXTJS_ROUTE_REFERENCE_PATTERN_ID,
     NUXT_FILE_ROUTE_PATTERN_ID,
@@ -77,6 +81,7 @@ const JS_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const TS_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
     NEXTJS_FILE_ROUTE_PATTERN_ID,
     NUXT_FILE_ROUTE_PATTERN_ID,
     REACT_ROUTE_DEFINITION_PATTERN_ID,
@@ -127,6 +132,9 @@ fn collect_react_nextjs_structural_facts(
 ) -> Vec<StructuralFact> {
     let imports = collect_js_imports(content);
     let mut facts = Vec::new();
+    facts.extend(collect_http_client_requests(
+        language, tree, file_path, content,
+    ));
     facts.extend(collect_react_router_route_references(
         language, tree, file_path, content, &imports,
     ));

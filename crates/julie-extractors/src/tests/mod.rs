@@ -26,6 +26,7 @@ pub mod go;
 pub mod golden;
 pub mod helpers;
 pub mod html;
+pub mod http_client;
 pub mod identifier_semantics;
 pub mod java;
 pub mod javascript;

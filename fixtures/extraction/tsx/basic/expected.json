@@ -714,7 +714,33 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "tsx",
+      "file_path": "fixtures/extraction/tsx/basic/source.tsx",
+      "containing_key": "fixtures/extraction/tsx/basic/source.tsx:fetchWorkers:12:0",
+      "start_line": 13,
+      "start_column": 11,
+      "end_line": 13,
+      "end_column": 32,
+      "start_byte": 219,
+      "end_byte": 240,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "fetch",
+        "framework": "fetch",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/api/workers",
+        "url_kind": "path",
+        "verb": "GET",
+        "verb_source": "default"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

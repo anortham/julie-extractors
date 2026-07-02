@@ -704,6 +704,11 @@
           "name": "nuxt_file_route",
           "source": "fixtures/extraction/typescript/nuxt_file_route/app/pages/about.ts",
           "expected": "fixtures/extraction/typescript/nuxt_file_route/expected.json"
+        },
+        {
+          "name": "http_client_fetch",
+          "source": "fixtures/extraction/typescript/http_client_fetch/source.ts",
+          "expected": "fixtures/extraction/typescript/http_client_fetch/expected.json"
         }
       ],
       "target_capabilities": {
@@ -763,6 +768,7 @@
         },
         "structural_facts": {
           "supported": [
+            "http.client_request.v1",
             "nextjs.file_route.v1",
             "nuxt.file_route.v1",
             "react.route_definition.v1",
@@ -866,6 +872,11 @@
           "name": "nuxt_file_route",
           "source": "fixtures/extraction/tsx/nuxt_file_route/app/pages/profile.tsx",
           "expected": "fixtures/extraction/tsx/nuxt_file_route/expected.json"
+        },
+        {
+          "name": "http_client_fetch",
+          "source": "fixtures/extraction/tsx/http_client_fetch/source.tsx",
+          "expected": "fixtures/extraction/tsx/http_client_fetch/expected.json"
         }
       ],
       "target_capabilities": {
@@ -920,6 +931,7 @@
         },
         "structural_facts": {
           "supported": [
+            "http.client_request.v1",
             "nextjs.file_route.v1",
             "nextjs.route_reference.v1",
             "nuxt.file_route.v1",
@@ -1012,6 +1024,11 @@
           "name": "nuxt_file_route",
           "source": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js",
           "expected": "fixtures/extraction/javascript/nuxt_file_route/expected.json"
+        },
+        {
+          "name": "http_client_fetch",
+          "source": "fixtures/extraction/javascript/http_client_fetch/source.js",
+          "expected": "fixtures/extraction/javascript/http_client_fetch/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1064,6 +1081,7 @@
         },
         "structural_facts": {
           "supported": [
+            "http.client_request.v1",
             "javascript.await_expression.v1",
             "nextjs.file_route.v1",
             "nextjs.route_reference.v1",
@@ -1154,6 +1172,11 @@
           "name": "nuxt_file_route",
           "source": "fixtures/extraction/jsx/nuxt_file_route/app/pages/dashboard.jsx",
           "expected": "fixtures/extraction/jsx/nuxt_file_route/expected.json"
+        },
+        {
+          "name": "http_client_fetch",
+          "source": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
+          "expected": "fixtures/extraction/jsx/http_client_fetch/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1201,6 +1224,7 @@
         },
         "structural_facts": {
           "supported": [
+            "http.client_request.v1",
             "jsx.await_expression.v1",
             "nextjs.file_route.v1",
             "nextjs.route_reference.v1",

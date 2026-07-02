@@ -511,6 +511,15 @@ Supported patterns are advertised in
 | `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `frontend_navigation` | A static React Router route object or `<Route>` element with a literal `path` or `index`. |
 | `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static `next/link` target from a string `href` or object `pathname`. |
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `client_request` | `call_expression` | `web.http_client` | A global `fetch()` call whose first argument is a static string URL. Metadata: `client` (`fetch`), `framework` (`fetch`), `target_path` (URL as written), `url_kind` (`path`/`relative`/`absolute`), `verb` (upper-cased HTTP method), `verb_source` (`attested` from a static `method:` property, else `default` GET). |
+
+Global `fetch()` calls emit `http.client_request.v1` only when the first argument
+is a plain static string literal (`'...'` or `"..."`). Template literals (even
+without interpolation), identifier/expression URLs, concatenated URLs,
+`obj.fetch(...)` property calls, and matches inside comments or string literals
+stay silent. When a `method:` property is present but its value is not a static
+string literal, the whole call emits nothing rather than silently degrading to
+`GET`. `fetch` is a global, so no import is required.
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route
