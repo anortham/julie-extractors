@@ -23,7 +23,9 @@ extractor would be tempted to guess cross-file prefixes.
    resolved, else `route_template`), normalized to a leading `/` and the
    `:param` flavor (`{id}`→`:id`, `<int:id>`→`:id`, `{id:int}`→`:id`,
    `*filepath`→`:filepath`, `{path...}`→`:path`), with converter/constraint
-   annotations stripped. The normalizer is a single shared implementation in
+   annotations stripped. Normalization preserves trailing slashes exactly as
+   written after parameter conversion, so `/users/:id` and `/users/:id/` remain
+   distinct join keys. The normalizer is a single shared implementation in
    `base/http_boundary.rs` with table-driven per-framework flavor rules.
    Regex route syntaxes (Django `re_path`) cannot be honestly normalized:
    those facts omit the key and set `route_syntax="regex"`.
@@ -32,12 +34,14 @@ extractor would be tempted to guess cross-file prefixes.
 3. **Same-file prefixes resolve; cross-file prefixes become mount facts.**
    When a route prefix is declared in the same file (ASP.NET `MapGroup`,
    gin/echo `Group`, `APIRouter(prefix=)`, Rails `namespace`/`scope`
-   nesting), the extractor resolves it into `effective_route_template`. When
-   the prefix join crosses files (Express `app.use`, FastAPI
-   `include_router`, Flask `register_blueprint`, Django `include`, Rails
-   `mount`), the extractor emits a dedicated mount-fact family at the mount
-   site and never guesses the joined route. Cross-file joining is Miller's
-   job.
+   nesting), the extractor resolves it into `effective_route_template` on the
+   handler fact. Mount-site calls still emit their mount fact when they match
+   the mount contract, even if the mounted receiver is also traceable in the
+   same file; the resolved handler fact is same-file convenience, and the mount
+   fact is durable source evidence for Miller. When the prefix target is not
+   traceable in the same file, the extractor emits only the dedicated mount-fact
+   family at the mount site and never guesses the joined route. Cross-file
+   joining is Miller's job.
 4. **Verb omission means "not verb-restricted".** Registrations that accept
    any method omit both `verb` and `verb_source` (the
    `nuxt.server_route.v1` precedent). Multi-verb registrations emit one fact
