@@ -69,9 +69,9 @@ Conformance rule: for every emitted structural fact across the golden fixture co
 **Approach:** An invariant test asserts the registry's per-language pattern-id sets equal the union of `web_structural_fact_pattern_ids_for_language`, `framework_structural_fact_pattern_ids_for_language`, and the code/data/sql equivalents — so a future collector can't add a pattern the registry doesn't know. Record any observed emission-vs-doc drift found while authoring in a findings list for Task 2; do not fix emission in this task.
 
 **Acceptance criteria:**
-- [ ] Every pattern id defined in the collectors has a spec; invariant test proves set equality per language.
-- [ ] Registry unit tests pass; findings list (possibly empty) recorded in the task report.
-- [ ] Worker-scope verification passes, committed.
+- [x] Every pattern id defined in the collectors has a spec; invariant test proves set equality per language.
+- [x] Registry unit tests pass; findings list (possibly empty) recorded in the task report.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 2: Emission Conformance Test + Drift Resolution
 
@@ -89,10 +89,10 @@ Conformance rule: for every emitted structural fact across the golden fixture co
 **Approach:** First run will likely fail — that's the RED that surfaces real drift. Adjudication ladder per finding: (1) registry wrong → fix the spec; (2) doc wrong, emission right → fix the doc and spec together; (3) emission wrong (key emitted inconsistently across languages of one family, or a doc-promised key missing) → lead decides; metadata-only alignment may be fixed in this plan with its own commit and golden refresh, span/gate changes escalate out of this plan. Every adjudication is listed in the commit message.
 
 **Acceptance criteria:**
-- [ ] Conformance test passes over the full golden corpus.
-- [ ] Each drift finding adjudicated and individually committed; any emission change carries the contract-marker bump per Global Constraints.
-- [ ] Strict data-quality report clean.
-- [ ] Worker-scope verification passes, committed.
+- [x] Conformance test passes over the full golden corpus.
+- [x] Each drift finding adjudicated and individually committed; any emission change carries the contract-marker bump per Global Constraints. (No emission changes were needed — D1 resolved by registry-side ObjectArray extension, so no marker bump.)
+- [x] Strict data-quality report clean.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 3: Checked-In JSON Export
 
@@ -107,14 +107,15 @@ Conformance rule: for every emitted structural fact across the golden fixture co
 **What to build:** Deterministic serialization (sorted by pattern_id, stable key order) and the sync test. Reference the file from `docs/contracts/sqlite-schema-v3.md` and `docs/contracts/jsonl-v3.md` as the metadata-payload source of truth, replacing the prose key lists with a pointer plus the naming-policy rules (target_path vs route_path, verb policy) that stay prose.
 
 **Acceptance criteria:**
-- [ ] Sync test fails when the registry and file diverge; regeneration path documented.
-- [ ] Contract docs point to the JSON as payload source of truth.
-- [ ] Worker-scope verification passes, committed.
+- [x] Sync test fails when the registry and file diverge; regeneration path documented (`UPDATE_CONTRACT_JSON=1 cargo test -p julie-extractors structural_fact_registry`).
+- [x] Contract docs point to the JSON as payload source of truth.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 4: `languages --json` Publication
 
 **Files:**
 - Modify: `crates/julie-extract-cli/src/capability_snapshot.rs`, `crates/julie-extract-cli/src/commands.rs` (`fn languages` handler at `commands.rs:795`; command dispatch at `commands.rs:78`)
+- Modify: `crates/julie-extract-artifact/src/reports.rs`, `crates/julie-extract-cli/src/reports.rs` (execution-time amendment, lead-adjudicated 2026-07-01: the report's top-level keys come from the hardcoded `impl Serialize for Report`, so the new key requires an additive `Option<serde_json::Value>` field on `Report` — `None` for every command except `languages`, keeping all other reports byte-unchanged)
 - Modify: `docs/contracts/reports.md`, `docs/contracts/cli.md`
 - Test: `crates/julie-extract-cli/tests/cli_contract.rs` (new section present, shape matches the JSON export)
 
@@ -127,9 +128,9 @@ Conformance rule: for every emitted structural fact across the golden fixture co
 **Approach:** Keep the report section byte-equivalent to the checked-in JSON content (single serializer). This is a public report contract change — lead reviews the shape before commit per RAZORBACK.md.
 
 **Acceptance criteria:**
-- [ ] `julie-extract languages --json` emits the section; CLI contract test locks it.
-- [ ] `reports.md`/`cli.md` updated; report_schema_version unchanged.
-- [ ] Worker-scope verification passes, committed.
+- [x] `julie-extract languages --json` emits the section; CLI contract test locks it.
+- [x] `reports.md`/`cli.md` updated; report_schema_version unchanged.
+- [x] Worker-scope verification passes, committed.
 
 ## Verification Strategy
 
