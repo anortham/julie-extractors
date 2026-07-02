@@ -1,0 +1,268 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:0",
+      "name": "NavButtons",
+      "kind": "export",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 2,
+      "start_byte": 0,
+      "end_byte": 145,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 26,
+        "end_line": 6,
+        "end_column": 1,
+        "start_byte": 26,
+        "end_byte": 144
+      },
+      "body_hash": "652a41bd04ec4f5b36a54b87ef0c6a2a",
+      "signature": "export const NavButtons = () => (\n  <nav>\n    <button hx-get=\"/home\">Home</button>\n    <button data-hx-post=\"/logout\">Logout</button>\n  </nav>\n);",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "NavButtons",
+        "isDefault": false,
+        "isNamed": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:13",
+      "name": "NavButtons",
+      "kind": "function",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "start_line": 1,
+      "start_column": 13,
+      "end_line": 6,
+      "end_column": 1,
+      "start_byte": 13,
+      "end_byte": 144,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 26,
+        "end_line": 6,
+        "end_column": 1,
+        "start_byte": 26,
+        "end_byte": 144
+      },
+      "body_hash": "652a41bd04ec4f5b36a54b87ef0c6a2a",
+      "signature": "const NavButtons = () =>",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:0",
+      "metadata": {
+        "isArrowFunction": true,
+        "isAsync": false,
+        "isExpression": true,
+        "isGenerator": false,
+        "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:26",
+      "name": "NavButtons",
+      "kind": "function",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "start_line": 1,
+      "start_column": 26,
+      "end_line": 6,
+      "end_column": 1,
+      "start_byte": 26,
+      "end_byte": 144,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 32,
+        "end_line": 6,
+        "end_column": 1,
+        "start_byte": 32,
+        "end_byte": 144
+      },
+      "body_hash": "6a378abc2ffe78fb6106f2f951a7bbd3",
+      "signature": "NavButtons = () => ",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:13",
+      "metadata": {
+        "isArrowFunction": true,
+        "isAsync": false,
+        "isExpression": false,
+        "isGenerator": false,
+        "parameters": []
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "jsx_attribute",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "containing_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:26",
+      "start_line": 3,
+      "start_column": 12,
+      "end_line": 3,
+      "end_column": 26,
+      "start_byte": 54,
+      "end_byte": 68,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-get",
+        "attribute_value": "/home",
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "target_path": "/home",
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "htmx.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "jsx_attribute",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "containing_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:26",
+      "start_line": 4,
+      "start_column": 12,
+      "end_line": 4,
+      "end_column": 34,
+      "start_byte": 95,
+      "end_byte": 117,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "hx-post",
+        "attribute_value": "/logout",
+        "data_prefix": true,
+        "framework": "htmx",
+        "pattern_version": 1,
+        "query_family": "frontend_interaction",
+        "target_path": "/logout",
+        "verb": "POST"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "covered_lines": 7,
+      "covered_bytes": 146,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 146,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:13",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "covered_lines": 6,
+      "covered_bytes": 118,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 26,
+      "end_line": 6,
+      "end_column": 1,
+      "start_byte": 26,
+      "end_byte": 144,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:26",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "covered_lines": 6,
+      "covered_bytes": 112,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 1,
+      "start_column": 32,
+      "end_line": 6,
+      "end_column": 1,
+      "start_byte": 32,
+      "end_byte": 144,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "containing_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:26",
+      "start_line": 3,
+      "start_column": 19,
+      "end_line": 3,
+      "end_column": 26,
+      "start_byte": 61,
+      "end_byte": 68,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/htmx_attributes/source.js",
+      "containing_key": "fixtures/extraction/javascript/htmx_attributes/source.js:NavButtons:1:26",
+      "start_line": 4,
+      "start_column": 25,
+      "end_line": 4,
+      "end_column": 34,
+      "start_byte": 108,
+      "end_byte": 117,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

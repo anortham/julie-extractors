@@ -462,6 +462,18 @@ pub(super) fn vue_script_section_ranges(content: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
+/// Content ranges of `<template>` sections, for collectors that scan template
+/// markup only (e.g. the htmx attribute scan in `framework_structural_facts`).
+/// Restricting to template ranges keeps htmx attributes embedded in `<script>`
+/// strings silent.
+pub(crate) fn vue_template_section_ranges(content: &str) -> Vec<(usize, usize)> {
+    scan_vue_sections(content)
+        .into_iter()
+        .filter(|section| section.section_type == "template")
+        .map(|section| (section.content_start, section.content_end))
+        .collect()
+}
+
 fn scan_vue_sections(content: &str) -> Vec<VueSectionSpan> {
     let mut sections = Vec::new();
     let mut cursor = 0usize;

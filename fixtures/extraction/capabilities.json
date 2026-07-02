@@ -904,6 +904,11 @@
           "name": "http_client_axios",
           "source": "fixtures/extraction/tsx/http_client_axios/source.tsx",
           "expected": "fixtures/extraction/tsx/http_client_axios/expected.json"
+        },
+        {
+          "name": "htmx_attributes",
+          "source": "fixtures/extraction/tsx/htmx_attributes/source.tsx",
+          "expected": "fixtures/extraction/tsx/htmx_attributes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -958,6 +963,7 @@
         },
         "structural_facts": {
           "supported": [
+            "htmx.attribute.v1",
             "http.client_request.v1",
             "nextjs.file_route.v1",
             "nextjs.route_reference.v1",
@@ -1076,6 +1082,11 @@
           "name": "http_client_axios",
           "source": "fixtures/extraction/javascript/http_client_axios/source.js",
           "expected": "fixtures/extraction/javascript/http_client_axios/expected.json"
+        },
+        {
+          "name": "htmx_attributes",
+          "source": "fixtures/extraction/javascript/htmx_attributes/source.js",
+          "expected": "fixtures/extraction/javascript/htmx_attributes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1128,6 +1139,7 @@
         },
         "structural_facts": {
           "supported": [
+            "htmx.attribute.v1",
             "http.client_request.v1",
             "javascript.await_expression.v1",
             "nextjs.file_route.v1",
@@ -1231,6 +1243,11 @@
           "name": "http_client_axios",
           "source": "fixtures/extraction/jsx/http_client_axios/source.jsx",
           "expected": "fixtures/extraction/jsx/http_client_axios/expected.json"
+        },
+        {
+          "name": "htmx_attributes",
+          "source": "fixtures/extraction/jsx/htmx_attributes/source.jsx",
+          "expected": "fixtures/extraction/jsx/htmx_attributes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1278,6 +1295,7 @@
         },
         "structural_facts": {
           "supported": [
+            "htmx.attribute.v1",
             "http.client_request.v1",
             "jsx.await_expression.v1",
             "nextjs.file_route.v1",
@@ -1660,6 +1678,11 @@
           "name": "http_client",
           "source": "fixtures/extraction/vue/http_client/source.vue",
           "expected": "fixtures/extraction/vue/http_client/expected.json"
+        },
+        {
+          "name": "htmx_attributes",
+          "source": "fixtures/extraction/vue/htmx_attributes/source.vue",
+          "expected": "fixtures/extraction/vue/htmx_attributes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1711,6 +1734,7 @@
         },
         "structural_facts": {
           "supported": [
+            "htmx.attribute.v1",
             "http.client_request.v1",
             "nuxt.file_route.v1",
             "nuxt.route_reference.v1",

@@ -511,7 +511,7 @@ Supported patterns are advertised in `language_capability` records under
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","verb":"GET","route_template":"/todos","route_source":"string_literal"}` plus optional `handler_kind` and `handler_name` |
 | `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","route_prefix":"/admin","route_source":"string_literal","source_kind":"map_group"}` plus optional `group_variable` |
 | `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"attribute_routing","attribute_kind":"http_method","verb":"GET","route_template":"{id}","controller_route_template":"api/[controller]","effective_route_template":"/api/users/{id}","route_tokens":["controller"]}` — `attribute_kind` is one of `controller_route`/`http_method`/`route`; `verb` only on `http_method`; `route_template`/`controller_route_template` present only when a literal template exists; `effective_route_template` is the server-side join key |
-| `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"htmx","attribute_name":"hx-get","attribute_value":"/todos"}` plus optional `verb`, `target_path`, and `data_prefix` |
+| `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"htmx","attribute_name":"hx-get","attribute_value":"/todos"}` plus optional `verb`, `target_path`, and `data_prefix` |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"alpine","directive":"x-on","argument":"click","expression":"open = !open","shorthand":true}` plus optional `modifiers` |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"router_link","route_source":"string_literal","attribute_name":"to","verb":"GET"}` |
 | `vue.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `route_definition` | `object` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"vue_router_route","route_source":"string_literal"}` plus optional `route_name`, `component_name`, `component_path`, `parent_route_path`, and `effective_route_template` |
@@ -641,7 +641,14 @@ Navigation reference facts for Vue, Nuxt, React Router, and Next.js include
 `verb="GET"` as an implied navigation verb, not source-attested HTTP evidence.
 `htmx.attribute.v1` keeps source-attested request verbs. `data-hx-*` attributes
 normalize to canonical `hx-*` `attribute_name` values and include
-`data_prefix=true`.
+`data_prefix=true`. Beyond `html`/`razor`, the family also covers JSX/TSX
+component markup (`javascript`, `jsx`, `tsx`) and Vue single-file-component
+`<template>` sections (`vue`). On these component surfaces only static string
+attribute values emit: JSX brace-expression values (`hx-post={url}`) and Vue
+dynamic bindings (`:hx-post`, `v-bind:hx-post`) stay silent, and Vue scanning is
+restricted to `<template>` so htmx attributes inside `<script>` strings are not
+reported. `typescript` is intentionally excluded because the plain TypeScript
+grammar cannot parse JSX (it reads `<Ident ...>` as a type expression).
 
 Next.js Pages Router file-route facts require local Next evidence in the file,
 such as a `next/*` import or `getStaticProps`, `getServerSideProps`, or

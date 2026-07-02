@@ -573,6 +573,165 @@ fn razor_htmx_and_alpine_attributes_emit_structural_facts() {
     assert_eq!(metadata_array(click, "modifiers"), vec!["prevent"]);
 }
 
+#[test]
+fn jsx_family_grammars_accept_jsx_but_typescript_does_not() {
+    // Language-claim evidence (Task 6). Plain `.ts` cannot carry JSX because the
+    // typescript grammar reads `<Ident ...>` as a type expression, so `typescript`
+    // is NOT claimed for htmx. `tsx`, `jsx`, and `javascript` accept JSX and are
+    // claimed.
+    let jsx = r#"const view = <button hx-post="/clicked">Go</button>;"#;
+
+    let parse_has_error = |language: &str| {
+        let ts_language = crate::language_spec::get_tree_sitter_language(language)
+            .expect("language should be registered");
+        let mut parser = tree_sitter::Parser::new();
+        parser
+            .set_language(&ts_language)
+            .expect("grammar should load");
+        parser
+            .parse(jsx, None)
+            .expect("parse should succeed")
+            .root_node()
+            .has_error()
+    };
+
+    assert!(
+        parse_has_error("typescript"),
+        "typescript grammar should error on JSX (type-expression ambiguity)"
+    );
+    assert!(!parse_has_error("tsx"), "tsx grammar should accept JSX");
+    assert!(!parse_has_error("jsx"), "jsx grammar should accept JSX");
+    assert!(
+        !parse_has_error("javascript"),
+        "javascript grammar should accept JSX"
+    );
+}
+
+#[test]
+fn tsx_htmx_attribute_matches_html_fact_shape() {
+    let tsx = extract(
+        "src/Button.tsx",
+        r#"export function Button() {
+  return <button hx-post="/clicked">Click</button>;
+}
+"#,
+    );
+    let html = extract(
+        "src/index.html",
+        r#"<button hx-post="/clicked">Click</button>"#,
+    );
+
+    let tsx_htmx = facts_with_pattern(&tsx, "htmx.attribute.v1");
+    assert_eq!(tsx_htmx.len(), 1);
+    let html_htmx = facts_with_pattern(&html, "htmx.attribute.v1");
+    assert_eq!(html_htmx.len(), 1);
+
+    assert_common_framework_fact(tsx_htmx[0], "attribute", "frontend_interaction");
+    assert_eq!(metadata_str(tsx_htmx[0], "framework"), Some("htmx"));
+    assert_eq!(metadata_str(tsx_htmx[0], "attribute_name"), Some("hx-post"));
+    assert_eq!(metadata_str(tsx_htmx[0], "verb"), Some("POST"));
+    assert_eq!(metadata_str(tsx_htmx[0], "target_path"), Some("/clicked"));
+    assert_eq!(
+        metadata_str(tsx_htmx[0], "attribute_value"),
+        Some("/clicked")
+    );
+    assert_eq!(metadata_bool(tsx_htmx[0], "data_prefix"), None);
+    assert_eq!(tsx_htmx[0].language, "tsx");
+
+    // Metadata parity key-by-key against the documented html emission.
+    assert_eq!(tsx_htmx[0].metadata, html_htmx[0].metadata);
+    assert_eq!(tsx_htmx[0].capture_name, html_htmx[0].capture_name);
+}
+
+#[test]
+fn jsx_data_hx_attribute_normalizes_like_html() {
+    let jsx = extract(
+        "src/List.jsx",
+        r#"export const List = () => <ul data-hx-get="/todos"></ul>;
+"#,
+    );
+    let htmx = facts_with_pattern(&jsx, "htmx.attribute.v1");
+    assert_eq!(htmx.len(), 1);
+    assert_eq!(metadata_str(htmx[0], "attribute_name"), Some("hx-get"));
+    assert_eq!(metadata_bool(htmx[0], "data_prefix"), Some(true));
+    assert_eq!(metadata_str(htmx[0], "verb"), Some("GET"));
+    assert_eq!(metadata_str(htmx[0], "target_path"), Some("/todos"));
+    assert_eq!(htmx[0].language, "jsx");
+}
+
+#[test]
+fn javascript_jsx_htmx_attribute_emits_fact() {
+    let js = extract(
+        "src/App.js",
+        r#"export const App = () => <button hx-get="/todos">Go</button>;
+"#,
+    );
+    let htmx = facts_with_pattern(&js, "htmx.attribute.v1");
+    assert_eq!(htmx.len(), 1);
+    assert_eq!(metadata_str(htmx[0], "attribute_name"), Some("hx-get"));
+    assert_eq!(metadata_str(htmx[0], "target_path"), Some("/todos"));
+    assert_eq!(htmx[0].language, "javascript");
+}
+
+#[test]
+fn jsx_brace_expression_htmx_value_stays_silent() {
+    let jsx = extract(
+        "src/Dyn.tsx",
+        r#"export const Dyn = ({ url }: { url: string }) => (
+  <button hx-post={url}>Go</button>
+);
+"#,
+    );
+    assert!(facts_with_pattern(&jsx, "htmx.attribute.v1").is_empty());
+}
+
+#[test]
+fn vue_template_htmx_attribute_emits_fact() {
+    let vue = extract(
+        "src/Widget.vue",
+        r#"<template>
+  <button hx-post="/clicked">Click</button>
+</template>
+"#,
+    );
+    let htmx = facts_with_pattern(&vue, "htmx.attribute.v1");
+    assert_eq!(htmx.len(), 1);
+    assert_common_framework_fact(htmx[0], "attribute", "frontend_interaction");
+    assert_eq!(metadata_str(htmx[0], "framework"), Some("htmx"));
+    assert_eq!(metadata_str(htmx[0], "attribute_name"), Some("hx-post"));
+    assert_eq!(metadata_str(htmx[0], "verb"), Some("POST"));
+    assert_eq!(metadata_str(htmx[0], "target_path"), Some("/clicked"));
+    assert_eq!(htmx[0].language, "vue");
+}
+
+#[test]
+fn vue_dynamic_binding_htmx_value_stays_silent() {
+    let vue = extract(
+        "src/Dyn.vue",
+        r#"<template>
+  <button :hx-post="url" v-bind:hx-get="endpoint">Go</button>
+</template>
+"#,
+    );
+    assert!(facts_with_pattern(&vue, "htmx.attribute.v1").is_empty());
+}
+
+#[test]
+fn vue_script_section_htmx_string_stays_silent() {
+    let vue = extract(
+        "src/Script.vue",
+        r#"<script setup>
+const markup = "<button hx-post='/clicked'></button>";
+</script>
+
+<template>
+  <div>{{ markup }}</div>
+</template>
+"#,
+    );
+    assert!(facts_with_pattern(&vue, "htmx.attribute.v1").is_empty());
+}
+
 #[derive(Debug)]
 struct StructuralFactCase {
     file_path: &'static str,

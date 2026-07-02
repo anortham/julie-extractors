@@ -24,6 +24,7 @@ use nextjs_nuxt::{
     nuxt_file_route_fact, nuxt_server_route_fact,
 };
 use react::{collect_react_router_route_definitions, collect_react_router_route_references};
+pub(crate) use vue::vue_template_section_ranges;
 use vue::{
     collect_vue_router_route_definitions, collect_vue_structural_facts, vue_script_section_ranges,
 };

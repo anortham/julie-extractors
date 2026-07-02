@@ -27,6 +27,10 @@ const CSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const MARKUP_FRAMEWORK_PATTERN_IDS: &[&str] =
     &[HTMX_ATTRIBUTE_PATTERN_ID, ALPINE_DIRECTIVE_PATTERN_ID];
+// Component markup (JSX/TSX and Vue `<template>`) carries htmx-driven requests
+// too, but not the Alpine directive surface the html/razor scan claims.
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS: &[&str] = &[HTMX_ATTRIBUTE_PATTERN_ID];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     ALPINE_DIRECTIVE_PATTERN_ID,
@@ -68,6 +72,10 @@ pub fn collect_framework_structural_facts(
             ));
             razor_facts
         }
+        "javascript" | "jsx" | "tsx" => {
+            collect_jsx_htmx_attributes(language, tree, file_path, content)
+        }
+        "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         _ => Vec::new(),
     };
 
@@ -84,6 +92,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "csharp" => CSHARP_FRAMEWORK_PATTERN_IDS,
         "html" => MARKUP_FRAMEWORK_PATTERN_IDS,
         "razor" => RAZOR_FRAMEWORK_PATTERN_IDS,
+        "javascript" | "jsx" | "tsx" | "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],
     }
 }
@@ -1049,6 +1058,82 @@ fn canonical_htmx_attribute_name(attribute_name: &str) -> Option<(String, bool)>
     normalized
         .strip_prefix("data-hx-")
         .map(|suffix| (format!("hx-{suffix}"), true))
+}
+
+/// htmx emission for JSX/TSX component markup. The javascript/jsx/tsx grammars
+/// all accept JSX, so the shared byte-level scanner runs over the whole file;
+/// only static-string values emit (see `component_htmx_attribute_fact`).
+fn collect_jsx_htmx_attributes(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    for attribute in scan_markup_attributes(content, 0, content.len()) {
+        if let Some(fact) =
+            component_htmx_attribute_fact(language, tree, file_path, content, &attribute)
+        {
+            facts.push(fact);
+        }
+    }
+    facts
+}
+
+/// htmx emission for Vue single-file-component `<template>` markup. Scanning is
+/// restricted to template-section ranges so htmx attributes embedded in
+/// `<script>` string literals stay silent.
+fn collect_vue_template_htmx_attributes(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let mut facts = Vec::new();
+    for (section_start, section_end) in
+        crate::base::web_structural_facts::vue_template_section_ranges(content)
+    {
+        for attribute in scan_markup_attributes(content, section_start, section_end) {
+            if let Some(fact) =
+                component_htmx_attribute_fact(language, tree, file_path, content, &attribute)
+            {
+                facts.push(fact);
+            }
+        }
+    }
+    facts
+}
+
+/// Emit an htmx fact for component markup (JSX/TSX and Vue templates), mirroring
+/// the html/razor fact shape. Unlike the html path, only STATIC STRING values
+/// emit: JSX brace expressions (`hx-post={url}`) parse to a `{...}` value and
+/// stay silent, and Vue dynamic bindings (`:hx-post`, `v-bind:hx-post`) never
+/// match the `hx-*`/`data-hx-*` name shape. Alpine directives are intentionally
+/// not scanned on this surface.
+fn component_htmx_attribute_fact(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    attribute: &MarkupAttribute,
+) -> Option<StructuralFact> {
+    let (attribute_name, data_prefix) = canonical_htmx_attribute_name(&attribute.name)?;
+    // Only static string values emit; a brace-expression value (parsed as a
+    // leading `{`) or a valueless attribute stays silent so dynamic component
+    // bindings are never misread as static request paths.
+    let value = attribute.value.as_deref()?;
+    if value.starts_with('{') {
+        return None;
+    }
+    htmx_attribute_fact(
+        language,
+        tree,
+        file_path,
+        content,
+        attribute,
+        &attribute_name,
+        data_prefix,
+    )
 }
 
 fn alpine_directive_fact(
