@@ -493,6 +493,15 @@ Fields:
 - `confidence`: number
 - `metadata`: object or `null`
 
+`containing_symbol_id` binds each fact to the innermost byte-containing
+scope-bearing symbol. `variable`, `constant`, `enum_member`, and `import`
+symbols are value holders, not scopes, so they are never containment candidates.
+When no byte-containing candidate exists (for example, a fact whose span starts
+on an `export const` head that sits outside its value symbol), a line-containment
+fallback selects the narrowest line-spanning candidate, with deterministic
+tie-breaks (narrowest byte span, then earliest start byte). Module-scope facts
+with no enclosing scope-bearing symbol are `null`.
+
 Supported patterns are advertised in `language_capability` records under
 `kind_coverage.structural_facts.supported`.
 
