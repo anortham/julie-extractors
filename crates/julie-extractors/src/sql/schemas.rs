@@ -18,26 +18,44 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use tree_sitter::Node;
 
-static INDEX_ON_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"ON\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
-static INDEX_USING_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"USING\s+([A-Z]+)").unwrap());
-static INDEX_WHERE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"WHERE\s+(.+?)(?:;|$)").unwrap());
-static CREATE_SCHEMA_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"CREATE\s+SCHEMA\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
-static DOMAIN_AS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"AS\s+([A-Za-z]+(?:\(\d+(?:,\s*\d+)?\))?)").unwrap());
-static DOMAIN_CHECK_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"CHECK\s*\(([^)]+(?:\([^)]*\)[^)]*)*)\)").unwrap());
-static SEQUENCE_START_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"START\s+WITH\s+(\d+)").unwrap());
-static SEQUENCE_INCREMENT_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"INCREMENT\s+BY\s+(\d+)").unwrap());
-static SEQUENCE_MIN_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"MINVALUE\s+(\d+)").unwrap());
-static SEQUENCE_MAX_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"MAXVALUE\s+(\d+)").unwrap());
-static SEQUENCE_CACHE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"CACHE\s+(\d+)").unwrap());
+// Invariant for every `expect` below: the pattern is a compile-time regex
+// literal validated by the test suite, so `Regex::new` cannot fail at runtime.
+static INDEX_ON_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"ON\s+([a-zA-Z_][a-zA-Z0-9_]*)").expect("INDEX_ON_RE literal regex must compile")
+});
+static INDEX_USING_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"USING\s+([A-Z]+)").expect("INDEX_USING_RE literal regex must compile")
+});
+static INDEX_WHERE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"WHERE\s+(.+?)(?:;|$)").expect("INDEX_WHERE_RE literal regex must compile")
+});
+static CREATE_SCHEMA_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"CREATE\s+SCHEMA\s+([a-zA-Z_][a-zA-Z0-9_]*)")
+        .expect("CREATE_SCHEMA_RE literal regex must compile")
+});
+static DOMAIN_AS_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"AS\s+([A-Za-z]+(?:\(\d+(?:,\s*\d+)?\))?)")
+        .expect("DOMAIN_AS_RE literal regex must compile")
+});
+static DOMAIN_CHECK_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"CHECK\s*\(([^)]+(?:\([^)]*\)[^)]*)*)\)")
+        .expect("DOMAIN_CHECK_RE literal regex must compile")
+});
+static SEQUENCE_START_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"START\s+WITH\s+(\d+)").expect("SEQUENCE_START_RE literal regex must compile")
+});
+static SEQUENCE_INCREMENT_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"INCREMENT\s+BY\s+(\d+)").expect("SEQUENCE_INCREMENT_RE literal regex must compile")
+});
+static SEQUENCE_MIN_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"MINVALUE\s+(\d+)").expect("SEQUENCE_MIN_RE literal regex must compile")
+});
+static SEQUENCE_MAX_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"MAXVALUE\s+(\d+)").expect("SEQUENCE_MAX_RE literal regex must compile")
+});
+static SEQUENCE_CACHE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"CACHE\s+(\d+)").expect("SEQUENCE_CACHE_RE literal regex must compile")
+});
 
 /// Extract table definition from CREATE TABLE statement
 pub(super) fn extract_table_definition(
@@ -331,17 +349,14 @@ pub(super) fn extract_domain(
     let node_text = base.get_node_text(&node);
     let mut signature = format!("CREATE DOMAIN {}", name);
 
-    // Extract the base type (AS datatype)
-    if let Some(as_match) = DOMAIN_AS_RE.captures(&node_text) {
-        signature.push_str(&format!(" AS {}", as_match.get(1).unwrap().as_str()));
+    // Extract the base type (AS datatype); skip the clause when absent
+    if let Some(base_type) = DOMAIN_AS_RE.captures(&node_text).and_then(|c| c.get(1)) {
+        signature.push_str(&format!(" AS {}", base_type.as_str()));
     }
 
-    // Add CHECK constraint if present
-    if let Some(check_match) = DOMAIN_CHECK_RE.captures(&node_text) {
-        signature.push_str(&format!(
-            " CHECK ({})",
-            check_match.get(1).unwrap().as_str().trim()
-        ));
+    // Add CHECK constraint if present; skip the clause when absent
+    if let Some(check_expr) = DOMAIN_CHECK_RE.captures(&node_text).and_then(|c| c.get(1)) {
+        signature.push_str(&format!(" CHECK ({})", check_expr.as_str().trim()));
     }
 
     let mut metadata = HashMap::new();
@@ -482,33 +497,36 @@ pub(super) fn extract_sequence(
     let node_text = base.get_node_text(&node);
     let mut signature = format!("CREATE SEQUENCE {}", name);
 
-    // Add sequence options if present
+    // Add sequence options if present; each absent option is skipped
     let mut options_vec = Vec::new();
 
-    if let Some(start_match) = SEQUENCE_START_RE.captures(&node_text) {
-        options_vec.push(format!(
-            "START WITH {}",
-            start_match.get(1).unwrap().as_str()
-        ));
+    if let Some(start) = SEQUENCE_START_RE
+        .captures(&node_text)
+        .and_then(|c| c.get(1))
+    {
+        options_vec.push(format!("START WITH {}", start.as_str()));
     }
 
-    if let Some(inc_match) = SEQUENCE_INCREMENT_RE.captures(&node_text) {
-        options_vec.push(format!(
-            "INCREMENT BY {}",
-            inc_match.get(1).unwrap().as_str()
-        ));
+    if let Some(inc) = SEQUENCE_INCREMENT_RE
+        .captures(&node_text)
+        .and_then(|c| c.get(1))
+    {
+        options_vec.push(format!("INCREMENT BY {}", inc.as_str()));
     }
 
-    if let Some(min_match) = SEQUENCE_MIN_RE.captures(&node_text) {
-        options_vec.push(format!("MINVALUE {}", min_match.get(1).unwrap().as_str()));
+    if let Some(min) = SEQUENCE_MIN_RE.captures(&node_text).and_then(|c| c.get(1)) {
+        options_vec.push(format!("MINVALUE {}", min.as_str()));
     }
 
-    if let Some(max_match) = SEQUENCE_MAX_RE.captures(&node_text) {
-        options_vec.push(format!("MAXVALUE {}", max_match.get(1).unwrap().as_str()));
+    if let Some(max) = SEQUENCE_MAX_RE.captures(&node_text).and_then(|c| c.get(1)) {
+        options_vec.push(format!("MAXVALUE {}", max.as_str()));
     }
 
-    if let Some(cache_match) = SEQUENCE_CACHE_RE.captures(&node_text) {
-        options_vec.push(format!("CACHE {}", cache_match.get(1).unwrap().as_str()));
+    if let Some(cache) = SEQUENCE_CACHE_RE
+        .captures(&node_text)
+        .and_then(|c| c.get(1))
+    {
+        options_vec.push(format!("CACHE {}", cache.as_str()));
     }
 
     if !options_vec.is_empty() {

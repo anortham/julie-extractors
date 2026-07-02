@@ -277,4 +277,73 @@ CREATE AGGREGATE mode(anyelement) (
                 .contains("CREATE AGGREGATE")
         );
     }
+
+    /// Regression guard for the unwrap audit in sql/schemas.rs: truncated
+    /// sequence/domain DDL must not panic, and every well-formed sibling
+    /// statement in the same file must still emit its row.
+    #[test]
+    fn test_truncated_ddl_skips_gracefully_keeping_sibling_rows() {
+        let sql_code = r#"
+CREATE SCHEMA analytics;
+
+-- Truncated: START WITH has no value
+CREATE SEQUENCE broken_seq START WITH;
+
+-- Truncated: AS has no base type
+CREATE DOMAIN broken_domain AS;
+
+CREATE TABLE users (
+    id INT,
+    email VARCHAR(255)
+);
+
+CREATE SEQUENCE order_id_seq
+    START WITH 500
+    INCREMENT BY 5;
+
+CREATE DOMAIN email_address AS VARCHAR(255)
+    CHECK (VALUE LIKE '%@%');
+"#;
+
+        let symbols = extract_symbols(sql_code);
+
+        // Well-formed siblings must all survive the malformed statements.
+        let schema = symbols.iter().find(|s| s.name == "analytics");
+        assert!(schema.is_some(), "schema row must still emit");
+
+        let table = symbols.iter().find(|s| s.name == "users");
+        assert!(table.is_some(), "table row must still emit");
+        assert!(
+            table
+                .unwrap()
+                .signature
+                .as_ref()
+                .unwrap()
+                .contains("CREATE TABLE users")
+        );
+
+        let sequence = symbols.iter().find(|s| s.name == "order_id_seq");
+        assert!(sequence.is_some(), "sequence row must still emit");
+        let sequence_signature = sequence.unwrap().signature.as_ref().unwrap();
+        assert!(sequence_signature.contains("START WITH 500"));
+        assert!(sequence_signature.contains("INCREMENT BY 5"));
+
+        let domain = symbols.iter().find(|s| s.name == "email_address");
+        assert!(domain.is_some(), "domain row must still emit");
+        let domain_signature = domain.unwrap().signature.as_ref().unwrap();
+        assert!(domain_signature.contains("AS VARCHAR(255)"));
+        assert!(domain_signature.contains("CHECK (VALUE LIKE '%@%')"));
+
+        // The truncated statements may emit degraded rows or no rows, but any
+        // row they emit must not carry a sequence/domain option payload that
+        // was never present in the source.
+        if let Some(broken_seq) = symbols.iter().find(|s| s.name == "broken_seq") {
+            let signature = broken_seq.signature.as_ref().unwrap();
+            assert!(!signature.contains("START WITH "));
+        }
+        if let Some(broken_domain) = symbols.iter().find(|s| s.name == "broken_domain") {
+            let signature = broken_domain.signature.as_ref().unwrap();
+            assert!(!signature.contains(" AS "));
+        }
+    }
 }

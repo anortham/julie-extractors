@@ -84,6 +84,50 @@ export default {
         );
     }
 
+    /// Regression guard for the unwrap audit in vue/helpers.rs: a malformed
+    /// SFC construct (broken `<template` open tag, empty `lang=` attribute)
+    /// must not panic, and the well-formed script section in the same file
+    /// must still emit its rows.
+    #[test]
+    fn test_malformed_sfc_section_skips_gracefully_keeping_sibling_rows() {
+        let vue_code = r#"
+<template
+  <div>{{ broken }}</div>
+</template>
+
+<script lang=>
+export default {
+  name: 'ResilientWidget',
+  methods: {
+    greet() {
+      return 'hi';
+    }
+  }
+}
+</script>
+
+<style scoped>
+.widget { color: red; }
+</style>
+        "#;
+
+        let mut extractor = create_extractor("resilient-widget.vue", vue_code);
+        let symbols = extractor.extract_symbols(None);
+
+        // The well-formed script section must still emit its rows even though
+        // the template open tag is malformed and the lang attribute is empty.
+        let component = symbols.iter().find(|s| s.name == "ResilientWidget");
+        assert!(component.is_some(), "component row must still emit");
+        assert_eq!(component.unwrap().kind, SymbolKind::Class);
+
+        let methods_symbol = symbols.iter().find(|s| s.name == "methods");
+        assert!(methods_symbol.is_some(), "methods row must still emit");
+
+        let greet_method = symbols.iter().find(|s| s.name == "greet");
+        assert!(greet_method.is_some(), "method row must still emit");
+        assert_eq!(greet_method.unwrap().kind, SymbolKind::Method);
+    }
+
     #[test]
     fn test_extract_script_section_symbols() {
         let vue_code = r#"
