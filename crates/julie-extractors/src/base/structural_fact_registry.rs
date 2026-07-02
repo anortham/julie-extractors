@@ -28,15 +28,24 @@
 //! `query_family` (from each collector's `base_metadata`). Framework facts and
 //! web route/http facts additionally carry a `framework` key.
 
-/// JSON value type a metadata key carries. Kept intentionally small — if a
-/// collector ever emits a value that is not one of these (e.g. an array of
-/// objects), that is a contract mismatch to adjudicate, not a silent extension.
+/// JSON value type a metadata key carries. Additions to this enum are
+/// lead-adjudicated contract decisions, not silent extensions: when a collector
+/// emits a value shape none of these variants can express, that is a contract
+/// mismatch to escalate and adjudicate, never to paper over. `ObjectArray` is
+/// the one such adjudicated addition so far (Task 2, finding D1), covering
+/// `route_parameters` on `razor.page_directive.v1` — a shipped v2.5.x payload
+/// that cannot be flattened to a `StringArray` without losing per-parameter
+/// fields.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MetadataValueType {
     String,
     Bool,
     Number,
     StringArray,
+    /// A JSON array whose every element is a JSON object. The object's fields
+    /// are documented in prose on the declaring key; the registry does not carry
+    /// a per-field schema for them.
+    ObjectArray,
 }
 
 /// Whether a declared metadata key is guaranteed present (`Always`) on every
@@ -87,7 +96,9 @@ pub fn structural_fact_pattern_specs() -> &'static [StructuralFactPatternSpec] {
 // ---------------------------------------------------------------------------
 
 use KeyPresence::{Always as ALWAYS, Optional as OPT};
-use MetadataValueType::{Bool as BOOL, Number as NUM, String as STR, StringArray as ARR};
+use MetadataValueType::{
+    Bool as BOOL, Number as NUM, ObjectArray as OBJARR, String as STR, StringArray as ARR,
+};
 
 const fn key(
     key: &'static str,
@@ -2228,10 +2239,6 @@ const SPECS: &[StructuralFactPatternSpec] = &[
         languages: &["razor"],
         query_family: "component_routing",
         description: "A Razor `@page` directive.",
-        // NOTE: emission also carries `route_parameters`, a JSON array of route-
-        // parameter objects, which the four-variant MetadataValueType cannot
-        // express. Intentionally undeclared here — see Task-1 drift finding for
-        // Task 2 to adjudicate (extend the type or change emission).
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -2260,6 +2267,15 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 BOOL,
                 ALWAYS,
                 "True when any route parameter carries a :constraint.",
+            ),
+            key(
+                "route_parameters",
+                OBJARR,
+                ALWAYS,
+                "Parsed route parameters as a JSON array of objects (empty when the \
+                 route has none). Each object carries `name` (String), `optional` \
+                 (Bool), and `catch_all` (Bool) always, plus `constraint` (String) \
+                 only when the {param:constraint} form is used.",
             ),
         ],
     },
