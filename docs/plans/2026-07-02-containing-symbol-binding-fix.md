@@ -12,7 +12,7 @@
 **Architecture:** One shared binder in `base/` with the corrected semantics; all six collectors call it. The `source_regions.rs:159` copy is EXCLUDED on purpose: source regions (comments, string literals) legitimately attach to value-holder symbols (a doc comment or literal on a variable belongs to that variable); structural facts describe code actions and need scope-bearing anchors.
 
 **Decided binder semantics (lead, strategy tier):**
-- Candidate filter: exclude non-scope-bearing symbol kinds from containment candidacy. Denylist authored from the actual kind vocabulary (`base/kinds.rs` / symbol kinds observed in goldens): at minimum `variable`, `constant`, `field`, `property`, `enum_member`, `import`. `export` symbols remain candidates (they are the whole-statement containers that make function-declaration binding work). The Task 1 worker verifies the exact vocabulary and lists the final denylist in the report; additions/removals to the denylist are lead adjudications.
+- Candidate filter: exclude non-scope-bearing symbol kinds from containment candidacy. Final denylist (lead-adjudicated 2026-07-02 during execution): `Variable`, `Constant`, `EnumMember`, `Import`. `Field` and `Property` were in the initially authored list but are KEPT as candidates: they are first-class graph members (unlike locals), property accessor bodies are genuine scopes, and class-level binding is recoverable from member parentage while the reverse is not. `export` symbols remain candidates (they are the whole-statement containers that make function-declaration binding work). Further denylist changes are lead adjudications.
 - Primary pass unchanged otherwise: narrowest byte-containing candidate wins.
 - Fallback pass (new): when the primary pass finds no candidate, retry with line containment (`symbol.start_line <= fact.start_line && symbol.end_line >= fact.end_line`), same kind filter, narrowest line span wins; ties broken by narrowest byte span, then earliest start_byte (fully deterministic). Still nothing → `None` (unchanged).
 
@@ -37,10 +37,10 @@
 **TDD:** repro tests first (RED against current binder), then the shared binder to GREEN.
 
 **Acceptance criteria:**
-- [ ] Six collector copies replaced by one shared binder; `source_regions.rs` untouched.
-- [ ] Both Miller repro cases fixed and locked by named tests; bare-call binding locked.
-- [ ] Final kind denylist reported with vocabulary evidence.
-- [ ] Worker-scope verification passes, committed.
+- [x] Six collector copies replaced by one shared binder; `source_regions.rs` untouched.
+- [x] Both Miller repro cases fixed and locked by named tests; bare-call binding locked.
+- [x] Final kind denylist reported with vocabulary evidence. (`{Variable, Constant, EnumMember, Import}` after the lead adjudication dropping Field/Property; SymbolKind vocabulary at base/kinds.rs:77-102.)
+- [x] Worker-scope verification passes, committed. (41b8964 + fix round 62c3ba5.)
 
 ## Task 2: Contract Sweep — Goldens, Marker, Docs
 
@@ -50,10 +50,10 @@
 - Modify: `docs/contracts/sqlite-schema-v3.md`, `docs/contracts/jsonl-v3.md` (containing_symbol_id semantics prose: kind filter + line fallback)
 
 **Acceptance criteria:**
-- [ ] Golden diffs are containing_symbol_id-only (verified and stated with counts per language; anything else stops the task).
-- [ ] Marker bumped, api_surface updated, docs state the new semantics.
-- [ ] `node scripts/language-data-quality-report.mjs --strict` clean; golden suite green.
-- [ ] Worker-scope verification passes, committed.
+- [x] Golden diffs are containing_symbol_id-only (verified and stated with counts per language; anything else stops the task). (Parse-based multiset check over all 41 changed fixtures: 86 facts touched — 56 rebound / 2 newly-bound / 28 unbound; all other arrays byte-identical.)
+- [x] Marker bumped, api_surface updated, docs state the new semantics.
+- [x] `node scripts/language-data-quality-report.mjs --strict` clean; golden suite green.
+- [x] Worker-scope verification passes, committed.
 
 ## Verification Strategy
 
