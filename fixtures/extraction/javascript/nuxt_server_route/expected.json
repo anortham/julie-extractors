@@ -174,7 +174,7 @@
       "node_kind": "await_expression",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js",
-      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:body:2:10",
+      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
       "start_line": 2,
       "start_column": 17,
       "end_line": 2,

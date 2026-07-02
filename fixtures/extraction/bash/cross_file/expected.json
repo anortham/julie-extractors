@@ -247,7 +247,7 @@
       "node_kind": "comment",
       "language": "bash",
       "file_path": "fixtures/extraction/bash/cross_file/source.sh",
-      "containing_key": "fixtures/extraction/bash/cross_file/source.sh:bash:1:0",
+      "containing_key": null,
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,

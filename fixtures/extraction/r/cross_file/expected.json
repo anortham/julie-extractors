@@ -212,7 +212,7 @@
       "node_kind": "call",
       "language": "r",
       "file_path": "fixtures/extraction/r/cross_file/source.R",
-      "containing_key": "fixtures/extraction/r/cross_file/source.R:other:7:0",
+      "containing_key": null,
       "start_line": 7,
       "start_column": 0,
       "end_line": 7,

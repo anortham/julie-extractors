@@ -433,7 +433,7 @@
       "node_kind": "namespace_use_declaration",
       "language": "php",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
-      "containing_key": "fixtures/extraction/php/cross_file/source.php:App\\Other:10:0",
+      "containing_key": null,
       "start_line": 10,
       "start_column": 0,
       "end_line": 10,

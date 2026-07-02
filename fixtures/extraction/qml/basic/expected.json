@@ -1174,7 +1174,7 @@
       "node_kind": "ui_import",
       "language": "qml",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
-      "containing_key": "fixtures/extraction/qml/basic/source.qml:QtQuick:1:0",
+      "containing_key": null,
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,

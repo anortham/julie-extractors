@@ -365,7 +365,7 @@
       "node_kind": "call",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
-      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:Phoenix.Router:8:2",
+      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:Fixture.Worker:7:0",
       "start_line": 8,
       "start_column": 2,
       "end_line": 8,

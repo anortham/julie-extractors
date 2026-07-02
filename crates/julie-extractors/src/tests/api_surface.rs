@@ -26,6 +26,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "nuxt-route-facts-v1",
         "web-route-facts-v3",
         "http-boundary-facts-v1",
+        "containing-symbol-binding-v2",
     ] {
         assert!(
             version.contains(marker),

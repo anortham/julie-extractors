@@ -292,7 +292,7 @@
       "node_kind": "call",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/cross_file/source.rb",
-      "containing_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "containing_key": null,
       "start_line": 7,
       "start_column": 0,
       "end_line": 7,

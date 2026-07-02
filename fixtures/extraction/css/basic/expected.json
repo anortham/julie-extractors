@@ -409,7 +409,7 @@
       "node_kind": "media_statement",
       "language": "css",
       "file_path": "fixtures/extraction/css/basic/source.css",
-      "containing_key": "fixtures/extraction/css/basic/source.css:@media (min-width: 40rem):15:0",
+      "containing_key": null,
       "start_line": 15,
       "start_column": 0,
       "end_line": 19,

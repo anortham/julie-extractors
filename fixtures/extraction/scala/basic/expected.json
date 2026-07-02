@@ -1332,7 +1332,7 @@
       "node_kind": "given_definition",
       "language": "scala",
       "file_path": "fixtures/extraction/scala/basic/source.scala",
-      "containing_key": "fixtures/extraction/scala/basic/source.scala:<anonymous>:49:0",
+      "containing_key": null,
       "start_line": 49,
       "start_column": 0,
       "end_line": 49,

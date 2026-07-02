@@ -404,7 +404,7 @@
       "node_kind": "razor_page_directive",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/cross_file/source.razor",
-      "containing_key": "fixtures/extraction/razor/cross_file/source.razor:@page:6:0",
+      "containing_key": "fixtures/extraction/razor/cross_file/source.razor:source:1:0",
       "start_line": 6,
       "start_column": 0,
       "end_line": 6,

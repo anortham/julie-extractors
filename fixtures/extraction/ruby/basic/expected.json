@@ -715,28 +715,7 @@
       "node_kind": "call",
       "language": "ruby",
       "file_path": "fixtures/extraction/ruby/basic/source.rb",
-      "containing_key": "fixtures/extraction/ruby/basic/source.rb:helper:2:0",
-      "start_line": 2,
-      "start_column": 0,
-      "end_line": 2,
-      "end_column": 27,
-      "start_byte": 15,
-      "end_byte": 42,
-      "confidence": "1.000",
-      "metadata": {
-        "pattern_version": 1,
-        "query_family": "imports",
-        "require_kind": "require_relative",
-        "required_path": "./helper"
-      }
-    },
-    {
-      "pattern_id": "ruby.require_call.v1",
-      "capture_name": "require_call",
-      "node_kind": "call",
-      "language": "ruby",
-      "file_path": "fixtures/extraction/ruby/basic/source.rb",
-      "containing_key": "fixtures/extraction/ruby/basic/source.rb:json:1:0",
+      "containing_key": null,
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,
@@ -749,6 +728,27 @@
         "query_family": "imports",
         "require_kind": "require",
         "required_path": "json"
+      }
+    },
+    {
+      "pattern_id": "ruby.require_call.v1",
+      "capture_name": "require_call",
+      "node_kind": "call",
+      "language": "ruby",
+      "file_path": "fixtures/extraction/ruby/basic/source.rb",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 27,
+      "start_byte": 15,
+      "end_byte": 42,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "imports",
+        "require_kind": "require_relative",
+        "required_path": "./helper"
       }
     },
     {

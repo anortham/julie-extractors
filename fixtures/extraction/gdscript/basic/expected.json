@@ -1002,7 +1002,7 @@
       "node_kind": "annotation",
       "language": "gdscript",
       "file_path": "fixtures/extraction/gdscript/basic/source.gd",
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/gdscript/basic/source.gd:id:6:8",
       "start_line": 6,
       "start_column": 0,
       "end_line": 6,

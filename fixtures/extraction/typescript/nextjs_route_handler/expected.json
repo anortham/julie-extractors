@@ -360,6 +360,36 @@
       "node_kind": "export_statement",
       "language": "typescript",
       "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
+      "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:DELETE:10:22",
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 19,
+      "start_byte": 213,
+      "end_byte": 232,
+      "confidence": "1.000",
+      "metadata": {
+        "dynamic_segments": [
+          "id"
+        ],
+        "file_convention": "route",
+        "framework": "nextjs",
+        "normalized_route_template": "/api/users/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_path": "/api/users/[id]",
+        "router": "app",
+        "source_kind": "nextjs_route_handler",
+        "verb": "DELETE",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "nextjs.route_handler.v1",
+      "capture_name": "route_handler",
+      "node_kind": "export_statement",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
       "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:0",
       "start_line": 3,
       "start_column": 0,
@@ -381,36 +411,6 @@
         "router": "app",
         "source_kind": "nextjs_route_handler",
         "verb": "GET",
-        "verb_source": "attested"
-      }
-    },
-    {
-      "pattern_id": "nextjs.route_handler.v1",
-      "capture_name": "route_handler",
-      "node_kind": "export_statement",
-      "language": "typescript",
-      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
-      "containing_key": null,
-      "start_line": 10,
-      "start_column": 0,
-      "end_line": 10,
-      "end_column": 19,
-      "start_byte": 213,
-      "end_byte": 232,
-      "confidence": "1.000",
-      "metadata": {
-        "dynamic_segments": [
-          "id"
-        ],
-        "file_convention": "route",
-        "framework": "nextjs",
-        "normalized_route_template": "/api/users/:id",
-        "pattern_version": 1,
-        "query_family": "framework",
-        "route_path": "/api/users/[id]",
-        "router": "app",
-        "source_kind": "nextjs_route_handler",
-        "verb": "DELETE",
         "verb_source": "attested"
       }
     }

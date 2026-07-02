@@ -511,7 +511,7 @@
       "node_kind": "script_element",
       "language": "html",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
-      "containing_key": "fixtures/extraction/html/cross_file/source.html:script:10:2",
+      "containing_key": "fixtures/extraction/html/cross_file/source.html:head:9:0",
       "start_line": 10,
       "start_column": 2,
       "end_line": 10,

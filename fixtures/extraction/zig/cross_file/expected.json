@@ -261,7 +261,7 @@
       "node_kind": "builtin_function",
       "language": "zig",
       "file_path": "fixtures/extraction/zig/cross_file/source.zig",
-      "containing_key": "fixtures/extraction/zig/cross_file/source.zig:m:6:0",
+      "containing_key": null,
       "start_line": 6,
       "start_column": 10,
       "end_line": 6,

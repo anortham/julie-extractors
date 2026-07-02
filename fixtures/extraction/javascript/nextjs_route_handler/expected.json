@@ -430,7 +430,7 @@
       "node_kind": "await_expression",
       "language": "javascript",
       "file_path": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js",
-      "containing_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:body:6:10",
+      "containing_key": "fixtures/extraction/javascript/nextjs_route_handler/app/api/messages/route.js:POST:5:20",
       "start_line": 6,
       "start_column": 17,
       "end_line": 6,

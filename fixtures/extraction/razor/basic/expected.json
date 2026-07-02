@@ -935,7 +935,7 @@
       "node_kind": "razor_page_directive",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
-      "containing_key": "fixtures/extraction/razor/basic/source.razor:@page:1:0",
+      "containing_key": "fixtures/extraction/razor/basic/source.razor:source:1:0",
       "start_line": 1,
       "start_column": 0,
       "end_line": 1,
