@@ -1045,6 +1045,34 @@ int readValue() {
     }
 }
 
+#[test]
+fn nextjs_const_arrow_route_handler_binds_its_function_symbol() {
+    // Repro (2026-07-02): `export const POST = async () => ...` in an app-router
+    // route.ts emitted nextjs.route_handler.v1 with containing_symbol_id = NULL.
+    // The fact anchors on the export-statement head (`export const POST`,
+    // cols 0..17) while the POST symbol spans only the arrow value (col 20 -> end),
+    // so strict byte containment found nothing. The line fallback now binds the
+    // POST handler symbol.
+    let source = "export const POST = async (req: Request) => {\n  return Response.json({});\n};\n";
+    let results = extract("app/api/widgets/route.ts", source);
+    let facts = facts_with_pattern(&results, "nextjs.route_handler.v1");
+    assert_eq!(facts.len(), 1, "expected exactly one route-handler fact");
+
+    let bound_id = facts[0]
+        .containing_symbol_id
+        .as_deref()
+        .expect("const-arrow route handler must bind a containing symbol, not NULL");
+    let bound = results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.id == bound_id)
+        .expect("bound symbol id must resolve to a real symbol");
+    assert_eq!(
+        bound.name, "POST",
+        "route-handler fact must bind the POST handler symbol"
+    );
+}
+
 fn facts_with_pattern<'a>(
     results: &'a crate::ExtractionResults,
     pattern_id: &str,

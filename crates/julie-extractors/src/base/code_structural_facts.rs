@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
+use super::attach_containing_symbols;
 use super::span::NormalizedSpan;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol, stable_location_id};
@@ -1685,16 +1686,4 @@ fn gdscript_named_field(content: &str, node: Node<'_>, field: &str) -> Option<St
 fn gdscript_extends_base_type(content: &str, node: Node<'_>) -> Option<String> {
     first_named_identifier(content, node, &["type", "identifier", "string"])
         .map(|name| name.trim_matches('"').to_string())
-}
-
-fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
-    for fact in facts {
-        fact.containing_symbol_id = symbols
-            .iter()
-            .filter(|symbol| {
-                symbol.start_byte <= fact.start_byte && symbol.end_byte >= fact.end_byte
-            })
-            .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))
-            .map(|symbol| symbol.id.clone());
-    }
 }

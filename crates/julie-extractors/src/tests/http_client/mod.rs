@@ -39,6 +39,19 @@ fn single_request(results: &crate::ExtractionResults) -> &StructuralFact {
     facts[0]
 }
 
+/// Resolve a fact's `containing_symbol_id` to the bound symbol's `(name, kind)`.
+fn binding_symbol<'a>(
+    results: &'a crate::ExtractionResults,
+    fact: &StructuralFact,
+) -> Option<(&'a str, &'a crate::base::SymbolKind)> {
+    let id = fact.containing_symbol_id.as_deref()?;
+    results
+        .symbols
+        .iter()
+        .find(|symbol| symbol.id == id)
+        .map(|symbol| (symbol.name.as_str(), &symbol.kind))
+}
+
 #[test]
 fn fetch_bare_call_defaults_to_get() {
     let source = r#"
@@ -507,4 +520,46 @@ export async function load() {
         assert_eq!(metadata_str(facts[0], "verb"), Some("GET"));
         assert_eq!(metadata_str(facts[0], "verb_source"), Some("default"));
     }
+}
+
+#[test]
+fn fetch_assigned_to_const_binds_enclosing_function_not_variable() {
+    // Repro (2026-07-02): `const res = await fetch(...)` bound the `res` variable
+    // symbol (the narrowest byte-containing symbol) instead of the enclosing
+    // function — useless for call-graph joining. The kind filter excludes the
+    // `variable` candidate so the enclosing function wins.
+    let source = r#"
+export async function load() {
+  const res = await fetch("/api/widgets");
+  return res;
+}
+"#;
+    let results = extract("src/load.js", source);
+    let fact = single_request(&results);
+
+    let (name, kind) =
+        binding_symbol(&results, fact).expect("fetch fact must bind a containing symbol");
+    assert_eq!(
+        name, "load",
+        "fetch assigned to a const must bind the enclosing function, not the `res` variable"
+    );
+    assert_eq!(kind, &crate::base::SymbolKind::Function);
+}
+
+#[test]
+fn fetch_bare_call_binds_enclosing_function() {
+    // Lock: a bare `await fetch(...)` (no assignment) already binds the enclosing
+    // function; the kind-filter + line-fallback change must preserve this.
+    let source = r#"
+export async function load() {
+  await fetch("/api/widgets");
+}
+"#;
+    let results = extract("src/load.js", source);
+    let fact = single_request(&results);
+
+    let (name, kind) =
+        binding_symbol(&results, fact).expect("fetch fact must bind a containing symbol");
+    assert_eq!(name, "load");
+    assert_eq!(kind, &crate::base::SymbolKind::Function);
 }

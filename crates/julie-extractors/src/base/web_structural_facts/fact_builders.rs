@@ -4,7 +4,7 @@ use serde_json::{Number, Value};
 use tree_sitter::Node;
 
 use crate::base::span::NormalizedSpan;
-use crate::base::types::{StructuralFact, Symbol, stable_location_id};
+use crate::base::types::{StructuralFact, stable_location_id};
 
 pub(super) fn fact_for_node(
     file_path: &str,
@@ -79,18 +79,6 @@ pub(super) fn insert_string_array(
         key.to_string(),
         Value::Array(values.into_iter().map(Value::String).collect()),
     );
-}
-
-pub(super) fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
-    for fact in facts {
-        fact.containing_symbol_id = symbols
-            .iter()
-            .filter(|symbol| {
-                symbol.start_byte <= fact.start_byte && symbol.end_byte >= fact.end_byte
-            })
-            .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))
-            .map(|symbol| symbol.id.clone());
-    }
 }
 
 pub(super) fn child_by_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {

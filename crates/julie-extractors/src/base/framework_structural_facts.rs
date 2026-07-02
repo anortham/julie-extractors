@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
+use super::attach_containing_symbols;
 use super::markup_scan::{MarkupAttribute, scan_markup_attributes, split_argument_and_modifiers};
 use super::span::NormalizedSpan;
 use super::structural_facts::sort_structural_facts;
@@ -1749,16 +1750,4 @@ fn skip_ascii_whitespace_until(content: &str, mut cursor: usize, end: usize) -> 
         cursor += 1;
     }
     cursor
-}
-
-fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
-    for fact in facts {
-        fact.containing_symbol_id = symbols
-            .iter()
-            .filter(|symbol| {
-                symbol.start_byte <= fact.start_byte && symbol.end_byte >= fact.end_byte
-            })
-            .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))
-            .map(|symbol| symbol.id.clone());
-    }
 }

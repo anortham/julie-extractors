@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::{Node, Tree};
 
+use super::attach_containing_symbols;
 #[cfg(all(test, feature = "test-capability-matrix"))]
 use super::code_structural_facts::code_structural_fact_pattern_ids_for_language;
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -213,20 +214,6 @@ fn fact_for_node(
         confidence: 1.0,
         metadata: Some(metadata),
     }
-}
-
-fn attach_containing_symbols(facts: &mut [StructuralFact], symbols: &[Symbol]) {
-    for fact in facts {
-        fact.containing_symbol_id = containing_symbol_id(fact, symbols);
-    }
-}
-
-fn containing_symbol_id(fact: &StructuralFact, symbols: &[Symbol]) -> Option<String> {
-    symbols
-        .iter()
-        .filter(|symbol| symbol.start_byte <= fact.start_byte && symbol.end_byte >= fact.end_byte)
-        .min_by_key(|symbol| symbol.end_byte.saturating_sub(symbol.start_byte))
-        .map(|symbol| symbol.id.clone())
 }
 
 fn patterns_for_language(language: &str) -> &'static [StructuralPattern] {

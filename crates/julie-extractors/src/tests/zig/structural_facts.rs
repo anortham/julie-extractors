@@ -67,7 +67,16 @@ fn zig_emits_expected_structural_fact_patterns() {
                 && metadata_str(fact, "builtin_name") == Some("import")
         })
         .expect("expected @import builtin call fact");
-    assert!(import_call.containing_symbol_id.is_some());
+    // The top-level `const std = @import("std");` has no enclosing scope-bearing
+    // symbol: its only byte/line container is the `std` constant, which the
+    // shared binder now excludes as a value-holder. Structural facts bind to
+    // scopes, not value declarations, so a module-scope import correctly leaves
+    // containing_symbol_id = None (the in-struct `@This()` fact still binds to
+    // the `Worker` struct).
+    assert!(
+        import_call.containing_symbol_id.is_none(),
+        "a module-scope @import must not bind to the excluded `std` constant"
+    );
 
     let threadlocal = results
         .structural_facts
