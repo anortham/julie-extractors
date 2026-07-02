@@ -13,7 +13,7 @@ fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
         .expect("canonical extraction should succeed")
 }
 
-fn client_requests<'a>(results: &'a crate::ExtractionResults) -> Vec<&'a StructuralFact> {
+fn client_requests(results: &crate::ExtractionResults) -> Vec<&StructuralFact> {
     results
         .structural_facts
         .iter()
@@ -28,7 +28,7 @@ fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
         .and_then(|value| value.as_str())
 }
 
-fn single_request<'a>(results: &'a crate::ExtractionResults) -> &'a StructuralFact {
+fn single_request(results: &crate::ExtractionResults) -> &StructuralFact {
     let facts = client_requests(results);
     assert_eq!(
         facts.len(),

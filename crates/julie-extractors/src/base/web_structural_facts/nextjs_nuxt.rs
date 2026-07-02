@@ -334,10 +334,10 @@ fn nuxt_server_route(file_path: &str) -> Option<NuxtServerRoute> {
 /// Splits a trailing HTTP-method suffix off a server-route file stem.
 /// `users.get` -> (`users`, Some("GET")); `health` -> (`health`, None).
 fn parse_nuxt_server_route_method(stem: &str) -> (&str, Option<String>) {
-    if let Some((base, suffix)) = stem.rsplit_once('.') {
-        if NUXT_SERVER_ROUTE_METHODS.contains(&suffix) {
-            return (base, Some(suffix.to_ascii_uppercase()));
-        }
+    if let Some((base, suffix)) = stem.rsplit_once('.')
+        && NUXT_SERVER_ROUTE_METHODS.contains(&suffix)
+    {
+        return (base, Some(suffix.to_ascii_uppercase()));
     }
     (stem, None)
 }
