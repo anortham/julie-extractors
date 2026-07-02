@@ -11,6 +11,15 @@ on:
         description: Release target name recorded in package paths
         required: true
         default: x86_64-unknown-linux-gnu
+  # Nightly run of the specialist gates. The certification, real-world, and
+  # dogfood jobs take no inputs and only exercise in-repo code and fixtures
+  # (the real-world tiers run embedded snippets plus
+  # fixtures/real-world/json/memories.jsonl; nothing is cloned at runtime),
+  # so they are safe on a schedule. release-package is dispatch-only below
+  # because it consumes inputs.version/inputs.target, which are empty on
+  # schedule events.
+  schedule:
+    - cron: "0 9 * * *"
 
 jobs:
   certification:
@@ -71,6 +80,9 @@ jobs:
 
   release-package:
     name: Release Package Staging
+    # Dispatch-only: this job requires inputs.version and inputs.target,
+    # which are empty on schedule events.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
