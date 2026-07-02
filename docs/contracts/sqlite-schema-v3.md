@@ -501,6 +501,7 @@ Supported patterns are advertised in
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `preprocessor` | A C++ preprocessor definition. |
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGet`/`MapPost`/`MapPut`/`MapPatch`/`MapDelete` route call with a literal route template. |
 | `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `framework` | A static ASP.NET minimal API `MapGroup` route group with a literal route prefix. |
+| `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` | `framework` | An attribute-routed ASP.NET controller class or action method (tree-sitter attribution of attribute -> owning declaration). One fact per routing attribute. Metadata: `framework` (`aspnet`), `api_style` (`attribute_routing`), `attribute_kind` (`controller_route`/`http_method`/`route`), `verb` (upper-cased, `http_method` only), `route_template` (literal template as written, when present), `controller_route_template` (enclosing class template, method facts), `effective_route_template` (server-side join key with `[controller]`/`[action]` substituted lowercase and a normalized leading `/`), and `route_tokens` (tokens substituted). Non-literal templates, `[ApiController]` without routes, and conventional (non-attribute) routing stay silent. |
 | `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` or `data-hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Vue Router link target such as `<RouterLink to="/calendar">`. |
@@ -575,7 +576,8 @@ Metadata:
   `normalized_route_template`, `dynamic_segments`, `route_group_segments`,
   `parallel_route_segments`, `intercepting_route_markers`,
   `intercepted_route_segments`, `directive`, `argument`, `modifiers`,
-  `expression`, and `shorthand`.
+  `expression`, `shorthand`, `attribute_kind`, `controller_route_template`,
+  and `route_tokens`.
 
 ## Complexity Metrics
 

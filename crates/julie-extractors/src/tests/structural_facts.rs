@@ -204,6 +204,222 @@ app.MapGroup("/admin").MapGet("/users", () => "ok");
 }
 
 #[test]
+fn csharp_attribute_routes_emit_controller_and_method_facts() {
+    let source = r#"using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    [HttpGet("{id}")]
+    public IActionResult Get(int id) => Ok();
+
+    [HttpPost]
+    public IActionResult Create() => Ok();
+
+    [HttpGet("[action]")]
+    public IActionResult List() => Ok();
+}
+"#;
+
+    let results = extract("src/UsersController.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.attribute_route.v1");
+
+    for fact in &facts {
+        assert_common_framework_fact(fact, "attribute_route", "framework");
+        assert_eq!(metadata_str(fact, "framework"), Some("aspnet"));
+        assert_eq!(metadata_str(fact, "api_style"), Some("attribute_routing"));
+    }
+
+    // Controller-level route fact.
+    let controller = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "attribute_kind") == Some("controller_route"))
+        .expect("expected controller_route fact");
+    assert_eq!(
+        metadata_str(controller, "route_template"),
+        Some("api/[controller]")
+    );
+    assert_eq!(
+        metadata_str(controller, "effective_route_template"),
+        Some("/api/users")
+    );
+    assert_eq!(
+        metadata_array(controller, "route_tokens"),
+        vec!["controller"]
+    );
+    assert_eq!(metadata_str(controller, "verb"), None);
+
+    // GET /api/users/{id}
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("{id}"))
+        .expect("expected HttpGet({id}) fact");
+    assert_eq!(metadata_str(get, "attribute_kind"), Some("http_method"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(
+        metadata_str(get, "controller_route_template"),
+        Some("api/[controller]")
+    );
+    assert_eq!(
+        metadata_str(get, "effective_route_template"),
+        Some("/api/users/{id}")
+    );
+    assert_eq!(metadata_array(get, "route_tokens"), vec!["controller"]);
+
+    // Bare [HttpPost] inherits controller-level effective template.
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "verb") == Some("POST"))
+        .expect("expected bare HttpPost fact");
+    assert_eq!(metadata_str(post, "attribute_kind"), Some("http_method"));
+    assert_eq!(metadata_str(post, "route_template"), None);
+    assert_eq!(
+        metadata_str(post, "controller_route_template"),
+        Some("api/[controller]")
+    );
+    assert_eq!(
+        metadata_str(post, "effective_route_template"),
+        Some("/api/users")
+    );
+    assert_eq!(metadata_array(post, "route_tokens"), vec!["controller"]);
+
+    // [action] substitution.
+    let list = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("[action]"))
+        .expect("expected HttpGet([action]) fact");
+    assert_eq!(
+        metadata_str(list, "effective_route_template"),
+        Some("/api/users/list")
+    );
+    assert_eq!(
+        metadata_array(list, "route_tokens"),
+        vec!["controller", "action"]
+    );
+}
+
+#[test]
+fn csharp_attribute_route_non_literal_argument_is_silent() {
+    let source = r#"using Microsoft.AspNetCore.Mvc;
+
+[Route("api/[controller]")]
+public class PingController : ControllerBase
+{
+    [HttpGet(Routes.Ping)]
+    public IActionResult Ping() => Ok();
+
+    [HttpGet($"/computed/{Version}")]
+    public IActionResult Computed() => Ok();
+}
+"#;
+
+    let results = extract("src/PingController.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.attribute_route.v1");
+
+    // Only the controller_route fact survives; both non-literal method attributes stay silent.
+    assert_eq!(facts.len(), 1);
+    assert_eq!(
+        metadata_str(facts[0], "attribute_kind"),
+        Some("controller_route")
+    );
+}
+
+#[test]
+fn csharp_attribute_route_without_controller_template() {
+    let source = r#"using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+public class HealthController : ControllerBase
+{
+    [HttpGet("ping")]
+    public IActionResult Ping() => Ok();
+}
+"#;
+
+    let results = extract("src/HealthController.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.attribute_route.v1");
+
+    assert_eq!(facts.len(), 1);
+    let ping = facts[0];
+    assert_eq!(metadata_str(ping, "attribute_kind"), Some("http_method"));
+    assert_eq!(metadata_str(ping, "verb"), Some("GET"));
+    assert_eq!(metadata_str(ping, "route_template"), Some("ping"));
+    assert_eq!(metadata_str(ping, "controller_route_template"), None);
+    assert_eq!(
+        metadata_str(ping, "effective_route_template"),
+        Some("/ping")
+    );
+    assert!(metadata_array(ping, "route_tokens").is_empty());
+}
+
+#[test]
+fn csharp_api_controller_without_route_attributes_is_silent() {
+    let source = r#"using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+public class BareController : ControllerBase
+{
+    public IActionResult Index() => Ok();
+}
+"#;
+
+    let results = extract("src/BareController.cs", source);
+    assert!(facts_with_pattern(&results, "aspnet.attribute_route.v1").is_empty());
+}
+
+#[test]
+fn csharp_method_route_attribute_without_verb_emits_route_fact() {
+    let source = r#"using Microsoft.AspNetCore.Mvc;
+
+[Route("api/[controller]")]
+public class LegacyController : ControllerBase
+{
+    [Route("legacy")]
+    public IActionResult Legacy() => Ok();
+
+    [HttpGet]
+    [Route("both")]
+    public IActionResult Both() => Ok();
+}
+"#;
+
+    let results = extract("src/LegacyController.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.attribute_route.v1");
+
+    let legacy = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("legacy"))
+        .expect("expected method Route fact");
+    assert_eq!(metadata_str(legacy, "attribute_kind"), Some("route"));
+    assert_eq!(metadata_str(legacy, "verb"), None);
+    assert_eq!(
+        metadata_str(legacy, "effective_route_template"),
+        Some("/api/legacy/legacy")
+    );
+
+    // Method with both [HttpGet] and [Route("both")]: the Http* verb wins,
+    // no separate `route` fact is emitted for the sibling [Route].
+    let route_facts_for_both = facts
+        .iter()
+        .filter(|fact| metadata_str(fact, "route_template") == Some("both"))
+        .collect::<Vec<_>>();
+    assert!(
+        route_facts_for_both
+            .iter()
+            .all(|fact| metadata_str(fact, "attribute_kind") != Some("route")),
+        "sibling [Route] must not emit a route fact when an Http* attribute is present"
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "verb") == Some("GET")
+                && metadata_str(fact, "attribute_kind") == Some("http_method")),
+        "expected the [HttpGet] http_method fact"
+    );
+}
+
+#[test]
 fn html_htmx_and_alpine_attributes_emit_structural_facts() {
     let source = r##"<div id="list"
     hx-get="/todos"

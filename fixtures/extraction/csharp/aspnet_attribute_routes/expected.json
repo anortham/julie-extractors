@@ -1,0 +1,1445 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+      "name": "Computed",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 25,
+      "start_column": 4,
+      "end_line": 26,
+      "end_column": 44,
+      "start_byte": 561,
+      "end_byte": 639,
+      "body_span": {
+        "start_line": 26,
+        "start_column": 36,
+        "end_line": 26,
+        "end_column": 43,
+        "start_byte": 631,
+        "end_byte": 638
+      },
+      "body_hash": "5e683bc4c9998e31e77b0e7676087d7f",
+      "signature": "[HttpGet($\"/computed/{Version}\")] public IActionResult Computed() => Ok()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "HttpGet",
+          "annotation_key": "httpget",
+          "raw_text": "HttpGet($\"/computed/{Version}\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
+      "name": "Create",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 13,
+      "end_column": 42,
+      "start_byte": 221,
+      "end_byte": 274,
+      "body_span": {
+        "start_line": 13,
+        "start_column": 34,
+        "end_line": 13,
+        "end_column": 41,
+        "start_byte": 266,
+        "end_byte": 273
+      },
+      "body_hash": "5e683bc4c9998e31e77b0e7676087d7f",
+      "signature": "[HttpPost] public IActionResult Create() => Ok()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "HttpPost",
+          "annotation_key": "httppost",
+          "raw_text": "HttpPost"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "name": "Get",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 10,
+      "end_column": 45,
+      "start_byte": 152,
+      "end_byte": 215,
+      "body_span": {
+        "start_line": 10,
+        "start_column": 37,
+        "end_line": 10,
+        "end_column": 44,
+        "start_byte": 207,
+        "end_byte": 214
+      },
+      "body_hash": "5e683bc4c9998e31e77b0e7676087d7f",
+      "signature": "[HttpGet(\"{id}\")] public IActionResult Get(int id) => Ok()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "HttpGet",
+          "annotation_key": "httpget",
+          "raw_text": "HttpGet(\"{id}\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0",
+      "name": "HealthController",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 30,
+      "start_column": 0,
+      "end_line": 37,
+      "end_column": 1,
+      "start_byte": 710,
+      "end_byte": 882,
+      "body_span": {
+        "start_line": 32,
+        "start_column": 0,
+        "end_line": 37,
+        "end_column": 1,
+        "start_byte": 773,
+        "end_byte": 882
+      },
+      "body_hash": "aa529db58a9d355a814ce9615b2c1112",
+      "signature": "[ApiController] public class HealthController : ControllerBase",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "csharp_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "ApiController",
+          "annotation_key": "apicontroller",
+          "raw_text": "ApiController"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4",
+      "name": "Index",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 33,
+      "start_column": 4,
+      "end_line": 33,
+      "end_column": 41,
+      "start_byte": 779,
+      "end_byte": 816,
+      "body_span": {
+        "start_line": 33,
+        "start_column": 33,
+        "end_line": 33,
+        "end_column": 40,
+        "start_byte": 808,
+        "end_byte": 815
+      },
+      "body_hash": "5e683bc4c9998e31e77b0e7676087d7f",
+      "signature": "public IActionResult Index() => Ok()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "name": "Legacy",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 19,
+      "end_column": 42,
+      "start_byte": 348,
+      "end_byte": 408,
+      "body_span": {
+        "start_line": 19,
+        "start_column": 34,
+        "end_line": 19,
+        "end_column": 41,
+        "start_byte": 400,
+        "end_byte": 407
+      },
+      "body_hash": "5e683bc4c9998e31e77b0e7676087d7f",
+      "signature": "[Route(\"legacy\")] public IActionResult Legacy() => Ok()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "Route",
+          "annotation_key": "route",
+          "raw_text": "Route(\"legacy\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "name": "List",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 40,
+      "start_byte": 280,
+      "end_byte": 342,
+      "body_span": {
+        "start_line": 16,
+        "start_column": 32,
+        "end_line": 16,
+        "end_column": 39,
+        "start_byte": 334,
+        "end_byte": 341
+      },
+      "body_hash": "5e683bc4c9998e31e77b0e7676087d7f",
+      "signature": "[HttpGet(\"[action]\")] public IActionResult List() => Ok()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "HttpGet",
+          "annotation_key": "httpget",
+          "raw_text": "HttpGet(\"[action]\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Mvc:1:0",
+      "name": "Mvc",
+      "kind": "import",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 31,
+      "start_byte": 0,
+      "end_byte": 31,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "using Microsoft.AspNetCore.Mvc",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "name": "Ping",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 22,
+      "start_column": 4,
+      "end_line": 23,
+      "end_column": 40,
+      "start_byte": 492,
+      "end_byte": 555,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 32,
+        "end_line": 23,
+        "end_column": 39,
+        "start_byte": 547,
+        "end_byte": 554
+      },
+      "body_hash": "5e683bc4c9998e31e77b0e7676087d7f",
+      "signature": "[HttpGet(Routes.Ping)] public IActionResult Ping() => Ok()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "HttpGet",
+          "annotation_key": "httpget",
+          "raw_text": "HttpGet(Routes.Ping)"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "name": "Ping",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 35,
+      "start_column": 4,
+      "end_line": 36,
+      "end_column": 40,
+      "start_byte": 822,
+      "end_byte": 880,
+      "body_span": {
+        "start_line": 36,
+        "start_column": 32,
+        "end_line": 36,
+        "end_column": 39,
+        "start_byte": 872,
+        "end_byte": 879
+      },
+      "body_hash": "5e683bc4c9998e31e77b0e7676087d7f",
+      "signature": "[HttpGet(\"ping\")] public IActionResult Ping() => Ok()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "HttpGet",
+          "annotation_key": "httpget",
+          "raw_text": "HttpGet(\"ping\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "name": "UsersController",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 1,
+      "start_byte": 56,
+      "end_byte": 641,
+      "body_span": {
+        "start_line": 8,
+        "start_column": 0,
+        "end_line": 27,
+        "end_column": 1,
+        "start_byte": 146,
+        "end_byte": 641
+      },
+      "body_hash": "83df457dd4923346a0e70aa16ff842c9",
+      "signature": "[ApiController] [Route(\"api/[controller]\")] public class UsersController : ControllerBase",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "csharp_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "ApiController",
+          "annotation_key": "apicontroller",
+          "raw_text": "ApiController"
+        },
+        {
+          "annotation": "Route",
+          "annotation_key": "route",
+          "raw_text": "Route(\"api/[controller]\")"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 26,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 10,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0",
+      "callee_name": "ControllerBase",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 30,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 33,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 36,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "callee_name": "ControllerBase",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "line_number": 5,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 26,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0",
+        "callee_name": "ControllerBase",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 30,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "ControllerBase",
+        "terminal_name": "ControllerBase",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 33,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+        "callee_name": "ControllerBase",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+        "line_number": 5,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "ControllerBase",
+        "terminal_name": "ControllerBase",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Api:type_usage:3:17",
+      "name": "Api",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 20,
+      "start_byte": 50,
+      "end_byte": 53,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:AspNetCore:type_usage:1:16",
+      "name": "AspNetCore",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 1,
+      "start_column": 16,
+      "end_line": 1,
+      "end_column": 26,
+      "start_byte": 16,
+      "end_byte": 26,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Mvc:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Microsoft:type_usage:1:6",
+      "name": "Microsoft",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 1,
+      "start_column": 6,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 6,
+      "end_byte": 15,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Mvc:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Mvc:type_usage:1:27",
+      "name": "Mvc",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 1,
+      "start_column": 27,
+      "end_line": 1,
+      "end_column": 30,
+      "start_byte": 27,
+      "end_byte": 30,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Mvc:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:10:40",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 10,
+      "start_column": 40,
+      "end_line": 10,
+      "end_column": 42,
+      "start_byte": 210,
+      "end_byte": 212,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:13:37",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 13,
+      "start_column": 37,
+      "end_line": 13,
+      "end_column": 39,
+      "start_byte": 269,
+      "end_byte": 271,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:16:35",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 16,
+      "start_column": 35,
+      "end_line": 16,
+      "end_column": 37,
+      "start_byte": 337,
+      "end_byte": 339,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:19:37",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 19,
+      "start_column": 37,
+      "end_line": 19,
+      "end_column": 39,
+      "start_byte": 403,
+      "end_byte": 405,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:23:35",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 23,
+      "start_column": 35,
+      "end_line": 23,
+      "end_column": 37,
+      "start_byte": 550,
+      "end_byte": 552,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:26:39",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 26,
+      "start_column": 39,
+      "end_line": 26,
+      "end_column": 41,
+      "start_byte": 634,
+      "end_byte": 636,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:33:36",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 33,
+      "start_column": 36,
+      "end_line": 33,
+      "end_column": 38,
+      "start_byte": 811,
+      "end_byte": 813,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ok:call:36:35",
+      "name": "Ok",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 36,
+      "start_column": 35,
+      "end_line": 36,
+      "end_column": 37,
+      "start_byte": 875,
+      "end_byte": 877,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:member_access:22:20",
+      "name": "Ping",
+      "kind": "member_access",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 22,
+      "start_column": 20,
+      "end_line": 22,
+      "end_column": 24,
+      "start_byte": 508,
+      "end_byte": 512,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Sample:type_usage:3:10",
+      "name": "Sample",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 3,
+      "start_column": 10,
+      "end_line": 3,
+      "end_column": 16,
+      "start_byte": 43,
+      "end_byte": 49,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+      "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
+      "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4",
+      "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "aspnet.attribute_route.v1",
+      "capture_name": "attribute_route",
+      "node_kind": "attribute",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
+      "start_line": 12,
+      "start_column": 5,
+      "end_line": 12,
+      "end_column": 13,
+      "start_byte": 222,
+      "end_byte": 230,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute_routing",
+        "attribute_kind": "http_method",
+        "controller_route_template": "api/[controller]",
+        "effective_route_template": "/api/users",
+        "framework": "aspnet",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_tokens": [
+          "controller"
+        ],
+        "verb": "POST"
+      }
+    },
+    {
+      "pattern_id": "aspnet.attribute_route.v1",
+      "capture_name": "attribute_route",
+      "node_kind": "attribute",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "start_line": 9,
+      "start_column": 5,
+      "end_line": 9,
+      "end_column": 20,
+      "start_byte": 153,
+      "end_byte": 168,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute_routing",
+        "attribute_kind": "http_method",
+        "controller_route_template": "api/[controller]",
+        "effective_route_template": "/api/users/{id}",
+        "framework": "aspnet",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "{id}",
+        "route_tokens": [
+          "controller"
+        ],
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "aspnet.attribute_route.v1",
+      "capture_name": "attribute_route",
+      "node_kind": "attribute",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "start_line": 18,
+      "start_column": 5,
+      "end_line": 18,
+      "end_column": 20,
+      "start_byte": 349,
+      "end_byte": 364,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute_routing",
+        "attribute_kind": "route",
+        "controller_route_template": "api/[controller]",
+        "effective_route_template": "/api/users/legacy",
+        "framework": "aspnet",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "legacy",
+        "route_tokens": [
+          "controller"
+        ]
+      }
+    },
+    {
+      "pattern_id": "aspnet.attribute_route.v1",
+      "capture_name": "attribute_route",
+      "node_kind": "attribute",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "start_line": 15,
+      "start_column": 5,
+      "end_line": 15,
+      "end_column": 24,
+      "start_byte": 281,
+      "end_byte": 300,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute_routing",
+        "attribute_kind": "http_method",
+        "controller_route_template": "api/[controller]",
+        "effective_route_template": "/api/users/list",
+        "framework": "aspnet",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "[action]",
+        "route_tokens": [
+          "controller",
+          "action"
+        ],
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "aspnet.attribute_route.v1",
+      "capture_name": "attribute_route",
+      "node_kind": "attribute",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "start_line": 35,
+      "start_column": 5,
+      "end_line": 35,
+      "end_column": 20,
+      "start_byte": 823,
+      "end_byte": 838,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute_routing",
+        "attribute_kind": "http_method",
+        "effective_route_template": "/ping",
+        "framework": "aspnet",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "ping",
+        "route_tokens": [],
+        "verb": "GET"
+      }
+    },
+    {
+      "pattern_id": "aspnet.attribute_route.v1",
+      "capture_name": "attribute_route",
+      "node_kind": "attribute",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "start_line": 6,
+      "start_column": 1,
+      "end_line": 6,
+      "end_column": 26,
+      "start_byte": 73,
+      "end_byte": 98,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "attribute_routing",
+        "attribute_kind": "controller_route",
+        "effective_route_template": "/api/users",
+        "framework": "aspnet",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_template": "api/[controller]",
+        "route_tokens": [
+          "controller"
+        ]
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 38,
+      "covered_bytes": 883,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 38,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 883,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 26,
+      "start_column": 36,
+      "end_line": 26,
+      "end_column": 43,
+      "start_byte": 631,
+      "end_byte": 638,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 13,
+      "start_column": 34,
+      "end_line": 13,
+      "end_column": 41,
+      "start_byte": 266,
+      "end_byte": 273,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 10,
+      "start_column": 37,
+      "end_line": 10,
+      "end_column": 44,
+      "start_byte": 207,
+      "end_byte": 214,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 33,
+      "start_column": 33,
+      "end_line": 33,
+      "end_column": 40,
+      "start_byte": 808,
+      "end_byte": 815,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 19,
+      "start_column": 34,
+      "end_line": 19,
+      "end_column": 41,
+      "start_byte": 400,
+      "end_byte": 407,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 16,
+      "start_column": 32,
+      "end_line": 16,
+      "end_column": 39,
+      "start_byte": 334,
+      "end_byte": 341,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 23,
+      "start_column": 32,
+      "end_line": 23,
+      "end_column": 39,
+      "start_byte": 547,
+      "end_byte": 554,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 36,
+      "start_column": 32,
+      "end_line": 36,
+      "end_column": 39,
+      "start_byte": 872,
+      "end_byte": 879,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "start_line": 21,
+      "start_column": 4,
+      "end_line": 21,
+      "end_column": 77,
+      "start_byte": 414,
+      "end_byte": 487,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": null,
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 29,
+      "end_column": 66,
+      "start_byte": 643,
+      "end_byte": 709,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+      "start_line": 25,
+      "start_column": 13,
+      "end_line": 25,
+      "end_column": 35,
+      "start_byte": 570,
+      "end_byte": 592,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "start_line": 9,
+      "start_column": 13,
+      "end_line": 9,
+      "end_column": 19,
+      "start_byte": 161,
+      "end_byte": 167,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "start_line": 18,
+      "start_column": 11,
+      "end_line": 18,
+      "end_column": 19,
+      "start_byte": 355,
+      "end_byte": 363,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "start_line": 15,
+      "start_column": 13,
+      "end_line": 15,
+      "end_column": 23,
+      "start_byte": 289,
+      "end_byte": 299,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "start_line": 35,
+      "start_column": 13,
+      "end_line": 35,
+      "end_column": 19,
+      "start_byte": 831,
+      "end_byte": 837,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "start_line": 6,
+      "start_column": 7,
+      "end_line": 6,
+      "end_column": 25,
+      "start_byte": 79,
+      "end_byte": 97,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

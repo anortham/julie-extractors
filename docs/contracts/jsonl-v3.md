@@ -510,6 +510,7 @@ Supported patterns are advertised in `language_capability` records under
 | `cpp.preprocessor_definition.v1` | `cpp` | `preprocessor_definition` | `preproc_def`, `preproc_function_def` | `{"pattern_version":1,"query_family":"preprocessor"}` |
 | `aspnet.minimal_api.route.v1` | `csharp` | `route_call` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","verb":"GET","route_template":"/todos","route_source":"string_literal"}` plus optional `handler_kind` and `handler_name` |
 | `aspnet.minimal_api.route_group.v1` | `csharp` | `route_group` | parser-covered invocation span | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"minimal_api","route_prefix":"/admin","route_source":"string_literal","source_kind":"map_group"}` plus optional `group_variable` |
+| `aspnet.attribute_route.v1` | `csharp` | `attribute_route` | `attribute` | `{"pattern_version":1,"query_family":"framework","framework":"aspnet","api_style":"attribute_routing","attribute_kind":"http_method","verb":"GET","route_template":"{id}","controller_route_template":"api/[controller]","effective_route_template":"/api/users/{id}","route_tokens":["controller"]}` — `attribute_kind` is one of `controller_route`/`http_method`/`route`; `verb` only on `http_method`; `route_template`/`controller_route_template` present only when a literal template exists; `effective_route_template` is the server-side join key |
 | `htmx.attribute.v1` | `html`, `razor` | `attribute` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"htmx","attribute_name":"hx-get","attribute_value":"/todos"}` plus optional `verb`, `target_path`, and `data_prefix` |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `{"pattern_version":1,"query_family":"frontend_interaction","framework":"alpine","directive":"x-on","argument":"click","expression":"open = !open","shorthand":true}` plus optional `modifiers` |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"vue","target_path":"/calendar","source_kind":"router_link","route_source":"string_literal","attribute_name":"to","verb":"GET"}` |
@@ -584,6 +585,43 @@ suffix in the filename. A wrapped custom handler (for example
 miss and stays silent. `server/middleware`, `server/plugins`, and `server/utils`
 are not routes and are excluded. Server routes are `.js`/`.ts` only; this family
 claims the `server/**` space that `nuxt.file_route.v1` deliberately excludes.
+
+`aspnet.attribute_route.v1` emits definition facts for attribute-routed ASP.NET
+controllers, using tree-sitter attribution (each attribute node is bound to its
+owning class or method declaration, not raw text association). Three
+`attribute_kind` shapes are emitted:
+
+- `controller_route` — a class-level `[Route("...")]` with a literal template
+  (e.g. `[Route("api/[controller]")]`). Carries `route_template` (as written)
+  and `effective_route_template`.
+- `http_method` — a method-level `[HttpGet]`/`[HttpPost]`/`[HttpPut]`/`[HttpPatch]`/`[HttpDelete]`/`[HttpHead]`/`[HttpOptions]`
+  attribute. Carries `verb` (upper-cased from the attribute name), `route_template`
+  when the attribute has a literal argument, `controller_route_template` when the
+  enclosing class has a literal `[Route]`, and `effective_route_template`. Bare
+  `[HttpPost]` (no argument) inherits the controller-level effective template.
+  Multiple `Http*` attributes on one method emit one fact each.
+- `route` — a method-level `[Route("...")]` on an action method that has **no**
+  `Http*` verb attribute (no `verb`). When a method carries both a verb attribute
+  and a sibling `[Route]`, only the verb attribute emits; the `[Route]` does not
+  produce a separate `route` fact.
+
+`effective_route_template` is the server-side join key Miller matches client
+`http.client_request.v1` `target_path` values against (mirroring
+`aspnet.minimal_api.route.v1`; ASP.NET families keep `route_template`/`effective_route_template`
+rather than the frontend `route_path` naming rule). It is formed by joining the
+controller template and method template, substituting the `[controller]` token
+(the class name minus a trailing `Controller`) and the `[action]` token (the
+method name) with their lowercased values to produce a stable key, then
+normalizing a single leading `/` (e.g. `UsersController` + `[HttpGet("{id}")]`
+-> `/api/users/{id}`). `route_tokens` lists the tokens that were substituted
+(e.g. `["controller"]`), so consumers know a substitution occurred.
+
+Attributes whose route argument is not a plain string literal (interpolation,
+concatenation, `nameof`, constant references) stay silent. A `[ApiController]`
+without any route attributes emits nothing. `[HttpGet]` on a class is invalid
+routing and is ignored (only `[Route]` is read at class level). Conventional
+(non-attribute, `MapControllerRoute`-style) routing is out of scope for this
+family.
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route

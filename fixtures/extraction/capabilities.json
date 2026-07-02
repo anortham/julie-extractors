@@ -2035,6 +2035,11 @@
       },
       "fixtures": [
         {
+          "name": "aspnet_attribute_routes",
+          "source": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+          "expected": "fixtures/extraction/csharp/aspnet_attribute_routes/expected.json"
+        },
+        {
           "name": "basic",
           "source": "fixtures/extraction/csharp/basic/source.cs",
           "expected": "fixtures/extraction/csharp/basic/expected.json"
@@ -2103,6 +2108,7 @@
         },
         "structural_facts": {
           "supported": [
+            "aspnet.attribute_route.v1",
             "aspnet.minimal_api.route_group.v1",
             "aspnet.minimal_api.route.v1"
           ],
