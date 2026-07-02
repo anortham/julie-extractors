@@ -61,6 +61,7 @@ pub mod rust;
 pub mod scala;
 pub mod source_regions;
 pub mod sql;
+pub mod structural_fact_registry;
 pub mod structural_facts;
 pub mod swift;
 pub mod toml;
