@@ -1,5 +1,6 @@
 //! Focused emission tests for the `http.client_request.v1` structural-fact
-//! family (Task 1: global `fetch()` calls in the JS/TS language family).
+//! family (Task 1: global `fetch()` calls in the JS/TS language family;
+//! Task 2: import-gated axios calls and Vue SFC script-section coverage).
 
 use std::path::Path;
 
@@ -205,6 +206,249 @@ export async function load(suffix) {
     assert!(
         client_requests(&results).is_empty(),
         "a concatenated (non-plain) first argument must stay silent"
+    );
+}
+
+#[test]
+fn axios_verb_method_emits_attested_with_generic_type_args() {
+    let cases = [("src/api.ts", "typescript"), ("src/api.tsx", "tsx")];
+    for (file_path, label) in cases {
+        let source = r#"
+import axios from "axios";
+
+export async function getActiveMessages() {
+  return await axios.get<Msg[]>("/api/messages/active");
+}
+"#;
+        let results = extract(file_path, source);
+        let fact = single_request(&results);
+
+        assert_eq!(fact.language, label);
+        assert_eq!(metadata_str(fact, "client"), Some("axios"));
+        assert_eq!(metadata_str(fact, "import_source"), Some("axios"));
+        assert_eq!(metadata_str(fact, "framework"), Some("axios"));
+        assert_eq!(
+            metadata_str(fact, "target_path"),
+            Some("/api/messages/active")
+        );
+        assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+        assert_eq!(metadata_str(fact, "verb_source"), Some("attested"));
+    }
+}
+
+#[test]
+fn axios_verb_methods_cover_all_verbs() {
+    let source = r#"
+import axios from "axios";
+
+export async function all() {
+  await axios.get("/g");
+  await axios.post("/p");
+  await axios.put("/u");
+  await axios.patch("/a");
+  await axios.delete("/d");
+  await axios.head("/h");
+  await axios.options("/o");
+}
+"#;
+    let results = extract("src/api.js", source);
+    let facts = client_requests(&results);
+    let verbs: Vec<_> = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "verb"))
+        .collect();
+    assert_eq!(
+        verbs,
+        ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+        "each axios verb method should emit its attested verb in source order"
+    );
+    assert!(
+        facts
+            .iter()
+            .all(|fact| metadata_str(fact, "verb_source") == Some("attested"))
+    );
+}
+
+#[test]
+fn axios_direct_call_with_options_marks_attested_verb() {
+    let source = r#"
+import axios from "axios";
+
+export async function save() {
+  return axios("/api/users", { method: "post", data: payload });
+}
+"#;
+    let results = extract("src/save.js", source);
+    let fact = single_request(&results);
+
+    assert_eq!(metadata_str(fact, "client"), Some("axios"));
+    assert_eq!(metadata_str(fact, "verb"), Some("POST"));
+    assert_eq!(metadata_str(fact, "verb_source"), Some("attested"));
+}
+
+#[test]
+fn axios_direct_call_defaults_to_get() {
+    let source = r#"
+import axios from "axios";
+
+export async function load() {
+  return axios("/api/users");
+}
+"#;
+    let results = extract("src/load.js", source);
+    let fact = single_request(&results);
+
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+    assert_eq!(metadata_str(fact, "verb_source"), Some("default"));
+}
+
+#[test]
+fn axios_non_static_method_emits_nothing() {
+    let source = r#"
+import axios from "axios";
+
+export async function send(verb) {
+  return axios("/api/users", { method: verb });
+}
+"#;
+    let results = extract("src/send.js", source);
+    assert!(
+        client_requests(&results).is_empty(),
+        "an attested-but-unreadable axios method must not degrade to GET"
+    );
+}
+
+#[test]
+fn axios_without_import_stays_silent() {
+    let source = r#"
+export async function load() {
+  return axios.get("/api/users");
+}
+"#;
+    let results = extract("src/load.js", source);
+    assert!(
+        client_requests(&results).is_empty(),
+        "axios calls without an axios import must stay silent"
+    );
+}
+
+#[test]
+fn axios_renamed_default_import_matches_local_name() {
+    let source = r#"
+import http from "axios";
+
+export async function save() {
+  await http.post("/api/users");
+  await axios.get("/api/ignored");
+}
+"#;
+    let results = extract("src/save.js", source);
+    let fact = single_request(&results);
+
+    assert_eq!(metadata_str(fact, "target_path"), Some("/api/users"));
+    assert_eq!(metadata_str(fact, "verb"), Some("POST"));
+    assert_eq!(metadata_str(fact, "import_source"), Some("axios"));
+}
+
+#[test]
+fn axios_namespace_import_matches_local_name() {
+    let source = r#"
+import * as axios from "axios";
+
+export async function load() {
+  return axios.get("/api/users");
+}
+"#;
+    let results = extract("src/load.js", source);
+    let fact = single_request(&results);
+
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+    assert_eq!(metadata_str(fact, "verb_source"), Some("attested"));
+}
+
+#[test]
+fn axios_dynamic_url_stays_silent() {
+    let source = r#"
+import axios from "axios";
+
+export async function load(id) {
+  await axios.get(`/api/users/${id}`);
+  await axios.get(url);
+}
+"#;
+    let results = extract("src/load.js", source);
+    assert!(
+        client_requests(&results).is_empty(),
+        "dynamic axios URLs must stay silent"
+    );
+}
+
+#[test]
+fn vue_script_setup_fetch_and_axios_emit() {
+    let source = r#"<template>
+  <button @click="load">load</button>
+</template>
+<script setup lang="ts">
+import axios from "axios";
+
+async function load() {
+  await fetch("/api/plain");
+  await axios.get("/api/messages");
+}
+</script>
+"#;
+    let results = extract("src/Messages.vue", source);
+    let facts = client_requests(&results);
+    assert_eq!(
+        facts.len(),
+        2,
+        "vue script setup should emit one fetch and one axios fact"
+    );
+    assert!(facts.iter().all(|fact| fact.language == "vue"));
+    let clients: Vec<_> = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "client"))
+        .collect();
+    assert_eq!(clients, ["fetch", "axios"]);
+}
+
+#[test]
+fn vue_template_content_stays_silent() {
+    let source = r#"<template>
+  <pre>fetch("/api/only-in-template")</pre>
+</template>
+<script>
+export default {
+  name: "Docs",
+};
+</script>
+"#;
+    let results = extract("src/Docs.vue", source);
+    assert!(
+        client_requests(&results).is_empty(),
+        "template section content must not produce client-request facts"
+    );
+}
+
+#[test]
+fn vue_axios_import_gate_is_section_local() {
+    let source = r#"<template>
+  <div>x</div>
+</template>
+<script>
+export default {
+  methods: {
+    load() {
+      return axios.get("/api/users");
+    },
+  },
+};
+</script>
+"#;
+    let results = extract("src/NoImport.vue", source);
+    assert!(
+        client_requests(&results).is_empty(),
+        "axios in a vue script without an axios import must stay silent"
     );
 }
 

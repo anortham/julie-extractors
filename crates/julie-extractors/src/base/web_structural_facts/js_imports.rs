@@ -11,6 +11,7 @@ pub(super) struct JsImportIndex {
     pub(super) react_router_routes: HashMap<String, String>,
     pub(super) react_router_route_apis: HashMap<String, String>,
     pub(super) next_links: HashMap<String, String>,
+    pub(super) axios_clients: HashMap<String, String>,
 }
 
 pub(super) fn collect_js_imports(content: &str) -> JsImportIndex {
@@ -63,6 +64,17 @@ pub(super) fn collect_js_imports(content: &str) -> JsImportIndex {
                     if imported == "Link" {
                         imports.next_links.insert(local, source.clone());
                     }
+                }
+            }
+            "axios" => {
+                // The callable client is the default export (or the namespace
+                // object, whose call/method surface matches it). Named imports
+                // such as `AxiosError` are not clients and stay out.
+                if let Some(local) = parse_default_import(statement) {
+                    imports.axios_clients.insert(local, source.clone());
+                }
+                if let Some(local) = parse_namespace_import(statement) {
+                    imports.axios_clients.insert(local, source.clone());
                 }
             }
             _ => {}
@@ -155,6 +167,23 @@ fn parse_named_imports(statement: &str) -> Vec<(String, String)> {
             Some((imported, local))
         })
         .collect()
+}
+
+/// Parses `import * as local from "..."`, returning the local binding.
+fn parse_namespace_import(statement: &str) -> Option<String> {
+    let after_import = skip_ascii_whitespace_until(statement, "import".len(), statement.len());
+    if statement.as_bytes().get(after_import) != Some(&b'*') {
+        return None;
+    }
+    let as_start = skip_ascii_whitespace_until(statement, after_import + 1, statement.len());
+    if !statement[as_start..].starts_with("as")
+        || !is_identifier_boundary(statement, as_start, "as".len())
+    {
+        return None;
+    }
+    let local_start =
+        skip_ascii_whitespace_until(statement, as_start + "as".len(), statement.len());
+    parse_js_identifier(statement, local_start, statement.len()).map(|(identifier, _)| identifier)
 }
 
 fn parse_default_import(statement: &str) -> Option<String> {

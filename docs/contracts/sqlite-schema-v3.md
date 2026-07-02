@@ -511,15 +511,20 @@ Supported patterns are advertised in
 | `react.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_definition` | `object`, `jsx_element` | `frontend_navigation` | A static React Router route object or `<Route>` element with a literal `path` or `index`. |
 | `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `frontend_navigation` | A static `next/link` target from a string `href` or object `pathname`. |
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `client_request` | `call_expression` | `web.http_client` | A global `fetch()` call whose first argument is a static string URL. Metadata: `client` (`fetch`), `framework` (`fetch`), `target_path` (URL as written), `url_kind` (`path`/`relative`/`absolute`), `verb` (upper-cased HTTP method), `verb_source` (`attested` from a static `method:` property, else `default` GET). |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` | `web.http_client` | A global `fetch()` call or import-gated axios call whose first argument is a static string URL. Metadata: `client` (`fetch`/`axios`), `framework` (mirrors `client`), `target_path` (URL as written), `url_kind` (`path`/`relative`/`absolute`), `verb` (upper-cased HTTP method), `verb_source` (`attested` from an axios verb method or static `method:` property, else `default` GET), and `import_source` (`axios`, axios facts only). |
 
-Global `fetch()` calls emit `http.client_request.v1` only when the first argument
-is a plain static string literal (`'...'` or `"..."`). Template literals (even
-without interpolation), identifier/expression URLs, concatenated URLs,
-`obj.fetch(...)` property calls, and matches inside comments or string literals
-stay silent. When a `method:` property is present but its value is not a static
-string literal, the whole call emits nothing rather than silently degrading to
-`GET`. `fetch` is a global, so no import is required.
+`fetch()` and axios calls emit `http.client_request.v1` only when the first
+argument is a plain static string literal (`'...'` or `"..."`). Template
+literals (even without interpolation), identifier/expression URLs, concatenated
+URLs, property calls of the bare client name (`obj.fetch(...)`), and matches
+inside comments or string literals stay silent. When a `method:` property is
+present but its value is not a static string literal, the whole call emits
+nothing rather than silently degrading to `GET`. `fetch` is a global, so no
+import is required. Axios calls are import-gated on a default or namespace
+axios import and matched on the LOCAL binding (`import http from "axios"`
+gates `http.*`). In Vue SFCs the scan covers `<script>`/`<script setup>`
+section content only, and the axios import gate is local to the declaring
+script section.
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route

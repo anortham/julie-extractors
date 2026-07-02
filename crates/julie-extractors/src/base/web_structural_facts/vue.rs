@@ -452,6 +452,16 @@ fn parse_vue_static_import_line(line: &str) -> Option<(String, String)> {
     Some((binding.to_string(), specifier))
 }
 
+/// Content ranges of `<script>` / `<script setup>` sections, for collectors
+/// that scan script bodies only (e.g. the HTTP client-request scan).
+pub(super) fn vue_script_section_ranges(content: &str) -> Vec<(usize, usize)> {
+    scan_vue_sections(content)
+        .into_iter()
+        .filter(|section| section.section_type == "script")
+        .map(|section| (section.content_start, section.content_end))
+        .collect()
+}
+
 fn scan_vue_sections(content: &str) -> Vec<VueSectionSpan> {
     let mut sections = Vec::new();
     let mut cursor = 0usize;

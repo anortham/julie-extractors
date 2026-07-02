@@ -21,7 +21,9 @@ use http_client::collect_http_client_requests;
 use js_imports::collect_js_imports;
 use nextjs_nuxt::{collect_nextjs_route_references, nextjs_file_route_fact, nuxt_file_route_fact};
 use react::{collect_react_router_route_definitions, collect_react_router_route_references};
-use vue::{collect_vue_router_route_definitions, collect_vue_structural_facts};
+use vue::{
+    collect_vue_router_route_definitions, collect_vue_structural_facts, vue_script_section_ranges,
+};
 
 const CSS_SELECTOR_RULE_PATTERN_ID: &str = "css.selector_rule.v1";
 const CSS_CUSTOM_PROPERTY_PATTERN_ID: &str = "css.custom_property.v1";
@@ -61,6 +63,7 @@ const HTML_WEB_PATTERN_IDS: &[&str] = &[
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const VUE_WEB_PATTERN_IDS: &[&str] = &[
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
     NUXT_FILE_ROUTE_PATTERN_ID,
     NUXT_ROUTE_REFERENCE_PATTERN_ID,
     VUE_ROUTE_DEFINITION_PATTERN_ID,
@@ -98,7 +101,24 @@ pub fn collect_web_structural_facts(
     let mut facts = match language {
         "css" => collect_css_structural_facts(tree, file_path, content),
         "html" => collect_html_structural_facts(tree, file_path, content),
-        "vue" => collect_vue_structural_facts(tree, file_path, content),
+        "vue" => {
+            let mut facts = collect_vue_structural_facts(tree, file_path, content);
+            // Client-request scanning runs over script sections only; the
+            // axios import gate is local to the section that declares it.
+            for (section_start, section_end) in vue_script_section_ranges(content) {
+                let section_imports = collect_js_imports(&content[section_start..section_end]);
+                facts.extend(collect_http_client_requests(
+                    language,
+                    tree,
+                    file_path,
+                    content,
+                    &section_imports,
+                    section_start,
+                    section_end,
+                ));
+            }
+            facts
+        }
         "javascript" | "jsx" | "typescript" | "tsx" => {
             collect_react_nextjs_structural_facts(language, tree, file_path, content)
         }
@@ -133,7 +153,13 @@ fn collect_react_nextjs_structural_facts(
     let imports = collect_js_imports(content);
     let mut facts = Vec::new();
     facts.extend(collect_http_client_requests(
-        language, tree, file_path, content,
+        language,
+        tree,
+        file_path,
+        content,
+        &imports,
+        0,
+        content.len(),
     ));
     facts.extend(collect_react_router_route_references(
         language, tree, file_path, content, &imports,

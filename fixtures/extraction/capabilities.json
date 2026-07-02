@@ -709,6 +709,11 @@
           "name": "http_client_fetch",
           "source": "fixtures/extraction/typescript/http_client_fetch/source.ts",
           "expected": "fixtures/extraction/typescript/http_client_fetch/expected.json"
+        },
+        {
+          "name": "http_client_axios",
+          "source": "fixtures/extraction/typescript/http_client_axios/source.ts",
+          "expected": "fixtures/extraction/typescript/http_client_axios/expected.json"
         }
       ],
       "target_capabilities": {
@@ -877,6 +882,11 @@
           "name": "http_client_fetch",
           "source": "fixtures/extraction/tsx/http_client_fetch/source.tsx",
           "expected": "fixtures/extraction/tsx/http_client_fetch/expected.json"
+        },
+        {
+          "name": "http_client_axios",
+          "source": "fixtures/extraction/tsx/http_client_axios/source.tsx",
+          "expected": "fixtures/extraction/tsx/http_client_axios/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1029,6 +1039,11 @@
           "name": "http_client_fetch",
           "source": "fixtures/extraction/javascript/http_client_fetch/source.js",
           "expected": "fixtures/extraction/javascript/http_client_fetch/expected.json"
+        },
+        {
+          "name": "http_client_axios",
+          "source": "fixtures/extraction/javascript/http_client_axios/source.js",
+          "expected": "fixtures/extraction/javascript/http_client_axios/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1177,6 +1192,11 @@
           "name": "http_client_fetch",
           "source": "fixtures/extraction/jsx/http_client_fetch/source.jsx",
           "expected": "fixtures/extraction/jsx/http_client_fetch/expected.json"
+        },
+        {
+          "name": "http_client_axios",
+          "source": "fixtures/extraction/jsx/http_client_axios/source.jsx",
+          "expected": "fixtures/extraction/jsx/http_client_axios/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1601,6 +1621,11 @@
           "name": "nuxt_partial_file_route",
           "source": "fixtures/extraction/vue/nuxt_partial_file_route/pages/users-[group]/[id].vue",
           "expected": "fixtures/extraction/vue/nuxt_partial_file_route/expected.json"
+        },
+        {
+          "name": "http_client",
+          "source": "fixtures/extraction/vue/http_client/source.vue",
+          "expected": "fixtures/extraction/vue/http_client/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1652,6 +1677,7 @@
         },
         "structural_facts": {
           "supported": [
+            "http.client_request.v1",
             "nuxt.file_route.v1",
             "nuxt.route_reference.v1",
             "vue.route_definition.v1",
