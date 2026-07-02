@@ -552,6 +552,15 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` |
 | `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` |
 
+ASP.NET route facts emit `normalized_route_template` as the server-side
+cross-family join key. Minimal API route calls compute it from
+`effective_route_template` when a same-file `MapGroup` prefix is resolved, else
+from `route_template`; `MapGroup` route-group facts compute it from
+`route_prefix`; attribute-routing facts compute it from
+`effective_route_template` when present, else `route_template`. The raw
+`route_template`, `route_prefix`, and `effective_route_template` values remain
+the source-shaped ASP.NET strings.
+
 `fetch()` and axios calls emit `http.client_request.v1` only when the first
 argument is a plain static string literal (`'...'` or `"..."`). `url_kind` is
 `path` for a leading `/`, `absolute` for a URL containing `://`, and `relative`
@@ -632,16 +641,15 @@ owning class or method declaration, not raw text association). Three
   and a sibling `[Route]`, only the verb attribute emits; the `[Route]` does not
   produce a separate `route` fact.
 
-`effective_route_template` is the server-side join key Miller matches client
-`http.client_request.v1` `target_path` values against (mirroring
-`aspnet.minimal_api.route.v1`; ASP.NET families keep `route_template`/`effective_route_template`
-rather than the frontend `route_path` naming rule). It is formed by joining the
-controller template and method template, substituting the `[controller]` token
-(the class name minus a trailing `Controller`) and the `[action]` token (the
-method name) with their lowercased values to produce a stable key, then
-normalizing a single leading `/` (e.g. `UsersController` + `[HttpGet("{id}")]`
--> `/api/users/{id}`). `route_tokens` lists the tokens that were substituted
-(e.g. `["controller"]`), so consumers know a substitution occurred.
+`effective_route_template` is formed by joining the controller template and
+method template, substituting the `[controller]` token (the class name minus a
+trailing `Controller`) and the `[action]` token (the method name) with their
+lowercased values, then normalizing a single leading `/` (e.g.
+`UsersController` + `[HttpGet("{id}")]` -> `/api/users/{id}`). The
+cross-family join key is `normalized_route_template`, which converts ASP.NET
+parameters such as `{id}` and `{id:int}` to `:id` while preserving trailing
+slashes. `route_tokens` lists the tokens that were substituted (e.g.
+`["controller"]`), so consumers know a substitution occurred.
 
 Attributes whose route argument is not a plain string literal (interpolation,
 concatenation, `nameof`, constant references) stay silent. A `[ApiController]`

@@ -22,6 +22,7 @@ pub mod data_structural_facts;
 pub mod embedded_span;
 pub mod extractor;
 pub mod framework_structural_facts;
+pub mod http_boundary;
 pub mod kinds;
 mod markup_scan;
 pub mod relationship_resolution;

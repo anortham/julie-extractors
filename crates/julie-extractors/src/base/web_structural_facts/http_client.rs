@@ -1,13 +1,14 @@
 use tree_sitter::Tree;
 
 use super::HTTP_CLIENT_REQUEST_PATTERN_ID;
-use super::fact_builders::{base_metadata, fact_for_span, insert_string};
+use super::fact_builders::fact_for_span;
 use super::js_imports::JsImportIndex;
 use super::js_object_scan::{
     find_matching_paren, find_top_level_comma_or_end, is_identifier_boundary,
     is_ignored_syntax_range, parse_js_identifier, parse_js_string_literal,
     skip_ascii_whitespace_until,
 };
+use crate::base::http_boundary::client_request_metadata;
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 
@@ -216,16 +217,9 @@ fn push_client_request_fact(
         return;
     };
 
-    let mut metadata = base_metadata("web.http_client");
-    insert_string(&mut metadata, "framework", client);
-    insert_string(&mut metadata, "client", client);
-    insert_string(&mut metadata, "target_path", &target_path);
-    insert_string(&mut metadata, "url_kind", classify_url_kind(&target_path));
-    insert_string(&mut metadata, "verb", &verb.name);
-    insert_string(&mut metadata, "verb_source", verb.source);
-    if let Some((_, import_source)) = axios {
-        insert_string(&mut metadata, "import_source", import_source);
-    }
+    let import_source = axios.as_ref().map(|(_, source)| *source);
+    let metadata =
+        client_request_metadata(client, &target_path, &verb.name, verb.source, import_source);
 
     facts.push(fact_for_span(
         file_path,
@@ -393,16 +387,6 @@ fn find_matching_brace(content: &str, open_brace: usize, end: usize) -> Option<u
     }
 
     None
-}
-
-fn classify_url_kind(url: &str) -> &'static str {
-    if url.starts_with('/') {
-        "path"
-    } else if url.contains("://") {
-        "absolute"
-    } else {
-        "relative"
-    }
 }
 
 /// Returns true when the nearest non-whitespace byte before `start` is a `.`,

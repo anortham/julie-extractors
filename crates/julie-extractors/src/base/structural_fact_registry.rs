@@ -2026,6 +2026,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 "Raw route string passed as the first Map* argument.",
             ),
             key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Cross-family join key with a leading slash and ASP.NET route parameters converted to :param form.",
+            ),
+            key(
                 "route_source",
                 STR,
                 ALWAYS,
@@ -2080,6 +2086,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 "Route prefix string passed to MapGroup(...).",
             ),
             key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Cross-family join key for the group prefix with ASP.NET route parameters converted to :param form.",
+            ),
+            key(
                 "route_source",
                 STR,
                 ALWAYS,
@@ -2131,6 +2143,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 OPT,
                 "Controller+method template joined and token-substituted.",
+            ),
+            key(
+                "normalized_route_template",
+                STR,
+                OPT,
+                "Cross-family join key computed from the effective route template when present, else the raw route template.",
             ),
             key(
                 "route_tokens",

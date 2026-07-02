@@ -526,6 +526,12 @@ Supported patterns are advertised in
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `framework` | A Nitro server route under `server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). One fact per file; `verb`/`verb_source` are present only when the filename carries a method suffix (`users.get.ts`). Emission requires a `defineEventHandler`/`eventHandler` identifier or a method suffix; a wrapped custom handler with neither is a documented residual miss. `server/middleware`, `server/plugins`, and `server/utils` are excluded. Claims the `server/**` space `nuxt.file_route.v1` excludes. Metadata payload keys: see the JSON contract linked below. |
 | `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` | `web.http_client` | A global `fetch()` call or import-gated axios call whose first argument is a static string URL. Metadata payload keys: see the JSON contract linked below. |
 
+ASP.NET route facts emit `normalized_route_template` as the server-side
+cross-family join key. Raw `route_template`, `route_prefix`, and
+`effective_route_template` values remain source-shaped ASP.NET strings; the
+normalized key converts route parameters such as `{id}` or `{id:int}` to `:id`
+and preserves trailing slashes.
+
 `fetch()` and axios calls emit `http.client_request.v1` only when the first
 argument is a plain static string literal (`'...'` or `"..."`). Template
 literals (even without interpolation), identifier/expression URLs, concatenated

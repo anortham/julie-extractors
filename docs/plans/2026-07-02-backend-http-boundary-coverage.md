@@ -158,12 +158,12 @@ Language: `ruby`. Same gate as `rails.route.v1`. Forms: `mount X => "/lit"` and 
 **Approach:** Split first, in its own commit, proven byte-identical before any behavior change. The normalizer is the highest-leverage correctness point in the plan — get the flavor table and edge cases (optional params, catch-alls, constraint annotations, empty templates, missing leading slash) locked here so Tasks 2–7 never reimplement normalization.
 
 **Acceptance criteria:**
-- [ ] Split commit: `cargo test -p julie-extractors structural_facts` green with goldens byte-identical; `mod.rs` holds only dispatch, pattern-id constants, and re-exports; convention tests enforce it.
-- [ ] `http_boundary` normalizer handles every flavor in the doctrine table with unit tests per flavor, including catch-all, constraint-annotation, and trailing-slash preservation cases.
-- [ ] ASP.NET families emit `normalized_route_template`; registry + JSON contract + docs updated; golden diff shows only added keys.
-- [ ] `http_clients/` scaffolding in place: five per-language modules wired into dispatch, emitting nothing, workspace green.
-- [ ] Marker bump + api_surface list updated; `docs/decisions/0004-http-boundary-join-contract.md` verified accurate against the implemented normalizer (amend if grounding changed a rule).
-- [ ] Worker-scope verification passes, committed.
+- [x] Split commit: `cargo test -p julie-extractors structural_facts` green with goldens byte-identical; `mod.rs` holds only dispatch, pattern-id constants, and re-exports; convention tests enforce it.
+- [x] `http_boundary` normalizer handles every flavor in the doctrine table with unit tests per flavor, including catch-all, constraint-annotation, and trailing-slash preservation cases.
+- [x] ASP.NET families emit `normalized_route_template`; registry + JSON contract + docs updated; golden diff shows only added keys.
+- [x] `http_clients/` scaffolding in place: five per-language modules wired into dispatch, emitting nothing, workspace green.
+- [x] Marker bump + api_surface list updated; `docs/decisions/0004-http-boundary-join-contract.md` verified accurate against the implemented normalizer (amend if grounding changed a rule).
+- [x] Worker-scope verification passes, committed.
 
 ## Task 2: Node — Express + Fastify
 

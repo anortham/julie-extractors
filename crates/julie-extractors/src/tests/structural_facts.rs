@@ -86,6 +86,13 @@ static IResult DeleteTodo(int id) => Results.Ok();
             .collect::<BTreeSet<_>>(),
         BTreeSet::from(["/todos", "/todos/{id}"])
     );
+    assert_eq!(
+        facts
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "normalized_route_template"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/todos", "/todos/:id"])
+    );
 
     for fact in &facts {
         assert_common_framework_fact(fact, "route_call", "framework");
@@ -245,6 +252,10 @@ public class UsersController : ControllerBase
         Some("/api/users")
     );
     assert_eq!(
+        metadata_str(controller, "normalized_route_template"),
+        Some("/api/users")
+    );
+    assert_eq!(
         metadata_array(controller, "route_tokens"),
         vec!["controller"]
     );
@@ -265,6 +276,10 @@ public class UsersController : ControllerBase
         metadata_str(get, "effective_route_template"),
         Some("/api/users/{id}")
     );
+    assert_eq!(
+        metadata_str(get, "normalized_route_template"),
+        Some("/api/users/:id")
+    );
     assert_eq!(metadata_array(get, "route_tokens"), vec!["controller"]);
 
     // Bare [HttpPost] inherits controller-level effective template.
@@ -282,6 +297,10 @@ public class UsersController : ControllerBase
         metadata_str(post, "effective_route_template"),
         Some("/api/users")
     );
+    assert_eq!(
+        metadata_str(post, "normalized_route_template"),
+        Some("/api/users")
+    );
     assert_eq!(metadata_array(post, "route_tokens"), vec!["controller"]);
 
     // [action] substitution.
@@ -291,6 +310,10 @@ public class UsersController : ControllerBase
         .expect("expected HttpGet([action]) fact");
     assert_eq!(
         metadata_str(list, "effective_route_template"),
+        Some("/api/users/list")
+    );
+    assert_eq!(
+        metadata_str(list, "normalized_route_template"),
         Some("/api/users/list")
     );
     assert_eq!(
@@ -1176,12 +1199,29 @@ fn web_structural_facts_mod_does_not_own_extracted_submodule_helpers() {
 }
 
 #[test]
-fn framework_structural_facts_does_not_own_shared_markup_scanner() {
-    let framework_source = include_str!("../base/framework_structural_facts.rs");
+fn framework_structural_facts_mod_is_dispatch_only() {
+    let framework_mod_source = include_str!("../base/framework_structural_facts/mod.rs");
+    for forbidden_definition in [
+        "fn collect_aspnet_",
+        "fn htmx_attribute_fact",
+        "fn collect_razor_node",
+        "fn parse_csharp_string_literal",
+        "fn scan_markup_attributes(",
+    ] {
+        assert!(
+            !framework_mod_source.contains(forbidden_definition),
+            "framework_structural_facts/mod.rs still owns extracted helper {forbidden_definition}"
+        );
+    }
+}
+
+#[test]
+fn framework_markup_facts_do_not_own_shared_markup_scanner() {
+    let markup_source = include_str!("../base/framework_structural_facts/markup.rs");
     for forbidden_definition in ["fn scan_markup_attributes(", "struct MarkupAttribute {"] {
         assert!(
-            !framework_source.contains(forbidden_definition),
-            "framework_structural_facts.rs still owns shared markup scanner {forbidden_definition}"
+            !markup_source.contains(forbidden_definition),
+            "framework_structural_facts/markup.rs still owns shared markup scanner {forbidden_definition}"
         );
     }
 }
@@ -1330,6 +1370,7 @@ fn http_boundary_families_emit_documented_metadata_keys() {
             "attribute_kind",
             "effective_route_template",
             "framework",
+            "normalized_route_template",
             "pattern_version",
             "query_family",
             "route_template",
@@ -1348,6 +1389,7 @@ fn http_boundary_families_emit_documented_metadata_keys() {
             "controller_route_template",
             "effective_route_template",
             "framework",
+            "normalized_route_template",
             "pattern_version",
             "query_family",
             "route_template",

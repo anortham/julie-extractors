@@ -107,6 +107,12 @@
         "value_type": "string"
       },
       {
+        "description": "Cross-family join key computed from the effective route template when present, else the raw route template.",
+        "key": "normalized_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
         "description": "Tokens actually substituted (\"controller\"/\"action\").",
         "key": "route_tokens",
         "presence": "optional",
@@ -167,6 +173,12 @@
       {
         "description": "Raw route string passed as the first Map* argument.",
         "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and ASP.NET route parameters converted to :param form.",
+        "key": "normalized_route_template",
         "presence": "always",
         "value_type": "string"
       },
@@ -243,6 +255,12 @@
       {
         "description": "Route prefix string passed to MapGroup(...).",
         "key": "route_prefix",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key for the group prefix with ASP.NET route parameters converted to :param form.",
+        "key": "normalized_route_template",
         "presence": "always",
         "value_type": "string"
       },
