@@ -20,8 +20,10 @@
 //!
 //! Both passes apply the same [`is_scope_bearing`] kind filter, so a fact
 //! describing a code action binds to the enclosing scope (function/method/class/…)
-//! rather than to the narrowest value-holder (variable/field/…) it happens to sit
-//! inside.
+//! rather than to the narrowest local value-holder (variable/constant/…) it
+//! happens to sit inside. Fields and properties are NOT filtered: they are
+//! first-class graph members (and property accessors are genuine scopes), so a
+//! fact inside a field/property span binds that member.
 //!
 //! `source_regions.rs` deliberately keeps its own binder with the unfiltered
 //! semantics: source regions (comments, string literals) legitimately attach to
@@ -33,19 +35,18 @@ use super::types::{StructuralFact, Symbol};
 
 /// Returns `true` when `symbol` may own a structural fact.
 ///
-/// Non-scope-bearing "value holder" kinds are excluded from containment
-/// candidacy. `Export` intentionally remains a candidate: exported declarations
-/// get a whole-statement `export`-kind symbol that is the correct owner for facts
-/// anchored on the export head.
+/// Local, non-scope-bearing "value holder" kinds are excluded from containment
+/// candidacy: `Variable`, `Constant`, `EnumMember`, and `Import`. Everything else
+/// stays a candidate — notably:
+/// - `Field`/`Property`: first-class graph members whose spans (property accessor
+///   bodies especially) are genuine scopes; a fact inside them binds the member,
+///   and class binding stays recoverable via member parentage.
+/// - `Export`: exported declarations get a whole-statement `export`-kind symbol
+///   that is the correct owner for facts anchored on the export head.
 fn is_scope_bearing(symbol: &Symbol) -> bool {
     !matches!(
         symbol.kind,
-        SymbolKind::Variable
-            | SymbolKind::Constant
-            | SymbolKind::Field
-            | SymbolKind::Property
-            | SymbolKind::EnumMember
-            | SymbolKind::Import
+        SymbolKind::Variable | SymbolKind::Constant | SymbolKind::EnumMember | SymbolKind::Import
     )
 }
 
@@ -174,8 +175,6 @@ mod tests {
         for kind in [
             SymbolKind::Variable,
             SymbolKind::Constant,
-            SymbolKind::Field,
-            SymbolKind::Property,
             SymbolKind::EnumMember,
             SymbolKind::Import,
         ] {
@@ -185,6 +184,25 @@ mod tests {
                 bind(&fact, &symbols),
                 None,
                 "kind {kind:?} must not be a containment candidate"
+            );
+        }
+    }
+
+    #[test]
+    fn field_and_property_stay_candidates_and_bind_over_enclosing_type() {
+        // Fields and properties are first-class members (property accessors are
+        // genuine scopes), so a fact inside a member span binds the member, not
+        // the enclosing type. Class binding stays recoverable via parentage.
+        for member_kind in [SymbolKind::Field, SymbolKind::Property] {
+            let symbols = vec![
+                make_symbol("Widget", SymbolKind::Class, 0, 400, 1, 40),
+                make_symbol("member", member_kind.clone(), 100, 200, 10, 18),
+            ];
+            let fact = make_fact(120, 150, 12, 14);
+            assert_eq!(
+                bind(&fact, &symbols).as_deref(),
+                Some("member"),
+                "a fact inside a {member_kind:?} span must bind the member, not the enclosing type"
             );
         }
     }
