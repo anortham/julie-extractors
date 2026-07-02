@@ -21,7 +21,7 @@ use http_client::collect_http_client_requests;
 use js_imports::collect_js_imports;
 use nextjs_nuxt::{
     collect_nextjs_route_handlers, collect_nextjs_route_references, nextjs_file_route_fact,
-    nuxt_file_route_fact,
+    nuxt_file_route_fact, nuxt_server_route_fact,
 };
 use react::{collect_react_router_route_definitions, collect_react_router_route_references};
 use vue::{
@@ -47,6 +47,7 @@ const NEXTJS_FILE_ROUTE_PATTERN_ID: &str = "nextjs.file_route.v1";
 const NEXTJS_ROUTE_HANDLER_PATTERN_ID: &str = "nextjs.route_handler.v1";
 const NUXT_ROUTE_REFERENCE_PATTERN_ID: &str = "nuxt.route_reference.v1";
 const NUXT_FILE_ROUTE_PATTERN_ID: &str = "nuxt.file_route.v1";
+const NUXT_SERVER_ROUTE_PATTERN_ID: &str = "nuxt.server_route.v1";
 const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -86,6 +87,7 @@ const JS_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
     NEXTJS_ROUTE_HANDLER_PATTERN_ID,
     NEXTJS_ROUTE_REFERENCE_PATTERN_ID,
     NUXT_FILE_ROUTE_PATTERN_ID,
+    NUXT_SERVER_ROUTE_PATTERN_ID,
     REACT_ROUTE_DEFINITION_PATTERN_ID,
     REACT_ROUTE_REFERENCE_PATTERN_ID,
     VUE_ROUTE_DEFINITION_PATTERN_ID,
@@ -106,6 +108,7 @@ const TS_FRAMEWORK_WEB_PATTERN_IDS: &[&str] = &[
     NEXTJS_FILE_ROUTE_PATTERN_ID,
     NEXTJS_ROUTE_HANDLER_PATTERN_ID,
     NUXT_FILE_ROUTE_PATTERN_ID,
+    NUXT_SERVER_ROUTE_PATTERN_ID,
     REACT_ROUTE_DEFINITION_PATTERN_ID,
     VUE_ROUTE_DEFINITION_PATTERN_ID,
 ];
@@ -200,6 +203,9 @@ fn collect_react_nextjs_structural_facts(
         facts.push(fact);
     }
     if let Some(fact) = nuxt_file_route_fact(language, tree, file_path, content) {
+        facts.push(fact);
+    }
+    if let Some(fact) = nuxt_server_route_fact(language, tree, file_path, content) {
         facts.push(fact);
     }
     facts

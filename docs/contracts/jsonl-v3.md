@@ -521,6 +521,7 @@ Supported patterns are advertised in `language_capability` records under
 | `nextjs.route_reference.v1` | `javascript`, `jsx`, `tsx` | `route_reference` | `jsx_attribute` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","target_path":"/dashboard","source_kind":"next_link","route_source":"string_literal","attribute_name":"href","component_name":"Link","import_source":"next/link","verb":"GET"}` |
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `{"pattern_version":1,"query_family":"frontend_navigation","framework":"nextjs","router":"app","file_convention":"page","route_path":"/blog/[slug]","normalized_route_template":"/blog/:slug","dynamic_segments":["slug"],"source_kind":"nextjs_file_route"}` plus optional `route_group_segments`, `parallel_route_segments`, `intercepting_route_markers`, and `intercepted_route_segments` |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `{"pattern_version":1,"query_family":"framework","framework":"nextjs","router":"app","file_convention":"route","route_path":"/api/users/[id]","normalized_route_template":"/api/users/:id","dynamic_segments":["id"],"verb":"GET","verb_source":"attested","source_kind":"nextjs_route_handler"}` plus optional `route_group_segments`, `parallel_route_segments`, `intercepting_route_markers`, and `intercepted_route_segments` |
+| `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `{"pattern_version":1,"query_family":"framework","framework":"nuxt","router":"server","route_path":"/api/users/[id]","normalized_route_template":"/api/users/:id","dynamic_segments":["id"],"verb":"GET","verb_source":"attested","source_kind":"nuxt_server_route"}` — `verb`/`verb_source` and `normalized_route_template`/`dynamic_segments` are present only when the filename carries a method suffix or the route has dynamic segments |
 | `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `client_request` | `call_expression` | `{"pattern_version":1,"query_family":"web.http_client","framework":"fetch","client":"fetch","target_path":"/api/users","url_kind":"path","verb":"POST","verb_source":"attested"}` — axios calls additionally carry `"client":"axios"`, `"framework":"axios"`, and `"import_source":"axios"` |
 
 `fetch()` and axios calls emit `http.client_request.v1` only when the first
@@ -567,6 +568,22 @@ Re-exports (`export { GET } from ...`), default exports, non-verb exports
 (`export function helper`), lowercase names (`export const get`), `.jsx`/`.tsx`
 route files, `page` files, and route files outside an `app` directory all stay
 silent, as do matches inside comments or string literals.
+
+`nuxt.server_route.v1` emits one fact per Nitro server-route file under
+`server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). The
+route path is derived from the file path using the same Nuxt segment
+normalization as `nuxt.file_route.v1` — `[id]` -> `:id`, `[[id]]` -> `:id?`,
+`[...slug]` -> `:slug*` — and `index.<method>`/`index` files map to their
+directory route. The verb comes from the filename method suffix
+(`users.get.ts` -> `GET`; also `.post`/`.put`/`.patch`/`.delete`/`.head`/`.options`);
+`verb` and `verb_source` (`attested`) are present only when a suffix exists,
+because a suffix-less handler answers every method. Emission requires a handler
+signal — a `defineEventHandler` or `eventHandler` identifier — OR a method
+suffix in the filename. A wrapped custom handler (for example
+`defineWrappedResponseHandler`) with neither signal is a documented residual
+miss and stays silent. `server/middleware`, `server/plugins`, and `server/utils`
+are not routes and are excluded. Server routes are `.js`/`.ts` only; this family
+claims the `server/**` space that `nuxt.file_route.v1` deliberately excludes.
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route

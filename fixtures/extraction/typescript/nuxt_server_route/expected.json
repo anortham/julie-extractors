@@ -1,0 +1,173 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
+      "name": "id",
+      "kind": "variable",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "start_line": 2,
+      "start_column": 10,
+      "end_line": 2,
+      "end_column": 42,
+      "start_byte": 57,
+      "end_byte": 89,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 29,
+        "end_line": 2,
+        "end_column": 42,
+        "start_byte": 76,
+        "end_byte": 89
+      },
+      "body_hash": "6f805c9556c3b761eb667de91a9f38ce",
+      "signature": null,
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:defineEventHandler:call:1:15",
+      "name": "defineEventHandler",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 33,
+      "start_byte": 15,
+      "end_byte": 33,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:getRouterParam:call:2:15",
+      "name": "getRouterParam",
+      "kind": "call",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "start_line": 2,
+      "start_column": 15,
+      "end_line": 2,
+      "end_column": 29,
+      "start_byte": 62,
+      "end_byte": 76,
+      "containing_key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
+      "resolved_type": "any",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "typescript",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nuxt.server_route.v1",
+      "capture_name": "server_route",
+      "node_kind": "file",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 114,
+      "confidence": "1.000",
+      "metadata": {
+        "dynamic_segments": [
+          "id"
+        ],
+        "framework": "nuxt",
+        "normalized_route_template": "/api/users/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_path": "/api/users/[id]",
+        "router": "server",
+        "source_kind": "nuxt_server_route",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "covered_lines": 5,
+      "covered_bytes": 114,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 114,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "id",
+      "kind": "other",
+      "carrier": "getRouterParam",
+      "arg_position": 1,
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "start_line": 2,
+      "start_column": 37,
+      "end_line": 2,
+      "end_column": 41,
+      "start_byte": 84,
+      "end_byte": 88,
+      "containing_key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "containing_key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
+      "start_line": 2,
+      "start_column": 37,
+      "end_line": 2,
+      "end_column": 41,
+      "start_byte": 84,
+      "end_byte": 88,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

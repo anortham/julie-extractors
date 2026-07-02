@@ -95,12 +95,12 @@ Add `javascript`, `jsx`, `typescript`, `tsx` (JSX attributes) and `vue` (templat
 **Approach:** Negative cases that must stay silent: `fetch(url)` with identifier arg, template literal with `${}`, `fetch` as a property (`obj.fetch(`), matches inside comments/strings. `verb_source="default"` for bare fetch.
 
 **Acceptance criteria:**
-- [ ] `fetch("/api/messages")` emits `target_path=/api/messages`, `verb=GET`, `verb_source=default`, `client=fetch`, `url_kind=path` in all four JS-family languages, proven via emitted rows.
-- [ ] `fetch("/api/messages", { method: "POST" })` emits `verb=POST`, `verb_source=attested`.
-- [ ] Negative cases emit nothing.
-- [ ] Marker bump + api_surface list updated; contract docs describe the family.
-- [ ] Capability rows + golden fixtures for all four languages; strict data-quality report clean.
-- [ ] Worker-scope verification passes, committed.
+- [x] `fetch("/api/messages")` emits `target_path=/api/messages`, `verb=GET`, `verb_source=default`, `client=fetch`, `url_kind=path` in all four JS-family languages, proven via emitted rows.
+- [x] `fetch("/api/messages", { method: "POST" })` emits `verb=POST`, `verb_source=attested`.
+- [x] Negative cases emit nothing.
+- [x] Marker bump + api_surface list updated; contract docs describe the family.
+- [x] Capability rows + golden fixtures for all four languages; strict data-quality report clean.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 2: `http.client_request.v1` — axios + Vue script sections
 
@@ -119,11 +119,11 @@ Add `javascript`, `jsx`, `typescript`, `tsx` (JSX attributes) and `vue` (templat
 **Approach:** The awaited-callee pitfall from TODO item 5 (`await axios.get<T>` callee text) applies to literal carriers, not this scanner — this scanner matches source text directly, so `await axios.get<T>("/x")` must still match; add it as a test case. A file using `axios.*` without an axios import stays silent.
 
 **Acceptance criteria:**
-- [ ] `await axios.get<Msg[]>("/api/messages/active")` emits `client=axios`, `verb=GET`, `verb_source=attested`, `import_source=axios` (TS + TSX).
-- [ ] Axios calls without an axios import emit nothing.
-- [ ] Vue SFC `<script setup>` fetch/axios calls emit; template section content does not produce client-request facts.
-- [ ] Capability parity across javascript/jsx/typescript/tsx/vue; strict report clean.
-- [ ] Worker-scope verification passes, committed.
+- [x] `await axios.get<Msg[]>("/api/messages/active")` emits `client=axios`, `verb=GET`, `verb_source=attested`, `import_source=axios` (TS + TSX).
+- [x] Axios calls without an axios import emit nothing.
+- [x] Vue SFC `<script setup>` fetch/axios calls emit; template section content does not produce client-request facts.
+- [x] Capability parity across javascript/jsx/typescript/tsx/vue; strict report clean.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 3: `nextjs.route_handler.v1`
 
@@ -142,10 +142,10 @@ Add `javascript`, `jsx`, `typescript`, `tsx` (JSX attributes) and `vue` (templat
 **Approach:** Grounding check first: confirm the current supported verb-export set in Next.js docs (GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS at time of planning) and whether `jsx`/`tsx` route files are valid — extend language coverage only if so. Re-exported or dynamically generated handlers stay silent.
 
 **Acceptance criteria:**
-- [ ] `app/api/users/[id]/route.ts` with `export async function GET` and `export const DELETE =` emits two facts with `route_path=/api/users/[id]`, `normalized_route_template=/api/users/:id`, verbs `GET` and `DELETE`.
-- [ ] `nextjs.file_route.v1` goldens are byte-identical (page behavior untouched).
-- [ ] Contract docs + capability rows + goldens for claimed languages; strict report clean.
-- [ ] Worker-scope verification passes, committed.
+- [x] `app/api/users/[id]/route.ts` with `export async function GET` and `export const DELETE =` emits two facts with `route_path=/api/users/[id]`, `normalized_route_template=/api/users/:id`, verbs `GET` and `DELETE`.
+- [x] `nextjs.file_route.v1` goldens are byte-identical (page behavior untouched).
+- [x] Contract docs + capability rows + goldens for claimed languages; strict report clean.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 4: `nuxt.server_route.v1`
 
@@ -164,11 +164,11 @@ Add `javascript`, `jsx`, `typescript`, `tsx` (JSX attributes) and `vue` (templat
 **Approach:** Grounding check first: confirm Nitro's directory conventions and the full method-suffix list in current Nuxt docs. Note the existing Nuxt file-route collector deliberately excludes `server/**` — this task claims that excluded space with its own family; do not change `nuxt.file_route.v1` emission.
 
 **Acceptance criteria:**
-- [ ] API and non-API server routes emit correct paths; method suffix sets attested verb; suffix-less handler omits `verb`.
-- [ ] Optional (`[[id]]`) and catch-all (`[...slug]`) segments normalize per the Nuxt flavor rules.
-- [ ] A `server/api`-shaped file without `defineEventHandler` stays silent; `nuxt.file_route.v1` goldens byte-identical.
-- [ ] Contract docs + capability rows + goldens; strict report clean.
-- [ ] Worker-scope verification passes, committed.
+- [x] API and non-API server routes emit correct paths; method suffix sets attested verb; suffix-less handler omits `verb`.
+- [x] Optional (`[[id]]`) and catch-all (`[...slug]`) segments normalize per the Nuxt flavor rules.
+- [x] A `server/api`-shaped file without `defineEventHandler` stays silent; `nuxt.file_route.v1` goldens byte-identical.
+- [x] Contract docs + capability rows + goldens; strict report clean.
+- [x] Worker-scope verification passes, committed.
 
 ## Task 5: `aspnet.attribute_route.v1`
 

@@ -11,7 +11,7 @@ use super::jsx_scan::{
 };
 use super::{
     NEXTJS_FILE_ROUTE_PATTERN_ID, NEXTJS_ROUTE_HANDLER_PATTERN_ID,
-    NEXTJS_ROUTE_REFERENCE_PATTERN_ID, NUXT_FILE_ROUTE_PATTERN_ID,
+    NEXTJS_ROUTE_REFERENCE_PATTERN_ID, NUXT_FILE_ROUTE_PATTERN_ID, NUXT_SERVER_ROUTE_PATTERN_ID,
 };
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
@@ -219,6 +219,127 @@ pub(super) fn nuxt_file_route_fact(
         span,
         metadata,
     ))
+}
+
+#[derive(Debug)]
+struct NuxtServerRoute {
+    route_path: String,
+    normalized_route_template: Option<String>,
+    dynamic_segments: Vec<String>,
+    verb: Option<String>,
+}
+
+/// HTTP method suffixes Nuxt/Nitro recognizes in a server-route filename
+/// (`users.get.ts` -> GET). Lowercase per the Nuxt file-naming convention.
+const NUXT_SERVER_ROUTE_METHODS: &[&str] =
+    &["get", "post", "put", "patch", "delete", "head", "options"];
+
+/// Emits one `nuxt.server_route.v1` fact for a Nitro server-route file under
+/// `server/api/**` (prefixed `/api`) or `server/routes/**` (no prefix).
+///
+/// The route path is derived from the file path; the method verb, when present,
+/// comes from the filename suffix (`.get`, `.post`, ...). Emission requires a
+/// handler signal — a `defineEventHandler`/`eventHandler` identifier — OR a
+/// method suffix in the filename. A wrapped custom handler with neither signal
+/// is a documented residual miss. `server/middleware`, `server/plugins`, and
+/// `server/utils` are not routes and stay silent.
+pub(super) fn nuxt_server_route_fact(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Option<StructuralFact> {
+    let route = nuxt_server_route(file_path)?;
+    let has_handler_signal = has_executable_identifier_signal(tree, content, "defineEventHandler")
+        || has_executable_identifier_signal(tree, content, "eventHandler");
+    if route.verb.is_none() && !has_handler_signal {
+        return None;
+    }
+
+    let span = NormalizedSpan::from_content_range(content, 0, content.len())?;
+    let mut metadata = base_metadata("framework");
+    insert_string(&mut metadata, "framework", "nuxt");
+    insert_string(&mut metadata, "router", "server");
+    insert_string(&mut metadata, "route_path", &route.route_path);
+    insert_string(&mut metadata, "source_kind", "nuxt_server_route");
+    if let Some(normalized) = route.normalized_route_template {
+        insert_string(&mut metadata, "normalized_route_template", &normalized);
+    }
+    if !route.dynamic_segments.is_empty() {
+        insert_string_array(&mut metadata, "dynamic_segments", route.dynamic_segments);
+    }
+    if let Some(verb) = route.verb {
+        insert_string(&mut metadata, "verb", &verb);
+        insert_string(&mut metadata, "verb_source", "attested");
+    }
+
+    Some(fact_for_span(
+        file_path,
+        language,
+        NUXT_SERVER_ROUTE_PATTERN_ID,
+        "server_route",
+        "file",
+        span,
+        metadata,
+    ))
+}
+
+fn nuxt_server_route(file_path: &str) -> Option<NuxtServerRoute> {
+    let normalized = file_path.replace('\\', "/");
+    let segments = normalized
+        .split('/')
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>();
+    let server_index = segments
+        .iter()
+        .enumerate()
+        .rev()
+        .find_map(|(index, segment)| (*segment == "server").then_some(index))?;
+    // The segment after `server` selects the route family. Only `api`
+    // (prefixed `/api`) and `routes` (no prefix) are routes; `middleware`,
+    // `plugins`, and `utils` are excluded.
+    let (prefix, base_index) = match segments.get(server_index + 1) {
+        Some(&"api") => (vec!["api".to_string()], server_index + 2),
+        Some(&"routes") => (Vec::new(), server_index + 2),
+        _ => return None,
+    };
+
+    let file_name = *segments.last()?;
+    let (stem, extension) = split_file_name(file_name)?;
+    if !is_route_handler_extension(extension) {
+        return None;
+    }
+    let (route_stem, verb) = parse_nuxt_server_route_method(stem);
+
+    let mut route_segments = prefix;
+    if base_index < segments.len() {
+        for segment in &segments[base_index..segments.len() - 1] {
+            route_segments.push((*segment).to_string());
+        }
+    }
+    if route_stem != "index" {
+        route_segments.push(route_stem.to_string());
+    }
+
+    let (route_path, normalized_route_template, dynamic_segments) =
+        route_path_metadata(&route_segments, "nuxt");
+    Some(NuxtServerRoute {
+        route_path,
+        normalized_route_template,
+        dynamic_segments,
+        verb,
+    })
+}
+
+/// Splits a trailing HTTP-method suffix off a server-route file stem.
+/// `users.get` -> (`users`, Some("GET")); `health` -> (`health`, None).
+fn parse_nuxt_server_route_method(stem: &str) -> (&str, Option<String>) {
+    if let Some((base, suffix)) = stem.rsplit_once('.') {
+        if NUXT_SERVER_ROUTE_METHODS.contains(&suffix) {
+            return (base, Some(suffix.to_ascii_uppercase()));
+        }
+    }
+    (stem, None)
 }
 
 fn nextjs_file_route(file_path: &str) -> Option<NextFileRoute> {

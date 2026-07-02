@@ -1,0 +1,156 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js:default:1:0",
+      "name": "default",
+      "kind": "export",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 3,
+      "start_byte": 0,
+      "end_byte": 74,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 40,
+        "end_line": 3,
+        "end_column": 1,
+        "start_byte": 40,
+        "end_byte": 72
+      },
+      "body_hash": "73277f978e78b77240ebcb2d8218f65e",
+      "signature": "export default defineEventHandler(() => {\n    return { status: \"ok\" };\n});",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "exportedName": "default",
+        "isDefault": true,
+        "isNamed": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js:status:2:13",
+      "name": "status",
+      "kind": "property",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js",
+      "start_line": 2,
+      "start_column": 13,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 55,
+      "end_byte": 67,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "status: \"ok\"",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js:default:1:0",
+      "metadata": {
+        "isComputed": false,
+        "isPrivate": false,
+        "value": "\"ok\""
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js:defineEventHandler:call:1:15",
+      "name": "defineEventHandler",
+      "kind": "call",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js",
+      "start_line": 1,
+      "start_column": 15,
+      "end_line": 1,
+      "end_column": 33,
+      "start_byte": 15,
+      "end_byte": 33,
+      "containing_key": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js:default:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "nuxt.server_route.v1",
+      "capture_name": "server_route",
+      "node_kind": "file",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 75,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "nuxt",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_path": "/status",
+        "router": "server",
+        "source_kind": "nuxt_server_route"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js",
+      "covered_lines": 4,
+      "covered_bytes": 75,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 75,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js",
+      "containing_key": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js:status:2:13",
+      "start_line": 2,
+      "start_column": 21,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 63,
+      "end_byte": 67,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

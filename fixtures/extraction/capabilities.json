@@ -711,6 +711,16 @@
           "expected": "fixtures/extraction/typescript/nuxt_file_route/expected.json"
         },
         {
+          "name": "nuxt_server_route",
+          "source": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+          "expected": "fixtures/extraction/typescript/nuxt_server_route/expected.json"
+        },
+        {
+          "name": "nuxt_server_route_plain",
+          "source": "fixtures/extraction/typescript/nuxt_server_route_plain/server/routes/health.ts",
+          "expected": "fixtures/extraction/typescript/nuxt_server_route_plain/expected.json"
+        },
+        {
           "name": "http_client_fetch",
           "source": "fixtures/extraction/typescript/http_client_fetch/source.ts",
           "expected": "fixtures/extraction/typescript/http_client_fetch/expected.json"
@@ -782,6 +792,7 @@
             "nextjs.file_route.v1",
             "nextjs.route_handler.v1",
             "nuxt.file_route.v1",
+            "nuxt.server_route.v1",
             "react.route_definition.v1",
             "typescript.await_expression.v1",
             "vue.route_definition.v1"
@@ -1047,6 +1058,16 @@
           "expected": "fixtures/extraction/javascript/nuxt_file_route/expected.json"
         },
         {
+          "name": "nuxt_server_route",
+          "source": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js",
+          "expected": "fixtures/extraction/javascript/nuxt_server_route/expected.json"
+        },
+        {
+          "name": "nuxt_server_route_plain",
+          "source": "fixtures/extraction/javascript/nuxt_server_route_plain/server/routes/status.js",
+          "expected": "fixtures/extraction/javascript/nuxt_server_route_plain/expected.json"
+        },
+        {
           "name": "http_client_fetch",
           "source": "fixtures/extraction/javascript/http_client_fetch/source.js",
           "expected": "fixtures/extraction/javascript/http_client_fetch/expected.json"
@@ -1113,6 +1134,7 @@
             "nextjs.route_handler.v1",
             "nextjs.route_reference.v1",
             "nuxt.file_route.v1",
+            "nuxt.server_route.v1",
             "react.route_definition.v1",
             "react.route_reference.v1",
             "vue.route_definition.v1"

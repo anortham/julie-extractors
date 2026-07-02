@@ -163,6 +163,167 @@ fn nuxt_emits_file_route_facts() {
 }
 
 #[test]
+fn nuxt_emits_server_route_facts_with_method_suffix() {
+    let user = extract(
+        "server/api/users/[id].get.ts",
+        "export default defineEventHandler((event) => ({ id: getRouterParam(event, 'id') }));",
+    );
+    let user_routes = facts_with_pattern(&user, "nuxt.server_route.v1");
+    assert_eq!(user_routes.len(), 1);
+    let fact = user_routes[0];
+    assert_eq!(fact.node_kind, "file");
+    assert_eq!(fact.capture_name, "server_route");
+    assert_eq!(metadata_str(fact, "query_family"), Some("framework"));
+    assert_eq!(metadata_str(fact, "framework"), Some("nuxt"));
+    assert_eq!(metadata_str(fact, "router"), Some("server"));
+    assert_eq!(metadata_str(fact, "source_kind"), Some("nuxt_server_route"));
+    assert_eq!(metadata_str(fact, "route_path"), Some("/api/users/[id]"));
+    assert_eq!(
+        metadata_str(fact, "normalized_route_template"),
+        Some("/api/users/:id")
+    );
+    assert_eq!(metadata_array(fact, "dynamic_segments"), vec!["id"]);
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+    assert_eq!(metadata_str(fact, "verb_source"), Some("attested"));
+
+    // Method suffix alone is enough to emit, even without a defineEventHandler signal.
+    let legacy = extract(
+        "server/api/legacy.post.js",
+        "export default (event) => ({ ok: true });",
+    );
+    let legacy_routes = facts_with_pattern(&legacy, "nuxt.server_route.v1");
+    assert_eq!(legacy_routes.len(), 1);
+    assert_eq!(
+        metadata_str(legacy_routes[0], "route_path"),
+        Some("/api/legacy")
+    );
+    assert_eq!(metadata_str(legacy_routes[0], "verb"), Some("POST"));
+    assert_eq!(
+        metadata_str(legacy_routes[0], "verb_source"),
+        Some("attested")
+    );
+
+    // `index.<method>` maps to the directory route.
+    let index = extract(
+        "server/api/users/index.get.ts",
+        "export default defineEventHandler(() => []);",
+    );
+    let index_routes = facts_with_pattern(&index, "nuxt.server_route.v1");
+    assert_eq!(index_routes.len(), 1);
+    assert_eq!(
+        metadata_str(index_routes[0], "route_path"),
+        Some("/api/users")
+    );
+    assert_eq!(metadata_str(index_routes[0], "verb"), Some("GET"));
+}
+
+#[test]
+fn nuxt_server_routes_without_method_suffix_omit_verb() {
+    let health = extract(
+        "server/routes/health.ts",
+        "export default defineEventHandler(() => ({ status: 'ok' }));",
+    );
+    let health_routes = facts_with_pattern(&health, "nuxt.server_route.v1");
+    assert_eq!(health_routes.len(), 1);
+    let fact = health_routes[0];
+    assert_eq!(metadata_str(fact, "route_path"), Some("/health"));
+    assert_eq!(metadata_str(fact, "router"), Some("server"));
+    assert_eq!(metadata_str(fact, "source_kind"), Some("nuxt_server_route"));
+    assert_eq!(
+        fact.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("verb")),
+        None,
+        "handlers with no method suffix answer all verbs and must omit verb"
+    );
+    assert_eq!(
+        fact.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("verb_source")),
+        None
+    );
+    // `eventHandler` alias also counts as a handler signal.
+    let alias = extract(
+        "server/routes/ping.ts",
+        "export default eventHandler(() => 'pong');",
+    );
+    assert_eq!(facts_with_pattern(&alias, "nuxt.server_route.v1").len(), 1);
+}
+
+#[test]
+fn nuxt_server_routes_normalize_optional_and_catch_all_segments() {
+    let optional = extract(
+        "server/api/users/[[id]].ts",
+        "export default defineEventHandler(() => ({}));",
+    );
+    let optional_routes = facts_with_pattern(&optional, "nuxt.server_route.v1");
+    assert_eq!(optional_routes.len(), 1);
+    assert_eq!(
+        metadata_str(optional_routes[0], "route_path"),
+        Some("/api/users/[[id]]")
+    );
+    assert_eq!(
+        metadata_str(optional_routes[0], "normalized_route_template"),
+        Some("/api/users/:id?")
+    );
+    assert_eq!(
+        metadata_array(optional_routes[0], "dynamic_segments"),
+        vec!["id?"]
+    );
+
+    let catch_all = extract(
+        "server/api/[...slug].get.ts",
+        "export default defineEventHandler(() => ({}));",
+    );
+    let catch_all_routes = facts_with_pattern(&catch_all, "nuxt.server_route.v1");
+    assert_eq!(catch_all_routes.len(), 1);
+    assert_eq!(
+        metadata_str(catch_all_routes[0], "route_path"),
+        Some("/api/[...slug]")
+    );
+    assert_eq!(
+        metadata_str(catch_all_routes[0], "normalized_route_template"),
+        Some("/api/:slug*")
+    );
+    assert_eq!(
+        metadata_array(catch_all_routes[0], "dynamic_segments"),
+        vec!["slug"]
+    );
+    assert_eq!(metadata_str(catch_all_routes[0], "verb"), Some("GET"));
+}
+
+#[test]
+fn nuxt_server_route_requires_handler_signal_or_method_suffix() {
+    // No defineEventHandler and no method suffix: documented residual miss, stays silent.
+    let silent = extract("server/api/util.ts", "export const helper = () => 42;");
+    assert!(
+        facts_with_pattern(&silent, "nuxt.server_route.v1").is_empty(),
+        "server files without a handler signal or method suffix must stay silent"
+    );
+}
+
+#[test]
+fn nuxt_non_server_files_emit_no_server_route_facts() {
+    // server/middleware, server/plugins, server/utils are not routes.
+    let middleware = extract(
+        "server/middleware/log.ts",
+        "export default defineEventHandler((event) => { console.log(event.path); });",
+    );
+    assert!(facts_with_pattern(&middleware, "nuxt.server_route.v1").is_empty());
+
+    let plugin = extract(
+        "server/plugins/setup.ts",
+        "export default defineNitroPlugin(() => {});",
+    );
+    assert!(facts_with_pattern(&plugin, "nuxt.server_route.v1").is_empty());
+
+    // Page files never emit server routes, and their file_route facts are unaffected.
+    let page = extract("app/pages/index.vue", "<template><h1>Home</h1></template>");
+    assert!(facts_with_pattern(&page, "nuxt.server_route.v1").is_empty());
+    assert_eq!(facts_with_pattern(&page, "nuxt.file_route.v1").len(), 1);
+}
+
+#[test]
 fn nuxt_file_routes_normalize_optional_and_partial_dynamic_segments() {
     let optional = extract(
         "pages/users/[[id]].vue",
