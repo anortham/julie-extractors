@@ -227,11 +227,11 @@ Add `javascript`, `jsx`, `typescript`, `tsx` (JSX attributes) and `vue` (templat
 **What to build:** Audit every documented metadata key for the new families against actual emission (extend the emission-agreement test pattern from the 2026-07-01 hardening Task 8). Cut the release; notes must call out: four new pattern ids, htmx language expansion, the `.http-boundary-facts-v1` marker, and the naming/verb policies the new families follow. Do not publish without explicit user approval.
 
 **Acceptance criteria:**
-- [ ] Emission-agreement test covers the four new families.
-- [ ] `EXTRACTION_CONTRACT_VERSION` ends with `.http-boundary-facts-v1`; api_surface marker test green.
-- [ ] Branch gate green; release notes list consumer-visible changes.
+- [x] Emission-agreement test covers the four new families.
+- [x] `EXTRACTION_CONTRACT_VERSION` ends with `.http-boundary-facts-v1`; api_surface marker test green.
+- [x] Branch gate green; release notes list consumer-visible changes.
 - [ ] User approval obtained before publishing.
-- [ ] Miller handoff noted: companion plan to bridge `http.client_request.v1` ↔ `nextjs.route_handler.v1`/`nuxt.server_route.v1`/`aspnet.attribute_route.v1`/`aspnet.minimal_api.route.v1`.
+- [x] Miller handoff noted: companion plan to bridge `http.client_request.v1` ↔ `nextjs.route_handler.v1`/`nuxt.server_route.v1`/`aspnet.attribute_route.v1`/`aspnet.minimal_api.route.v1`.
 
 ## Verification Strategy
 
