@@ -896,17 +896,40 @@ fn attribute_route_argument(content: &str, attribute: Node<'_>) -> AttributeRout
     };
 
     let mut list_cursor = argument_list.walk();
-    let first_argument = argument_list
-        .children(&mut list_cursor)
-        .find(|child| child.kind() == "attribute_argument");
-    let Some(first_argument) = first_argument else {
-        return AttributeRouteArgument::Absent;
-    };
-
-    match parse_csharp_string_literal(content, first_argument.start_byte()) {
-        Some((value, _, _)) => AttributeRouteArgument::Literal(value),
-        None => AttributeRouteArgument::NonLiteral,
+    for argument in argument_list.children(&mut list_cursor) {
+        if argument.kind() != "attribute_argument" {
+            continue;
+        }
+        if is_named_attribute_argument(content, argument) {
+            continue;
+        }
+        return match parse_csharp_string_literal(content, argument.start_byte()) {
+            Some((value, _, _)) => AttributeRouteArgument::Literal(value),
+            None => AttributeRouteArgument::NonLiteral,
+        };
     }
+
+    AttributeRouteArgument::Absent
+}
+
+fn is_named_attribute_argument(content: &str, argument: Node<'_>) -> bool {
+    let Some(raw) = node_text(content, argument) else {
+        return false;
+    };
+    let trimmed = raw.trim_start();
+    let bytes = trimmed.as_bytes();
+    if bytes
+        .first()
+        .is_none_or(|byte| !matches!(byte, b'_' | b'a'..=b'z' | b'A'..=b'Z'))
+    {
+        return false;
+    }
+    let mut cursor = 1;
+    while cursor < bytes.len() && is_csharp_identifier_byte(&bytes[cursor]) {
+        cursor += 1;
+    }
+    cursor = skip_ascii_whitespace_until(trimmed, cursor, trimmed.len());
+    bytes.get(cursor) == Some(&b'=')
 }
 
 /// The controller substitution value: class name minus a trailing `Controller`.
@@ -925,11 +948,23 @@ fn join_effective_route(
     method_template: Option<&str>,
 ) -> Option<String> {
     match (controller_template, method_template) {
+        (Some(_), Some(method)) if is_absolute_route_template(method) => Some(method.to_string()),
         (Some(controller), Some(method)) => Some(join_route_templates(controller, method)),
         (Some(controller), None) => Some(controller.to_string()),
         (None, Some(method)) => Some(method.to_string()),
         (None, None) => None,
     }
+}
+
+fn is_absolute_route_template(template: &str) -> bool {
+    template.starts_with('/') || template.starts_with("~/")
+}
+
+fn normalize_route_template(template: &str) -> String {
+    let normalized = template
+        .strip_prefix("~/")
+        .unwrap_or_else(|| template.trim_start_matches('/'));
+    format!("/{normalized}")
 }
 
 /// Substitute `[controller]`/`[action]` tokens using the lowercased identifiers
@@ -954,7 +989,7 @@ fn substitute_route_tokens(
         output = output.replace("[action]", &action.to_ascii_lowercase());
         tokens.push("action");
     }
-    (format!("/{}", output.trim_start_matches('/')), tokens)
+    (normalize_route_template(&output), tokens)
 }
 
 fn insert_route_tokens(metadata: &mut HashMap<String, Value>, tokens: Vec<&'static str>) {

@@ -300,6 +300,78 @@ public class UsersController : ControllerBase
 }
 
 #[test]
+fn csharp_attribute_route_named_http_argument_keeps_bare_method_fact() {
+    let source = r#"using Microsoft.AspNetCore.Mvc;
+
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    [HttpGet(Name = "GetUsers")]
+    public IActionResult Index() => Ok();
+}
+"#;
+
+    let results = extract("src/UsersController.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.attribute_route.v1");
+
+    assert_eq!(facts.len(), 2);
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "verb") == Some("GET"))
+        .expect("expected named-only HttpGet fact");
+    assert_eq!(metadata_str(get, "attribute_kind"), Some("http_method"));
+    assert_eq!(metadata_str(get, "route_template"), None);
+    assert_eq!(
+        metadata_str(get, "controller_route_template"),
+        Some("api/[controller]")
+    );
+    assert_eq!(
+        metadata_str(get, "effective_route_template"),
+        Some("/api/users")
+    );
+    assert_eq!(metadata_array(get, "route_tokens"), vec!["controller"]);
+}
+
+#[test]
+fn csharp_attribute_route_absolute_action_template_does_not_combine_controller_route() {
+    let source = r#"using Microsoft.AspNetCore.Mvc;
+
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    [HttpGet("/health")]
+    public IActionResult Health() => Ok();
+
+    [HttpGet("~/status")]
+    public IActionResult Status() => Ok();
+}
+"#;
+
+    let results = extract("src/UsersController.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.attribute_route.v1");
+
+    let health = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/health"))
+        .expect("expected absolute /health route fact");
+    assert_eq!(
+        metadata_str(health, "effective_route_template"),
+        Some("/health")
+    );
+    assert!(metadata_array(health, "route_tokens").is_empty());
+
+    let status = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("~/status"))
+        .expect("expected absolute ~/status route fact");
+    assert_eq!(
+        metadata_str(status, "effective_route_template"),
+        Some("/status")
+    );
+    assert!(metadata_array(status, "route_tokens").is_empty());
+}
+
+#[test]
 fn csharp_attribute_route_non_literal_argument_is_silent() {
     let source = r#"using Microsoft.AspNetCore.Mvc;
 

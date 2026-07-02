@@ -77,6 +77,21 @@ export async function save() {
 }
 
 #[test]
+fn fetch_nested_method_property_does_not_set_http_verb() {
+    let source = r#"
+export async function load() {
+  return fetch("/api/users", { headers: { method: "POST" } });
+}
+"#;
+    let results = extract("src/load.js", source);
+    let fact = single_request(&results);
+
+    assert_eq!(metadata_str(fact, "target_path"), Some("/api/users"));
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+    assert_eq!(metadata_str(fact, "verb_source"), Some("default"));
+}
+
+#[test]
 fn fetch_lowercase_method_literal_is_upper_cased() {
     let source = r#"
 export async function patch() {
@@ -329,6 +344,21 @@ export async function load() {
     assert!(
         client_requests(&results).is_empty(),
         "axios calls without an axios import must stay silent"
+    );
+}
+
+#[test]
+fn axios_comment_import_does_not_gate_client_requests() {
+    let source = r#"
+// import axios from "axios";
+export async function load() {
+  return axios.get("/api/users");
+}
+"#;
+    let results = extract("src/load.js", source);
+    assert!(
+        client_requests(&results).is_empty(),
+        "comment-only imports must not gate axios client-request facts"
     );
 }
 

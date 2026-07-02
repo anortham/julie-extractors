@@ -4,8 +4,8 @@ use super::HTTP_CLIENT_REQUEST_PATTERN_ID;
 use super::fact_builders::{base_metadata, fact_for_span, insert_string};
 use super::js_imports::JsImportIndex;
 use super::js_object_scan::{
-    find_matching_paren, find_object_property_value_start, find_top_level_comma_or_end,
-    is_identifier_boundary, is_ignored_syntax_range, parse_js_identifier, parse_js_string_literal,
+    find_matching_paren, find_top_level_comma_or_end, is_identifier_boundary,
+    is_ignored_syntax_range, parse_js_identifier, parse_js_string_literal,
     skip_ascii_whitespace_until,
 };
 use crate::base::span::NormalizedSpan;
@@ -301,15 +301,98 @@ fn resolve_verb(content: &str, first_arg_end: usize, close_paren: usize) -> Verb
         return VerbResolution::Get;
     }
     let options_start = skip_ascii_whitespace_until(content, first_arg_end + 1, close_paren);
-    let Some(method_value_start) =
-        find_object_property_value_start(content, options_start, close_paren, "method")
+    if content.as_bytes().get(options_start) != Some(&b'{') {
+        return VerbResolution::Get;
+    }
+    let Some(options_end) = find_matching_brace(content, options_start, close_paren) else {
+        return VerbResolution::Silent;
+    };
+    let Some((method_value_start, method_value_end)) =
+        find_top_level_method_property_value(content, options_start + 1, options_end)
     else {
         return VerbResolution::Get;
     };
     match parse_js_string_literal(content, method_value_start) {
-        Some((method, _)) => VerbResolution::Attested(method),
+        Some((method, method_end))
+            if skip_ascii_whitespace_until(content, method_end, method_value_end)
+                == method_value_end =>
+        {
+            VerbResolution::Attested(method)
+        }
         None => VerbResolution::Silent,
+        Some(_) => VerbResolution::Silent,
     }
+}
+
+fn find_top_level_method_property_value(
+    content: &str,
+    start: usize,
+    end: usize,
+) -> Option<(usize, usize)> {
+    let mut cursor = start;
+    while cursor < end {
+        cursor = skip_ascii_whitespace_until(content, cursor, end);
+        if cursor >= end {
+            break;
+        }
+        let Some((property_name, after_key)) = parse_js_string_literal(content, cursor)
+            .or_else(|| parse_js_identifier(content, cursor, end))
+        else {
+            let next = find_top_level_comma_or_end(content, cursor, end);
+            cursor = next.saturating_add(1);
+            continue;
+        };
+        let colon = skip_ascii_whitespace_until(content, after_key, end);
+        if content.as_bytes().get(colon) != Some(&b':') {
+            let next = find_top_level_comma_or_end(content, cursor, end);
+            cursor = next.saturating_add(1);
+            continue;
+        }
+        let value_start = skip_ascii_whitespace_until(content, colon + 1, end);
+        let value_end = find_top_level_comma_or_end(content, value_start, end);
+        if property_name == "method" {
+            return Some((value_start, value_end));
+        }
+        cursor = value_end.saturating_add(1);
+    }
+    None
+}
+
+fn find_matching_brace(content: &str, open_brace: usize, end: usize) -> Option<usize> {
+    let bytes = content.as_bytes();
+    let mut cursor = open_brace;
+    let mut depth = 0usize;
+    let mut quote = None;
+    let mut escaped = false;
+
+    while cursor < end {
+        let byte = bytes[cursor];
+        if let Some(active_quote) = quote {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == active_quote {
+                quote = None;
+            }
+        } else if matches!(byte, b'\'' | b'"' | b'`') {
+            quote = Some(byte);
+        } else {
+            match byte {
+                b'{' => depth += 1,
+                b'}' => {
+                    depth = depth.saturating_sub(1);
+                    if depth == 0 {
+                        return Some(cursor);
+                    }
+                }
+                _ => {}
+            }
+        }
+        cursor += 1;
+    }
+
+    None
 }
 
 fn classify_url_kind(url: &str) -> &'static str {

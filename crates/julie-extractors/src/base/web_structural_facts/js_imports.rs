@@ -27,6 +27,9 @@ pub(super) fn collect_js_imports(content: &str) -> JsImportIndex {
         if !is_identifier_boundary(content, import_start, "import".len()) {
             continue;
         }
+        if is_in_js_comment_or_string(content, import_start) {
+            continue;
+        }
 
         let statement_end = js_import_statement_end(content, import_start);
         let Some(statement) = content.get(import_start..statement_end) else {
@@ -82,6 +85,49 @@ pub(super) fn collect_js_imports(content: &str) -> JsImportIndex {
     }
 
     imports
+}
+
+fn is_in_js_comment_or_string(content: &str, target: usize) -> bool {
+    let bytes = content.as_bytes();
+    let mut cursor = 0;
+    let mut line_comment = false;
+    let mut block_comment = false;
+    let mut quote = None;
+    let mut escaped = false;
+
+    while cursor < target {
+        let byte = bytes[cursor];
+        let next = bytes.get(cursor + 1).copied();
+        if line_comment {
+            if byte == b'\n' {
+                line_comment = false;
+            }
+        } else if block_comment {
+            if byte == b'*' && next == Some(b'/') {
+                block_comment = false;
+                cursor += 1;
+            }
+        } else if let Some(active_quote) = quote {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == active_quote {
+                quote = None;
+            }
+        } else if byte == b'/' && next == Some(b'/') {
+            line_comment = true;
+            cursor += 1;
+        } else if byte == b'/' && next == Some(b'*') {
+            block_comment = true;
+            cursor += 1;
+        } else if matches!(byte, b'\'' | b'"' | b'`') {
+            quote = Some(byte);
+        }
+        cursor += 1;
+    }
+
+    line_comment || block_comment || quote.is_some()
 }
 
 pub(super) fn js_import_statement_end(content: &str, import_start: usize) -> usize {
