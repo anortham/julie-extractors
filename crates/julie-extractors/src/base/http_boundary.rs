@@ -162,13 +162,12 @@ fn normalize_angle_template(input: &str) -> NormalizedTemplate {
 }
 
 fn normalize_braces_with_dots_template(input: &str) -> NormalizedTemplate {
-    if input == "{$}" {
-        return NormalizedTemplate {
-            template: String::new(),
-            dynamic_segments: Vec::new(),
-        };
-    }
-    replace_delimited_params(input, '{', '}', |inner| {
+    // Go 1.22's `{$}` is an end-of-path anchor, not a path parameter. Strip it
+    // wherever it appears so the exact-match root `/{$}` normalizes to `/` and a
+    // scoped exact-match like `/items/{$}` normalizes to `/items/` — never to a
+    // bogus `:$` segment. Surrounding separators are preserved as written.
+    let input = input.replace("{$}", "");
+    replace_delimited_params(input.as_str(), '{', '}', |inner| {
         let name = inner
             .trim()
             .trim_end_matches("...")
@@ -276,6 +275,24 @@ mod tests {
             let normalized = normalize_route_template(input, flavor);
             assert_eq!(normalized.template, expected, "{input}");
             assert_eq!(normalized.dynamic_segments, segments, "{input}");
+        }
+    }
+
+    #[test]
+    fn strips_go_end_of_path_anchor_at_any_depth() {
+        // Go 1.22 `{$}` is an end-of-path anchor, never a path parameter.
+        for (input, expected) in [
+            ("/{$}", "/"),
+            ("/items/{$}", "/items/"),
+            ("/api/v1/{$}", "/api/v1/"),
+        ] {
+            let normalized = normalize_route_template(input, ParamFlavor::BracesWithDots);
+            assert_eq!(normalized.template, expected, "{input}");
+            assert!(
+                normalized.dynamic_segments.is_empty(),
+                "{input} must not emit a dynamic segment, got {:?}",
+                normalized.dynamic_segments
+            );
         }
     }
 

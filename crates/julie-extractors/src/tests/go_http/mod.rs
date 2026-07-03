@@ -101,6 +101,28 @@ func routes() {
 }
 
 #[test]
+fn go_net_http_scoped_exact_anchor_strips_dollar_segment() {
+    let source = r#"
+package main
+
+import "net/http"
+
+func routes() {
+    http.HandleFunc("/items/{$}", items)
+}
+"#;
+    let results = extract("server.go", source);
+    let facts = facts_with_pattern(&results, GO_NET_HTTP_ROUTE_PATTERN_ID);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "route_template"), Some("/items/{$}"));
+    assert_eq!(
+        metadata_str(facts[0], "normalized_route_template"),
+        Some("/items/")
+    );
+    assert!(metadata_array(facts[0], "dynamic_segments").is_empty());
+}
+
+#[test]
 fn go_net_http_host_patterns_record_host_separately() {
     let source = r#"
 package main
