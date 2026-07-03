@@ -556,6 +556,19 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `rails.mount.v1` | `ruby` | `mount` | parser-covered DSL call span |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span |
+| `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` |
+| `razor.code_block.v1` | `razor` | `code_block` | `razor_block` |
+| `razor.template_expression.v1` | `razor` | `template_expression` | `razor_implicit_expression`, `razor_explicit_expression` |
+| `css.selector_rule.v1` | `css` | `rule_set` | `rule_set` |
+| `css.custom_property.v1` | `css` | `custom_property` | `property_name` |
+| `css.media_query.v1` | `css` | `media_query` | `media_statement` |
+| `css.keyframes.v1` | `css` | `keyframes` | `keyframes_statement` |
+| `html.link.v1` | `html` | `link` | `element` |
+| `html.script.v1` | `html` | `script` | `script_element` |
+| `html.form.v1` | `html` | `form` | `element` |
+| `html.form_control.v1` | `html` | `form_control` | `element` |
+| `vue.sfc_section.v1` | `vue` | `section` | `sfc_section` |
+| `vue.template_directive.v1` | `vue` | `directive` | `template_attribute` |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` |
 | `vue.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `route_definition` | `object` |
 | `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` |

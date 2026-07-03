@@ -323,6 +323,11 @@ fn find_matching_delimiter(content: &str, open_byte: usize, open: u8, close: u8)
             cursor += 2;
             continue;
         }
+        if byte == b'@' && next == Some(b'$') && bytes.get(cursor + 2) == Some(&b'"') {
+            verbatim_string = true;
+            cursor += 3;
+            continue;
+        }
         if byte == b'$' && next == Some(b'@') && bytes.get(cursor + 2) == Some(&b'"') {
             verbatim_string = true;
             cursor += 3;

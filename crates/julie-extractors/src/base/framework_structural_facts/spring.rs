@@ -26,7 +26,7 @@ pub(super) fn collect_spring_request_mappings(
     let mask = SourceMask::new(content, MaskLanguage::Java);
     let mut facts = Vec::new();
     let mut pending_class_mapping: Option<(MappingAnnotation, usize, usize)> = None;
-    let mut current_class_template: Option<String> = None;
+    let mut current_class_templates: Vec<String> = Vec::new();
     let mut offset = 0;
     let lines: Vec<&str> = content.split_inclusive('\n').collect();
     let mut index = 0;
@@ -47,40 +47,53 @@ pub(super) fn collect_spring_request_mappings(
                 pending_class_mapping = Some((mapping, target_start, target_end));
             } else {
                 let templates = if mapping.templates.is_empty() {
-                    vec!["".to_string()]
+                    if mapping.has_route_argument {
+                        Vec::new()
+                    } else {
+                        vec!["".to_string()]
+                    }
                 } else {
                     mapping.templates.clone()
                 };
-                for template in templates {
-                    let effective = current_class_template
-                        .as_deref()
-                        .map(|class| join_route_templates(class, &template));
-                    let source = effective.as_deref().unwrap_or(&template);
-                    let verbs = if mapping.verbs.is_empty() {
-                        vec![None]
-                    } else {
-                        mapping
-                            .verbs
-                            .iter()
-                            .map(|verb| Some(verb.as_str()))
-                            .collect()
-                    };
-                    for verb in verbs {
-                        if let Some(fact) = mapping_fact(
-                            language,
-                            tree,
-                            file_path,
-                            content,
-                            target_start,
-                            target_end,
-                            mapping.attribute_kind,
-                            &template,
-                            source,
-                            current_class_template.as_deref(),
-                            effective.as_deref(),
-                            verb,
-                        ) {
-                            facts.push(fact);
+                let class_templates: Vec<Option<&str>> = if current_class_templates.is_empty() {
+                    vec![None]
+                } else {
+                    current_class_templates
+                        .iter()
+                        .map(|template| Some(template.as_str()))
+                        .collect()
+                };
+                let verbs: Vec<Option<&str>> = if mapping.verbs.is_empty() {
+                    vec![None]
+                } else {
+                    mapping
+                        .verbs
+                        .iter()
+                        .map(|verb| Some(verb.as_str()))
+                        .collect()
+                };
+                for class_template in class_templates {
+                    for template in &templates {
+                        let effective =
+                            class_template.map(|class| join_route_templates(class, template));
+                        let source = effective.as_deref().unwrap_or(template);
+                        for verb in &verbs {
+                            if let Some(fact) = mapping_fact(
+                                language,
+                                tree,
+                                file_path,
+                                content,
+                                target_start,
+                                target_end,
+                                mapping.attribute_kind,
+                                template,
+                                source,
+                                class_template,
+                                effective.as_deref(),
+                                *verb,
+                            ) {
+                                facts.push(fact);
+                            }
                         }
                     }
                 }
@@ -91,9 +104,10 @@ pub(super) fn collect_spring_request_mappings(
             // without a class-level mapping resets it so the previous
             // controller's prefix cannot leak into this one's routes.
             let pending = pending_class_mapping.take();
-            current_class_template = pending
+            current_class_templates = pending
                 .as_ref()
-                .and_then(|(mapping, _, _)| mapping.templates.first().cloned());
+                .map(|(mapping, _, _)| mapping.templates.clone())
+                .unwrap_or_default();
             if let Some((mapping, start, end)) = pending {
                 for template in mapping.templates {
                     if let Some(fact) = mapping_fact(
@@ -126,6 +140,7 @@ struct MappingAnnotation {
     templates: Vec<String>,
     verbs: Vec<String>,
     attribute_kind: &'static str,
+    has_route_argument: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -165,6 +180,7 @@ fn parse_mapping_annotation(
             templates: vec!["".to_string()],
             verbs: default_verb.map(str::to_string).into_iter().collect(),
             attribute_kind,
+            has_route_argument: false,
         });
     }
     let close = find_matching_paren(content, mask, open)?;
@@ -182,6 +198,7 @@ fn parse_mapping_annotation(
         templates,
         verbs,
         attribute_kind,
+        has_route_argument: elements.has_route_argument,
     })
 }
 
@@ -189,6 +206,7 @@ fn parse_mapping_annotation(
 struct AnnotationElements {
     templates: Vec<String>,
     verbs: Vec<String>,
+    has_route_argument: bool,
 }
 
 /// Splits annotation arguments into named elements. Route templates come only
@@ -208,6 +226,7 @@ fn parse_annotation_elements(args: &str) -> AnnotationElements {
         let (name, value) = split_annotation_element(element);
         match name {
             None | Some("value") | Some("path") => {
+                elements.has_route_argument = true;
                 collect_string_values(args, &mask, cursor + value_offset(element, value), value)
                     .into_iter()
                     .for_each(|template| elements.templates.push(template));
@@ -371,5 +390,6 @@ fn next_java_declaration_line(
 }
 
 fn is_java_class_declaration(line: &str) -> bool {
-    line.starts_with("class ") || line.contains(" class ")
+    line.split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
+        .any(|token| matches!(token, "class" | "interface" | "enum" | "record"))
 }

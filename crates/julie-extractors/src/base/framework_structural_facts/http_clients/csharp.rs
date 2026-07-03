@@ -172,9 +172,8 @@ fn collect_http_request_messages(
 }
 
 fn parse_csharp_url_literal(content: &str, start: usize) -> Option<(String, usize)> {
-    parse_csharp_string_literal(content, start)
-        .map(|(value, end, _)| (value, end))
-        .or_else(|| parse_csharp_raw_string_literal(content, start))
+    parse_csharp_raw_string_literal(content, start)
+        .or_else(|| parse_csharp_string_literal(content, start).map(|(value, end, _)| (value, end)))
 }
 
 fn parse_csharp_raw_string_literal(content: &str, start: usize) -> Option<(String, usize)> {

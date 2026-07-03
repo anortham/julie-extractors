@@ -271,3 +271,50 @@ fn structural_fact_patterns_json_matches_checked_in_contract() {
          `UPDATE_CONTRACT_JSON=1 cargo test -p julie-extractors structural_fact_registry`."
     );
 }
+
+#[test]
+fn markdown_contract_pattern_tables_list_web_markup_pattern_rows() {
+    let root = contract_workspace_root();
+    let docs = [
+        root.join("docs/contracts/jsonl-v3.md"),
+        root.join("docs/contracts/sqlite-schema-v3.md"),
+    ];
+
+    let expected = [
+        "razor.page_directive.v1",
+        "razor.code_block.v1",
+        "razor.template_expression.v1",
+        "css.selector_rule.v1",
+        "css.custom_property.v1",
+        "css.media_query.v1",
+        "css.keyframes.v1",
+        "html.link.v1",
+        "html.script.v1",
+        "html.form.v1",
+        "html.form_control.v1",
+        "vue.sfc_section.v1",
+        "vue.template_directive.v1",
+    ];
+
+    for doc in docs {
+        let content = std::fs::read_to_string(&doc)
+            .unwrap_or_else(|err| panic!("failed to read {}: {err}", doc.display()));
+        let table_rows = content
+            .lines()
+            .filter(|line| line.starts_with("| `"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let missing = expected
+            .iter()
+            .filter(|pattern_id| !table_rows.contains(&format!("`{pattern_id}`")))
+            .copied()
+            .collect::<Vec<_>>();
+
+        assert!(
+            missing.is_empty(),
+            "{} structural-fact pattern table is missing registered pattern row(s): {}",
+            doc.display(),
+            missing.join(", ")
+        );
+    }
+}

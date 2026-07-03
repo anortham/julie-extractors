@@ -134,6 +134,106 @@ class HealthController {
 }
 
 #[test]
+fn spring_non_literal_method_mapping_stays_silent() {
+    let source = r#"
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api")
+class UserController {
+    static final String PATH_USERS = "/users";
+
+    @GetMapping(PATH_USERS)
+    public User getUser() { return null; }
+}
+"#;
+    let results = extract("src/UserController.java", source);
+    let facts = routes(&results);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata_str(facts[0], "attribute_kind"),
+        Some("class_route")
+    );
+    assert_eq!(metadata_str(facts[0], "route_template"), Some("/api"));
+}
+
+#[test]
+fn spring_interface_controller_mappings_reset_class_prefix_and_apply_own_template() {
+    let source = r#"
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api")
+class FirstController {
+}
+
+@RequestMapping("/iface")
+interface UserApi {
+    @GetMapping("/users")
+    String users();
+}
+"#;
+    let results = extract("src/UserApi.java", source);
+    let facts = routes(&results);
+    assert_eq!(facts.len(), 3, "{facts:#?}");
+
+    let iface = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/iface"))
+        .expect("interface route");
+    assert_eq!(metadata_str(iface, "attribute_kind"), Some("class_route"));
+    assert_eq!(metadata_str(iface, "effective_route_template"), None);
+    assert_eq!(
+        metadata_str(iface, "normalized_route_template"),
+        Some("/iface")
+    );
+
+    let method = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/users"))
+        .expect("interface method route");
+    assert_eq!(metadata_str(method, "class_route_template"), Some("/iface"));
+    assert_eq!(
+        metadata_str(method, "effective_route_template"),
+        Some("/iface/users")
+    );
+    assert_eq!(
+        metadata_str(method, "normalized_route_template"),
+        Some("/iface/users")
+    );
+}
+
+#[test]
+fn spring_class_mapping_arrays_cross_product_with_method_templates() {
+    let source = r#"
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping({"/api", "/v2"})
+class UserController {
+    @GetMapping({"/users", "/members"})
+    public User getUser() { return null; }
+}
+"#;
+    let results = extract("src/UserController.java", source);
+    let facts = routes(&results);
+    let class_routes = facts
+        .iter()
+        .filter(|fact| metadata_str(fact, "attribute_kind") == Some("class_route"))
+        .count();
+    assert_eq!(class_routes, 2, "{facts:#?}");
+
+    let effective = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "effective_route_template"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        effective,
+        vec!["/api/users", "/api/members", "/v2/users", "/v2/members"]
+    );
+}
+
+#[test]
 fn spring_produces_and_consumes_literals_are_not_route_templates() {
     let source = r#"
 import org.springframework.web.bind.annotation.*;

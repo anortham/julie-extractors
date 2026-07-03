@@ -185,7 +185,7 @@ pub(in crate::base) fn parse_import_source(statement: &str) -> Option<String> {
     (source_end <= statement.len()).then_some(source)
 }
 
-fn parse_named_imports(statement: &str) -> Vec<(String, String)> {
+pub(in crate::base) fn parse_named_imports(statement: &str) -> Vec<(String, String)> {
     let Some(open_brace) = statement.find('{') else {
         return Vec::new();
     };

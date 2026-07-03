@@ -103,9 +103,7 @@ fn normalize_colon_template(input: &str) -> NormalizedTemplate {
     let template = input
         .split('/')
         .map(|segment| {
-            if let Some(name) = segment.strip_prefix(':').filter(|name| !name.is_empty()) {
-                dynamic_segments.push(name.to_string());
-            }
+            collect_colon_dynamic_segments(segment, &mut dynamic_segments);
             segment.to_string()
         })
         .collect::<Vec<_>>()
@@ -113,6 +111,28 @@ fn normalize_colon_template(input: &str) -> NormalizedTemplate {
     NormalizedTemplate {
         template,
         dynamic_segments,
+    }
+}
+
+fn collect_colon_dynamic_segments(segment: &str, dynamic_segments: &mut Vec<String>) {
+    let bytes = segment.as_bytes();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        if bytes[cursor] != b':' {
+            cursor += 1;
+            continue;
+        }
+        let name_start = cursor + 1;
+        let mut name_end = name_start;
+        while name_end < bytes.len()
+            && (bytes[name_end].is_ascii_alphanumeric() || matches!(bytes[name_end], b'_' | b'$'))
+        {
+            name_end += 1;
+        }
+        if name_end > name_start {
+            dynamic_segments.push(segment[name_start..name_end].to_string());
+        }
+        cursor = name_end.saturating_add(1);
     }
 }
 
@@ -142,6 +162,12 @@ fn normalize_angle_template(input: &str) -> NormalizedTemplate {
 }
 
 fn normalize_braces_with_dots_template(input: &str) -> NormalizedTemplate {
+    if input == "{$}" {
+        return NormalizedTemplate {
+            template: String::new(),
+            dynamic_segments: Vec::new(),
+        };
+    }
     replace_delimited_params(input, '{', '}', |inner| {
         let name = inner
             .trim()

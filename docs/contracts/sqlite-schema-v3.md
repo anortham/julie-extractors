@@ -530,6 +530,19 @@ Supported patterns are advertised in
 | `rails.mount.v1` | `ruby` | `mount` | parser-covered DSL call span | `framework` | A Rails `mount` route for a Rack app or engine. |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` or `data-hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
+| `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` | `component_routing` | A Razor `@page` directive with route-template metadata. |
+| `razor.code_block.v1` | `razor` | `code_block` | `razor_block` | `component_code` | A Razor `@code` or `@functions` block. |
+| `razor.template_expression.v1` | `razor` | `template_expression` | `razor_implicit_expression`, `razor_explicit_expression` | `component_template` | A Razor template expression such as `@name` or `@(expr)`. |
+| `css.selector_rule.v1` | `css` | `rule_set` | `rule_set` | `stylesheet_structure` | A CSS selector rule set with selector kind and declaration-count metadata. |
+| `css.custom_property.v1` | `css` | `custom_property` | `property_name` | `stylesheet_structure` | A CSS custom property declaration. |
+| `css.media_query.v1` | `css` | `media_query` | `media_statement` | `responsive_design` | A CSS `@media` query. |
+| `css.keyframes.v1` | `css` | `keyframes` | `keyframes_statement` | `animation` | A CSS `@keyframes` animation. |
+| `html.link.v1` | `html` | `link` | `element` | `document_navigation` | An HTML anchor link with an `href` target. |
+| `html.script.v1` | `html` | `script` | `script_element` | `document_assets` | An HTML script element with inline/external metadata. |
+| `html.form.v1` | `html` | `form` | `element` | `document_forms` | An HTML form with action, method, and control-count metadata. |
+| `html.form_control.v1` | `html` | `form_control` | `element` | `document_forms` | An HTML form control and its resolved owner-form metadata when available. |
+| `vue.sfc_section.v1` | `vue` | `section` | `sfc_section` | `component_structure` | A Vue single-file component section (`template`, `script`, or `style`). |
+| `vue.template_directive.v1` | `vue` | `directive` | `template_attribute` | `component_template` | A Vue template directive such as `v-bind`, `v-on`, `v-if`, or shorthand forms. |
 | `vue.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Vue Router link target such as `<RouterLink to="/calendar">`. |
 | `vue.route_definition.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue` | `route_definition` | `object` | `frontend_navigation` | A static Vue Router route-table entry with a literal `path`, including `vue-router` JS/TS modules. |
 | `nuxt.route_reference.v1` | `vue` | `route_reference` | `template_attribute` | `frontend_navigation` | A static Nuxt `NuxtLink` or `nuxt-link` target with a literal `to` path. |

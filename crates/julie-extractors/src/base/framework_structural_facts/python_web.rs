@@ -128,8 +128,7 @@ enum FlaskReceiverKind {
 
 fn collect_imports(content: &str) -> PythonImports {
     let mut imports = PythonImports::default();
-    for line in content.lines() {
-        let trimmed = line.trim();
+    for trimmed in python_logical_lines(content) {
         if let Some(rest) = trimmed.strip_prefix("from fastapi import ") {
             for (imported, local) in parse_from_import_items(rest) {
                 match imported.as_str() {
@@ -155,9 +154,41 @@ fn collect_imports(content: &str) -> PythonImports {
                     _ => {}
                 }
             }
+        } else if let Some(rest) = trimmed.strip_prefix("import ") {
+            for (module, local) in parse_module_import_items(rest) {
+                if module == "fastapi" {
+                    imports.fastapi_class = Some(format!("{local}.FastAPI"));
+                    imports.api_router_class = Some(format!("{local}.APIRouter"));
+                }
+            }
         }
     }
     imports
+}
+
+fn python_logical_lines(content: &str) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut pending = String::new();
+    let mut paren_depth = 0isize;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if pending.is_empty() {
+            pending.push_str(trimmed);
+        } else {
+            pending.push(' ');
+            pending.push_str(trimmed);
+        }
+        paren_depth += trimmed.matches('(').count() as isize;
+        paren_depth -= trimmed.matches(')').count() as isize;
+        if paren_depth <= 0 {
+            lines.push(std::mem::take(&mut pending));
+            paren_depth = 0;
+        }
+    }
+    if !pending.is_empty() {
+        lines.push(pending);
+    }
+    lines
 }
 
 fn parse_from_import_items(rest: &str) -> Vec<(String, String)> {
@@ -176,6 +207,28 @@ fn parse_from_import_items(rest: &str) -> Vec<(String, String)> {
                 imported.clone()
             };
             Some((imported, local))
+        })
+        .collect()
+}
+
+fn parse_module_import_items(rest: &str) -> Vec<(String, String)> {
+    rest.split('#')
+        .next()
+        .unwrap_or(rest)
+        .split(',')
+        .filter_map(|item| {
+            let item = item.trim();
+            if item.is_empty() {
+                return None;
+            }
+            let mut parts = item.split_whitespace();
+            let module = parts.next()?.to_string();
+            let local = if parts.next() == Some("as") {
+                parts.next()?.to_string()
+            } else {
+                module.clone()
+            };
+            Some((module, local))
         })
         .collect()
 }
@@ -399,9 +452,9 @@ fn collect_flask_routes(
         if verbs.is_empty() {
             continue;
         }
+        let has_methods_keyword = keyword_value_start(&decorator.args, "methods").is_some();
         for verb in verbs {
-            let verb_source = if decorator.method == "route" && !decorator.args.contains("methods")
-            {
+            let verb_source = if decorator.method == "route" && !has_methods_keyword {
                 "default"
             } else {
                 "attested"
@@ -837,15 +890,19 @@ fn positional_string_arg(args: &str, index: usize) -> Option<String> {
 }
 
 fn keyword_value_start(args: &str, key: &str) -> Option<usize> {
-    let needle = format!("{key}=");
+    let needle = key;
     let mut cursor = 0;
-    while let Some(relative) = args[cursor..].find(&needle) {
+    while let Some(relative) = args[cursor..].find(needle) {
         let key_start = cursor + relative;
-        cursor = key_start + needle.len();
+        cursor = key_start + key.len();
         if !is_identifier_boundary(args, key_start, key.len()) {
             continue;
         }
-        return Some(skip_ascii_whitespace_until(args, cursor, args.len()));
+        let equals = skip_ascii_whitespace_until(args, cursor, args.len());
+        if args.as_bytes().get(equals) != Some(&b'=') {
+            continue;
+        }
+        return Some(skip_ascii_whitespace_until(args, equals + 1, args.len()));
     }
     None
 }

@@ -35,7 +35,7 @@ pub(super) fn collect_markup_framework_attributes(
             facts.push(fact);
         }
 
-        if is_alpine_attribute_name(&attribute.name)
+        if is_alpine_attribute_name(language, &attribute.name)
             && let Some(fact) =
                 alpine_directive_fact(language, tree, file_path, content, &attribute)
         {
@@ -242,10 +242,14 @@ fn is_static_path(value: &str) -> bool {
     value.starts_with('/') || value.starts_with("./") || value.starts_with("../")
 }
 
-fn is_alpine_attribute_name(attribute_name: &str) -> bool {
-    attribute_name.starts_with("x-")
-        || attribute_name.starts_with('@')
-        || attribute_name.starts_with(':')
+fn is_alpine_attribute_name(language: &str, attribute_name: &str) -> bool {
+    if attribute_name.starts_with("x-") {
+        return true;
+    }
+    if language == "razor" {
+        return false;
+    }
+    attribute_name.starts_with('@') || attribute_name.starts_with(':')
 }
 
 #[derive(Debug)]

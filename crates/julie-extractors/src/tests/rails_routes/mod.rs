@@ -103,6 +103,58 @@ end
 }
 
 #[test]
+fn rails_dynamic_interpolation_stays_silent_and_does_not_poison_nested_scope() {
+    let source = r##"
+Rails.application.routes.draw do
+  get "/#{locale}/users", to: "users#index"
+  scope "#{tenant}" do
+    get "/dashboard", to: "dash#show"
+  end
+  get "/health", to: "health#show"
+end
+"##;
+    let results = extract("config/routes.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "route_template"), Some("/health"));
+    assert_eq!(
+        metadata_str(routes[0], "normalized_route_template"),
+        Some("/health")
+    );
+}
+
+#[test]
+fn rails_scope_path_keyword_and_single_symbol_match_emit_routes() {
+    let source = r#"
+Rails.application.routes.draw do
+  scope path: "/admin" do
+    get "/users", to: "users#index"
+  end
+  match "/legacy", to: "legacy#show", via: :get
+end
+"#;
+    let results = extract("config/routes.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 2, "{routes:#?}");
+
+    let users = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/users"))
+        .expect("scoped users route");
+    assert_eq!(metadata_str(users, "scope_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(users, "normalized_route_template"),
+        Some("/admin/users")
+    );
+
+    let legacy = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/legacy"))
+        .expect("legacy match route");
+    assert_eq!(metadata_str(legacy, "verb"), Some("GET"));
+}
+
+#[test]
 fn rails_nested_non_scope_blocks_do_not_pop_namespace_scopes() {
     let source = r#"
 Rails.application.routes.draw do

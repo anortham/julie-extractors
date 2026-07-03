@@ -212,9 +212,17 @@ fn collect_grouped_receivers(
                 else {
                     continue;
                 };
-                if receivers.get(name) != Some(&child_prefix) {
-                    receivers.insert(name.to_string(), child_prefix);
-                    changed = true;
+                match receivers.get(name) {
+                    None => {
+                        receivers.insert(name.to_string(), child_prefix);
+                        changed = true;
+                    }
+                    Some(existing) if existing == &child_prefix => {}
+                    Some(GroupPrefix::Poisoned) => {}
+                    Some(_) => {
+                        receivers.insert(name.to_string(), GroupPrefix::Poisoned);
+                        changed = true;
+                    }
                 }
             }
         }

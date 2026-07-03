@@ -182,6 +182,27 @@ fn razor_page_directive_facts_parse_optional_and_catch_all_parameters() {
     );
 }
 
+#[test]
+fn blazor_event_and_bind_directives_do_not_emit_alpine_facts() {
+    let source = r#"
+<button @onclick="Save" @bind="Name" @onchange="Changed" @ref="buttonRef">
+    Save
+</button>
+
+@code {
+    string Name { get; set; } = "";
+    void Save() {}
+    void Changed() {}
+}
+"#;
+    let results = extract(source);
+    let alpine = facts_with_pattern(&results, "alpine.directive.v1");
+    assert!(
+        alpine.is_empty(),
+        "Blazor @onclick/@bind/@onchange/@ref attributes must not be classified as Alpine directives: {alpine:#?}"
+    );
+}
+
 fn facts_with_parameter<'a>(
     results: &'a crate::ExtractionResults,
     name: &str,

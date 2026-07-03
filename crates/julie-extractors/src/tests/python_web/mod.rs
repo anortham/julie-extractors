@@ -117,6 +117,47 @@ app.include_router(router, prefix="/v1")
 }
 
 #[test]
+fn fastapi_multiline_and_module_imports_emit_routes() {
+    let multiline = r#"
+from fastapi import (
+    FastAPI,
+    APIRouter,
+)
+
+app = FastAPI()
+router = APIRouter(prefix="/api")
+
+@router.get("/users/{user_id}")
+def user(user_id: str):
+    pass
+"#;
+    let multiline_results = extract("app/main.py", multiline);
+    let multiline_routes = facts_with_pattern(&multiline_results, FASTAPI_ROUTE_PATTERN_ID);
+    assert_eq!(multiline_routes.len(), 1, "{multiline_routes:#?}");
+    assert_eq!(
+        metadata_str(multiline_routes[0], "normalized_route_template"),
+        Some("/api/users/:user_id")
+    );
+
+    let module_import = r#"
+import fastapi
+
+app = fastapi.FastAPI()
+
+@app.get("/health")
+def health():
+    pass
+"#;
+    let module_results = extract("app/main.py", module_import);
+    let module_routes = facts_with_pattern(&module_results, FASTAPI_ROUTE_PATTERN_ID);
+    assert_eq!(module_routes.len(), 1, "{module_routes:#?}");
+    assert_eq!(
+        metadata_str(module_routes[0], "route_template"),
+        Some("/health")
+    );
+}
+
+#[test]
 fn flask_routes_defaults_methods_and_blueprints_emit_boundary_facts() {
     let source = r#"
 from flask import Flask, Blueprint
@@ -173,6 +214,58 @@ app.register_blueprint(bp, url_prefix="/v1")
     assert_eq!(registrations.len(), 1, "{registrations:#?}");
     assert_eq!(metadata_str(registrations[0], "mount_target"), Some("bp"));
     assert_eq!(metadata_str(registrations[0], "mount_path"), Some("/v1"));
+}
+
+#[test]
+fn flask_keyword_spacing_and_methods_substring_keep_correct_verb_source() {
+    let source = r#"
+from flask import Flask, Blueprint
+
+app = Flask(__name__)
+bp = Blueprint("billing", __name__, url_prefix = "/api")
+
+@app.route("/payment-methods")
+def payment_methods():
+    pass
+
+@app.route("/submit", methods = ["POST"])
+def submit():
+    pass
+
+@bp.get("/invoices")
+def invoices():
+    pass
+"#;
+    let results = extract("app.py", source);
+    let routes = facts_with_pattern(&results, FLASK_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 3, "{routes:#?}");
+
+    let payment_methods = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/payment-methods"))
+        .expect("payment-methods route");
+    assert_eq!(metadata_str(payment_methods, "verb"), Some("GET"));
+    assert_eq!(
+        metadata_str(payment_methods, "verb_source"),
+        Some("default")
+    );
+
+    let submit = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/submit"))
+        .expect("submit route");
+    assert_eq!(metadata_str(submit, "verb"), Some("POST"));
+    assert_eq!(metadata_str(submit, "verb_source"), Some("attested"));
+
+    let invoices = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/invoices"))
+        .expect("blueprint route");
+    assert_eq!(metadata_str(invoices, "url_prefix"), Some("/api"));
+    assert_eq!(
+        metadata_str(invoices, "normalized_route_template"),
+        Some("/api/invoices")
+    );
 }
 
 #[test]

@@ -79,6 +79,28 @@ func routes() {
 }
 
 #[test]
+fn go_net_http_exact_anchor_normalizes_to_root_without_dynamic_segment() {
+    let source = r#"
+package main
+
+import "net/http"
+
+func routes() {
+    http.HandleFunc("/{$}", home)
+}
+"#;
+    let results = extract("server.go", source);
+    let facts = facts_with_pattern(&results, GO_NET_HTTP_ROUTE_PATTERN_ID);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "route_template"), Some("/{$}"));
+    assert_eq!(
+        metadata_str(facts[0], "normalized_route_template"),
+        Some("/")
+    );
+    assert!(metadata_array(facts[0], "dynamic_segments").is_empty());
+}
+
+#[test]
 fn go_net_http_host_patterns_record_host_separately() {
     let source = r#"
 package main
@@ -163,6 +185,60 @@ func routes() {
         metadata_str(nested, "normalized_route_template"),
         Some("/v1/users/:id")
     );
+}
+
+#[test]
+fn gin_rune_literals_do_not_mask_later_routes() {
+    let source = r#"
+package main
+
+import "github.com/gin-gonic/gin"
+
+func routes() {
+    r := gin.Default()
+    _ = '"'
+    r.GET("/health", handler)
+}
+"#;
+    let results = extract("server.go", source);
+    let facts = facts_with_pattern(&results, GIN_ROUTE_PATTERN_ID);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "route_template"), Some("/health"));
+}
+
+#[test]
+fn gin_conflicting_group_receiver_names_terminate_and_keep_routes_unprefixed() {
+    let source = r#"
+package main
+
+import "github.com/gin-gonic/gin"
+
+func a() {
+    r := gin.Default()
+    v := r.Group("/v1")
+    v.GET("/a", handler)
+}
+
+func b() {
+    r := gin.Default()
+    v := r.Group("/v2")
+    v.GET("/b", handler)
+}
+"#;
+    let results = extract("server.go", source);
+    let facts = facts_with_pattern(&results, GIN_ROUTE_PATTERN_ID);
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    assert!(
+        facts
+            .iter()
+            .all(|fact| metadata_str(fact, "route_group_prefix").is_none()),
+        "conflicting same-name local group receivers should be treated as ambiguous, not oscillate: {facts:#?}"
+    );
+    let templates = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "route_template"))
+        .collect::<Vec<_>>();
+    assert_eq!(templates, vec!["/a", "/b"]);
 }
 
 #[test]

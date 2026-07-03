@@ -224,6 +224,20 @@ export async function send(verb) {
 }
 
 #[test]
+fn fetch_method_shorthand_emits_nothing() {
+    let source = r#"
+export async function send(method) {
+  return fetch("/api/users", { method });
+}
+"#;
+    let results = extract("src/send.js", source);
+    assert!(
+        client_requests(&results).is_empty(),
+        "a shorthand method property is dynamic and must not degrade to GET"
+    );
+}
+
+#[test]
 fn fetch_concatenated_url_stays_silent() {
     let source = r#"
 export async function load(suffix) {
@@ -607,6 +621,30 @@ def load():
 }
 
 #[test]
+fn python_requests_and_httpx_import_lines_tolerate_comments_and_commas() {
+    let source = r#"
+import requests, httpx  # shared client imports
+
+def load():
+    requests.get("/users")
+    httpx.post("/items")
+"#;
+    let results = extract("src/client.py", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "client") == Some("requests"))
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "client") == Some("httpx"))
+    );
+}
+
+#[test]
 fn python_unimported_or_instance_client_calls_stay_silent() {
     let source = r#"
 def load(session, path):
@@ -658,6 +696,40 @@ public class Api {
         .find(|fact| metadata_str(fact, "verb") == Some("PATCH"))
         .expect("request message patch");
     assert_eq!(metadata_str(patch, "client"), Some("httpclient"));
+}
+
+#[test]
+fn csharp_raw_and_at_dollar_verbatim_strings_do_not_drop_later_client_requests() {
+    let raw = r#"
+using System.Net.Http;
+
+public class Api {
+    public async Task Load(HttpClient client) {
+        await client.GetAsync("""/api/raw""");
+    }
+}
+"#;
+    let raw_results = extract("src/Api.cs", raw);
+    let raw_fact = single_request(&raw_results);
+    assert_eq!(metadata_str(raw_fact, "target_path"), Some("/api/raw"));
+    assert_eq!(metadata_str(raw_fact, "verb"), Some("GET"));
+
+    let at_dollar = r#"
+using System.Net.Http;
+
+public class Api {
+    public async Task Load(HttpClient client, string root) {
+        var path = @$"{root}\bin\";
+        await client.GetAsync("/api/after");
+    }
+}
+"#;
+    let at_dollar_results = extract("src/Api.cs", at_dollar);
+    let at_dollar_fact = single_request(&at_dollar_results);
+    assert_eq!(
+        metadata_str(at_dollar_fact, "target_path"),
+        Some("/api/after")
+    );
 }
 
 #[test]
@@ -754,6 +826,24 @@ func load() {
 }
 
 #[test]
+fn go_rune_literal_does_not_mask_later_client_requests() {
+    let source = r#"
+package main
+
+import "net/http"
+
+func load() {
+    _ = '"'
+    http.Get("/after")
+}
+"#;
+    let results = extract("client.go", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "target_path"), Some("/after"));
+}
+
+#[test]
 fn go_backtick_raw_string_urls_emit_client_requests() {
     let source = r#"
 package main
@@ -835,4 +925,21 @@ end
             .iter()
             .any(|fact| metadata_str(fact, "client") == Some("net::http"))
     );
+}
+
+#[test]
+fn ruby_regex_literal_does_not_mask_later_net_http_calls() {
+    let source = r#"
+require "net/http"
+require "uri"
+
+def load
+  quote = /["']/
+  Net::HTTP.get(URI("/after"))
+end
+"#;
+    let results = extract("client.rb", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "target_path"), Some("/after"));
 }

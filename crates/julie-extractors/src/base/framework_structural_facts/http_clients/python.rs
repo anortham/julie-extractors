@@ -49,15 +49,23 @@ fn collect_python_http_client_imports(content: &str) -> HashMap<String, String> 
     let mut imports = HashMap::new();
     for line in content.lines() {
         let trimmed = line.trim();
-        for module in ["requests", "httpx"] {
-            if trimmed == format!("import {module}") {
-                imports.insert(module.to_string(), module.to_string());
-            } else if let Some(alias) = trimmed
-                .strip_prefix(&format!("import {module} as "))
-                .map(str::trim)
-                .filter(|alias| is_ascii_identifier(alias))
-            {
-                imports.insert(alias.to_string(), module.to_string());
+        let Some(rest) = trimmed.strip_prefix("import ") else {
+            continue;
+        };
+        let rest = rest.split('#').next().unwrap_or(rest);
+        for item in rest.split(',') {
+            let item = item.trim();
+            let mut parts = item.split_whitespace();
+            let Some(module @ ("requests" | "httpx")) = parts.next() else {
+                continue;
+            };
+            let local = if parts.next() == Some("as") {
+                parts.next().filter(|alias| is_ascii_identifier(alias))
+            } else {
+                Some(module)
+            };
+            if let Some(local) = local {
+                imports.insert(local.to_string(), module.to_string());
             }
         }
     }

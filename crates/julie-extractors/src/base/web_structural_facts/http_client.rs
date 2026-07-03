@@ -283,6 +283,11 @@ enum VerbResolution {
     Silent,
 }
 
+enum MethodProperty {
+    Value { start: usize, end: usize },
+    Shorthand,
+}
+
 /// Resolves the HTTP verb from the options object (the second argument).
 ///
 /// - No options object or no `method:` property → GET by fetch's spec default.
@@ -301,10 +306,17 @@ fn resolve_verb(content: &str, first_arg_end: usize, close_paren: usize) -> Verb
     let Some(options_end) = find_matching_brace(content, options_start, close_paren) else {
         return VerbResolution::Silent;
     };
-    let Some((method_value_start, method_value_end)) =
-        find_top_level_method_property_value(content, options_start + 1, options_end)
+    let Some(method_property) =
+        find_top_level_method_property(content, options_start + 1, options_end)
     else {
         return VerbResolution::Get;
+    };
+    let MethodProperty::Value {
+        start: method_value_start,
+        end: method_value_end,
+    } = method_property
+    else {
+        return VerbResolution::Silent;
     };
     match parse_js_string_literal(content, method_value_start) {
         Some((method, method_end))
@@ -318,11 +330,11 @@ fn resolve_verb(content: &str, first_arg_end: usize, close_paren: usize) -> Verb
     }
 }
 
-fn find_top_level_method_property_value(
+fn find_top_level_method_property(
     content: &str,
     start: usize,
     end: usize,
-) -> Option<(usize, usize)> {
+) -> Option<MethodProperty> {
     let mut cursor = start;
     while cursor < end {
         cursor = skip_ascii_whitespace_until(content, cursor, end);
@@ -338,6 +350,9 @@ fn find_top_level_method_property_value(
         };
         let colon = skip_ascii_whitespace_until(content, after_key, end);
         if content.as_bytes().get(colon) != Some(&b':') {
+            if property_name == "method" {
+                return Some(MethodProperty::Shorthand);
+            }
             let next = find_top_level_comma_or_end(content, cursor, end);
             cursor = next.saturating_add(1);
             continue;
@@ -345,7 +360,10 @@ fn find_top_level_method_property_value(
         let value_start = skip_ascii_whitespace_until(content, colon + 1, end);
         let value_end = find_top_level_comma_or_end(content, value_start, end);
         if property_name == "method" {
-            return Some((value_start, value_end));
+            return Some(MethodProperty::Value {
+                start: value_start,
+                end: value_end,
+            });
         }
         cursor = value_end.saturating_add(1);
     }

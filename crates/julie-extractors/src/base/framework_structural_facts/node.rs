@@ -16,7 +16,8 @@ use crate::base::http_boundary::ParamFlavor;
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 use crate::base::web_structural_facts::js_imports::{
-    js_import_statement_end, parse_default_import, parse_import_source, parse_namespace_import,
+    js_import_statement_end, parse_default_import, parse_import_source, parse_named_imports,
+    parse_namespace_import,
 };
 use crate::base::web_structural_facts::js_object_scan::{
     is_js_identifier, parse_js_identifier, parse_js_string_literal,
@@ -93,6 +94,9 @@ pub(super) fn collect_node_http_boundary_facts(
 #[derive(Default)]
 struct NodeImports {
     express: BTreeSet<String>,
+    express_router_factories: BTreeSet<String>,
+    direct_express_apps: BTreeSet<String>,
+    direct_express_routers: BTreeSet<String>,
     fastify: BTreeSet<String>,
 }
 
@@ -175,14 +179,23 @@ fn collect_es_imports(content: &str, mask: &SourceMask, imports: &mut NodeImport
         if !matches!(source.as_str(), "express" | "fastify") {
             continue;
         }
-        let Some(local) =
-            parse_default_import(statement).or_else(|| parse_namespace_import(statement))
-        else {
-            continue;
-        };
         if source == "express" {
-            imports.express.insert(local);
+            if let Some(local) =
+                parse_default_import(statement).or_else(|| parse_namespace_import(statement))
+            {
+                imports.express.insert(local);
+            }
+            for (imported, local) in parse_named_imports(statement) {
+                if imported == "Router" {
+                    imports.express_router_factories.insert(local);
+                }
+            }
         } else {
+            let Some(local) =
+                parse_default_import(statement).or_else(|| parse_namespace_import(statement))
+            else {
+                continue;
+            };
             imports.fastify.insert(local);
         }
     }
@@ -226,8 +239,15 @@ fn collect_require_imports_for(
         else {
             continue;
         };
+        let after = content[cursor..].trim_start();
         if source == "express" {
-            imports.express.insert(local.to_string());
+            if after.starts_with(".Router()") {
+                imports.direct_express_routers.insert(local.to_string());
+            } else if after.starts_with("()") {
+                imports.direct_express_apps.insert(local.to_string());
+            } else {
+                imports.express.insert(local.to_string());
+            }
         } else {
             imports.fastify.insert(local.to_string());
         }
@@ -255,6 +275,21 @@ fn collect_express_receivers(
             ReceiverKind::ExpressRouter,
             &mut receivers,
         );
+    }
+    for local in &imports.express_router_factories {
+        collect_call_assignment_receivers(
+            content,
+            mask,
+            &format!("{local}()"),
+            ReceiverKind::ExpressRouter,
+            &mut receivers,
+        );
+    }
+    for local in &imports.direct_express_apps {
+        receivers.insert(local.clone(), ReceiverKind::ExpressApp);
+    }
+    for local in &imports.direct_express_routers {
+        receivers.insert(local.clone(), ReceiverKind::ExpressRouter);
     }
     receivers
 }
@@ -515,11 +550,14 @@ fn collect_express_route_chains(
                 chain_cursor = method_close + 1;
                 let verb = JS_VERB_METHODS
                     .iter()
-                    .find(|(method, verb)| *method == method_name && verb.is_some())
+                    .find(|(method, _)| *method == method_name)
                     .and_then(|(_, verb)| *verb);
-                let Some(verb) = verb else {
+                if !JS_VERB_METHODS
+                    .iter()
+                    .any(|(method, _)| *method == method_name)
+                {
                     continue;
-                };
+                }
                 let handler_start =
                     skip_ascii_whitespace_until(content, method_open + 1, method_close);
                 if handler_start >= method_close {
@@ -538,8 +576,8 @@ fn collect_express_route_chains(
                         capture_name: "route_call",
                         api_style: "call_routing",
                         route_template: &route_template,
-                        verb: Some(verb),
-                        verb_source: Some("attested"),
+                        verb,
+                        verb_source: verb.map(|_| "attested"),
                         flavor: ParamFlavor::Colon,
                         prefix: prefixes.get(receiver).map(String::as_str),
                         prefix_key: Some("route_group_prefix"),

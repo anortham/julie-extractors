@@ -161,6 +161,99 @@ app.route("/users")
 }
 
 #[test]
+fn express_named_router_imports_and_inline_require_receivers_emit_routes() {
+    let esm = r#"
+import { Router as R } from "express";
+
+const router = R();
+router.get("/users", handler);
+"#;
+    let esm_results = extract("src/router.js", esm);
+    let esm_routes = facts_with_pattern(&esm_results, EXPRESS_ROUTE_PATTERN_ID);
+    assert_eq!(esm_routes.len(), 1, "{esm_routes:#?}");
+    assert_eq!(
+        metadata_str(esm_routes[0], "route_template"),
+        Some("/users")
+    );
+
+    let cjs_router = r#"
+const router = require("express").Router();
+router.post("/users", handler);
+"#;
+    let cjs_router_results = extract("src/router.js", cjs_router);
+    let cjs_router_routes = facts_with_pattern(&cjs_router_results, EXPRESS_ROUTE_PATTERN_ID);
+    assert_eq!(cjs_router_routes.len(), 1, "{cjs_router_routes:#?}");
+    assert_eq!(
+        metadata_str(cjs_router_routes[0], "route_template"),
+        Some("/users")
+    );
+    assert_eq!(metadata_str(cjs_router_routes[0], "verb"), Some("POST"));
+
+    let cjs_app = r#"
+const app = require("express")();
+app.get("/health", handler);
+"#;
+    let cjs_app_results = extract("src/app.js", cjs_app);
+    let cjs_app_routes = facts_with_pattern(&cjs_app_results, EXPRESS_ROUTE_PATTERN_ID);
+    assert_eq!(cjs_app_routes.len(), 1, "{cjs_app_routes:#?}");
+    assert_eq!(
+        metadata_str(cjs_app_routes[0], "route_template"),
+        Some("/health")
+    );
+}
+
+#[test]
+fn express_regex_literals_do_not_mask_later_routes() {
+    let source = r#"
+const express = require("express");
+const app = express();
+const quote = /['"]/;
+app.get("/health", handler);
+"#;
+    let results = extract("src/app.js", source);
+    let routes = facts_with_pattern(&results, EXPRESS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "route_template"), Some("/health"));
+}
+
+#[test]
+fn express_route_chain_all_emits_verbless_route() {
+    let source = r#"
+import express from "express";
+
+const app = express();
+app.route("/any").all(handler);
+"#;
+    let results = extract("src/server.js", source);
+    let routes = facts_with_pattern(&results, EXPRESS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "route_template"), Some("/any"));
+    assert_eq!(metadata_str(routes[0], "verb"), None);
+    assert_eq!(metadata_str(routes[0], "verb_source"), None);
+}
+
+#[test]
+fn express_multi_parameter_segments_record_each_dynamic_segment() {
+    let source = r#"
+import express from "express";
+
+const app = express();
+app.get("/flights/:from-:to", handler);
+"#;
+    let results = extract("src/server.js", source);
+    let routes = facts_with_pattern(&results, EXPRESS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(
+        metadata_str(routes[0], "normalized_route_template"),
+        Some("/flights/:from-:to")
+    );
+    assert_eq!(
+        metadata_array(routes[0], "dynamic_segments"),
+        vec!["from", "to"]
+    );
+}
+
+#[test]
 fn express_chain_scan_ignores_calls_inside_handler_bodies() {
     let source = r#"
 import express from "express";

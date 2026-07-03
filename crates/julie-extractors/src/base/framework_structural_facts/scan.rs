@@ -58,11 +58,12 @@ fn build_flags(content: &str, language: MaskLanguage) -> Vec<bool> {
 
     let slash_comments = matches!(language, Js | Go | Java | CSharp);
     let hash_comments = matches!(language, Python | Ruby);
-    let single_quotes = matches!(language, Js | Python | Ruby);
+    let single_quotes = matches!(language, Js | Go | Java | CSharp | Python | Ruby);
     let backtick_quotes = matches!(language, Js | Go);
     let raw_backtick = matches!(language, Go);
-    let triple_quotes = matches!(language, Python);
+    let triple_quotes = matches!(language, CSharp | Python);
     let verbatim_strings = matches!(language, CSharp);
+    let regex_literals = matches!(language, Js | Ruby);
 
     let mut cursor = 0;
     let mut line_comment = false;
@@ -151,10 +152,48 @@ fn build_flags(content: &str, language: MaskLanguage) -> Vec<bool> {
             cursor += 2;
             continue;
         }
-        if verbatim_strings && byte == b'@' && next == Some(b'"') {
+        if regex_literals
+            && byte == b'/'
+            && next != Some(b'/')
+            && next != Some(b'*')
+            && is_regex_literal_context(bytes, cursor)
+            && let Some(end) = regex_literal_end(bytes, cursor)
+        {
+            for flag in flags.iter_mut().take(end + 1).skip(cursor + 1) {
+                *flag = true;
+            }
+            cursor = end + 1;
+            while cursor < bytes.len() && bytes[cursor].is_ascii_alphabetic() {
+                flags[cursor] = true;
+                cursor += 1;
+            }
+            continue;
+        }
+        if verbatim_strings
+            && (byte == b'@' && (next == Some(b'"') || next == Some(b'$')))
+            && (next == Some(b'"') || bytes.get(cursor + 2) == Some(&b'"'))
+        {
+            verbatim = true;
+            let quote_offset = if next == Some(b'$') { 2 } else { 1 };
+            for flag in flags
+                .iter_mut()
+                .take(cursor + quote_offset + 1)
+                .skip(cursor + 1)
+            {
+                *flag = true;
+            }
+            cursor += quote_offset + 1;
+            continue;
+        }
+        if verbatim_strings
+            && byte == b'$'
+            && next == Some(b'@')
+            && bytes.get(cursor + 2) == Some(&b'"')
+        {
             verbatim = true;
             flags[cursor + 1] = true;
-            cursor += 2;
+            flags[cursor + 2] = true;
+            cursor += 3;
             continue;
         }
         let is_quote_byte =
@@ -173,6 +212,42 @@ fn build_flags(content: &str, language: MaskLanguage) -> Vec<bool> {
         cursor += 1;
     }
     flags
+}
+
+fn is_regex_literal_context(bytes: &[u8], slash: usize) -> bool {
+    let Some(previous) = bytes[..slash]
+        .iter()
+        .rposition(|byte| !byte.is_ascii_whitespace())
+        .map(|index| bytes[index])
+    else {
+        return true;
+    };
+    !matches!(
+        previous,
+        b')' | b']' | b'}' | b'"' | b'\'' | b'`' | b'_' | b'$' | b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z'
+    )
+}
+
+fn regex_literal_end(bytes: &[u8], slash: usize) -> Option<usize> {
+    let mut cursor = slash + 1;
+    let mut in_class = false;
+    while cursor < bytes.len() {
+        match bytes[cursor] {
+            b'\\' => cursor += 2,
+            b'[' if !in_class => {
+                in_class = true;
+                cursor += 1;
+            }
+            b']' if in_class => {
+                in_class = false;
+                cursor += 1;
+            }
+            b'/' if !in_class => return Some(cursor),
+            b'\n' | b'\r' => return None,
+            _ => cursor += 1,
+        }
+    }
+    None
 }
 
 pub(super) fn find_matching_paren(content: &str, mask: &SourceMask, open: usize) -> Option<usize> {

@@ -35,7 +35,7 @@ pub(super) fn collect_rails_routes(
     }
     let mut facts = Vec::new();
     let mut offset = 0;
-    let mut scope_stack: Vec<String> = Vec::new();
+    let mut scope_stack: Vec<Option<String>> = Vec::new();
     let mut block_stack: Vec<BlockKind> = Vec::new();
     let mut draw_depth = 0usize;
     for line in content.split_inclusive('\n') {
@@ -52,12 +52,26 @@ pub(super) fn collect_rails_routes(
                 block_stack.push(BlockKind::Other);
             }
         }
-        let scope_path = joined_scope(&scope_stack);
         let active = split_route_file || draw_depth > 0;
         if !active {
             offset += line.len();
             continue;
         }
+        let Some(scope_path) = joined_scope(&scope_stack) else {
+            if trimmed == "end" || trimmed.starts_with("end ") {
+                match block_stack.pop() {
+                    Some(BlockKind::Scope) => {
+                        scope_stack.pop();
+                    }
+                    Some(BlockKind::Draw) => {
+                        draw_depth = draw_depth.saturating_sub(1);
+                    }
+                    _ => {}
+                }
+            }
+            offset += line.len();
+            continue;
+        };
         if let Some((verb, route_template)) = rails_verb_route(trimmed) {
             push_rails_route(
                 language,
@@ -320,27 +334,54 @@ fn push_rails_mount(
     ));
 }
 
-fn rails_scope_path(line: &str) -> Option<String> {
+fn rails_scope_path(line: &str) -> Option<Option<String>> {
     if let Some(rest) = line.strip_prefix("namespace ") {
         let name = rest.split_whitespace().next()?.trim_start_matches(':');
-        return Some(format!("/{name}"));
+        return Some(Some(format!("/{name}")));
     }
     if let Some(rest) = line.strip_prefix("scope ") {
-        let (path, _) =
-            parse_ruby_string_literal(rest, skip_ascii_whitespace_until(rest, 0, rest.len()))?;
-        return Some(path);
+        if let Some(path) = string_keyword_value(rest, "path") {
+            return Some(path);
+        }
+        let path_start = skip_ascii_whitespace_until(rest, 0, rest.len());
+        if matches!(rest.as_bytes().get(path_start), Some(b'"' | b'\'')) {
+            let (path, _) = parse_ruby_string_literal(rest, path_start)?;
+            return Some(static_ruby_value(path));
+        }
     }
     None
 }
 
-fn joined_scope(scopes: &[String]) -> String {
-    scopes.iter().fold(String::new(), |acc, scope| {
-        if acc.is_empty() {
-            scope.clone()
+fn joined_scope(scopes: &[Option<String>]) -> Option<String> {
+    let mut joined = String::new();
+    for scope in scopes {
+        let scope = scope.as_deref()?;
+        joined = if joined.is_empty() {
+            scope.to_string()
         } else {
-            join_route_templates(&acc, scope)
-        }
-    })
+            join_route_templates(&joined, scope)
+        };
+    }
+    Some(joined)
+}
+
+fn static_ruby_value(value: String) -> Option<String> {
+    (!value.contains("#{")).then_some(value)
+}
+
+fn parse_static_ruby_string_literal(source: &str, start: usize) -> Option<(String, usize)> {
+    let (value, end) = parse_ruby_string_literal(source, start)?;
+    static_ruby_value(value).map(|value| (value, end))
+}
+
+fn string_keyword_value(source: &str, key: &str) -> Option<Option<String>> {
+    let needle = format!("{key}:");
+    let start = source.find(&needle)? + needle.len();
+    let value_start = skip_ascii_whitespace_until(source, start, source.len());
+    Some(
+        parse_ruby_string_literal(source, value_start)
+            .and_then(|(value, _)| static_ruby_value(value)),
+    )
 }
 
 fn rails_verb_route(line: &str) -> Option<(String, String)> {
@@ -352,8 +393,10 @@ fn rails_verb_route(line: &str) -> Option<(String, String)> {
         ("delete", "DELETE"),
     ] {
         if let Some(rest) = line.strip_prefix(&format!("{method} ")) {
-            let (route, _) =
-                parse_ruby_string_literal(rest, skip_ascii_whitespace_until(rest, 0, rest.len()))?;
+            let (route, _) = parse_static_ruby_string_literal(
+                rest,
+                skip_ascii_whitespace_until(rest, 0, rest.len()),
+            )?;
             return Some((verb.to_string(), route));
         }
     }
@@ -367,15 +410,21 @@ fn rails_root_route(line: &str) -> Option<String> {
 fn rails_match_route(line: &str) -> Option<(String, Vec<Option<String>>)> {
     let rest = line.strip_prefix("match ")?;
     let (route, _) =
-        parse_ruby_string_literal(rest, skip_ascii_whitespace_until(rest, 0, rest.len()))?;
+        parse_static_ruby_string_literal(rest, skip_ascii_whitespace_until(rest, 0, rest.len()))?;
     if line.contains("via: :all") {
         return Some((route, vec![None]));
     }
-    let verbs = symbol_array_keyword(line, "via")?
-        .into_iter()
-        .map(|verb| Some(verb.to_uppercase()))
-        .collect();
-    Some((route, verbs))
+    if let Some(verbs) = symbol_array_keyword(line, "via") {
+        return Some((
+            route,
+            verbs
+                .into_iter()
+                .map(|verb| Some(verb.to_uppercase()))
+                .collect(),
+        ));
+    }
+    let verb = symbol_keyword(line, "via")?;
+    Some((route, vec![Some(verb.to_uppercase())]))
 }
 
 fn rails_resource(line: &str) -> Option<(&'static str, String)> {
@@ -404,7 +453,7 @@ fn rails_mount(line: &str) -> Option<(String, String)> {
     let rest = line.strip_prefix("mount ")?;
     if let Some((target, path_part)) = rest.split_once("=>") {
         let path_start = skip_ascii_whitespace_until(path_part, 0, path_part.len());
-        let (path, _) = parse_ruby_string_literal(path_part, path_start)?;
+        let (path, _) = parse_static_ruby_string_literal(path_part, path_start)?;
         return Some((target.trim().trim_end_matches(',').to_string(), path));
     }
     if let Some(path) = string_keyword(rest, "at") {
@@ -415,10 +464,7 @@ fn rails_mount(line: &str) -> Option<(String, String)> {
 }
 
 fn string_keyword(source: &str, key: &str) -> Option<String> {
-    let needle = format!("{key}:");
-    let start = source.find(&needle)? + needle.len();
-    let value_start = skip_ascii_whitespace_until(source, start, source.len());
-    parse_ruby_string_literal(source, value_start).map(|(value, _)| value)
+    string_keyword_value(source, key)?
 }
 
 fn symbol_keyword(source: &str, key: &str) -> Option<String> {
