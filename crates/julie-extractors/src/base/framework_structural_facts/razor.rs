@@ -6,6 +6,7 @@ use super::{
     RAZOR_CODE_BLOCK_PATTERN_ID, RAZOR_PAGE_DIRECTIVE_PATTERN_ID,
     RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
 };
+use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::types::StructuralFact;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -78,6 +79,12 @@ fn razor_page_directive_fact(
     insert_string(&mut metadata, "directive", "page");
     insert_string(&mut metadata, "route", &route);
     insert_string(&mut metadata, "route_template", &route);
+    let normalized = normalize_route_template(&route, ParamFlavor::Braces);
+    insert_string(
+        &mut metadata,
+        "normalized_route_template",
+        &normalized.template,
+    );
     metadata.insert(
         "route_parameter_count".to_string(),
         Value::Number(Number::from(route_parameters.len())),

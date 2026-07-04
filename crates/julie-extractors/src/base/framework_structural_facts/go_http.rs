@@ -204,12 +204,7 @@ fn collect_grouped_receivers(
                     .map(|index| index + 1)
                     .unwrap_or(0);
                 let before = content[statement_start..call_start].trim();
-                let Some(name) = before
-                    .split(":=")
-                    .next()
-                    .map(str::trim)
-                    .filter(|name| is_ascii_identifier(name))
-                else {
+                let Some(name) = go_assignment_name_before_call(before) else {
                     continue;
                 };
                 match receivers.get(name) {
@@ -253,15 +248,21 @@ fn collect_assignment_names(
             .map(|index| index + 1)
             .unwrap_or(0);
         let before = content[statement_start..call_start].trim();
-        if let Some(name) = before
-            .split(":=")
-            .next()
-            .map(str::trim)
-            .filter(|name| is_ascii_identifier(name))
-        {
+        if let Some(name) = go_assignment_name_before_call(before) {
             names.insert(name.to_string());
         }
     }
+}
+
+fn go_assignment_name_before_call(before: &str) -> Option<&str> {
+    if let Some((left, _)) = before.split_once(":=") {
+        let name = left.trim().split(',').next()?.trim();
+        return is_ascii_identifier(name).then_some(name);
+    }
+    let rest = before.strip_prefix("var ")?;
+    let left = rest.split('=').next()?.trim();
+    let name = left.split_whitespace().next()?;
+    is_ascii_identifier(name).then_some(name)
 }
 
 fn collect_net_http_routes(

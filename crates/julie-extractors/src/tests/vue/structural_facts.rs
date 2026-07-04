@@ -413,6 +413,41 @@ const routes = [
 }
 
 #[test]
+fn vue_route_definitions_ignore_nested_redirect_and_meta_paths() {
+    let source = r#"<script setup lang="ts">
+import LoginView from '../views/LoginView.vue'
+
+const routes = [
+  {
+    path: '/login',
+    component: LoginView,
+    redirect: { state: { path: '/redirect-target' } },
+    meta: {
+      path: '/meta-target',
+      nested: [{ path: '/meta-nested-target' }],
+    },
+  },
+]
+</script>
+
+<template>
+  <RouterView />
+</template>
+"#;
+
+    let results = extract(source);
+    let definitions = facts_with_pattern(&results, "vue.route_definition.v1");
+    assert_eq!(definitions.len(), 1);
+    assert_eq!(
+        definitions
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "target_path"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/login"])
+    );
+}
+
+#[test]
 fn vue_route_definitions_require_router_context() {
     let source = r#"<script setup lang="ts">
 const unrelatedWidget = {
@@ -431,6 +466,48 @@ const unrelatedWidget = {
         facts_with_pattern(&results, "vue.route_definition.v1").is_empty(),
         "plain objects with path properties are not Vue Router route definitions"
     );
+}
+
+#[test]
+fn vue_script_comments_and_strings_do_not_emit_route_definitions() {
+    let source = r#"<script setup lang="ts">
+import { createRouter, createWebHistory } from 'vue-router'
+import RealView from '../views/RealView.vue'
+
+// const commentedRoutes = [{ path: '/commented', component: CommentedView }]
+const docs = "const stringRoutes = [{ path: '/string-route', component: StringView }]";
+const routes = [
+  // { path: '/commented', component: CommentedView },
+  {
+    note: "path: '/string-route'",
+  },
+  {
+    path: '/real',
+    component: RealView,
+  },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+})
+</script>
+
+<template>
+  <RouterView />
+</template>
+"#;
+
+    let results = extract(source);
+    let definitions = facts_with_pattern(&results, "vue.route_definition.v1");
+    assert_eq!(
+        definitions.len(),
+        1,
+        "only executable Vue Router route objects should emit"
+    );
+    assert_eq!(metadata_str(definitions[0], "target_path"), Some("/real"));
+    let routes_start = source.find("const routes").unwrap() as u32;
+    assert!(definitions[0].start_byte > routes_start);
 }
 
 #[test]

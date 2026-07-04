@@ -186,6 +186,9 @@ pub(in crate::base) fn parse_import_source(statement: &str) -> Option<String> {
 }
 
 pub(in crate::base) fn parse_named_imports(statement: &str) -> Vec<(String, String)> {
+    if statement.trim_start().starts_with("import type") {
+        return Vec::new();
+    }
     let Some(open_brace) = statement.find('{') else {
         return Vec::new();
     };
@@ -199,7 +202,10 @@ pub(in crate::base) fn parse_named_imports(statement: &str) -> Vec<(String, Stri
     import_list
         .split(',')
         .filter_map(|entry| {
-            let entry = entry.trim().trim_start_matches("type ").trim();
+            let entry = entry.trim();
+            if entry.starts_with("type ") {
+                return None;
+            }
             if entry.is_empty() {
                 return None;
             }

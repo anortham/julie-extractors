@@ -222,6 +222,28 @@ fn config() -> App<()> {
 }
 
 #[test]
+fn actix_direct_app_route_emits_without_scope_prefix() {
+    let source = r#"use actix_web::{web, App};
+
+fn config() -> App<()> {
+    App::new().route("/health", web::get().to(health))
+}
+"#;
+    let results = extract("src/main.rs", source);
+    let routes = facts_with_pattern(&results, ACTIX_SCOPE_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    let route = routes[0];
+    assert_eq!(metadata_str(route, "route_template"), Some("/health"));
+    assert_eq!(metadata_str(route, "verb"), Some("GET"));
+    assert_eq!(metadata_str(route, "route_group_prefix"), None);
+    assert_eq!(metadata_str(route, "effective_route_template"), None);
+    assert_eq!(
+        metadata_str(route, "normalized_route_template"),
+        Some("/health")
+    );
+}
+
+#[test]
 fn actix_scope_route_method_agnostic_omits_verb() {
     // `web::route()` builds a method-agnostic route → verb omitted.
     let source = r#"use actix_web::{web, App};

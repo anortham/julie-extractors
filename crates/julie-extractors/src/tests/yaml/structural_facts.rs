@@ -87,3 +87,44 @@ worker:
     assert_eq!(metadata_str(worker_tags, "key_path"), Some("$.worker.tags"));
     assert_eq!(metadata_str(worker_tags, "value_kind"), Some("sequence"));
 }
+
+#[test]
+fn yaml_flow_collections_emit_paths_and_kinds() {
+    let source = r#"
+worker: { id: 1, tags: [fixture, active], profile: { role: admin } }
+"#;
+
+    let results = extract(source);
+    let mappings = facts_with_pattern(&results, "yaml.mapping.v1");
+    assert!(
+        mappings
+            .iter()
+            .any(|fact| metadata_str(fact, "key_path") == Some("$.worker")),
+        "{mappings:#?}"
+    );
+
+    let sequences = facts_with_pattern(&results, "yaml.sequence.v1");
+    assert_eq!(sequences.len(), 1, "{sequences:#?}");
+    assert_eq!(
+        metadata_str(sequences[0], "key_path"),
+        Some("$.worker.tags")
+    );
+    assert_eq!(metadata_u64(sequences[0], "sequence_length"), Some(2));
+
+    let key_values = facts_with_pattern(&results, "yaml.key_value.v1");
+    let id = key_values
+        .iter()
+        .find(|fact| metadata_str(fact, "key_path") == Some("$.worker.id"))
+        .expect("flow id key");
+    assert_eq!(metadata_str(id, "value_kind"), Some("scalar"));
+    let tags = key_values
+        .iter()
+        .find(|fact| metadata_str(fact, "key_path") == Some("$.worker.tags"))
+        .expect("flow tags key");
+    assert_eq!(metadata_str(tags, "value_kind"), Some("sequence"));
+    let role = key_values
+        .iter()
+        .find(|fact| metadata_str(fact, "key_path") == Some("$.worker.profile.role"))
+        .expect("nested flow role key");
+    assert_eq!(metadata_str(role, "value_kind"), Some("scalar"));
+}

@@ -1,8 +1,11 @@
 use std::collections::HashSet;
 
-use rusqlite::{CachedStatement, Transaction, params};
+use rusqlite::{CachedStatement, ToSql, Transaction, limits::Limit, params, params_from_iter};
 
-use crate::model::{ArtifactFile, ArtifactTypeArgument, FileStatus, RevisionChangeKind, RowCounts};
+use crate::model::{
+    ArtifactComplexityMetric, ArtifactFile, ArtifactSourceRegion, ArtifactStructuralFact,
+    ArtifactTypeArgument, FileStatus, RevisionChangeKind, RowCounts,
+};
 
 use super::ExistingFile;
 
@@ -42,6 +45,28 @@ CREATE TEMP TABLE julie_symbol_lookup_requested (
     symbol_id TEXT PRIMARY KEY
 ) WITHOUT ROWID
 ";
+/// Maximum rows per multi-row `INSERT` when bulk-loading the symbol-lookup
+/// temp table (one column per row). The effective chunk is capped at the
+/// connection's runtime `SQLITE_LIMIT_VARIABLE_NUMBER` so a low limit never
+/// blows the host-parameter budget. The full-chunk SQL is stable for a given
+/// limit, so `prepare_cached` reuses one compiled statement.
+const SYMBOL_LOOKUP_REQUESTED_MAX_CHUNK: usize = 500;
+
+/// Maximum rows per multi-row `INSERT` for `structural_facts` (16 columns per
+/// row). The effective chunk is `min(this, variable_limit / 16)`, so a low
+/// runtime limit (the writer-contract test sets 64) is always honored. Only
+/// files with at least the effective chunk size take the multi-row path;
+/// smaller files fall back to the cached single-row statement, so typical
+/// small files pay no overhead.
+const STRUCTURAL_FACT_MAX_CHUNK: usize = 256;
+
+/// Same shape as `STRUCTURAL_FACT_MAX_CHUNK` for `source_regions` (13 columns
+/// per row).
+const SOURCE_REGION_MAX_CHUNK: usize = 256;
+
+/// Same shape as `STRUCTURAL_FACT_MAX_CHUNK` for `complexity_metrics` (20
+/// columns per row).
+const COMPLEXITY_METRIC_MAX_CHUNK: usize = 256;
 
 pub(super) struct FileRowInserters<'tx> {
     files: CachedStatement<'tx>,
@@ -133,13 +158,23 @@ pub(super) struct ChildRowInserters<'tx> {
     type_arguments: CachedStatement<'tx>,
     literals: CachedStatement<'tx>,
     source_regions: CachedStatement<'tx>,
+    source_regions_multi: CachedStatement<'tx>,
+    source_region_chunk: usize,
     structural_facts: CachedStatement<'tx>,
+    structural_facts_multi: CachedStatement<'tx>,
+    structural_fact_chunk: usize,
+    structural_fact_ids: HashSet<String>,
     complexity_metrics: CachedStatement<'tx>,
+    complexity_metrics_multi: CachedStatement<'tx>,
+    complexity_metric_chunk: usize,
     parse_diagnostics: CachedStatement<'tx>,
 }
 
 impl<'tx> ChildRowInserters<'tx> {
     pub(super) fn prepare(tx: &'tx Transaction<'_>) -> rusqlite::Result<Self> {
+        let structural_fact_chunk = structural_fact_chunk_size(tx)?;
+        let source_region_chunk = source_region_chunk_size(tx)?;
+        let complexity_metric_chunk = complexity_metric_chunk_size(tx)?;
         let inserters = Self {
             symbol_annotations: tx.prepare_cached(
                 "INSERT INTO symbol_annotations
@@ -202,6 +237,9 @@ impl<'tx> ChildRowInserters<'tx> {
                   metadata_json)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             )?,
+            source_regions_multi: tx
+                .prepare_cached(&source_regions_multi_insert_sql(source_region_chunk))?,
+            source_region_chunk,
             structural_facts: tx.prepare_cached(
                 "INSERT INTO structural_facts
                  (structural_fact_id, file_id, path, language, pattern_id, capture_name,
@@ -209,6 +247,10 @@ impl<'tx> ChildRowInserters<'tx> {
                   end_column, start_byte, end_byte, confidence, metadata_json)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             )?,
+            structural_facts_multi: tx
+                .prepare_cached(&structural_facts_multi_insert_sql(structural_fact_chunk))?,
+            structural_fact_chunk,
+            structural_fact_ids: HashSet::new(),
             complexity_metrics: tx.prepare_cached(
                 "INSERT INTO complexity_metrics
                  (complexity_metric_id, file_id, path, language, scope, symbol_id, algorithm_id,
@@ -218,6 +260,10 @@ impl<'tx> ChildRowInserters<'tx> {
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
                          ?17, ?18, ?19, ?20)",
             )?,
+            complexity_metrics_multi: tx.prepare_cached(&complexity_metrics_multi_insert_sql(
+                complexity_metric_chunk,
+            ))?,
+            complexity_metric_chunk,
             parse_diagnostics: tx.prepare_cached(
                 "INSERT INTO parse_diagnostics
                  (diagnostic_id, file_id, path, language, kind, message, start_line, start_column,
@@ -253,12 +299,28 @@ impl<'tx> ChildRowInserters<'tx> {
             &usage_lookup,
         )?;
         counts.literals += insert_literals(&mut self.literals, file, symbol_lookup)?;
-        counts.source_regions +=
-            insert_source_regions(&mut self.source_regions, file, symbol_lookup)?;
-        counts.structural_facts +=
-            insert_structural_facts(&mut self.structural_facts, file, symbol_lookup)?;
-        counts.complexity_metrics +=
-            insert_complexity_metrics(&mut self.complexity_metrics, file, symbol_lookup)?;
+        counts.source_regions += insert_source_regions(
+            &mut self.source_regions,
+            &mut self.source_regions_multi,
+            self.source_region_chunk,
+            file,
+            symbol_lookup,
+        )?;
+        counts.structural_facts += insert_structural_facts(
+            &mut self.structural_facts,
+            &mut self.structural_facts_multi,
+            self.structural_fact_chunk,
+            &mut self.structural_fact_ids,
+            file,
+            symbol_lookup,
+        )?;
+        counts.complexity_metrics += insert_complexity_metrics(
+            &mut self.complexity_metrics,
+            &mut self.complexity_metrics_multi,
+            self.complexity_metric_chunk,
+            file,
+            symbol_lookup,
+        )?;
         counts.parse_diagnostics +=
             insert_parse_diagnostics_rows(&mut self.parse_diagnostics, file)?;
         Ok(())
@@ -645,18 +707,36 @@ fn insert_literals(
 }
 
 fn insert_source_regions(
-    stmt: &mut CachedStatement<'_>,
+    single: &mut CachedStatement<'_>,
+    multi: &mut CachedStatement<'_>,
+    chunk_size: usize,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
+    let mut inserted = 0i64;
+    let mut chunk_rows: Vec<&ArtifactSourceRegion> = Vec::with_capacity(256);
+    let mut chunk_valid: Vec<Option<&str>> = Vec::with_capacity(256);
+
     for region in &file.source_regions {
-        stmt.execute(params![
+        let valid_id = valid_symbol_id(symbol_lookup, region.containing_symbol_id.as_deref());
+        chunk_rows.push(region);
+        chunk_valid.push(valid_id);
+        if chunk_rows.len() == chunk_size {
+            flush_source_region_chunk(multi, file, &chunk_rows, &chunk_valid)?;
+            inserted += chunk_size as i64;
+            chunk_rows.clear();
+            chunk_valid.clear();
+        }
+    }
+
+    for (region, valid_id) in chunk_rows.into_iter().zip(chunk_valid) {
+        single.execute(params![
             region.source_region_id,
             file.file_id,
             file.path,
             file.language,
             region.kind,
-            valid_symbol_id(symbol_lookup, region.containing_symbol_id.as_deref()),
+            valid_id,
             region.start_line,
             region.start_column,
             region.end_line,
@@ -665,17 +745,45 @@ fn insert_source_regions(
             region.end_byte,
             region.metadata_json,
         ])?;
+        inserted += 1;
     }
-    Ok(file.source_regions.len() as i64)
+    Ok(inserted)
 }
 
 fn insert_structural_facts(
-    stmt: &mut CachedStatement<'_>,
+    single: &mut CachedStatement<'_>,
+    multi: &mut CachedStatement<'_>,
+    chunk_size: usize,
+    seen_ids: &mut HashSet<String>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
+    let mut inserted = 0i64;
+    // Buffer capacity is bounded independently of the flush threshold so a
+    // large runtime chunk size does not trigger a huge per-file allocation.
+    let mut chunk_facts: Vec<&ArtifactStructuralFact> = Vec::with_capacity(256);
+    let mut chunk_valid_ids: Vec<Option<&str>> = Vec::with_capacity(256);
+
     for fact in &file.structural_facts {
-        stmt.execute(params![
+        if !seen_ids.insert(fact.structural_fact_id.clone()) {
+            continue;
+        }
+        let valid_id = valid_symbol_id(symbol_lookup, fact.containing_symbol_id.as_deref());
+        chunk_facts.push(fact);
+        chunk_valid_ids.push(valid_id);
+        if chunk_facts.len() == chunk_size {
+            flush_structural_fact_chunk(multi, file, &chunk_facts, &chunk_valid_ids)?;
+            inserted += chunk_size as i64;
+            chunk_facts.clear();
+            chunk_valid_ids.clear();
+        }
+    }
+
+    // Tail smaller than a full chunk: reuse the cached single-row statement so
+    // no variable-length SQL is compiled. Small files never hit the multi-row
+    // path, so they pay no overhead.
+    for (fact, valid_id) in chunk_facts.into_iter().zip(chunk_valid_ids) {
+        single.execute(params![
             fact.structural_fact_id,
             file.file_id,
             file.path,
@@ -683,7 +791,7 @@ fn insert_structural_facts(
             fact.pattern_id,
             fact.capture_name,
             fact.node_kind,
-            valid_symbol_id(symbol_lookup, fact.containing_symbol_id.as_deref()),
+            valid_id,
             fact.start_line,
             fact.start_column,
             fact.end_line,
@@ -693,23 +801,240 @@ fn insert_structural_facts(
             fact.confidence,
             fact.metadata_json,
         ])?;
+        inserted += 1;
     }
-    Ok(file.structural_facts.len() as i64)
+    Ok(inserted)
+}
+
+/// Generic full-chunk flush: builds one `Vec<&dyn ToSql>` of
+/// `chunk.len() * columns_per_row` references (no per-row boxing or per-row
+/// allocation) and executes the cached multi-row statement once. `push_params`
+/// references the row's fields and the pre-computed `valid_id` (stored in the
+/// caller's buffer, which outlives this call), so the `&dyn ToSql` pointers
+/// stay valid for the execute.
+///
+/// A single lifetime `'a` unifies the row, file, and `valid_id` references so
+/// they can coexist in one invariant `Vec<&'a dyn ToSql>`. Indexing (rather
+/// than `.iter()`) keeps the borrows at `'a` instead of the loop's local
+/// lifetime.
+fn flush_chunk<'a, R, F>(
+    multi: &mut CachedStatement<'_>,
+    file: &'a ArtifactFile,
+    chunk_rows: &[&'a R],
+    chunk_valid: &'a [Option<&'a str>],
+    columns_per_row: usize,
+    push_params: F,
+) -> rusqlite::Result<()>
+where
+    F: Fn(&mut Vec<&'a dyn ToSql>, &'a R, &'a ArtifactFile, &'a Option<&'a str>),
+{
+    debug_assert_eq!(chunk_rows.len(), chunk_valid.len());
+    let mut params: Vec<&'a dyn ToSql> = Vec::with_capacity(chunk_rows.len() * columns_per_row);
+    for index in 0..chunk_rows.len() {
+        push_params(&mut params, chunk_rows[index], file, &chunk_valid[index]);
+    }
+    multi.execute(params_from_iter(params))?;
+    Ok(())
+}
+
+fn flush_structural_fact_chunk(
+    multi: &mut CachedStatement<'_>,
+    file: &ArtifactFile,
+    chunk_facts: &[&ArtifactStructuralFact],
+    chunk_valid_ids: &[Option<&str>],
+) -> rusqlite::Result<()> {
+    flush_chunk(
+        multi,
+        file,
+        chunk_facts,
+        chunk_valid_ids,
+        16,
+        |params, fact, file, valid_id| {
+            params.push(&fact.structural_fact_id);
+            params.push(&file.file_id);
+            params.push(&file.path);
+            params.push(&file.language);
+            params.push(&fact.pattern_id);
+            params.push(&fact.capture_name);
+            params.push(&fact.node_kind);
+            params.push(valid_id);
+            params.push(&fact.start_line);
+            params.push(&fact.start_column);
+            params.push(&fact.end_line);
+            params.push(&fact.end_column);
+            params.push(&fact.start_byte);
+            params.push(&fact.end_byte);
+            params.push(&fact.confidence);
+            params.push(&fact.metadata_json);
+        },
+    )
+}
+
+fn flush_source_region_chunk(
+    multi: &mut CachedStatement<'_>,
+    file: &ArtifactFile,
+    chunk_rows: &[&ArtifactSourceRegion],
+    chunk_valid: &[Option<&str>],
+) -> rusqlite::Result<()> {
+    flush_chunk(
+        multi,
+        file,
+        chunk_rows,
+        chunk_valid,
+        13,
+        |params, region, file, valid_id| {
+            params.push(&region.source_region_id);
+            params.push(&file.file_id);
+            params.push(&file.path);
+            params.push(&file.language);
+            params.push(&region.kind);
+            params.push(valid_id);
+            params.push(&region.start_line);
+            params.push(&region.start_column);
+            params.push(&region.end_line);
+            params.push(&region.end_column);
+            params.push(&region.start_byte);
+            params.push(&region.end_byte);
+            params.push(&region.metadata_json);
+        },
+    )
+}
+
+fn flush_complexity_metric_chunk(
+    multi: &mut CachedStatement<'_>,
+    file: &ArtifactFile,
+    chunk_rows: &[&ArtifactComplexityMetric],
+    chunk_valid: &[Option<&str>],
+) -> rusqlite::Result<()> {
+    flush_chunk(
+        multi,
+        file,
+        chunk_rows,
+        chunk_valid,
+        20,
+        |params, metric, file, valid_id| {
+            params.push(&metric.complexity_metric_id);
+            params.push(&file.file_id);
+            params.push(&file.path);
+            params.push(&file.language);
+            params.push(&metric.scope);
+            params.push(valid_id);
+            params.push(&metric.algorithm_id);
+            params.push(&metric.covered_lines);
+            params.push(&metric.covered_bytes);
+            params.push(&metric.decision_count);
+            params.push(&metric.loop_count);
+            params.push(&metric.max_nesting_depth);
+            params.push(&metric.parameter_count);
+            params.push(&metric.start_line);
+            params.push(&metric.start_column);
+            params.push(&metric.end_line);
+            params.push(&metric.end_column);
+            params.push(&metric.start_byte);
+            params.push(&metric.end_byte);
+            params.push(&metric.metadata_json);
+        },
+    )
+}
+
+fn structural_fact_chunk_size(tx: &Transaction<'_>) -> rusqlite::Result<usize> {
+    chunk_size_for_columns(tx, STRUCTURAL_FACT_MAX_CHUNK, 16)
+}
+
+fn source_region_chunk_size(tx: &Transaction<'_>) -> rusqlite::Result<usize> {
+    chunk_size_for_columns(tx, SOURCE_REGION_MAX_CHUNK, 13)
+}
+
+fn complexity_metric_chunk_size(tx: &Transaction<'_>) -> rusqlite::Result<usize> {
+    chunk_size_for_columns(tx, COMPLEXITY_METRIC_MAX_CHUNK, 20)
+}
+
+/// Rows per multi-row chunk for a table with `columns_per_row` columns, capped
+/// so a full chunk never exceeds the runtime host-parameter limit. `max(1)`
+/// keeps at least one row when the limit is pathologically low.
+fn chunk_size_for_columns(
+    tx: &Transaction<'_>,
+    max_chunk: usize,
+    columns_per_row: usize,
+) -> rusqlite::Result<usize> {
+    let limit = tx
+        .limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)?
+        .max(columns_per_row as i32) as usize;
+    Ok(max_chunk.min(limit / columns_per_row).max(1))
+}
+
+fn structural_facts_multi_insert_sql(rows: usize) -> String {
+    multi_row_insert_sql(
+        "INSERT INTO structural_facts
+         (structural_fact_id, file_id, path, language, pattern_id, capture_name,
+          node_kind, containing_symbol_id, start_line, start_column, end_line,
+          end_column, start_byte, end_byte, confidence, metadata_json)",
+        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+}
+
+fn source_regions_multi_insert_sql(rows: usize) -> String {
+    multi_row_insert_sql(
+        "INSERT INTO source_regions
+         (source_region_id, file_id, path, language, kind, containing_symbol_id,
+          start_line, start_column, end_line, end_column, start_byte, end_byte,
+          metadata_json)",
+        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+}
+
+fn complexity_metrics_multi_insert_sql(rows: usize) -> String {
+    multi_row_insert_sql(
+        "INSERT INTO complexity_metrics
+         (complexity_metric_id, file_id, path, language, scope, symbol_id, algorithm_id,
+          covered_lines, covered_bytes, decision_count, loop_count, max_nesting_depth,
+          parameter_count, start_line, start_column, end_line, end_column, start_byte,
+          end_byte, metadata_json)",
+        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+}
+
+fn multi_row_insert_sql(prefix: &str, group: &str, rows: usize) -> String {
+    let groups = std::iter::repeat_n(group, rows)
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("{prefix} VALUES {groups}")
 }
 
 fn insert_complexity_metrics(
-    stmt: &mut CachedStatement<'_>,
+    single: &mut CachedStatement<'_>,
+    multi: &mut CachedStatement<'_>,
+    chunk_size: usize,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<i64> {
+    let mut inserted = 0i64;
+    let mut chunk_rows: Vec<&ArtifactComplexityMetric> = Vec::with_capacity(256);
+    let mut chunk_valid: Vec<Option<&str>> = Vec::with_capacity(256);
+
     for metric in &file.complexity_metrics {
-        stmt.execute(params![
+        let valid_id = valid_symbol_id(symbol_lookup, metric.symbol_id.as_deref());
+        chunk_rows.push(metric);
+        chunk_valid.push(valid_id);
+        if chunk_rows.len() == chunk_size {
+            flush_complexity_metric_chunk(multi, file, &chunk_rows, &chunk_valid)?;
+            inserted += chunk_size as i64;
+            chunk_rows.clear();
+            chunk_valid.clear();
+        }
+    }
+
+    for (metric, valid_id) in chunk_rows.into_iter().zip(chunk_valid) {
+        single.execute(params![
             metric.complexity_metric_id,
             file.file_id,
             file.path,
             file.language,
             metric.scope,
-            valid_symbol_id(symbol_lookup, metric.symbol_id.as_deref()),
+            valid_id,
             metric.algorithm_id,
             metric.covered_lines,
             metric.covered_bytes,
@@ -725,8 +1050,9 @@ fn insert_complexity_metrics(
             metric.end_byte,
             metric.metadata_json,
         ])?;
+        inserted += 1;
     }
-    Ok(file.complexity_metrics.len() as i64)
+    Ok(inserted)
 }
 
 fn insert_parse_diagnostics(tx: &Transaction<'_>, file: &ArtifactFile) -> rusqlite::Result<i64> {
@@ -844,6 +1170,39 @@ pub(super) fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut 
     }
 }
 
+fn insert_symbol_lookup_requested(
+    tx: &Transaction<'_>,
+    requested: &[String],
+) -> rusqlite::Result<()> {
+    let chunk_size = symbol_lookup_requested_chunk_size(tx)?;
+    let full_sql = symbol_lookup_requested_insert_sql(chunk_size);
+    for chunk in requested.chunks(chunk_size) {
+        let params: Vec<&str> = chunk.iter().map(String::as_str).collect();
+        if chunk.len() == chunk_size {
+            let mut stmt = tx.prepare_cached(&full_sql)?;
+            stmt.execute(params_from_iter(params))?;
+        } else {
+            let sql = symbol_lookup_requested_insert_sql(chunk.len());
+            tx.execute(&sql, params_from_iter(params))?;
+        }
+    }
+    Ok(())
+}
+
+fn symbol_lookup_requested_chunk_size(tx: &Transaction<'_>) -> rusqlite::Result<usize> {
+    let limit = tx.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)?.max(1) as usize;
+    Ok(SYMBOL_LOOKUP_REQUESTED_MAX_CHUNK.min(limit))
+}
+
+fn symbol_lookup_requested_insert_sql(rows: usize) -> String {
+    let placeholders = std::iter::repeat_n("(?)", rows)
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "INSERT OR IGNORE INTO temp.julie_symbol_lookup_requested(symbol_id) VALUES {placeholders}"
+    )
+}
+
 pub(super) fn load_symbol_lookup_for_requested_ids(
     tx: &Transaction<'_>,
     requested: &HashSet<String>,
@@ -873,15 +1232,7 @@ fn load_existing_symbol_ids_for_requested_ids(
     tx.execute(DROP_SYMBOL_LOOKUP_TEMP_TABLE_SQL, [])?;
     let lookup_result = (|| -> rusqlite::Result<()> {
         tx.execute(CREATE_SYMBOL_LOOKUP_TEMP_TABLE_SQL, [])?;
-
-        {
-            let mut insert_requested = tx.prepare(
-                "INSERT OR IGNORE INTO temp.julie_symbol_lookup_requested(symbol_id) VALUES (?1)",
-            )?;
-            for symbol_id in requested {
-                insert_requested.execute(params![symbol_id])?;
-            }
-        }
+        insert_symbol_lookup_requested(tx, requested)?;
 
         {
             let mut stmt = tx.prepare(

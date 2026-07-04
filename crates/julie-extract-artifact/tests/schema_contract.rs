@@ -117,61 +117,57 @@ fn query_plan_uses_required_lookup_indexes() {
 fn query_plan_uses_required_writer_delete_indexes() {
     let conn = open_schema();
 
+    assert_query_plan_contains(
+        &conn,
+        "DELETE FROM files WHERE path = ?1",
+        ["src/a.rs"],
+        &[
+            "SEARCH files USING INDEX",
+            "path=?",
+            "idx_symbols_file",
+            "idx_identifiers_file",
+            "idx_relationships_file",
+            "idx_pending_file",
+            "idx_type_argument_usages_file",
+            "idx_structural_facts_file_span",
+        ],
+    );
+}
+
+#[test]
+fn query_plan_uses_jsonl_export_order_indexes() {
+    let conn = open_schema();
+
     assert_query_uses_index(
         &conn,
-        "DELETE FROM type_arguments
-         WHERE usage_id IN (
-           SELECT usage_id FROM type_argument_usages WHERE file_id = ?1
-         )",
-        ["file-1"],
-        "idx_type_arguments_usage",
+        "SELECT source_region_id, file_id, path, language, kind, containing_symbol_id,
+                start_line, start_column, end_line, end_column, start_byte, end_byte,
+                metadata_json
+         FROM source_regions
+         ORDER BY path, start_byte, end_byte, kind, source_region_id",
+        [],
+        "idx_source_regions_export_order",
     );
     assert_query_uses_index(
         &conn,
-        "DELETE FROM type_arguments
-         WHERE usage_id IN (
-           SELECT usage_id FROM type_argument_usages WHERE file_id = ?1
-         )",
-        ["file-1"],
-        "idx_type_argument_usages_file",
+        "SELECT structural_fact_id, file_id, path, language, pattern_id, capture_name,
+                node_kind, containing_symbol_id, start_line, start_column, end_line,
+                end_column, start_byte, end_byte, confidence, metadata_json
+         FROM structural_facts
+         ORDER BY path, start_byte, end_byte, pattern_id, capture_name, structural_fact_id",
+        [],
+        "idx_structural_facts_export_order",
     );
     assert_query_uses_index(
         &conn,
-        "DELETE FROM type_argument_usages WHERE file_id = ?1",
-        ["file-1"],
-        "idx_type_argument_usages_file",
-    );
-    assert_query_uses_index(
-        &conn,
-        "DELETE FROM literals WHERE file_id = ?1",
-        ["file-1"],
-        "idx_literals_file",
-    );
-    assert_query_uses_index(
-        &conn,
-        "DELETE FROM relationships WHERE file_id = ?1",
-        ["file-1"],
-        "idx_relationships_file",
-    );
-    assert_query_uses_index(
-        &conn,
-        "DELETE FROM type_facts
-         WHERE symbol_id IN (SELECT symbol_id FROM symbols WHERE file_id = ?1)",
-        ["file-1"],
-        "idx_type_facts_symbol",
-    );
-    assert_query_uses_index(
-        &conn,
-        "DELETE FROM symbol_annotations
-         WHERE symbol_id IN (SELECT symbol_id FROM symbols WHERE file_id = ?1)",
-        ["file-1"],
-        "idx_symbol_annotations_symbol",
-    );
-    assert_query_uses_index(
-        &conn,
-        "DELETE FROM parse_diagnostics WHERE file_id = ?1",
-        ["file-1"],
-        "idx_diagnostics_file",
+        "SELECT complexity_metric_id, file_id, path, language, scope, symbol_id, algorithm_id,
+                covered_lines, covered_bytes, decision_count, loop_count, max_nesting_depth,
+                parameter_count, start_line, start_column, end_line, end_column, start_byte,
+                end_byte, metadata_json
+         FROM complexity_metrics
+         ORDER BY path, start_byte, end_byte, scope, symbol_id, complexity_metric_id",
+        [],
+        "idx_complexity_metrics_export_order",
     );
 }
 
@@ -337,6 +333,15 @@ fn assert_query_uses_index<const N: usize>(
     params: [&str; N],
     expected_index: &str,
 ) {
+    assert_query_plan_contains(conn, sql, params, &[expected_index]);
+}
+
+fn assert_query_plan_contains<const N: usize>(
+    conn: &Connection,
+    sql: &str,
+    params: [&str; N],
+    expected_fragments: &[&str],
+) {
     let plan_sql = format!("EXPLAIN QUERY PLAN {sql}");
     let mut stmt = conn.prepare(&plan_sql).unwrap();
     let plan = stmt
@@ -347,10 +352,12 @@ fn assert_query_uses_index<const N: usize>(
         .collect::<Result<Vec<_>, _>>()
         .unwrap()
         .join("\n");
-    assert!(
-        plan.contains(expected_index),
-        "query plan for `{sql}` did not use {expected_index}. Plan:\n{plan}"
-    );
+    for expected_fragment in expected_fragments {
+        assert!(
+            plan.contains(expected_fragment),
+            "query plan for `{sql}` did not contain {expected_fragment}. Plan:\n{plan}"
+        );
+    }
 }
 
 struct ExpectedTable {
@@ -869,6 +876,11 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             columns: vec!["file_id", "start_byte", "end_byte"],
         },
         ExpectedIndex {
+            name: "idx_source_regions_export_order",
+            table: "source_regions",
+            columns: vec!["path", "start_byte", "end_byte", "kind", "source_region_id"],
+        },
+        ExpectedIndex {
             name: "idx_source_regions_kind_file",
             table: "source_regions",
             columns: vec!["kind", "file_id", "start_byte"],
@@ -884,6 +896,18 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             columns: vec!["file_id", "scope", "start_byte"],
         },
         ExpectedIndex {
+            name: "idx_complexity_metrics_export_order",
+            table: "complexity_metrics",
+            columns: vec![
+                "path",
+                "start_byte",
+                "end_byte",
+                "scope",
+                "symbol_id",
+                "complexity_metric_id",
+            ],
+        },
+        ExpectedIndex {
             name: "idx_complexity_metrics_scope_language",
             table: "complexity_metrics",
             columns: vec!["scope", "language", "path"],
@@ -897,6 +921,18 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_structural_facts_file_span",
             table: "structural_facts",
             columns: vec!["file_id", "start_byte", "end_byte"],
+        },
+        ExpectedIndex {
+            name: "idx_structural_facts_export_order",
+            table: "structural_facts",
+            columns: vec![
+                "path",
+                "start_byte",
+                "end_byte",
+                "pattern_id",
+                "capture_name",
+                "structural_fact_id",
+            ],
         },
         ExpectedIndex {
             name: "idx_structural_facts_pattern_language_path",

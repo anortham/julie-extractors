@@ -119,8 +119,11 @@ pub(super) fn parse_first_route_argument(
     if route_start >= args_end {
         return None;
     }
-    parse_csharp_string_literal(content, route_start)
-        .filter(|(_, route_end, _)| *route_end <= args_end)
+    let arg_end = find_top_level_comma_or_end(content, route_start, args_end);
+    parse_csharp_string_literal(content, route_start).filter(|(_, route_end, _)| {
+        *route_end <= arg_end
+            && skip_ascii_whitespace_until(content, *route_end, arg_end) == arg_end
+    })
 }
 
 pub(super) fn parse_csharp_string_literal(

@@ -28,6 +28,30 @@ pub(crate) struct ExistingArtifact {
     pub(crate) write_metadata: ArtifactMetadata,
 }
 
+/// Upper bound for memory-mapped I/O on read-only artifact connections. SQLite
+/// only maps up to the file size, so a large cap is lazy virtual address space
+/// and never allocates the full amount resident. The GLM review flagged the
+/// absence of `mmap_size` on reader paths; this bounds scan/export I/O for
+/// large artifacts without changing the writer.
+const READER_MMAP_SIZE_BYTES: i64 = 1024 * 1024 * 1024;
+
+fn apply_reader_pragmas(connection: &Connection, db_path: &Path) -> Result<(), CommandError> {
+    connection
+        .pragma_update(None, "mmap_size", READER_MMAP_SIZE_BYTES)
+        .map_err(|error| {
+            command_error(
+                1,
+                ReportCode::DbOpenFailed,
+                format!("could not apply reader mmap_size pragma: {error}"),
+                Some(display_path(db_path)),
+                None,
+                false,
+                json!({}),
+            )
+        })?;
+    Ok(())
+}
+
 pub(crate) fn artifact_report_from_connection(
     db: &Path,
     connection: &Connection,
@@ -63,6 +87,7 @@ pub(crate) fn open_artifact(
                 json!({}),
             )
         })?;
+    apply_reader_pragmas(&connection, db_path)?;
     let metadata = read_metadata(&connection).map_err(|error| {
         command_error(
             3,
@@ -101,6 +126,7 @@ pub(crate) fn open_artifact_for_info(
                 json!({}),
             )
         })?;
+    apply_reader_pragmas(&connection, db_path)?;
     let metadata = read_metadata(&connection).map_err(|error| {
         command_error(
             3,

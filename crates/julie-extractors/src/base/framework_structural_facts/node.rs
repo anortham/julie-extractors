@@ -439,9 +439,10 @@ fn collect_express_mounts(
             {
                 continue;
             }
-            if receivers.contains_key(&mount_target) {
-                same_file_prefixes.insert(mount_target.clone(), mount_path.clone());
+            if receivers.get(&mount_target) != Some(&ReceiverKind::ExpressRouter) {
+                continue;
             }
+            same_file_prefixes.insert(mount_target.clone(), mount_path.clone());
             facts.push(MountCandidate {
                 start: name_start,
                 end: close + 1,

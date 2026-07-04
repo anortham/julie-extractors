@@ -108,6 +108,9 @@ Capability flag objects have exactly these boolean fields:
 
 Metadata objects are decoded JSON objects. Empty metadata is `{}`. Unknown or
 unset optional metadata is `null` only when the field explicitly allows `null`.
+Structural-fact metadata is validated as a JSON object and emitted from the
+stored SQLite JSON text, so object member order is preserved even though
+consumers must treat JSON object order as semantically insignificant.
 
 ## Payload Schemas
 

@@ -4,6 +4,8 @@ Four parallel deep-review passes (web, data/SQL, framework, SQLite) plus my own 
 
 > **Codex validation note (2026-07-04):** this file now contains the incoming GLM review plus validation annotations from a live repo pass. Treat `Codex validation status` as authoritative where it corrects or narrows a lower section.
 
+> **Remediation status (2026-07-04, `codex/glm-review-remediation`):** confirmed P0/P1/P2 correctness findings are either fixed, regression-locked, or represented as explicit capability gaps. The remaining unfixed items are P2 scale follow-ups called out below, not correctness blockers.
+
 ## Codex validation status
 
 Validated against `HEAD` `d7167a0` with:
@@ -29,6 +31,28 @@ Validated against `HEAD` `d7167a0` with:
 - `markup_scan` is not fully HTML-comment-aware internally, but the tested HTML artifact output did not emit the commented htmx fact because later tree filtering suppressed it. Keep a regression test and only fix code if a current artifact path fails.
 - "Zero unit tests" is overstated. SQL and data-format test modules exist. The actionable issue is thin value-semantic coverage for the reviewed edge cases.
 - The Java and Ruby client examples below are imprecise as bare snippets. The Java repro goes through `HttpRequest.newBuilder(... URI.create(...))`; the Ruby repro goes through `Net::HTTP` around `URI.parse(...)`.
+
+### Remediation closeout
+
+Fixed and regression-tested in this branch:
+
+- Dynamic route/URL silence for ASP.NET, Spring, Java HTTP clients, and Ruby HTTP clients; static siblings in Spring arrays are retained.
+- Django `re_path` named-group normalization to `normalized_route_template`.
+- Vue SFC script comment/string masking for route and HTTP-client scans.
+- Express router-mount proof, Spring annotation adjacency/class-prefix retention, Rails route/resource/member/collection gaps, Actix direct routes, Go `var mux`, and Razor `@page` normalized routes.
+- React/Vue route-object false positives, JS string escape parsing, Next/Nuxt file-route and route-reference precision, JSX nested route metadata, NuxtLink `:to`/relative refs, and CSS attribute-selector comma classification.
+- SQL nullability/subquery/join/recursive value bugs; YAML flow collections; JSON/TOML path uniqueness; Markdown inline-link/setext/frontmatter bugs.
+- Lower-level structural-fact ID dedupe, WAL checkpoint/truncation after successful writes, FK-backed file deletion, raw validated structural-fact metadata export, JSONL export-order indexes for source regions/structural facts/complexity metrics, and non-test writer JSON serialization panic removal.
+
+Regression-locked or explicitly non-actioned:
+
+- SQL trigger name/target table extraction, React `index: true` token boundary, and commented htmx artifact output have focused locks.
+- The original duplicate-ID crash remains downgraded as a current CLI issue, but lower-level writer safety is now hardened.
+
+Deferred honestly:
+
+- `fixtures/extraction/capabilities.json` now records `open_gaps` for SQL advanced structures, Markdown extended constructs, YAML scalar/tag/multidoc semantics, JSON schema/reference semantics, TOML multiline strings, Regex advanced constructs, CSS additional at-rules, HTML semantic/link/media details, Vue style/slot shorthand, Django non-template regex normalization, and signal-free Next.js pages-router files.
+- Remaining P2 scale follow-ups: merge spooled scan insert passes, build secondary indexes after fresh/force bulk load, avoid full existing-file scans and unconditional guard counts, add high-cardinality insert batching, and consider reader `mmap_size`. These are not required for the current correctness remediation.
 
 ## Bottom line
 

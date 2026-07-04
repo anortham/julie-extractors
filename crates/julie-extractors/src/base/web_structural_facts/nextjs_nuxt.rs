@@ -353,7 +353,9 @@ fn nextjs_file_route(file_path: &str) -> Option<NextFileRoute> {
         .enumerate()
         .rev()
         .find_map(|(index, segment)| match *segment {
-            "app" => nextjs_app_file_route(&segments, index),
+            "app" if segments.get(index.wrapping_sub(1)) != Some(&"pages") => {
+                nextjs_app_file_route(&segments, index)
+            }
             "pages" if segments.get(index.wrapping_sub(1)) != Some(&"app") => {
                 nextjs_pages_file_route(&segments, index)
             }
@@ -979,7 +981,10 @@ fn is_static_route_path(value: &str) -> bool {
 
 pub(super) fn is_nuxt_route_path(value: &str) -> bool {
     let value = value.trim();
-    value.starts_with('/') && !value.starts_with("//")
+    !value.is_empty()
+        && !value.starts_with("//")
+        && !value.starts_with('#')
+        && !value.contains("://")
 }
 
 pub(super) fn is_nuxt_link_tag(tag_name: &str) -> bool {

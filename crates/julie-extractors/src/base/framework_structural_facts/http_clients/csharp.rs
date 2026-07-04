@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use tree_sitter::Tree;
 
 use super::super::helpers::{
@@ -34,10 +36,11 @@ pub(super) fn collect_csharp_http_client_requests(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mask = SourceMask::new(content, MaskLanguage::CSharp);
+    let receivers = collect_httpclient_receivers(content, &mask);
     let mut facts = Vec::new();
     for (method, verb) in HTTPCLIENT_METHODS {
         collect_method_calls(
-            language, tree, file_path, content, &mask, method, verb, &mut facts,
+            language, tree, file_path, content, &mask, &receivers, method, verb, &mut facts,
         );
     }
     collect_http_request_messages(language, tree, file_path, content, &mask, &mut facts);
@@ -51,6 +54,7 @@ fn collect_method_calls(
     file_path: &str,
     content: &str,
     mask: &SourceMask,
+    receivers: &HashSet<String>,
     method: &str,
     verb: &str,
     facts: &mut Vec<StructuralFact>,
@@ -61,6 +65,7 @@ fn collect_method_calls(
         cursor = method_start + method.len();
         if !is_identifier_boundary(content, method_start, method.len())
             || mask.is_string_or_comment(method_start)
+            || !method_receiver_is_httpclient(content, method_start, receivers)
         {
             continue;
         }
@@ -107,6 +112,103 @@ fn collect_method_calls(
             facts.push(fact);
         }
     }
+}
+
+fn collect_httpclient_receivers(content: &str, mask: &SourceMask) -> HashSet<String> {
+    let mut receivers = HashSet::new();
+    let mut cursor = 0;
+    while let Some(relative) = content[cursor..].find("HttpClient") {
+        let type_start = cursor + relative;
+        cursor = type_start + "HttpClient".len();
+        if !is_identifier_boundary(content, type_start, "HttpClient".len())
+            || mask.is_string_or_comment(type_start)
+        {
+            continue;
+        }
+        let name_start = skip_ascii_whitespace_until(content, cursor, content.len());
+        if let Some((name, _)) = parse_csharp_identifier(content, name_start) {
+            receivers.insert(name.to_string());
+        }
+    }
+
+    let mut cursor = 0;
+    while let Some(relative) = content[cursor..].find("new HttpClient()") {
+        let call_start = cursor + relative;
+        cursor = call_start + "new HttpClient()".len();
+        if mask.is_string_or_comment(call_start) {
+            continue;
+        }
+        let statement_start = content[..call_start]
+            .rfind(['\n', ';', '{'])
+            .map(|index| index + 1)
+            .unwrap_or(0);
+        let before = content[statement_start..call_start].trim();
+        if let Some(name) = csharp_assignment_name_before_call(before) {
+            receivers.insert(name.to_string());
+        }
+    }
+
+    receivers
+}
+
+fn method_receiver_is_httpclient(
+    content: &str,
+    method_start: usize,
+    receivers: &HashSet<String>,
+) -> bool {
+    let Some(dot) = content[..method_start].trim_end().strip_suffix('.') else {
+        return false;
+    };
+    let receiver_end = dot.len();
+    let receiver_start = dot
+        .char_indices()
+        .rev()
+        .find(|(_, ch)| !is_csharp_identifier_char(*ch))
+        .map(|(index, ch)| index + ch.len_utf8())
+        .unwrap_or(0);
+    let receiver = dot[receiver_start..receiver_end].trim();
+    receivers.contains(receiver)
+}
+
+fn csharp_assignment_name_before_call(before: &str) -> Option<&str> {
+    let (left, _) = before.rsplit_once('=')?;
+    let left = left.trim();
+    let name = left
+        .split(|ch: char| !is_csharp_identifier_char(ch))
+        .rfind(|token| !token.is_empty())?;
+    is_csharp_identifier(name).then_some(name)
+}
+
+fn parse_csharp_identifier(content: &str, start: usize) -> Option<(&str, usize)> {
+    let mut chars = content[start..].char_indices();
+    let (_, first) = chars.next()?;
+    if !is_csharp_identifier_start(first) {
+        return None;
+    }
+    let mut end = start + first.len_utf8();
+    for (relative, ch) in chars {
+        if !is_csharp_identifier_char(ch) {
+            return Some((&content[start..end], end));
+        }
+        end = start + relative + ch.len_utf8();
+    }
+    Some((&content[start..end], end))
+}
+
+fn is_csharp_identifier(value: &str) -> bool {
+    let mut chars = value.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    is_csharp_identifier_start(first) && chars.all(is_csharp_identifier_char)
+}
+
+fn is_csharp_identifier_start(ch: char) -> bool {
+    ch == '_' || ch.is_ascii_alphabetic()
+}
+
+fn is_csharp_identifier_char(ch: char) -> bool {
+    ch == '_' || ch.is_ascii_alphanumeric()
 }
 
 fn collect_http_request_messages(

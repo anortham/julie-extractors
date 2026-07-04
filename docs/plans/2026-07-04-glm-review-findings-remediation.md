@@ -36,7 +36,7 @@
 **Fix by regression lock only unless a new failing test proves otherwise:**
 
 - SQL trigger-name claim.
-- `index: true` token-boundary claim.
+- `index: true` token-boundary claim. This lock failed during Task 0 and was promoted to an implemented fix in `react.rs`.
 - HTML commented htmx artifact claim.
 - "Zero unit tests" claim.
 - Current CLI duplicate-ID writer crash claim.
@@ -123,9 +123,9 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 
 **Acceptance criteria:**
 
-- [ ] Downgraded claims are covered by passing tests.
-- [ ] No production code changes are made in this task unless a validation lock unexpectedly fails.
-- [ ] `cargo test -p julie-extractors review_regressions` passes.
+- [x] Downgraded claims are covered by passing tests.
+- [x] No production code changes are made in this task unless a validation lock unexpectedly fails.
+- [x] `cargo test -p julie-extractors review_regressions` passes.
 
 ## Task 1: P0 Silence and Route Normalization
 
@@ -159,13 +159,19 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 - Keep static literal handling language-specific inside `static_arg.rs`, not duplicated inside each collector.
 - For Django, support common named group forms such as `(?P<id>...)`; if a regex cannot be normalized honestly, emit the route fact without a normalized join key only if the pattern is recorded as an `open_gaps` limitation in Task 7.
 
+**Implementation note (2026-07-04):** Java, C#, and Ruby arms were added to
+`static_arg.rs` with grammar-backed allowlist tests. The existing Java/C#/Ruby
+collectors are still text/span scanners in this slice, so they enforce the same
+whole-argument guard at their collector boundaries instead of a larger AST
+rewrite.
+
 **Acceptance criteria:**
 
-- [ ] Dynamic ASP.NET and Java Spring route arguments emit no guessed partial routes.
-- [ ] Static siblings in Java mapping arrays still emit.
-- [ ] Java and Ruby dynamic client URLs emit nothing; static URLs still emit.
-- [ ] Django `re_path` emits `normalized_route_template` for named regex parameters.
-- [ ] Focused tests pass for `spring`, `python_web`, `http_client`, and affected language modules.
+- [x] Dynamic ASP.NET and Java Spring route arguments emit no guessed partial routes.
+- [x] Static siblings in Java mapping arrays still emit.
+- [x] Java and Ruby dynamic client URLs emit nothing; static URLs still emit.
+- [x] Django `re_path` emits `normalized_route_template` for named regex parameters.
+- [x] Focused tests pass for `spring`, `python_web`, `http_client`, and affected language modules.
 
 ## Task 2: Vue SFC Script Silence
 
@@ -195,10 +201,10 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 
 **Acceptance criteria:**
 
-- [ ] Commented-out `fetch`, `axios.get`, and `path:` in Vue scripts emit no facts.
-- [ ] String-embedded calls emit no facts.
-- [ ] Real static calls still emit with original file offsets.
-- [ ] `cargo test -p julie-extractors vue` passes.
+- [x] Commented-out `fetch`, `axios.get`, and `path:` in Vue scripts emit no facts.
+- [x] String-embedded calls emit no facts.
+- [x] Real static calls still emit with original file offsets.
+- [x] `cargo test -p julie-extractors vue` passes.
 
 ## Task 3: Frontend Route and File Precision
 
@@ -238,12 +244,13 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 
 **Acceptance criteria:**
 
-- [ ] `redirect: { path: ... }` and `meta: { path: ... }` do not emit route definitions.
-- [ ] JS escape tests pass for newline, tab, unicode, escaped slash, and rejected malformed escapes.
-- [ ] Next/Nuxt file-route cases match documented evidence policy.
-- [ ] JSX nested routes and Nuxt relative links emit parent/effective route metadata when statically known.
-- [ ] CSS attribute selector commas are classified correctly.
-- [ ] Focused web tests pass.
+- [x] `redirect: { path: ... }` and `meta: { path: ... }` do not emit route definitions.
+- [x] JS escape tests pass for newline, tab, unicode, escaped slash, and rejected malformed escapes.
+- [x] Next/Nuxt file-route cases match documented evidence policy.
+- [x] JSX nested routes and Nuxt relative links emit parent/effective route metadata when statically known.
+- [x] CSS attribute selector commas are classified correctly.
+- [x] React index routes require the literal `true` token; `index: trueValue` stays silent.
+- [x] Focused web tests pass.
 
 ## Task 4: Backend Framework Coverage and Precision
 
@@ -279,13 +286,13 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 
 **Acceptance criteria:**
 
-- [ ] Express middleware no longer emits `express.router_mount.v1` unless the target is a router.
-- [ ] Spring annotation adjacency and class-prefix tests pass.
-- [ ] Rails parenthesized, multi-resource, member, and collection tests pass.
-- [ ] Actix direct `App::new().route(...)` emits route facts.
-- [ ] Go `var mux` receiver route emits.
-- [ ] Razor route facts include `normalized_route_template`.
-- [ ] Focused framework tests pass.
+- [x] Express middleware no longer emits `express.router_mount.v1` unless the target is a router.
+- [x] Spring annotation adjacency and class-prefix tests pass.
+- [x] Rails parenthesized, multi-resource, member, and collection tests pass.
+- [x] Actix direct `App::new().route(...)` emits route facts.
+- [x] Go `var mux` receiver route emits.
+- [x] Razor route facts include `normalized_route_template`.
+- [x] Focused framework tests pass.
 
 ## Task 5: Data, SQL, and Domain Structural Facts
 
@@ -319,11 +326,11 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 
 **Acceptance criteria:**
 
-- [ ] SQL P1/P2 value tests pass.
-- [ ] YAML flow collection facts emit useful paths and kinds.
-- [ ] JSON/TOML path tests prove unique, documented paths.
-- [ ] Markdown/CSS focused edge tests pass.
-- [ ] Any still-missing domain constructs are represented by honest `open_gaps` in Task 7.
+- [x] SQL P1/P2 value tests pass.
+- [x] YAML flow collection facts emit useful paths and kinds.
+- [x] JSON/TOML path tests prove unique, documented paths.
+- [x] Markdown/CSS focused edge tests pass.
+- [x] Any still-missing domain constructs are represented by honest `open_gaps` in Task 7.
 
 ## Task 6: Artifact Writer and JSONL Export Hardening
 
@@ -363,11 +370,11 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 
 **Acceptance criteria:**
 
-- [ ] Duplicate structural-fact IDs cannot crash the lower-level writer path under the chosen policy.
-- [ ] Successful writes checkpoint/truncate WAL without losing committed rows.
-- [ ] JSONL export output is byte-valid and semantically unchanged except for documented ordering/index policy.
-- [ ] Fresh and incremental writer tests pass.
-- [ ] Performance changes have focused evidence, not just code inspection.
+- [x] Duplicate structural-fact IDs cannot crash the lower-level writer path under the chosen policy.
+- [x] Successful writes checkpoint/truncate WAL without losing committed rows.
+- [x] JSONL export output is byte-valid and semantically unchanged except for documented ordering/index policy.
+- [x] Fresh and incremental writer tests pass.
+- [x] Performance changes have focused evidence, not just code inspection.
 
 ## Task 7: Capability Honesty, Registry, and Contract Sweep
 
@@ -392,10 +399,10 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 
 **Acceptance criteria:**
 
-- [ ] No known missing implementation is represented as `open_gaps: []` or `not_applicable`.
-- [ ] Registry specs match emitted metadata keys and types.
-- [ ] Contract docs match SQLite/JSONL output.
-- [ ] `node scripts/language-data-quality-report.mjs --strict` reports `silent_cells: 0` and `quality_bar_debts: 0`.
+- [x] No known missing implementation is represented as `open_gaps: []` or `not_applicable`.
+- [x] Registry specs match emitted metadata keys and types.
+- [x] Contract docs match SQLite/JSONL output.
+- [x] `node scripts/language-data-quality-report.mjs --strict` reports `silent_cells: 0` and `quality_bar_debts: 0`.
 
 ## Task 8: End-to-End Verification and Closeout
 
@@ -409,7 +416,7 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 **Approach:**
 
 - Run the branch gate from the verification strategy.
-- Build the CLI and run a small temp-repo smoke scan covering:
+- Build the CLI and run a small temp-repo or fixture-root smoke scan covering:
   - dynamic route silence in ASP.NET/Spring/Java/Ruby
   - Vue script comments/strings
   - Django `re_path` normalization
@@ -418,9 +425,25 @@ Commit mode: **mixed serial/parallel**. Shared contract files (`fixtures/extract
 - Query SQLite `structural_facts` directly for high-risk facts.
 - Re-check worktree state and make sure no unrelated user changes were touched.
 
+**Closeout evidence (2026-07-04):**
+
+- Branch gate passed: `cargo fmt --all -- --check`, full tests for
+  `julie-extractors`, `julie-extract-artifact`, and `julie-extract-cli`,
+  clippy for all three crates with `-D warnings`, `cargo build --bin
+  julie-extract`, and `node scripts/language-data-quality-report.mjs
+  --strict`.
+- CLI smoke passed on `fixtures/extraction`: scan indexed 297 files and
+  112,608 structural facts, JSONL export wrote 351,729 records, and the WAL
+  sidecar was absent or empty after the successful write.
+- SQLite smoke queries confirmed high-risk facts: dynamic ASP.NET route
+  expressions did not leak, Django `re_path` normalized to `/legacy/:slug/`,
+  Vue script client requests emitted only real script calls, SQL
+  `INTEGER PRIMARY KEY` columns emitted `nullable:false`, and TOML/YAML/JSON
+  path facts were present.
+
 **Acceptance criteria:**
 
-- [ ] Every confirmed finding in the review is fixed or has an explicit `open_gaps` entry with closure plan.
-- [ ] Every downgraded/unconfirmed claim has a regression lock or documented non-action.
-- [ ] Branch gate passes or any failure is fully explained with the smallest remaining blocker.
-- [ ] Final report lists changed modules, verification commands, and remaining open gaps.
+- [x] Every confirmed finding in the review is fixed or has an explicit `open_gaps` entry with closure plan.
+- [x] Every downgraded/unconfirmed claim has a regression lock or documented non-action.
+- [x] Branch gate passes or any failure is fully explained with the smallest remaining blocker.
+- [x] Final report lists changed modules, verification commands, and remaining open gaps.

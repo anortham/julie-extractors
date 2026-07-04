@@ -44,7 +44,10 @@ fn nuxt_emits_static_route_reference_facts() {
   <nav>
     <NuxtLink to="/about">About</NuxtLink>
     <nuxt-link to="/contact">Contact</nuxt-link>
+    <NuxtLink :to="'settings'">Settings</NuxtLink>
+    <NuxtLink :to="'/absolute-bound'">Absolute Bound</NuxtLink>
     <NuxtLink :to="{ name: 'posts-id', params: { id: post.id } }">Post</NuxtLink>
+    <NuxtLink :to="computedRoute">Computed</NuxtLink>
     <NuxtLink to="//cdn.example.com/file.pdf">CDN</NuxtLink>
     <NuxtLink to="/download.pdf" external>Download</NuxtLink>
     <NuxtLink to="https://nuxt.com">External</NuxtLink>
@@ -55,13 +58,13 @@ fn nuxt_emits_static_route_reference_facts() {
     let results = extract("app/components/Nav.vue", source);
     let references = facts_with_pattern(&results, "nuxt.route_reference.v1");
 
-    assert_eq!(references.len(), 2);
+    assert_eq!(references.len(), 4);
     assert_eq!(
         references
             .iter()
             .filter_map(|fact| metadata_str(fact, "target_path"))
             .collect::<BTreeSet<_>>(),
-        BTreeSet::from(["/about", "/contact"])
+        BTreeSet::from(["/about", "/absolute-bound", "/contact", "settings"])
     );
 
     let about_link = references
@@ -88,6 +91,16 @@ fn nuxt_emits_static_route_reference_facts() {
     assert_eq!(
         metadata_str(contact_link, "component_name"),
         Some("nuxt-link")
+    );
+
+    let settings_link = references
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("settings"))
+        .expect("expected bound relative NuxtLink route reference");
+    assert_eq!(metadata_str(settings_link, "attribute_name"), Some(":to"));
+    assert_eq!(
+        metadata_str(settings_link, "route_source"),
+        Some("string_literal")
     );
 }
 

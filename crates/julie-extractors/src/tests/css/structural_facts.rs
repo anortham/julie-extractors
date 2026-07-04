@@ -118,3 +118,37 @@ fn css_emits_stylesheet_structural_facts() {
             .all(|fact| fact.end_byte > fact.start_byte)
     );
 }
+
+#[test]
+fn css_selector_kind_ignores_commas_inside_attribute_selectors() {
+    let source = r#"
+a[href*=","] {
+  color: red;
+}
+
+.primary, .secondary {
+  color: blue;
+}
+"#;
+
+    let results = extract(source);
+    let selectors = facts_with_pattern(&results, "css.selector_rule.v1");
+
+    let attribute_selector = selectors
+        .iter()
+        .find(|fact| metadata_str(fact, "selector") == Some("a[href*=\",\"]"))
+        .expect("expected attribute selector fact");
+    assert_eq!(
+        metadata_str(attribute_selector, "selector_kind"),
+        Some("compound")
+    );
+
+    let selector_list = selectors
+        .iter()
+        .find(|fact| metadata_str(fact, "selector") == Some(".primary, .secondary"))
+        .expect("expected selector list fact");
+    assert_eq!(
+        metadata_str(selector_list, "selector_kind"),
+        Some("selector_list")
+    );
+}

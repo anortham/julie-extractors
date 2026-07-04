@@ -1015,4 +1015,50 @@ mod tests {
         .expect("successful extraction must pass through unchanged");
         assert!(results.symbols.is_empty());
     }
+
+    #[test]
+    fn map_results_dedupes_structural_facts_by_id_before_artifact_write() {
+        let mut results = ExtractionResults::empty();
+        let fact = StructuralFact {
+            id: "structural-fact:duplicate".to_string(),
+            file_path: "x.rs".to_string(),
+            language: "rust".to_string(),
+            pattern_id: "review.duplicate.v1".to_string(),
+            capture_name: "first".to_string(),
+            node_kind: "identifier".to_string(),
+            containing_symbol_id: None,
+            start_line: 1,
+            start_column: 0,
+            end_line: 1,
+            end_column: 1,
+            start_byte: 0,
+            end_byte: 1,
+            confidence: 1.0,
+            metadata: None,
+        };
+        results.structural_facts.push(fact.clone());
+
+        let mut duplicate = fact;
+        duplicate.capture_name = "second".to_string();
+        results.structural_facts.push(duplicate);
+
+        let artifact = map_results(
+            &sample_target(),
+            "rust".to_string(),
+            "2026-07-04T00:00:00Z".to_string(),
+            &sample_snapshot(),
+            results,
+        )
+        .expect("mapping duplicate structural fact ids should not fail");
+
+        assert_eq!(
+            artifact.structural_facts.len(),
+            1,
+            "CLI artifact mapping must dedupe structural facts before writer insertion"
+        );
+        assert_eq!(
+            artifact.structural_facts[0].structural_fact_id,
+            "structural-fact:duplicate"
+        );
+    }
 }

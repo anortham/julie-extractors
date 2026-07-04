@@ -458,8 +458,9 @@ fn foreign_key_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<St
     ))
 }
 
-fn select_query_fact(file_path: &str, _content: &str, node: Node<'_>) -> Option<StructuralFact> {
+fn select_query_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let from_node = query_from_node(node);
+    let flags = select_clause_flags(content, node.start_byte());
     let projection_count = count_select_projections(node);
     let source_count = from_node
         .map(|from| count_direct_children(from, "relation") + count_direct_children(from, "join"))
@@ -474,18 +475,9 @@ fn select_query_fact(file_path: &str, _content: &str, node: Node<'_>) -> Option<
         "source_count".to_string(),
         Value::Number(Number::from(source_count)),
     );
-    metadata.insert(
-        "has_where".to_string(),
-        Value::Bool(from_node.is_some_and(|from| has_child_kind(from, "where"))),
-    );
-    metadata.insert(
-        "has_group_by".to_string(),
-        Value::Bool(from_node.is_some_and(|from| has_child_kind(from, "group_by"))),
-    );
-    metadata.insert(
-        "has_order_by".to_string(),
-        Value::Bool(from_node.is_some_and(|from| has_child_kind(from, "order_by"))),
-    );
+    metadata.insert("has_where".to_string(), Value::Bool(flags.has_where));
+    metadata.insert("has_group_by".to_string(), Value::Bool(flags.has_group_by));
+    metadata.insert("has_order_by".to_string(), Value::Bool(flags.has_order_by));
     Some(fact_for_node(
         file_path,
         SELECT_QUERY_PATTERN_ID,
@@ -495,6 +487,105 @@ fn select_query_fact(file_path: &str, _content: &str, node: Node<'_>) -> Option<
     ))
 }
 
+#[derive(Default)]
+struct SelectClauseFlags {
+    has_where: bool,
+    has_group_by: bool,
+    has_order_by: bool,
+}
+
+fn select_clause_flags(content: &str, select_start: usize) -> SelectClauseFlags {
+    let base_depth = paren_depth_before(content, select_start);
+    let mut flags = SelectClauseFlags::default();
+    let mut depth = base_depth;
+    let mut cursor = select_start;
+    while cursor < content.len() {
+        let Some(ch) = content[cursor..].chars().next() else {
+            break;
+        };
+        match ch {
+            '\'' | '"' => {
+                cursor = skip_sql_string(content, cursor, ch);
+                continue;
+            }
+            '(' => depth += 1,
+            ')' => {
+                if depth == base_depth {
+                    break;
+                }
+                depth = depth.saturating_sub(1);
+            }
+            ';' if depth == base_depth => break,
+            _ => {}
+        }
+        if depth == base_depth {
+            if sql_keyword_at(content, cursor, "where") {
+                flags.has_where = true;
+            } else if sql_keyword_at(content, cursor, "group") {
+                flags.has_group_by = true;
+            } else if sql_keyword_at(content, cursor, "order") {
+                flags.has_order_by = true;
+            }
+        }
+        cursor += ch.len_utf8();
+    }
+    flags
+}
+
+fn paren_depth_before(content: &str, end: usize) -> usize {
+    let mut depth = 0usize;
+    let mut cursor = 0usize;
+    while cursor < end {
+        let Some(ch) = content[cursor..].chars().next() else {
+            break;
+        };
+        match ch {
+            '\'' | '"' => {
+                cursor = skip_sql_string(content, cursor, ch);
+                continue;
+            }
+            '(' => depth += 1,
+            ')' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+        cursor += ch.len_utf8();
+    }
+    depth
+}
+
+fn skip_sql_string(content: &str, start: usize, quote: char) -> usize {
+    let mut cursor = start + quote.len_utf8();
+    while cursor < content.len() {
+        let Some(ch) = content[cursor..].chars().next() else {
+            break;
+        };
+        cursor += ch.len_utf8();
+        if ch == quote {
+            if content[cursor..].starts_with(quote) {
+                cursor += quote.len_utf8();
+                continue;
+            }
+            break;
+        }
+    }
+    cursor
+}
+
+fn sql_keyword_at(content: &str, start: usize, keyword: &str) -> bool {
+    let Some(candidate) = content.get(start..start + keyword.len()) else {
+        return false;
+    };
+    candidate.eq_ignore_ascii_case(keyword)
+        && content[..start]
+            .chars()
+            .next_back()
+            .is_none_or(|ch| !ch.is_ascii_alphanumeric() && ch != '_')
+        && content[start + keyword.len()..]
+            .chars()
+            .next()
+            .is_none_or(|ch| !ch.is_ascii_alphanumeric() && ch != '_')
+}
+
 fn cte_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let cte_name = node
         .child_by_field_name("argument")
@@ -502,7 +593,7 @@ fn cte_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<Structural
         .and_then(|name_node| node_text(content, name_node).map(str::to_string))?;
     let recursive = query_clause_container(node)
         .and_then(|container| node_text(content, container))
-        .is_some_and(|text| text.contains("RECURSIVE"));
+        .is_some_and(|text| text.to_ascii_uppercase().contains("RECURSIVE"));
 
     let mut metadata = base_metadata("query_structure");
     insert_string(&mut metadata, "cte_name", &cte_name);
@@ -518,9 +609,7 @@ fn cte_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<Structural
 
 fn join_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let join_type = join_type_name(node);
-    let left_table = enclosing_from_node(node)
-        .and_then(|from| find_child(from, "relation"))
-        .and_then(|relation| relation_table_name(content, relation));
+    let left_table = join_left_table(content, node);
     let right_table =
         find_child(node, "relation").and_then(|relation| relation_table_name(content, relation));
 
@@ -619,6 +708,8 @@ fn column_is_not_null(node: Node<'_>) -> bool {
     has_child_kind(node, "not_null")
         || has_child_kind(node, "not_null_constraint")
         || (has_child_kind(node, "keyword_not") && has_child_kind(node, "keyword_null"))
+        || has_child_kind(node, "keyword_primary")
+        || has_child_kind(node, "primary_key")
 }
 
 fn column_type_name(content: &str, node: Node<'_>) -> Option<String> {
@@ -799,7 +890,17 @@ fn count_select_expression_projections(node: Node<'_>) -> usize {
 }
 
 fn query_from_node(select_node: Node<'_>) -> Option<Node<'_>> {
-    query_clause_container(select_node).and_then(|container| find_child(container, "from"))
+    let mut node = select_node;
+    while let Some(parent) = node.parent() {
+        if let Some(from) = find_descendant_after(parent, "from", select_node.end_byte(), 0) {
+            return Some(from);
+        }
+        if matches!(parent.kind(), "statement" | "create_query") {
+            break;
+        }
+        node = parent;
+    }
+    None
 }
 
 fn query_clause_container(mut node: Node<'_>) -> Option<Node<'_>> {
@@ -819,6 +920,33 @@ fn enclosing_from_node(mut node: Node<'_>) -> Option<Node<'_>> {
         node = parent;
     }
     None
+}
+
+fn join_left_table(content: &str, join_node: Node<'_>) -> Option<String> {
+    let from = enclosing_from_node(join_node)?;
+    let mut previous_table =
+        find_child(from, "relation").and_then(|relation| relation_table_name(content, relation));
+    let mut cursor = from.walk();
+    for child in from.children(&mut cursor) {
+        if same_node(child, join_node) {
+            return previous_table;
+        }
+        match child.kind() {
+            "relation" => {
+                previous_table = relation_table_name(content, child);
+            }
+            "join" => {
+                previous_table = find_child(child, "relation")
+                    .and_then(|relation| relation_table_name(content, relation));
+            }
+            _ => {}
+        }
+    }
+    previous_table
+}
+
+fn same_node(left: Node<'_>, right: Node<'_>) -> bool {
+    left.start_byte() == right.start_byte() && left.end_byte() == right.end_byte()
 }
 
 fn ancestor_of_kind<'a>(mut node: Node<'a>, kind: &str) -> Option<Node<'a>> {
@@ -856,6 +984,31 @@ fn find_descendant_at_depth<'a>(node: Node<'a>, kind: &str, depth: u32) -> Optio
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if let Some(found) = find_descendant_at_depth(child, kind, child_depth) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+fn find_descendant_after<'a>(
+    node: Node<'a>,
+    kind: &str,
+    after_byte: usize,
+    depth: u32,
+) -> Option<Node<'a>> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let child_depth = child_tree_depth(depth)?;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.end_byte() <= after_byte {
+            continue;
+        }
+        if child.kind() == kind && child.start_byte() >= after_byte {
+            return Some(child);
+        }
+        if let Some(found) = find_descendant_after(child, kind, after_byte, child_depth) {
             return Some(found);
         }
     }

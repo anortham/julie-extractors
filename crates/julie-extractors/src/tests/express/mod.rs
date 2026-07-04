@@ -126,6 +126,25 @@ export function registerRoutes() {
 }
 
 #[test]
+fn express_middleware_mount_does_not_emit_router_mount_fact() {
+    let source = r#"
+import express from "express";
+
+const app = express();
+const usersRouter = express.Router();
+const middleware = (req, res, next) => next();
+
+app.use("/middleware", middleware);
+app.use("/users", usersRouter);
+"#;
+    let results = extract("src/server.js", source);
+    let mounts = facts_with_pattern(&results, EXPRESS_ROUTER_MOUNT_PATTERN_ID);
+    assert_eq!(mounts.len(), 1, "{mounts:#?}");
+    assert_eq!(metadata_str(mounts[0], "mount_path"), Some("/users"));
+    assert_eq!(metadata_str(mounts[0], "mount_target"), Some("usersRouter"));
+}
+
+#[test]
 fn express_settings_getter_calls_stay_silent() {
     let source = r#"
 import express from "express";

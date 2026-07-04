@@ -4924,6 +4924,12 @@
         "value_type": "string"
       },
       {
+        "description": "Route template normalized for HTTP-boundary joins.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
         "description": "Count of {param} segments parsed from the route.",
         "key": "route_parameter_count",
         "presence": "always",
@@ -6980,7 +6986,7 @@
     "query_family": "config_structure"
   },
   {
-    "description": "A YAML block mapping.",
+    "description": "A YAML block or flow mapping.",
     "languages": [
       "yaml"
     ],
@@ -7014,7 +7020,7 @@
     "query_family": "config_structure"
   },
   {
-    "description": "A YAML block sequence.",
+    "description": "A YAML block or flow sequence.",
     "languages": [
       "yaml"
     ],
@@ -7028,6 +7034,12 @@
       {
         "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
         "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Dotted key path to this sequence from the document root.",
+        "key": "key_path",
         "presence": "always",
         "value_type": "string"
       },

@@ -157,7 +157,7 @@ fn css_keyframes_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<
 
 fn css_selector_kind(selector: &str) -> &'static str {
     let selector = selector.trim();
-    if selector.contains(',') {
+    if selector_has_top_level_comma(selector) {
         "selector_list"
     } else if selector.starts_with('.') {
         "class"
@@ -168,6 +168,39 @@ fn css_selector_kind(selector: &str) -> &'static str {
     } else {
         "compound"
     }
+}
+
+fn selector_has_top_level_comma(selector: &str) -> bool {
+    let bytes = selector.as_bytes();
+    let mut bracket_depth = 0usize;
+    let mut paren_depth = 0usize;
+    let mut quote = None;
+    let mut escaped = false;
+
+    for byte in bytes {
+        if let Some(active_quote) = quote {
+            if escaped {
+                escaped = false;
+            } else if *byte == b'\\' {
+                escaped = true;
+            } else if *byte == active_quote {
+                quote = None;
+            }
+            continue;
+        }
+
+        match *byte {
+            b'\'' | b'"' => quote = Some(*byte),
+            b'[' => bracket_depth += 1,
+            b']' => bracket_depth = bracket_depth.saturating_sub(1),
+            b'(' => paren_depth += 1,
+            b')' => paren_depth = paren_depth.saturating_sub(1),
+            b',' if bracket_depth == 0 && paren_depth == 0 => return true,
+            _ => {}
+        }
+    }
+
+    false
 }
 
 fn count_css_declarations(node: Node<'_>) -> usize {

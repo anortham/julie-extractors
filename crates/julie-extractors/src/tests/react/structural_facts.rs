@@ -241,6 +241,91 @@ export const router = createBrowserRouter(routes);
 }
 
 #[test]
+fn react_route_definitions_ignore_nested_redirect_and_meta_paths() {
+    let source = r#"
+import { createBrowserRouter } from "react-router-dom";
+
+const routes = [
+  {
+    path: "/login",
+    element: <Login />,
+    redirect: { state: { path: "/redirect-target" } },
+    meta: {
+      path: "/meta-target",
+      nested: [{ path: "/meta-nested-target" }],
+      tabs: [{ index: true }],
+    },
+  },
+];
+
+export const router = createBrowserRouter(routes);
+"#;
+
+    let results = extract("src/routes.tsx", source);
+    let definitions = facts_with_pattern(&results, "react.route_definition.v1");
+    assert_eq!(definitions.len(), 1);
+    assert_eq!(
+        definitions
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "route_path"))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/login"])
+    );
+}
+
+#[test]
+fn react_jsx_nested_routes_emit_parent_context() {
+    let source = r#"
+import { Route, Routes } from "react-router-dom";
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route path="settings" element={<Settings />} />
+        <Route index element={<Overview />} />
+      </Route>
+    </Routes>
+  );
+}
+"#;
+
+    let results = extract("src/AppRoutes.tsx", source);
+    let definitions = facts_with_pattern(&results, "react.route_definition.v1");
+    assert_eq!(
+        definitions
+            .iter()
+            .filter_map(|fact| metadata_str(fact, "route_path").or_else(|| {
+                metadata_bool(fact, "index_route")
+                    .is_some_and(|index| index)
+                    .then_some("<index>")
+            }))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["/admin", "settings", "<index>"])
+    );
+
+    let settings = definitions
+        .iter()
+        .find(|fact| metadata_str(fact, "route_path") == Some("settings"))
+        .expect("expected child settings route");
+    assert_eq!(metadata_str(settings, "parent_route_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(settings, "effective_route_template"),
+        Some("/admin/settings")
+    );
+
+    let index = definitions
+        .iter()
+        .find(|fact| metadata_bool(fact, "index_route") == Some(true))
+        .expect("expected index child route");
+    assert_eq!(metadata_str(index, "parent_route_path"), Some("/admin"));
+    assert_eq!(
+        metadata_str(index, "effective_route_template"),
+        Some("/admin")
+    );
+}
+
+#[test]
 fn plain_vue_router_modules_emit_vue_route_definitions() {
     let source = r#"
 import { createBrowserRouter } from "react-router-dom";
@@ -533,6 +618,23 @@ export default function App() {
 }
 
 #[test]
+fn react_router_type_only_route_import_does_not_gate_jsx_routes() {
+    let source = r#"
+import { type Route } from "react-router-dom";
+
+export function App() {
+  return <Route path="/type-only" element={<TypeOnly />} />;
+}
+"#;
+
+    let results = extract("src/App.tsx", source);
+    assert!(
+        facts_with_pattern(&results, "react.route_definition.v1").is_empty(),
+        "type-only Route imports must not count as runtime JSX route evidence"
+    );
+}
+
+#[test]
 fn file_routes_keep_framework_and_segment_semantics_precise() {
     let optional_slug_results = extract(
         "app/docs/[[...slug]]/page.tsx",
@@ -584,6 +686,27 @@ fn file_routes_keep_framework_and_segment_semantics_precise() {
     assert!(
         facts_with_pattern(&nested_app_pages_page_results, "nuxt.file_route.v1").is_empty(),
         "app/pages route segments with page files must not emit competing Nuxt file routes"
+    );
+
+    let pages_app_page_results = extract(
+        "pages/app/page.tsx",
+        r#"
+export async function getStaticProps() {
+  return { props: {} };
+}
+
+export default function Page() { return <h1>Pages app page</h1>; }
+"#,
+    );
+    let pages_app_page_routes = facts_with_pattern(&pages_app_page_results, "nextjs.file_route.v1");
+    assert_eq!(pages_app_page_routes.len(), 1);
+    assert_eq!(
+        metadata_str(pages_app_page_routes[0], "router"),
+        Some("pages")
+    );
+    assert_eq!(
+        metadata_str(pages_app_page_routes[0], "route_path"),
+        Some("/app/page")
     );
 }
 

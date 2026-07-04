@@ -1,10 +1,12 @@
+use std::ops::Range;
+
 use tree_sitter::Tree;
 
 use super::HTTP_CLIENT_REQUEST_PATTERN_ID;
 use super::fact_builders::fact_for_span;
 use super::js_imports::JsImportIndex;
 use super::js_object_scan::{
-    find_matching_paren, find_top_level_comma_or_end, is_identifier_boundary,
+    ScriptSyntaxMask, find_matching_paren, find_top_level_comma_or_end, is_identifier_boundary,
     is_ignored_syntax_range, parse_js_identifier, parse_js_string_literal,
     skip_ascii_whitespace_until,
 };
@@ -15,6 +17,15 @@ use crate::base::types::StructuralFact;
 const FETCH_IDENTIFIER: &str = "fetch";
 
 const AXIOS_VERB_METHODS: &[&str] = &["get", "post", "put", "patch", "delete", "head", "options"];
+
+struct HttpClientScan<'a> {
+    language: &'a str,
+    tree: &'a Tree,
+    file_path: &'a str,
+    content: &'a str,
+    end: usize,
+    syntax_mask: Option<&'a ScriptSyntaxMask>,
+}
 
 /// Collects `http.client_request.v1` facts for global `fetch()` calls and
 /// import-gated axios calls within `content[start..end]`.
@@ -40,108 +51,118 @@ pub(super) fn collect_http_client_requests(
     file_path: &str,
     content: &str,
     imports: &JsImportIndex,
-    start: usize,
-    end: usize,
+    range: Range<usize>,
+    syntax_mask: Option<&ScriptSyntaxMask>,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_fetch_requests(language, tree, file_path, content, start, end, &mut facts);
+    let scan = HttpClientScan {
+        language,
+        tree,
+        file_path,
+        content,
+        end: range.end,
+        syntax_mask,
+    };
+    collect_fetch_requests(&scan, range.start, &mut facts);
     for (local, source) in &imports.axios_clients {
-        collect_axios_requests(
-            language, tree, file_path, content, local, source, start, end, &mut facts,
-        );
+        collect_axios_requests(&scan, local, source, range.start, &mut facts);
     }
     facts
 }
 
 fn collect_fetch_requests(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    scan: &HttpClientScan<'_>,
     start: usize,
-    end: usize,
     facts: &mut Vec<StructuralFact>,
 ) {
     let mut cursor = start;
 
-    while cursor < end {
-        let Some(relative_start) = content[cursor..end].find(FETCH_IDENTIFIER) else {
+    while cursor < scan.end {
+        let Some(relative_start) = scan.content[cursor..scan.end].find(FETCH_IDENTIFIER) else {
             break;
         };
         let name_start = cursor + relative_start;
         cursor = name_start + FETCH_IDENTIFIER.len();
 
-        if !is_identifier_boundary(content, name_start, FETCH_IDENTIFIER.len()) {
+        if !is_identifier_boundary(scan.content, name_start, FETCH_IDENTIFIER.len()) {
             continue;
         }
-        if preceding_non_whitespace_is_dot(content, name_start) {
+        if scan
+            .syntax_mask
+            .is_some_and(|mask| mask.is_ignored(name_start))
+        {
+            continue;
+        }
+        if preceding_non_whitespace_is_dot(scan.content, name_start) {
             continue;
         }
 
-        let open_paren = skip_ascii_whitespace_until(content, cursor, end);
-        if content.as_bytes().get(open_paren) != Some(&b'(') {
+        let open_paren = skip_ascii_whitespace_until(scan.content, cursor, scan.end);
+        if scan.content.as_bytes().get(open_paren) != Some(&b'(') {
             continue;
         }
 
-        push_client_request_fact(
-            language, tree, file_path, content, name_start, open_paren, end, "fetch", None, facts,
-        );
+        push_client_request_fact(scan, name_start, open_paren, "fetch", None, facts);
     }
 }
 
 /// Scans for `local.get/post/...("literal")`, `local.get<T>("literal")`, and
 /// direct `local("literal", ...)` calls, where `local` is the range's axios
 /// binding.
-#[allow(clippy::too_many_arguments)]
 fn collect_axios_requests(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    scan: &HttpClientScan<'_>,
     local: &str,
     import_source: &str,
     start: usize,
-    end: usize,
     facts: &mut Vec<StructuralFact>,
 ) {
     let mut cursor = start;
 
-    while cursor < end {
-        let Some(relative_start) = content[cursor..end].find(local) else {
+    while cursor < scan.end {
+        let Some(relative_start) = scan.content[cursor..scan.end].find(local) else {
             break;
         };
         let name_start = cursor + relative_start;
         cursor = name_start + local.len();
 
-        if !is_identifier_boundary(content, name_start, local.len()) {
+        if !is_identifier_boundary(scan.content, name_start, local.len()) {
             continue;
         }
-        if preceding_non_whitespace_is_dot(content, name_start) {
+        if scan
+            .syntax_mask
+            .is_some_and(|mask| mask.is_ignored(name_start))
+        {
+            continue;
+        }
+        if preceding_non_whitespace_is_dot(scan.content, name_start) {
             continue;
         }
 
-        let after_name = skip_ascii_whitespace_until(content, cursor, end);
-        let (method_verb, open_paren) = match content.as_bytes().get(after_name) {
+        let after_name = skip_ascii_whitespace_until(scan.content, cursor, scan.end);
+        let (method_verb, open_paren) = match scan.content.as_bytes().get(after_name) {
             Some(&b'.') => {
-                let method_start = skip_ascii_whitespace_until(content, after_name + 1, end);
-                let Some((method, method_end)) = parse_js_identifier(content, method_start, end)
+                let method_start =
+                    skip_ascii_whitespace_until(scan.content, after_name + 1, scan.end);
+                let Some((method, method_end)) =
+                    parse_js_identifier(scan.content, method_start, scan.end)
                 else {
                     continue;
                 };
                 if !AXIOS_VERB_METHODS.contains(&method.as_str()) {
                     continue;
                 }
-                let mut paren = skip_ascii_whitespace_until(content, method_end, end);
+                let mut paren = skip_ascii_whitespace_until(scan.content, method_end, scan.end);
                 // TS call sites may carry generic type arguments between the
                 // method name and the argument list: `axios.get<Msg[]>("/x")`.
-                if content.as_bytes().get(paren) == Some(&b'<') {
-                    let Some(after_generics) = skip_generic_type_arguments(content, paren, end)
+                if scan.content.as_bytes().get(paren) == Some(&b'<') {
+                    let Some(after_generics) =
+                        skip_generic_type_arguments(scan.content, paren, scan.end)
                     else {
                         continue;
                     };
-                    paren = skip_ascii_whitespace_until(content, after_generics, end);
+                    paren = skip_ascii_whitespace_until(scan.content, after_generics, scan.end);
                 }
-                if content.as_bytes().get(paren) != Some(&b'(') {
+                if scan.content.as_bytes().get(paren) != Some(&b'(') {
                     continue;
                 }
                 (Some(method), paren)
@@ -151,13 +172,9 @@ fn collect_axios_requests(
         };
 
         push_client_request_fact(
-            language,
-            tree,
-            file_path,
-            content,
+            scan,
             name_start,
             open_paren,
-            end,
             "axios",
             Some((method_verb, import_source)),
             facts,
@@ -171,48 +188,44 @@ fn collect_axios_requests(
 /// `axios` is `None` for fetch calls; for axios calls it carries the optional
 /// verb method (`.post(...)` → `Some("post")`, direct `axios(...)` → `None`)
 /// and the import source.
-#[allow(clippy::too_many_arguments)]
 fn push_client_request_fact(
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
+    scan: &HttpClientScan<'_>,
     name_start: usize,
     open_paren: usize,
-    end: usize,
     client: &str,
     axios: Option<(Option<String>, &str)>,
     facts: &mut Vec<StructuralFact>,
 ) {
-    if is_ignored_syntax_range(tree, name_start, open_paren + 1) {
+    if is_ignored_syntax_range(scan.tree, name_start, open_paren + 1) {
         return;
     }
-    let Some(close_paren) = find_matching_paren(content, open_paren, end) else {
+    let Some(close_paren) = find_matching_paren(scan.content, open_paren, scan.end) else {
         return;
     };
 
-    let first_arg_start = skip_ascii_whitespace_until(content, open_paren + 1, close_paren);
-    let first_arg_end = find_top_level_comma_or_end(content, first_arg_start, close_paren);
-    let Some((target_path, url_end)) = parse_js_string_literal(content, first_arg_start) else {
+    let first_arg_start = skip_ascii_whitespace_until(scan.content, open_paren + 1, close_paren);
+    let first_arg_end = find_top_level_comma_or_end(scan.content, first_arg_start, close_paren);
+    let Some((target_path, url_end)) = parse_js_string_literal(scan.content, first_arg_start)
+    else {
         return;
     };
     // Reject anything other than a plain string literal spanning the whole
     // first argument (e.g. `"/api" + suffix`).
-    if skip_ascii_whitespace_until(content, url_end, first_arg_end) != first_arg_end {
+    if skip_ascii_whitespace_until(scan.content, url_end, first_arg_end) != first_arg_end {
         return;
     }
 
     let method_verb = axios.as_ref().and_then(|(method, _)| method.clone());
     let verb = match method_verb {
         Some(method) => Verb::attested(method),
-        None => match resolve_verb(content, first_arg_end, close_paren) {
+        None => match resolve_verb(scan.content, first_arg_end, close_paren) {
             VerbResolution::Get => Verb::default_get(),
             VerbResolution::Attested(method) => Verb::attested(method),
             VerbResolution::Silent => return,
         },
     };
 
-    let Some(span) = NormalizedSpan::from_content_range(content, name_start, close_paren + 1)
+    let Some(span) = NormalizedSpan::from_content_range(scan.content, name_start, close_paren + 1)
     else {
         return;
     };
@@ -222,8 +235,8 @@ fn push_client_request_fact(
         client_request_metadata(client, &target_path, &verb.name, verb.source, import_source);
 
     facts.push(fact_for_span(
-        file_path,
-        language,
+        scan.file_path,
+        scan.language,
         HTTP_CLIENT_REQUEST_PATTERN_ID,
         "client_request",
         "call_expression",

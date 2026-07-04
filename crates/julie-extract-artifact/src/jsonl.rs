@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::Connection;
+use serde::Serialize;
 use serde_json::{Map, Value, json};
 
 use crate::metadata::{REQUIRED_METADATA_KEYS, read_metadata};
@@ -1359,26 +1360,52 @@ fn export_structural_facts<W: Write>(
             confidence,
             metadata_json,
         ) = row?;
-        let record = json!({
-            "structural_fact_id": structural_fact_id,
-            "file_id": file_id,
-            "path": path,
-            "language": language,
-            "pattern_id": pattern_id,
-            "capture_name": capture_name,
-            "node_kind": node_kind,
-            "containing_symbol_id": containing_symbol_id,
-            "span": span(start_line, start_column, end_line, end_column, start_byte, end_byte),
-            "confidence": confidence,
-            "metadata": optional_object("structural_facts.metadata_json", metadata_json)?,
-        });
-        write_record(
+        let metadata_json = optional_raw_object("structural_facts.metadata_json", metadata_json)?;
+        write_record_raw_object(
             writer,
             artifact_id,
             "structural_fact",
             &structural_fact_id,
-            record,
             summary,
+            |writer| {
+                let mut first = true;
+                writer.write_all(b"{")?;
+                write_json_field(
+                    writer,
+                    "structural_fact_id",
+                    &structural_fact_id,
+                    &mut first,
+                )?;
+                write_json_field(writer, "file_id", &file_id, &mut first)?;
+                write_json_field(writer, "path", &path, &mut first)?;
+                write_json_field(writer, "language", &language, &mut first)?;
+                write_json_field(writer, "pattern_id", &pattern_id, &mut first)?;
+                write_json_field(writer, "capture_name", &capture_name, &mut first)?;
+                write_json_field(writer, "node_kind", &node_kind, &mut first)?;
+                write_json_field(
+                    writer,
+                    "containing_symbol_id",
+                    &containing_symbol_id,
+                    &mut first,
+                )?;
+                write_json_field(
+                    writer,
+                    "span",
+                    &span(
+                        start_line,
+                        start_column,
+                        end_line,
+                        end_column,
+                        start_byte,
+                        end_byte,
+                    ),
+                    &mut first,
+                )?;
+                write_json_field(writer, "confidence", &confidence, &mut first)?;
+                write_raw_json_field(writer, "metadata", metadata_json.as_deref(), &mut first)?;
+                writer.write_all(b"}")?;
+                Ok(())
+            },
         )?;
     }
     Ok(())
@@ -1567,6 +1594,79 @@ fn write_record<W: Write>(
     Ok(())
 }
 
+fn write_record_raw_object<W: Write>(
+    writer: &mut W,
+    artifact_id: &str,
+    kind: &'static str,
+    record_id: &str,
+    summary: &mut JsonlExportSummary,
+    write_record: impl FnOnce(&mut W) -> JsonlExportResult<()>,
+) -> JsonlExportResult<()> {
+    writer.write_all(b"{\"jsonl_schema_version\":")?;
+    write_json_value(writer, "jsonl.envelope", &JSONL_SCHEMA_VERSION)?;
+    writer.write_all(b",\"extract_contract_version\":")?;
+    write_json_value(writer, "jsonl.envelope", &EXTRACT_CONTRACT_VERSION)?;
+    writer.write_all(b",\"kind\":")?;
+    write_json_value(writer, "jsonl.envelope", &kind)?;
+    writer.write_all(b",\"op\":\"snapshot\",\"artifact_id\":")?;
+    write_json_value(writer, "jsonl.envelope", &artifact_id)?;
+    writer.write_all(b",\"record_id\":")?;
+    write_json_value(writer, "jsonl.envelope", &record_id)?;
+    writer.write_all(b",\"record\":")?;
+    write_record(writer)?;
+    writer.write_all(b"}\n")?;
+    summary.record_written(kind);
+    Ok(())
+}
+
+fn write_json_field<W: Write, T: Serialize>(
+    writer: &mut W,
+    key: &'static str,
+    value: &T,
+    first: &mut bool,
+) -> JsonlExportResult<()> {
+    write_field_prefix(writer, key, first)?;
+    write_json_value(writer, key, value)
+}
+
+fn write_raw_json_field<W: Write>(
+    writer: &mut W,
+    key: &'static str,
+    value: Option<&str>,
+    first: &mut bool,
+) -> JsonlExportResult<()> {
+    write_field_prefix(writer, key, first)?;
+    match value {
+        Some(value) => writer.write_all(value.as_bytes())?,
+        None => writer.write_all(b"null")?,
+    }
+    Ok(())
+}
+
+fn write_field_prefix<W: Write>(
+    writer: &mut W,
+    key: &'static str,
+    first: &mut bool,
+) -> JsonlExportResult<()> {
+    if *first {
+        *first = false;
+    } else {
+        writer.write_all(b",")?;
+    }
+    write_json_value(writer, "jsonl.field", &key)?;
+    writer.write_all(b":")?;
+    Ok(())
+}
+
+fn write_json_value<W: Write, T: Serialize>(
+    writer: &mut W,
+    column: &'static str,
+    value: &T,
+) -> JsonlExportResult<()> {
+    serde_json::to_writer(&mut *writer, value)
+        .map_err(|source| JsonlExportError::Json { column, source })
+}
+
 fn required_metadata<'a>(
     metadata: &'a BTreeMap<String, String>,
     key: &'static str,
@@ -1688,10 +1788,61 @@ fn optional_object(column: &'static str, value: Option<String>) -> JsonlExportRe
     }
 }
 
+fn optional_raw_object(
+    column: &'static str,
+    value: Option<String>,
+) -> JsonlExportResult<Option<String>> {
+    match value {
+        Some(value) => {
+            validate_object(column, &value)?;
+            Ok(Some(compact_json_text(&value)))
+        }
+        None => Ok(None),
+    }
+}
+
+fn compact_json_text(value: &str) -> String {
+    let mut compacted = String::with_capacity(value.len());
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for character in value.chars() {
+        if in_string {
+            compacted.push(character);
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == '"' {
+                in_string = false;
+            }
+        } else if character == '"' {
+            in_string = true;
+            compacted.push(character);
+        } else if !character.is_ascii_whitespace() {
+            compacted.push(character);
+        }
+    }
+
+    compacted
+}
+
 fn required_object(column: &'static str, value: String) -> JsonlExportResult<Value> {
     let value = parse_json(column, &value)?;
     if value.is_object() {
         Ok(value)
+    } else {
+        Err(JsonlExportError::InvalidJsonShape {
+            column,
+            expected: "object",
+        })
+    }
+}
+
+fn validate_object(column: &'static str, value: &str) -> JsonlExportResult<()> {
+    let value = parse_json(column, value)?;
+    if value.is_object() {
+        Ok(())
     } else {
         Err(JsonlExportError::InvalidJsonShape {
             column,

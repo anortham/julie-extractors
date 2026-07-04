@@ -7,6 +7,12 @@ repository.workspace = true
 rust-version.workspace = true
 description = "SQLite artifact persistence for julie-extract"
 
+[features]
+# Feature-gated performance harness kept out of the default suite by the
+# test-tier convention. Run with:
+#   cargo test -p julie-extract-artifact --features test-perf --test writer_perf -- --nocapture
+test-perf = []
+
 [lints]
 workspace = true
 

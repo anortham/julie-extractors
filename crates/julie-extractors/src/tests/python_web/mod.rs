@@ -336,7 +336,10 @@ urlpatterns = [
         .iter()
         .find(|fact| metadata_str(fact, "route_syntax") == Some("regex"))
         .expect("regex route");
-    assert_eq!(metadata_str(regex, "normalized_route_template"), None);
+    assert_eq!(
+        metadata_str(regex, "normalized_route_template"),
+        Some("/legacy/:slug/")
+    );
     assert_eq!(metadata_str(regex, "route_name"), Some("legacy"));
 
     let includes = facts_with_pattern(&results, DJANGO_URL_INCLUDE_PATTERN_ID);

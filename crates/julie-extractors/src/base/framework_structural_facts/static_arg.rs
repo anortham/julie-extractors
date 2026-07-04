@@ -22,6 +22,9 @@ use tree_sitter::Node;
 /// grammar, per design §4.4.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum StaticArgLang {
+    Java,
+    CSharp,
+    Ruby,
     Kotlin,
     Elixir,
     Php,
@@ -43,6 +46,9 @@ pub(super) fn static_route_arg<'a>(
     lang: StaticArgLang,
 ) -> Option<&'a str> {
     match lang {
+        StaticArgLang::Java => java_static_arg(node, content),
+        StaticArgLang::CSharp => csharp_static_arg(node, content),
+        StaticArgLang::Ruby => ruby_static_arg(node, content),
         StaticArgLang::Rust => rust_static_arg(node, content),
         StaticArgLang::Kotlin => kotlin_static_arg(node, content),
         StaticArgLang::Php => php_static_arg(node, content),
@@ -255,6 +261,63 @@ fn kotlin_static_string<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str>
     match (content_nodes.first(), content_nodes.last()) {
         (Some(first), Some(last)) => content.get(first.start_byte()..last.end_byte()),
         // An empty literal (`""`, `""""""`) has no content child.
+        _ => Some(""),
+    }
+}
+
+fn java_static_arg<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    match node.kind() {
+        "string_literal" => literal_inner_text(node, content),
+        _ => None,
+    }
+}
+
+fn csharp_static_arg<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    match node.kind() {
+        "string_literal" | "verbatim_string_literal" | "raw_string_literal" => {
+            csharp_literal_inner_text(node, content)
+        }
+        _ => None,
+    }
+}
+
+fn csharp_literal_inner_text<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    let text = content.get(node.start_byte()..node.end_byte())?;
+    match node.kind() {
+        "string_literal" => content.get(node.start_byte() + 1..node.end_byte().saturating_sub(1)),
+        "verbatim_string_literal" => {
+            content.get(node.start_byte() + 2..node.end_byte().saturating_sub(1))
+        }
+        "raw_string_literal" => {
+            let quote_count = text.bytes().take_while(|byte| *byte == b'"').count();
+            if quote_count < 3 || !text.ends_with(&"\"".repeat(quote_count)) {
+                return None;
+            }
+            content.get(node.start_byte() + quote_count..node.end_byte() - quote_count)
+        }
+        _ => None,
+    }
+}
+
+fn ruby_static_arg<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    match node.kind() {
+        "string" => ruby_static_string(node, content),
+        _ => None,
+    }
+}
+
+fn ruby_static_string<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    let mut cursor = node.walk();
+    let mut content_nodes = Vec::new();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "interpolation" => return None,
+            "string_content" | "escape_sequence" => content_nodes.push(child),
+            _ => return None,
+        }
+    }
+    match (content_nodes.first(), content_nodes.last()) {
+        (Some(first), Some(last)) => content.get(first.start_byte()..last.end_byte()),
         _ => Some(""),
     }
 }
@@ -727,6 +790,222 @@ mod tests {
             with_kotlin_arg(expr, |node, content| {
                 assert_eq!(
                     static_route_arg(node, content, StaticArgLang::Kotlin),
+                    None,
+                    "must stay silent for {why}: `{expr}`"
+                );
+            });
+        }
+    }
+
+    fn with_java_arg(expr: &str, assertion: impl FnOnce(Node<'_>, &str)) {
+        let src = format!("class T {{ void f() {{ var x = {expr}; }} }}");
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_java::LANGUAGE.into())
+            .expect("load java grammar");
+        let tree = parser.parse(&src, None).expect("parse java source");
+        let value = find_java_variable_value(tree.root_node())
+            .unwrap_or_else(|| panic!("no java variable value node for `{expr}`"));
+        assertion(value, &src);
+    }
+
+    fn find_java_variable_value(node: Node<'_>) -> Option<Node<'_>> {
+        if node.kind() == "variable_declarator" {
+            return node.child_by_field_name("value");
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if let Some(found) = find_java_variable_value(child) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn java_accepts_plain_static_string_literals() {
+        for (expr, expected, kind) in [
+            (r#""/x""#, "/x", "string_literal"),
+            (r#""/users/{id}""#, "/users/{id}", "string_literal"),
+            (r#""""#, "", "string_literal"),
+            (r#""/a\tb""#, r"/a\tb", "string_literal"),
+        ] {
+            with_java_arg(expr, |node, content| {
+                assert_eq!(node.kind(), kind, "node kind for `{expr}`");
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Java),
+                    Some(expected),
+                    "accepted static literal `{expr}`"
+                );
+            });
+        }
+    }
+
+    #[test]
+    fn java_rejects_dynamic_and_wrapped_forms() {
+        for (expr, why) in [
+            (r#""/u/" + id"#, "binary_expression concat"),
+            (
+                r#"prefix + "/x""#,
+                "binary_expression concat literal second",
+            ),
+            ("PATHS.USER", "field_access member reference"),
+            ("PATH", "identifier reference"),
+            (r#"String.format("/%s", id)"#, "method_invocation"),
+            (r#"new String("/x")"#, "object_creation_expression"),
+            (r#"new String[] {"/a", "/b"}"#, "array_creation_expression"),
+            ("42", "decimal_integer_literal"),
+        ] {
+            with_java_arg(expr, |node, content| {
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Java),
+                    None,
+                    "must stay silent for {why}: `{expr}`"
+                );
+            });
+        }
+    }
+
+    fn with_csharp_arg(expr: &str, assertion: impl FnOnce(Node<'_>, &str)) {
+        let src = format!("class C {{ void M() {{ var x = {expr}; }} }}");
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+            .expect("load csharp grammar");
+        let tree = parser.parse(&src, None).expect("parse csharp source");
+        let value = find_csharp_variable_value(tree.root_node())
+            .unwrap_or_else(|| panic!("no csharp variable value node for `{expr}`"));
+        assertion(value, &src);
+    }
+
+    fn find_csharp_variable_value(node: Node<'_>) -> Option<Node<'_>> {
+        if node.kind() == "variable_declarator" {
+            let mut cursor = node.walk();
+            let children: Vec<Node> = node.children(&mut cursor).collect();
+            let eq = children.iter().position(|child| child.kind() == "=")?;
+            return children[eq + 1..]
+                .iter()
+                .find(|child| child.is_named())
+                .copied();
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if let Some(found) = find_csharp_variable_value(child) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn csharp_accepts_plain_static_string_literals() {
+        for (expr, expected, kind) in [
+            (r#""/x""#, "/x", "string_literal"),
+            (r#""/users/{id}""#, "/users/{id}", "string_literal"),
+            (r#""""#, "", "string_literal"),
+            (r#""/a\tb""#, r"/a\tb", "string_literal"),
+            (
+                r#"@"/verbatim/{id}""#,
+                "/verbatim/{id}",
+                "verbatim_string_literal",
+            ),
+        ] {
+            with_csharp_arg(expr, |node, content| {
+                assert_eq!(node.kind(), kind, "node kind for `{expr}`");
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::CSharp),
+                    Some(expected),
+                    "accepted static literal `{expr}`"
+                );
+            });
+        }
+    }
+
+    #[test]
+    fn csharp_rejects_dynamic_and_wrapped_forms() {
+        for (expr, why) in [
+            (r#"$"/u/{id}""#, "interpolated_string_expression"),
+            (r#""/u/" + id"#, "binary_expression concat"),
+            (
+                r#"prefix + "/x""#,
+                "binary_expression concat literal second",
+            ),
+            ("Routes.User", "member_access_expression"),
+            ("PATH", "identifier reference"),
+            (r#"string.Format("/{0}", id)"#, "invocation_expression"),
+            (r#"new[] {"/a", "/b"}"#, "array_creation_expression"),
+            ("42", "integer_literal"),
+        ] {
+            with_csharp_arg(expr, |node, content| {
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::CSharp),
+                    None,
+                    "must stay silent for {why}: `{expr}`"
+                );
+            });
+        }
+    }
+
+    fn with_ruby_arg(expr: &str, assertion: impl FnOnce(Node<'_>, &str)) {
+        let src = format!("x = {expr}\n");
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_ruby::LANGUAGE.into())
+            .expect("load ruby grammar");
+        let tree = parser.parse(&src, None).expect("parse ruby source");
+        let value = find_ruby_assignment_value(tree.root_node())
+            .unwrap_or_else(|| panic!("no ruby assignment value node for `{expr}`"));
+        assertion(value, &src);
+    }
+
+    fn find_ruby_assignment_value(node: Node<'_>) -> Option<Node<'_>> {
+        if node.kind() == "assignment" {
+            return node.child_by_field_name("right");
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if let Some(found) = find_ruby_assignment_value(child) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn ruby_accepts_plain_static_string_literals() {
+        for (expr, expected, kind) in [
+            (r#""/x""#, "/x", "string"),
+            (r#""/users/:id""#, "/users/:id", "string"),
+            (r#""""#, "", "string"),
+            (r#""/a\tb""#, r"/a\tb", "string"),
+            (r#"'/single/:id'"#, "/single/:id", "string"),
+        ] {
+            with_ruby_arg(expr, |node, content| {
+                assert_eq!(node.kind(), kind, "node kind for `{expr}`");
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Ruby),
+                    Some(expected),
+                    "accepted static literal `{expr}`"
+                );
+            });
+        }
+    }
+
+    #[test]
+    fn ruby_rejects_dynamic_and_wrapped_forms() {
+        for (expr, why) in [
+            (r#""/u/#{id}""#, "interpolation child"),
+            (r#""/u/" + id"#, "binary + concat"),
+            (r#"prefix + "/x""#, "binary + concat literal second"),
+            ("Routes::USER", "constant path reference"),
+            ("PATH", "constant reference"),
+            (r#"format("/%s", id)"#, "method call"),
+            (r#"["/a", "/b"]"#, "array"),
+            ("42", "integer"),
+        ] {
+            with_ruby_arg(expr, |node, content| {
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Ruby),
                     None,
                     "must stay silent for {why}: `{expr}`"
                 );

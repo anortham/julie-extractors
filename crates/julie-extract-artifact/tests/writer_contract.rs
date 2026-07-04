@@ -102,6 +102,34 @@ fn path_writer_uses_bulk_sqlite_pragmas() {
 }
 
 #[test]
+fn path_writer_truncates_wal_after_successful_write() {
+    let temp_dir = unique_temp_dir("path-writer-wal-checkpoint");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let wal_path = wal_path(&db_path);
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+        )
+        .unwrap();
+
+    let wal_bytes = std::fs::metadata(&wal_path)
+        .map(|metadata| metadata.len())
+        .unwrap_or(0);
+    assert_eq!(
+        wal_bytes, 0,
+        "successful writes must checkpoint and truncate the WAL sidecar"
+    );
+    assert_eq!(count(writer.connection(), "files"), 1);
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
 fn scan_batch_writes_multiple_files_in_one_transaction() {
     let mut writer = open_writer();
 
@@ -210,6 +238,46 @@ fn scan_persists_every_normalized_row_family_with_counts() {
     assert_eq!(count(writer.connection(), "structural_facts"), 1);
     assert_eq!(count(writer.connection(), "complexity_metrics"), 1);
     assert_eq!(count(writer.connection(), "parse_diagnostics"), 1);
+}
+
+#[test]
+fn scan_dedupes_duplicate_structural_fact_ids_before_insert() {
+    let mut writer = open_writer();
+    let mut file = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    let mut fact = ArtifactStructuralFact {
+        structural_fact_id: "duplicate-structural-fact".to_string(),
+        pattern_id: "rust.unsafe_block.v1".to_string(),
+        capture_name: "first".to_string(),
+        node_kind: "unsafe_block".to_string(),
+        containing_symbol_id: Some("file-a-symbol-0".to_string()),
+        start_line: 2,
+        start_column: 4,
+        end_line: 4,
+        end_column: 5,
+        start_byte: 32,
+        end_byte: 80,
+        confidence: 1.0,
+        metadata_json: Some(r#"{"first":true}"#.to_string()),
+    };
+    file.structural_facts.push(fact.clone());
+    fact.capture_name = "second".to_string();
+    fact.metadata_json = Some(r#"{"second":true}"#.to_string());
+    file.structural_facts.push(fact);
+
+    let result = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file],
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.structural_facts, 1);
+    assert_eq!(count(writer.connection(), "structural_facts"), 1);
+    assert_eq!(
+        structural_fact_captures(writer.connection()),
+        vec!["first".to_string()],
+        "writer-level dedupe should keep the first deterministic fact for an id"
+    );
 }
 
 #[test]
@@ -1078,6 +1146,12 @@ fn unique_temp_dir(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!("{name}-{}-{nanos}", std::process::id()))
 }
 
+fn wal_path(db_path: &std::path::Path) -> PathBuf {
+    let mut path = db_path.as_os_str().to_os_string();
+    path.push("-wal");
+    PathBuf::from(path)
+}
+
 fn pragma_i64(connection: &Connection, name: &str) -> i64 {
     connection
         .query_row(&format!("PRAGMA {name}"), [], |row| row.get(0))
@@ -1405,6 +1479,16 @@ fn foreign_key_violation_count(conn: &Connection) -> usize {
         .query_map([], |_| Ok(()))
         .unwrap()
         .count()
+}
+
+fn structural_fact_captures(conn: &Connection) -> Vec<String> {
+    let mut stmt = conn
+        .prepare("SELECT capture_name FROM structural_facts ORDER BY structural_fact_id")
+        .unwrap();
+    stmt.query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
 }
 
 fn symbol_parent(conn: &Connection, symbol_id: &str) -> Option<String> {
