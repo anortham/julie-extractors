@@ -52,6 +52,7 @@ pub mod path_invariants;
 #[cfg(feature = "test-capability-matrix")]
 pub mod pending_shape_contract;
 pub mod php;
+pub mod phoenix;
 pub mod pipeline;
 pub mod powershell;
 pub mod python;

@@ -1148,3 +1148,80 @@ function load() {
     let facts = client_requests(&results);
     assert!(facts.is_empty(), "expected silence, got {facts:#?}");
 }
+
+#[test]
+fn elixir_req_client_verb_calls_emit_client_requests() {
+    let source = r#"defmodule MyApp.Client do
+  def load do
+    Req.get("https://api.example.com/users")
+    Req.post("/items")
+    Req.delete("/users/1")
+    Req.get!("/health")
+  end
+end
+"#;
+    let results = extract("lib/my_app/client.ex", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 4, "{facts:#?}");
+
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/users"))
+        .expect("get");
+    assert_eq!(metadata_str(get, "client"), Some("req"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "verb_source"), Some("attested"));
+    assert_eq!(metadata_str(get, "url_kind"), Some("absolute"));
+    assert_eq!(metadata_str(get, "query_family"), Some("web.http_client"));
+    // The request sits inside its enclosing function, so it binds to `load`.
+    assert_eq!(
+        binding_symbol(&results, get).map(|(name, _)| name),
+        Some("load")
+    );
+
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/items"))
+        .expect("post");
+    assert_eq!(metadata_str(post, "verb"), Some("POST"));
+    assert_eq!(metadata_str(post, "url_kind"), Some("path"));
+
+    // The bang variant `Req.get!` shares the GET verb.
+    let health = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/health"))
+        .expect("get! bang variant");
+    assert_eq!(metadata_str(health, "verb"), Some("GET"));
+}
+
+#[test]
+fn elixir_req_dynamic_and_keyword_urls_stay_silent() {
+    let source = r#"defmodule MyApp.Client do
+  def load(id) do
+    Req.get("/users/#{id}")
+    Req.get("/users/" <> id)
+    Req.get(endpoint)
+    Req.get(url: "/keyword-form")
+  end
+end
+"#;
+    let results = extract("lib/my_app/client.ex", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}
+
+#[test]
+fn elixir_non_req_clients_stay_silent() {
+    // Only Req ships in v2.8.0; HTTPoison/Tesla/Finch/:httpc are deferred
+    // open_gaps — a qualified call on another module alias stays silent.
+    let source = r#"defmodule MyApp.Client do
+  def load do
+    HTTPoison.get("https://api.example.com/users")
+    Tesla.get("/items")
+  end
+end
+"#;
+    let results = extract("lib/my_app/client.ex", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}

@@ -2114,7 +2114,8 @@
       "java",
       "kotlin",
       "php",
-      "ruby"
+      "ruby",
+      "elixir"
     ],
     "metadata_keys": [
       {
@@ -3653,6 +3654,204 @@
       }
     ],
     "pattern_id": "nuxt.server_route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static Phoenix router `forward \"/lit\", Plug` prefix registration at its definition site.",
+    "languages": [
+      "elixir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static forward path literal at this site.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized forward path including enclosing same-file scope prefix.",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Forwarded plug module alias.",
+        "key": "mount_target",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Same-file enclosing scope prefix governing the forward.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "phoenix.forward.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A Phoenix router `resources \"/x\", Ctrl` RESTful resource declaration.",
+    "languages": [
+      "elixir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"resource_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static resource URI literal.",
+        "key": "resource_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized resource path including same-file scope prefix.",
+        "key": "normalized_resource_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Controller module alias when statically resolvable.",
+        "key": "controller",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Same-file enclosing scope prefix governing the resource.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "phoenix.resource_route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static Phoenix router verb-macro route joined to its same-file scope prefix.",
+    "languages": [
+      "elixir"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"dsl_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the router verb macro.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and Phoenix :param segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file enclosing scope prefix governing the route.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Scope prefix joined with the route template when a static prefix applies.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method (every Phoenix verb macro is verb-restricted).",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\").",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Controller/plug module alias as written at the route.",
+        "key": "controller",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Controller action atom name (`:show` recorded as show).",
+        "key": "action",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "phoenix.route.v1",
     "query_family": "framework"
   },
   {

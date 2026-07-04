@@ -46,10 +46,87 @@ pub(super) fn static_route_arg<'a>(
         StaticArgLang::Rust => rust_static_arg(node, content),
         StaticArgLang::Kotlin => kotlin_static_arg(node, content),
         StaticArgLang::Php => php_static_arg(node, content),
-        // The Elixir arm lands with its framework task (design §4.4). Until then
-        // it stays silent so no dynamic argument can leak.
-        StaticArgLang::Elixir => None,
+        StaticArgLang::Elixir => elixir_static_arg(node, content),
     }
+}
+
+/// Elixir arm: accept a lone `string` / `charlist` / `sigil` that carries no
+/// interpolation; for a `sigil`, additionally require `sigil_name ∈ {s, S}`
+/// (rejects `~r` regex and every other sigil). Reject every wrapper —
+/// `binary_operator` (`<>` concat), `unary_operator` (`@attr` module-attribute
+/// reference), a bare `identifier`, `alias` (module reference), `atom`,
+/// `keywords`, and calls — by node kind before any value is read.
+///
+/// Interpolation guard (grammar-verified against tree-sitter-elixir 0.3, which
+/// under-specifies design §4.4): a `"/u/#{id}"` string embeds a distinct
+/// `interpolation` child, so `~s"/x"` / `"/x"` / `'/x'` are static only when no
+/// `interpolation` child is present. **But `~S` (and any capital sigil) does not
+/// interpolate**, so tree-sitter leaves a literal `#{id}` verbatim inside the
+/// `quoted_content` node with NO `interpolation` child — an interpolation-child
+/// check alone would leak `~S"/u/#{id}"` as the false-static route `/u/#{id}`.
+/// The guard therefore ALSO fails closed on any `quoted_content` containing the
+/// `#{` interpolation marker (M2 silence — a false static is worse than a miss).
+/// String content lives in `quoted_content` / `escape_sequence` children (the
+/// `quoted_start`/`quoted_end`/`~`/`sigil_name` delimiters are unnamed tokens or
+/// metadata, not content); the inner text spans the content children as a raw
+/// source slice. A heredoc (`"""…"""`) is the same `string` node kind, so it is
+/// covered by the `string` arm.
+fn elixir_static_arg<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    match node.kind() {
+        "string" | "charlist" => elixir_static_quoted(node, content),
+        "sigil" => {
+            // Require an interpolating-safe sigil name (`~s`/`~S`); reject `~r`
+            // (regex) and every other sigil before reading any content.
+            let name = elixir_child_of_kind(node, "sigil_name")
+                .and_then(|name_node| content.get(name_node.start_byte()..name_node.end_byte()))?;
+            if name != "s" && name != "S" {
+                return None;
+            }
+            elixir_static_quoted(node, content)
+        }
+        _ => None,
+    }
+}
+
+/// Inner text of an Elixir `string` / `charlist` / `sigil` as the raw source
+/// slice spanning its `quoted_content` / `escape_sequence` children. Fails closed
+/// to `None` on an `interpolation` child, on a `quoted_content` carrying the `#{`
+/// marker (the non-interpolating `~S` literal-hash leak), and on any unexpected
+/// named child. The `sigil_name` child is sigil metadata (already gated by the
+/// caller) and is skipped. An empty literal has no content child → `""`.
+fn elixir_static_quoted<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    let mut cursor = node.walk();
+    let mut content_nodes = Vec::new();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "interpolation" => return None,
+            // Sigil name (`s`/`S`) is metadata gated by the caller, not content.
+            "sigil_name" => {}
+            "quoted_content" => {
+                if content
+                    .get(child.start_byte()..child.end_byte())?
+                    .contains("#{")
+                {
+                    // A `~S`/capital sigil leaves a literal `#{…}` in the content
+                    // with no interpolation node — fail closed to silence.
+                    return None;
+                }
+                content_nodes.push(child);
+            }
+            "escape_sequence" => content_nodes.push(child),
+            // Any other named child (e.g. `sigil_modifiers`) → fail closed.
+            _ => return None,
+        }
+    }
+    match (content_nodes.first(), content_nodes.last()) {
+        (Some(first), Some(last)) => content.get(first.start_byte()..last.end_byte()),
+        _ => Some(""),
+    }
+}
+
+fn elixir_child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor).find(|child| child.kind() == kind)
 }
 
 /// PHP arm: accept a lone `string` (single-quote, never interpolates), an
@@ -285,23 +362,138 @@ mod tests {
     }
 
     #[test]
-    fn unimplemented_arms_stay_silent() {
-        // A Rust `string_literal` node is accepted by the Rust arm but MUST be
-        // rejected by the not-yet-implemented arms — they emit nothing until
-        // their framework task lands (design §4.4), even for a genuine literal.
+    fn arms_are_grammar_isolated() {
+        // A Rust `string_literal` node is accepted by the Rust arm. The PHP arm
+        // (`string`/`encapsed_string`/…) and the Elixir arm (`string`/`charlist`/
+        // `sigil`) name disjoint node kinds, so they fail closed on a Rust
+        // `string_literal` node — each arm is an allowlist of its own grammar's
+        // kinds (design §4.4). (The Kotlin grammar also names its literal
+        // `string_literal`, so that pair is not node-kind-disjoint; the
+        // per-language collector dispatch, not this arm, keeps them apart.)
         with_rust_arg(r#""/x""#, |node, content| {
             assert_eq!(
                 static_route_arg(node, content, StaticArgLang::Rust),
                 Some("/x"),
-                "rust arm is implemented in Task 0"
+                "rust arm accepts its own string_literal"
             );
-            // Elixir is the only remaining unimplemented arm (Php lands in Task 3).
-            assert_eq!(
-                static_route_arg(node, content, StaticArgLang::Elixir),
-                None,
-                "unimplemented arm Elixir must stay silent"
+            for foreign in [StaticArgLang::Php, StaticArgLang::Elixir] {
+                assert_eq!(
+                    static_route_arg(node, content, foreign),
+                    None,
+                    "arm {foreign:?} must reject a Rust string_literal node kind"
+                );
+            }
+        });
+    }
+
+    /// Parse `expr` as the first positional argument of an Elixir `f(<expr>)`
+    /// call and hand its whole argument-expression node (plus the source) to
+    /// `assertion` — exactly the node a Phoenix/Req collector passes to
+    /// [`static_route_arg`].
+    fn with_elixir_arg(expr: &str, assertion: impl FnOnce(Node<'_>, &str)) {
+        let src = format!("f({expr})");
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_elixir::LANGUAGE.into())
+            .expect("load elixir grammar");
+        let tree = parser.parse(&src, None).expect("parse elixir source");
+        let value = find_elixir_first_call_arg(tree.root_node())
+            .unwrap_or_else(|| panic!("no call argument node for `{expr}`"));
+        assertion(value, &src);
+    }
+
+    /// The first named child of the first `call` node's `arguments` — a pre-order
+    /// walk returns the outer `f(<expr>)` call, so its first positional argument
+    /// is `<expr>`'s whole expression node.
+    fn find_elixir_first_call_arg(node: Node<'_>) -> Option<Node<'_>> {
+        if node.kind() == "call" {
+            let mut cursor = node.walk();
+            let arguments = node
+                .children(&mut cursor)
+                .find(|child| child.kind() == "arguments")?;
+            let mut arg_cursor = arguments.walk();
+            return arguments.named_children(&mut arg_cursor).next();
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if let Some(found) = find_elixir_first_call_arg(child) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn elixir_accepts_plain_static_string_sigil_and_charlist() {
+        // Static strings, `~s`/`~S` sigils (any delimiter), and charlists. Phoenix
+        // `:id` colon params are ordinary static content, so a route with them
+        // stays fully static.
+        for (expr, expected, kind) in [
+            (r#""/x""#, "/x", "string"),
+            (r#""/users/:id""#, "/users/:id", "string"),
+            (r#""""#, "", "string"),
+            (r#""/a\tb""#, r"/a\tb", "string"), // escapes stay raw in the slice
+            (r#"~s"/x""#, "/x", "sigil"),
+            (r#"~S"/x""#, "/x", "sigil"),
+            (r#"~s(/users/:id)"#, "/users/:id", "sigil"), // paren delimiter
+            (r#"'/x'"#, "/x", "charlist"),
+        ] {
+            with_elixir_arg(expr, |node, content| {
+                assert_eq!(node.kind(), kind, "node kind for `{expr}`");
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Elixir),
+                    Some(expected),
+                    "accepted static literal `{expr}`"
+                );
+            });
+        }
+    }
+
+    #[test]
+    fn elixir_accepts_static_heredoc() {
+        // A heredoc is the same `string` node kind; its content sits between
+        // `quoted_start`/`quoted_end` with surrounding newlines, so assert
+        // acceptance + content rather than exact (newline-fragile) text.
+        with_elixir_arg("\"\"\"\n/x\n\"\"\"", |node, content| {
+            assert_eq!(node.kind(), "string", "heredoc is a string node");
+            let value = static_route_arg(node, content, StaticArgLang::Elixir);
+            assert!(
+                value.is_some_and(|v| v.contains("/x")),
+                "static heredoc accepted, got {value:?}"
             );
         });
+    }
+
+    #[test]
+    fn elixir_rejects_dynamic_and_wrapped_forms() {
+        // Every dynamic/wrapped form must be silent (M2). The label names the
+        // form the whole-argument allowlist rejects.
+        for (expr, why) in [
+            (r#""/u/#{id}""#, "string interpolation child"),
+            (r#"~s"/u/#{id}""#, "~s sigil interpolation child"),
+            (
+                r#"~S"/u/#{id}""#,
+                "~S non-interpolating sigil with literal #{} in quoted_content (no interpolation node)",
+            ),
+            (r#"'/u/#{id}'"#, "charlist interpolation child"),
+            (r#"~r"/x""#, "~r regex sigil (sigil_name r)"),
+            (r#""/a/" <> id"#, "binary_operator <> concat"),
+            (r#"prefix <> "/x""#, "binary_operator <> concat (literal second)"),
+            (r#""/a/" <> "/b""#, "binary_operator <> concat (two literals)"),
+            ("@path", "unary_operator module-attribute reference"),
+            ("path", "identifier reference"),
+            ("PathModule", "alias module reference"),
+            (":show", "atom (non-string)"),
+            ("123", "integer (non-string)"),
+        ] {
+            with_elixir_arg(expr, |node, content| {
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Elixir),
+                    None,
+                    "must stay silent for {why}: `{expr}`"
+                );
+            });
+        }
     }
 
     /// Parse `expr` as the RHS of a PHP `$x = …;` assignment and hand its whole

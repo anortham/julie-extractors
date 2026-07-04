@@ -1,4 +1,5 @@
 mod csharp;
+mod elixir;
 mod go;
 mod java;
 mod kotlin;
@@ -30,6 +31,9 @@ pub(super) fn collect_backend_http_client_requests(
         }
         "php" => php::collect_php_http_client_requests(language, tree, file_path, content),
         "ruby" => ruby::collect_ruby_http_client_requests(language, tree, file_path, content),
+        "elixir" => {
+            elixir::collect_elixir_http_client_requests(language, tree, file_path, content)
+        }
         _ => Vec::new(),
     }
 }

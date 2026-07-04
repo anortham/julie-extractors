@@ -532,6 +532,9 @@ Supported patterns are advertised in
 | `laravel.route.v1` | `php` | `route` | parser-covered `Route` facade call span | `framework` | A static Laravel `Route` facade route (`api_style="call_routing"`). Import-gated on `Route::`; AST-driven. `Route::get/post/put/patch/delete/options` set an upper-cased `verb`; `Route::any` omits the verb; `Route::match([verbs], ...)` emits one fact per static verb. `{param}`/`{param?}` normalize to `:param`. Same-file `Route::prefix`/`group` prefixes join into `route_group_prefix`/`effective_route_template`; a non-literal prefix or path stays silent (M2). `controller_action` is captured from a `[Ctrl::class, 'm']` or `'Ctrl@m'` handler when statically resolvable. Metadata payload keys: see the JSON contract linked below. |
 | `laravel.resource_route.v1` | `php` | `resource_route` | parser-covered `Route::resource`/`apiResource` call span | `framework` | A Laravel `Route::resource` (`resource_kind="resource"`) or `Route::apiResource` (`resource_kind="api_resource"`) declaration with a static URI literal and, when present, the controller class. |
 | `laravel.route_prefix.v1` | `php` | `route_prefix` | parser-covered `Route::prefix`/`group` prefix site | `framework` | A static same-file Laravel group prefix (`Route::prefix('x')->group(...)` or `Route::group(['prefix'=>'x'], ...)`) emitted at its own site with `mount_path` (raw literal) and `normalized_mount_path` (including enclosing group scope). Cross-file `RouteServiceProvider` prefixes are out of scope. |
+| `phoenix.route.v1` | `elixir` | `route` | parser-covered router verb-macro call span | `framework` | A static Phoenix router verb-macro route (`api_style="dsl_routing"`). Import-gated on a `Phoenix.Router`/`:router` module; AST-driven. `get/post/put/patch/delete/head/options "/path", Ctrl, :action` set an upper-cased `verb`, the controller module `alias` (`controller`), and action atom (`action`). Phoenix `:id` segments are already normalized `:param`. Same-file `scope "/api" do ... end` prefixes join into `route_group_prefix`/`effective_route_template` (accumulating when nested); an interpolated/`~r`/concatenated/`@attr` path stays silent (M2). Metadata payload keys: see the JSON contract linked below. |
+| `phoenix.resource_route.v1` | `elixir` | `resource_route` | parser-covered `resources` macro call span | `framework` | A Phoenix `resources "/x", Ctrl` RESTful resource declaration with a static path literal (`resource_path`/`normalized_resource_path`), the controller `alias` when present, and the enclosing same-file `route_group_prefix`. |
+| `phoenix.forward.v1` | `elixir` | `forward` | parser-covered `forward` macro call span | `framework` | A static same-file Phoenix `forward "/lit", Plug` prefix registration emitted at its own site with `mount_path` (raw literal), `normalized_mount_path` (including enclosing scope), and `mount_target` (the forwarded plug alias). Cross-file scope prefixes are out of scope. |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` or `data-hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
 | `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` | `component_routing` | A Razor `@page` directive with route-template metadata. |
@@ -557,7 +560,7 @@ Supported patterns are advertised in
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `framework` | An exported HTTP-verb handler (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`HEAD`/`OPTIONS`) in an App Router `route.{js,ts}` file. One fact per exported verb. Route paths are derived with the same segment walk as `nextjs.file_route.v1`. Metadata payload keys: see the JSON contract linked below. |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `framework` | A Nitro server route under `server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). One fact per file; `verb`/`verb_source` are present only when the filename carries a method suffix (`users.get.ts`). Emission requires a `defineEventHandler`/`eventHandler` identifier or a method suffix; a wrapped custom handler with neither is a documented residual miss. `server/middleware`, `server/plugins`, and `server/utils` are excluded. Claims the `server/**` space `nuxt.file_route.v1` excludes. Metadata payload keys: see the JSON contract linked below. |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `php`, `ruby` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Kotlin covers the Ktor client (`client="ktor"`, import-gated on `io.ktor.client`, `receiver.verb(...)` calls only). PHP covers Guzzle (`client="guzzle"`, import-gated on `GuzzleHttp`, `$client->verb('url')`) and the Laravel `Http` facade (`client="laravel_http"`, import-gated on `Facades\Http`, `Http::verb('url')` including chained calls). Metadata payload keys: see the JSON contract linked below. |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Kotlin covers the Ktor client (`client="ktor"`, import-gated on `io.ktor.client`, `receiver.verb(...)` calls only). PHP covers Guzzle (`client="guzzle"`, import-gated on `GuzzleHttp`, `$client->verb('url')`) and the Laravel `Http` facade (`client="laravel_http"`, import-gated on `Facades\Http`, `Http::verb('url')` including chained calls). Elixir covers Req (`client="req"`, import-gated on `Req.`, `Req.verb("url")` including bang variants). Metadata payload keys: see the JSON contract linked below. |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Raw `route_template`, `route_prefix`, and
@@ -607,15 +610,22 @@ come from an AST-driven collector import-gated on the `Route::` facade; same-fil
 `laravel.route_prefix.v1` fact at the prefix site, poisoned by a non-literal
 prefix). `#[Route]` attributes (Symfony) and cross-file `RouteServiceProvider`
 prefixes are out of scope, so `route_template` is not guaranteed to be the
-absolute public path when such a prefix applies.
+absolute public path when such a prefix applies. Phoenix routes come from an
+AST-driven collector import-gated on a `Phoenix.Router`/`:router` module: the
+bare verb macros emit `phoenix.route.v1`, `resources` emits
+`phoenix.resource_route.v1`, and `forward` emits a `phoenix.forward.v1` prefix
+registration; same-file `scope` blocks are lexical-containment prefixes
+(joined/poisoned like the Rails `scope_stack`), and `pipe_through`/`live`/
+`socket`/`channel` plus cross-file scope prefixes are out of scope.
 
 Backend-language client collectors emit the same `http.client_request.v1`
 metadata shape for static string URL arguments: Python module-qualified
 `requests`/`httpx` calls, C# `HttpClient` method calls and
 `HttpRequestMessage`, Go `net/http` package calls, Java `HttpRequest` builder
 chains, PHP Guzzle (`$client->verb('url')`, `client="guzzle"`) and the Laravel
-`Http` facade (`Http::verb('url')`, `client="laravel_http"`), and Ruby
-`Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)` arguments. Java builder-chain facts span the enclosing statement (the URL and
+`Http` facade (`Http::verb('url')`, `client="laravel_http"`), Ruby
+`Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)` arguments, and Elixir
+Req (`Req.verb("url")` and bang variants, `client="req"`). Java builder-chain facts span the enclosing statement (the URL and
 verb are resolved statement-locally), so their `node_kind` is the statement
 node rather than a call node. Instance/session clients and dynamic URL
 expressions stay silent.

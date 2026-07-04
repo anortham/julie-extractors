@@ -7,6 +7,7 @@ mod laravel;
 mod markup;
 mod nestjs;
 mod node;
+mod phoenix;
 mod python_web;
 mod rails;
 mod razor;
@@ -27,6 +28,7 @@ use self::markup::{
 };
 use self::nestjs::collect_nestjs_route_facts;
 use self::node::collect_node_http_boundary_facts;
+use self::phoenix::collect_phoenix_routes;
 use self::python_web::collect_python_web_facts;
 use self::rails::collect_rails_routes;
 use self::razor::collect_razor_structural_facts;
@@ -59,6 +61,9 @@ pub(super) const RAILS_MOUNT_PATTERN_ID: &str = "rails.mount.v1";
 pub(super) const LARAVEL_ROUTE_PATTERN_ID: &str = "laravel.route.v1";
 pub(super) const LARAVEL_RESOURCE_ROUTE_PATTERN_ID: &str = "laravel.resource_route.v1";
 pub(super) const LARAVEL_ROUTE_PREFIX_PATTERN_ID: &str = "laravel.route_prefix.v1";
+pub(super) const PHOENIX_ROUTE_PATTERN_ID: &str = "phoenix.route.v1";
+pub(super) const PHOENIX_RESOURCE_ROUTE_PATTERN_ID: &str = "phoenix.resource_route.v1";
+pub(super) const PHOENIX_FORWARD_PATTERN_ID: &str = "phoenix.forward.v1";
 pub(super) const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 pub(super) const HTMX_ATTRIBUTE_PATTERN_ID: &str = "htmx.attribute.v1";
 pub(super) const ALPINE_DIRECTIVE_PATTERN_ID: &str = "alpine.directive.v1";
@@ -126,6 +131,13 @@ const LARAVEL_PATTERN_IDS: &[&str] = &[
     LARAVEL_ROUTE_PATTERN_ID,
     LARAVEL_RESOURCE_ROUTE_PATTERN_ID,
     LARAVEL_ROUTE_PREFIX_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const ELIXIR_PATTERN_IDS: &[&str] = &[
+    PHOENIX_ROUTE_PATTERN_ID,
+    PHOENIX_RESOURCE_ROUTE_PATTERN_ID,
+    PHOENIX_FORWARD_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -230,6 +242,13 @@ pub fn collect_framework_structural_facts(
             ));
             php_facts
         }
+        "elixir" => {
+            let mut elixir_facts = collect_phoenix_routes(language, tree, file_path, content);
+            elixir_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            elixir_facts
+        }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         _ => Vec::new(),
     };
@@ -263,6 +282,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "go" => GO_HTTP_PATTERN_IDS,
         "ruby" => RAILS_PATTERN_IDS,
         "php" => LARAVEL_PATTERN_IDS,
+        "elixir" => ELIXIR_PATTERN_IDS,
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],
     }
