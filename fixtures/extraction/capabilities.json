@@ -140,8 +140,8 @@
             },
             {
               "kind": "rust.http_client.deferred",
-              "reason": "Only reqwest (`reqwest::get(\"url\")` / `client.get(\"url\")`) ships in v2.8.0; hyper (low-level request-builder + body future) and ureq (blocking `ureq::get(\"url\").call()`) each need their own detection shape and fixture.",
-              "required_closure": "add per-library client collectors emitting http.client_request.v1 for hyper and ureq, each fixture-backed",
+              "reason": "Only reqwest ships in v2.8.0, and its builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) — a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss). The scoped `reqwest::get(\"url\")` free function always emits. hyper (low-level request-builder + body future) and ureq (blocking `ureq::get(\"url\").call()`) each need their own detection shape and fixture.",
+              "required_closure": "add per-library client collectors emitting http.client_request.v1 for hyper and ureq (each fixture-backed); optionally extend reqwest builder detection to struct-field/typed receivers if in-file type resolution becomes available",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             },
             {
