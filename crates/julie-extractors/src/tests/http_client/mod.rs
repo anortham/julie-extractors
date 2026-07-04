@@ -943,3 +943,95 @@ end
     assert_eq!(facts.len(), 1, "{facts:#?}");
     assert_eq!(metadata_str(facts[0], "target_path"), Some("/after"));
 }
+
+#[test]
+fn kotlin_ktor_client_verb_calls_emit_client_requests() {
+    let source = r#"
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.delete
+
+suspend fun load(client: HttpClient) {
+    client.get("https://api.example.com/users")
+    client.post("/items")
+    client.delete("/users/1")
+}
+"#;
+    let results = extract("src/Client.kt", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 3, "{facts:#?}");
+
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/users"))
+        .expect("get");
+    assert_eq!(metadata_str(get, "client"), Some("ktor"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "verb_source"), Some("attested"));
+    assert_eq!(metadata_str(get, "url_kind"), Some("absolute"));
+    assert_eq!(metadata_str(get, "query_family"), Some("web.http_client"));
+    assert_eq!(binding_symbol(&results, get).map(|(name, _)| name), Some("load"));
+
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/items"))
+        .expect("post");
+    assert_eq!(metadata_str(post, "verb"), Some("POST"));
+    assert_eq!(metadata_str(post, "url_kind"), Some("path"));
+
+    let delete = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/users/1"))
+        .expect("delete");
+    assert_eq!(metadata_str(delete, "verb"), Some("DELETE"));
+}
+
+#[test]
+fn kotlin_ktor_dynamic_urls_stay_silent() {
+    let source = r#"
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+
+suspend fun load(client: HttpClient, id: String) {
+    client.get("$base/users")
+    client.get("${base}/users")
+    client.get("/users/" + id)
+    client.get(endpoint)
+}
+"#;
+    let results = extract("src/Client.kt", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}
+
+#[test]
+fn kotlin_ktor_requires_import() {
+    // The `client.get("...")` shape exists but without the Ktor import the
+    // collector stays silent (import gate keeps `.get()` from misfiring).
+    let source = r#"
+suspend fun load(client: Any) {
+    client.get("/users")
+}
+"#;
+    let results = extract("src/Client.kt", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}
+
+#[test]
+fn kotlin_ktor_bare_identifier_get_is_not_a_client_request() {
+    // A bare `get("/x")` (no receiver) is the server-side routing DSL, not a
+    // client call — only a `receiver.verb(...)` navigation callee qualifies.
+    let source = r#"
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+
+fun routes() {
+    get("/status")
+}
+"#;
+    let results = extract("src/Routes.kt", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}

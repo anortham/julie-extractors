@@ -2,6 +2,7 @@ mod aspnet;
 mod go_http;
 mod helpers;
 mod http_clients;
+mod kotlin_spring;
 mod markup;
 mod nestjs;
 mod node;
@@ -17,6 +18,7 @@ use tree_sitter::Tree;
 use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_routes};
 use self::go_http::collect_go_http_boundary_facts;
 use self::http_clients::collect_backend_http_client_requests;
+use self::kotlin_spring::collect_kotlin_spring_routes;
 use self::markup::{
     collect_jsx_htmx_attributes, collect_markup_framework_attributes,
     collect_vue_template_htmx_attributes,
@@ -187,6 +189,14 @@ pub fn collect_framework_structural_facts(
             ));
             java_facts
         }
+        "kotlin" => {
+            let mut kotlin_facts =
+                collect_kotlin_spring_routes(language, tree, file_path, content);
+            kotlin_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            kotlin_facts
+        }
         "go" => {
             let mut go_facts = collect_go_http_boundary_facts(language, tree, file_path, content);
             go_facts.extend(collect_backend_http_client_requests(
@@ -227,7 +237,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
             NESTJS_ROUTE_PATTERN_ID,
         ],
         "python" => PYTHON_WEB_PATTERN_IDS,
-        "java" => &[
+        "java" | "kotlin" => &[
             SPRING_REQUEST_MAPPING_PATTERN_ID,
             HTTP_CLIENT_REQUEST_PATTERN_ID,
         ],

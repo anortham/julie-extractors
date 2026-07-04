@@ -1,0 +1,690 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:io.ktor.client.HttpClient:1:0",
+      "name": "io.ktor.client.HttpClient",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 32,
+      "start_byte": 0,
+      "end_byte": 32,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import io.ktor.client.HttpClient",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:io.ktor.client.request.delete:4:0",
+      "name": "io.ktor.client.request.delete",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 36,
+      "start_byte": 102,
+      "end_byte": 138,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import io.ktor.client.request.delete",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:io.ktor.client.request.get:2:0",
+      "name": "io.ktor.client.request.get",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 33,
+      "start_byte": 33,
+      "end_byte": 66,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import io.ktor.client.request.get",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:io.ktor.client.request.post:3:0",
+      "name": "io.ktor.client.request.post",
+      "kind": "import",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 34,
+      "start_byte": 67,
+      "end_byte": 101,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import io.ktor.client.request.post",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "name": "syncUsers",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 1,
+      "start_byte": 140,
+      "end_byte": 465,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 62,
+        "end_line": 15,
+        "end_column": 1,
+        "start_byte": 202,
+        "end_byte": 465
+      },
+      "body_hash": "77c65260dab4f3b258e0a9aff79c45c5",
+      "signature": "suspend fun syncUsers(client: HttpClient, id: String): String",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "suspend",
+        "returnType": "String",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "callee_name": "client.delete",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "line_number": 9,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "callee_name": "client.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "callee_name": "client.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "callee_name": "client.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "callee_name": "client.post",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "line_number": 8,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+        "callee_name": "client.delete",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+        "line_number": 9,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.delete",
+        "terminal_name": "delete",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+        "callee_name": "client.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.get",
+        "terminal_name": "get",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+        "callee_name": "client.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.get",
+        "terminal_name": "get",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+        "callee_name": "client.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.get",
+        "terminal_name": "get",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+        "callee_name": "client.post",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.post",
+        "terminal_name": "post",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:HttpClient:type_usage:6:30",
+      "name": "HttpClient",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 6,
+      "start_column": 30,
+      "end_line": 6,
+      "end_column": 40,
+      "start_byte": 170,
+      "end_byte": 180,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:delete:call:9:11",
+      "name": "delete",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 9,
+      "start_column": 11,
+      "end_line": 9,
+      "end_column": 17,
+      "start_byte": 289,
+      "end_byte": 295,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:get:call:12:11",
+      "name": "get",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 12,
+      "start_column": 11,
+      "end_line": 12,
+      "end_column": 14,
+      "start_byte": 398,
+      "end_byte": 401,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:get:call:13:11",
+      "name": "get",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 13,
+      "start_column": 11,
+      "end_line": 13,
+      "end_column": 14,
+      "start_byte": 428,
+      "end_byte": 431,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:get:call:7:11",
+      "name": "get",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 7,
+      "start_column": 11,
+      "end_line": 7,
+      "end_column": 14,
+      "start_byte": 215,
+      "end_byte": 218,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/http_client/source.kt:post:call:8:11",
+      "name": "post",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 8,
+      "start_column": 11,
+      "end_line": 8,
+      "end_column": 15,
+      "start_byte": 263,
+      "end_byte": 267,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "kotlin",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 47,
+      "start_byte": 208,
+      "end_byte": 251,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "ktor",
+        "framework": "ktor",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/users",
+        "url_kind": "absolute",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 25,
+      "start_byte": 256,
+      "end_byte": 277,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "ktor",
+        "framework": "ktor",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/items",
+        "url_kind": "path",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 29,
+      "start_byte": 282,
+      "end_byte": 307,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "ktor",
+        "framework": "ktor",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/users/1",
+        "url_kind": "path",
+        "verb": "DELETE",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "kotlin.suspend_modifier.v1",
+      "capture_name": "suspend_modifier",
+      "node_kind": "suspend",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 7,
+      "start_byte": 140,
+      "end_byte": 147,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "async"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "covered_lines": 16,
+      "covered_bytes": 466,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 466,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "covered_lines": 10,
+      "covered_bytes": 263,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 6,
+      "start_column": 62,
+      "end_line": 15,
+      "end_column": 1,
+      "start_byte": 202,
+      "end_byte": 465,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "$base/users",
+      "kind": "other",
+      "carrier": "client.get",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 12,
+      "start_column": 15,
+      "end_line": 12,
+      "end_column": 28,
+      "start_byte": 402,
+      "end_byte": 415,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/items",
+      "kind": "other",
+      "carrier": "client.post",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 8,
+      "start_column": 16,
+      "end_line": 8,
+      "end_column": 24,
+      "start_byte": 268,
+      "end_byte": 276,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users/1",
+      "kind": "other",
+      "carrier": "client.delete",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 9,
+      "start_column": 18,
+      "end_line": 9,
+      "end_column": 28,
+      "start_byte": 296,
+      "end_byte": 306,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/users",
+      "kind": "other",
+      "carrier": "client.get",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "start_line": 7,
+      "start_column": 15,
+      "end_line": 7,
+      "end_column": 46,
+      "start_byte": 219,
+      "end_byte": 250,
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 11,
+      "end_column": 77,
+      "start_byte": 313,
+      "end_byte": 386,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 12,
+      "start_column": 15,
+      "end_line": 12,
+      "end_column": 28,
+      "start_byte": 402,
+      "end_byte": 415,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 13,
+      "start_column": 15,
+      "end_line": 13,
+      "end_column": 24,
+      "start_byte": 432,
+      "end_byte": 441,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 14,
+      "start_column": 11,
+      "end_line": 14,
+      "end_column": 15,
+      "start_byte": 459,
+      "end_byte": 463,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 7,
+      "start_column": 15,
+      "end_line": 7,
+      "end_column": 46,
+      "start_byte": 219,
+      "end_byte": 250,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 8,
+      "start_column": 16,
+      "end_line": 8,
+      "end_column": 24,
+      "start_byte": 268,
+      "end_byte": 276,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/http_client/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "start_line": 9,
+      "start_column": 18,
+      "end_line": 9,
+      "end_column": 28,
+      "start_byte": 296,
+      "end_byte": 306,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

@@ -2581,7 +2581,7 @@ const SPECS: &[StructuralFactPatternSpec] = &[
     },
     StructuralFactPatternSpec {
         pattern_id: "spring.request_mapping.v1",
-        languages: &["java"],
+        languages: &["java", "kotlin"],
         query_family: "framework",
         description: "A Spring MVC request-mapping annotation on a class or method.",
         metadata_keys: &[
@@ -3944,6 +3944,7 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             "csharp",
             "go",
             "java",
+            "kotlin",
             "ruby",
         ],
         query_family: "web.http_client",
@@ -3956,7 +3957,7 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 "client",
                 STR,
                 ALWAYS,
-                "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, net::http).",
+                "HTTP client label (for example fetch, axios, requests, httpx, httpclient, net/http, java.net.http, ktor, net::http).",
             ),
             key(
                 "target_path",

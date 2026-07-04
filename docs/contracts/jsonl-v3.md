@@ -548,7 +548,7 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `flask.blueprint_registration.v1` | `python` | `blueprint_registration` | parser-covered call span |
 | `django.url_pattern.v1` | `python` | `url_pattern` | parser-covered call span |
 | `django.url_include.v1` | `python` | `url_include` | parser-covered call span |
-| `spring.request_mapping.v1` | `java` | `request_mapping` | class or method declaration line |
+| `spring.request_mapping.v1` | `java`, `kotlin` | `request_mapping` | class or method declaration line (Kotlin anchors the handler `function_declaration`) |
 | `go.net_http.route.v1` | `go` | `route_call` | parser-covered call span |
 | `gin.route.v1` | `go` | `route_call` | parser-covered call span |
 | `echo.route.v1` | `go` | `route_call` | parser-covered call span |
@@ -580,7 +580,7 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `ruby` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `ruby` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Minimal API route calls compute it from
@@ -628,7 +628,14 @@ annotations (`@GetMapping`, ...) emit `attribute_kind="http_method"`;
 `@RequestMapping` on a method emits `attribute_kind="request_mapping"` with
 `verb` present only when a `method =` element names it. Each class declaration
 resets the class-level template, so one controller's prefix cannot leak into
-the next. Go `net/http` patterns follow Go 1.22 `[METHOD ][HOST]/[PATH]`
+the next. Kotlin Spring controllers emit the same `spring.request_mapping.v1`
+shape from a separate AST-driven collector (import-gated on
+`org.springframework.web.bind.annotation`): the class `@RequestMapping` prefix
+resets per `class`/`object`/`companion object`; multi-path values use Kotlin's
+bracket arrays (`["/a", "/b"]`, not Java's `{...}`); `$`-interpolated,
+concatenated, and identifier route arguments stay silent; and each fact is
+anchored on the handler `function_declaration` so `containing_symbol_id` binds
+to the handler function, not the enclosing class. Go `net/http` patterns follow Go 1.22 `[METHOD ][HOST]/[PATH]`
 parsing: `route_template` carries the path part, `verb` the method token, and
 `host` the host part when present. gin/echo routes emit
 `api_style="call_routing"` (`mux_routing` is reserved for `go.net_http.route.v1`);
@@ -644,7 +651,10 @@ Backend-language client collectors emit the same `http.client_request.v1`
 metadata shape for static string URL arguments: Python module-qualified
 `requests`/`httpx` calls, C# `HttpClient` method calls and
 `HttpRequestMessage`, Go `net/http` package calls, Java `HttpRequest` builder
-chains, and Ruby `Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)`
+chains, Kotlin Ktor `client.get("...")`-style verb calls (`client="ktor"`,
+import-gated on `io.ktor.client`; only a `receiver.verb(...)` navigation callee
+qualifies, so the server-side routing DSL `get("/x")` is not a client request),
+and Ruby `Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)`
 arguments. Java builder-chain facts span the enclosing statement (the URL and
 verb are resolved statement-locally), so their `node_kind` is the statement
 node rather than a call node. Instance/session clients and dynamic URL

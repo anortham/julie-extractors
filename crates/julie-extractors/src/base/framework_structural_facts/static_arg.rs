@@ -9,10 +9,10 @@
 //! argument node kind**, never a denylist: an unknown wrapper node fails closed
 //! to `None`.
 //!
-//! Task 0 ships the Rust arm as the reference implementation. The Kotlin,
-//! Elixir, and PHP arms are added by their framework tasks; until then they
-//! return `None` so no dynamic value can leak. Per-language accepted node kinds
-//! (and their interpolation guards) are enumerated in design §4.4.
+//! Task 0 ships the Rust arm as the reference implementation. Task 2 adds the
+//! Kotlin arm. The Elixir and PHP arms are added by their framework tasks; until
+//! then they return `None` so no dynamic value can leak. Per-language accepted
+//! node kinds (and their interpolation guards) are enumerated in design §4.4.
 #![allow(dead_code)] // Foundation API: per-framework collectors (v2.8.0 Tasks 2–6) are its callers.
 
 use tree_sitter::Node;
@@ -44,9 +44,63 @@ pub(super) fn static_route_arg<'a>(
 ) -> Option<&'a str> {
     match lang {
         StaticArgLang::Rust => rust_static_arg(node, content),
-        // Kotlin/Elixir/PHP arms land with their framework tasks (design §4.4).
-        // Until then they stay silent so no dynamic argument can leak.
-        StaticArgLang::Kotlin | StaticArgLang::Elixir | StaticArgLang::Php => None,
+        StaticArgLang::Kotlin => kotlin_static_arg(node, content),
+        // Elixir/PHP arms land with their framework tasks (design §4.4). Until
+        // then they stay silent so no dynamic argument can leak.
+        StaticArgLang::Elixir | StaticArgLang::Php => None,
+    }
+}
+
+/// Kotlin arm: accept a lone `string_literal` / `multiline_string_literal` that
+/// carries no interpolation; reject every wrapper (`+` concatenation,
+/// identifier/`const` reference, `navigation_expression` member access,
+/// `collection_literal` array, `call_expression`, non-string) by node kind
+/// before any value is read.
+///
+/// Interpolation guard (grammar-verified against tree-sitter-kotlin-ng 1.1):
+/// the `${…}` form (and the braceless `$id` form inside a *multiline* literal)
+/// is a distinct `interpolation` child — but the grammar does **not** wrap the
+/// braceless `$id` form in a single-line literal in an `interpolation` node.
+/// Instead it splits the content so the bare `$` lands in its own
+/// `string_content` child (`"$base/x"` → `string_content "$"` +
+/// `string_content "base/x"`). Detecting only an `interpolation` child would
+/// therefore leak `"$base/x"` as the false-static route `$base/x`. So the guard
+/// rejects **both** an `interpolation` child and any `$` inside a `string_content`
+/// child. A literal `$` (only legal in source as an escape) is rare in a route
+/// and over-rejecting it is safe silence (M2).
+fn kotlin_static_arg<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    match node.kind() {
+        "string_literal" | "multiline_string_literal" => kotlin_static_string(node, content),
+        _ => None,
+    }
+}
+
+fn kotlin_static_string<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    let mut cursor = node.walk();
+    let mut content_nodes = Vec::new();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            // `${…}` (any literal) or braceless `$id` (multiline) → dynamic.
+            "interpolation" => return None,
+            "string_content" => {
+                // A braceless `$id` in a single-line literal is split so a bare
+                // `$` lands here; reject it as (potential) interpolation.
+                if content.get(child.start_byte()..child.end_byte())?.contains('$') {
+                    return None;
+                }
+                content_nodes.push(child);
+            }
+            // Escape sequences (incl. an escaped `\$`, a genuine literal dollar)
+            // are static content; keep them in the span.
+            "escape_sequence" => content_nodes.push(child),
+            // Any other named child is unexpected → fail closed to silence.
+            _ => return None,
+        }
+    }
+    match (content_nodes.first(), content_nodes.last()) {
+        (Some(first), Some(last)) => content.get(first.start_byte()..last.end_byte()),
+        // An empty literal (`""`, `""""""`) has no content child.
+        _ => Some(""),
     }
 }
 
@@ -168,11 +222,7 @@ mod tests {
                 Some("/x"),
                 "rust arm is implemented in Task 0"
             );
-            for lang in [
-                StaticArgLang::Kotlin,
-                StaticArgLang::Elixir,
-                StaticArgLang::Php,
-            ] {
+            for lang in [StaticArgLang::Elixir, StaticArgLang::Php] {
                 assert_eq!(
                     static_route_arg(node, content, lang),
                     None,
@@ -180,5 +230,91 @@ mod tests {
                 );
             }
         });
+    }
+
+    /// Parse `expr` as the initializer of a Kotlin `val` binding and hand its
+    /// whole value-expression node (plus the source) to `assertion` — exactly the
+    /// argument node a Kotlin collector passes to [`static_route_arg`].
+    fn with_kotlin_arg(expr: &str, assertion: impl FnOnce(Node<'_>, &str)) {
+        let src = format!("val x = {expr}");
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_kotlin_ng::LANGUAGE.into())
+            .expect("load kotlin grammar");
+        let tree = parser.parse(&src, None).expect("parse kotlin source");
+        let value = find_kotlin_property_value(tree.root_node())
+            .unwrap_or_else(|| panic!("no property value node for `{expr}`"));
+        assertion(value, &src);
+    }
+
+    /// The value expression of the first `property_declaration`: the first named
+    /// child after the `=` token.
+    fn find_kotlin_property_value(node: Node<'_>) -> Option<Node<'_>> {
+        if node.kind() == "property_declaration" {
+            let mut cursor = node.walk();
+            let children: Vec<Node> = node.children(&mut cursor).collect();
+            let eq = children.iter().position(|child| child.kind() == "=")?;
+            return children[eq + 1..]
+                .iter()
+                .find(|child| child.is_named())
+                .copied();
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if let Some(found) = find_kotlin_property_value(child) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn kotlin_accepts_plain_static_string_literals() {
+        for (expr, expected, kind) in [
+            (r#""/x""#, "/x", "string_literal"),
+            (r#""/users/{id}""#, "/users/{id}", "string_literal"),
+            (r#""""#, "", "string_literal"),
+            (r#""/a/b/""#, "/a/b/", "string_literal"),
+            (r#""""/plain/multi""""#, "/plain/multi", "multiline_string_literal"),
+            (r#""""/a/{id}""""#, "/a/{id}", "multiline_string_literal"),
+        ] {
+            with_kotlin_arg(expr, |node, content| {
+                assert_eq!(node.kind(), kind, "node kind for `{expr}`");
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Kotlin),
+                    Some(expected),
+                    "accepted static literal `{expr}`"
+                );
+            });
+        }
+    }
+
+    #[test]
+    fn kotlin_rejects_dynamic_and_wrapped_forms() {
+        // Every dynamic/wrapped form must be silent (M2). The label names the
+        // form the whole-argument allowlist rejects.
+        for (expr, why) in [
+            (r#""${base}/x""#, "${...} interpolation child"),
+            (r#""$base/x""#, "braceless $id interpolation (split content, no node)"),
+            (r#""$base""#, "whole-string braceless interpolation"),
+            (r#""a$b/c""#, "mid-string braceless interpolation"),
+            (r#""""/a/${x}""""#, "multiline ${...} interpolation"),
+            (r#""""$base/x""""#, "multiline braceless interpolation node"),
+            (r#""/a/" + suffix"#, "binary_expression concat"),
+            (r#"suffix + "/a""#, "binary_expression concat (literal second)"),
+            ("PATHS", "identifier / const reference"),
+            ("PATHS.USER", "navigation_expression member access"),
+            (r#"["/a", "/b"]"#, "collection_literal array"),
+            (r#"listOf("/a")"#, "call_expression"),
+            ("42", "integer_literal (non-string)"),
+        ] {
+            with_kotlin_arg(expr, |node, content| {
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Kotlin),
+                    None,
+                    "must stay silent for {why}: `{expr}`"
+                );
+            });
+        }
     }
 }
