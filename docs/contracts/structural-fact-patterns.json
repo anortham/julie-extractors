@@ -1,5 +1,191 @@
 [
   {
+    "description": "A static actix-web attribute-macro route (`#[get(\"/x\")]` / `#[route(\"/x\", method = \"GET\")]`) on a handler fn, one fact per verb.",
+    "languages": [
+      "rust"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"attribute\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the attribute macro's first argument.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key; actix `{id}` brace captures normalize to `:id` segments.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method from the macro name (`#[get]`→GET) or a `method = \"VERB\"` argument (`#[route]`).",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\"; attribute-macro verbs are always explicit).",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "actix.attribute_route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static actix-web `web::scope(\"/lit\").configure(fn)` / `.service(sub)` mount, the scope prefix recorded at its registration site.",
+    "languages": [
+      "rust"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static scope path literal at this site.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized scope path (actix brace captures preserved as `:param`).",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the `configure`/`service` target (a cross-file target; no route join is guessed).",
+        "key": "mount_target",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "actix.mount.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static actix-web scope-chained route (`web::scope(\"/api\").route(\"/x\", web::post().to(h))`) with a same-file scope prefix.",
+    "languages": [
+      "rust"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path passed to `.route` (without the scope prefix).",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key computed from the effective (scope prefix + route) template; actix `{id}` brace captures normalize to `:id`.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method from the `web::<verb>()` method router; omitted for the method-agnostic `web::route()`.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\"); omitted with the verb for `web::route()`.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Same-file `web::scope(\"/lit\")` prefix the route chains off (scope routes are always scoped).",
+        "key": "route_group_prefix",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Scope prefix joined with the route template.",
+        "key": "effective_route_template",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "actix.scope_route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "An Alpine.js directive (x-*, @, or :).",
     "languages": [
       "html",

@@ -2,6 +2,7 @@
 //!
 //! All extractor tests organized by language.
 
+pub mod actix;
 pub mod annotations;
 pub mod api_surface;
 pub mod axum;

@@ -1,3 +1,4 @@
+mod actix;
 mod aspnet;
 mod axum;
 mod go_http;
@@ -18,6 +19,7 @@ mod static_arg;
 
 use tree_sitter::Tree;
 
+use self::actix::collect_actix_routes;
 use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_routes};
 use self::axum::collect_axum_routes;
 use self::go_http::collect_go_http_boundary_facts;
@@ -56,6 +58,9 @@ pub(super) const DJANGO_URL_INCLUDE_PATTERN_ID: &str = "django.url_include.v1";
 pub(super) const SPRING_REQUEST_MAPPING_PATTERN_ID: &str = "spring.request_mapping.v1";
 pub(super) const AXUM_ROUTE_PATTERN_ID: &str = "axum.route.v1";
 pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
+pub(super) const ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "actix.attribute_route.v1";
+pub(super) const ACTIX_SCOPE_ROUTE_PATTERN_ID: &str = "actix.scope_route.v1";
+pub(super) const ACTIX_MOUNT_PATTERN_ID: &str = "actix.mount.v1";
 pub(super) const GO_NET_HTTP_ROUTE_PATTERN_ID: &str = "go.net_http.route.v1";
 pub(super) const GIN_ROUTE_PATTERN_ID: &str = "gin.route.v1";
 pub(super) const ECHO_ROUTE_PATTERN_ID: &str = "echo.route.v1";
@@ -150,6 +155,9 @@ const ELIXIR_PATTERN_IDS: &[&str] = &[
 const RUST_PATTERN_IDS: &[&str] = &[
     AXUM_ROUTE_PATTERN_ID,
     AXUM_NEST_PATTERN_ID,
+    ACTIX_ATTRIBUTE_ROUTE_PATTERN_ID,
+    ACTIX_SCOPE_ROUTE_PATTERN_ID,
+    ACTIX_MOUNT_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -266,6 +274,7 @@ pub fn collect_framework_structural_facts(
         // own crate import + arg shape, so they never double-emit).
         "rust" => {
             let mut rust_facts = collect_axum_routes(language, tree, file_path, content);
+            rust_facts.extend(collect_actix_routes(language, tree, file_path, content));
             rust_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));

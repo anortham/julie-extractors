@@ -563,6 +563,9 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `phoenix.forward.v1` | `elixir` | `forward` | parser-covered `forward` macro call span |
 | `axum.route.v1` | `rust` | `route` | parser-covered `.route` call span |
 | `axum.nest.v1` | `rust` | `nest` | parser-covered `.nest` call span |
+| `actix.attribute_route.v1` | `rust` | `attribute_route` | parser-covered handler `function_item` span |
+| `actix.scope_route.v1` | `rust` | `scope_route` | parser-covered `web::scope(...).route` call span |
+| `actix.mount.v1` | `rust` | `mount` | parser-covered `web::scope(...).configure`/`.service` call span |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span |
 | `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` |
@@ -711,6 +714,35 @@ emits an `axum.nest.v1` prefix registration
 nested sub-router is a cross-file target, so no route join is guessed (Miller's
 job). `format!`, concatenated, and `const`/identifier route arguments stay
 silent (M2).
+
+actix-web routes come from an AST-driven collector on the same shared `rust`
+dispatch arm, import-gated on an `actix_web` reference (which, with the arg
+shapes below, keeps axum and actix from ever double-emitting). actix registers
+routes through two provenance models, mirroring the `aspnet.attribute_route.v1`
+vs `aspnet.minimal_api.route.v1` split, so it emits two route pattern ids plus a
+mount. (1) Attribute macros `#[get("/x")]`/`#[post("/x")]`/… and `#[route("/x",
+method = "GET")]` on a handler `fn` emit `actix.attribute_route.v1`
+(`api_style="attribute"`), one fact per verb — the verb is ALWAYS known (from the
+macro name, or one per `method = "VERB"` argument). Registration is cross-file,
+so there are no `route_group_prefix`/`effective_route_template` keys, and the
+fact anchors on the handler `function_item` (a following sibling of the
+attribute) so its binding resolves to the handler, not the enclosing module. (2)
+Scope-chained routes `web::scope("/api").route("/x", web::post().to(h))` emit
+`actix.scope_route.v1` (`api_style="call_routing"`): the scope prefix is read
+same-file by walking the `.route` receiver chain to its base `web::scope(literal)`,
+so it flows into `route_group_prefix` + `effective_route_template`; the verb comes
+from the `web::<verb>()` method router (OPT — omitted for the method-agnostic
+`web::route()`). A `web::<verb>().to(h)` method router bottoms out at a
+`scoped_identifier`, which is how axum's bare-identifier verb chain (`get(h)`) is
+rejected here; conversely axum's `Router::new()` receiver is not a `web::scope`,
+so actix rejects it. `web::scope("/lit").configure(fn)`/`.service(sub)` emits an
+`actix.mount.v1` prefix registration (`mount_path`/`normalized_mount_path`/
+`mount_target`) at the scope site; the delegated routes are a cross-file target,
+so no route join is guessed. `{id}` brace captures normalize to the shared `:id`
+join key. A non-static scope prefix (making the absolute path unknowable),
+`format!`/concat/`const` route arguments, variable-bound scopes, and
+`web::resource().route()` guard forms all stay silent (M2) and are recorded as
+documented `open_gaps`.
 
 Backend-language client collectors emit the same `http.client_request.v1`
 metadata shape for static string URL arguments: Python module-qualified

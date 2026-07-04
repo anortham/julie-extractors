@@ -36,6 +36,16 @@
           "expected": "fixtures/extraction/rust/axum_routes/expected.json"
         },
         {
+          "name": "actix_attribute_routes",
+          "source": "fixtures/extraction/rust/actix_attribute_routes/source.rs",
+          "expected": "fixtures/extraction/rust/actix_attribute_routes/expected.json"
+        },
+        {
+          "name": "actix_scope_routes",
+          "source": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+          "expected": "fixtures/extraction/rust/actix_scope_routes/expected.json"
+        },
+        {
           "name": "http_client",
           "source": "fixtures/extraction/rust/http_client/source.rs",
           "expected": "fixtures/extraction/rust/http_client/expected.json"
@@ -94,6 +104,9 @@
         },
         "structural_facts": {
           "supported": [
+            "actix.attribute_route.v1",
+            "actix.mount.v1",
+            "actix.scope_route.v1",
             "axum.nest.v1",
             "axum.route.v1",
             "http.client_request.v1",
@@ -101,6 +114,24 @@
           ],
           "not_applicable": [],
           "open_gaps": [
+            {
+              "kind": "actix.scope_route_cross_file_registration",
+              "reason": "actix.scope_route.v1 joins a scope prefix to routes only when the routes chain directly off `web::scope(\"/lit\")` in the same expression. Routes registered under a scope via `.configure(fn)` or `.service(handler)` live in a cross-file target, so their scope prefix cannot flow into their effective_route_template in-file; actix.mount.v1 records the prefix at the scope site with mount_path/mount_target only.",
+              "required_closure": "resolve the scope prefix to routes registered in a cross-file configure/service target, which is Miller's cross-file join responsibility per decision 0004; the extractor emits actix.mount.v1 and guesses no join",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
+            },
+            {
+              "kind": "actix.scope_route_variable_binding",
+              "reason": "actix.scope_route.v1 reads the scope prefix by walking the `.route` receiver chain to a base `web::scope(literal)` in the same expression. A scope bound to a variable first (`let s = web::scope(\"/api\"); s.route(...)`) is cross-statement single-assignment tracing, which is not attempted this slice; such routes stay silent (M2) rather than emit a route with an unresolved prefix.",
+              "required_closure": "add same-file single-assignment receiver tracing for scope variables (the axum receiver-poison model applied to `web::scope`), fixture-backed",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 4.3 (receiver-traced builder chains)"
+            },
+            {
+              "kind": "actix.resource_route_guard_forms",
+              "reason": "actix `web::resource(\"/x\").route(web::get().to(h))` and guard-based route forms register routes without a `web::scope` prefix chain, so they are not covered by actix.scope_route.v1 (which anchors on scope prefixes) and stay silent.",
+              "required_closure": "add a `web::resource`/route-guard collector emitting a resource route fact with the resource path and method-router verb, fixture-backed",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (actix idioms) — future actix.resource_route.v1"
+            },
             {
               "kind": "axum.param_flavor_under_report",
               "reason": "axum route params are recorded as brace captures (`{id}`, axum 0.8). axum 0.7 used `:id`; the extractor cannot know the crate version and does not version-sniff (design section 11), so a 0.7 `:id` template passes through to a correct normalized_route_template join key but its `:id` segment is not recorded in dynamic_segments.",
@@ -131,6 +162,8 @@
         },
         "annotations": {
           "supported": [
+            "function",
+            "method",
             "struct"
           ],
           "not_applicable": [],

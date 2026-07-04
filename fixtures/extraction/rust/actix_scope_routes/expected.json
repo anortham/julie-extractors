@@ -1,0 +1,3150 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0",
+      "name": "actix_web",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 51,
+      "start_byte": 274,
+      "end_byte": 325,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 15,
+        "end_line": 5,
+        "end_column": 50,
+        "start_byte": 289,
+        "end_byte": 324
+      },
+      "body_hash": "432b45c934e0649e82b745ac7ddd2520",
+      "signature": "use actix_web::{web, App, HttpResponse, Responder};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_config:52:0",
+      "name": "admin_config",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 52,
+      "start_column": 0,
+      "end_line": 52,
+      "end_column": 49,
+      "start_byte": 1969,
+      "end_byte": 2018,
+      "body_span": {
+        "start_line": 52,
+        "start_column": 47,
+        "end_line": 52,
+        "end_column": 49,
+        "start_byte": 2016,
+        "end_byte": 2018
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "fn admin_config(_cfg: &mut web::ServiceConfig)",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "name": "admin_scope",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 22,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 1,
+      "start_byte": 1024,
+      "end_byte": 1137,
+      "body_span": {
+        "start_line": 22,
+        "start_column": 32,
+        "end_line": 24,
+        "end_column": 1,
+        "start_byte": 1056,
+        "end_byte": 1137
+      },
+      "body_hash": "894356b32f7f33da8ef71283f4fffc65",
+      "signature": "pub fn admin_scope() -> App<()>",
+      "doc_comment": "A scope that delegates to a cross-file `configure` fn → an `actix.mount.v1`\nrecording the `/admin/{tenant}` prefix at its registration site.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "name": "api_scope",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 18,
+      "end_column": 1,
+      "start_byte": 550,
+      "end_byte": 871,
+      "body_span": {
+        "start_line": 10,
+        "start_column": 30,
+        "end_line": 18,
+        "end_column": 1,
+        "start_byte": 580,
+        "end_byte": 871
+      },
+      "body_hash": "3fa691fa5bf654cc19ba35b537d3f3b0",
+      "signature": "pub fn api_scope() -> App<()>",
+      "doc_comment": "A scope whose routes chain directly off `web::scope(\"/api\")`: each `.route`\ncarries the `/api` prefix (route_group_prefix + effective_route_template),\nwith the verb taken from the `web::<verb>()` method router.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+      "name": "create",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 42,
+      "start_column": 0,
+      "end_line": 44,
+      "end_column": 1,
+      "start_byte": 1741,
+      "end_byte": 1817,
+      "body_span": {
+        "start_line": 42,
+        "start_column": 36,
+        "end_line": 44,
+        "end_column": 1,
+        "start_byte": 1777,
+        "end_byte": 1817
+      },
+      "body_hash": "89ca374cd100c31e8437c2f1cc5aab95",
+      "signature": "async fn create() -> impl Responder",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "name": "dynamic",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 33,
+      "start_column": 0,
+      "end_line": 37,
+      "end_column": 1,
+      "start_byte": 1436,
+      "end_byte": 1669,
+      "body_span": {
+        "start_line": 33,
+        "start_column": 51,
+        "end_line": 37,
+        "end_column": 1,
+        "start_byte": 1487,
+        "end_byte": 1669
+      },
+      "body_hash": "e4c96418ff3cf2a3c842ad103266e727",
+      "signature": "pub fn dynamic(prefix: String, id: u32) -> App<()>",
+      "doc_comment": "Dynamic cases stay silent (M2): a non-literal scope prefix and a `format!`\nroute path each emit nothing.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+      "name": "health",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 45,
+      "start_column": 0,
+      "end_line": 47,
+      "end_column": 1,
+      "start_byte": 1818,
+      "end_byte": 1889,
+      "body_span": {
+        "start_line": 45,
+        "start_column": 36,
+        "end_line": 47,
+        "end_column": 1,
+        "start_byte": 1854,
+        "end_byte": 1889
+      },
+      "body_hash": "7aa21184462f57461cf8915aa77cdd17",
+      "signature": "async fn health() -> impl Responder",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+      "name": "report_index",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 48,
+      "start_column": 0,
+      "end_line": 50,
+      "end_column": 1,
+      "start_byte": 1890,
+      "end_byte": 1967,
+      "body_span": {
+        "start_line": 48,
+        "start_column": 42,
+        "end_line": 50,
+        "end_column": 1,
+        "start_byte": 1932,
+        "end_byte": 1967
+      },
+      "body_hash": "7aa21184462f57461cf8915aa77cdd17",
+      "signature": "async fn report_index() -> impl Responder",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "name": "reports_scope",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 27,
+      "start_column": 0,
+      "end_line": 29,
+      "end_column": 1,
+      "start_byte": 1215,
+      "end_byte": 1321,
+      "body_span": {
+        "start_line": 27,
+        "start_column": 34,
+        "end_line": 29,
+        "end_column": 1,
+        "start_byte": 1249,
+        "end_byte": 1321
+      },
+      "body_hash": "49451c7cea61687f691786c5798f9128",
+      "signature": "pub fn reports_scope() -> App<()>",
+      "doc_comment": "A scope that mounts a cross-file handler via `.service` → mount fact.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+      "name": "show",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 39,
+      "start_column": 0,
+      "end_line": 41,
+      "end_column": 1,
+      "start_byte": 1671,
+      "end_byte": 1740,
+      "body_span": {
+        "start_line": 39,
+        "start_column": 34,
+        "end_line": 41,
+        "end_column": 1,
+        "start_byte": 1705,
+        "end_byte": 1740
+      },
+      "body_hash": "7aa21184462f57461cf8915aa77cdd17",
+      "signature": "async fn show() -> impl Responder",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0",
+      "callee_name": "actix_web",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 5,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "callee_name": "configure",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "callee_name": "new",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "callee_name": "scope",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "callee_name": "service",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 23,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "new",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "post",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "route",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "route",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "route",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "route",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "scope",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "service",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 11,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "to",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "to",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "callee_name": "to",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 16,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+      "callee_name": "Created",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 43,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+      "callee_name": "finish",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 43,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "as_str",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 36,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 35,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 36,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "new",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 34,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "route",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 35,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "route",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 36,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "scope",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 35,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "scope",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 36,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "service",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 34,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "service",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 34,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "to",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 35,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "callee_name": "to",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 36,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 46,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+      "callee_name": "finish",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 46,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 49,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+      "callee_name": "finish",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 49,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "callee_name": "new",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 28,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "callee_name": "scope",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 28,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "callee_name": "service",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 28,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "callee_name": "service",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 28,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+      "callee_name": "Ok",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 40,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+      "callee_name": "finish",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "line_number": 40,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0",
+        "callee_name": "actix_web",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 5,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "actix_web",
+        "terminal_name": "actix_web",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "use actix_web::{web, App, HttpResponse, Responder};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:actix_web:5:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+        "callee_name": "configure",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope(\"/admin/{tenant}\").configure",
+        "terminal_name": "configure",
+        "receiver": "web::scope(\"/admin/{tenant}\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+        "callee_name": "new",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new",
+        "terminal_name": "new",
+        "receiver": null,
+        "namespace_path": [
+          "App"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+        "callee_name": "scope",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope",
+        "terminal_name": "scope",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+        "callee_name": "service",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 23,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new().service",
+        "terminal_name": "service",
+        "receiver": "App::new()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "new",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 11,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new",
+        "terminal_name": "new",
+        "receiver": null,
+        "namespace_path": [
+          "App"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "post",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::post",
+        "terminal_name": "post",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "route",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope(\"/api\").route",
+        "terminal_name": "route",
+        "receiver": "web::scope(\"/api\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "route",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope(\"/api\")\n            .route(\"/users/{id}\", web::get().to(show)).route",
+        "terminal_name": "route",
+        "receiver": "web::scope(\"/api\")\n            .route(\"/users/{id}\", web::get().to(show))",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "route",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope(\"/api\")\n            .route(\"/users/{id}\", web::get().to(show))\n            .route(\"/users\", web::post().to(create)).route",
+        "terminal_name": "route",
+        "receiver": "web::scope(\"/api\")\n            .route(\"/users/{id}\", web::get().to(show))\n            .route(\"/users\", web::post().to(create))",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "route",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::route",
+        "terminal_name": "route",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "scope",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope",
+        "terminal_name": "scope",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "service",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 11,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new().service",
+        "terminal_name": "service",
+        "receiver": "App::new()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "to",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::get().to",
+        "terminal_name": "to",
+        "receiver": "web::get()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "to",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::post().to",
+        "terminal_name": "to",
+        "receiver": "web::post()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+        "callee_name": "to",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 16,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::route().to",
+        "terminal_name": "to",
+        "receiver": "web::route()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+        "callee_name": "Created",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 43,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpResponse::Created",
+        "terminal_name": "Created",
+        "receiver": null,
+        "namespace_path": [
+          "HttpResponse"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+        "callee_name": "finish",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 43,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpResponse::Created().finish",
+        "terminal_name": "finish",
+        "receiver": "HttpResponse::Created()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "as_str",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "format!(\"/u/{id}\").as_str",
+        "terminal_name": "as_str",
+        "receiver": "format!(\"/u/{id}\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 35,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "new",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 34,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new",
+        "terminal_name": "new",
+        "receiver": null,
+        "namespace_path": [
+          "App"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "route",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 35,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope(&prefix).route",
+        "terminal_name": "route",
+        "receiver": "web::scope(&prefix)",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "route",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope(\"/api\").route",
+        "terminal_name": "route",
+        "receiver": "web::scope(\"/api\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "scope",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 35,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope",
+        "terminal_name": "scope",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "scope",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope",
+        "terminal_name": "scope",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "service",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 34,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new().service",
+        "terminal_name": "service",
+        "receiver": "App::new()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "service",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 34,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new()\n        .service(web::scope(&prefix).route(\"/x\", web::get().to(show))).service",
+        "terminal_name": "service",
+        "receiver": "App::new()\n        .service(web::scope(&prefix).route(\"/x\", web::get().to(show)))",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "to",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 35,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::get().to",
+        "terminal_name": "to",
+        "receiver": "web::get()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+        "callee_name": "to",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 36,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::get().to",
+        "terminal_name": "to",
+        "receiver": "web::get()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 46,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpResponse::Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [
+          "HttpResponse"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+        "callee_name": "finish",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 46,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpResponse::Ok().finish",
+        "terminal_name": "finish",
+        "receiver": "HttpResponse::Ok()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 49,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpResponse::Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [
+          "HttpResponse"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+        "callee_name": "finish",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 49,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpResponse::Ok().finish",
+        "terminal_name": "finish",
+        "receiver": "HttpResponse::Ok()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+        "callee_name": "new",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 28,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new",
+        "terminal_name": "new",
+        "receiver": null,
+        "namespace_path": [
+          "App"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+        "callee_name": "scope",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 28,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope",
+        "terminal_name": "scope",
+        "receiver": null,
+        "namespace_path": [
+          "web"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+        "callee_name": "service",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 28,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "App::new().service",
+        "terminal_name": "service",
+        "receiver": "App::new()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+        "callee_name": "service",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 28,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "web::scope(\"/reports\").service",
+        "terminal_name": "service",
+        "receiver": "web::scope(\"/reports\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+        "callee_name": "Ok",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 40,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpResponse::Ok",
+        "terminal_name": "Ok",
+        "receiver": null,
+        "namespace_path": [
+          "HttpResponse"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+        "callee_name": "finish",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+        "line_number": 40,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "HttpResponse::Ok().finish",
+        "terminal_name": "finish",
+        "receiver": "HttpResponse::Ok()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:type_usage:10:22",
+      "name": "App",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 10,
+      "start_column": 22,
+      "end_line": 10,
+      "end_column": 25,
+      "start_byte": 572,
+      "end_byte": 575,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:type_usage:22:24",
+      "name": "App",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 22,
+      "start_column": 24,
+      "end_line": 22,
+      "end_column": 27,
+      "start_byte": 1048,
+      "end_byte": 1051,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:type_usage:27:26",
+      "name": "App",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 27,
+      "start_column": 26,
+      "end_line": 27,
+      "end_column": 29,
+      "start_byte": 1241,
+      "end_byte": 1244,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:type_usage:33:43",
+      "name": "App",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 33,
+      "start_column": 43,
+      "end_line": 33,
+      "end_column": 46,
+      "start_byte": 1479,
+      "end_byte": 1482,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Created:call:43:18",
+      "name": "Created",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 43,
+      "start_column": 18,
+      "end_line": 43,
+      "end_column": 25,
+      "start_byte": 1797,
+      "end_byte": 1804,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Ok:call:40:18",
+      "name": "Ok",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 40,
+      "start_column": 18,
+      "end_line": 40,
+      "end_column": 20,
+      "start_byte": 1725,
+      "end_byte": 1727,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Ok:call:46:18",
+      "name": "Ok",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 46,
+      "start_column": 18,
+      "end_line": 46,
+      "end_column": 20,
+      "start_byte": 1874,
+      "end_byte": 1876,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Ok:call:49:18",
+      "name": "Ok",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 49,
+      "start_column": 18,
+      "end_line": 49,
+      "end_column": 20,
+      "start_byte": 1952,
+      "end_byte": 1954,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:type_usage:39:24",
+      "name": "Responder",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 39,
+      "start_column": 24,
+      "end_line": 39,
+      "end_column": 33,
+      "start_byte": 1695,
+      "end_byte": 1704,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:type_usage:42:26",
+      "name": "Responder",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 42,
+      "start_column": 26,
+      "end_line": 42,
+      "end_column": 35,
+      "start_byte": 1767,
+      "end_byte": 1776,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:type_usage:45:26",
+      "name": "Responder",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 45,
+      "start_column": 26,
+      "end_line": 45,
+      "end_column": 35,
+      "start_byte": 1844,
+      "end_byte": 1853,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:Responder:type_usage:48:32",
+      "name": "Responder",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 48,
+      "start_column": 32,
+      "end_line": 48,
+      "end_column": 41,
+      "start_byte": 1922,
+      "end_byte": 1931,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:ServiceConfig:type_usage:52:32",
+      "name": "ServiceConfig",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 52,
+      "start_column": 32,
+      "end_line": 52,
+      "end_column": 45,
+      "start_byte": 2001,
+      "end_byte": 2014,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_config:52:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:ServiceConfig:type_usage:52:32",
+      "name": "ServiceConfig",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 52,
+      "start_column": 32,
+      "end_line": 52,
+      "end_column": 45,
+      "start_byte": 2001,
+      "end_byte": 2014,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_config:52:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:String:type_usage:33:23",
+      "name": "String",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 33,
+      "start_column": 23,
+      "end_line": 33,
+      "end_column": 29,
+      "start_byte": 1459,
+      "end_byte": 1465,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:as_str:call:36:61",
+      "name": "as_str",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 36,
+      "start_column": 61,
+      "end_line": 36,
+      "end_column": 67,
+      "start_byte": 1636,
+      "end_byte": 1642,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:configure:call:23:53",
+      "name": "configure",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 23,
+      "start_column": 53,
+      "end_line": 23,
+      "end_column": 62,
+      "start_byte": 1111,
+      "end_byte": 1120,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:finish:call:40:23",
+      "name": "finish",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 40,
+      "start_column": 23,
+      "end_line": 40,
+      "end_column": 29,
+      "start_byte": 1730,
+      "end_byte": 1736,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:finish:call:43:28",
+      "name": "finish",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 43,
+      "start_column": 28,
+      "end_line": 43,
+      "end_column": 34,
+      "start_byte": 1807,
+      "end_byte": 1813,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:finish:call:46:23",
+      "name": "finish",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 46,
+      "start_column": 23,
+      "end_line": 46,
+      "end_column": 29,
+      "start_byte": 1879,
+      "end_byte": 1885,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:finish:call:49:23",
+      "name": "finish",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 49,
+      "start_column": 23,
+      "end_line": 49,
+      "end_column": 29,
+      "start_byte": 1957,
+      "end_byte": 1963,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:get:call:13:39",
+      "name": "get",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 13,
+      "start_column": 39,
+      "end_line": 13,
+      "end_column": 42,
+      "start_byte": 672,
+      "end_byte": 675,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:get:call:35:54",
+      "name": "get",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 35,
+      "start_column": 54,
+      "end_line": 35,
+      "end_column": 57,
+      "start_byte": 1558,
+      "end_byte": 1561,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:get:call:36:76",
+      "name": "get",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 36,
+      "start_column": 76,
+      "end_line": 36,
+      "end_column": 79,
+      "start_byte": 1651,
+      "end_byte": 1654,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:new:call:11:9",
+      "name": "new",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 11,
+      "start_column": 9,
+      "end_line": 11,
+      "end_column": 12,
+      "start_byte": 591,
+      "end_byte": 594,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:new:call:23:9",
+      "name": "new",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 23,
+      "start_column": 9,
+      "end_line": 23,
+      "end_column": 12,
+      "start_byte": 1067,
+      "end_byte": 1070,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:new:call:28:9",
+      "name": "new",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 28,
+      "start_column": 9,
+      "end_line": 28,
+      "end_column": 12,
+      "start_byte": 1260,
+      "end_byte": 1263,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:new:call:34:9",
+      "name": "new",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 34,
+      "start_column": 9,
+      "end_line": 34,
+      "end_column": 12,
+      "start_byte": 1498,
+      "end_byte": 1501,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:post:call:14:34",
+      "name": "post",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 14,
+      "start_column": 34,
+      "end_line": 14,
+      "end_column": 38,
+      "start_byte": 722,
+      "end_byte": 726,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:13:13",
+      "name": "route",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 13,
+      "start_column": 13,
+      "end_line": 13,
+      "end_column": 18,
+      "start_byte": 646,
+      "end_byte": 651,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:14:13",
+      "name": "route",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 14,
+      "start_column": 13,
+      "end_line": 14,
+      "end_column": 18,
+      "start_byte": 701,
+      "end_byte": 706,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:16:13",
+      "name": "route",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 16,
+      "start_column": 13,
+      "end_line": 16,
+      "end_column": 18,
+      "start_byte": 821,
+      "end_byte": 826,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:16:35",
+      "name": "route",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 16,
+      "start_column": 35,
+      "end_line": 16,
+      "end_column": 40,
+      "start_byte": 843,
+      "end_byte": 848,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:35:37",
+      "name": "route",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 35,
+      "start_column": 37,
+      "end_line": 35,
+      "end_column": 42,
+      "start_byte": 1541,
+      "end_byte": 1546,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:route:call:36:36",
+      "name": "route",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 36,
+      "start_column": 36,
+      "end_line": 36,
+      "end_column": 41,
+      "start_byte": 1611,
+      "end_byte": 1616,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:12:13",
+      "name": "scope",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 12,
+      "start_column": 13,
+      "end_line": 12,
+      "end_column": 18,
+      "start_byte": 619,
+      "end_byte": 624,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:23:28",
+      "name": "scope",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 23,
+      "start_column": 28,
+      "end_line": 23,
+      "end_column": 33,
+      "start_byte": 1086,
+      "end_byte": 1091,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:28:28",
+      "name": "scope",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 28,
+      "start_column": 28,
+      "end_line": 28,
+      "end_column": 33,
+      "start_byte": 1279,
+      "end_byte": 1284,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:35:22",
+      "name": "scope",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 35,
+      "start_column": 22,
+      "end_line": 35,
+      "end_column": 27,
+      "start_byte": 1526,
+      "end_byte": 1531,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:scope:call:36:22",
+      "name": "scope",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 36,
+      "start_column": 22,
+      "end_line": 36,
+      "end_column": 27,
+      "start_byte": 1597,
+      "end_byte": 1602,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:11:15",
+      "name": "service",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 11,
+      "start_column": 15,
+      "end_line": 11,
+      "end_column": 22,
+      "start_byte": 597,
+      "end_byte": 604,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:23:15",
+      "name": "service",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 23,
+      "start_column": 15,
+      "end_line": 23,
+      "end_column": 22,
+      "start_byte": 1073,
+      "end_byte": 1080,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:28:15",
+      "name": "service",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 28,
+      "start_column": 15,
+      "end_line": 28,
+      "end_column": 22,
+      "start_byte": 1266,
+      "end_byte": 1273,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:28:46",
+      "name": "service",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 28,
+      "start_column": 46,
+      "end_line": 28,
+      "end_column": 53,
+      "start_byte": 1297,
+      "end_byte": 1304,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:35:9",
+      "name": "service",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 35,
+      "start_column": 9,
+      "end_line": 35,
+      "end_column": 16,
+      "start_byte": 1513,
+      "end_byte": 1520,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:service:call:36:9",
+      "name": "service",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 36,
+      "start_column": 9,
+      "end_line": 36,
+      "end_column": 16,
+      "start_byte": 1584,
+      "end_byte": 1591,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:13:45",
+      "name": "to",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 13,
+      "start_column": 45,
+      "end_line": 13,
+      "end_column": 47,
+      "start_byte": 678,
+      "end_byte": 680,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:14:41",
+      "name": "to",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 14,
+      "start_column": 41,
+      "end_line": 14,
+      "end_column": 43,
+      "start_byte": 729,
+      "end_byte": 731,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:16:43",
+      "name": "to",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 16,
+      "start_column": 43,
+      "end_line": 16,
+      "end_column": 45,
+      "start_byte": 851,
+      "end_byte": 853,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:35:60",
+      "name": "to",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 35,
+      "start_column": 60,
+      "end_line": 35,
+      "end_column": 62,
+      "start_byte": 1564,
+      "end_byte": 1566,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/actix_scope_routes/source.rs:to:call:36:82",
+      "name": "to",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 36,
+      "start_column": 82,
+      "end_line": 36,
+      "end_column": 84,
+      "start_byte": 1657,
+      "end_byte": 1659,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "resolved_type": "App<()>",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "resolved_type": "App<()>",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+      "resolved_type": "impl Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "resolved_type": "App<()>",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+      "resolved_type": "impl Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+      "resolved_type": "impl Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "resolved_type": "App<()>",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+      "resolved_type": "impl Responder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "actix.mount.v1",
+      "capture_name": "mount",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "start_line": 23,
+      "start_column": 23,
+      "end_line": 23,
+      "end_column": 76,
+      "start_byte": 1081,
+      "end_byte": 1134,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "actix",
+        "mount_path": "/admin/{tenant}",
+        "mount_target": "admin_config",
+        "normalized_mount_path": "/admin/:tenant",
+        "pattern_version": 1,
+        "query_family": "framework"
+      }
+    },
+    {
+      "pattern_id": "actix.mount.v1",
+      "capture_name": "mount",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "start_line": 28,
+      "start_column": 23,
+      "end_line": 28,
+      "end_column": 67,
+      "start_byte": 1274,
+      "end_byte": 1318,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "actix",
+        "mount_path": "/reports",
+        "mount_target": "report_index",
+        "normalized_mount_path": "/reports",
+        "pattern_version": 1,
+        "query_family": "framework"
+      }
+    },
+    {
+      "pattern_id": "actix.scope_route.v1",
+      "capture_name": "scope_route",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 12,
+      "start_column": 8,
+      "end_line": 13,
+      "end_column": 54,
+      "start_byte": 614,
+      "end_byte": 687,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "call_routing",
+        "dynamic_segments": [
+          "id"
+        ],
+        "effective_route_template": "/api/users/{id}",
+        "framework": "actix",
+        "normalized_route_template": "/api/users/:id",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_group_prefix": "/api",
+        "route_template": "/users/{id}",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "actix.scope_route.v1",
+      "capture_name": "scope_route",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 12,
+      "start_column": 8,
+      "end_line": 14,
+      "end_column": 52,
+      "start_byte": 614,
+      "end_byte": 740,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "call_routing",
+        "effective_route_template": "/api/users",
+        "framework": "actix",
+        "normalized_route_template": "/api/users",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_group_prefix": "/api",
+        "route_template": "/users",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "actix.scope_route.v1",
+      "capture_name": "scope_route",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 12,
+      "start_column": 8,
+      "end_line": 16,
+      "end_column": 54,
+      "start_byte": 614,
+      "end_byte": 862,
+      "confidence": "1.000",
+      "metadata": {
+        "api_style": "call_routing",
+        "effective_route_template": "/api/health",
+        "framework": "actix",
+        "normalized_route_template": "/api/health",
+        "pattern_version": 1,
+        "query_family": "framework",
+        "route_group_prefix": "/api",
+        "route_template": "/health"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 53,
+      "covered_bytes": 2019,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 53,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 2019,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_config:52:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 52,
+      "start_column": 47,
+      "end_line": 52,
+      "end_column": 49,
+      "start_byte": 2016,
+      "end_byte": 2018,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 81,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 22,
+      "start_column": 32,
+      "end_line": 24,
+      "end_column": 1,
+      "start_byte": 1056,
+      "end_byte": 1137,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 9,
+      "covered_bytes": 291,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 10,
+      "start_column": 30,
+      "end_line": 18,
+      "end_column": 1,
+      "start_byte": 580,
+      "end_byte": 871,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:create:42:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 40,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 42,
+      "start_column": 36,
+      "end_line": 44,
+      "end_column": 1,
+      "start_byte": 1777,
+      "end_byte": 1817,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 5,
+      "covered_bytes": 182,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 33,
+      "start_column": 51,
+      "end_line": 37,
+      "end_column": 1,
+      "start_byte": 1487,
+      "end_byte": 1669,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:health:45:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 35,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 45,
+      "start_column": 36,
+      "end_line": 47,
+      "end_column": 1,
+      "start_byte": 1854,
+      "end_byte": 1889,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:report_index:48:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 35,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 48,
+      "start_column": 42,
+      "end_line": 50,
+      "end_column": 1,
+      "start_byte": 1932,
+      "end_byte": 1967,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 72,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 27,
+      "start_column": 34,
+      "end_line": 29,
+      "end_column": 1,
+      "start_byte": 1249,
+      "end_byte": 1321,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:show:39:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 35,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 39,
+      "start_column": 34,
+      "end_line": 41,
+      "end_column": 1,
+      "start_byte": 1705,
+      "end_byte": 1740,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/admin/{tenant}",
+      "kind": "other",
+      "carrier": "web.scope",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 23,
+      "start_column": 34,
+      "end_line": 23,
+      "end_column": 51,
+      "start_byte": 1092,
+      "end_byte": 1109,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/api",
+      "kind": "other",
+      "carrier": "web.scope",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 12,
+      "start_column": 19,
+      "end_line": 12,
+      "end_column": 25,
+      "start_byte": 625,
+      "end_byte": 631,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/api",
+      "kind": "other",
+      "carrier": "web.scope",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 36,
+      "start_column": 28,
+      "end_line": 36,
+      "end_column": 34,
+      "start_byte": 1603,
+      "end_byte": 1609,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/health",
+      "kind": "other",
+      "carrier": "web::scope(\"/api\")\n            .route(\"/users/{id}\", web::get().to(show))\n            .route(\"/users\", web::post().to(create)).route",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 16,
+      "start_column": 19,
+      "end_line": 16,
+      "end_column": 28,
+      "start_byte": 827,
+      "end_byte": 836,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/reports",
+      "kind": "other",
+      "carrier": "web.scope",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 28,
+      "start_column": 34,
+      "end_line": 28,
+      "end_column": 44,
+      "start_byte": 1285,
+      "end_byte": 1295,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/u/{id}",
+      "kind": "other",
+      "carrier": "format",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 36,
+      "start_column": 50,
+      "end_line": 36,
+      "end_column": 59,
+      "start_byte": 1625,
+      "end_byte": 1634,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users",
+      "kind": "other",
+      "carrier": "web::scope(\"/api\")\n            .route(\"/users/{id}\", web::get().to(show)).route",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 14,
+      "start_column": 19,
+      "end_line": 14,
+      "end_column": 27,
+      "start_byte": 707,
+      "end_byte": 715,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users/{id}",
+      "kind": "other",
+      "carrier": "web::scope(\"/api\").route",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 13,
+      "start_column": 19,
+      "end_line": 13,
+      "end_column": 32,
+      "start_byte": 652,
+      "end_byte": 665,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/x",
+      "kind": "other",
+      "carrier": "web::scope(&prefix).route",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "start_line": 35,
+      "start_column": 43,
+      "end_line": 35,
+      "end_column": 47,
+      "start_byte": 1547,
+      "end_byte": 1551,
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 15,
+      "start_column": 12,
+      "end_line": 15,
+      "end_column": 66,
+      "start_byte": 753,
+      "end_byte": 807,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 80,
+      "start_byte": 0,
+      "end_byte": 80,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 80,
+      "start_byte": 81,
+      "end_byte": 161,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 74,
+      "start_byte": 162,
+      "end_byte": 236,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 36,
+      "start_byte": 237,
+      "end_byte": 273,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "start_line": 20,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 0,
+      "start_byte": 873,
+      "end_byte": 955,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "start_line": 21,
+      "start_column": 0,
+      "end_line": 22,
+      "end_column": 0,
+      "start_byte": 955,
+      "end_byte": 1024,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 327,
+      "end_byte": 407,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 8,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 0,
+      "start_byte": 407,
+      "end_byte": 486,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 0,
+      "start_byte": 486,
+      "end_byte": 550,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "start_line": 31,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 0,
+      "start_byte": 1323,
+      "end_byte": 1402,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "start_line": 32,
+      "start_column": 0,
+      "end_line": 33,
+      "end_column": 0,
+      "start_byte": 1402,
+      "end_byte": 1436,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "start_line": 26,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 0,
+      "start_byte": 1139,
+      "end_byte": 1215,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:admin_scope:22:0",
+      "start_line": 23,
+      "start_column": 34,
+      "end_line": 23,
+      "end_column": 51,
+      "start_byte": 1092,
+      "end_byte": 1109,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 12,
+      "start_column": 19,
+      "end_line": 12,
+      "end_column": 25,
+      "start_byte": 625,
+      "end_byte": 631,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 13,
+      "start_column": 19,
+      "end_line": 13,
+      "end_column": 32,
+      "start_byte": 652,
+      "end_byte": 665,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 14,
+      "start_column": 19,
+      "end_line": 14,
+      "end_column": 27,
+      "start_byte": 707,
+      "end_byte": 715,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:api_scope:10:0",
+      "start_line": 16,
+      "start_column": 19,
+      "end_line": 16,
+      "end_column": 28,
+      "start_byte": 827,
+      "end_byte": 836,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "start_line": 35,
+      "start_column": 43,
+      "end_line": 35,
+      "end_column": 47,
+      "start_byte": 1547,
+      "end_byte": 1551,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "start_line": 36,
+      "start_column": 28,
+      "end_line": 36,
+      "end_column": 34,
+      "start_byte": 1603,
+      "end_byte": 1609,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:dynamic:33:0",
+      "start_line": 36,
+      "start_column": 50,
+      "end_line": 36,
+      "end_column": 59,
+      "start_byte": 1625,
+      "end_byte": 1634,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "containing_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:reports_scope:27:0",
+      "start_line": 28,
+      "start_column": 34,
+      "end_line": 28,
+      "end_column": 44,
+      "start_byte": 1285,
+      "end_byte": 1295,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:type_usage:10:22",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "()",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:type_usage:22:24",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "()",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:type_usage:27:26",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "()",
+          "children": []
+        }
+      ]
+    },
+    {
+      "identifier_key": "fixtures/extraction/rust/actix_scope_routes/source.rs:App:type_usage:33:43",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/actix_scope_routes/source.rs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "()",
+          "children": []
+        }
+      ]
+    }
+  ]
+}
