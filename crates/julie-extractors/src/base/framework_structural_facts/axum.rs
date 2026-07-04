@@ -34,10 +34,12 @@
 //! `.route`/`.nest` are called on a `Router`. The receiver is single-assignment
 //! traced same-file: a `Router::new()` chain (inline or via a variable assigned to
 //! one) is a confirmed router; a variable also assigned a *conflicting non-router*
-//! value is **poisoned** and its `.route`/`.nest` calls stay silent (M2 — we can
-//! no longer confirm the receiver is an axum `Router`). A receiver we never see
-//! assigned (a function parameter / return value — the common
-//! `fn routes(app: Router) -> Router` idiom) is *unknown*, not poisoned, so its
+//! value is **poisoned**; a variable whose every assignment provably roots at a
+//! non-router value (`let registry = build_registry();`) is **suppressed**. Both
+//! poisoned and suppressed receivers stay silent (M2 — we can no longer confirm,
+//! or have positively disproven, the receiver is an axum `Router`). A receiver we
+//! never see assigned (a function parameter / return value — the common
+//! `fn routes(app: Router) -> Router` idiom) is *unknown*, not suppressed, so its
 //! routes still emit.
 //!
 //! ## Route param flavor & the axum 0.7/0.8 under-report
@@ -94,9 +96,10 @@ pub(super) fn collect_axum_routes(
     facts
 }
 
-/// Confirmed/poisoned state of a same-file `let`-bound router variable. A name
-/// absent from the map is *unknown* (e.g. a function parameter) and is treated as
-/// acceptable, so `fn add(app: Router) { app.route(...) }` still emits.
+/// Confirmed / poisoned / suppressed state of a same-file `let`-bound router
+/// variable. A name absent from the map is *unknown* (e.g. a function parameter)
+/// and is treated as acceptable, so `fn add(app: Router) { app.route(...) }`
+/// still emits.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ReceiverState {
     /// Every assignment roots at `Router::new()` (or another confirmed router).
@@ -104,6 +107,11 @@ enum ReceiverState {
     /// A `Router::new()` assignment plus a conflicting non-router assignment —
     /// the variable can no longer be confirmed as an axum `Router` (M2 silence).
     Poisoned,
+    /// The variable is assigned in-file but every assignment provably roots at a
+    /// non-router value (`let registry = build_registry();`), so we have positive
+    /// proof it is *not* an axum `Router`. Suppresses like `Poisoned` (M2) — this
+    /// is what separates a locally-known non-router from an unknown parameter.
+    Suppressed,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -151,7 +159,7 @@ fn try_route(
     if method != "route" {
         return;
     }
-    if receiver_is_poisoned(receiver, content, receivers) {
+    if receiver_is_suppressed(receiver, content, receivers) {
         return;
     }
     let args = call_arguments(call);
@@ -219,7 +227,7 @@ fn try_nest(
     if method != "nest" {
         return;
     }
-    if receiver_is_poisoned(receiver, content, receivers) {
+    if receiver_is_suppressed(receiver, content, receivers) {
         return;
     }
     let args = call_arguments(call);
@@ -367,33 +375,43 @@ fn dedup_verbs(verbs: Vec<VerbClass>) -> Vec<Option<VerbClass>> {
 // receiver single-assignment tracing (design §4.3)
 // ---------------------------------------------------------------------------
 
-/// Scan same-file `let name = <expr>;` bindings and build the confirmed/poisoned
-/// state of every router variable, resolving `let app = app.route(...)`
-/// self-chains and cross-variable aliases to a fixpoint (mirrors the Go
-/// single-assignment model). A name with only non-router assignments is left out
-/// of the map (unknown, not poisoned).
+/// Scan same-file `let name = <expr>;` bindings and build the
+/// confirmed/poisoned/suppressed state of every router variable, resolving
+/// `let app = app.route(...)` self-chains and cross-variable aliases to a
+/// fixpoint (mirrors the Go single-assignment model). A name we can prove roots
+/// only at non-router values becomes [`ReceiverState::Suppressed`]; a name never
+/// assigned in-file (a parameter/field) is left out of the map (unknown → emit).
 fn collect_router_receivers(root: Node, content: &str) -> HashMap<String, ReceiverState> {
     // Per-name assignment roots discovered in a single tree walk.
     let mut assignments: HashMap<String, Vec<AssignRoot>> = HashMap::new();
     collect_assignments(root, content, &mut assignments);
 
-    // Fixpoint: a name is router-ish if any assignment roots at `Router::new()`
-    // or at another (already router-ish) name; poisoned if it is router-ish and
-    // also carries a conflicting non-router (`Other`) assignment.
-    let mut router_ish: HashMap<String, bool> = HashMap::new();
+    // Fixpoint: a name *could* be a router if any assignment roots at
+    // `Router::new()`, aliases another maybe-router name, or aliases an ABSENT
+    // name (a parameter/field we cannot prove is a non-router). A name whose
+    // every assignment provably roots at a non-router value never enters this set
+    // and is suppressed below. This is the inverse of the confirmed-router
+    // fixpoint: unknown aliases stay permissive here so `let b = param;` still
+    // emits, while `let registry = build_registry();` does not.
+    let mut maybe_router: HashMap<String, bool> = HashMap::new();
     loop {
         let mut changed = false;
         for (name, roots) in &assignments {
-            if router_ish.get(name).copied().unwrap_or(false) {
+            if maybe_router.get(name).copied().unwrap_or(false) {
                 continue;
             }
-            let is_router = roots.iter().any(|root| match root {
+            let could_be_router = roots.iter().any(|root| match root {
                 AssignRoot::RouterNew => true,
-                AssignRoot::Ident(other) => router_ish.get(other).copied().unwrap_or(false),
+                // An absent alias target is an unknown (parameter) — it could be a
+                // router; a present target follows its own maybe-router state.
+                AssignRoot::Ident(other) => {
+                    !assignments.contains_key(other)
+                        || maybe_router.get(other).copied().unwrap_or(false)
+                }
                 AssignRoot::Other => false,
             });
-            if is_router {
-                router_ish.insert(name.clone(), true);
+            if could_be_router {
+                maybe_router.insert(name.clone(), true);
                 changed = true;
             }
         }
@@ -404,9 +422,12 @@ fn collect_router_receivers(root: Node, content: &str) -> HashMap<String, Receiv
 
     let mut states = HashMap::new();
     for (name, roots) in assignments {
-        if !router_ish.get(&name).copied().unwrap_or(false) {
+        if !maybe_router.get(&name).copied().unwrap_or(false) {
+            // Every assignment provably roots at a non-router value → suppress.
+            states.insert(name, ReceiverState::Suppressed);
             continue;
         }
+        // Could be a router; a conflicting non-router root poisons it (M2).
         let poisoned = roots.iter().any(|root| matches!(root, AssignRoot::Other));
         states.insert(
             name,
@@ -537,20 +558,22 @@ fn scoped_is_router_new(scoped: Node, content: &str) -> bool {
     }
 }
 
-/// Whether a `.route`/`.nest` receiver expression resolves to a *poisoned* router
-/// variable — the one case that suppresses emission. A `Router::new()` chain, a
-/// confirmed router variable, or an unknown receiver (function parameter / field)
-/// all return `false` (emit).
-fn receiver_is_poisoned(
+/// Whether a `.route`/`.nest` receiver expression resolves to a *suppressed*
+/// router variable — a `Poisoned` one (a `Router::new()` value later reassigned a
+/// non-router) or a `Suppressed` one (a variable proven non-router in-file). A
+/// `Router::new()` chain, a confirmed router variable, or an unknown receiver
+/// (function parameter / field) all return `false` (emit).
+fn receiver_is_suppressed(
     receiver: Node,
     content: &str,
     receivers: &HashMap<String, ReceiverState>,
 ) -> bool {
     match value_root(receiver, content) {
-        AssignRoot::Ident(name) => {
-            matches!(receivers.get(&name), Some(ReceiverState::Poisoned))
-        }
-        // `Router::new()` chains and non-identifier receivers are never poisoned.
+        AssignRoot::Ident(name) => matches!(
+            receivers.get(&name),
+            Some(ReceiverState::Poisoned | ReceiverState::Suppressed)
+        ),
+        // `Router::new()` chains and non-identifier receivers are never suppressed.
         AssignRoot::RouterNew | AssignRoot::Other => false,
     }
 }

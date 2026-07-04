@@ -1320,3 +1320,67 @@ fn rust_reqwest_requires_import() {
     let facts = client_requests(&results);
     assert!(facts.is_empty(), "no reqwest import → no client requests");
 }
+
+#[test]
+fn rust_reqwest_builder_unproven_receiver_stays_silent() {
+    // F2 regression (codex): the builder verb arm must PROVE its receiver is a
+    // reqwest client before emitting. `store` is single-assigned from a
+    // non-reqwest constructor, so a `/`-rooted `store.delete("/cache/key")` /
+    // `store.get("/ns/key")` (which classify as "path", not "relative", and so
+    // slip past the url-like guard) must stay silent in a reqwest-import file.
+    let source = r#"use reqwest::Client;
+
+async fn load() {
+    let store = SomeStore::new();
+    store.delete("/cache/key");
+    store.get("/ns/key");
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "unproven builder receiver must stay silent, got {facts:#?}"
+    );
+}
+
+#[test]
+fn rust_reqwest_proven_receivers_still_emit() {
+    // F2 no-regression: every PROVEN reqwest receiver keeps emitting — the scoped
+    // free function, an inline `reqwest::Client::new()` ctor chain, a local var
+    // single-assigned from a client ctor, and a `&reqwest::Client` typed
+    // parameter (the common injected-client idiom — guards against over-suppression).
+    let source = r#"use reqwest::Client;
+
+async fn load(shared: &reqwest::Client) {
+    reqwest::get("https://api.example.com/a").await;
+    reqwest::Client::new().post("https://api.example.com/b").await;
+    let client = reqwest::Client::new();
+    client.get("https://api.example.com/c").await;
+    shared.delete("https://api.example.com/d").await;
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let facts = client_requests(&results);
+    let paths: std::collections::HashSet<_> = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "target_path"))
+        .collect();
+    assert!(
+        paths.contains("https://api.example.com/a"),
+        "scoped reqwest::get must emit: {facts:#?}"
+    );
+    assert!(
+        paths.contains("https://api.example.com/b"),
+        "inline reqwest::Client::new() builder must emit: {facts:#?}"
+    );
+    assert!(
+        paths.contains("https://api.example.com/c"),
+        "var single-assigned from a client ctor must emit: {facts:#?}"
+    );
+    assert!(
+        paths.contains("https://api.example.com/d"),
+        "a `&reqwest::Client` typed parameter must emit: {facts:#?}"
+    );
+    assert_eq!(facts.len(), 4, "exactly the four proven requests: {facts:#?}");
+}

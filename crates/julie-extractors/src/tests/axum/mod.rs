@@ -250,6 +250,53 @@ fn app() {
 }
 
 #[test]
+fn axum_local_non_router_receiver_suppresses_routes_and_nests() {
+    // F1 regression (codex): `registry` is assigned ONLY from a non-router call
+    // (`build_registry()`), so the in-file assignment PROVES it is not an axum
+    // `Router`. Its `.route`/`.nest` calls must stay silent — a locally-known
+    // non-router receiver is suppressed like a poisoned one, unlike an absent
+    // (parameter) receiver which stays permissive.
+    let source = r#"use axum::{routing::get, Router};
+
+fn app() {
+    let registry = build_registry();
+    registry.route("/health", get(health));
+    registry.nest("/api", api_routes());
+}
+"#;
+    let results = extract("src/main.rs", source);
+    assert!(
+        facts_with_pattern(&results, AXUM_ROUTE_PATTERN_ID).is_empty(),
+        "locally-known non-router receiver must not emit routes: {:#?}",
+        facts_with_pattern(&results, AXUM_ROUTE_PATTERN_ID)
+    );
+    assert!(
+        facts_with_pattern(&results, AXUM_NEST_PATTERN_ID).is_empty(),
+        "locally-known non-router receiver must not emit nests"
+    );
+}
+
+#[test]
+fn axum_alias_of_local_non_router_receiver_stays_silent() {
+    // F1 regression: an alias chain to a proven non-router
+    // (`let r2 = registry;`) is also suppressed — the proof follows aliases.
+    let source = r#"use axum::{routing::get, Router};
+
+fn app() {
+    let registry = build_registry();
+    let r2 = registry;
+    r2.route("/health", get(health));
+}
+"#;
+    let results = extract("src/main.rs", source);
+    assert!(
+        facts_with_pattern(&results, AXUM_ROUTE_PATTERN_ID).is_empty(),
+        "alias of a locally-known non-router receiver must stay silent: {:#?}",
+        facts_with_pattern(&results, AXUM_ROUTE_PATTERN_ID)
+    );
+}
+
+#[test]
 fn axum_dynamic_paths_stay_silent() {
     // `format!`, concatenation, and const/identifier paths must all emit nothing
     // (M2 silence via the shared Rust static guard).

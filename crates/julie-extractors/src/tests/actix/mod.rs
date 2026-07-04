@@ -328,6 +328,91 @@ fn config(id: u32) -> App<()> {
     );
 }
 
+#[test]
+fn actix_scope_route_method_guard_attests_verb() {
+    // F3 regression (codex): `web::route().guard(guard::Get())` restricts the
+    // route to GET, so the attested verb must be recorded. A verb-less fact would
+    // let a non-GET client falsely join this GET-only handler.
+    let source = r#"use actix_web::{guard, web, App};
+
+fn config() -> App<()> {
+    App::new().service(
+        web::scope("/api").route("/x", web::route().guard(guard::Get()).to(handler)),
+    )
+}
+"#;
+    let results = extract("src/main.rs", source);
+    let routes = facts_with_pattern(&results, ACTIX_SCOPE_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "verb"), Some("GET"));
+    assert_eq!(metadata_str(routes[0], "verb_source"), Some("attested"));
+    assert_eq!(metadata_str(routes[0], "route_group_prefix"), Some("/api"));
+    assert_eq!(
+        metadata_str(routes[0], "effective_route_template"),
+        Some("/api/x")
+    );
+}
+
+#[test]
+fn actix_scope_route_qualified_method_guard_attests_verb() {
+    // The qualified guard path `actix_web::guard::Post()` attests just as
+    // `guard::Post()` does.
+    let source = r#"use actix_web::{web, App};
+
+fn config() -> App<()> {
+    App::new().service(
+        web::scope("/api").route("/y", web::route().guard(actix_web::guard::Post()).to(handler)),
+    )
+}
+"#;
+    let results = extract("src/main.rs", source);
+    let routes = facts_with_pattern(&results, ACTIX_SCOPE_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "verb"), Some("POST"));
+    assert_eq!(metadata_str(routes[0], "verb_source"), Some("attested"));
+}
+
+#[test]
+fn actix_scope_route_non_method_guard_stays_verbless() {
+    // A non-method guard (`guard::Header`) on `web::route()` does not attest a
+    // verb, so the route stays genuinely method-agnostic (verb-less) — not a
+    // guessed GET.
+    let source = r#"use actix_web::{guard, web, App};
+
+fn config() -> App<()> {
+    App::new().service(
+        web::scope("/api").route("/x", web::route().guard(guard::Header("x", "y")).to(handler)),
+    )
+}
+"#;
+    let results = extract("src/main.rs", source);
+    let routes = facts_with_pattern(&results, ACTIX_SCOPE_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 1, "{routes:#?}");
+    assert_eq!(metadata_str(routes[0], "verb"), None);
+    assert_eq!(metadata_str(routes[0], "verb_source"), None);
+}
+
+#[test]
+fn actix_scope_route_unparsable_method_guard_stays_silent() {
+    // `guard::Method(...)` restricts the method but its verb lives in an argument
+    // we do not parse — emitting verb-less would wrongly claim any-method, so the
+    // route stays silent (M2: a mis-attested join is worse than a miss).
+    let source = r#"use actix_web::{guard, web, App};
+
+fn config() -> App<()> {
+    App::new().service(
+        web::scope("/api").route("/x", web::route().guard(guard::Method(Method::GET)).to(handler)),
+    )
+}
+"#;
+    let results = extract("src/main.rs", source);
+    assert!(
+        facts_with_pattern(&results, ACTIX_SCOPE_ROUTE_PATTERN_ID).is_empty(),
+        "unparsable method guard must stay silent: {:#?}",
+        facts_with_pattern(&results, ACTIX_SCOPE_ROUTE_PATTERN_ID)
+    );
+}
+
 // ---------------------------------------------------------------------------
 // actix.mount.v1
 // ---------------------------------------------------------------------------
@@ -478,3 +563,4 @@ fn app() -> Router {
     assert_eq!(facts_with_pattern(&results, AXUM_ROUTE_PATTERN_ID).len(), 2);
     assert_eq!(facts_with_pattern(&results, AXUM_NEST_PATTERN_ID).len(), 1);
 }
+

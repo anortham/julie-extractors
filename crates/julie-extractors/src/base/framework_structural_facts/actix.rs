@@ -329,25 +329,163 @@ impl VerbClass {
 /// (`web::post().to(handler)`), or `None` when the argument is not a
 /// `web::<verb>()` builder — which is how axum's bare-identifier `get(h)` method
 /// router (and every non-actix shape) is rejected. Middleware chained after the
-/// verb (`.wrap(m)` / `.guard(g)` / `.to(h)`) is transparent; the chain must
-/// bottom out at a `web::<verb>()` / `web::route()` scoped call.
+/// verb (`.wrap(m)` / `.to(h)`) is transparent; the chain must bottom out at a
+/// `web::<verb>()` / `web::route()` scoped call.
+///
+/// A `web::route()` base is method-agnostic, but a chained method guard
+/// (`.guard(guard::Get())`) attests the verb: a lone method guard promotes the
+/// route to that verb, while an unparsable method guard (`guard::Method(...)`) or
+/// conflicting method guards make the effective verb unknowable and stay silent
+/// (M2 — a verb-less fact would wrongly claim any-method).
 fn actix_method_router_verb(arg: Node, content: &str) -> Option<VerbClass> {
     let mut node = arg;
+    let mut guard_verbs: Vec<&'static str> = Vec::new();
+    let mut ambiguous_method_guard = false;
     loop {
         if node.kind() != "call_expression" {
             return None;
         }
         let function = node.child_by_field_name("function")?;
         match function.kind() {
-            // Base of the chain: `web::post()` — must be a `web::<verb>` call.
-            "scoped_identifier" => return actix_web_verb(function, content),
-            // Chained call: `web::post().to(h)` / `.wrap(m)` — descend the receiver.
+            // Base of the chain: `web::post()` / `web::route()`.
+            "scoped_identifier" => {
+                let base = actix_web_verb(function, content)?;
+                return resolve_route_verb(base, &guard_verbs, ambiguous_method_guard);
+            }
+            // Chained call: `.to(h)` / `.wrap(m)` / `.guard(g)` — descend the
+            // receiver, recording any method guard along the way.
             "field_expression" => {
+                if node_text(content, function.child_by_field_name("field")?)? == "guard" {
+                    match method_guard_verb(node, content) {
+                        GuardKind::Method(verb) => guard_verbs.push(verb),
+                        GuardKind::AmbiguousMethod => ambiguous_method_guard = true,
+                        GuardKind::Other => {}
+                    }
+                }
                 node = function.child_by_field_name("value")?;
             }
             // A bare-identifier base (`get(h)`) is axum, not actix.
             _ => return None,
         }
+    }
+}
+
+/// How a `.guard(<arg>)` call bears on the route's verb.
+enum GuardKind {
+    /// A standard method guard (`guard::Get()`/…) — attests this verb.
+    Method(&'static str),
+    /// A method-restricting guard whose verb we do not parse
+    /// (`guard::Method(...)`) — the route is verb-restricted but to an unknown
+    /// verb, so a `web::route()` chain carrying it must stay silent.
+    AmbiguousMethod,
+    /// A non-method guard (`guard::Header(...)`, a custom guard) — no verb bearing.
+    Other,
+}
+
+/// Resolve the effective verb of a method router from its base and the method
+/// guards chained onto it. An explicit `web::<verb>()` base is unchanged. A
+/// method-agnostic `web::route()` base takes a lone method guard's verb; zero
+/// method guards keep it verb-less; an unparsable or conflicting method guard
+/// makes the verb unknowable and returns `None` (M2 silence).
+fn resolve_route_verb(
+    base: VerbClass,
+    guard_verbs: &[&'static str],
+    ambiguous_method_guard: bool,
+) -> Option<VerbClass> {
+    match base {
+        // Explicit `web::get()` etc. — the verb is already attested; guards on a
+        // verb-specific method router do not change it.
+        VerbClass::Named(verb) => Some(VerbClass::Named(verb)),
+        VerbClass::Any => {
+            if ambiguous_method_guard {
+                return None;
+            }
+            let mut distinct: Vec<&'static str> = Vec::new();
+            for verb in guard_verbs {
+                if !distinct.contains(verb) {
+                    distinct.push(verb);
+                }
+            }
+            match distinct.as_slice() {
+                // No method guard → genuinely any-method → verb omitted.
+                [] => Some(VerbClass::Any),
+                // A lone method guard attests the verb.
+                [verb] => Some(VerbClass::Named(verb)),
+                // Conflicting method guards → verb unknowable → silent (M2).
+                _ => None,
+            }
+        }
+    }
+}
+
+/// Classify a `.guard(<arg>)` call's single argument. Only a lone positional
+/// `guard::<Verb>()` (bare or qualified `actix_web::guard::<Verb>()`) attests a
+/// verb; `guard::Method(...)` is method-restricting but unparsed; any other guard
+/// does not bear on the verb.
+fn method_guard_verb(guard_call: Node, content: &str) -> GuardKind {
+    let args = call_arguments(guard_call);
+    // A verb guard takes no meaningful positional args; `.guard()` with anything
+    // other than one guard-call argument is not a plain verb guard.
+    let [arg] = args.as_slice() else {
+        return GuardKind::Other;
+    };
+    if arg.kind() != "call_expression" {
+        return GuardKind::Other;
+    }
+    let Some(function) = arg.child_by_field_name("function") else {
+        return GuardKind::Other;
+    };
+    if function.kind() != "scoped_identifier" || !scoped_path_is_guard(function, content) {
+        return GuardKind::Other;
+    }
+    let Some(name) = function
+        .child_by_field_name("name")
+        .and_then(|name| node_text(content, name))
+    else {
+        return GuardKind::Other;
+    };
+    match guard_verb(name) {
+        Some(verb) => GuardKind::Method(verb),
+        // `guard::Method(<expr>)` restricts the method but the verb is in an
+        // argument we do not parse.
+        None if name == "Method" => GuardKind::AmbiguousMethod,
+        None => GuardKind::Other,
+    }
+}
+
+/// The uppercase HTTP verb for a standard actix method guard (`guard::Get()` →
+/// `GET`), or `None` for any other guard name.
+fn guard_verb(name: &str) -> Option<&'static str> {
+    match name {
+        "Get" => Some("GET"),
+        "Post" => Some("POST"),
+        "Put" => Some("PUT"),
+        "Patch" => Some("PATCH"),
+        "Delete" => Some("DELETE"),
+        "Head" => Some("HEAD"),
+        "Options" => Some("OPTIONS"),
+        "Trace" => Some("TRACE"),
+        "Connect" => Some("CONNECT"),
+        _ => None,
+    }
+}
+
+/// Whether a `scoped_identifier`'s `path` resolves to `guard` — either the bare
+/// `guard` identifier (`guard::Get`) or a nested path ending in `guard`
+/// (`actix_web::guard::Get`).
+fn scoped_path_is_guard(scoped: Node, content: &str) -> bool {
+    let Some(path) = scoped.child_by_field_name("path") else {
+        return false;
+    };
+    match path.kind() {
+        "identifier" => node_text(content, path) == Some("guard"),
+        // `actix_web::guard::Get` → path is `scoped_identifier` whose name is `guard`.
+        "scoped_identifier" => {
+            path.child_by_field_name("name")
+                .and_then(|inner| node_text(content, inner))
+                == Some("guard")
+        }
+        _ => false,
     }
 }
 
