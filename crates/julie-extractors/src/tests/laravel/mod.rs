@@ -288,7 +288,10 @@ Route::prefix($tenant)->group(function () {
     // The contained route still emits, but with no group prefix (poisoned).
     let routes = facts_with_pattern(&results, LARAVEL_ROUTE_PATTERN_ID);
     assert_eq!(routes.len(), 1, "{routes:#?}");
-    assert_eq!(metadata_str(routes[0], "route_template"), Some("/dashboard"));
+    assert_eq!(
+        metadata_str(routes[0], "route_template"),
+        Some("/dashboard")
+    );
     assert_eq!(metadata_str(routes[0], "route_group_prefix"), None);
     assert_eq!(metadata_str(routes[0], "effective_route_template"), None);
     assert_eq!(

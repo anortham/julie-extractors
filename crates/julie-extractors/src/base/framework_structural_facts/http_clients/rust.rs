@@ -172,10 +172,11 @@ fn scoped_path_is_reqwest(scoped: Node, content: &str) -> bool {
     match path.kind() {
         "identifier" => node_text(content, path) == Some("reqwest"),
         // `some::reqwest::get` — path ends in `reqwest`.
-        "scoped_identifier" => path
-            .child_by_field_name("name")
-            .and_then(|name| node_text(content, name))
-            == Some("reqwest"),
+        "scoped_identifier" => {
+            path.child_by_field_name("name")
+                .and_then(|name| node_text(content, name))
+                == Some("reqwest")
+        }
         _ => false,
     }
 }

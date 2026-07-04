@@ -167,7 +167,10 @@ class SearchController {{
     verbs.sort_unstable();
     assert_eq!(verbs, vec!["GET", "POST"]);
     for fact in &facts {
-        assert_eq!(metadata_str(fact, "attribute_kind"), Some("request_mapping"));
+        assert_eq!(
+            metadata_str(fact, "attribute_kind"),
+            Some("request_mapping")
+        );
         assert_eq!(
             metadata_str(fact, "normalized_route_template"),
             Some("/search/:term")
@@ -195,7 +198,10 @@ class LegacyController {{
     // Verb omission = not verb-restricted.
     assert_eq!(metadata_str(facts[0], "verb"), None);
     assert_eq!(metadata_str(facts[0], "verb_source"), None);
-    assert_eq!(metadata_str(facts[0], "attribute_kind"), Some("request_mapping"));
+    assert_eq!(
+        metadata_str(facts[0], "attribute_kind"),
+        Some("request_mapping")
+    );
     assert_eq!(
         metadata_str(facts[0], "normalized_route_template"),
         Some("/legacy")
@@ -343,7 +349,10 @@ class PoisonedController {{
     // with its own path only.
     assert_eq!(metadata_str(facts[0], "class_route_template"), None);
     assert_eq!(metadata_str(facts[0], "effective_route_template"), None);
-    assert_eq!(metadata_str(facts[0], "route_template"), Some("/users/{id}"));
+    assert_eq!(
+        metadata_str(facts[0], "route_template"),
+        Some("/users/{id}")
+    );
     assert_eq!(
         metadata_str(facts[0], "normalized_route_template"),
         Some("/users/:id")

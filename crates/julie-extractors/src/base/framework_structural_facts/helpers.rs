@@ -40,8 +40,9 @@ pub(super) fn fact_for_span(
     span: NormalizedSpan,
     metadata: HashMap<String, Value>,
 ) -> StructuralFact {
+    let identity_name = identity_name(pattern_id, capture_name, &metadata);
     StructuralFact {
-        id: stable_location_id(file_path, &format!("{pattern_id}:{capture_name}"), span),
+        id: stable_location_id(file_path, &identity_name, span),
         file_path: file_path.to_string(),
         language: language.to_string(),
         pattern_id: pattern_id.to_string(),
@@ -56,6 +57,24 @@ pub(super) fn fact_for_span(
         end_byte: span.end_byte,
         confidence: 1.0,
         metadata: Some(metadata),
+    }
+}
+
+fn identity_name(
+    pattern_id: &str,
+    capture_name: &str,
+    metadata: &HashMap<String, Value>,
+) -> String {
+    let mut parts = Vec::new();
+    for key in ["route_template", "effective_route_template", "verb"] {
+        if let Some(value) = metadata.get(key).and_then(Value::as_str) {
+            parts.push((key, value));
+        }
+    }
+    if parts.is_empty() {
+        format!("{pattern_id}:{capture_name}")
+    } else {
+        format!("{pattern_id}:{capture_name}:{}", serde_json::json!(parts))
     }
 }
 

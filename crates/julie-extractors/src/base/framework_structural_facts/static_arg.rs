@@ -126,7 +126,8 @@ fn elixir_static_quoted<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str>
 
 fn elixir_child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 /// PHP arm: accept a lone `string` (single-quote, never interpolates), an
@@ -198,7 +199,8 @@ fn php_nowdoc_inner_text<'a>(body: Node<'_>, content: &'a str) -> Option<&'a str
 
 fn php_child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 /// Kotlin arm: accept a lone `string_literal` / `multiline_string_literal` that
@@ -235,7 +237,10 @@ fn kotlin_static_string<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str>
             "string_content" => {
                 // A braceless `$id` in a single-line literal is split so a bare
                 // `$` lands here; reject it as (potential) interpolation.
-                if content.get(child.start_byte()..child.end_byte())?.contains('$') {
+                if content
+                    .get(child.start_byte()..child.end_byte())?
+                    .contains('$')
+                {
                     return None;
                 }
                 content_nodes.push(child);
@@ -478,8 +483,14 @@ mod tests {
             (r#"'/u/#{id}'"#, "charlist interpolation child"),
             (r#"~r"/x""#, "~r regex sigil (sigil_name r)"),
             (r#""/a/" <> id"#, "binary_operator <> concat"),
-            (r#"prefix <> "/x""#, "binary_operator <> concat (literal second)"),
-            (r#""/a/" <> "/b""#, "binary_operator <> concat (two literals)"),
+            (
+                r#"prefix <> "/x""#,
+                "binary_operator <> concat (literal second)",
+            ),
+            (
+                r#""/a/" <> "/b""#,
+                "binary_operator <> concat (two literals)",
+            ),
             ("@path", "unary_operator module-attribute reference"),
             ("path", "identifier reference"),
             ("PathModule", "alias module reference"),
@@ -580,18 +591,39 @@ mod tests {
         // form the whole-argument allowlist rejects.
         for (expr, why) in [
             (r#"'/u/' . $id"#, "binary_expression `.` concat"),
-            (r#"$prefix . '/x'"#, "binary_expression `.` concat (literal second)"),
-            (r#"self::PREFIX . '/x'"#, "class_constant_access_expression concat"),
+            (
+                r#"$prefix . '/x'"#,
+                "binary_expression `.` concat (literal second)",
+            ),
+            (
+                r#"self::PREFIX . '/x'"#,
+                "class_constant_access_expression concat",
+            ),
             ("self::PREFIX", "class_constant_access_expression const ref"),
             ("Foo::BAR", "class_constant_access_expression const ref"),
             ("PREFIX", "bare name constant reference"),
             (r#""/u/$id""#, "encapsed variable_name interpolation ($id)"),
-            (r#""/u/{$id}""#, "encapsed variable_name interpolation ({$id})"),
-            (r#""/u/${id}""#, "encapsed dynamic_variable_name interpolation (${id})"),
-            (r#""/u/{$user->id}""#, "encapsed member_access_expression interpolation"),
-            (r#""/u/$arr[0]""#, "encapsed subscript_expression interpolation"),
+            (
+                r#""/u/{$id}""#,
+                "encapsed variable_name interpolation ({$id})",
+            ),
+            (
+                r#""/u/${id}""#,
+                "encapsed dynamic_variable_name interpolation (${id})",
+            ),
+            (
+                r#""/u/{$user->id}""#,
+                "encapsed member_access_expression interpolation",
+            ),
+            (
+                r#""/u/$arr[0]""#,
+                "encapsed subscript_expression interpolation",
+            ),
             (r#""$base""#, "whole-string variable interpolation"),
-            ("<<<EOT\n/u/$id\nEOT", "heredoc body variable_name interpolation"),
+            (
+                "<<<EOT\n/u/$id\nEOT",
+                "heredoc body variable_name interpolation",
+            ),
             ("$id", "variable_name reference"),
             (r#"['/a', '/b']"#, "array_creation_expression"),
             ("42", "integer (non-string)"),
@@ -649,7 +681,11 @@ mod tests {
             (r#""/users/{id}""#, "/users/{id}", "string_literal"),
             (r#""""#, "", "string_literal"),
             (r#""/a/b/""#, "/a/b/", "string_literal"),
-            (r#""""/plain/multi""""#, "/plain/multi", "multiline_string_literal"),
+            (
+                r#""""/plain/multi""""#,
+                "/plain/multi",
+                "multiline_string_literal",
+            ),
             (r#""""/a/{id}""""#, "/a/{id}", "multiline_string_literal"),
         ] {
             with_kotlin_arg(expr, |node, content| {
@@ -669,13 +705,19 @@ mod tests {
         // form the whole-argument allowlist rejects.
         for (expr, why) in [
             (r#""${base}/x""#, "${...} interpolation child"),
-            (r#""$base/x""#, "braceless $id interpolation (split content, no node)"),
+            (
+                r#""$base/x""#,
+                "braceless $id interpolation (split content, no node)",
+            ),
             (r#""$base""#, "whole-string braceless interpolation"),
             (r#""a$b/c""#, "mid-string braceless interpolation"),
             (r#""""/a/${x}""""#, "multiline ${...} interpolation"),
             (r#""""$base/x""""#, "multiline braceless interpolation node"),
             (r#""/a/" + suffix"#, "binary_expression concat"),
-            (r#"suffix + "/a""#, "binary_expression concat (literal second)"),
+            (
+                r#"suffix + "/a""#,
+                "binary_expression concat (literal second)",
+            ),
             ("PATHS", "identifier / const reference"),
             ("PATHS.USER", "navigation_expression member access"),
             (r#"["/a", "/b"]"#, "collection_literal array"),

@@ -70,11 +70,12 @@ end
     assert_eq!(metadata_str(user, "controller_action"), Some("users#show"));
     assert_eq!(metadata_str(user, "route_name"), Some("user"));
 
-    let search_verbs = routes
+    let mut search_verbs = routes
         .iter()
         .filter(|fact| metadata_str(fact, "route_template") == Some("/search"))
         .filter_map(|fact| metadata_str(fact, "verb"))
         .collect::<Vec<_>>();
+    search_verbs.sort_unstable();
     assert_eq!(search_verbs, vec!["GET", "POST"]);
 
     let resources = facts_with_pattern(&results, RAILS_RESOURCE_ROUTE_PATTERN_ID);

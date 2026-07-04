@@ -89,9 +89,15 @@ fn walk(
     if matches!(
         node.kind(),
         "scoped_call_expression" | "member_call_expression"
-    ) && let Some(fact) =
-        client_request_fact(node, guzzle, http_facade, language, tree, file_path, content)
-    {
+    ) && let Some(fact) = client_request_fact(
+        node,
+        guzzle,
+        http_facade,
+        language,
+        tree,
+        file_path,
+        content,
+    ) {
         facts.push(fact);
     }
     let mut cursor = node.walk();
@@ -167,7 +173,8 @@ fn client_root(call: Node, content: &str) -> Option<ClientRoot> {
                     .map(|name| ClientRoot::Facade(name.to_string()));
             }
             "name" => {
-                return node_text(content, receiver).map(|name| ClientRoot::Facade(name.to_string()));
+                return node_text(content, receiver)
+                    .map(|name| ClientRoot::Facade(name.to_string()));
             }
             "variable_name" => return Some(ClientRoot::Variable),
             _ => return None,

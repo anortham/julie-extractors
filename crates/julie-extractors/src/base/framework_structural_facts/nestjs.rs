@@ -147,7 +147,7 @@ fn collect_class_body_routes(
             "decorator" => pending.push(child),
             "comment" => {}
             "method_definition" => {
-                let mut decorators: Vec<Node> = pending.drain(..).collect();
+                let mut decorators = std::mem::take(&mut pending);
                 collect_child_decorators(child, &mut decorators);
                 emit_method_routes(
                     language,
@@ -434,7 +434,11 @@ fn nestjs_route_fact(
         &normalized.template,
     );
     if !normalized.dynamic_segments.is_empty() {
-        insert_string_array(&mut metadata, "dynamic_segments", normalized.dynamic_segments);
+        insert_string_array(
+            &mut metadata,
+            "dynamic_segments",
+            normalized.dynamic_segments,
+        );
     }
     if let Some(prefix) = class_route_template {
         insert_string(&mut metadata, "class_route_template", prefix);

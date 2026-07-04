@@ -94,16 +94,52 @@ fn walk(
     content: &str,
     facts: &mut Vec<StructuralFact>,
 ) {
-    if try_scope(node, prefix_stack, language, tree, file_path, content, facts)
-        || try_route(node, prefix_stack, language, tree, file_path, content, facts)
-        || try_resource(node, prefix_stack, language, tree, file_path, content, facts)
-        || try_forward(node, prefix_stack, language, tree, file_path, content, facts)
-    {
+    if try_scope(
+        node,
+        prefix_stack,
+        language,
+        tree,
+        file_path,
+        content,
+        facts,
+    ) || try_route(
+        node,
+        prefix_stack,
+        language,
+        tree,
+        file_path,
+        content,
+        facts,
+    ) || try_resource(
+        node,
+        prefix_stack,
+        language,
+        tree,
+        file_path,
+        content,
+        facts,
+    ) || try_forward(
+        node,
+        prefix_stack,
+        language,
+        tree,
+        file_path,
+        content,
+        facts,
+    ) {
         return;
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, prefix_stack, language, tree, file_path, content, facts);
+        walk(
+            child,
+            prefix_stack,
+            language,
+            tree,
+            file_path,
+            content,
+            facts,
+        );
     }
 }
 
@@ -293,7 +329,11 @@ fn try_resource(
     let mut metadata = base_metadata("framework", "phoenix");
     insert_string(&mut metadata, "api_style", "resource_routing");
     insert_string(&mut metadata, "resource_path", path);
-    insert_string(&mut metadata, "normalized_resource_path", &normalized.template);
+    insert_string(
+        &mut metadata,
+        "normalized_resource_path",
+        &normalized.template,
+    );
     if let Some(controller) = controller {
         insert_string(&mut metadata, "controller", &controller);
     }

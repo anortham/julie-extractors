@@ -2857,7 +2857,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("api_style", STR, ALWAYS, "Routing style (\"call_routing\")."),
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"call_routing\").",
+            ),
             key(
                 "route_template",
                 STR,
@@ -2894,7 +2899,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 OPT,
                 "Uppercase HTTP method; omitted for Route::any (accepts any method).",
             ),
-            key("verb_source", STR, OPT, "How the verb was attested (\"attested\")."),
+            key(
+                "verb_source",
+                STR,
+                OPT,
+                "How the verb was attested (\"attested\").",
+            ),
             key(
                 "controller_action",
                 STR,
@@ -2953,7 +2963,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("mount_path", STR, ALWAYS, "Raw static prefix literal at this site."),
+            key(
+                "mount_path",
+                STR,
+                ALWAYS,
+                "Raw static prefix literal at this site.",
+            ),
             key(
                 "normalized_mount_path",
                 STR,
@@ -3008,7 +3023,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 OPT,
                 "Uppercase HTTP method (every Phoenix verb macro is verb-restricted).",
             ),
-            key("verb_source", STR, OPT, "How the verb was attested (\"attested\")."),
+            key(
+                "verb_source",
+                STR,
+                OPT,
+                "How the verb was attested (\"attested\").",
+            ),
             key(
                 "controller",
                 STR,
@@ -3073,19 +3093,19 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("mount_path", STR, ALWAYS, "Raw static forward path literal at this site."),
+            key(
+                "mount_path",
+                STR,
+                ALWAYS,
+                "Raw static forward path literal at this site.",
+            ),
             key(
                 "normalized_mount_path",
                 STR,
                 ALWAYS,
                 "Normalized forward path including enclosing same-file scope prefix.",
             ),
-            key(
-                "mount_target",
-                STR,
-                ALWAYS,
-                "Forwarded plug module alias.",
-            ),
+            key("mount_target", STR, ALWAYS, "Forwarded plug module alias."),
             key(
                 "route_group_prefix",
                 STR,
@@ -3103,7 +3123,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("api_style", STR, ALWAYS, "Routing style (\"call_routing\")."),
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"call_routing\").",
+            ),
             key(
                 "route_template",
                 STR,
@@ -3145,7 +3170,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("mount_path", STR, ALWAYS, "Raw static nest path literal at this site."),
+            key(
+                "mount_path",
+                STR,
+                ALWAYS,
+                "Raw static nest path literal at this site.",
+            ),
             key(
                 "normalized_mount_path",
                 STR,
@@ -3211,7 +3241,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("api_style", STR, ALWAYS, "Routing style (\"call_routing\")."),
+            key(
+                "api_style",
+                STR,
+                ALWAYS,
+                "Routing style (\"call_routing\").",
+            ),
             key(
                 "route_template",
                 STR,
@@ -3265,7 +3300,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
             K_FRAMEWORK,
-            key("mount_path", STR, ALWAYS, "Raw static scope path literal at this site."),
+            key(
+                "mount_path",
+                STR,
+                ALWAYS,
+                "Raw static scope path literal at this site.",
+            ),
             key(
                 "normalized_mount_path",
                 STR,

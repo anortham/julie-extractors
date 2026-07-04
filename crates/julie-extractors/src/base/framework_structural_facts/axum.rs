@@ -550,10 +550,11 @@ fn scoped_is_router_new(scoped: Node, content: &str) -> bool {
     match path.kind() {
         "identifier" => node_text(content, path) == Some("Router"),
         // `axum::Router::new` → path is `scoped_identifier` whose name is `Router`.
-        "scoped_identifier" => path
-            .child_by_field_name("name")
-            .and_then(|inner| node_text(content, inner))
-            == Some("Router"),
+        "scoped_identifier" => {
+            path.child_by_field_name("name")
+                .and_then(|inner| node_text(content, inner))
+                == Some("Router")
+        }
         _ => false,
     }
 }

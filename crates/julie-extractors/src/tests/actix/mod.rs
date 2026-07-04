@@ -533,7 +533,10 @@ fn config() -> App<()> {
         facts_with_pattern(&results, ACTIX_SCOPE_ROUTE_PATTERN_ID).len(),
         1
     );
-    assert_eq!(facts_with_pattern(&results, ACTIX_MOUNT_PATTERN_ID).len(), 1);
+    assert_eq!(
+        facts_with_pattern(&results, ACTIX_MOUNT_PATTERN_ID).len(),
+        1
+    );
 }
 
 #[test]
@@ -563,4 +566,3 @@ fn app() -> Router {
     assert_eq!(facts_with_pattern(&results, AXUM_ROUTE_PATTERN_ID).len(), 2);
     assert_eq!(facts_with_pattern(&results, AXUM_NEST_PATTERN_ID).len(), 1);
 }
-

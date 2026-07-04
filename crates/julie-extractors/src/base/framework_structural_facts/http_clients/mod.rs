@@ -27,14 +27,10 @@ pub(super) fn collect_backend_http_client_requests(
         "csharp" => csharp::collect_csharp_http_client_requests(language, tree, file_path, content),
         "go" => go::collect_go_http_client_requests(language, tree, file_path, content),
         "java" => java::collect_java_http_client_requests(language, tree, file_path, content),
-        "kotlin" => {
-            kotlin::collect_kotlin_http_client_requests(language, tree, file_path, content)
-        }
+        "kotlin" => kotlin::collect_kotlin_http_client_requests(language, tree, file_path, content),
         "php" => php::collect_php_http_client_requests(language, tree, file_path, content),
         "ruby" => ruby::collect_ruby_http_client_requests(language, tree, file_path, content),
-        "elixir" => {
-            elixir::collect_elixir_http_client_requests(language, tree, file_path, content)
-        }
+        "elixir" => elixir::collect_elixir_http_client_requests(language, tree, file_path, content),
         "rust" => rust::collect_rust_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }

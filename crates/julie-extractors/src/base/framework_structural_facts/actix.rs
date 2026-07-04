@@ -80,7 +80,14 @@ pub(super) fn collect_actix_routes(
         return Vec::new();
     }
     let mut facts = Vec::new();
-    walk(tree.root_node(), language, tree, file_path, content, &mut facts);
+    walk(
+        tree.root_node(),
+        language,
+        tree,
+        file_path,
+        content,
+        &mut facts,
+    );
     facts
 }
 
@@ -187,11 +194,7 @@ fn try_attribute_route(
 /// actix route macro. `#[get]`/`#[post]`/… map to their verb; `#[route(...)]`
 /// takes its verbs from every `method = "VERB"` argument (uppercased), staying
 /// silent (`None`) when no static `method =` is present.
-fn actix_attribute_verbs(
-    macro_name: &str,
-    attribute: Node,
-    content: &str,
-) -> Option<Vec<String>> {
+fn actix_attribute_verbs(macro_name: &str, attribute: Node, content: &str) -> Option<Vec<String>> {
     if let Some(verb) = verb_macro(macro_name) {
         return Some(vec![verb.to_string()]);
     }
@@ -703,5 +706,6 @@ fn call_arguments(call: Node) -> Vec<Node> {
 /// The first child of `node` whose kind is `kind`.
 fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }

@@ -111,7 +111,15 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
     let rust_kind_coverage = language_kind_coverage(&db, "rust");
     assert_eq!(
         rust_kind_coverage["structural_facts"]["supported"],
-        json!(["rust.unsafe_block.v1"]),
+        json!([
+            "actix.attribute_route.v1",
+            "actix.mount.v1",
+            "actix.scope_route.v1",
+            "axum.nest.v1",
+            "axum.route.v1",
+            "http.client_request.v1",
+            "rust.unsafe_block.v1"
+        ]),
         "language_capabilities.kind_coverage_json must persist structural fact pattern claims"
     );
     assert_eq!(
@@ -222,6 +230,72 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
     );
     assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["alpha", "helper"]);
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+}
+
+#[test]
+fn scan_persists_same_span_verb_specific_route_facts() {
+    let fixture = FixtureRoot::with_file(
+        "routes/web.php",
+        r#"<?php
+use Illuminate\Support\Facades\Route;
+
+Route::match(['get', 'post'], '/search', [SearchController::class, 'index']);
+"#,
+    );
+    let rust_path = fixture.path("src/main.rs");
+    std::fs::create_dir_all(rust_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        rust_path,
+        r#"use actix_web::{route, HttpResponse, Responder};
+use axum::{routing::get, Router};
+
+fn app() -> Router {
+    Router::new().route("/items", get(list).post(create))
+}
+
+async fn list() {}
+async fn create() {}
+
+#[route("/thing", method = "GET", method = "POST")]
+async fn thing() -> impl Responder {
+    HttpResponse::Ok()
+}
+"#,
+    )
+    .unwrap();
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+    assert_success(output);
+
+    assert_persisted_route_verbs(
+        &db,
+        "routes/web.php",
+        "laravel.route.v1",
+        "/search",
+        ["GET", "POST"],
+    );
+    assert_persisted_route_verbs(
+        &db,
+        "src/main.rs",
+        "axum.route.v1",
+        "/items",
+        ["GET", "POST"],
+    );
+    assert_persisted_route_verbs(
+        &db,
+        "src/main.rs",
+        "actix.attribute_route.v1",
+        "/thing",
+        ["GET", "POST"],
+    );
 }
 
 #[test]
@@ -1634,6 +1708,63 @@ fn structural_facts_for_path(db: &Path, path: &str) -> Vec<(String, String, Stri
         .unwrap()
 }
 
+fn route_facts_for_path(db: &Path, path: &str, pattern_id: &str) -> Vec<RouteFactRow> {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT structural_fact_id, metadata_json
+             FROM structural_facts
+             WHERE path = ?1 AND pattern_id = ?2
+             ORDER BY json_extract(metadata_json, '$.verb')",
+        )
+        .unwrap();
+    stmt.query_map([path, pattern_id], |row| {
+        let structural_fact_id: String = row.get(0)?;
+        let metadata_json: String = row.get(1)?;
+        let metadata: Value = serde_json::from_str(&metadata_json).unwrap();
+        Ok(RouteFactRow {
+            structural_fact_id,
+            verb: metadata["verb"].as_str().unwrap().to_string(),
+            route_template: metadata["route_template"].as_str().unwrap().to_string(),
+        })
+    })
+    .unwrap()
+    .collect::<Result<Vec<_>, _>>()
+    .unwrap()
+}
+
+fn assert_persisted_route_verbs<const N: usize>(
+    db: &Path,
+    path: &str,
+    pattern_id: &str,
+    route_template: &str,
+    expected_verbs: [&str; N],
+) {
+    let rows = route_facts_for_path(db, path, pattern_id);
+    assert_eq!(
+        rows.len(),
+        expected_verbs.len(),
+        "one persisted row per verb for {pattern_id}: {rows:#?}"
+    );
+
+    let ids = rows
+        .iter()
+        .map(|row| row.structural_fact_id.as_str())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        ids.len(),
+        expected_verbs.len(),
+        "verb-specific rows need distinct IDs for {pattern_id}: {rows:#?}"
+    );
+
+    let verbs = rows.iter().map(|row| row.verb.as_str()).collect::<Vec<_>>();
+    assert_eq!(verbs, expected_verbs);
+    assert!(
+        rows.iter().all(|row| row.route_template == route_template),
+        "all rows should keep route template {route_template:?}: {rows:#?}"
+    );
+}
+
 fn complexity_metric_scopes_for_path(db: &Path, path: &str) -> Vec<String> {
     let conn = Connection::open(db).unwrap();
     let mut stmt = conn
@@ -1660,6 +1791,13 @@ fn language_kind_coverage(db: &Path, language: &str) -> Value {
         )
         .unwrap();
     serde_json::from_str(&json).unwrap()
+}
+
+#[derive(Debug)]
+struct RouteFactRow {
+    structural_fact_id: String,
+    verb: String,
+    route_template: String,
 }
 
 #[derive(Debug)]

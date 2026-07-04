@@ -82,15 +82,44 @@ fn walk(
     content: &str,
     facts: &mut Vec<StructuralFact>,
 ) {
-    if try_group(node, prefix_stack, language, tree, file_path, content, facts)
-        || try_route(node, prefix_stack, language, tree, file_path, content, facts)
-        || try_resource(node, prefix_stack, language, tree, file_path, content, facts)
-    {
+    if try_group(
+        node,
+        prefix_stack,
+        language,
+        tree,
+        file_path,
+        content,
+        facts,
+    ) || try_route(
+        node,
+        prefix_stack,
+        language,
+        tree,
+        file_path,
+        content,
+        facts,
+    ) || try_resource(
+        node,
+        prefix_stack,
+        language,
+        tree,
+        file_path,
+        content,
+        facts,
+    ) {
         return;
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, prefix_stack, language, tree, file_path, content, facts);
+        walk(
+            child,
+            prefix_stack,
+            language,
+            tree,
+            file_path,
+            content,
+            facts,
+        );
     }
 }
 
@@ -367,7 +396,9 @@ fn try_route(
             ) else {
                 return true;
             };
-            let controller_action = args.get(2).and_then(|h| controller_action_text(*h, content));
+            let controller_action = args
+                .get(2)
+                .and_then(|h| controller_action_text(*h, content));
             for verb in verbs {
                 emit_route(
                     node,
@@ -394,7 +425,9 @@ fn try_route(
                 RouteKind::Verb(verb) => Some(verb),
                 _ => None,
             };
-            let controller_action = args.get(1).and_then(|h| controller_action_text(*h, content));
+            let controller_action = args
+                .get(1)
+                .and_then(|h| controller_action_text(*h, content));
             emit_route(
                 node,
                 prefix_stack,

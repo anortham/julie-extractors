@@ -971,7 +971,10 @@ suspend fun load(client: HttpClient) {
     assert_eq!(metadata_str(get, "verb_source"), Some("attested"));
     assert_eq!(metadata_str(get, "url_kind"), Some("absolute"));
     assert_eq!(metadata_str(get, "query_family"), Some("web.http_client"));
-    assert_eq!(binding_symbol(&results, get).map(|(name, _)| name), Some("load"));
+    assert_eq!(
+        binding_symbol(&results, get).map(|(name, _)| name),
+        Some("load")
+    );
 
     let post = facts
         .iter()
@@ -1303,7 +1306,11 @@ async fn load(headers: std::collections::HashMap<String, String>) {
 "#;
     let results = extract("src/client.rs", source);
     let facts = client_requests(&results);
-    assert_eq!(facts.len(), 1, "only the real reqwest call emits: {facts:#?}");
+    assert_eq!(
+        facts.len(),
+        1,
+        "only the real reqwest call emits: {facts:#?}"
+    );
     assert_eq!(metadata_str(facts[0], "target_path"), Some("/health"));
     assert_eq!(metadata_str(facts[0], "verb"), Some("GET"));
 }
@@ -1382,5 +1389,9 @@ async fn load(shared: &reqwest::Client) {
         paths.contains("https://api.example.com/d"),
         "a `&reqwest::Client` typed parameter must emit: {facts:#?}"
     );
-    assert_eq!(facts.len(), 4, "exactly the four proven requests: {facts:#?}");
+    assert_eq!(
+        facts.len(),
+        4,
+        "exactly the four proven requests: {facts:#?}"
+    );
 }

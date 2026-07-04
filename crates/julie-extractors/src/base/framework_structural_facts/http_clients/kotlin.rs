@@ -50,7 +50,14 @@ pub(super) fn collect_kotlin_http_client_requests(
         return Vec::new();
     }
     let mut facts = Vec::new();
-    walk(tree.root_node(), language, tree, file_path, content, &mut facts);
+    walk(
+        tree.root_node(),
+        language,
+        tree,
+        file_path,
+        content,
+        &mut facts,
+    );
     facts
 }
 
@@ -85,7 +92,9 @@ fn client_request_fact(
     // Only a `navigation_expression` callee (`client.get`) — a bare
     // `simple_identifier` callee is the server-side routing DSL (`get("/x")`),
     // not a client request.
-    let callee = call.child_by_field_name("function").or_else(|| first_child(call))?;
+    let callee = call
+        .child_by_field_name("function")
+        .or_else(|| first_child(call))?;
     if callee.kind() != "navigation_expression" {
         return None;
     }
@@ -139,7 +148,8 @@ fn last_identifier_text<'a>(node: Node, content: &'a str) -> Option<&'a str> {
 
 fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 fn first_child(node: Node) -> Option<Node> {

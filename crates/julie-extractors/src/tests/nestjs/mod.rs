@@ -88,10 +88,16 @@ export class UsersController {
     // trailing slash), so its raw route_template is "".
     let find_all = find_route(&facts, "");
     assert_eq!(metadata_str(find_all, "framework"), Some("nestjs"));
-    assert_eq!(metadata_str(find_all, "api_style"), Some("decorator_routing"));
+    assert_eq!(
+        metadata_str(find_all, "api_style"),
+        Some("decorator_routing")
+    );
     assert_eq!(metadata_str(find_all, "verb"), Some("GET"));
     assert_eq!(metadata_str(find_all, "verb_source"), Some("attested"));
-    assert_eq!(metadata_str(find_all, "class_route_template"), Some("users"));
+    assert_eq!(
+        metadata_str(find_all, "class_route_template"),
+        Some("users")
+    );
     assert_eq!(
         metadata_str(find_all, "effective_route_template"),
         Some("users")
@@ -104,7 +110,10 @@ export class UsersController {
 
     let find_one = find_route(&facts, ":id");
     assert_eq!(metadata_str(find_one, "verb"), Some("GET"));
-    assert_eq!(metadata_str(find_one, "class_route_template"), Some("users"));
+    assert_eq!(
+        metadata_str(find_one, "class_route_template"),
+        Some("users")
+    );
     assert_eq!(
         metadata_str(find_one, "effective_route_template"),
         Some("users/:id")
@@ -301,11 +310,12 @@ export class ArrController {
     );
 
     // Array prefix cross-products with the method template.
-    let normalized: Vec<&str> = facts
+    let mut normalized: Vec<&str> = facts
         .iter()
         .filter(|fact| metadata_str(fact, "route_template") == Some("list"))
         .filter_map(|fact| metadata_str(fact, "normalized_route_template"))
         .collect();
+    normalized.sort_unstable();
     assert_eq!(normalized, vec!["/a/list", "/b/list"], "{facts:#?}");
 }
 

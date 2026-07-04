@@ -39,7 +39,9 @@ use crate::base::types::StructuralFact;
 const IMPORT_NEEDLE: &str = "org.springframework.web.bind.annotation";
 
 /// HTTP methods recognised in `@RequestMapping(method = [RequestMethod.X])`.
-const REQUEST_METHODS: &[&str] = &["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE"];
+const REQUEST_METHODS: &[&str] = &[
+    "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE",
+];
 
 pub(super) fn collect_kotlin_spring_routes(
     language: &str,
@@ -51,7 +53,14 @@ pub(super) fn collect_kotlin_spring_routes(
         return Vec::new();
     }
     let mut facts = Vec::new();
-    walk_types(tree.root_node(), language, tree, file_path, content, &mut facts);
+    walk_types(
+        tree.root_node(),
+        language,
+        tree,
+        file_path,
+        content,
+        &mut facts,
+    );
     facts
 }
 
@@ -76,9 +85,7 @@ fn walk_types(
         ) && let Some(body) = class_body(child)
         {
             let prefixes = class_prefixes(child, content);
-            emit_direct_member_routes(
-                body, &prefixes, language, tree, file_path, content, facts,
-            );
+            emit_direct_member_routes(body, &prefixes, language, tree, file_path, content, facts);
         }
         walk_types(child, language, tree, file_path, content, facts);
     }
@@ -516,7 +523,8 @@ fn split_value_argument<'t>(
 
 fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }
 
 /// The handler-binding span: `[fun … end]` with the leading `modifiers`
@@ -560,9 +568,17 @@ fn mapping_fact(
     insert_string(&mut metadata, "api_style", "annotation_routing");
     insert_string(&mut metadata, "attribute_kind", attribute_kind);
     insert_string(&mut metadata, "route_template", route_template);
-    insert_string(&mut metadata, "normalized_route_template", &normalized.template);
+    insert_string(
+        &mut metadata,
+        "normalized_route_template",
+        &normalized.template,
+    );
     if !normalized.dynamic_segments.is_empty() {
-        insert_string_array(&mut metadata, "dynamic_segments", normalized.dynamic_segments);
+        insert_string_array(
+            &mut metadata,
+            "dynamic_segments",
+            normalized.dynamic_segments,
+        );
     }
     if let Some(class_route_template) = class_route_template {
         insert_string(&mut metadata, "class_route_template", class_route_template);

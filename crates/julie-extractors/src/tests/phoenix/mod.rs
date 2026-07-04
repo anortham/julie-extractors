@@ -287,7 +287,10 @@ end
     // Poisoned scope → no group prefix / effective template, own template only.
     assert_eq!(metadata_str(routes[0], "route_group_prefix"), None);
     assert_eq!(metadata_str(routes[0], "effective_route_template"), None);
-    assert_eq!(metadata_str(routes[0], "route_template"), Some("/dashboard"));
+    assert_eq!(
+        metadata_str(routes[0], "route_template"),
+        Some("/dashboard")
+    );
     assert_eq!(
         metadata_str(routes[0], "normalized_route_template"),
         Some("/dashboard")

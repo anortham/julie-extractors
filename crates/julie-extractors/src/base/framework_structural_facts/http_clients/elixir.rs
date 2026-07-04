@@ -56,7 +56,14 @@ pub(super) fn collect_elixir_http_client_requests(
         return Vec::new();
     }
     let mut facts = Vec::new();
-    walk(tree.root_node(), language, tree, file_path, content, &mut facts);
+    walk(
+        tree.root_node(),
+        language,
+        tree,
+        file_path,
+        content,
+        &mut facts,
+    );
     facts
 }
 
@@ -133,5 +140,6 @@ fn first_positional_arg(arguments: Node) -> Option<Node> {
 
 fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
     let mut cursor = node.walk();
-    node.children(&mut cursor).find(|child| child.kind() == kind)
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
 }

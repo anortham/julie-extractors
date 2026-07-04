@@ -223,13 +223,14 @@ class UserController {
         .count();
     assert_eq!(class_routes, 2, "{facts:#?}");
 
-    let effective = facts
+    let mut effective = facts
         .iter()
         .filter_map(|fact| metadata_str(fact, "effective_route_template"))
         .collect::<Vec<_>>();
+    effective.sort_unstable();
     assert_eq!(
         effective,
-        vec!["/api/users", "/api/members", "/v2/users", "/v2/members"]
+        vec!["/api/members", "/api/users", "/v2/members", "/v2/users"]
     );
 }
 

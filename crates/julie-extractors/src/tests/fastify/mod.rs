@@ -82,11 +82,12 @@ export function registerRoutes() {
         .expect("all route");
     assert_eq!(metadata_str(any, "verb"), None);
 
-    let object_verbs = facts
+    let mut object_verbs = facts
         .iter()
         .filter(|fact| metadata_str(fact, "route_template") == Some("/items/:id"))
         .filter_map(|fact| metadata_str(fact, "verb"))
         .collect::<Vec<_>>();
+    object_verbs.sort_unstable();
     assert_eq!(object_verbs, vec!["GET", "POST"]);
 }
 

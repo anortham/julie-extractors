@@ -208,7 +208,9 @@ pub fn collect_framework_structural_facts(
             js_facts.extend(collect_node_http_boundary_facts(
                 language, tree, file_path, content,
             ));
-            js_facts.extend(collect_nestjs_route_facts(language, tree, file_path, content));
+            js_facts.extend(collect_nestjs_route_facts(
+                language, tree, file_path, content,
+            ));
             js_facts
         }
         // jsx/tsx are React component files; NestJS controllers never live there.
@@ -220,9 +222,10 @@ pub fn collect_framework_structural_facts(
             js_facts
         }
         "typescript" => {
-            let mut ts_facts =
-                collect_node_http_boundary_facts(language, tree, file_path, content);
-            ts_facts.extend(collect_nestjs_route_facts(language, tree, file_path, content));
+            let mut ts_facts = collect_node_http_boundary_facts(language, tree, file_path, content);
+            ts_facts.extend(collect_nestjs_route_facts(
+                language, tree, file_path, content,
+            ));
             ts_facts
         }
         "java" => {
@@ -234,8 +237,7 @@ pub fn collect_framework_structural_facts(
             java_facts
         }
         "kotlin" => {
-            let mut kotlin_facts =
-                collect_kotlin_spring_routes(language, tree, file_path, content);
+            let mut kotlin_facts = collect_kotlin_spring_routes(language, tree, file_path, content);
             kotlin_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
