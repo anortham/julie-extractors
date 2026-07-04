@@ -1251,7 +1251,11 @@
       "confidence": "1.000",
       "metadata": {
         "api_style": "dsl_routing",
+        "dynamic_segments": [
+          "slug"
+        ],
         "framework": "django",
+        "normalized_route_template": "/legacy/:slug/",
         "pattern_version": 1,
         "query_family": "framework",
         "route_name": "legacy",

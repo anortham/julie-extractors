@@ -521,6 +521,7 @@
       "end_byte": 181,
       "confidence": "1.000",
       "metadata": {
+        "key_path": "$.worker.tags",
         "pattern_version": 1,
         "query_family": "config_structure",
         "sequence_length": 2

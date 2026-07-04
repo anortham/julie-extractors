@@ -231,6 +231,7 @@
         "directive": "page",
         "framework": "razor",
         "has_route_constraints": true,
+        "normalized_route_template": "/todos/:id",
         "pattern_version": 1,
         "query_family": "component_routing",
         "route": "/todos/{id:int}",

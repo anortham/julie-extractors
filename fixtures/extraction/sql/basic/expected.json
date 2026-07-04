@@ -745,7 +745,7 @@
       "metadata": {
         "column_name": "id",
         "has_default": false,
-        "nullable": true,
+        "nullable": false,
         "pattern_version": 1,
         "query_family": "schema_structure",
         "table_name": "workers",
@@ -769,7 +769,7 @@
       "metadata": {
         "column_name": "id",
         "has_default": false,
-        "nullable": true,
+        "nullable": false,
         "pattern_version": 1,
         "query_family": "schema_structure",
         "table_name": "jobs",

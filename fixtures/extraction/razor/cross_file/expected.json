@@ -416,6 +416,7 @@
         "directive": "page",
         "framework": "razor",
         "has_route_constraints": false,
+        "normalized_route_template": "/example",
         "pattern_version": 1,
         "query_family": "component_routing",
         "route": "/example",

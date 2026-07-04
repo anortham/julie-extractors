@@ -851,13 +851,16 @@
       "confidence": "1.000",
       "metadata": {
         "api_style": "dsl_routing",
-        "effective_route_template": "/api/activate",
+        "dynamic_segments": [
+          "post_id"
+        ],
+        "effective_route_template": "/api/posts/:post_id/activate",
         "framework": "rails",
-        "normalized_route_template": "/api/activate",
+        "normalized_route_template": "/api/posts/:post_id/activate",
         "pattern_version": 1,
         "query_family": "framework",
         "route_template": "activate",
-        "scope_path": "/api",
+        "scope_path": "/api/posts/:post_id",
         "verb": "GET",
         "verb_source": "attested"
       }
