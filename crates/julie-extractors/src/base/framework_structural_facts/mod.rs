@@ -3,6 +3,7 @@ mod go_http;
 mod helpers;
 mod http_clients;
 mod markup;
+mod nestjs;
 mod node;
 mod python_web;
 mod rails;
@@ -20,6 +21,7 @@ use self::markup::{
     collect_jsx_htmx_attributes, collect_markup_framework_attributes,
     collect_vue_template_htmx_attributes,
 };
+use self::nestjs::collect_nestjs_route_facts;
 use self::node::collect_node_http_boundary_facts;
 use self::python_web::collect_python_web_facts;
 use self::rails::collect_rails_routes;
@@ -36,6 +38,7 @@ pub(super) const ASPNET_ATTRIBUTE_ROUTE_PATTERN_ID: &str = "aspnet.attribute_rou
 pub(super) const EXPRESS_ROUTE_PATTERN_ID: &str = "express.route.v1";
 pub(super) const EXPRESS_ROUTER_MOUNT_PATTERN_ID: &str = "express.router_mount.v1";
 pub(super) const FASTIFY_ROUTE_PATTERN_ID: &str = "fastify.route.v1";
+pub(super) const NESTJS_ROUTE_PATTERN_ID: &str = "nestjs.route.v1";
 pub(super) const FASTAPI_ROUTE_PATTERN_ID: &str = "fastapi.route.v1";
 pub(super) const FASTAPI_INCLUDE_ROUTER_PATTERN_ID: &str = "fastapi.include_router.v1";
 pub(super) const FLASK_ROUTE_PATTERN_ID: &str = "flask.route.v1";
@@ -70,11 +73,21 @@ const MARKUP_FRAMEWORK_PATTERN_IDS: &[&str] =
 // too, but not the Alpine directive surface the html/razor scan claims.
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS: &[&str] = &[HTMX_ATTRIBUTE_PATTERN_ID];
+// jsx/tsx are React component files; NestJS controllers never live there, so
+// nestjs.route.v1 is javascript/typescript only (see JAVASCRIPT_FRAMEWORK_PATTERN_IDS).
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const NODE_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     EXPRESS_ROUTE_PATTERN_ID,
     EXPRESS_ROUTER_MOUNT_PATTERN_ID,
     FASTIFY_ROUTE_PATTERN_ID,
+    HTMX_ATTRIBUTE_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const JAVASCRIPT_FRAMEWORK_PATTERN_IDS: &[&str] = &[
+    EXPRESS_ROUTE_PATTERN_ID,
+    EXPRESS_ROUTER_MOUNT_PATTERN_ID,
+    FASTIFY_ROUTE_PATTERN_ID,
+    NESTJS_ROUTE_PATTERN_ID,
     HTMX_ATTRIBUTE_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -144,14 +157,28 @@ pub fn collect_framework_structural_facts(
             ));
             razor_facts
         }
-        "javascript" | "jsx" | "tsx" => {
+        "javascript" => {
+            let mut js_facts = collect_jsx_htmx_attributes(language, tree, file_path, content);
+            js_facts.extend(collect_node_http_boundary_facts(
+                language, tree, file_path, content,
+            ));
+            js_facts.extend(collect_nestjs_route_facts(language, tree, file_path, content));
+            js_facts
+        }
+        // jsx/tsx are React component files; NestJS controllers never live there.
+        "jsx" | "tsx" => {
             let mut js_facts = collect_jsx_htmx_attributes(language, tree, file_path, content);
             js_facts.extend(collect_node_http_boundary_facts(
                 language, tree, file_path, content,
             ));
             js_facts
         }
-        "typescript" => collect_node_http_boundary_facts(language, tree, file_path, content),
+        "typescript" => {
+            let mut ts_facts =
+                collect_node_http_boundary_facts(language, tree, file_path, content);
+            ts_facts.extend(collect_nestjs_route_facts(language, tree, file_path, content));
+            ts_facts
+        }
         "java" => {
             let mut java_facts =
                 collect_spring_request_mappings(language, tree, file_path, content);
@@ -191,11 +218,13 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "csharp" => CSHARP_FRAMEWORK_PATTERN_IDS,
         "html" => MARKUP_FRAMEWORK_PATTERN_IDS,
         "razor" => RAZOR_FRAMEWORK_PATTERN_IDS,
-        "javascript" | "jsx" | "tsx" => NODE_FRAMEWORK_PATTERN_IDS,
+        "javascript" => JAVASCRIPT_FRAMEWORK_PATTERN_IDS,
+        "jsx" | "tsx" => NODE_FRAMEWORK_PATTERN_IDS,
         "typescript" => &[
             EXPRESS_ROUTE_PATTERN_ID,
             EXPRESS_ROUTER_MOUNT_PATTERN_ID,
             FASTIFY_ROUTE_PATTERN_ID,
+            NESTJS_ROUTE_PATTERN_ID,
         ],
         "python" => PYTHON_WEB_PATTERN_IDS,
         "java" => &[

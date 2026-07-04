@@ -2906,6 +2906,83 @@
     "query_family": "document_structure"
   },
   {
+    "description": "A static NestJS HTTP-method decorator route joined to its @Controller class prefix.",
+    "languages": [
+      "javascript",
+      "typescript"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"decorator_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static path from the method HTTP decorator; empty for a bare @Get().",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and NestJS :param segments preserved.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Static @Controller class prefix (string, { path }, or array element).",
+        "key": "class_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Class @Controller prefix joined with the method sub-path when a static prefix applies.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for @All (accepts any method).",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\" from the decorator name).",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "nestjs.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Next.js file-based page route.",
     "languages": [
       "javascript",

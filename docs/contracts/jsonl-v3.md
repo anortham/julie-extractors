@@ -541,6 +541,7 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `express.route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_call` | parser-covered call span |
 | `express.router_mount.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `router_mount` | parser-covered call span |
 | `fastify.route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `route_call` | parser-covered call span |
+| `nestjs.route.v1` | `javascript`, `typescript` | `route_decorator` | handler method declaration span |
 | `fastapi.route.v1` | `python` | `route` | decorated function declaration span |
 | `fastapi.include_router.v1` | `python` | `include_router` | parser-covered call span |
 | `flask.route.v1` | `python` | `route` | decorated function declaration span |
@@ -720,6 +721,29 @@ without any route attributes emits nothing. `[HttpGet]` on a class is invalid
 routing and is ignored (only `[Route]` is read at class level). Conventional
 (non-attribute, `MapControllerRoute`-style) routing is out of scope for this
 family.
+
+`nestjs.route.v1` emits one fact per HTTP-method decorator
+(`@Get`/`@Post`/`@Put`/`@Patch`/`@Delete`/`@Options`/`@Head`/`@All`) on a NestJS
+controller method, joined same-file to the class `@Controller('base')` prefix
+(the Spring class+method join model). `api_style` is `decorator_routing`. `verb`
+is the upper-cased method name with `verb_source="attested"`; `@All` accepts any
+method, so it omits both `verb` and `verb_source`. `route_template` is the raw
+method sub-path (empty for a bare `@Get()`). `class_route_template` carries the
+static `@Controller` prefix — a plain string, the `path` of a `{ path }` object,
+or each element of a string array (arrays, and array method paths, cross-product
+into one fact per combination). `effective_route_template` joins the class prefix
+with the method sub-path (an empty method path resolves to the class prefix
+alone, avoiding a trailing slash), and `normalized_route_template` — the
+cross-family join key — converts NestJS `:id` segments and applies a single
+leading `/`. The fact span is anchored to the handler `method_definition` (not
+the decorator, which in tree-sitter-typescript is a preceding sibling outside the
+method symbol range) so `containing_symbol_id` binds to the handler method.
+Emission requires a `@nestjs/common` import, and only a plain string-literal
+decorator argument emits: template literals (`` `/a/${x}` ``), concatenation
+(`'/a/' + x`), identifier/const references (`PATHS.USER`), and other computed
+arguments stay silent (whole-argument static check). `app.setGlobalPrefix(...)`
+(cross-file, no safe mount consumer), `RouterModule.register(...)` dynamic
+composition, and versioned routes are out of scope for this family.
 
 Dynamic Vue `:to` bindings, named-route objects, non-literal route paths, spreads,
 function-built routes, and lazy component imports are not emitted as static route

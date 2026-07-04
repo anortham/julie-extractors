@@ -743,6 +743,11 @@
           "name": "backend_http_boundaries",
           "source": "fixtures/extraction/typescript/backend_http_boundaries/source.ts",
           "expected": "fixtures/extraction/typescript/backend_http_boundaries/expected.json"
+        },
+        {
+          "name": "nestjs_routes",
+          "source": "fixtures/extraction/typescript/nestjs_routes/source.ts",
+          "expected": "fixtures/extraction/typescript/nestjs_routes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -806,6 +811,7 @@
             "express.router_mount.v1",
             "fastify.route.v1",
             "http.client_request.v1",
+            "nestjs.route.v1",
             "nextjs.file_route.v1",
             "nextjs.route_handler.v1",
             "nuxt.file_route.v1",
@@ -827,7 +833,8 @@
         },
         "annotations": {
           "supported": [
-            "class"
+            "class",
+            "method"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1122,6 +1129,11 @@
           "name": "backend_http_boundary_negatives",
           "source": "fixtures/extraction/javascript/backend_http_boundary_negatives/source.js",
           "expected": "fixtures/extraction/javascript/backend_http_boundary_negatives/expected.json"
+        },
+        {
+          "name": "nestjs_routes",
+          "source": "fixtures/extraction/javascript/nestjs_routes/source.js",
+          "expected": "fixtures/extraction/javascript/nestjs_routes/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1180,6 +1192,7 @@
             "htmx.attribute.v1",
             "http.client_request.v1",
             "javascript.await_expression.v1",
+            "nestjs.route.v1",
             "nextjs.file_route.v1",
             "nextjs.route_handler.v1",
             "nextjs.route_reference.v1",
@@ -1202,7 +1215,8 @@
         },
         "annotations": {
           "supported": [
-            "class"
+            "class",
+            "method"
           ],
           "not_applicable": [],
           "open_gaps": []

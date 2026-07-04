@@ -41,6 +41,7 @@ pub mod kotlin;
 pub mod language_policy;
 pub mod lua;
 pub mod markdown;
+pub mod nestjs;
 pub mod nuxt;
 #[cfg(feature = "test-certification")]
 pub mod parser_upgrade;
