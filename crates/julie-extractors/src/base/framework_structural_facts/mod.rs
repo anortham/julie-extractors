@@ -9,6 +9,7 @@ mod rails;
 mod razor;
 mod scan;
 mod spring;
+mod static_arg;
 
 use tree_sitter::Tree;
 

@@ -28,6 +28,7 @@ fn test_public_contract_version_marks_current_fact_families() {
         "http-boundary-facts-v1",
         "containing-symbol-binding-v2",
         "backend-http-boundary-v1",
+        "backend-http-boundary-v2",
     ] {
         assert!(
             version.contains(marker),
