@@ -561,6 +561,8 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `phoenix.route.v1` | `elixir` | `route` | parser-covered router verb-macro call span |
 | `phoenix.resource_route.v1` | `elixir` | `resource_route` | parser-covered `resources` macro call span |
 | `phoenix.forward.v1` | `elixir` | `forward` | parser-covered `forward` macro call span |
+| `axum.route.v1` | `rust` | `route` | parser-covered `.route` call span |
+| `axum.nest.v1` | `rust` | `nest` | parser-covered `.nest` call span |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span |
 | `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` |
@@ -586,7 +588,7 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir`, `rust` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Minimal API route calls compute it from
@@ -690,6 +692,26 @@ Interpolated (`"/u/#{id}"`), concatenated (`"/a/" <> id`), `~r` regex-sigil,
 scope prefixes, are out of scope, so `route_template` is not guaranteed to be
 the absolute public path when a cross-file prefix applies.
 
+axum routes come from an AST-driven collector import-gated on an `axum`
+reference. A `Router::new().route("/path", get(h).post(c))` call emits one
+`axum.route.v1` (`api_style="call_routing"`) per method-router verb; the second
+argument must be a bare-identifier verb chain (`get(h)`, `get(a).post(b)`, with
+non-verb middleware like `.layer(...)` transparent), which is how actix's
+`web::get().to(h)` argument shape is rejected on the shared `rust` dispatch arm.
+`any`/`any_service` omit the `verb`/`verb_source` keys (not verb-restricted).
+axum 0.8 `{id}` brace captures normalize to the shared `:id` join key; a 0.7
+`:id` template joins correctly but under-reports `dynamic_segments` (an honest
+under-report — the extractor does not version-sniff). The `.route`/`.nest`
+receiver is single-assignment traced same-file: a `Router::new()` chain (inline
+or via a variable) or an unknown receiver (a function parameter/return) emits,
+but a variable also reassigned a conflicting non-router value is poisoned and
+its `.route`/`.nest` calls stay silent (Go poison model). `.nest("/lit", sub)`
+emits an `axum.nest.v1` prefix registration
+(`mount_path`/`normalized_mount_path`/`mount_target`) at its own site; the
+nested sub-router is a cross-file target, so no route join is guessed (Miller's
+job). `format!`, concatenated, and `const`/identifier route arguments stay
+silent (M2).
+
 Backend-language client collectors emit the same `http.client_request.v1`
 metadata shape for static string URL arguments: Python module-qualified
 `requests`/`httpx` calls, C# `HttpClient` method calls and
@@ -704,7 +726,12 @@ PHP Guzzle `$client->get('...')` (`client="guzzle"`, import-gated on
 `URI(...)`/`URI.parse(...)` arguments, and Elixir Req `Req.get("...")` verb
 calls (`client="req"`, import-gated on `Req.`; bang variants `Req.get!(...)`
 share the verb; the keyword-list form `Req.get(url: "...")` has no positional
-string URL and stays silent). Java builder-chain facts span the enclosing statement (the URL and
+string URL and stays silent), and Rust reqwest calls — the scoped convenience
+free function `reqwest::get("...")` and the builder verb form
+`client.get("...")` / `reqwest::Client::new().get("...")` (`client="reqwest"`,
+import-gated on `reqwest`). For the builder form only, the URL must be url-like
+(absolute `scheme://` or `/`-rooted) so a `HashMap::get("key")` lookup stays
+silent; the scoped form is unambiguous. Java builder-chain facts span the enclosing statement (the URL and
 verb are resolved statement-locally), so their `node_kind` is the statement
 node rather than a call node. Instance/session clients and dynamic URL
 expressions stay silent.

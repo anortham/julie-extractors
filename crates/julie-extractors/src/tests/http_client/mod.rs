@@ -1225,3 +1225,98 @@ end
     let facts = client_requests(&results);
     assert!(facts.is_empty(), "expected silence, got {facts:#?}");
 }
+
+#[test]
+fn rust_reqwest_scoped_and_builder_calls_emit_client_requests() {
+    let source = r#"use reqwest::Client;
+
+async fn load() {
+    reqwest::get("https://api.example.com/users").await;
+    let client = Client::new();
+    client.post("https://api.example.com/items").await;
+    reqwest::Client::new().delete("/users/1").await;
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 3, "{facts:#?}");
+
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/users"))
+        .expect("scoped reqwest::get");
+    assert_eq!(metadata_str(get, "client"), Some("reqwest"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "verb_source"), Some("attested"));
+    assert_eq!(metadata_str(get, "url_kind"), Some("absolute"));
+    assert_eq!(metadata_str(get, "query_family"), Some("web.http_client"));
+    // ktor-style: no import_source key.
+    assert_eq!(metadata_str(get, "import_source"), None);
+    // The request sits inside its enclosing function, so it binds to `load`.
+    assert_eq!(
+        binding_symbol(&results, get).map(|(name, _)| name),
+        Some("load")
+    );
+
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/items"))
+        .expect("builder client.post");
+    assert_eq!(metadata_str(post, "verb"), Some("POST"));
+
+    let delete = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/users/1"))
+        .expect("Client::new().delete");
+    assert_eq!(metadata_str(delete, "verb"), Some("DELETE"));
+    assert_eq!(metadata_str(delete, "url_kind"), Some("path"));
+}
+
+#[test]
+fn rust_reqwest_dynamic_urls_stay_silent() {
+    let source = r#"use reqwest;
+
+async fn load(id: u32) {
+    reqwest::get(format!("https://api.example.com/users/{id}")).await;
+    reqwest::get(&("https://x/".to_owned() + "y")).await;
+    let url = endpoint();
+    reqwest::get(url).await;
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}
+
+#[test]
+fn rust_reqwest_builder_map_get_collision_stays_silent() {
+    // Rust's `HashMap::get(&str)` shares the `x.get("k")` builder shape. The
+    // url-like guard keeps a non-url map lookup ("session-token", `relative`)
+    // silent while a real reqwest builder call with a `/`-rooted URL still emits.
+    let source = r#"use reqwest::Client;
+
+async fn load(headers: std::collections::HashMap<String, String>) {
+    let _token = headers.get("session-token");
+    let client = Client::new();
+    client.get("/health").await;
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 1, "only the real reqwest call emits: {facts:#?}");
+    assert_eq!(metadata_str(facts[0], "target_path"), Some("/health"));
+    assert_eq!(metadata_str(facts[0], "verb"), Some("GET"));
+}
+
+#[test]
+fn rust_reqwest_requires_import() {
+    // The `reqwest::get("...")` / `client.get("...")` shapes without the reqwest
+    // import register nothing (import gate).
+    let source = r#"async fn load() {
+    http::get("https://api.example.com/users").await;
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "no reqwest import → no client requests");
+}

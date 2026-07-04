@@ -4,6 +4,7 @@
 
 pub mod annotations;
 pub mod api_surface;
+pub mod axum;
 pub mod base;
 pub mod bash;
 pub mod body_span;

@@ -29,6 +29,16 @@
           "name": "structural_facts",
           "source": "fixtures/extraction/rust/structural_facts/source.rs",
           "expected": "fixtures/extraction/rust/structural_facts/expected.json"
+        },
+        {
+          "name": "axum_routes",
+          "source": "fixtures/extraction/rust/axum_routes/source.rs",
+          "expected": "fixtures/extraction/rust/axum_routes/expected.json"
+        },
+        {
+          "name": "http_client",
+          "source": "fixtures/extraction/rust/http_client/source.rs",
+          "expected": "fixtures/extraction/rust/http_client/expected.json"
         }
       ],
       "target_capabilities": {
@@ -84,10 +94,32 @@
         },
         "structural_facts": {
           "supported": [
+            "axum.nest.v1",
+            "axum.route.v1",
+            "http.client_request.v1",
             "rust.unsafe_block.v1"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "axum.param_flavor_under_report",
+              "reason": "axum route params are recorded as brace captures (`{id}`, axum 0.8). axum 0.7 used `:id`; the extractor cannot know the crate version and does not version-sniff (design section 11), so a 0.7 `:id` template passes through to a correct normalized_route_template join key but its `:id` segment is not recorded in dynamic_segments.",
+              "required_closure": "no closure without version detection, which is explicitly out of scope; a 0.7 `:id` template still joins correctly, only dynamic_segments under-reports its params",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a / section 11 (axum 0.7 param honest under-report)"
+            },
+            {
+              "kind": "rust.http_client.deferred",
+              "reason": "Only reqwest (`reqwest::get(\"url\")` / `client.get(\"url\")`) ships in v2.8.0; hyper (low-level request-builder + body future) and ureq (blocking `ureq::get(\"url\").call()`) each need their own detection shape and fixture.",
+              "required_closure": "add per-library client collectors emitting http.client_request.v1 for hyper and ureq, each fixture-backed",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
+            },
+            {
+              "kind": "axum.cross_file_nest_join",
+              "reason": "A `.nest(\"/api\", sub_router)` mounts a sub-router whose routes are defined in another function/file, so the nest prefix cannot flow into those routes' effective_route_template in-file; axum.nest.v1 records the mount at its own site with mount_path/mount_target only.",
+              "required_closure": "resolve nest prefix to sub-router routes, which is Miller's cross-file join responsibility per decision 0004; the extractor emits axum.nest.v1 and guesses no join",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [

@@ -287,6 +287,116 @@
     "query_family": "framework"
   },
   {
+    "description": "A static axum `Router::new().nest(\"/lit\", sub_router)` prefix registration at its definition site.",
+    "languages": [
+      "rust"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static nest path literal at this site.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized nest path (axum 0.8 brace captures preserved as `:param`).",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Source text of the nested sub-router expression (a cross-file target; no route join is guessed).",
+        "key": "mount_target",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "axum.nest.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static axum `Router::new().route(\"/x\", get(h))` route, one fact per method-router verb.",
+    "languages": [
+      "rust"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path passed to `.route`.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key; axum 0.8 `{id}` brace captures normalize to `:id` segments.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template (axum 0.8 brace captures; a 0.7 `:id` template is an honest under-report and yields none).",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method for a verb-restricted method router; omitted for `any`/`any_service`.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\"); omitted with the verb for `any`/`any_service`.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "axum.route.v1",
+    "query_family": "framework"
+  },
+  {
     "description": "A Bash arithmetic expansion (`$((...))`).",
     "languages": [
       "bash"
@@ -2115,7 +2225,8 @@
       "kotlin",
       "php",
       "ruby",
-      "elixir"
+      "elixir",
+      "rust"
     ],
     "metadata_keys": [
       {

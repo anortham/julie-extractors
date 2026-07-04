@@ -1,4 +1,5 @@
 mod aspnet;
+mod axum;
 mod go_http;
 mod helpers;
 mod http_clients;
@@ -18,6 +19,7 @@ mod static_arg;
 use tree_sitter::Tree;
 
 use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_routes};
+use self::axum::collect_axum_routes;
 use self::go_http::collect_go_http_boundary_facts;
 use self::http_clients::collect_backend_http_client_requests;
 use self::kotlin_spring::collect_kotlin_spring_routes;
@@ -52,6 +54,8 @@ pub(super) const FLASK_BLUEPRINT_REGISTRATION_PATTERN_ID: &str = "flask.blueprin
 pub(super) const DJANGO_URL_PATTERN_ID: &str = "django.url_pattern.v1";
 pub(super) const DJANGO_URL_INCLUDE_PATTERN_ID: &str = "django.url_include.v1";
 pub(super) const SPRING_REQUEST_MAPPING_PATTERN_ID: &str = "spring.request_mapping.v1";
+pub(super) const AXUM_ROUTE_PATTERN_ID: &str = "axum.route.v1";
+pub(super) const AXUM_NEST_PATTERN_ID: &str = "axum.nest.v1";
 pub(super) const GO_NET_HTTP_ROUTE_PATTERN_ID: &str = "go.net_http.route.v1";
 pub(super) const GIN_ROUTE_PATTERN_ID: &str = "gin.route.v1";
 pub(super) const ECHO_ROUTE_PATTERN_ID: &str = "echo.route.v1";
@@ -138,6 +142,14 @@ const ELIXIR_PATTERN_IDS: &[&str] = &[
     PHOENIX_ROUTE_PATTERN_ID,
     PHOENIX_RESOURCE_ROUTE_PATTERN_ID,
     PHOENIX_FORWARD_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+// The shared `rust` server arm. Task 5 declares axum + the rust client; Task 6
+// extends this with the actix pattern ids on the same language.
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const RUST_PATTERN_IDS: &[&str] = &[
+    AXUM_ROUTE_PATTERN_ID,
+    AXUM_NEST_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -249,6 +261,16 @@ pub fn collect_framework_structural_facts(
             ));
             elixir_facts
         }
+        // The shared `rust` server dispatch arm. Task 5 runs the axum collector;
+        // Task 6 extends this arm with the actix collectors (both gate on their
+        // own crate import + arg shape, so they never double-emit).
+        "rust" => {
+            let mut rust_facts = collect_axum_routes(language, tree, file_path, content);
+            rust_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            rust_facts
+        }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         _ => Vec::new(),
     };
@@ -283,6 +305,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         "ruby" => RAILS_PATTERN_IDS,
         "php" => LARAVEL_PATTERN_IDS,
         "elixir" => ELIXIR_PATTERN_IDS,
+        "rust" => RUST_PATTERN_IDS,
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],
     }

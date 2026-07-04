@@ -6,6 +6,7 @@ mod kotlin;
 mod php;
 mod python;
 mod ruby;
+mod rust;
 
 use tree_sitter::Tree;
 
@@ -34,6 +35,7 @@ pub(super) fn collect_backend_http_client_requests(
         "elixir" => {
             elixir::collect_elixir_http_client_requests(language, tree, file_path, content)
         }
+        "rust" => rust::collect_rust_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }
 }
