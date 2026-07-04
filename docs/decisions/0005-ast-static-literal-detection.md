@@ -39,14 +39,38 @@ must run on the **whole argument-expression node**, before any value is read.
    child. The tree-sitter grammars have already solved the lexing the mask would
    have to re-derive.
 2. **Allowlist, never denylist.** The check names the safe node kinds per
-   language; an unknown wrapper node fails **closed** to `None` (silence). Per
-   design §4.4 the arms are: Kotlin `string_literal`/`multiline_string_literal`
-   with no `interpolation` child; Elixir `string`/`sigil`/`charlist` with no
-   `interpolation` child and (for a sigil) `sigil_name ∈ {s, S}`; PHP `string`
-   or an `encapsed_string`/`heredoc`/`nowdoc` whose children are only
-   `string_content`/`escape_sequence`; Rust `string_literal`/`raw_string_literal`
-   (no interpolation exists, so the work is rejecting `format!`/concat/`const`
-   wrappers).
+   language; an unknown wrapper node fails **closed** to `None` (silence). The
+   arms below are the **as-implemented** rules, verified against the vendored
+   tree-sitter grammars during Tasks 2–6. Design §4.4 described each as an
+   "interpolation-child check"; empirically the child check alone is
+   **insufficient** for three of the four languages, because the grammars leave
+   interpolation markers in ordinary content nodes rather than in a distinct
+   `interpolation` child. Each arm therefore also fails closed on the raw
+   marker:
+   - **Kotlin** — `string_literal`/`multiline_string_literal` with no
+     `interpolation` child **and** no unescaped `$` in any `string_content`
+     child. A single-line `"$base/x"` (braceless `$id`) does **not** produce an
+     `interpolation` node in `tree-sitter-kotlin-ng`; the `$` lands in a
+     `string_content` child, so a child-only check would leak `/$base/x` as a
+     false-static route. An escaped `\$` (a genuine literal dollar) is allowed
+     via the `escape_sequence` path.
+   - **Elixir** — `string`/`charlist`/`sigil` (content in `quoted_content`/
+     `escape_sequence`) with no `interpolation` child, `sigil_name ∈ {s, S}`
+     (rejecting `~r` and every other sigil), **and** no `#{` in any
+     `quoted_content`. A capital `~S"/u/#{id}"` does **not** interpolate, so the
+     grammar leaves a literal `#{id}` in `quoted_content` with no
+     `interpolation` child; failing closed on any `#{` marker keeps it silent.
+     An Elixir heredoc `"""..."""` is the **same** `string` node kind (no
+     separate heredoc node).
+   - **PHP** — `string` (single-quote) or `encapsed_string` (double-quote) whose
+     children are only `string_content`/`escape_sequence`; a `heredoc`/`nowdoc`
+     wraps its content in a `heredoc_body`/`nowdoc_body` node, so the allowlist
+     runs on the **body's** children, not the `heredoc`/`nowdoc` node's direct
+     children (a literal reading of design §4.4 would fail closed on every
+     heredoc). `nowdoc` never interpolates. Note `"/{$id}"` yields the same
+     `variable_name`/dynamic child as `"/$id"`, so both are rejected.
+   - **Rust** — `string_literal`/`raw_string_literal` (no interpolation exists,
+     so the work is rejecting `format!`/concat/`const` wrappers).
 3. **The `SourceMask` in `scan.rs` is NOT extended.** `MaskLanguage` keeps its
    existing six languages. A lightweight comment/string span mask may still
    drive byte-level delimiter matching for prefix tracing, but the
@@ -67,11 +91,14 @@ a guessed route. One shared helper is reused across all four languages (design
 §4.1), so the join key stays trustworthy.
 
 Harder: correctness now rests on **enumerating the safe argument-node allowlist
-and the interpolating-child kinds per grammar** — the Elixir `sigil_name` gate
-and the PHP `encapsed_string` child allowlist are the two to nail. That
-enumeration is grammar-specific and must be re-verified against the tree-sitter
-grammar version in `Cargo.toml` whenever a grammar is bumped; the per-language
-unit-test table is the guard. Because the helper returns a borrowed source slice
+and every interpolation marker per grammar** — and Tasks 2–6 proved the
+distinct-`interpolation`-child assumption wrong for Kotlin, Elixir, and PHP, so
+each arm carries an extra raw-marker guard (unescaped `$` in Kotlin
+`string_content`, `#{` in Elixir `quoted_content`, the PHP `heredoc_body`
+indirection). That enumeration is grammar-specific and must be re-verified
+against the tree-sitter grammar version in `Cargo.toml` whenever a grammar is
+bumped; the per-language unit-test table (which asserts `None` for the exact
+grammar shapes above) is the guard. Because the helper returns a borrowed source slice
 (`Option<&str>`), escape sequences are left unprocessed — acceptable for route
 templates, which do not use them.
 
