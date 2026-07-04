@@ -507,7 +507,7 @@ pub(super) fn object_or_ancestor_value_property_matches(
 ) -> bool {
     loop {
         if object_value_property_name(content, object_start, range_start)
-            .is_some_and(|name| property_names.iter().any(|property| *property == name))
+            .is_some_and(|name| property_names.contains(&name))
         {
             return true;
         }

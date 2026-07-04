@@ -14,19 +14,19 @@ extraction results by spawning a binary and reading a durable artifact.
 
 ## Current Release
 
-- Current release: `v2.8.0`
-- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.8.0
-- Published: `2026-07-04T13:40:09Z`
-- Release commit: `2dbdcad327f8025fe0f6c3aedba6ece73e8323a1`
-- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/28707784242
-- Release evidence: [docs/release-evidence/2026-07-04-v2-8-0-release.md](docs/release-evidence/2026-07-04-v2-8-0-release.md)
+- Current release: `v2.8.1`
+- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.8.1
+- Published: `2026-07-04T18:48:23Z`
+- Release commit: `bca2b811bcd00b3d3a136dbdbc0e0aae8b7cba8d`
+- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/28715921413
+- Release evidence: [docs/release-evidence/2026-07-04-v2-8-1-release.md](docs/release-evidence/2026-07-04-v2-8-1-release.md)
 
 | Platform | Asset | SHA-256 |
 | --- | --- | --- |
-| Linux x86_64 | [`julie-extract-v2.8.0-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.8.0/julie-extract-v2.8.0-x86_64-unknown-linux-gnu.tar.gz) | `185bd0cdd2b0ea45ab588fbf01fbc0d83953453c4423115cf4febcadf034ac8f` |
-| macOS Apple Silicon | [`julie-extract-v2.8.0-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.8.0/julie-extract-v2.8.0-aarch64-apple-darwin.tar.gz) | `75424faf62b98afd02f5268919dd5269db6146b1e410ea250a20a10e9afae8af` |
-| macOS Intel | [`julie-extract-v2.8.0-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.8.0/julie-extract-v2.8.0-x86_64-apple-darwin.tar.gz) | `12c3e6271cb73226bad1dcee6a8e508c04a3e2d7b312866352cb6b19b9b1c6d2` |
-| Windows x86_64 | [`julie-extract-v2.8.0-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.8.0/julie-extract-v2.8.0-x86_64-pc-windows-msvc.zip) | `fb2d2df16ddb92eea4d47bee384bdf225a63b7a054087cf56f462a73a3128e0b` |
+| Linux x86_64 | [`julie-extract-v2.8.1-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.8.1/julie-extract-v2.8.1-x86_64-unknown-linux-gnu.tar.gz) | `b8217e019b3cd4d1f3f930bab0507a2d3d3f313ed773a8110bdf45212bc32e9d` |
+| macOS Apple Silicon | [`julie-extract-v2.8.1-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.8.1/julie-extract-v2.8.1-aarch64-apple-darwin.tar.gz) | `d147b62367153b38c08399ddc8d11873b0f21268222a2dc9523428c5e5a78fcb` |
+| macOS Intel | [`julie-extract-v2.8.1-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.8.1/julie-extract-v2.8.1-x86_64-apple-darwin.tar.gz) | `431a6b9205dc5c259cea710d60d48e7440276a8fb2434e39dc31458093fd1e09` |
+| Windows x86_64 | [`julie-extract-v2.8.1-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.8.1/julie-extract-v2.8.1-x86_64-pc-windows-msvc.zip) | `e3e1afb80fa168d6437a3fc886a969bf8dcb39c230b9fb5762d6bd22f45953dc` |
 
 The v2 line starts above the old in-tree Julie extractor crate line, which had
 reached v1.22.0 before this repo became the standalone product.
@@ -39,9 +39,9 @@ Download a published binary archive from the release page, extract it, and put
 Linux example:
 
 ```bash
-curl -L -o julie-extract-v2.8.0-x86_64-unknown-linux-gnu.tar.gz \
-  https://github.com/anortham/julie-extractors/releases/download/v2.8.0/julie-extract-v2.8.0-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf julie-extract-v2.8.0-x86_64-unknown-linux-gnu.tar.gz
+curl -L -o julie-extract-v2.8.1-x86_64-unknown-linux-gnu.tar.gz \
+  https://github.com/anortham/julie-extractors/releases/download/v2.8.1/julie-extract-v2.8.1-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf julie-extract-v2.8.1-x86_64-unknown-linux-gnu.tar.gz
 ./dist/x86_64-unknown-linux-gnu/julie-extract --version
 ```
 
