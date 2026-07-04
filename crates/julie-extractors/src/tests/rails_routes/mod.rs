@@ -156,6 +156,107 @@ end
 }
 
 #[test]
+fn rails_parenthesized_verb_routes_emit_boundary_facts() {
+    let source = r#"
+Rails.application.routes.draw do
+  get("/status", to: "health#show")
+  post('/login', to: "sessions#create")
+end
+"#;
+    let results = extract("config/routes.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 2, "{routes:#?}");
+
+    let status = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/status"))
+        .expect("status route");
+    assert_eq!(metadata_str(status, "verb"), Some("GET"));
+    assert_eq!(
+        metadata_str(status, "controller_action"),
+        Some("health#show")
+    );
+
+    let login = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/login"))
+        .expect("login route");
+    assert_eq!(metadata_str(login, "verb"), Some("POST"));
+    assert_eq!(
+        metadata_str(login, "controller_action"),
+        Some("sessions#create")
+    );
+}
+
+#[test]
+fn rails_multi_resource_declaration_emits_each_resource() {
+    let source = r#"
+Rails.application.routes.draw do
+  resources :users, :posts, only: [:index]
+end
+"#;
+    let results = extract("config/routes.rb", source);
+    let resources = facts_with_pattern(&results, RAILS_RESOURCE_ROUTE_PATTERN_ID);
+    assert_eq!(resources.len(), 2, "{resources:#?}");
+    let mut names = resources
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "resource_name"))
+        .collect::<Vec<_>>();
+    names.sort_unstable();
+    assert_eq!(names, vec!["posts", "users"]);
+    assert!(
+        resources
+            .iter()
+            .all(|fact| metadata_array(fact, "only") == vec!["index"]),
+        "{resources:#?}"
+    );
+}
+
+#[test]
+fn rails_member_and_collection_blocks_preserve_static_resource_prefixes() {
+    let source = r#"
+Rails.application.routes.draw do
+  namespace :admin do
+    resources :posts do
+      member do
+        get "preview", to: "posts#preview"
+      end
+      collection do
+        post "bulk_publish", to: "posts#bulk_publish"
+      end
+    end
+  end
+end
+"#;
+    let results = extract("config/routes.rb", source);
+    let routes = facts_with_pattern(&results, RAILS_ROUTE_PATTERN_ID);
+    assert_eq!(routes.len(), 2, "{routes:#?}");
+
+    let preview = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("preview"))
+        .expect("member route");
+    assert_eq!(
+        metadata_str(preview, "scope_path"),
+        Some("/admin/posts/:post_id")
+    );
+    assert_eq!(
+        metadata_str(preview, "normalized_route_template"),
+        Some("/admin/posts/:post_id/preview")
+    );
+
+    let bulk = routes
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("bulk_publish"))
+        .expect("collection route");
+    assert_eq!(metadata_str(bulk, "scope_path"), Some("/admin/posts"));
+    assert_eq!(
+        metadata_str(bulk, "normalized_route_template"),
+        Some("/admin/posts/bulk_publish")
+    );
+}
+
+#[test]
 fn rails_nested_non_scope_blocks_do_not_pop_namespace_scopes() {
     let source = r#"
 Rails.application.routes.draw do

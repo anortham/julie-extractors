@@ -271,7 +271,7 @@ fn try_scope_route(
     if method != "route" {
         return;
     }
-    let Some(prefix) = scope_prefix(receiver, content) else {
+    let Some(prefix) = route_prefix(receiver, content) else {
         return;
     };
     let args = call_arguments(call);
@@ -294,7 +294,7 @@ fn try_scope_route(
         verb: verb.name(),
         verb_source: verb.name().map(|_| "attested"),
         flavor: ParamFlavor::Braces,
-        prefix: Some(prefix),
+        prefix,
         prefix_key: Some("route_group_prefix"),
     };
     if let Some(fact) = route_fact(
@@ -612,6 +612,58 @@ fn scope_prefix<'a>(receiver: Node, content: &'a str) -> Option<&'a str> {
             }
             _ => return None,
         }
+    }
+}
+
+fn route_prefix<'a>(receiver: Node, content: &'a str) -> Option<Option<&'a str>> {
+    if let Some(prefix) = scope_prefix(receiver, content) {
+        return Some(Some(prefix));
+    }
+    app_new_receiver(receiver, content).then_some(None)
+}
+
+fn app_new_receiver(receiver: Node, content: &str) -> bool {
+    let mut node = receiver;
+    loop {
+        if node.kind() != "call_expression" {
+            return false;
+        }
+        let Some(function) = node.child_by_field_name("function") else {
+            return false;
+        };
+        match function.kind() {
+            "scoped_identifier" => return scoped_is_app_new(function, content),
+            "field_expression" => {
+                let Some(value) = function.child_by_field_name("value") else {
+                    return false;
+                };
+                node = value;
+            }
+            _ => return false,
+        }
+    }
+}
+
+fn scoped_is_app_new(scoped: Node, content: &str) -> bool {
+    scoped
+        .child_by_field_name("name")
+        .and_then(|name| node_text(content, name))
+        == Some("new")
+        && scoped_path_is_app(scoped, content)
+}
+
+fn scoped_path_is_app(scoped: Node, content: &str) -> bool {
+    let Some(path) = scoped.child_by_field_name("path") else {
+        return false;
+    };
+    match path.kind() {
+        "identifier" => node_text(content, path) == Some("App"),
+        "scoped_identifier" => {
+            path.child_by_field_name("name")
+                .and_then(|inner| node_text(content, inner))
+                == Some("App")
+        }
+        _ => false,
     }
 }
 

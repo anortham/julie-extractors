@@ -139,3 +139,78 @@ See [real link](https://example.com/real).
 
     assert_eq!(labels, BTreeSet::from(["real link"]));
 }
+
+#[test]
+fn markdown_inline_link_fallback_ignores_inline_code() {
+    let source = r#"# Links
+
+Use `[not a link](https://example.com/code)` in examples.
+See [real link](https://example.com/real).
+"#;
+
+    let results = extract(source);
+    let labels = facts_with_pattern(&results, "markdown.inline_link.v1")
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "label"))
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(labels, BTreeSet::from(["real link"]));
+}
+
+#[test]
+fn markdown_inline_links_support_nested_brackets_in_label() {
+    let source = r#"# Links
+
+See [API [v2] docs](https://example.com/api).
+"#;
+
+    let results = extract(source);
+    let link = facts_with_pattern(&results, "markdown.inline_link.v1")
+        .into_iter()
+        .next()
+        .expect("nested bracket link");
+    assert_eq!(metadata_str(link, "label"), Some("API [v2] docs"));
+    assert_eq!(
+        metadata_str(link, "destination"),
+        Some("https://example.com/api")
+    );
+}
+
+#[test]
+fn markdown_setext_heading_levels_are_distinct() {
+    let source = r#"Title
+=====
+
+Subtitle
+--------
+"#;
+
+    let results = extract(source);
+    let headings = facts_with_pattern(&results, "markdown.heading.v1");
+    let levels = headings
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "text").zip(metadata_u64(fact, "level")))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(levels, BTreeSet::from([("Subtitle", 2), ("Title", 1)]));
+}
+
+#[test]
+fn markdown_frontmatter_key_count_counts_top_level_keys_only() {
+    let source = r#"---
+title: Worker Guide
+tags:
+  - docs
+  - api
+draft: false
+---
+
+# Body
+"#;
+
+    let results = extract(source);
+    let frontmatter = facts_with_pattern(&results, "markdown.frontmatter.v1")
+        .into_iter()
+        .next()
+        .expect("frontmatter");
+    assert_eq!(metadata_u64(frontmatter, "key_count"), Some(3));
+}

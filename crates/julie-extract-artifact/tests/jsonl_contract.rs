@@ -99,6 +99,75 @@ fn sqlite_json_text_columns_are_decoded_into_json_values() {
 }
 
 #[test]
+fn structural_fact_metadata_exports_stored_json_object_raw() {
+    let conn = populated_artifact();
+    conn.execute(
+        "UPDATE structural_facts SET metadata_json = ?1 WHERE structural_fact_id = 'fact-unsafe'",
+        [r#"{"z":1,"a":2}"#],
+    )
+    .unwrap();
+
+    let output = export_string(&conn);
+    assert!(
+        output
+            .lines()
+            .any(|line| line.contains(r#""kind":"structural_fact""#)
+                && line.contains(r#""metadata":{"z":1,"a":2}"#)),
+        "structural-fact metadata should be validated but emitted from stored JSON text"
+    );
+
+    let records = output
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        record(&records, "structural_fact")["metadata"],
+        json!({"z": 1, "a": 2})
+    );
+}
+
+#[test]
+fn structural_fact_metadata_export_compacts_raw_object_whitespace() {
+    let conn = populated_artifact();
+    let metadata = r#"{
+  "z": 1,
+  "a": 2
+}
+"#;
+    conn.execute(
+        "UPDATE structural_facts SET metadata_json = ?1 WHERE structural_fact_id = 'fact-unsafe'",
+        [metadata],
+    )
+    .unwrap();
+
+    let output = export_string(&conn);
+    for (index, line) in output.lines().enumerate() {
+        serde_json::from_str::<Value>(line).unwrap_or_else(|err| {
+            panic!(
+                "line {} should be one valid JSONL record: {err}: {line:?}",
+                index + 1
+            )
+        });
+    }
+    assert!(
+        output
+            .lines()
+            .any(|line| line.contains(r#""kind":"structural_fact""#)
+                && line.contains(r#""metadata":{"z":1,"a":2}"#)),
+        "structural-fact metadata should be compacted before raw JSONL export"
+    );
+
+    let records = output
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        record(&records, "structural_fact")["metadata"],
+        json!({"z": 1, "a": 2})
+    );
+}
+
+#[test]
 fn every_record_kind_uses_exact_payload_keys() {
     let conn = populated_artifact();
     let records = export_records(&conn);

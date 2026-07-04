@@ -311,6 +311,7 @@ impl ArtifactWriter {
         let tx = self.connection.transaction()?;
         let counts = capabilities::sync_capability_snapshot_in_tx(&tx, snapshot)?;
         tx.commit()?;
+        checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = counts.clone();
         Ok(counts)
     }
@@ -390,6 +391,7 @@ impl ArtifactWriter {
         let existing = load_existing_file(&tx, path)?;
         let Some(existing) = existing else {
             tx.commit()?;
+            checkpoint_wal(&self.connection)?;
             self.last_capability_rows_written = RowDomainCounts::default();
             return Ok(WriteResult {
                 transactions_committed: 1,
@@ -420,6 +422,7 @@ impl ArtifactWriter {
             revision_counts_with_capabilities(&row_counts, &capability_rows_written);
         update_revision_counts(&tx, revision_id, &revision_counts)?;
         tx.commit()?;
+        checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -474,6 +477,7 @@ impl ArtifactWriter {
 
         if planned.is_empty() && !capability_rows_written.has_rows() {
             tx.commit()?;
+            checkpoint_wal(&self.connection)?;
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
@@ -527,6 +531,7 @@ impl ArtifactWriter {
             revision_counts_with_capabilities(&row_counts, &capability_rows_written);
         update_revision_counts(&tx, revision_id, &revision_counts)?;
         tx.commit()?;
+        checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -591,6 +596,7 @@ impl ArtifactWriter {
 
         if planned.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
             tx.commit()?;
+            checkpoint_wal(&self.connection)?;
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
@@ -670,6 +676,7 @@ impl ArtifactWriter {
             revision_counts_with_capabilities(&row_counts, &capability_rows_written);
         update_revision_counts(&tx, revision_id, &revision_counts)?;
         tx.commit()?;
+        checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -756,6 +763,7 @@ impl ArtifactWriter {
 
         if planned_files.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
             tx.commit()?;
+            checkpoint_wal(&self.connection)?;
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
@@ -837,6 +845,7 @@ impl ArtifactWriter {
             revision_counts_with_capabilities(&row_counts, &capability_rows_written);
         update_revision_counts(&tx, revision_id, &revision_counts)?;
         tx.commit()?;
+        checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -950,11 +959,16 @@ fn update_revision_counts(
     row_counts: &RowDomainCounts,
 ) -> rusqlite::Result<()> {
     let counts_json = serde_json::to_string(row_counts)
-        .expect("RowDomainCounts serialization should be infallible");
+        .map_err(|source| rusqlite::Error::ToSqlConversionFailure(Box::new(source)))?;
     tx.execute(
         "UPDATE extraction_revisions SET counts_json = ?1 WHERE revision_id = ?2",
         params![counts_json, revision_id],
     )?;
+    Ok(())
+}
+
+fn checkpoint_wal(connection: &Connection) -> rusqlite::Result<()> {
+    connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
     Ok(())
 }
 
@@ -994,45 +1008,6 @@ fn ensure_data_loss_guard(tx: &Transaction<'_>, file: &ArtifactFile) -> Artifact
 }
 
 fn delete_file_rows(tx: &Transaction<'_>, file_id: &str, path: &str) -> rusqlite::Result<()> {
-    tx.execute(
-        "DELETE FROM type_arguments
-         WHERE usage_id IN (
-           SELECT usage_id FROM type_argument_usages WHERE file_id = ?1
-         )",
-        [file_id],
-    )?;
-    tx.execute(
-        "DELETE FROM type_argument_usages WHERE file_id = ?1",
-        [file_id],
-    )?;
-    tx.execute("DELETE FROM literals WHERE file_id = ?1", [file_id])?;
-    tx.execute("DELETE FROM source_regions WHERE file_id = ?1", [file_id])?;
-    tx.execute("DELETE FROM structural_facts WHERE file_id = ?1", [file_id])?;
-    tx.execute(
-        "DELETE FROM complexity_metrics WHERE file_id = ?1",
-        [file_id],
-    )?;
-    tx.execute(
-        "DELETE FROM pending_relationships WHERE file_id = ?1",
-        [file_id],
-    )?;
-    tx.execute("DELETE FROM relationships WHERE file_id = ?1", [file_id])?;
-    tx.execute("DELETE FROM identifiers WHERE file_id = ?1", [file_id])?;
-    tx.execute(
-        "DELETE FROM type_facts
-         WHERE symbol_id IN (SELECT symbol_id FROM symbols WHERE file_id = ?1)",
-        [file_id],
-    )?;
-    tx.execute(
-        "DELETE FROM symbol_annotations
-         WHERE symbol_id IN (SELECT symbol_id FROM symbols WHERE file_id = ?1)",
-        [file_id],
-    )?;
-    tx.execute(
-        "DELETE FROM parse_diagnostics WHERE file_id = ?1",
-        [file_id],
-    )?;
-    tx.execute("DELETE FROM symbols WHERE file_id = ?1", [file_id])?;
     tx.execute(
         "DELETE FROM files WHERE file_id = ?1 OR path = ?2",
         params![file_id, path],

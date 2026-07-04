@@ -17,7 +17,13 @@ use crate::base::types::StructuralFact;
 enum BlockKind {
     Draw,
     Scope,
+    Resource,
     Other,
+}
+
+struct ResourceContext {
+    collection_path: String,
+    member_path: String,
 }
 
 pub(super) fn collect_rails_routes(
@@ -37,6 +43,7 @@ pub(super) fn collect_rails_routes(
     let mut offset = 0;
     let mut scope_stack: Vec<Option<String>> = Vec::new();
     let mut block_stack: Vec<BlockKind> = Vec::new();
+    let mut resource_stack: Vec<ResourceContext> = Vec::new();
     let mut draw_depth = 0usize;
     for line in content.split_inclusive('\n') {
         let trimmed = line.trim();
@@ -48,6 +55,14 @@ pub(super) fn collect_rails_routes(
             } else if let Some(scope) = rails_scope_path(trimmed) {
                 scope_stack.push(scope);
                 block_stack.push(BlockKind::Scope);
+            } else if let Some(scope) =
+                rails_member_collection_scope(trimmed, resource_stack.last())
+            {
+                scope_stack.push(Some(scope));
+                block_stack.push(BlockKind::Scope);
+            } else if let Some(resource) = rails_resource_context(trimmed) {
+                resource_stack.push(resource);
+                block_stack.push(BlockKind::Resource);
             } else {
                 block_stack.push(BlockKind::Other);
             }
@@ -59,15 +74,12 @@ pub(super) fn collect_rails_routes(
         }
         let Some(scope_path) = joined_scope(&scope_stack) else {
             if trimmed == "end" || trimmed.starts_with("end ") {
-                match block_stack.pop() {
-                    Some(BlockKind::Scope) => {
-                        scope_stack.pop();
-                    }
-                    Some(BlockKind::Draw) => {
-                        draw_depth = draw_depth.saturating_sub(1);
-                    }
-                    _ => {}
-                }
+                pop_rails_block(
+                    &mut block_stack,
+                    &mut scope_stack,
+                    &mut resource_stack,
+                    &mut draw_depth,
+                );
             }
             offset += line.len();
             continue;
@@ -116,44 +128,46 @@ pub(super) fn collect_rails_routes(
                     &mut facts,
                 );
             }
-        } else if let Some((kind, resource_name)) = rails_resource(trimmed) {
-            push_rails_resource(
-                language,
-                tree,
-                file_path,
-                content,
-                offset,
-                line,
-                &scope_path,
-                kind,
-                &resource_name,
-                trimmed,
-                &mut facts,
-            );
-        } else if let Some((mount_target, mount_path)) = rails_mount(trimmed) {
-            push_rails_mount(
-                language,
-                tree,
-                file_path,
-                content,
-                offset,
-                line,
-                &scope_path,
-                &mount_target,
-                &mount_path,
-                &mut facts,
-            );
+        } else {
+            let resources = rails_resources(trimmed);
+            if !resources.is_empty() {
+                for (kind, resource_name) in resources {
+                    push_rails_resource(
+                        language,
+                        tree,
+                        file_path,
+                        content,
+                        offset,
+                        line,
+                        &scope_path,
+                        kind,
+                        &resource_name,
+                        trimmed,
+                        &mut facts,
+                    );
+                }
+            } else if let Some((mount_target, mount_path)) = rails_mount(trimmed) {
+                push_rails_mount(
+                    language,
+                    tree,
+                    file_path,
+                    content,
+                    offset,
+                    line,
+                    &scope_path,
+                    &mount_target,
+                    &mount_path,
+                    &mut facts,
+                );
+            }
         }
         if trimmed == "end" || trimmed.starts_with("end ") {
-            match block_stack.pop() {
-                Some(BlockKind::Scope) => {
-                    scope_stack.pop();
-                }
-                Some(BlockKind::Draw) => {
-                    draw_depth = draw_depth.saturating_sub(1);
-                }
-                _ => {}
-            }
+            pop_rails_block(
+                &mut block_stack,
+                &mut scope_stack,
+                &mut resource_stack,
+                &mut draw_depth,
+            );
         }
         offset += line.len();
     }
@@ -173,6 +187,26 @@ fn rails_opens_block(line: &str) -> bool {
     .iter()
     .any(|keyword| line.starts_with(keyword))
         || line == "begin"
+}
+
+fn pop_rails_block(
+    block_stack: &mut Vec<BlockKind>,
+    scope_stack: &mut Vec<Option<String>>,
+    resource_stack: &mut Vec<ResourceContext>,
+    draw_depth: &mut usize,
+) {
+    match block_stack.pop() {
+        Some(BlockKind::Scope) => {
+            scope_stack.pop();
+        }
+        Some(BlockKind::Resource) => {
+            resource_stack.pop();
+        }
+        Some(BlockKind::Draw) => {
+            *draw_depth = draw_depth.saturating_sub(1);
+        }
+        _ => {}
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -352,6 +386,37 @@ fn rails_scope_path(line: &str) -> Option<Option<String>> {
     None
 }
 
+fn rails_member_collection_scope(
+    line: &str,
+    current_resource: Option<&ResourceContext>,
+) -> Option<String> {
+    let resource = current_resource?;
+    if line == "member do" || line.starts_with("member do ") {
+        return Some(resource.member_path.clone());
+    }
+    if line == "collection do" || line.starts_with("collection do ") {
+        return Some(resource.collection_path.clone());
+    }
+    None
+}
+
+fn rails_resource_context(line: &str) -> Option<ResourceContext> {
+    let (kind, resource_name) = rails_resources(line).into_iter().next()?;
+    let collection_path = format!("/{resource_name}");
+    let member_path = if kind == "singular" {
+        collection_path.clone()
+    } else {
+        format!(
+            "/{resource_name}/:{}_id",
+            singular_resource_name(&resource_name)
+        )
+    };
+    Some(ResourceContext {
+        collection_path,
+        member_path,
+    })
+}
+
 fn joined_scope(scopes: &[Option<String>]) -> Option<String> {
     let mut joined = String::new();
     for scope in scopes {
@@ -392,7 +457,7 @@ fn rails_verb_route(line: &str) -> Option<(String, String)> {
         ("patch", "PATCH"),
         ("delete", "DELETE"),
     ] {
-        if let Some(rest) = line.strip_prefix(&format!("{method} ")) {
+        if let Some(rest) = rails_method_args(line, method) {
             let (route, _) = parse_static_ruby_string_literal(
                 rest,
                 skip_ascii_whitespace_until(rest, 0, rest.len()),
@@ -401,6 +466,15 @@ fn rails_verb_route(line: &str) -> Option<(String, String)> {
         }
     }
     None
+}
+
+fn rails_method_args<'a>(line: &'a str, method: &str) -> Option<&'a str> {
+    let rest = line.strip_prefix(method)?;
+    let rest = rest.trim_start();
+    if let Some(stripped) = rest.strip_prefix('(') {
+        return Some(stripped);
+    }
+    (!rest.is_empty()).then_some(rest)
 }
 
 fn rails_root_route(line: &str) -> Option<String> {
@@ -427,26 +501,48 @@ fn rails_match_route(line: &str) -> Option<(String, Vec<Option<String>>)> {
     Some((route, vec![Some(verb.to_uppercase())]))
 }
 
-fn rails_resource(line: &str) -> Option<(&'static str, String)> {
-    if let Some(rest) = line.strip_prefix("resources ") {
-        return Some((
-            "collection",
-            rest.split([',', ' '])
-                .next()?
-                .trim_start_matches(':')
-                .to_string(),
-        ));
+fn rails_resources(line: &str) -> Vec<(&'static str, String)> {
+    let (kind, rest) = if let Some(rest) = line.strip_prefix("resources ") {
+        ("collection", rest)
+    } else if let Some(rest) = line.strip_prefix("resource ") {
+        ("singular", rest)
+    } else {
+        return Vec::new();
+    };
+    rails_resource_names(rest)
+        .into_iter()
+        .map(|name| (kind, name))
+        .collect()
+}
+
+fn rails_resource_names(rest: &str) -> Vec<String> {
+    let rest = rest
+        .trim_start()
+        .strip_prefix('(')
+        .unwrap_or_else(|| rest.trim_start());
+    let mut names = Vec::new();
+    for part in rest.split(',') {
+        let token = part.split_whitespace().next().unwrap_or("");
+        if !token.starts_with(':') {
+            break;
+        }
+        let name = token
+            .trim_start_matches(':')
+            .trim_end_matches(')')
+            .trim_end_matches("do");
+        if name.is_empty() || name.ends_with(':') {
+            break;
+        }
+        names.push(name.to_string());
     }
-    if let Some(rest) = line.strip_prefix("resource ") {
-        return Some((
-            "singular",
-            rest.split([',', ' '])
-                .next()?
-                .trim_start_matches(':')
-                .to_string(),
-        ));
+    names
+}
+
+fn singular_resource_name(name: &str) -> String {
+    if let Some(stem) = name.strip_suffix("ies") {
+        return format!("{stem}y");
     }
-    None
+    name.strip_suffix('s').unwrap_or(name).to_string()
 }
 
 fn rails_mount(line: &str) -> Option<(String, String)> {

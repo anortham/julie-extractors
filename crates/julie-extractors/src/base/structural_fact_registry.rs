@@ -1428,7 +1428,7 @@ const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "yaml.mapping.v1",
         languages: &["yaml"],
         query_family: "config_structure",
-        description: "A YAML block mapping.",
+        description: "A YAML block or flow mapping.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
@@ -1450,10 +1450,16 @@ const SPECS: &[StructuralFactPatternSpec] = &[
         pattern_id: "yaml.sequence.v1",
         languages: &["yaml"],
         query_family: "config_structure",
-        description: "A YAML block sequence.",
+        description: "A YAML block or flow sequence.",
         metadata_keys: &[
             K_PATTERN_VERSION,
             K_QUERY_FAMILY,
+            key(
+                "key_path",
+                STR,
+                ALWAYS,
+                "Dotted key path to this sequence from the document root.",
+            ),
             key(
                 "sequence_length",
                 NUM,
@@ -3423,6 +3429,12 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 STR,
                 ALWAYS,
                 "Same route value under the template key, for aspnet consistency.",
+            ),
+            key(
+                "normalized_route_template",
+                STR,
+                ALWAYS,
+                "Route template normalized for HTTP-boundary joins.",
             ),
             key(
                 "route_parameter_count",

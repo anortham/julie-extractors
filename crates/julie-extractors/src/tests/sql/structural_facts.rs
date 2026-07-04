@@ -242,3 +242,100 @@ SELECT id FROM inner_cte;
     assert_eq!(metadata_u64(inner_select, "source_count"), Some(1));
     assert_eq!(metadata_u64(inner_select, "projection_count"), Some(1));
 }
+
+#[test]
+fn sql_integer_primary_key_columns_are_not_nullable() {
+    let source = r#"
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    email TEXT
+);
+"#;
+    let results = extract(source);
+    let id = facts_with_pattern(&results, "sql.column_definition.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "column_name") == Some("id"))
+        .expect("id column");
+    assert_eq!(metadata_str(id, "type_name"), Some("INTEGER"));
+    assert_eq!(metadata_bool(id, "nullable"), Some(false));
+}
+
+#[test]
+fn sql_subquery_select_counts_are_local_to_the_subquery() {
+    let source = r#"
+SELECT *
+FROM (
+    SELECT id
+    FROM users
+    WHERE active = 1
+) active_users
+JOIN profiles ON profiles.user_id = active_users.id
+ORDER BY profiles.created_at;
+"#;
+    let results = extract(source);
+    let selects = facts_with_pattern(&results, "sql.select_query.v1");
+    let subquery = selects
+        .iter()
+        .copied()
+        .find(|fact| {
+            metadata_bool(fact, "has_where") == Some(true)
+                && metadata_bool(fact, "has_order_by") == Some(false)
+        })
+        .expect("inner subquery select");
+    assert_eq!(metadata_u64(subquery, "source_count"), Some(1));
+    assert_eq!(metadata_bool(subquery, "has_where"), Some(true));
+    assert_eq!(metadata_bool(subquery, "has_order_by"), Some(false));
+
+    let outer = selects
+        .iter()
+        .copied()
+        .find(|fact| metadata_bool(fact, "has_order_by") == Some(true))
+        .expect("outer select");
+    assert_eq!(metadata_u64(outer, "source_count"), Some(2));
+    assert_eq!(metadata_bool(outer, "has_where"), Some(false));
+}
+
+#[test]
+fn sql_chained_joins_record_adjacent_left_and_right_tables() {
+    let source = r#"
+SELECT *
+FROM users
+JOIN profiles ON profiles.user_id = users.id
+JOIN teams ON teams.id = profiles.team_id;
+"#;
+    let results = extract(source);
+    let joins = facts_with_pattern(&results, "sql.join.v1");
+    assert_eq!(joins.len(), 2, "{joins:#?}");
+    let endpoints = joins
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "left_table"),
+                metadata_str(fact, "right_table"),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        endpoints,
+        vec![
+            (Some("users"), Some("profiles")),
+            (Some("profiles"), Some("teams")),
+        ]
+    );
+}
+
+#[test]
+fn sql_with_recursive_detection_is_case_insensitive() {
+    let source = r#"
+with recursive nums(n) as (
+    select 1
+)
+select n from nums;
+"#;
+    let results = extract(source);
+    let cte = facts_with_pattern(&results, "sql.cte.v1")
+        .into_iter()
+        .next()
+        .expect("cte fact");
+    assert_eq!(metadata_bool(cte, "recursive"), Some(true));
+}

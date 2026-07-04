@@ -69,6 +69,10 @@ fn razor_emits_page_code_block_and_template_expression_facts() {
     assert_eq!(metadata_str(page, "route"), Some("/worker"));
     assert_eq!(metadata_str(page, "directive"), Some("page"));
     assert_eq!(metadata_str(page, "route_template"), Some("/worker"));
+    assert_eq!(
+        metadata_str(page, "normalized_route_template"),
+        Some("/worker")
+    );
     assert_eq!(metadata_number(page, "route_parameter_count"), Some(0));
     assert_eq!(metadata_bool(page, "has_route_constraints"), Some(false));
     assert_eq!(
@@ -112,6 +116,10 @@ fn razor_page_directive_facts_parse_route_parameters() {
     assert_eq!(
         metadata_str(page, "route_template"),
         Some("/todos/{id:int}")
+    );
+    assert_eq!(
+        metadata_str(page, "normalized_route_template"),
+        Some("/todos/:id")
     );
     assert_eq!(metadata_number(page, "route_parameter_count"), Some(1));
     assert_eq!(metadata_bool(page, "has_route_constraints"), Some(true));

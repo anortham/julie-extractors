@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use std::sync::LazyLock;
 
-use regex::Regex;
 use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
@@ -46,9 +44,6 @@ const REGEX_CHARACTER_CLASS_PATTERN_ID: &str = "regex.character_class.v1";
 const REGEX_QUANTIFIER_PATTERN_ID: &str = "regex.quantifier.v1";
 const REGEX_ALTERNATION_PATTERN_ID: &str = "regex.alternation.v1";
 const REGEX_ANCHOR_PATTERN_ID: &str = "regex.anchor.v1";
-
-static MARKDOWN_INLINE_LINK_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(!)?\[([^\]\n]+)\]\(([^)\n]+)\)").unwrap());
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const MARKDOWN_DATA_PATTERN_IDS: &[&str] = &[
@@ -138,6 +133,7 @@ fn collect_markdown_structural_facts(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     collect_markdown_node(tree.root_node(), file_path, content, &mut facts, 0);
+    append_markdown_setext_heading_facts(file_path, content, &mut facts);
     append_markdown_inline_link_facts(file_path, content, &mut facts);
     facts
 }
@@ -147,24 +143,11 @@ fn append_markdown_inline_link_facts(
     content: &str,
     facts: &mut Vec<StructuralFact>,
 ) {
-    let excluded_spans = markdown_inline_link_excluded_spans(facts);
+    let excluded_spans = markdown_inline_link_excluded_spans(content, facts);
 
-    for captures in MARKDOWN_INLINE_LINK_RE.captures_iter(content) {
-        if captures.get(1).is_some() {
-            continue;
-        }
-        let Some(matched) = captures.get(0) else {
-            continue;
-        };
-        let Some(label) = captures.get(2).map(|matched| matched.as_str()) else {
-            continue;
-        };
-        let Some(destination_match) = captures.get(3) else {
-            continue;
-        };
-        let destination = destination_match.as_str();
-        let start = matched.start();
-        let end = matched.end();
+    for link in find_markdown_inline_links(content) {
+        let start = link.start;
+        let end = link.end;
         if span_is_covered(&excluded_spans, start, end) {
             continue;
         }
@@ -181,11 +164,15 @@ fn append_markdown_inline_link_facts(
         };
 
         let mut metadata = base_metadata("document_links");
-        insert_string(&mut metadata, "label", &clean_markdown_link_text(label));
+        insert_string(
+            &mut metadata,
+            "label",
+            &clean_markdown_link_text(&link.label),
+        );
         insert_string(
             &mut metadata,
             "destination",
-            &clean_markdown_link_destination(destination),
+            &clean_markdown_link_destination(&link.destination),
         );
 
         facts.push(fact_for_span(
@@ -200,7 +187,75 @@ fn append_markdown_inline_link_facts(
     }
 }
 
-fn markdown_inline_link_excluded_spans(facts: &[StructuralFact]) -> Vec<(u32, u32)> {
+fn append_markdown_setext_heading_facts(
+    file_path: &str,
+    content: &str,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let excluded_spans = markdown_block_excluded_spans(facts);
+    let mut previous: Option<(usize, usize, &str)> = None;
+    let mut offset = 0usize;
+    for line in content.split_inclusive('\n') {
+        let line_start = offset;
+        let line_end = offset + line.len();
+        let trimmed = line.trim();
+        if let Some(level) = setext_heading_level(trimmed)
+            && let Some((heading_start, heading_end, heading_text)) = previous
+            && !heading_text.trim().is_empty()
+            && !span_is_covered(&excluded_spans, heading_start, line_end)
+            && !facts.iter().any(|fact| {
+                fact.pattern_id == MARKDOWN_HEADING_PATTERN_ID
+                    && fact.start_byte <= heading_start as u32
+                    && fact.end_byte >= heading_end as u32
+            })
+            && let Some(span) = NormalizedSpan::from_content_range(content, heading_start, line_end)
+        {
+            let mut metadata = base_metadata("document_structure");
+            metadata.insert("level".to_string(), Value::Number(Number::from(level)));
+            insert_string(&mut metadata, "text", heading_text.trim());
+            facts.push(fact_for_span(
+                file_path,
+                "markdown",
+                MARKDOWN_HEADING_PATTERN_ID,
+                "heading",
+                "setext_heading",
+                span,
+                metadata,
+            ));
+        }
+        previous = if trimmed.is_empty() {
+            None
+        } else {
+            Some((
+                line_start,
+                line_end,
+                line.trim_end_matches('\n').trim_end_matches('\r'),
+            ))
+        };
+        offset = line_end;
+    }
+}
+
+fn setext_heading_level(line: &str) -> Option<u64> {
+    if line.len() < 3 {
+        return None;
+    }
+    if line.bytes().all(|byte| byte == b'=') {
+        return Some(1);
+    }
+    if line.bytes().all(|byte| byte == b'-') {
+        return Some(2);
+    }
+    None
+}
+
+fn markdown_inline_link_excluded_spans(content: &str, facts: &[StructuralFact]) -> Vec<(u32, u32)> {
+    let mut spans = markdown_block_excluded_spans(facts);
+    spans.extend(markdown_inline_code_spans(content));
+    spans
+}
+
+fn markdown_block_excluded_spans(facts: &[StructuralFact]) -> Vec<(u32, u32)> {
     facts
         .iter()
         .filter(|fact| {
@@ -211,6 +266,115 @@ fn markdown_inline_link_excluded_spans(facts: &[StructuralFact]) -> Vec<(u32, u3
         })
         .map(|fact| (fact.start_byte, fact.end_byte))
         .collect()
+}
+
+struct MarkdownInlineLink {
+    start: usize,
+    end: usize,
+    label: String,
+    destination: String,
+}
+
+fn find_markdown_inline_links(content: &str) -> Vec<MarkdownInlineLink> {
+    let bytes = content.as_bytes();
+    let mut links = Vec::new();
+    let mut cursor = 0usize;
+    while cursor < bytes.len() {
+        if bytes[cursor] != b'[' || cursor > 0 && bytes[cursor - 1] == b'!' {
+            cursor += 1;
+            continue;
+        }
+        let Some((label, close_bracket)) = parse_markdown_link_label(content, cursor) else {
+            cursor += 1;
+            continue;
+        };
+        if bytes.get(close_bracket + 1) != Some(&b'(') {
+            cursor += 1;
+            continue;
+        }
+        let Some((destination, close_paren)) =
+            parse_markdown_link_destination(content, close_bracket + 1)
+        else {
+            cursor += 1;
+            continue;
+        };
+        links.push(MarkdownInlineLink {
+            start: cursor,
+            end: close_paren + 1,
+            label,
+            destination,
+        });
+        cursor = close_paren + 1;
+    }
+    links
+}
+
+fn parse_markdown_link_label(content: &str, open: usize) -> Option<(String, usize)> {
+    let mut depth = 0usize;
+    let mut escaped = false;
+    for (relative, ch) in content[open..].char_indices() {
+        let index = open + relative;
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match ch {
+            '\\' => escaped = true,
+            '\n' | '\r' => return None,
+            '[' => depth += 1,
+            ']' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    return Some((content[open + 1..index].to_string(), index));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn parse_markdown_link_destination(content: &str, open: usize) -> Option<(String, usize)> {
+    let mut escaped = false;
+    for (relative, ch) in content[open + 1..].char_indices() {
+        let index = open + 1 + relative;
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match ch {
+            '\\' => escaped = true,
+            '\n' | '\r' => return None,
+            ')' => return Some((content[open + 1..index].to_string(), index)),
+            _ => {}
+        }
+    }
+    None
+}
+
+fn markdown_inline_code_spans(content: &str) -> Vec<(u32, u32)> {
+    let bytes = content.as_bytes();
+    let mut spans = Vec::new();
+    let mut cursor = 0usize;
+    while cursor < bytes.len() {
+        if bytes[cursor] != b'`' {
+            cursor += 1;
+            continue;
+        }
+        let tick_count = bytes[cursor..]
+            .iter()
+            .take_while(|byte| **byte == b'`')
+            .count();
+        let closing = "`".repeat(tick_count);
+        let search_start = cursor + tick_count;
+        let Some(relative_close) = content[search_start..].find(&closing) else {
+            break;
+        };
+        let end = search_start + relative_close + tick_count;
+        spans.push((cursor as u32, end as u32));
+        cursor = end;
+    }
+    spans
 }
 
 fn span_is_covered(spans: &[(u32, u32)], start: usize, end: usize) -> bool {
@@ -289,11 +453,7 @@ fn markdown_frontmatter_fact(
         return None;
     }
 
-    let key_count = body
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty() && !line.starts_with('#'))
-        .count();
+    let key_count = count_frontmatter_keys(&body, format);
 
     let mut metadata = base_metadata("document_metadata");
     insert_string(&mut metadata, "format", format);
@@ -310,6 +470,37 @@ fn markdown_frontmatter_fact(
         node,
         metadata,
     ))
+}
+
+fn count_frontmatter_keys(body: &str, format: &str) -> usize {
+    body.lines()
+        .filter(|line| match format {
+            "toml" => toml_frontmatter_key_line(line),
+            _ => yaml_frontmatter_key_line(line),
+        })
+        .count()
+}
+
+fn yaml_frontmatter_key_line(line: &str) -> bool {
+    let trimmed = line.trim_end();
+    if trimmed.is_empty()
+        || trimmed.trim_start().starts_with('#')
+        || line.chars().next().is_some_and(char::is_whitespace)
+        || trimmed.starts_with('-')
+    {
+        return false;
+    }
+    trimmed
+        .split_once(':')
+        .is_some_and(|(key, _)| !key.trim().is_empty())
+}
+
+fn toml_frontmatter_key_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    !trimmed.is_empty()
+        && !trimmed.starts_with('#')
+        && !trimmed.starts_with('[')
+        && trimmed.contains('=')
 }
 
 fn markdown_heading_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
@@ -531,6 +722,26 @@ fn collect_json_node(
                 child_traversal_depth,
             );
         }
+    } else if node.kind() == "array" {
+        let mut cursor = node.walk();
+        let mut index = 0usize;
+        for child in node.children(&mut cursor) {
+            if !is_json_value_node_kind(child.kind()) {
+                continue;
+            }
+            let mut child_path = path.to_vec();
+            child_path.push(format!("[{index}]"));
+            collect_json_node(
+                child,
+                file_path,
+                content,
+                &child_path,
+                depth + 1,
+                facts,
+                child_traversal_depth,
+            );
+            index += 1;
+        }
     } else {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
@@ -648,29 +859,72 @@ fn collect_toml_node(
             }
         }
         "pair" => {
+            let effective_table_path = toml_inline_array_table_path(content, node, table_path)
+                .unwrap_or_else(|| table_path.to_vec());
             if let Some((key_value, inline_table)) =
-                toml_key_value_facts(file_path, content, node, table_path)
+                toml_key_value_facts(file_path, content, node, &effective_table_path)
             {
                 facts.push(key_value);
-                if let Some(inline_table) = inline_table {
-                    facts.push(inline_table);
-                    if let (Some(key), Some(value_node)) =
-                        (toml_pair_key(content, node), toml_pair_value(node))
+                if let Some(value_node) = toml_pair_value(node) {
+                    if let Some(inline_table) = inline_table {
+                        facts.push(inline_table);
+                        if let Some(key_parts) = toml_pair_key_parts(content, node) {
+                            let mut inline_path = table_path.to_vec();
+                            inline_path.extend(key_parts);
+                            walk_toml_children(
+                                value_node,
+                                file_path,
+                                content,
+                                &inline_path,
+                                facts,
+                                depth,
+                            );
+                            return;
+                        }
+                    }
+                    if value_node.kind() == "array"
+                        && let Some(key_parts) = toml_pair_key_parts(content, node)
                     {
-                        let mut inline_path = table_path.to_vec();
-                        inline_path.push(key);
+                        let mut array_path = table_path.to_vec();
+                        array_path.extend(key_parts);
                         walk_toml_children(
                             value_node,
                             file_path,
                             content,
-                            &inline_path,
+                            &array_path,
                             facts,
                             depth,
                         );
+                        return;
                     }
-                    return;
                 }
             }
+        }
+        "inline_table" => {
+            if let Some(inline_path) = toml_inline_array_table_path(content, node, table_path) {
+                let key_path = toml_render_path(&inline_path);
+                let mut inline_metadata = base_metadata("config_structure");
+                insert_string(&mut inline_metadata, "key_path", &key_path);
+                inline_metadata.insert(
+                    "entry_count".to_string(),
+                    Value::Number(Number::from(count_direct_children(node, "pair"))),
+                );
+                inline_metadata.insert("is_array_table".to_string(), Value::Bool(false));
+                facts.push(fact_for_node(
+                    file_path,
+                    "toml",
+                    TOML_INLINE_TABLE_PATTERN_ID,
+                    "inline_table",
+                    node,
+                    inline_metadata,
+                ));
+                walk_toml_children(node, file_path, content, &inline_path, facts, depth);
+                return;
+            }
+        }
+        "array" => {
+            collect_toml_array_children(node, file_path, content, table_path, facts, depth);
+            return;
         }
         _ => {}
     }
@@ -695,15 +949,124 @@ fn walk_toml_children(
     }
 }
 
+fn collect_toml_array_children(
+    node: Node<'_>,
+    file_path: &str,
+    content: &str,
+    table_path: &[String],
+    facts: &mut Vec<StructuralFact>,
+    depth: u32,
+) {
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    let mut index = 0usize;
+    for child in node.children(&mut cursor) {
+        if child.kind() != "inline_table" {
+            continue;
+        }
+        let mut indexed_path = table_path.to_vec();
+        indexed_path.push(format!("[{index}]"));
+        let key_path = toml_render_path(&indexed_path);
+        let mut inline_metadata = base_metadata("config_structure");
+        insert_string(&mut inline_metadata, "key_path", &key_path);
+        inline_metadata.insert(
+            "entry_count".to_string(),
+            Value::Number(Number::from(count_direct_children(child, "pair"))),
+        );
+        inline_metadata.insert("is_array_table".to_string(), Value::Bool(false));
+        facts.push(fact_for_node(
+            file_path,
+            "toml",
+            TOML_INLINE_TABLE_PATTERN_ID,
+            "inline_table",
+            child,
+            inline_metadata,
+        ));
+        walk_toml_children(child, file_path, content, &indexed_path, facts, child_depth);
+        index += 1;
+    }
+}
+
+fn toml_inline_array_table_path(
+    content: &str,
+    node: Node<'_>,
+    table_path: &[String],
+) -> Option<Vec<String>> {
+    if table_path
+        .last()
+        .is_some_and(|segment| segment.starts_with('['))
+    {
+        return None;
+    }
+    let inline_table = if node.kind() == "inline_table" {
+        node
+    } else {
+        ancestor_of_toml_kind(node, "inline_table")?
+    };
+    let array = ancestor_of_toml_kind(inline_table, "array")?;
+    let owner_pair = ancestor_of_toml_kind(array, "pair")?;
+    let owner_key_parts = toml_pair_key_parts(content, owner_pair)?;
+    let mut path = table_path.to_vec();
+    if !path.ends_with(&owner_key_parts) {
+        path.extend(owner_key_parts);
+    }
+    let index = toml_inline_table_index(array, inline_table)?;
+    path.push(format!("[{index}]"));
+    Some(path)
+}
+
+fn ancestor_of_toml_kind<'a>(mut node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+    while let Some(parent) = node.parent() {
+        if parent.kind() == kind {
+            return Some(parent);
+        }
+        node = parent;
+    }
+    None
+}
+
+fn toml_inline_table_index(array: Node<'_>, target: Node<'_>) -> Option<usize> {
+    let mut index = 0usize;
+    toml_inline_table_index_inner(array, target, &mut index)
+}
+
+fn toml_inline_table_index_inner(
+    node: Node<'_>,
+    target: Node<'_>,
+    index: &mut usize,
+) -> Option<usize> {
+    if node.kind() == "inline_table" {
+        if same_toml_node(node, target) {
+            return Some(*index);
+        }
+        *index += 1;
+        return None;
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if let Some(found) = toml_inline_table_index_inner(child, target, index) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+fn same_toml_node(left: Node<'_>, right: Node<'_>) -> bool {
+    left.start_byte() == right.start_byte() && left.end_byte() == right.end_byte()
+}
+
 fn toml_key_value_facts(
     file_path: &str,
     content: &str,
     node: Node<'_>,
     table_path: &[String],
 ) -> Option<(StructuralFact, Option<StructuralFact>)> {
-    let key = toml_pair_key(content, node)?;
+    let key_parts = toml_pair_key_parts(content, node)?;
+    let key = key_parts.last()?.clone();
     let value_node = toml_pair_value(node)?;
-    let key_path = toml_key_path(table_path, &key);
+    let key_path = toml_key_path_parts(table_path, &key_parts);
 
     let mut metadata = base_metadata("config_structure");
     insert_string(&mut metadata, "key", &key);
@@ -783,15 +1146,12 @@ fn collect_yaml_node(
                 metadata,
             ));
         }
-        "block_mapping" => {
+        "block_mapping" | "flow_mapping" => {
             let mut metadata = base_metadata("config_structure");
             insert_string(&mut metadata, "key_path", &yaml_key_path(path));
             metadata.insert(
                 "pair_count".to_string(),
-                Value::Number(Number::from(count_direct_children(
-                    node,
-                    "block_mapping_pair",
-                ))),
+                Value::Number(Number::from(yaml_pair_count(node))),
             );
             facts.push(fact_for_node(
                 file_path,
@@ -802,7 +1162,7 @@ fn collect_yaml_node(
                 metadata,
             ));
         }
-        "block_mapping_pair" => {
+        "block_mapping_pair" | "flow_pair" | "flow_mapping_pair" => {
             if let Some((key, value_node)) = yaml_pair_key_and_value(content, node) {
                 let key_path = yaml_property_path(path, &key);
                 let mut metadata = base_metadata("config_structure");
@@ -837,14 +1197,12 @@ fn collect_yaml_node(
                 return;
             }
         }
-        "block_sequence" => {
+        "block_sequence" | "flow_sequence" => {
             let mut metadata = base_metadata("config_structure");
+            insert_string(&mut metadata, "key_path", &yaml_key_path(path));
             metadata.insert(
                 "sequence_length".to_string(),
-                Value::Number(Number::from(count_direct_children(
-                    node,
-                    "block_sequence_item",
-                ))),
+                Value::Number(Number::from(yaml_sequence_length(node))),
             );
             facts.push(fact_for_node(
                 file_path,
@@ -1472,6 +1830,27 @@ fn yaml_pair_key_and_value<'a>(content: &str, node: Node<'a>) -> Option<(String,
     None
 }
 
+fn yaml_pair_count(node: Node<'_>) -> usize {
+    count_direct_children(node, "block_mapping_pair")
+        + count_direct_children(node, "flow_pair")
+        + count_direct_children(node, "flow_mapping_pair")
+}
+
+fn yaml_sequence_length(node: Node<'_>) -> usize {
+    let block_count = count_direct_children(node, "block_sequence_item");
+    if block_count > 0 {
+        return block_count;
+    }
+    let mut count = 0usize;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() == "flow_node" {
+            count += 1;
+        }
+    }
+    count
+}
+
 fn yaml_node_scalar_text(content: &str, node: Node<'_>) -> Option<String> {
     yaml_node_scalar_text_at_depth(content, node, 0)
 }
@@ -1544,11 +1923,16 @@ fn parse_link_reference_definition(text: &str) -> Option<(String, String)> {
 }
 
 fn json_path(path: &[String]) -> String {
-    if path.is_empty() {
-        "$".to_string()
-    } else {
-        format!("$.{}", path.join("."))
+    let mut rendered = "$".to_string();
+    for segment in path {
+        if segment.starts_with('[') {
+            rendered.push_str(segment);
+        } else {
+            rendered.push('.');
+            rendered.push_str(segment);
+        }
     }
+    rendered
 }
 
 fn json_pair_key(content: &str, node: Node<'_>) -> Option<String> {
@@ -1574,14 +1958,18 @@ fn json_value_kind(kind: &str) -> &'static str {
     }
 }
 
+fn is_json_value_node_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "object" | "array" | "string" | "number" | "true" | "false" | "null"
+    )
+}
+
 fn count_json_array_elements(node: Node<'_>) -> usize {
     let mut count = 0usize;
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if matches!(
-            child.kind(),
-            "object" | "array" | "string" | "number" | "true" | "false" | "null"
-        ) {
+        if is_json_value_node_kind(child.kind()) {
             count += 1;
         }
     }
@@ -1614,17 +2002,46 @@ fn toml_table_name_at_depth(content: &str, node: Node<'_>, depth: u32) -> Option
     None
 }
 
-fn toml_pair_key(content: &str, node: Node<'_>) -> Option<String> {
-    let key_node = node.child(0)?;
-    let text = match key_node.kind() {
-        "bare_key" | "dotted_key" => node_text(content, key_node)?,
-        "quoted_key" => {
-            let raw = node_text(content, key_node)?;
-            return Some(raw.trim_matches('"').trim_matches('\'').to_string());
+fn toml_pair_key_parts(content: &str, node: Node<'_>) -> Option<Vec<String>> {
+    let pair_text = node_text(content, node)?;
+    let left = pair_text.split_once('=')?.0.trim();
+    parse_toml_key_parts(left)
+}
+
+fn parse_toml_key_parts(source: &str) -> Option<Vec<String>> {
+    let mut parts = Vec::new();
+    let mut part_start = 0usize;
+    let mut quote = None;
+    let mut escaped = false;
+    for (index, ch) in source.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
         }
-        _ => return None,
-    };
-    Some(text.to_string())
+        match (quote, ch) {
+            (Some(_), '\\') => escaped = true,
+            (Some(active), _) if ch == active => quote = None,
+            (None, '"' | '\'') => quote = Some(ch),
+            (None, '.') => {
+                push_toml_key_part(source, part_start, index, &mut parts);
+                part_start = index + ch.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    push_toml_key_part(source, part_start, source.len(), &mut parts);
+    (!parts.is_empty()).then_some(parts)
+}
+
+fn push_toml_key_part(source: &str, start: usize, end: usize, parts: &mut Vec<String>) {
+    let part = source[start..end]
+        .trim()
+        .trim_matches('"')
+        .trim_matches('\'')
+        .trim();
+    if !part.is_empty() {
+        parts.push(part.to_string());
+    }
 }
 
 fn toml_pair_value(node: Node<'_>) -> Option<Node<'_>> {
@@ -1648,11 +2065,28 @@ fn toml_value_kind(kind: &str) -> &'static str {
 }
 
 fn toml_key_path(table_path: &[String], key: &str) -> String {
-    if table_path.is_empty() {
-        key.to_string()
-    } else {
-        format!("{}.{}", table_path.join("."), key)
+    toml_key_path_parts(table_path, &[key.to_string()])
+}
+
+fn toml_key_path_parts(table_path: &[String], key_parts: &[String]) -> String {
+    let mut path = table_path.to_vec();
+    path.extend(key_parts.iter().cloned());
+    toml_render_path(&path)
+}
+
+fn toml_render_path(path: &[String]) -> String {
+    let mut rendered = String::new();
+    for segment in path {
+        if segment.starts_with('[') {
+            rendered.push_str(segment);
+        } else {
+            if !rendered.is_empty() {
+                rendered.push('.');
+            }
+            rendered.push_str(segment);
+        }
     }
+    rendered
 }
 
 fn extract_named_capture_name(text: &str) -> Option<String> {

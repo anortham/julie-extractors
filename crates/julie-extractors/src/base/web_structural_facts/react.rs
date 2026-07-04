@@ -6,9 +6,9 @@ use super::js_imports::JsImportIndex;
 use super::js_object_scan::{
     find_enclosing_object_range, find_js_array_initializer_range, find_matching_paren,
     find_object_property_value_start, find_top_level_comma_or_end, is_identifier_boundary,
-    is_ignored_syntax_range, join_frontend_route_paths, parent_route_path_for_object,
-    parse_js_identifier, parse_js_string_literal, parse_object_identifier_property,
-    parse_object_string_property, skip_ascii_whitespace_until,
+    is_ignored_syntax_range, join_frontend_route_paths, object_or_ancestor_value_property_matches,
+    parent_route_path_for_object, parse_js_identifier, parse_js_string_literal,
+    parse_object_identifier_property, parse_object_string_property, skip_ascii_whitespace_until,
 };
 use super::jsx_scan::{
     jsx_boolean_attribute, jsx_element_component_attribute, jsx_identifier_expression_attribute,
@@ -27,12 +27,14 @@ pub(super) fn collect_react_router_route_references(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     let mut cursor = 0;
+    let mut route_stack: Vec<String> = Vec::new();
 
     while cursor < content.len() {
         let Some((tag_start, tag_end, tag_name)) = next_markup_tag(content, cursor, content.len())
         else {
             break;
         };
+        pop_closed_jsx_route_tags(content, cursor, tag_start, imports, &mut route_stack);
         cursor = tag_end + 1;
         if is_ignored_syntax_range(tree, tag_start, tag_end + 1) {
             continue;
@@ -96,12 +98,14 @@ fn collect_react_router_jsx_route_definitions(
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
     let mut cursor = 0;
+    let mut route_stack: Vec<String> = Vec::new();
 
     while cursor < content.len() {
         let Some((tag_start, tag_end, tag_name)) = next_markup_tag(content, cursor, content.len())
         else {
             break;
         };
+        pop_closed_jsx_route_tags(content, cursor, tag_start, imports, &mut route_stack);
         cursor = tag_end + 1;
         if is_ignored_syntax_range(tree, tag_start, tag_end + 1) {
             continue;
@@ -123,25 +127,91 @@ fn collect_react_router_jsx_route_definitions(
             jsx_identifier_expression_attribute(content, tag_start, tag_end, "Component").or_else(
                 || jsx_element_component_attribute(content, tag_start, tag_end, "element"),
             );
+        let route_path = path.map(|(value, _)| value);
+        let parent_route_path = route_stack.last().cloned();
+        let effective_route_template = if index_route {
+            parent_route_path.clone()
+        } else {
+            parent_route_path
+                .as_ref()
+                .zip(route_path.as_ref())
+                .map(|(parent, child)| join_frontend_route_paths(parent, child))
+        };
+        let current_route_template = if index_route {
+            parent_route_path.clone()
+        } else {
+            effective_route_template
+                .clone()
+                .or_else(|| route_path.clone())
+        };
 
         facts.push(react_route_definition_fact(
             file_path,
             language,
             ReactRouteDefinitionFact {
                 source_kind: "jsx_route",
-                route_path: path.map(|(value, _)| value),
+                route_path,
                 index_route,
                 route_component,
                 route_id: None,
-                parent_route_path: None,
-                effective_route_template: None,
+                parent_route_path,
+                effective_route_template,
                 span,
                 node_kind: "jsx_element",
             },
         ));
+        if !jsx_tag_is_self_closing(content, tag_start, tag_end)
+            && let Some(current_route_template) = current_route_template
+        {
+            route_stack.push(current_route_template);
+        }
     }
 
     facts
+}
+
+fn pop_closed_jsx_route_tags(
+    content: &str,
+    start: usize,
+    end: usize,
+    imports: &JsImportIndex,
+    route_stack: &mut Vec<String>,
+) {
+    let mut cursor = start;
+    while cursor < end {
+        let Some(relative_close) = content[cursor..end].find("</") else {
+            break;
+        };
+        let name_start = cursor + relative_close + 2;
+        let mut name_end = name_start;
+        while name_end < end && is_jsx_tag_name_byte(content.as_bytes()[name_end]) {
+            name_end += 1;
+        }
+        if name_end > name_start
+            && let Some(tag_name) = content.get(name_start..name_end)
+            && imports.react_router_routes.contains_key(tag_name)
+        {
+            route_stack.pop();
+        }
+        cursor = name_end.max(name_start + 1);
+    }
+}
+
+fn jsx_tag_is_self_closing(content: &str, tag_start: usize, tag_end: usize) -> bool {
+    content
+        .as_bytes()
+        .get(tag_start..tag_end)
+        .and_then(|bytes| {
+            bytes
+                .iter()
+                .rposition(|byte| !byte.is_ascii_whitespace())
+                .map(|index| bytes[index])
+        })
+        == Some(b'/')
+}
+
+fn is_jsx_tag_name_byte(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'$' | b'.')
 }
 
 fn collect_react_router_route_object_definitions(
@@ -185,6 +255,16 @@ fn collect_react_router_route_object_definitions(
             else {
                 continue;
             };
+            if object_or_ancestor_value_property_matches(
+                content,
+                range_start,
+                range_end,
+                span_start,
+                span_end,
+                &["redirect", "meta"],
+            ) {
+                continue;
+            }
             let Some(span) = NormalizedSpan::from_content_range(content, span_start, span_end)
             else {
                 continue;
@@ -245,6 +325,7 @@ fn collect_react_router_route_object_definitions(
             if !content
                 .get(value_start..)
                 .is_some_and(|remaining| remaining.starts_with("true"))
+                || !is_identifier_boundary(content, value_start, "true".len())
             {
                 continue;
             }
@@ -253,6 +334,16 @@ fn collect_react_router_route_object_definitions(
             else {
                 continue;
             };
+            if object_or_ancestor_value_property_matches(
+                content,
+                range_start,
+                range_end,
+                span_start,
+                span_end,
+                &["redirect", "meta"],
+            ) {
+                continue;
+            }
             if parse_object_string_property(content, span_start, span_end, "path").is_some() {
                 continue;
             }

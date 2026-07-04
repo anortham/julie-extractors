@@ -470,6 +470,41 @@ async function load() {
 }
 
 #[test]
+fn vue_script_comments_and_strings_do_not_emit_client_requests() {
+    let source = r#"<template>
+  <button @click="load">load</button>
+</template>
+<script>
+import axios from "axios";
+
+// fetch("/api/commented-fetch");
+// axios.get("/api/commented-axios");
+const sample = 'fetch("/api/string-fetch")';
+const docs = "axios.get('/api/string-axios')";
+
+export async function load() {
+  await fetch("/api/real-fetch");
+  await axios.get("/api/real-axios");
+}
+</script>
+"#;
+    let results = extract("src/Comments.vue", source);
+    let facts = client_requests(&results);
+    assert_eq!(
+        facts.len(),
+        2,
+        "only executable fetch and axios calls in vue scripts should emit"
+    );
+    let paths: Vec<_> = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "target_path"))
+        .collect();
+    assert_eq!(paths, ["/api/real-fetch", "/api/real-axios"]);
+    let executable_start = source.find("export async function").unwrap() as u32;
+    assert!(facts.iter().all(|fact| fact.start_byte > executable_start));
+}
+
+#[test]
 fn vue_template_content_stays_silent() {
     let source = r#"<template>
   <pre>fetch("/api/only-in-template")</pre>
@@ -748,6 +783,44 @@ public class Api {
 }
 
 #[test]
+fn csharp_httpclient_methods_require_proven_httpclient_receiver() {
+    let source = r#"
+using System.Net.Http;
+
+public class Api {
+    public async Task Load(HttpClient client, Cache cache) {
+        await cache.GetAsync("https://cache.example.com/users");
+        await client.GetAsync("https://api.example.com/users");
+
+        var local = new HttpClient();
+        await local.PostAsync("/items", body);
+    }
+}
+"#;
+    let results = extract("src/Api.cs", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    assert!(
+        facts.iter().all(
+            |fact| metadata_str(fact, "target_path") != Some("https://cache.example.com/users")
+        ),
+        "{facts:#?}"
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/users")),
+        "{facts:#?}"
+    );
+    assert!(
+        facts
+            .iter()
+            .any(|fact| metadata_str(fact, "target_path") == Some("/items")),
+        "{facts:#?}"
+    );
+}
+
+#[test]
 fn java_http_request_builder_chains_emit_client_requests() {
     let source = r#"
 import java.net.URI;
@@ -784,6 +857,29 @@ class Api {
         .find(|fact| metadata_str(fact, "target_path") == Some("/users/1"))
         .expect("custom");
     assert_eq!(metadata_str(custom, "verb"), Some("PATCH"));
+}
+
+#[test]
+fn java_http_request_dynamic_uri_create_stays_silent() {
+    let source = r#"
+import java.net.URI;
+import java.net.http.HttpRequest;
+
+class Api {
+    void load(String path) {
+        HttpRequest skipped = HttpRequest.newBuilder(URI.create("https://api.example.com" + path)).build();
+        HttpRequest kept = HttpRequest.newBuilder(URI.create("https://api.example.com/static")).build();
+    }
+}
+"#;
+    let results = extract("src/Api.java", source);
+    let facts = client_requests(&results);
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata_str(facts[0], "target_path"),
+        Some("https://api.example.com/static")
+    );
 }
 
 #[test]
@@ -924,6 +1020,27 @@ end
         facts
             .iter()
             .any(|fact| metadata_str(fact, "client") == Some("net::http"))
+    );
+}
+
+#[test]
+fn ruby_net_http_interpolated_uri_stays_silent() {
+    let source = r#"
+require "net/http"
+require "uri"
+
+def load(host)
+  Net::HTTP.get(URI.parse("https://#{host}/users"))
+  Net::HTTP.get(URI.parse("https://api.example.com/static"))
+end
+"#;
+    let results = extract("client.rb", source);
+    let facts = client_requests(&results);
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata_str(facts[0], "target_path"),
+        Some("https://api.example.com/static")
     );
 }
 

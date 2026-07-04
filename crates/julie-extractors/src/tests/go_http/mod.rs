@@ -79,6 +79,29 @@ func routes() {
 }
 
 #[test]
+fn go_net_http_var_mux_receiver_emits_route_fact() {
+    let source = r#"
+package main
+
+import "net/http"
+
+func routes() {
+    var mux = http.NewServeMux()
+    mux.HandleFunc("GET /ready", ready)
+}
+"#;
+    let results = extract("server.go", source);
+    let facts = facts_with_pattern(&results, GO_NET_HTTP_ROUTE_PATTERN_ID);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "route_template"), Some("/ready"));
+    assert_eq!(metadata_str(facts[0], "verb"), Some("GET"));
+    assert_eq!(
+        metadata_str(facts[0], "normalized_route_template"),
+        Some("/ready")
+    );
+}
+
+#[test]
 fn go_net_http_exact_anchor_normalizes_to_root_without_dynamic_segment() {
     let source = r#"
 package main

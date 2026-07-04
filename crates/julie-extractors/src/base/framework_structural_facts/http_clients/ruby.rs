@@ -60,7 +60,7 @@ fn collect_net_http_calls(
             continue;
         };
         let first_start = skip_ascii_whitespace_until(content, open + 1, close);
-        let Some(target_path) = uri_literal_arg(content, first_start) else {
+        let Some(target_path) = uri_literal_arg(content, mask, first_start) else {
             continue;
         };
         if let Some(fact) = client_fact(
@@ -81,15 +81,22 @@ fn collect_net_http_calls(
     }
 }
 
-fn uri_literal_arg(content: &str, start: usize) -> Option<String> {
+fn uri_literal_arg(content: &str, mask: &SourceMask, start: usize) -> Option<String> {
     for prefix in ["URI.parse", "URI"] {
         if content[start..].starts_with(prefix) {
             let open = skip_ascii_whitespace_until(content, start + prefix.len(), content.len());
             if content.as_bytes().get(open) != Some(&b'(') {
                 continue;
             }
+            let close = find_matching_paren(content, mask, open)?;
             let arg_start = skip_ascii_whitespace_until(content, open + 1, content.len());
-            return parse_ruby_string_literal(content, arg_start).map(|(value, _)| value);
+            return parse_ruby_string_literal(content, arg_start)
+                .filter(|(value, literal_end)| {
+                    skip_ascii_whitespace_until(content, *literal_end, close) == close
+                        && (content.as_bytes().get(arg_start) != Some(&b'"')
+                            || !value.contains("#{"))
+                })
+                .map(|(value, _)| value);
         }
     }
     None

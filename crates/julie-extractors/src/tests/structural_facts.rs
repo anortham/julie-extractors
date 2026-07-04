@@ -119,6 +119,25 @@ static IResult DeleteTodo(int id) => Results.Ok();
 }
 
 #[test]
+fn csharp_minimal_api_concatenated_route_argument_stays_silent() {
+    let source = r#"using Microsoft.AspNetCore.Builder;
+
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+var suffix = "users";
+
+app.MapGet("/api/" + suffix, () => "skip");
+app.MapPost("/static", () => "ok");
+"#;
+
+    let results = extract("src/Program.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.minimal_api.route.v1");
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "route_template"), Some("/static"));
+}
+
+#[test]
 fn csharp_minimal_api_route_groups_emit_group_and_effective_route_facts() {
     let source = r#"using Microsoft.AspNetCore.Builder;
 
@@ -419,6 +438,33 @@ public class PingController : ControllerBase
     assert_eq!(
         metadata_str(facts[0], "attribute_kind"),
         Some("controller_route")
+    );
+}
+
+#[test]
+fn csharp_attribute_route_concatenated_argument_is_silent() {
+    let source = r#"using Microsoft.AspNetCore.Mvc;
+
+[Route("api/[controller]")]
+public class PingController : ControllerBase
+{
+    [HttpGet("/api/" + Version)]
+    public IActionResult Computed() => Ok();
+
+    [HttpPost("/static")]
+    public IActionResult Static() => Ok();
+}
+"#;
+
+    let results = extract("src/PingController.cs", source);
+    let facts = facts_with_pattern(&results, "aspnet.attribute_route.v1");
+
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    assert!(
+        facts
+            .iter()
+            .all(|fact| metadata_str(fact, "route_template") != Some("/api/")),
+        "concatenated route must not emit guessed partial route: {facts:#?}"
     );
 }
 
@@ -1590,7 +1636,9 @@ fn http_boundary_families_emit_documented_metadata_keys() {
         metadata_keys(django_regex),
         [
             "api_style",
+            "dynamic_segments",
             "framework",
+            "normalized_route_template",
             "pattern_version",
             "query_family",
             "route_name",

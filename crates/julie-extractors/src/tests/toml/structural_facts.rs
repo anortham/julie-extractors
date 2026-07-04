@@ -94,3 +94,40 @@ key = "alpha"
             && metadata_str(fact, "key_path") == Some("worker.profile.active")
     }));
 }
+
+#[test]
+fn toml_dotted_keys_and_arrays_of_inline_tables_preserve_paths() {
+    let source = r#"
+database.settings.timeout = 30
+
+[service]
+routes = [{ path = "/health", method = "GET" }, { path = "/ready", method = "POST" }]
+"#;
+
+    let results = extract(source);
+    let key_values = facts_with_pattern(&results, "toml.key_value.v1");
+    assert!(key_values.iter().any(|fact| {
+        metadata_str(fact, "key") == Some("timeout")
+            && metadata_str(fact, "key_path") == Some("database.settings.timeout")
+    }));
+
+    let paths = key_values
+        .iter()
+        .filter(|fact| metadata_str(fact, "key") == Some("path"))
+        .filter_map(|fact| metadata_str(fact, "key_path"))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        paths,
+        BTreeSet::from(["service.routes[0].path", "service.routes[1].path"])
+    );
+
+    let inline_tables = facts_with_pattern(&results, "toml.inline_table.v1");
+    let inline_paths = inline_tables
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "key_path"))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        inline_paths,
+        BTreeSet::from(["service.routes[0]", "service.routes[1]"])
+    );
+}

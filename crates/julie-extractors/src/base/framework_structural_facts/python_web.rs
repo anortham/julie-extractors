@@ -779,6 +779,13 @@ fn django_route_fact(
                 normalized.dynamic_segments,
             );
         }
+    } else if route_syntax == "regex"
+        && let Some((template, dynamic_segments)) = normalize_django_regex_route(route_template)
+    {
+        insert_string(&mut metadata, "normalized_route_template", &template);
+        if !dynamic_segments.is_empty() {
+            insert_string_array(&mut metadata, "dynamic_segments", dynamic_segments);
+        }
     }
     if let Some(name) = keyword_string_arg(trailing_args, "name") {
         insert_string(&mut metadata, "route_name", &name);
@@ -792,6 +799,74 @@ fn django_route_fact(
         span,
         metadata,
     ))
+}
+
+fn normalize_django_regex_route(pattern: &str) -> Option<(String, Vec<String>)> {
+    let mut source = pattern;
+    if let Some(stripped) = source.strip_prefix('^') {
+        source = stripped;
+    }
+    if let Some(stripped) = source.strip_suffix('$') {
+        source = stripped;
+    }
+
+    let bytes = source.as_bytes();
+    let mut cursor = 0usize;
+    let mut template = String::new();
+    let mut dynamic_segments = Vec::new();
+    while cursor < bytes.len() {
+        if source[cursor..].starts_with("(?P<") {
+            let name_start = cursor + "(?P<".len();
+            let name_end = source[name_start..].find('>')? + name_start;
+            let name = &source[name_start..name_end];
+            if !is_ascii_identifier(name) {
+                return None;
+            }
+            let group_end = regex_group_end(source, cursor)?;
+            template.push(':');
+            template.push_str(name);
+            dynamic_segments.push(name.to_string());
+            cursor = group_end + 1;
+            continue;
+        }
+
+        let byte = bytes[cursor];
+        if matches!(
+            byte,
+            b'(' | b')' | b'[' | b']' | b'{' | b'}' | b'+' | b'*' | b'?' | b'|' | b'\\'
+        ) {
+            return None;
+        }
+        template.push(byte as char);
+        cursor += 1;
+    }
+
+    if !template.starts_with('/') {
+        template.insert(0, '/');
+    }
+    Some((template, dynamic_segments))
+}
+
+fn regex_group_end(pattern: &str, open: usize) -> Option<usize> {
+    let bytes = pattern.as_bytes();
+    let mut cursor = open + 1;
+    let mut in_class = false;
+    while cursor < bytes.len() {
+        match bytes[cursor] {
+            b'\\' => cursor += 2,
+            b'[' if !in_class => {
+                in_class = true;
+                cursor += 1;
+            }
+            b']' if in_class => {
+                in_class = false;
+                cursor += 1;
+            }
+            b')' if !in_class => return Some(cursor),
+            _ => cursor += 1,
+        }
+    }
+    None
 }
 
 fn django_include_fact(

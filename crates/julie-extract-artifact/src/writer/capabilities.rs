@@ -133,7 +133,7 @@ fn upsert_parser_inventory(
     tx: &Transaction<'_>,
     row: &ArtifactParserInventoryRow,
 ) -> rusqlite::Result<usize> {
-    let metadata_json = row.metadata.as_ref().map(json_string);
+    let metadata_json = row.metadata.as_ref().map(json_string).transpose()?;
     tx.execute(
         "INSERT INTO parser_inventory
          (language, parser_package, parser_version, grammar_version, source, metadata_json)
@@ -162,8 +162,8 @@ fn upsert_language_capability(
     tx: &Transaction<'_>,
     row: &ArtifactLanguageCapabilityRow,
 ) -> rusqlite::Result<usize> {
-    let extensions_json = json_string(&row.extensions);
-    let kind_coverage_json = json_string(&row.kind_coverage);
+    let extensions_json = json_string(&row.extensions)?;
+    let kind_coverage_json = json_string(&row.kind_coverage)?;
     tx.execute(
         "INSERT INTO language_capabilities
          (language, parser_package, extensions_json, dependency_status,
@@ -249,7 +249,7 @@ fn upsert_language_capability_gap(
     language: &str,
     gap: &ArtifactLanguageCapabilityGapRow,
 ) -> rusqlite::Result<usize> {
-    let evidence_json = json_string(&gap.evidence);
+    let evidence_json = json_string(&gap.evidence)?;
     tx.execute(
         "INSERT INTO language_capability_gaps
          (gap_id, language, capability, status, reason, required_closure, evidence_json)
@@ -283,6 +283,7 @@ fn bool_int(value: bool) -> i64 {
     if value { 1 } else { 0 }
 }
 
-fn json_string<T: serde::Serialize + ?Sized>(value: &T) -> String {
-    serde_json::to_string(value).expect("artifact capability values must serialize")
+fn json_string<T: serde::Serialize + ?Sized>(value: &T) -> rusqlite::Result<String> {
+    serde_json::to_string(value)
+        .map_err(|source| rusqlite::Error::ToSqlConversionFailure(Box::new(source)))
 }

@@ -5,9 +5,10 @@ use tree_sitter::Tree;
 
 use super::fact_builders::{base_metadata, fact_for_span, insert_string};
 use super::js_object_scan::{
-    find_enclosing_object_range, find_js_array_initializer_range_in, find_matching_paren,
-    find_object_property_value_start, is_identifier_boundary, is_ignored_syntax_range,
-    is_js_identifier, join_frontend_route_paths, parent_route_path_for_object, parse_js_identifier,
+    ScriptSyntaxMask, find_enclosing_object_range, find_js_array_initializer_range_in,
+    find_matching_paren, find_object_property_value_start, is_identifier_boundary,
+    is_ignored_syntax_range, is_js_identifier, join_frontend_route_paths,
+    object_or_ancestor_value_property_matches, parent_route_path_for_object, parse_js_identifier,
     parse_js_string_literal, parse_object_identifier_property, parse_object_string_property,
     skip_ascii_whitespace_until,
 };
@@ -201,23 +202,33 @@ fn collect_nuxt_route_references(
             continue;
         }
 
-        let Some(attribute) = attributes.iter().find(|attribute| attribute.name == "to") else {
-            continue;
-        };
-        let Some(target_path) = attribute
-            .value
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| is_nuxt_route_path(value))
-        else {
+        let Some((attribute, target_path)) = attributes.iter().find_map(|attribute| {
+            if attribute.name == "to" {
+                return attribute
+                    .value
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| is_nuxt_route_path(value))
+                    .map(|value| (attribute, value.to_string()));
+            }
+            if matches!(attribute.name.as_str(), ":to" | "v-bind:to") {
+                return attribute
+                    .value
+                    .as_deref()
+                    .and_then(parse_vue_string_literal)
+                    .filter(|value| is_nuxt_route_path(value))
+                    .map(|value| (attribute, value));
+            }
+            None
+        }) else {
             continue;
         };
 
         let mut metadata = base_metadata("frontend_navigation");
         insert_string(&mut metadata, "framework", "nuxt");
-        insert_string(&mut metadata, "target_path", target_path);
+        insert_string(&mut metadata, "target_path", &target_path);
         insert_string(&mut metadata, "verb", "GET");
-        insert_string(&mut metadata, "attribute_name", "to");
+        insert_string(&mut metadata, "attribute_name", &attribute.name);
         insert_string(&mut metadata, "component_name", tag_name);
         insert_string(&mut metadata, "route_source", "string_literal");
         insert_string(&mut metadata, "source_kind", "nuxt_link");
@@ -245,7 +256,9 @@ fn collect_vue_route_definitions(
 ) -> Vec<StructuralFact> {
     let imports = collect_vue_static_imports(content, section);
     let mut facts = Vec::new();
-    let ranges = vue_route_definition_ranges(content, section, language == "vue");
+    let syntax_mask =
+        ScriptSyntaxMask::for_js_ranges(content, &[(section.content_start, section.content_end)]);
+    let ranges = vue_route_definition_ranges(content, section, language == "vue", &syntax_mask);
 
     for (range_start, range_end) in ranges {
         let mut cursor = range_start;
@@ -257,6 +270,9 @@ fn collect_vue_route_definitions(
             cursor = path_start + "path".len();
 
             if !is_identifier_boundary(content, path_start, "path".len()) {
+                continue;
+            }
+            if syntax_mask.is_ignored(path_start) {
                 continue;
             }
             if is_ignored_syntax_range(tree, path_start, cursor) {
@@ -276,6 +292,16 @@ fn collect_vue_route_definitions(
             let (span_start, span_end) =
                 find_enclosing_object_range(content, range_start, range_end, path_start)
                     .unwrap_or((path_start, path_end));
+            if object_or_ancestor_value_property_matches(
+                content,
+                range_start,
+                range_end,
+                span_start,
+                span_end,
+                &["redirect", "meta"],
+            ) {
+                continue;
+            }
             let Some(span) = NormalizedSpan::from_content_range(content, span_start, span_end)
             else {
                 continue;
@@ -344,6 +370,7 @@ fn vue_route_definition_ranges(
     content: &str,
     section: &VueSectionSpan,
     include_loose_routes_array: bool,
+    syntax_mask: &ScriptSyntaxMask,
 ) -> Vec<(usize, usize)> {
     let mut ranges = Vec::new();
 
@@ -354,6 +381,7 @@ fn vue_route_definition_ranges(
             section.content_start,
             section.content_end,
         )
+        && !syntax_mask.is_ignored(range.0)
     {
         ranges.push(range);
     }
@@ -366,6 +394,9 @@ fn vue_route_definition_ranges(
         let api_start = cursor + relative_start;
         cursor = api_start + "createRouter".len();
         if !is_identifier_boundary(content, api_start, "createRouter".len()) {
+            continue;
+        }
+        if syntax_mask.is_ignored(api_start) {
             continue;
         }
         let open_paren = skip_ascii_whitespace_until(content, cursor, section.content_end);
@@ -385,6 +416,7 @@ fn vue_route_definition_ranges(
                 section.content_start,
                 section.content_end,
             )
+            && !syntax_mask.is_ignored(range.0)
         {
             ranges.push(range);
         }

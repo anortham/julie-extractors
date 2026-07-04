@@ -285,18 +285,21 @@ fn collect_string_values(
             if cursor >= close {
                 break;
             }
-            let Some((literal, literal_end)) = parse_java_string_literal(args, cursor) else {
-                break;
-            };
-            values.push(literal);
-            cursor = skip_ascii_whitespace_until(args, literal_end, close);
-            if args.as_bytes().get(cursor) == Some(&b',') {
-                cursor += 1;
+            let element_end = find_top_level_comma_or_end(args, mask, cursor, close);
+            if let Some((literal, literal_end)) = parse_java_string_literal(args, cursor)
+                && skip_ascii_whitespace_until(args, literal_end, element_end) == element_end
+            {
+                values.push(literal);
             }
+            cursor = element_end.saturating_add(1);
         }
         return values;
     }
+    let value_end = value_start + value.len();
     parse_java_string_literal(args, trimmed_start)
+        .filter(|(_, literal_end)| {
+            skip_ascii_whitespace_until(args, *literal_end, value_end) == value_end
+        })
         .map(|(literal, _)| vec![literal])
         .unwrap_or_default()
 }
@@ -374,7 +377,7 @@ fn next_java_declaration_line(
             .map(|offset| cursor + offset)
             .unwrap_or(content.len());
         let line = content[cursor..line_end].trim();
-        if line.is_empty() || line.starts_with('@') {
+        if line.is_empty() || line.starts_with('@') || is_java_comment_line(line) {
             cursor = line_end.saturating_add(1);
             continue;
         }
@@ -390,6 +393,64 @@ fn next_java_declaration_line(
 }
 
 fn is_java_class_declaration(line: &str) -> bool {
-    line.split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
-        .any(|token| matches!(token, "class" | "interface" | "enum" | "record"))
+    let declaration_head = line
+        .split('{')
+        .next()
+        .unwrap_or(line)
+        .split(';')
+        .next()
+        .unwrap_or(line);
+    for keyword in ["class", "interface", "enum", "record"] {
+        let Some(index) = find_java_keyword(declaration_head, keyword) else {
+            continue;
+        };
+        if declaration_head[..index].contains('(') {
+            continue;
+        }
+        let leading_tokens = declaration_head[..index]
+            .split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_')
+            .filter(|token| !token.is_empty());
+        if leading_tokens.clone().all(|token| {
+            matches!(
+                token,
+                "public"
+                    | "protected"
+                    | "private"
+                    | "abstract"
+                    | "final"
+                    | "static"
+                    | "sealed"
+                    | "non"
+                    | "permits"
+            )
+        }) {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_java_comment_line(line: &str) -> bool {
+    line.starts_with("//") || line.starts_with("/*") || line.starts_with('*')
+}
+
+fn find_java_keyword(source: &str, keyword: &str) -> Option<usize> {
+    let mut cursor = 0;
+    while let Some(relative) = source[cursor..].find(keyword) {
+        let start = cursor + relative;
+        let end = start + keyword.len();
+        let before_ok = source[..start]
+            .chars()
+            .next_back()
+            .is_none_or(|ch| !ch.is_ascii_alphanumeric() && ch != '_');
+        let after_ok = source[end..]
+            .chars()
+            .next()
+            .is_none_or(|ch| !ch.is_ascii_alphanumeric() && ch != '_');
+        if before_ok && after_ok {
+            return Some(start);
+        }
+        cursor = end;
+    }
+    None
 }

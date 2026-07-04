@@ -1,7 +1,9 @@
 use tree_sitter::Tree;
 
 use super::super::helpers::{is_identifier_boundary, skip_ascii_whitespace_until};
-use super::super::scan::{MaskLanguage, SourceMask, parse_java_string_literal, statement_end};
+use super::super::scan::{
+    MaskLanguage, SourceMask, find_matching_paren, parse_java_string_literal, statement_end,
+};
 use super::client_fact;
 use crate::base::types::StructuralFact;
 
@@ -61,8 +63,14 @@ fn uri_create_literal(statement: &str) -> Option<String> {
     if statement.as_bytes().get(open) != Some(&b'(') {
         return None;
     }
+    let mask = SourceMask::new(statement, MaskLanguage::Java);
+    let close = find_matching_paren(statement, &mask, open)?;
     let arg_start = skip_ascii_whitespace_until(statement, open + 1, statement.len());
-    parse_java_string_literal(statement, arg_start).map(|(value, _)| value)
+    parse_java_string_literal(statement, arg_start)
+        .filter(|(_, literal_end)| {
+            skip_ascii_whitespace_until(statement, *literal_end, close) == close
+        })
+        .map(|(value, _)| value)
 }
 
 fn request_builder_verb(statement: &str) -> (String, &'static str) {

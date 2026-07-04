@@ -19,6 +19,7 @@ use css::collect_css_structural_facts;
 use html::collect_html_structural_facts;
 use http_client::collect_http_client_requests;
 use js_imports::collect_js_imports;
+use js_object_scan::ScriptSyntaxMask;
 use nextjs_nuxt::{
     collect_nextjs_route_handlers, collect_nextjs_route_references, nextjs_file_route_fact,
     nuxt_file_route_fact, nuxt_server_route_fact,
@@ -130,14 +131,16 @@ pub fn collect_web_structural_facts(
             // axios import gate is local to the section that declares it.
             for (section_start, section_end) in vue_script_section_ranges(content) {
                 let section_imports = collect_js_imports(&content[section_start..section_end]);
+                let syntax_mask =
+                    ScriptSyntaxMask::for_js_ranges(content, &[(section_start, section_end)]);
                 facts.extend(collect_http_client_requests(
                     language,
                     tree,
                     file_path,
                     content,
                     &section_imports,
-                    section_start,
-                    section_end,
+                    section_start..section_end,
+                    Some(&syntax_mask),
                 ));
             }
             facts
@@ -182,8 +185,8 @@ fn collect_react_nextjs_structural_facts(
         file_path,
         content,
         &imports,
-        0,
-        content.len(),
+        0..content.len(),
+        None,
     ));
     facts.extend(collect_react_router_route_references(
         language, tree, file_path, content, &imports,

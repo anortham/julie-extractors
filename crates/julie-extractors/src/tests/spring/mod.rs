@@ -158,6 +158,93 @@ class UserController {
 }
 
 #[test]
+fn spring_mapping_array_skips_dynamic_elements_but_keeps_static_siblings() {
+    let source = r#"
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api")
+class UserController {
+    @GetMapping({"/dynamic/" + name, "/static"})
+    public User getUser() { return null; }
+}
+"#;
+    let results = extract("src/UserController.java", source);
+    let facts = routes(&results);
+
+    let effective = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "effective_route_template"))
+        .collect::<Vec<_>>();
+    assert_eq!(effective, vec!["/api/static"], "{facts:#?}");
+    assert!(
+        facts
+            .iter()
+            .all(|fact| metadata_str(fact, "route_template") != Some("/dynamic/")),
+        "dynamic array element must not emit guessed partial route: {facts:#?}"
+    );
+}
+
+#[test]
+fn spring_comments_between_mapping_annotation_and_method_do_not_hide_route() {
+    let source = r#"
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api")
+class UserController {
+    @GetMapping("/users")
+    // comment between annotation and method
+    public User listUsers() { return null; }
+}
+"#;
+    let results = extract("src/UserController.java", source);
+    let facts = routes(&results);
+    let route = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/users"))
+        .expect("method route after comment");
+    assert_eq!(metadata_str(route, "class_route_template"), Some("/api"));
+    assert_eq!(
+        metadata_str(route, "normalized_route_template"),
+        Some("/api/users")
+    );
+    assert_eq!(binding_symbol_name(&results, route), Some("listUsers"));
+}
+
+#[test]
+fn spring_method_body_class_token_does_not_reset_controller_prefix() {
+    let source = r#"
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api")
+class UserController {
+    @GetMapping("/first")
+    public String first() { return "class"; }
+
+    @GetMapping("/second")
+    public String second() { return "ok"; }
+}
+"#;
+    let results = extract("src/UserController.java", source);
+    let facts = routes(&results);
+    let second = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "route_template") == Some("/second"))
+        .expect("second route");
+    assert_eq!(metadata_str(second, "class_route_template"), Some("/api"));
+    assert_eq!(
+        metadata_str(second, "effective_route_template"),
+        Some("/api/second")
+    );
+    assert_eq!(
+        metadata_str(second, "normalized_route_template"),
+        Some("/api/second")
+    );
+}
+
+#[test]
 fn spring_interface_controller_mappings_reset_class_prefix_and_apply_own_template() {
     let source = r#"
 import org.springframework.web.bind.annotation.*;

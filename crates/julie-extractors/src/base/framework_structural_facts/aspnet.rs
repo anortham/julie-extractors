@@ -558,8 +558,14 @@ fn attribute_route_argument(content: &str, attribute: Node<'_>) -> AttributeRout
             continue;
         }
         return match parse_csharp_string_literal(content, argument.start_byte()) {
-            Some((value, _, _)) => AttributeRouteArgument::Literal(value),
+            Some((value, literal_end, _))
+                if skip_ascii_whitespace_until(content, literal_end, argument.end_byte())
+                    == argument.end_byte() =>
+            {
+                AttributeRouteArgument::Literal(value)
+            }
             None => AttributeRouteArgument::NonLiteral,
+            Some(_) => AttributeRouteArgument::NonLiteral,
         };
     }
 

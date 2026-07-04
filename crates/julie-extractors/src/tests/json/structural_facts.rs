@@ -78,3 +78,36 @@ fn json_emits_object_property_and_array_facts_without_scalar_noise() {
             .all(|fact| !fact.pattern_id.ends_with(".string.v1"))
     );
 }
+
+#[test]
+fn json_array_elements_have_unique_indexed_paths() {
+    let source = r#"{
+  "workers": [
+    { "id": 1, "name": "a" },
+    { "id": 2, "name": "b" }
+  ]
+}"#;
+
+    let results = extract(source);
+    let objects = facts_with_pattern(&results, "json.object.v1");
+    assert!(
+        objects
+            .iter()
+            .any(|fact| metadata_str(fact, "path") == Some("$.workers[0]")),
+        "{objects:#?}"
+    );
+    assert!(
+        objects
+            .iter()
+            .any(|fact| metadata_str(fact, "path") == Some("$.workers[1]")),
+        "{objects:#?}"
+    );
+
+    let properties = facts_with_pattern(&results, "json.property.v1");
+    let id_paths = properties
+        .iter()
+        .filter(|fact| metadata_str(fact, "key") == Some("id"))
+        .filter_map(|fact| metadata_str(fact, "path"))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(id_paths, BTreeSet::from(["$.workers[0]", "$.workers[1]"]));
+}

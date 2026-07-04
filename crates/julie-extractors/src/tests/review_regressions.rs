@@ -1,5 +1,28 @@
-use crate::base::RelationshipKind;
+use crate::base::{RelationshipKind, StructuralFact};
 use crate::extract_canonical;
+
+fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
+    let workspace_root = std::path::PathBuf::from("/test/workspace");
+    extract_canonical(file_path, source, &workspace_root).expect("extraction should succeed")
+}
+
+fn facts_with_pattern<'a>(
+    results: &'a crate::ExtractionResults,
+    pattern_id: &str,
+) -> Vec<&'a StructuralFact> {
+    results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id == pattern_id)
+        .collect()
+}
+
+fn metadata_str<'a>(fact: &'a StructuralFact, key: &str) -> Option<&'a str> {
+    fact.metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_str())
+}
 
 #[test]
 fn test_review_regression_typescript_implements_keeps_namespace_context() {
@@ -36,4 +59,64 @@ fn test_review_regression_python_hash_comments_are_not_docs() {
         .find(|symbol| symbol.name == "foo")
         .expect("should extract foo");
     assert_eq!(foo.doc_comment, None);
+}
+
+#[test]
+fn test_review_regression_sql_trigger_keeps_trigger_and_target_table_distinct() {
+    let source = r#"
+CREATE TABLE users (id INTEGER);
+CREATE TABLE audit_log (user_id INTEGER);
+
+CREATE TRIGGER users_ai
+AFTER INSERT ON users
+BEGIN
+  INSERT INTO audit_log(user_id) VALUES (NEW.id);
+END;
+"#;
+
+    let results = extract("schema/triggers.sql", source);
+    let facts = facts_with_pattern(&results, "sql.trigger_definition.v1");
+
+    assert_eq!(facts.len(), 1, "expected one trigger definition fact");
+    let fact = facts[0];
+    assert_eq!(metadata_str(fact, "trigger_name"), Some("users_ai"));
+    assert_eq!(metadata_str(fact, "target_table"), Some("users"));
+}
+
+#[test]
+fn test_review_regression_react_index_route_requires_boolean_true_token() {
+    let source = r#"
+import { createBrowserRouter } from "react-router-dom";
+
+const trueValue = false;
+const routes = [
+  { index: trueValue, Component: Home }
+];
+
+export const router = createBrowserRouter(routes);
+"#;
+
+    let results = extract("src/routes.jsx", source);
+
+    assert!(
+        facts_with_pattern(&results, "react.route_definition.v1").is_empty(),
+        "non-literal `index: trueValue` must not emit an index route"
+    );
+}
+
+#[test]
+fn test_review_regression_html_comments_do_not_emit_htmx_facts() {
+    let source = r#"
+<main>
+  <!-- <button hx-get="/commented">Hidden</button> -->
+  <button id="plain">Visible</button>
+</main>
+"#;
+
+    let results = extract("src/index.html", source);
+
+    assert!(
+        facts_with_pattern(&results, "htmx.attribute.v1").is_empty(),
+        "commented htmx attributes must not emit artifact facts"
+    );
 }
