@@ -529,6 +529,9 @@ Supported patterns are advertised in
 | `rails.route.v1` | `ruby` | `route` | parser-covered DSL call span | `framework` | A Rails routes DSL handler route. |
 | `rails.resource_route.v1` | `ruby` | `resource_route` | parser-covered DSL call span | `framework` | A Rails `resources` or `resource` declaration. |
 | `rails.mount.v1` | `ruby` | `mount` | parser-covered DSL call span | `framework` | A Rails `mount` route for a Rack app or engine. |
+| `laravel.route.v1` | `php` | `route` | parser-covered `Route` facade call span | `framework` | A static Laravel `Route` facade route (`api_style="call_routing"`). Import-gated on `Route::`; AST-driven. `Route::get/post/put/patch/delete/options` set an upper-cased `verb`; `Route::any` omits the verb; `Route::match([verbs], ...)` emits one fact per static verb. `{param}`/`{param?}` normalize to `:param`. Same-file `Route::prefix`/`group` prefixes join into `route_group_prefix`/`effective_route_template`; a non-literal prefix or path stays silent (M2). `controller_action` is captured from a `[Ctrl::class, 'm']` or `'Ctrl@m'` handler when statically resolvable. Metadata payload keys: see the JSON contract linked below. |
+| `laravel.resource_route.v1` | `php` | `resource_route` | parser-covered `Route::resource`/`apiResource` call span | `framework` | A Laravel `Route::resource` (`resource_kind="resource"`) or `Route::apiResource` (`resource_kind="api_resource"`) declaration with a static URI literal and, when present, the controller class. |
+| `laravel.route_prefix.v1` | `php` | `route_prefix` | parser-covered `Route::prefix`/`group` prefix site | `framework` | A static same-file Laravel group prefix (`Route::prefix('x')->group(...)` or `Route::group(['prefix'=>'x'], ...)`) emitted at its own site with `mount_path` (raw literal) and `normalized_mount_path` (including enclosing group scope). Cross-file `RouteServiceProvider` prefixes are out of scope. |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span | `frontend_interaction` | An `hx-*` or `data-hx-*` attribute, including request verb and static target path metadata when applicable. |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span | `frontend_interaction` | An Alpine `x-*`, `@...`, or `:...` directive with normalized directive metadata. |
 | `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` | `component_routing` | A Razor `@page` directive with route-template metadata. |
@@ -554,7 +557,7 @@ Supported patterns are advertised in
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `framework` | An exported HTTP-verb handler (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`HEAD`/`OPTIONS`) in an App Router `route.{js,ts}` file. One fact per exported verb. Route paths are derived with the same segment walk as `nextjs.file_route.v1`. Metadata payload keys: see the JSON contract linked below. |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `framework` | A Nitro server route under `server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). One fact per file; `verb`/`verb_source` are present only when the filename carries a method suffix (`users.get.ts`). Emission requires a `defineEventHandler`/`eventHandler` identifier or a method suffix; a wrapped custom handler with neither is a documented residual miss. `server/middleware`, `server/plugins`, and `server/utils` are excluded. Claims the `server/**` space `nuxt.file_route.v1` excludes. Metadata payload keys: see the JSON contract linked below. |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `ruby` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Kotlin covers the Ktor client (`client="ktor"`, import-gated on `io.ktor.client`, `receiver.verb(...)` calls only). Metadata payload keys: see the JSON contract linked below. |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `php`, `ruby` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Kotlin covers the Ktor client (`client="ktor"`, import-gated on `io.ktor.client`, `receiver.verb(...)` calls only). PHP covers Guzzle (`client="guzzle"`, import-gated on `GuzzleHttp`, `$client->verb('url')`) and the Laravel `Http` facade (`client="laravel_http"`, import-gated on `Facades\Http`, `Http::verb('url')` including chained calls). Metadata payload keys: see the JSON contract linked below. |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Raw `route_template`, `route_prefix`, and
@@ -597,14 +600,22 @@ accepts any major version of `github.com/labstack/echo`. Rails DSL facts
 require `config/routes.rb` routes to sit inside a `routes.draw do ... end`
 block; split files under `config/routes/` allow top-level DSL. Every
 `do ... end` block is depth-tracked, so `member`/`collection`/`constraints`
-blocks do not pop enclosing `namespace`/`scope` prefixes early.
+blocks do not pop enclosing `namespace`/`scope` prefixes early. Laravel routes
+come from an AST-driven collector import-gated on the `Route::` facade; same-file
+`Route::prefix`/`group` prefixes are lexical-containment (joined into
+`route_group_prefix`/`effective_route_template` and emitted as a
+`laravel.route_prefix.v1` fact at the prefix site, poisoned by a non-literal
+prefix). `#[Route]` attributes (Symfony) and cross-file `RouteServiceProvider`
+prefixes are out of scope, so `route_template` is not guaranteed to be the
+absolute public path when such a prefix applies.
 
 Backend-language client collectors emit the same `http.client_request.v1`
 metadata shape for static string URL arguments: Python module-qualified
 `requests`/`httpx` calls, C# `HttpClient` method calls and
 `HttpRequestMessage`, Go `net/http` package calls, Java `HttpRequest` builder
-chains, and Ruby `Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)`
-arguments. Java builder-chain facts span the enclosing statement (the URL and
+chains, PHP Guzzle (`$client->verb('url')`, `client="guzzle"`) and the Laravel
+`Http` facade (`Http::verb('url')`, `client="laravel_http"`), and Ruby
+`Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)` arguments. Java builder-chain facts span the enclosing statement (the URL and
 verb are resolved statement-locally), so their `node_kind` is the statement
 node rather than a call node. Instance/session clients and dynamic URL
 expressions stay silent.

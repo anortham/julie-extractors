@@ -555,6 +555,9 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `rails.route.v1` | `ruby` | `route` | parser-covered DSL call span |
 | `rails.resource_route.v1` | `ruby` | `resource_route` | parser-covered DSL call span |
 | `rails.mount.v1` | `ruby` | `mount` | parser-covered DSL call span |
+| `laravel.route.v1` | `php` | `route` | parser-covered `Route` facade call span |
+| `laravel.resource_route.v1` | `php` | `resource_route` | parser-covered `Route::resource`/`apiResource` call span |
+| `laravel.route_prefix.v1` | `php` | `route_prefix` | parser-covered `Route::prefix`/`group` prefix site |
 | `htmx.attribute.v1` | `html`, `razor`, `javascript`, `jsx`, `tsx`, `vue` | `attribute` | parser-covered attribute span |
 | `alpine.directive.v1` | `html`, `razor` | `directive` | parser-covered attribute span |
 | `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` |
@@ -580,7 +583,7 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `ruby` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `php`, `ruby` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Minimal API route calls compute it from
@@ -645,7 +648,23 @@ accepts any major version of `github.com/labstack/echo`. Rails DSL facts
 require `config/routes.rb` routes to sit inside a `routes.draw do ... end`
 block; split files under `config/routes/` allow top-level DSL. Every
 `do ... end` block is depth-tracked, so `member`/`collection`/`constraints`
-blocks do not pop enclosing `namespace`/`scope` prefixes early.
+blocks do not pop enclosing `namespace`/`scope` prefixes early. Laravel routes
+come from an AST-driven collector import-gated on the `Route::` facade:
+`Route::get/post/put/patch/delete/options` emit `api_style="call_routing"` with
+an upper-cased `verb`, `Route::any` omits the verb (not verb-restricted), and
+`Route::match(['get','post'], ...)` emits one fact per static verb. Laravel
+`{param}`/`{param?}` segments normalize to `:param`. `Route::resource`/
+`apiResource` emit `laravel.resource_route.v1` (`resource_kind` `resource` or
+`api_resource`). Same-file `Route::prefix('x')->group(closure)` and
+`Route::group(['prefix'=>'x'], closure)` are lexical-containment prefixes: they
+join into `route_group_prefix`/`effective_route_template` on the contained
+routes and emit a `laravel.route_prefix.v1` fact (`mount_path`/
+`normalized_mount_path`) at the prefix site; a non-literal prefix poisons the
+group so contained routes emit `route_template` only. Interpolated,
+concatenated, `self::CONST`, and variable route arguments stay silent (M2).
+`#[Route]` attributes (Symfony) and cross-file `RouteServiceProvider` prefixes
+are out of scope, so `route_template` is not guaranteed to be the absolute
+public path when such a prefix applies.
 
 Backend-language client collectors emit the same `http.client_request.v1`
 metadata shape for static string URL arguments: Python module-qualified
@@ -654,8 +673,11 @@ metadata shape for static string URL arguments: Python module-qualified
 chains, Kotlin Ktor `client.get("...")`-style verb calls (`client="ktor"`,
 import-gated on `io.ktor.client`; only a `receiver.verb(...)` navigation callee
 qualifies, so the server-side routing DSL `get("/x")` is not a client request),
-and Ruby `Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)`
-arguments. Java builder-chain facts span the enclosing statement (the URL and
+PHP Guzzle `$client->get('...')` (`client="guzzle"`, import-gated on
+`GuzzleHttp`) and the Laravel `Http` facade `Http::get('...')`
+(`client="laravel_http"`, import-gated on `Facades\Http`, including chained
+`Http::withToken(...)->get(...)`), and Ruby `Net::HTTP` calls with literal
+`URI(...)`/`URI.parse(...)` arguments. Java builder-chain facts span the enclosing statement (the URL and
 verb are resolved statement-locally), so their `node_kind` is the statement
 node rather than a call node. Instance/session clients and dynamic URL
 expressions stay silent.

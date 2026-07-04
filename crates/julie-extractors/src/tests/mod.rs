@@ -40,6 +40,7 @@ pub mod kind_conversions;
 pub mod kotlin;
 pub mod kotlin_spring;
 pub mod language_policy;
+pub mod laravel;
 pub mod lua;
 pub mod markdown;
 pub mod nestjs;

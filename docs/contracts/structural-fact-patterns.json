@@ -2113,6 +2113,7 @@
       "go",
       "java",
       "kotlin",
+      "php",
       "ruby"
     ],
     "metadata_keys": [
@@ -2543,6 +2544,186 @@
     ],
     "pattern_id": "kotlin.suspend_modifier.v1",
     "query_family": "async"
+  },
+  {
+    "description": "A Laravel Route::resource/apiResource declaration.",
+    "languages": [
+      "php"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"resource_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static resource URI literal.",
+        "key": "resource_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "resource (7 RESTful actions) or api_resource (5, no create/edit).",
+        "key": "resource_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Controller class name when a static Ctrl::class reference is given.",
+        "key": "controller",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Same-file group prefix governing the resource.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "laravel.resource_route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static Laravel Route facade route joined to its same-file group prefix.",
+    "languages": [
+      "php"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the Route facade call.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and Laravel {param}/{param?} segments preserved as :param.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Same-file Route::prefix()/group(['prefix'=>...]) prefix governing the route.",
+        "key": "route_group_prefix",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Group prefix joined with the route template when a static prefix applies.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method; omitted for Route::any (accepts any method).",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\").",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Controller action target (\"Ctrl@method\" or the literal action string) when statically resolvable.",
+        "key": "controller_action",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "laravel.route.v1",
+    "query_family": "framework"
+  },
+  {
+    "description": "A static Laravel Route::prefix()/group(['prefix'=>...]) prefix at its definition site.",
+    "languages": [
+      "php"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static prefix literal at this site.",
+        "key": "mount_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized prefix path including enclosing same-file group scope.",
+        "key": "normalized_mount_path",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "laravel.route_prefix.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Lua `coroutine.*` call.",

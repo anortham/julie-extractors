@@ -1,0 +1,903 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:GuzzleHttp\\Client:3:0",
+      "name": "GuzzleHttp\\Client",
+      "kind": "import",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 22,
+      "start_byte": 7,
+      "end_byte": 29,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use GuzzleHttp\\Client",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "use"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:Illuminate\\Support\\Facades\\Http:4:0",
+      "name": "Illuminate\\Support\\Facades\\Http",
+      "kind": "import",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 36,
+      "start_byte": 30,
+      "end_byte": 66,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use Illuminate\\Support\\Facades\\Http",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "use"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "name": "fetchUsers",
+      "kind": "function",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 1,
+      "start_byte": 68,
+      "end_byte": 597,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 21,
+        "end_column": 1,
+        "start_byte": 116,
+        "end_byte": 597
+      },
+      "body_hash": "23d87ad9e59e46b08a442c9c8d3810c6",
+      "signature": "function fetchUsers(Client $client, $id, $base)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "parameters": "(Client $client, $id, $base)",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "callee_name": "Http.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "callee_name": "Http.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "line_number": 20,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "callee_name": "Http.withToken",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "callee_name": "Http::withToken('token').post",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "callee_name": "client.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "line_number": 18,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "callee_name": "client.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "callee_name": "client.get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "line_number": 9,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "callee_name": "client.post",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "line_number": 10,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+        "callee_name": "Http.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/http_client/source.php",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Http.get",
+        "terminal_name": "get",
+        "receiver": "Http",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+        "callee_name": "Http.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/http_client/source.php",
+        "line_number": 20,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Http.get",
+        "terminal_name": "get",
+        "receiver": "Http",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+        "callee_name": "Http.withToken",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/http_client/source.php",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Http.withToken",
+        "terminal_name": "withToken",
+        "receiver": "Http",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+        "callee_name": "Http::withToken('token').post",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/http_client/source.php",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Http::withToken('token').post",
+        "terminal_name": "post",
+        "receiver": "Http::withToken('token')",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+        "callee_name": "client.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/http_client/source.php",
+        "line_number": 18,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.get",
+        "terminal_name": "get",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+        "callee_name": "client.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/http_client/source.php",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.get",
+        "terminal_name": "get",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+        "callee_name": "client.get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/http_client/source.php",
+        "line_number": 9,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.get",
+        "terminal_name": "get",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+        "callee_name": "client.post",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/php/http_client/source.php",
+        "line_number": 10,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "client.post",
+        "terminal_name": "post",
+        "receiver": "client",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:Client:type_usage:6:20",
+      "name": "Client",
+      "kind": "type_usage",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 6,
+      "start_column": 20,
+      "end_line": 6,
+      "end_column": 26,
+      "start_byte": 88,
+      "end_byte": 94,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:get:call:13:10",
+      "name": "get",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 13,
+      "start_column": 10,
+      "end_line": 13,
+      "end_column": 13,
+      "start_byte": 318,
+      "end_byte": 321,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:get:call:18:13",
+      "name": "get",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 18,
+      "start_column": 13,
+      "end_line": 18,
+      "end_column": 16,
+      "start_byte": 514,
+      "end_byte": 517,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:get:call:19:13",
+      "name": "get",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 19,
+      "start_column": 13,
+      "end_line": 19,
+      "end_column": 16,
+      "start_byte": 549,
+      "end_byte": 552,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:get:call:20:10",
+      "name": "get",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 20,
+      "start_column": 10,
+      "end_line": 20,
+      "end_column": 13,
+      "start_byte": 575,
+      "end_byte": 578,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:get:call:9:13",
+      "name": "get",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 9,
+      "start_column": 13,
+      "end_line": 9,
+      "end_column": 16,
+      "start_byte": 192,
+      "end_byte": 195,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:post:call:10:13",
+      "name": "post",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 10,
+      "start_column": 13,
+      "end_line": 10,
+      "end_column": 17,
+      "start_byte": 243,
+      "end_byte": 247,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:post:call:14:30",
+      "name": "post",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 14,
+      "start_column": 30,
+      "end_line": 14,
+      "end_column": 34,
+      "start_byte": 387,
+      "end_byte": 391,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/php/http_client/source.php:withToken:call:14:10",
+      "name": "withToken",
+      "kind": "call",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 14,
+      "start_column": 10,
+      "end_line": 14,
+      "end_column": 19,
+      "start_byte": 367,
+      "end_byte": 376,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/php/http_client/source.php:GuzzleHttp\\Client:3:0",
+      "resolved_type": "use",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/php/http_client/source.php:Illuminate\\Support\\Facades\\Http:4:0",
+      "resolved_type": "use",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "php",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "member_call_expression",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 10,
+      "end_column": 27,
+      "start_byte": 234,
+      "end_byte": 257,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "guzzle",
+        "framework": "guzzle",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/items",
+        "url_kind": "path",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "member_call_expression",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 14,
+      "start_column": 4,
+      "end_line": 14,
+      "end_column": 47,
+      "start_byte": 361,
+      "end_byte": 404,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "laravel_http",
+        "framework": "laravel_http",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/webhooks",
+        "url_kind": "path",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "member_call_expression",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 9,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 49,
+      "start_byte": 183,
+      "end_byte": 228,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "guzzle",
+        "framework": "guzzle",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/users",
+        "url_kind": "absolute",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "scoped_call_expression",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 13,
+      "start_column": 4,
+      "end_line": 13,
+      "end_column": 47,
+      "start_byte": 312,
+      "end_byte": 355,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "laravel_http",
+        "framework": "laravel_http",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/status",
+        "url_kind": "absolute",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "php.namespace_use_declaration.v1",
+      "capture_name": "namespace_use_declaration",
+      "node_kind": "namespace_use_declaration",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": null,
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 22,
+      "start_byte": 7,
+      "end_byte": 29,
+      "confidence": "1.000",
+      "metadata": {
+        "import_target": "GuzzleHttp\\Client",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "php.namespace_use_declaration.v1",
+      "capture_name": "namespace_use_declaration",
+      "node_kind": "namespace_use_declaration",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": null,
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 36,
+      "start_byte": 30,
+      "end_byte": 66,
+      "confidence": "1.000",
+      "metadata": {
+        "import_target": "Illuminate\\Support\\Facades\\Http",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "covered_lines": 22,
+      "covered_bytes": 598,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 22,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 598,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "covered_lines": 15,
+      "covered_bytes": 481,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 3,
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 1,
+      "start_byte": 116,
+      "end_byte": 597,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/health",
+      "kind": "other",
+      "carrier": "Http.get",
+      "arg_position": 0,
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 20,
+      "start_column": 14,
+      "end_line": 20,
+      "end_column": 28,
+      "start_byte": 579,
+      "end_byte": 593,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/items",
+      "kind": "other",
+      "carrier": "$client.post",
+      "arg_position": 0,
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 10,
+      "start_column": 18,
+      "end_line": 10,
+      "end_column": 26,
+      "start_byte": 248,
+      "end_byte": 256,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/webhooks",
+      "kind": "other",
+      "carrier": "Http::withToken('token').post",
+      "arg_position": 0,
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 14,
+      "start_column": 35,
+      "end_line": 14,
+      "end_column": 46,
+      "start_byte": 392,
+      "end_byte": 403,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/status",
+      "kind": "other",
+      "carrier": "Http.get",
+      "arg_position": 0,
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 13,
+      "start_column": 14,
+      "end_line": 13,
+      "end_column": 46,
+      "start_byte": 322,
+      "end_byte": 354,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/users",
+      "kind": "other",
+      "carrier": "$client.get",
+      "arg_position": 0,
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 9,
+      "start_column": 17,
+      "end_line": 9,
+      "end_column": 48,
+      "start_byte": 196,
+      "end_byte": 227,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "token",
+      "kind": "other",
+      "carrier": "Http.withToken",
+      "arg_position": 0,
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "start_line": 14,
+      "start_column": 20,
+      "end_line": 14,
+      "end_column": 27,
+      "start_byte": 377,
+      "end_byte": 384,
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 12,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 47,
+      "start_byte": 264,
+      "end_byte": 307,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 77,
+      "start_byte": 411,
+      "end_byte": 484,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 17,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 15,
+      "start_byte": 489,
+      "end_byte": 500,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 8,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 60,
+      "start_byte": 122,
+      "end_byte": 178,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 10,
+      "start_column": 18,
+      "end_line": 10,
+      "end_column": 26,
+      "start_byte": 248,
+      "end_byte": 256,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 13,
+      "start_column": 14,
+      "end_line": 13,
+      "end_column": 46,
+      "start_byte": 322,
+      "end_byte": 354,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 14,
+      "start_column": 20,
+      "end_line": 14,
+      "end_column": 27,
+      "start_byte": 377,
+      "end_byte": 384,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 14,
+      "start_column": 35,
+      "end_line": 14,
+      "end_column": 46,
+      "start_byte": 392,
+      "end_byte": 403,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 18,
+      "start_column": 17,
+      "end_line": 18,
+      "end_column": 26,
+      "start_byte": 518,
+      "end_byte": 527,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 20,
+      "start_column": 14,
+      "end_line": 20,
+      "end_column": 28,
+      "start_byte": 579,
+      "end_byte": 593,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "php",
+      "file_path": "fixtures/extraction/php/http_client/source.php",
+      "containing_key": "fixtures/extraction/php/http_client/source.php:fetchUsers:6:0",
+      "start_line": 9,
+      "start_column": 17,
+      "end_line": 9,
+      "end_column": 48,
+      "start_byte": 196,
+      "end_byte": 227,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

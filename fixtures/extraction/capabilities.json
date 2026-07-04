@@ -2419,6 +2419,16 @@
           "name": "cross_file",
           "source": "fixtures/extraction/php/cross_file/source.php",
           "expected": "fixtures/extraction/php/cross_file/expected.json"
+        },
+        {
+          "name": "laravel_routes",
+          "source": "fixtures/extraction/php/laravel_routes/source.php",
+          "expected": "fixtures/extraction/php/laravel_routes/expected.json"
+        },
+        {
+          "name": "http_client",
+          "source": "fixtures/extraction/php/http_client/source.php",
+          "expected": "fixtures/extraction/php/http_client/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2477,6 +2487,10 @@
         },
         "structural_facts": {
           "supported": [
+            "http.client_request.v1",
+            "laravel.resource_route.v1",
+            "laravel.route.v1",
+            "laravel.route_prefix.v1",
             "php.anonymous_function.v1",
             "php.attribute.v1",
             "php.match_expression.v1",
@@ -2485,7 +2499,26 @@
             "php.trait_use_declaration.v1"
           ],
           "not_applicable": [],
-          "open_gaps": []
+          "open_gaps": [
+            {
+              "kind": "symfony.route.v1",
+              "reason": "PHP `#[Route('/x')]` attributes are a Symfony routing idiom, not Laravel; the Laravel lane detects only the Route facade DSL, so attribute-declared routes emit nothing.",
+              "required_closure": "add a Symfony attribute-route collector emitting symfony.route.v1 from #[Route] attributes on controller methods/classes, with static-literal path guarding",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2 (PHP #[Route] attributes deferral)"
+            },
+            {
+              "kind": "php.http_client.deferred",
+              "reason": "Only Guzzle (receiver->verb(url)) and the Laravel Http facade ship in v2.8.0; Symfony HttpClient (fluent request builder), the curl_* function family, and Guzzle's request('GET', url) two-argument form each need their own detection shape and fixture.",
+              "required_closure": "add per-library client collectors emitting http.client_request.v1 for Symfony HttpClient, curl_*, and Guzzle request(verb, url), each fixture-backed",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
+            },
+            {
+              "kind": "laravel.route_service_provider_prefix",
+              "reason": "A RouteServiceProvider `/api` group prefix is applied cross-file (in the provider, not the routes file), so it cannot flow into a route's effective_route_template in-file; route_template is therefore not guaranteed to be the absolute public path when such a prefix applies.",
+              "required_closure": "resolve RouteServiceProvider group prefixes cross-file, which is Miller's join responsibility per decision 0004; the extractor emits laravel.route_prefix.v1 only for same-file prefixes",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file RouteServiceProvider prefix)"
+            }
+          ]
         },
         "complexity_metrics": {
           "supported": [

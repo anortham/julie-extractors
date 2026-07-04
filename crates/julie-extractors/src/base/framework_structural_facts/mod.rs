@@ -3,6 +3,7 @@ mod go_http;
 mod helpers;
 mod http_clients;
 mod kotlin_spring;
+mod laravel;
 mod markup;
 mod nestjs;
 mod node;
@@ -19,6 +20,7 @@ use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_r
 use self::go_http::collect_go_http_boundary_facts;
 use self::http_clients::collect_backend_http_client_requests;
 use self::kotlin_spring::collect_kotlin_spring_routes;
+use self::laravel::collect_laravel_routes;
 use self::markup::{
     collect_jsx_htmx_attributes, collect_markup_framework_attributes,
     collect_vue_template_htmx_attributes,
@@ -54,6 +56,9 @@ pub(super) const ECHO_ROUTE_PATTERN_ID: &str = "echo.route.v1";
 pub(super) const RAILS_ROUTE_PATTERN_ID: &str = "rails.route.v1";
 pub(super) const RAILS_RESOURCE_ROUTE_PATTERN_ID: &str = "rails.resource_route.v1";
 pub(super) const RAILS_MOUNT_PATTERN_ID: &str = "rails.mount.v1";
+pub(super) const LARAVEL_ROUTE_PATTERN_ID: &str = "laravel.route.v1";
+pub(super) const LARAVEL_RESOURCE_ROUTE_PATTERN_ID: &str = "laravel.resource_route.v1";
+pub(super) const LARAVEL_ROUTE_PREFIX_PATTERN_ID: &str = "laravel.route_prefix.v1";
 pub(super) const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 pub(super) const HTMX_ATTRIBUTE_PATTERN_ID: &str = "htmx.attribute.v1";
 pub(super) const ALPINE_DIRECTIVE_PATTERN_ID: &str = "alpine.directive.v1";
@@ -114,6 +119,13 @@ const RAILS_PATTERN_IDS: &[&str] = &[
     RAILS_ROUTE_PATTERN_ID,
     RAILS_RESOURCE_ROUTE_PATTERN_ID,
     RAILS_MOUNT_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const LARAVEL_PATTERN_IDS: &[&str] = &[
+    LARAVEL_ROUTE_PATTERN_ID,
+    LARAVEL_RESOURCE_ROUTE_PATTERN_ID,
+    LARAVEL_ROUTE_PREFIX_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -211,6 +223,13 @@ pub fn collect_framework_structural_facts(
             ));
             ruby_facts
         }
+        "php" => {
+            let mut php_facts = collect_laravel_routes(language, tree, file_path, content);
+            php_facts.extend(collect_backend_http_client_requests(
+                language, tree, file_path, content,
+            ));
+            php_facts
+        }
         "vue" => collect_vue_template_htmx_attributes(language, tree, file_path, content),
         _ => Vec::new(),
     };
@@ -243,6 +262,7 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
         ],
         "go" => GO_HTTP_PATTERN_IDS,
         "ruby" => RAILS_PATTERN_IDS,
+        "php" => LARAVEL_PATTERN_IDS,
         "vue" => COMPONENT_MARKUP_FRAMEWORK_PATTERN_IDS,
         _ => &[],
     }

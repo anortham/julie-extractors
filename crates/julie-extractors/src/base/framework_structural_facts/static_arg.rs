@@ -45,10 +45,83 @@ pub(super) fn static_route_arg<'a>(
     match lang {
         StaticArgLang::Rust => rust_static_arg(node, content),
         StaticArgLang::Kotlin => kotlin_static_arg(node, content),
-        // Elixir/PHP arms land with their framework tasks (design §4.4). Until
-        // then they stay silent so no dynamic argument can leak.
-        StaticArgLang::Elixir | StaticArgLang::Php => None,
+        StaticArgLang::Php => php_static_arg(node, content),
+        // The Elixir arm lands with its framework task (design §4.4). Until then
+        // it stays silent so no dynamic argument can leak.
+        StaticArgLang::Elixir => None,
     }
+}
+
+/// PHP arm: accept a lone `string` (single-quote, never interpolates), an
+/// `encapsed_string` (double-quote) whose children are only
+/// `string_content`/`escape_sequence`, a `heredoc` whose body is likewise
+/// interpolation-free, or a `nowdoc` (single-quote semantics, never
+/// interpolates). Reject every wrapper — `binary_expression` (`.` concat),
+/// `class_constant_access_expression` (`self::X` / `Foo::BAR`), a bare `name`
+/// constant reference, `array_creation_expression`, `variable_name`, and calls —
+/// by node kind before any value is read.
+///
+/// Interpolation guard (grammar-verified against tree-sitter-php 0.24.2, NOT
+/// design §4.4 which under-specified the doc-string shapes): a double-quoted
+/// `"/$id"` **and** `"/{$id}"` embed a `variable_name` child, `"/${id}"` a
+/// `dynamic_variable_name`, `"/{$o->p}"` a `member_access_expression`, and
+/// `"/$a[0]"` a `subscript_expression` — so an `encapsed_string` is static only
+/// when EVERY child is `string_content`/`escape_sequence`. Heredoc/nowdoc wrap
+/// their content in a `heredoc_body` / `nowdoc_body` node (with `heredoc_start`
+/// / `heredoc_end` siblings), **not** as direct children of the `heredoc` /
+/// `nowdoc` node — so a literal reading of design §4.4 ("heredoc uses the same
+/// allowlist check" on the node's children) would fail closed on every heredoc.
+/// The allowlist therefore runs on the *body* node's children.
+fn php_static_arg<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    match node.kind() {
+        "string" | "encapsed_string" => php_static_string_children(node, content),
+        // `heredoc` → `heredoc_body` holds the interpolation-checkable content.
+        "heredoc" => php_static_string_children(php_child_of_kind(node, "heredoc_body")?, content),
+        // `nowdoc` never interpolates; span its `nowdoc_body`'s `nowdoc_string`.
+        "nowdoc" => php_nowdoc_inner_text(php_child_of_kind(node, "nowdoc_body")?, content),
+        _ => None,
+    }
+}
+
+/// Inner text of a PHP `string`/`encapsed_string`/`heredoc_body` as the raw
+/// source slice spanning its content children, accepting only `string_content`
+/// and `escape_sequence`. Any other named child is an interpolation node
+/// (`variable_name`, `dynamic_variable_name`, `member_access_expression`,
+/// `subscript_expression`, …) and fails closed to `None`. An empty literal has
+/// no content child and yields `""`.
+fn php_static_string_children<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    let mut cursor = node.walk();
+    let mut content_nodes = Vec::new();
+    for child in node.named_children(&mut cursor) {
+        match child.kind() {
+            "string_content" | "escape_sequence" => content_nodes.push(child),
+            _ => return None,
+        }
+    }
+    match (content_nodes.first(), content_nodes.last()) {
+        (Some(first), Some(last)) => content.get(first.start_byte()..last.end_byte()),
+        _ => Some(""),
+    }
+}
+
+/// Inner text of a `nowdoc_body` (the source slice spanning its `nowdoc_string`
+/// content). Nowdoc uses single-quote semantics and never interpolates, so no
+/// interpolation guard is needed; an empty nowdoc has no content child → `""`.
+fn php_nowdoc_inner_text<'a>(body: Node<'_>, content: &'a str) -> Option<&'a str> {
+    let mut cursor = body.walk();
+    let strings: Vec<Node> = body
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "nowdoc_string")
+        .collect();
+    match (strings.first(), strings.last()) {
+        (Some(first), Some(last)) => content.get(first.start_byte()..last.end_byte()),
+        _ => Some(""),
+    }
+}
+
+fn php_child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor).find(|child| child.kind() == kind)
 }
 
 /// Kotlin arm: accept a lone `string_literal` / `multiline_string_literal` that
@@ -222,14 +295,123 @@ mod tests {
                 Some("/x"),
                 "rust arm is implemented in Task 0"
             );
-            for lang in [StaticArgLang::Elixir, StaticArgLang::Php] {
-                assert_eq!(
-                    static_route_arg(node, content, lang),
-                    None,
-                    "unimplemented arm {lang:?} must stay silent"
-                );
-            }
+            // Elixir is the only remaining unimplemented arm (Php lands in Task 3).
+            assert_eq!(
+                static_route_arg(node, content, StaticArgLang::Elixir),
+                None,
+                "unimplemented arm Elixir must stay silent"
+            );
         });
+    }
+
+    /// Parse `expr` as the RHS of a PHP `$x = …;` assignment and hand its whole
+    /// value-expression node (plus the source) to `assertion` — exactly the
+    /// argument node a PHP collector passes to [`static_route_arg`].
+    fn with_php_arg(expr: &str, assertion: impl FnOnce(Node<'_>, &str)) {
+        let src = format!("<?php\n$x = {expr};\n");
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_php::LANGUAGE_PHP.into())
+            .expect("load php grammar");
+        let tree = parser.parse(&src, None).expect("parse php source");
+        let value = find_php_assignment_value(tree.root_node())
+            .unwrap_or_else(|| panic!("no assignment value node for `{expr}`"));
+        assertion(value, &src);
+    }
+
+    /// The `right` field of the first `assignment_expression`.
+    fn find_php_assignment_value(node: Node<'_>) -> Option<Node<'_>> {
+        if node.kind() == "assignment_expression" {
+            return node.child_by_field_name("right");
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if let Some(found) = find_php_assignment_value(child) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn php_accepts_plain_static_string_literals() {
+        // Single- and double-quoted static strings, plus a static nowdoc/heredoc.
+        // Laravel's `{id}` / `{id?}` param braces are NOT `{$…}` interpolation, so
+        // a double-quoted route with braces stays fully static.
+        for (expr, expected, kind) in [
+            (r#"'/users'"#, "/users", "string"),
+            (r#"'/users/{id}'"#, "/users/{id}", "string"),
+            (r#"'/users/{id?}'"#, "/users/{id?}", "string"),
+            (r#"''"#, "", "string"),
+            (r#""/users""#, "/users", "encapsed_string"),
+            (r#""/users/{id}""#, "/users/{id}", "encapsed_string"),
+            (r#""/users/{id?}""#, "/users/{id?}", "encapsed_string"),
+            (r#""""#, "", "encapsed_string"),
+        ] {
+            with_php_arg(expr, |node, content| {
+                assert_eq!(node.kind(), kind, "node kind for `{expr}`");
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Php),
+                    Some(expected),
+                    "accepted static literal `{expr}`"
+                );
+            });
+        }
+    }
+
+    #[test]
+    fn php_accepts_static_heredoc_and_nowdoc() {
+        // Heredoc/nowdoc are rare as route args but the guard supports them per
+        // design §4.4. Their content sits in a `heredoc_body`/`nowdoc_body`, so
+        // exact text is newline-fragile — assert acceptance + content instead.
+        with_php_arg("<<<'EOT'\n/users\nEOT", |node, content| {
+            assert_eq!(node.kind(), "nowdoc", "nowdoc node kind");
+            let value = static_route_arg(node, content, StaticArgLang::Php);
+            assert!(
+                value.is_some_and(|v| v.contains("/users")),
+                "static nowdoc accepted, got {value:?}"
+            );
+        });
+        with_php_arg("<<<EOT\n/users\nEOT", |node, content| {
+            assert_eq!(node.kind(), "heredoc", "heredoc node kind");
+            let value = static_route_arg(node, content, StaticArgLang::Php);
+            assert!(
+                value.is_some_and(|v| v.contains("/users")),
+                "static heredoc accepted, got {value:?}"
+            );
+        });
+    }
+
+    #[test]
+    fn php_rejects_dynamic_and_wrapped_forms() {
+        // Every dynamic/wrapped form must be silent (M2). The label names the
+        // form the whole-argument allowlist rejects.
+        for (expr, why) in [
+            (r#"'/u/' . $id"#, "binary_expression `.` concat"),
+            (r#"$prefix . '/x'"#, "binary_expression `.` concat (literal second)"),
+            (r#"self::PREFIX . '/x'"#, "class_constant_access_expression concat"),
+            ("self::PREFIX", "class_constant_access_expression const ref"),
+            ("Foo::BAR", "class_constant_access_expression const ref"),
+            ("PREFIX", "bare name constant reference"),
+            (r#""/u/$id""#, "encapsed variable_name interpolation ($id)"),
+            (r#""/u/{$id}""#, "encapsed variable_name interpolation ({$id})"),
+            (r#""/u/${id}""#, "encapsed dynamic_variable_name interpolation (${id})"),
+            (r#""/u/{$user->id}""#, "encapsed member_access_expression interpolation"),
+            (r#""/u/$arr[0]""#, "encapsed subscript_expression interpolation"),
+            (r#""$base""#, "whole-string variable interpolation"),
+            ("<<<EOT\n/u/$id\nEOT", "heredoc body variable_name interpolation"),
+            ("$id", "variable_name reference"),
+            (r#"['/a', '/b']"#, "array_creation_expression"),
+            ("42", "integer (non-string)"),
+        ] {
+            with_php_arg(expr, |node, content| {
+                assert_eq!(
+                    static_route_arg(node, content, StaticArgLang::Php),
+                    None,
+                    "must stay silent for {why}: `{expr}`"
+                );
+            });
+        }
     }
 
     /// Parse `expr` as the initializer of a Kotlin `val` binding and hand its

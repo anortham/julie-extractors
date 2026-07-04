@@ -2,6 +2,7 @@ mod csharp;
 mod go;
 mod java;
 mod kotlin;
+mod php;
 mod python;
 mod ruby;
 
@@ -27,6 +28,7 @@ pub(super) fn collect_backend_http_client_requests(
         "kotlin" => {
             kotlin::collect_kotlin_http_client_requests(language, tree, file_path, content)
         }
+        "php" => php::collect_php_http_client_requests(language, tree, file_path, content),
         "ruby" => ruby::collect_ruby_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }

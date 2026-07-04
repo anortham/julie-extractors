@@ -1035,3 +1035,116 @@ fun routes() {
     let facts = client_requests(&results);
     assert!(facts.is_empty(), "expected silence, got {facts:#?}");
 }
+
+#[test]
+fn php_guzzle_client_verb_calls_emit_client_requests() {
+    let source = r#"<?php
+use GuzzleHttp\Client;
+
+function load(Client $client) {
+    $client->get('https://api.example.com/users');
+    $client->post('/items');
+    $client->delete('/users/1');
+}
+"#;
+    let results = extract("src/Client.php", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 3, "{facts:#?}");
+
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/users"))
+        .expect("get");
+    assert_eq!(metadata_str(get, "client"), Some("guzzle"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "verb_source"), Some("attested"));
+    assert_eq!(metadata_str(get, "url_kind"), Some("absolute"));
+    assert_eq!(metadata_str(get, "query_family"), Some("web.http_client"));
+    assert_eq!(
+        binding_symbol(&results, get).map(|(name, _)| name),
+        Some("load")
+    );
+
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/items"))
+        .expect("post");
+    assert_eq!(metadata_str(post, "verb"), Some("POST"));
+    assert_eq!(metadata_str(post, "url_kind"), Some("path"));
+}
+
+#[test]
+fn php_laravel_http_facade_calls_emit_client_requests() {
+    let source = r#"<?php
+use Illuminate\Support\Facades\Http;
+
+function load() {
+    Http::get('https://api.example.com/users');
+    Http::withToken('t')->post('/items');
+}
+"#;
+    let results = extract("src/Client.php", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+
+    let get = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("https://api.example.com/users"))
+        .expect("get");
+    assert_eq!(metadata_str(get, "client"), Some("laravel_http"));
+    assert_eq!(metadata_str(get, "verb"), Some("GET"));
+    assert_eq!(metadata_str(get, "url_kind"), Some("absolute"));
+
+    // Chained `Http::withToken(...)->post(...)` still roots at the Http facade.
+    let post = facts
+        .iter()
+        .find(|fact| metadata_str(fact, "target_path") == Some("/items"))
+        .expect("post");
+    assert_eq!(metadata_str(post, "client"), Some("laravel_http"));
+    assert_eq!(metadata_str(post, "verb"), Some("POST"));
+}
+
+#[test]
+fn php_dynamic_urls_stay_silent() {
+    let source = r#"<?php
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Http;
+
+function load(Client $client, $id) {
+    $client->get("https://api.example.com/$id");
+    $client->get('/users/' . $id);
+    $client->get($endpoint);
+    Http::get(self::BASE);
+}
+"#;
+    let results = extract("src/Client.php", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}
+
+#[test]
+fn php_guzzle_requires_import() {
+    // The `$client->get('...')` shape is highly ambiguous; without the GuzzleHttp
+    // import the collector stays silent.
+    let source = r#"<?php
+function load($client) {
+    $client->get('/users');
+}
+"#;
+    let results = extract("src/Client.php", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}
+
+#[test]
+fn php_http_facade_bare_scoped_call_requires_import() {
+    // `Http::get('...')` without the facade import stays silent.
+    let source = r#"<?php
+function load() {
+    Http::get('/users');
+}
+"#;
+    let results = extract("src/Client.php", source);
+    let facts = client_requests(&results);
+    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+}
