@@ -1,12 +1,15 @@
 use std::io::{self, Write};
 use std::path::Path;
 
+use julie_extract_artifact::model::WriteResult;
 use julie_extract_artifact::reports::{
     ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
     ReportOperation, ReportProfile, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
 };
 use julie_extract_artifact::writer::{ArtifactSpoolError, ArtifactWriteError};
 use serde_json::{Value, json};
+
+use crate::resolution::ResolutionReport;
 
 use crate::discovery::DiscoveryError;
 use crate::extraction::{ExtractFileError, ExtractFileErrorKind};
@@ -414,4 +417,63 @@ fn human_status(report: &Report) -> &'static str {
 
 pub(crate) fn display_path(path: &Path) -> String {
     path.display().to_string()
+}
+
+/// Build the `reference_resolution` scan-report section from the captured
+/// per-pass [`ResolutionReport`] (per-language/per-tier/per-outcome counts,
+/// durable status, gated languages) plus the writer's resolution outcome (the
+/// in-transaction row counts and any non-fatal failure message).
+///
+/// Returns `None` when neither a report nor a failure exists (a hookless write),
+/// so every other command's report shape is unchanged. When present it is attached
+/// under the report's `languages` section — the only additive value slot the
+/// committed `Report` struct exposes — namespaced under `reference_resolution`.
+pub(crate) fn resolution_report_section(
+    report: Option<&ResolutionReport>,
+    write_result: &WriteResult,
+) -> Option<Value> {
+    let failed = write_result.resolution.failed.clone();
+    if report.is_none() && failed.is_none() {
+        return None;
+    }
+    let counts = &write_result.resolution.counts;
+    let (status, version, last_full_revision, gated, by_language) = match report {
+        Some(report) => (
+            report.status.as_str().to_string(),
+            report.version,
+            report.last_full_revision,
+            report
+                .tier2_gated_languages
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>(),
+            report
+                .rows
+                .iter()
+                .map(|row| {
+                    json!({
+                        "language": row.language,
+                        "tier": row.tier,
+                        "outcome": row.outcome,
+                        "count": row.count,
+                    })
+                })
+                .collect::<Vec<_>>(),
+        ),
+        None => ("failed".to_string(), 0, 0, Vec::new(), Vec::new()),
+    };
+    Some(json!({
+        "reference_resolution": {
+            "status": status,
+            "version": version,
+            "last_full_revision": last_full_revision,
+            "counts": {
+                "pending_resolutions": counts.pending_resolutions,
+                "identifier_resolutions": counts.identifier_resolutions,
+            },
+            "gated_languages": gated,
+            "failed": failed,
+            "by_language": by_language,
+        }
+    }))
 }

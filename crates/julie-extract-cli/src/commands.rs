@@ -220,7 +220,8 @@ fn scan(args: ScanArgs) -> CommandOutcome {
             );
             writer.stage_capability_snapshot(artifact_capability_snapshot());
             let artifact_write_started = Instant::now();
-            match writer.write_scan_spooled_preserving_missing_paths(
+            let mut resolution_report: Option<crate::resolution::ResolutionReport> = None;
+            match writer.write_scan_spooled_preserving_missing_paths_with_resolution(
                 revision_input(
                     WriteOperation::Scan,
                     Some(if args.force {
@@ -233,6 +234,11 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                 &extracted.snapshot_paths,
                 &preserved_missing_paths,
                 &mut extracted.spool,
+                |tx, scope| {
+                    let (counts, report) = crate::resolution::resolve_workspace(tx, scope)?;
+                    resolution_report = Some(report);
+                    Ok(counts)
+                },
             ) {
                 Ok(write_result) => {
                     record_profile_phase(
@@ -242,6 +248,13 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     );
                     let capability_rows_written = writer.last_capability_rows_written();
                     let connection = writer.connection();
+                    // Persist the durable `reference_resolution_*` metadata before
+                    // reading totals so the scan report reflects it.
+                    crate::resolution::finalize_resolution_metadata(
+                        connection,
+                        &write_result,
+                        resolution_report.as_ref(),
+                    );
                     let artifact = match artifact_report_from_connection(&db, connection) {
                         Ok(artifact) => artifact,
                         Err(error) => {
@@ -288,6 +301,24 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                             &profile_phases,
                             &profile_languages,
                         ));
+                    if let Some(section) = crate::reports::resolution_report_section(
+                        resolution_report.as_ref(),
+                        &write_result,
+                    ) {
+                        report = report.with_languages(section);
+                    }
+                    if let Some(message) = &write_result.resolution.failed {
+                        report = report.with_warning(diagnostic(
+                            ReportCode::ResolutionFailed,
+                            format!(
+                                "reference resolution failed; affected rows left unresolved: {message}"
+                            ),
+                            None,
+                            None,
+                            true,
+                            json!({}),
+                        ));
+                    }
                     report.counts.files_scanned =
                         (discovered.supported_files.len() + discovered.unsupported_files) as i64;
                     report.counts.files_changed = write_result
@@ -495,13 +526,24 @@ fn update(args: UpdateArgs) -> CommandOutcome {
     match ArtifactWriter::open_path(&db, metadata) {
         Ok(mut writer) => {
             writer.stage_capability_snapshot(artifact_capability_snapshot());
-            match writer.write_update(
+            let mut resolution_report: Option<crate::resolution::ResolutionReport> = None;
+            match writer.write_update_with_resolution(
                 revision_input(WriteOperation::Update, Some(WriteMode::SingleFile), &root),
                 &file,
+                |tx, scope| {
+                    let (counts, report) = crate::resolution::resolve_workspace(tx, scope)?;
+                    resolution_report = Some(report);
+                    Ok(counts)
+                },
             ) {
                 Ok(write_result) => {
                     let capability_rows_written = writer.last_capability_rows_written();
                     let connection = writer.connection();
+                    crate::resolution::finalize_resolution_metadata(
+                        connection,
+                        &write_result,
+                        resolution_report.as_ref(),
+                    );
                     let artifact = match artifact_report_from_connection(&db, connection) {
                         Ok(artifact) => artifact,
                         Err(error) => {
@@ -538,6 +580,24 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                         created_revision_id: write_result.revision_id,
                     })
                     .with_totals(table_totals(connection));
+                    if let Some(section) = crate::reports::resolution_report_section(
+                        resolution_report.as_ref(),
+                        &write_result,
+                    ) {
+                        report = report.with_languages(section);
+                    }
+                    if let Some(message) = &write_result.resolution.failed {
+                        report = report.with_warning(diagnostic(
+                            ReportCode::ResolutionFailed,
+                            format!(
+                                "reference resolution failed; affected rows left unresolved: {message}"
+                            ),
+                            None,
+                            None,
+                            true,
+                            json!({}),
+                        ));
+                    }
                     report.counts.files_scanned = 1;
                     report.counts.files_changed = write_result.files_changed as i64;
                     report.counts.files_unchanged = write_result.files_skipped as i64;
@@ -1346,7 +1406,7 @@ fn cleanup_unsupported_update(
         WriteOperation::Update,
         RevisionChangeKind::Unsupported,
     ) {
-        Ok((writer, write_result, capability_rows_written)) => {
+        Ok((writer, write_result, capability_rows_written, resolution_report)) => {
             let connection = writer.connection();
             let artifact = match artifact_report_from_connection(db, connection) {
                 Ok(artifact) => artifact,
@@ -1389,6 +1449,11 @@ fn cleanup_unsupported_update(
                 true,
                 json!({}),
             ));
+            if let Some(section) =
+                crate::reports::resolution_report_section(resolution_report.as_ref(), &write_result)
+            {
+                report = report.with_languages(section);
+            }
             report.counts.files_scanned = 1;
             report.counts.files_unsupported = 1;
             report.counts.files_deleted = write_result.files_changed as i64;
@@ -1437,7 +1502,7 @@ fn cleanup_delete(
         WriteOperation::Delete,
         RevisionChangeKind::Deleted,
     ) {
-        Ok((writer, write_result, capability_rows_written)) => {
+        Ok((writer, write_result, capability_rows_written, resolution_report)) => {
             let connection = writer.connection();
             let artifact = match artifact_report_from_connection(db, connection) {
                 Ok(artifact) => artifact,
@@ -1473,6 +1538,11 @@ fn cleanup_delete(
                 created_revision_id: write_result.revision_id,
             })
             .with_totals(table_totals(connection));
+            if let Some(section) =
+                crate::reports::resolution_report_section(resolution_report.as_ref(), &write_result)
+            {
+                report = report.with_languages(section);
+            }
             report.counts.files_deleted = write_result.files_changed as i64;
             report.counts.rows_written =
                 rows_written_with_capabilities(&capability_rows_written, &write_result);
@@ -1488,6 +1558,13 @@ fn cleanup_delete(
     }
 }
 
+type RowRemovalResult = (
+    ArtifactWriter,
+    WriteResult,
+    RowDomainCounts,
+    Option<crate::resolution::ResolutionReport>,
+);
+
 fn delete_artifact_rows(
     db: &Path,
     root: &Path,
@@ -1495,24 +1572,42 @@ fn delete_artifact_rows(
     existing_artifact: Option<ExistingArtifact>,
     operation: WriteOperation,
     change_kind: RevisionChangeKind,
-) -> Result<(ArtifactWriter, WriteResult, RowDomainCounts), ArtifactWriteError> {
+) -> Result<RowRemovalResult, ArtifactWriteError> {
     let metadata = existing_artifact
         .map(|artifact| refreshed_metadata(artifact.write_metadata))
         .unwrap_or_else(|| new_artifact_metadata(root, None));
     let mut writer = ArtifactWriter::open_path(db, metadata)?;
     writer.stage_capability_snapshot(artifact_capability_snapshot());
     let revision = revision_input(operation, Some(WriteMode::SingleFile), root);
+    let mut resolution_report: Option<crate::resolution::ResolutionReport> = None;
     let result = match change_kind {
-        RevisionChangeKind::Unsupported => {
-            writer.remove_unsupported_file(revision, root_relative_path)?
+        RevisionChangeKind::Unsupported => writer.remove_unsupported_file_with_resolution(
+            revision,
+            root_relative_path,
+            |tx, scope| {
+                let (counts, report) = crate::resolution::resolve_workspace(tx, scope)?;
+                resolution_report = Some(report);
+                Ok(counts)
+            },
+        )?,
+        RevisionChangeKind::Deleted => {
+            writer.delete_file_with_resolution(revision, root_relative_path, |tx, scope| {
+                let (counts, report) = crate::resolution::resolve_workspace(tx, scope)?;
+                resolution_report = Some(report);
+                Ok(counts)
+            })?
         }
-        RevisionChangeKind::Deleted => writer.delete_file(revision, root_relative_path)?,
         RevisionChangeKind::Inserted | RevisionChangeKind::Updated => {
             unreachable!("row removal does not support inserted/updated change kinds")
         }
     };
     let capability_rows_written = writer.last_capability_rows_written();
-    Ok((writer, result, capability_rows_written))
+    crate::resolution::finalize_resolution_metadata(
+        writer.connection(),
+        &result,
+        resolution_report.as_ref(),
+    );
+    Ok((writer, result, capability_rows_written, resolution_report))
 }
 
 fn rows_written_with_capabilities(

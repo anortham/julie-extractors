@@ -1241,7 +1241,9 @@ fn info_reports_missing_noncritical_metadata_as_warning() {
     assert_eq!(table_count(&db, "extraction_revisions"), 1);
     assert_eq!(table_count(&db, "files"), 2);
     assert_eq!(table_count(&db, "symbols"), 3);
-    assert_eq!(table_count(&db, "artifact_metadata"), 10);
+    // 11 base metadata keys + 3 `reference_resolution_*` keys written by the
+    // resolution pass, minus the deleted `updated_at`.
+    assert_eq!(table_count(&db, "artifact_metadata"), 13);
     assert_eq!(before.len(), artifact_fingerprint(&db).len() + 1);
 }
 
@@ -1624,6 +1626,304 @@ fn expected_kind_coverage_by_language() -> BTreeMap<String, Value> {
             )
         })
         .collect()
+}
+
+// ---------------------------------------------------------------------------
+// Reference-resolution flow tests (Task 5)
+// ---------------------------------------------------------------------------
+
+fn scan(root: &str, db: &Path) -> Output {
+    julie_extract(&["scan", "--root", root, "--db", path_str(db), "--json"])
+}
+
+fn update(root: &str, db: &Path, file: &str) -> Output {
+    julie_extract(&[
+        "update",
+        "--root",
+        root,
+        "--db",
+        path_str(db),
+        "--file",
+        file,
+        "--json",
+    ])
+}
+
+fn delete(root: &str, db: &Path, file: &str) -> Output {
+    julie_extract(&[
+        "delete",
+        "--root",
+        root,
+        "--db",
+        path_str(db),
+        "--file",
+        file,
+        "--json",
+    ])
+}
+
+fn symbol_id_for(db: &Path, name: &str) -> Option<String> {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT symbol_id FROM symbols WHERE name = ?1",
+        [name],
+        |row| row.get(0),
+    )
+    .optional()
+    .unwrap()
+}
+
+fn identifier_target(db: &Path, name: &str) -> Option<String> {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT target_symbol_id FROM identifiers WHERE name = ?1",
+        [name],
+        |row| row.get::<_, Option<String>>(0),
+    )
+    .optional()
+    .unwrap()
+    .flatten()
+}
+
+/// Serialize the two resolution overlay tables as ordered strings for a
+/// byte-for-byte determinism comparison.
+fn dump_resolution_tables(db: &Path) -> Vec<String> {
+    let conn = Connection::open(db).unwrap();
+    let mut dump = Vec::new();
+    let mut pending = conn
+        .prepare(
+            "SELECT pending_relationship_id, target_symbol_id, tier, confidence, method, \
+                    resolved_at_revision FROM pending_resolutions \
+             ORDER BY pending_relationship_id",
+        )
+        .unwrap();
+    let rows = pending
+        .query_map([], |row| {
+            Ok(format!(
+                "pending|{}|{}|{}|{}|{}|{}",
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, f64>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, i64>(5)?,
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    dump.extend(rows);
+    let mut identifiers = conn
+        .prepare(
+            "SELECT identifier_id, target_symbol_id, tier, confidence, method, outcome, \
+                    candidates, resolved_at_revision FROM identifier_resolutions \
+             ORDER BY identifier_id",
+        )
+        .unwrap();
+    let rows = identifiers
+        .query_map([], |row| {
+            Ok(format!(
+                "identifier|{}|{:?}|{:?}|{:?}|{}|{:?}|{}",
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<i64>>(2)?,
+                row.get::<_, Option<f64>>(3)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, Option<i64>>(6)?,
+                row.get::<_, i64>(7)?,
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    dump.extend(rows);
+    dump
+}
+
+/// Two-file fixture: a unique free function in `a.rs`, a cross-file caller in
+/// `b.rs`. The call is deferred to a `pending_relationships` row (cross-file), so
+/// the workspace pass must resolve it (tier 4 unique-global) and propagate the
+/// target onto the co-located identifier.
+fn cross_file_fixture() -> FixtureRoot {
+    let fixture = FixtureRoot::with_file("src/a.rs", "pub fn produce_widget() {}\n");
+    std::fs::write(
+        fixture.path("src/b.rs"),
+        "pub fn consume() { produce_widget(); }\n",
+    )
+    .unwrap();
+    fixture
+}
+
+#[test]
+fn scan_resolves_cross_file_call_and_propagates_to_identifier() {
+    // INVARIANT: a full scan resolves a cross-file call into pending_resolutions
+    // AND fills the co-located identifier's target_symbol_id (span propagation).
+    let fixture = cross_file_fixture();
+    let db = fixture.path("artifact.sqlite");
+    let report = json_report(&scan(fixture.root_str(), &db));
+    // The scan report carries the per-language/per-tier resolution section (rust is
+    // tier-2 gated, so the status is partial and rust is listed as gated).
+    assert_eq!(
+        report["languages"]["reference_resolution"]["status"],
+        "partial"
+    );
+    assert_eq!(
+        report["languages"]["reference_resolution"]["gated_languages"][0],
+        "rust"
+    );
+
+    assert_eq!(table_count(&db, "pending_resolutions"), 1);
+    let target = symbol_id_for(&db, "produce_widget").expect("produce_widget symbol exists");
+    assert_eq!(
+        identifier_target(&db, "produce_widget").as_deref(),
+        Some(target.as_str()),
+        "the co-located call identifier must be propagated to the definition"
+    );
+    // Durable metadata is maintained; rust is tier-2 gated so status is partial.
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_status"),
+        "partial"
+    );
+    assert_eq!(metadata_value(&db, "reference_resolution_version"), "1");
+}
+
+#[test]
+fn incremental_update_fk_demotes_then_re_resolves() {
+    // INVARIANT: rewriting the TARGET file so the callee disappears CASCADE-demotes
+    // the resolution while the pending context survives (FK-first invalidation);
+    // restoring the callee re-resolves it.
+    let fixture = cross_file_fixture();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(table_count(&db, "pending_resolutions"), 1);
+    assert!(identifier_target(&db, "produce_widget").is_some());
+
+    // Rename the callee away: the old symbol dies -> CASCADE removes the
+    // resolution; the pending row (unresolved context) stays.
+    std::fs::write(fixture.path("src/a.rs"), "pub fn produce_gadget() {}\n").unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/a.rs"));
+    assert_eq!(
+        table_count(&db, "pending_resolutions"),
+        0,
+        "resolution must demote when the target symbol dies"
+    );
+    assert_eq!(
+        table_count(&db, "pending_relationships"),
+        1,
+        "the unresolved pending context must survive demotion"
+    );
+    assert_eq!(
+        identifier_target(&db, "produce_widget"),
+        None,
+        "the identifier target must be cleared when its resolution is gone"
+    );
+
+    // Restore the callee: the fill sweep re-resolves the pending edge.
+    std::fs::write(fixture.path("src/a.rs"), "pub fn produce_widget() {}\n").unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/a.rs"));
+    assert_eq!(
+        table_count(&db, "pending_resolutions"),
+        1,
+        "restoring the target must re-resolve the pending edge"
+    );
+    let target = symbol_id_for(&db, "produce_widget").unwrap();
+    assert_eq!(
+        identifier_target(&db, "produce_widget").as_deref(),
+        Some(target.as_str())
+    );
+}
+
+#[test]
+fn uniqueness_regression_demotes_then_removal_re_resolves() {
+    // INVARIANT: adding a second same-name symbol makes the target ambiguous ->
+    // the previously resolved edge demotes; removing the collision re-resolves it.
+    let fixture = cross_file_fixture();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(table_count(&db, "pending_resolutions"), 1);
+
+    // Add a colliding produce_widget in a new file via update.
+    std::fs::write(fixture.path("src/c.rs"), "pub fn produce_widget() {}\n").unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/c.rs"));
+    assert_eq!(
+        table_count(&db, "pending_resolutions"),
+        0,
+        "two same-name candidates must demote the resolved edge (no best-guess)"
+    );
+    assert_eq!(identifier_target(&db, "produce_widget"), None);
+
+    // Remove the collision: the edge resolves again (unique once more).
+    assert_success(delete(fixture.root_str(), &db, "src/c.rs"));
+    assert_eq!(
+        table_count(&db, "pending_resolutions"),
+        1,
+        "removing the collision must re-resolve the edge"
+    );
+    assert!(identifier_target(&db, "produce_widget").is_some());
+}
+
+#[test]
+fn two_identical_scans_produce_byte_identical_resolution_tables() {
+    // INVARIANT: determinism — the same source scanned into two fresh artifacts
+    // produces byte-identical resolution overlay tables.
+    let fixture = cross_file_fixture();
+    let db_one = fixture.path("one.sqlite");
+    let db_two = fixture.path("two.sqlite");
+    assert_success(scan(fixture.root_str(), &db_one));
+    assert_success(scan(fixture.root_str(), &db_two));
+    assert_eq!(
+        dump_resolution_tables(&db_one),
+        dump_resolution_tables(&db_two),
+        "identical scans must produce identical resolution tables"
+    );
+    assert!(
+        !dump_resolution_tables(&db_one).is_empty(),
+        "the determinism comparison must be over non-empty resolution tables"
+    );
+}
+
+#[test]
+fn v3_artifact_without_resolution_metadata_backfills_on_update() {
+    // INVARIANT: an artifact with the overlay tables but no resolution metadata (a
+    // v3 artifact upgraded by the additive schema create) triggers a Full resolve
+    // on the next write, even though that write is a single-file delta.
+    let fixture = cross_file_fixture();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(table_count(&db, "pending_resolutions"), 1);
+
+    // Simulate a v3-shaped artifact: strip the resolution overlay + its metadata,
+    // leaving pending/identifier rows exactly as a pre-resolution artifact would.
+    {
+        let conn = Connection::open(&db).unwrap();
+        conn.execute_batch(
+            "DELETE FROM pending_resolutions; \
+             DELETE FROM identifier_resolutions; \
+             UPDATE identifiers SET target_symbol_id = NULL; \
+             DELETE FROM artifact_metadata WHERE key LIKE 'reference_resolution%';",
+        )
+        .unwrap();
+    }
+    assert_eq!(table_count(&db, "pending_resolutions"), 0);
+
+    // A single-file update (a real content change, so the write is not skipped)
+    // must backfill the whole workspace because the resolution metadata is absent.
+    std::fs::write(
+        fixture.path("src/b.rs"),
+        "// touched\npub fn consume() { produce_widget(); }\n",
+    )
+    .unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/b.rs"));
+    assert_eq!(
+        table_count(&db, "pending_resolutions"),
+        1,
+        "an absent resolution status must force a Full backfill on the next write"
+    );
+    assert!(identifier_target(&db, "produce_widget").is_some());
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_status"),
+        "partial"
+    );
 }
 
 struct FixtureRoot {

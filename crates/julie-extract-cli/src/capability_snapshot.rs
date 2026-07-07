@@ -53,6 +53,7 @@ pub(crate) fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
                     required_closure: gap.required_closure.clone(),
                     evidence: gap.evidence.clone(),
                 })
+                .chain(reference_resolution_gaps(&row.language))
                 .collect(),
         })
         .collect::<Vec<_>>();
@@ -81,6 +82,58 @@ pub(crate) fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
         parser_inventory,
         languages,
     }
+}
+
+/// Reference-resolution capability rows for a language: the `tier2_import` and
+/// `tier3_receiver` honesty surfaces (design §"Honesty & parity surfaces" and the
+/// tier table). These are deterministic, per-language, and independent of any
+/// individual scan's results:
+///
+/// * `reference_resolution.tier2_import` is recorded as a gap for every language
+///   whose import-guided tier is gated off (no fixture-tested import contract yet;
+///   [`crate::resolution::tier2_enabled`] is the gate). TypeScript/JavaScript have
+///   the contract, so they emit no tier-2 gap.
+/// * `reference_resolution.tier3_receiver` is recorded as a gap for every language
+///   because receiver-typed resolution coverage is bounded by per-language
+///   `type_facts` emission today (broadened by follow-on F2); the tier ships with
+///   its measured coverage rather than a completeness claim.
+fn reference_resolution_gaps(language: &str) -> Vec<ArtifactLanguageCapabilityGapRow> {
+    let mut gaps = Vec::new();
+    if !crate::resolution::tier2_enabled(language) {
+        gaps.push(ArtifactLanguageCapabilityGapRow {
+            gap_id: format!("{language}:reference_resolution.tier2_import"),
+            capability: "reference_resolution.tier2_import".to_string(),
+            status: "open_gaps".to_string(),
+            reason: "import-guided resolution is gated off: this language has no \
+                     fixture-tested import contract to key tier 2 on"
+                .to_string(),
+            required_closure: "normalize per-language import facts (module specifier + \
+                               local binding + imported name) as first-class rows (F4), \
+                               then enable tier 2 for this language"
+                .to_string(),
+            evidence: json!({
+                "tier": 2,
+                "planned_closure_task": "F4",
+            }),
+        });
+    }
+    gaps.push(ArtifactLanguageCapabilityGapRow {
+        gap_id: format!("{language}:reference_resolution.tier3_receiver"),
+        capability: "reference_resolution.tier3_receiver".to_string(),
+        status: "open_gaps".to_string(),
+        reason: "receiver-typed resolution coverage is bounded by this language's \
+                 type_facts emission; the tier ships with measured coverage, not a \
+                 completeness claim"
+            .to_string(),
+        required_closure: "broaden type_facts emission (especially for local variables) \
+                           toward full receiver coverage (F2)"
+            .to_string(),
+        evidence: json!({
+            "tier": 3,
+            "planned_closure_task": "F2",
+        }),
+    });
+    gaps
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

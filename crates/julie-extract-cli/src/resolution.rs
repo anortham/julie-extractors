@@ -363,6 +363,12 @@ impl WorkspaceCandidateIndex {
         self.by_id.get(id).map(|&idx| &self.symbols[idx])
     }
 
+    /// The name of the symbol with `id`, if present (used by relationship
+    /// propagation to find the co-located identifier by name).
+    fn symbol_name(&self, id: &str) -> Option<&str> {
+        self.symbol_by_id(id).map(|symbol| symbol.name.as_str())
+    }
+
     fn by_name(&self, name: &str) -> impl Iterator<Item = &CandidateSymbol> + '_ {
         self.by_name
             .get(name)
@@ -766,6 +772,858 @@ fn tier4_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
         ],
         ReferenceKind::TypeUsage => TYPE_LIKE_KINDS,
         ReferenceKind::MemberAccess => &[],
+    }
+}
+
+// ===========================================================================
+// Workspace pass (DB-facing)
+// ===========================================================================
+//
+// Everything above is pure tier logic. This section is the ONLY DB-facing part
+// of the module: it builds the candidate index from the artifact tables, runs
+// the tier chain over the Full/Delta worklists, propagates resolved edges to
+// co-located identifiers, and demotes on regression. All *writes* go exclusively
+// through Task 1's `resolution_store` primitives (the sanctioned overlay write
+// path); the raw `SELECT`s here are read-only index/locator loads (Task 1 ships
+// worklists and record/demote primitives, not index loaders, so the resolver
+// policy crate owns these read queries — keeping language semantics out of the
+// storage crate per design §"Module placement & interface").
+
+use std::collections::HashSet;
+
+use julie_extract_artifact::resolution_store::{
+    self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus,
+};
+use julie_extract_artifact::writer::{ResolutionHookError, ResolutionScopeInput};
+use rusqlite::{Connection, Transaction};
+
+/// Value stamped into `reference_resolution_version` metadata. Bump when the
+/// resolver's observable output contract changes so Miller can gate on it.
+pub const RESOLUTION_VERSION: i64 = 1;
+
+/// `method` string stamped on an identifier filled from a tier-1 (extraction-time,
+/// same-file) `relationships` row. Tier 1 is materialized at extraction; the
+/// workspace pass only *propagates* it onto the co-located identifier.
+const METHOD_TIER1: &str = "tier1_local";
+
+/// Per-pass report the hook closure captures (Task 3's return contract: the
+/// writer consumes only [`ResolutionCounts`]; this richer report never travels
+/// through the writer). It carries the aggregated per-language/per-tier/per-outcome
+/// rows plus the durable status the CLI writes to `artifact_metadata` after commit.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolutionReport {
+    /// Aggregated per-language/per-tier/per-outcome counts (whole-artifact snapshot
+    /// taken at the end of the pass — the honest current resolution state).
+    pub rows: Vec<ResolutionReportRow>,
+    /// Durable status: `complete` on a clean Full pass with no gated languages,
+    /// `partial` after a Delta-only pass or when any processed language is
+    /// tier-2-gated, `failed` when the hook errored (set by the CLI, not here).
+    pub status: ResolutionStatus,
+    /// Resolution contract version ([`RESOLUTION_VERSION`]).
+    pub version: i64,
+    /// Revision id of the last Full resolve (this revision on a Full pass; the
+    /// previously-recorded value on a Delta pass).
+    pub last_full_revision: i64,
+    /// Languages processed this pass whose tier 2 is gated off (import-guided
+    /// resolution unavailable). Drives the `partial` status and the scan-report
+    /// `gated_languages` list.
+    pub tier2_gated_languages: BTreeSet<String>,
+}
+
+/// Run the workspace resolution pass inside the writer's open transaction. This is
+/// the closure body the CLI installs at every artifact-mutating flow. Any storage
+/// error is mapped to a non-fatal [`ResolutionHookError`] (design §"Failure
+/// semantics"): the writer rolls the overlay writes back and the scan still commits.
+pub fn resolve_workspace(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+) -> Result<(ResolutionCounts, ResolutionReport), ResolutionHookError> {
+    run_resolution(tx, scope).map_err(|err| ResolutionHookError::new(err.to_string()))
+}
+
+/// Write the durable `reference_resolution_*` metadata after the write commits.
+///
+/// Called by the CLI on the committed connection (autocommit) rather than inside
+/// the hook, so a `failed` status survives even though the writer rolls back the
+/// hook's in-transaction writes on error (the overlay + any in-tx metadata write
+/// would otherwise be discarded together). Non-fatal: a metadata write failure is
+/// swallowed — the keys simply stay at their prior value and the next scan
+/// backfills. Returns whether metadata was written.
+pub fn finalize_resolution_metadata(
+    conn: &Connection,
+    write_result: &julie_extract_artifact::model::WriteResult,
+    report: Option<&ResolutionReport>,
+) -> bool {
+    if let Some(_message) = &write_result.resolution.failed {
+        // The hook errored: its overlay writes were rolled back. Record a durable
+        // `failed` status, preserving the last known good `last_full_revision`.
+        let last_full_revision = resolution_store::read_resolution_metadata(conn)
+            .ok()
+            .flatten()
+            .map(|meta| meta.last_full_revision)
+            .unwrap_or(0);
+        return resolution_store::write_resolution_metadata(
+            conn,
+            ResolutionStatus::Failed,
+            RESOLUTION_VERSION,
+            last_full_revision,
+        )
+        .is_ok();
+    }
+    if let Some(report) = report {
+        return resolution_store::write_resolution_metadata(
+            conn,
+            report.status,
+            report.version,
+            report.last_full_revision,
+        )
+        .is_ok();
+    }
+    false
+}
+
+fn run_resolution(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+) -> rusqlite::Result<(ResolutionCounts, ResolutionReport)> {
+    let revision = current_revision(tx)?;
+    let prior = resolution_store::read_resolution_metadata(tx)?;
+    // v3-artifact backfill: a v3 artifact opened by a new binary gets the overlay
+    // tables via the additive schema create but has no resolution metadata yet.
+    // Any scan then forces a Full resolve so the whole workspace is backfilled
+    // (design §"Contract & rollout" item 2 — the WRITE path).
+    let effective_full = scope.is_full_scan || prior.is_none();
+
+    // Build the workspace-wide candidate index and identifier locator ONCE per
+    // hook invocation (design §"Performance & determinism"). The index is always
+    // whole-workspace: a delta edge may resolve to a symbol in an unchanged file.
+    let index = load_index(tx)?;
+    let locator = IdentifierLocator::load(tx)?;
+    // Identifiers co-located with any pending row OR any resolvable relationship
+    // are owned by propagation, never the generic identifier chain.
+    let covered = covered_identifiers(tx, &index, &locator)?;
+
+    let mut counts = ResolutionCounts::default();
+    let mut gated: BTreeSet<String> = BTreeSet::new();
+
+    if effective_full {
+        resolve_full(
+            tx,
+            &index,
+            &locator,
+            &covered,
+            revision,
+            &mut counts,
+            &mut gated,
+        )?;
+    } else {
+        resolve_delta(
+            tx,
+            scope,
+            &index,
+            &locator,
+            &covered,
+            revision,
+            &mut counts,
+            &mut gated,
+        )?;
+    }
+
+    let rows = resolution_store::resolution_report(tx)?;
+    let status = if effective_full && gated.is_empty() {
+        ResolutionStatus::Complete
+    } else {
+        ResolutionStatus::Partial
+    };
+    let last_full_revision = if effective_full {
+        revision
+    } else {
+        prior
+            .map(|meta| meta.last_full_revision)
+            .unwrap_or(revision)
+    };
+    Ok((
+        counts,
+        ResolutionReport {
+            rows,
+            status,
+            version: RESOLUTION_VERSION,
+            last_full_revision,
+            tier2_gated_languages: gated,
+        },
+    ))
+}
+
+// ---------------------------------------------------------------------------
+// Full / Delta orchestration
+// ---------------------------------------------------------------------------
+
+#[allow(clippy::too_many_arguments)]
+fn resolve_full(
+    tx: &Transaction<'_>,
+    index: &WorkspaceCandidateIndex,
+    locator: &IdentifierLocator,
+    covered: &HashSet<String>,
+    revision: i64,
+    counts: &mut ResolutionCounts,
+    gated: &mut BTreeSet<String>,
+) -> rusqlite::Result<()> {
+    // 1. Resolve every unresolved pending row; propagate resolved ones.
+    let pending = resolution_store::worklist_full_pending(tx)?;
+    resolve_pending_items(tx, &pending, index, locator, revision, counts, gated)?;
+    // 2. Propagate tier-1 (extraction-time, same-file) relationships workspace-wide.
+    propagate_relationships(tx, index, locator, None, revision, counts)?;
+    // 3. Generic identifier chain for every identifier with no pending/relationship
+    //    counterpart (the propagation-owned ones were just written or are covered).
+    let identifiers = resolution_store::worklist_full_identifiers(tx)?;
+    resolve_identifier_items(tx, &identifiers, index, covered, revision, counts, gated)?;
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn resolve_delta(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
+    locator: &IdentifierLocator,
+    covered: &HashSet<String>,
+    revision: i64,
+    counts: &mut ResolutionCounts,
+    gated: &mut BTreeSet<String>,
+) -> rusqlite::Result<()> {
+    let names: Vec<&str> = scope
+        .touched_symbol_names
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let files: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
+
+    // --- Demotion sweep -----------------------------------------------------
+    // Resolved pending whose terminal OR receiver name is touched: re-run the
+    // chain; if the outcome no longer yields the same single target, demote. The
+    // fill sweep below re-resolves it if a new single candidate exists.
+    for resolved in resolution_store::worklist_resolved_pending_by_names(tx, &names)? {
+        let keep = match UnresolvedEdge::from_pending(&resolved.pending) {
+            Some(edge) => matches!(
+                resolve_one(&edge, index),
+                TierOutcome::Resolved { ref target_symbol_id, tier, .. }
+                    if *target_symbol_id == resolved.target_symbol_id
+                        && i64::from(tier) == resolved.tier
+            ),
+            None => false,
+        };
+        if !keep {
+            let pending = &resolved.pending;
+            resolution_store::demote_pending(tx, &pending.pending_relationship_id)?;
+            // Clear the co-located identifier too: `demote_pending` only removes the
+            // pending overlay, but the propagated identifier resolution must go with
+            // it (the fill sweep re-propagates if the edge re-resolves).
+            if let Some(identifier_id) = locator.locate(
+                &pending.file_id,
+                &pending.target_terminal_name,
+                pending.start_byte,
+                pending.end_byte,
+                pending.start_line,
+            ) {
+                resolution_store::demote_identifier(tx, &identifier_id)?;
+            }
+        }
+    }
+    // Resolved *generic* identifiers whose name is touched (propagation-owned ones
+    // are `covered` and left to their propagation lane): re-run and re-record so a
+    // uniqueness regression demotes (idempotent upsert overwrites the outcome).
+    for resolved in resolution_store::worklist_resolved_identifiers_by_names(tx, &names)? {
+        if covered.contains(&resolved.identifier.identifier_id) {
+            continue;
+        }
+        record_identifier_edge(tx, &resolved.identifier, index, revision, counts, gated)?;
+    }
+
+    // --- Fill sweep ---------------------------------------------------------
+    // Unresolved pending matching touched names, PLUS every unresolved pending in a
+    // changed file (a changed file's callee may live in an unchanged file whose
+    // name is not in the touched set).
+    let mut pending = resolution_store::worklist_unresolved_pending_by_names(tx, &names)?;
+    let mut seen: HashSet<String> = pending
+        .iter()
+        .map(|item| item.pending_relationship_id.clone())
+        .collect();
+    for item in unresolved_pending_in_files(tx, &files)? {
+        if seen.insert(item.pending_relationship_id.clone()) {
+            pending.push(item);
+        }
+    }
+    resolve_pending_items(tx, &pending, index, locator, revision, counts, gated)?;
+
+    // Tier-1 relationships in the changed files (their rows were re-extracted).
+    propagate_relationships(tx, index, locator, Some(&files), revision, counts)?;
+
+    // Never-attempted identifiers matching touched names or in changed files.
+    let mut identifiers =
+        resolution_store::worklist_never_attempted_identifiers_by_names(tx, &names)?;
+    let mut seen_ids: HashSet<String> = identifiers
+        .iter()
+        .map(|item| item.identifier_id.clone())
+        .collect();
+    for item in resolution_store::worklist_never_attempted_identifiers_by_files(tx, &files)? {
+        if seen_ids.insert(item.identifier_id.clone()) {
+            identifiers.push(item);
+        }
+    }
+    resolve_identifier_items(tx, &identifiers, index, covered, revision, counts, gated)?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Per-item resolution + propagation
+// ---------------------------------------------------------------------------
+
+fn resolve_pending_items(
+    tx: &Transaction<'_>,
+    items: &[PendingWorkItem],
+    index: &WorkspaceCandidateIndex,
+    locator: &IdentifierLocator,
+    revision: i64,
+    counts: &mut ResolutionCounts,
+    gated: &mut BTreeSet<String>,
+) -> rusqlite::Result<()> {
+    for item in items {
+        let Some(edge) = UnresolvedEdge::from_pending(item) else {
+            continue; // unsupported relationship kind: no overlay for pending rows.
+        };
+        if !tier2_enabled(&item.language) {
+            gated.insert(item.language.clone());
+        }
+        // Only RESOLVED pending rows get an overlay; ambiguous/missing/no-context
+        // pending simply stay unresolved (design §"Resolution tiers").
+        if let TierOutcome::Resolved {
+            target_symbol_id,
+            tier,
+            confidence,
+            method,
+        } = resolve_one(&edge, index)
+        {
+            resolution_store::record_pending_resolution(
+                tx,
+                &item.pending_relationship_id,
+                &target_symbol_id,
+                tier,
+                confidence,
+                &method,
+                revision,
+            )?;
+            counts.pending_resolutions += 1;
+            // Propagate onto the co-located identifier by span (line fallback only
+            // when exactly one identifier matches — never into an ambiguous join).
+            if let Some(identifier_id) = locator.locate(
+                &item.file_id,
+                &item.target_terminal_name,
+                item.start_byte,
+                item.end_byte,
+                item.start_line,
+            ) {
+                resolution_store::record_identifier_outcome(
+                    tx,
+                    &identifier_id,
+                    Outcome::Resolved,
+                    Some(&target_symbol_id),
+                    Some(tier),
+                    Some(confidence),
+                    Some(&method),
+                    None,
+                    revision,
+                )?;
+                counts.identifier_resolutions += 1;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn resolve_identifier_items(
+    tx: &Transaction<'_>,
+    items: &[IdentifierWorkItem],
+    index: &WorkspaceCandidateIndex,
+    covered: &HashSet<String>,
+    revision: i64,
+    counts: &mut ResolutionCounts,
+    gated: &mut BTreeSet<String>,
+) -> rusqlite::Result<()> {
+    for item in items {
+        if covered.contains(&item.identifier_id) {
+            continue; // owned by pending/relationship propagation.
+        }
+        record_identifier_edge(tx, item, index, revision, counts, gated)?;
+    }
+    Ok(())
+}
+
+/// Run the reduced identifier chain for one identifier and record its outcome
+/// (resolved/ambiguous/missing/no_context are all recorded — design §"Data flow"
+/// step 4). Idempotent upsert, so re-running demotes a regressed resolution.
+fn record_identifier_edge(
+    tx: &Transaction<'_>,
+    item: &IdentifierWorkItem,
+    index: &WorkspaceCandidateIndex,
+    revision: i64,
+    counts: &mut ResolutionCounts,
+    gated: &mut BTreeSet<String>,
+) -> rusqlite::Result<()> {
+    let Some(edge) = UnresolvedEdge::from_identifier(item) else {
+        // Unsupported identifier kind: record no-context so it stops re-entering
+        // the never-attempted worklist for its kind.
+        resolution_store::record_identifier_outcome(
+            tx,
+            &item.identifier_id,
+            Outcome::NoContext,
+            None,
+            None,
+            None,
+            None,
+            None,
+            revision,
+        )?;
+        counts.identifier_resolutions += 1;
+        return Ok(());
+    };
+    if !tier2_enabled(&item.language) {
+        gated.insert(item.language.clone());
+    }
+    let (outcome, target, tier, confidence, method, candidates) = match resolve_one(&edge, index) {
+        TierOutcome::Resolved {
+            target_symbol_id,
+            tier,
+            confidence,
+            method,
+        } => (
+            Outcome::Resolved,
+            Some(target_symbol_id),
+            Some(tier),
+            Some(confidence),
+            Some(method),
+            None,
+        ),
+        TierOutcome::Ambiguous { candidates } => (
+            Outcome::Ambiguous,
+            None,
+            None,
+            None,
+            None,
+            Some(candidates.len() as i64),
+        ),
+        TierOutcome::Missing => (Outcome::Missing, None, None, None, None, None),
+        TierOutcome::NoContext => (Outcome::NoContext, None, None, None, None, None),
+    };
+    resolution_store::record_identifier_outcome(
+        tx,
+        &item.identifier_id,
+        outcome,
+        target.as_deref(),
+        tier,
+        confidence,
+        method.as_deref(),
+        candidates,
+        revision,
+    )?;
+    counts.identifier_resolutions += 1;
+    Ok(())
+}
+
+/// Propagate tier-1 (extraction-time, same-file) `relationships` edges onto their
+/// co-located identifiers. `file_filter` restricts to changed files on a delta
+/// pass; `None` covers the whole workspace on a full pass.
+fn propagate_relationships(
+    tx: &Transaction<'_>,
+    index: &WorkspaceCandidateIndex,
+    locator: &IdentifierLocator,
+    file_filter: Option<&[&str]>,
+    revision: i64,
+    counts: &mut ResolutionCounts,
+) -> rusqlite::Result<()> {
+    let base = "SELECT to_symbol_id, file_id, kind, start_line, start_byte, end_byte \
+                FROM relationships";
+    let rows = match file_filter {
+        Some(files) => {
+            if files.is_empty() {
+                return Ok(());
+            }
+            let sql = format!("{base} WHERE file_id IN ({})", placeholders(files.len()));
+            let mut stmt = tx.prepare(&sql)?;
+            stmt.query_map(
+                rusqlite::params_from_iter(files.iter()),
+                map_relationship_row,
+            )?
+            .collect::<Result<Vec<_>, _>>()?
+        }
+        None => {
+            let mut stmt = tx.prepare(base)?;
+            stmt.query_map([], map_relationship_row)?
+                .collect::<Result<Vec<_>, _>>()?
+        }
+    };
+    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte) in rows {
+        if ReferenceKind::from_relationship_kind(&kind).is_none() {
+            continue;
+        }
+        let Some(name) = index.symbol_name(&to_symbol_id) else {
+            continue;
+        };
+        let name = name.to_string();
+        if let Some(identifier_id) =
+            locator.locate(&file_id, &name, start_byte, end_byte, start_line)
+        {
+            resolution_store::record_identifier_outcome(
+                tx,
+                &identifier_id,
+                Outcome::Resolved,
+                Some(&to_symbol_id),
+                Some(1),
+                Some(CONFIDENCE_TIER1),
+                Some(METHOD_TIER1),
+                None,
+                revision,
+            )?;
+            counts.identifier_resolutions += 1;
+        }
+    }
+    Ok(())
+}
+
+type RelationshipRow = (String, String, String, i64, Option<i64>, Option<i64>);
+
+fn map_relationship_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RelationshipRow> {
+    Ok((
+        row.get(0)?,
+        row.get(1)?,
+        row.get(2)?,
+        row.get::<_, Option<i64>>(3)?.unwrap_or(-1),
+        row.get(4)?,
+        row.get(5)?,
+    ))
+}
+
+// ---------------------------------------------------------------------------
+// Index / locator loading (read-only)
+// ---------------------------------------------------------------------------
+
+fn current_revision(conn: &Connection) -> rusqlite::Result<i64> {
+    conn.query_row(
+        "SELECT COALESCE(MAX(revision_id), 0) FROM extraction_revisions",
+        [],
+        |row| row.get(0),
+    )
+}
+
+fn load_index(conn: &Connection) -> rusqlite::Result<WorkspaceCandidateIndex> {
+    Ok(WorkspaceCandidateIndex::build(
+        load_candidate_symbols(conn)?,
+        load_type_facts(conn)?,
+        load_import_records(conn)?,
+    ))
+}
+
+fn load_candidate_symbols(conn: &Connection) -> rusqlite::Result<Vec<CandidateSymbol>> {
+    let mut stmt = conn.prepare(
+        "SELECT symbol_id, file_id, language, name, kind, parent_symbol_id \
+         FROM symbols ORDER BY symbol_id",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
+            row.get::<_, Option<String>>(5)?,
+        ))
+    })?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (symbol_id, file_id, language, name, kind, parent_symbol_id) = row?;
+        // Skip rows whose kind string is not a known SymbolKind (Task 4 contract).
+        let Some(kind) = SymbolKind::try_from_string(&kind) else {
+            continue;
+        };
+        out.push(CandidateSymbol {
+            symbol_id,
+            file_id,
+            language,
+            name,
+            kind,
+            parent_symbol_id,
+        });
+    }
+    Ok(out)
+}
+
+fn load_type_facts(conn: &Connection) -> rusqlite::Result<Vec<TypeFact>> {
+    let mut stmt = conn.prepare("SELECT symbol_id, resolved_type, is_inferred FROM type_facts")?;
+    let rows = stmt.query_map([], |row| {
+        Ok(TypeFact {
+            symbol_id: row.get(0)?,
+            resolved_type: row.get(1)?,
+            is_inferred: row.get::<_, i64>(2)? != 0,
+        })
+    })?;
+    rows.collect()
+}
+
+fn load_import_records(conn: &Connection) -> rusqlite::Result<Vec<ImportRecord>> {
+    // Imports are `kind='import'` symbols; there is no dedicated imports table
+    // (Task 4 handoff). `module_file_id` is left None — module-specifier→file_id
+    // normalization is F4; tier 2 still matches on local binding / alias name.
+    let mut stmt =
+        conn.prepare("SELECT file_id, name, metadata_json FROM symbols WHERE kind = 'import'")?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<String>>(2)?,
+        ))
+    })?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (file_id, name, metadata_json) = row?;
+        let (local_name, imported_name) = import_binding(&name, metadata_json.as_deref());
+        out.push(ImportRecord {
+            file_id,
+            local_name,
+            imported_name,
+            module_file_id: None,
+        });
+    }
+    Ok(out)
+}
+
+/// Best-effort local-binding / imported-name split from an import symbol. Falls
+/// back to the symbol name as the local binding. Alias keys (`alias`,
+/// `local_name`) and imported-name keys (`imported_name`, `imported`) are read
+/// from `metadata_json` when present; per-language import metadata is not a
+/// normalized contract yet (F4), so this stays defensive.
+fn import_binding(name: &str, metadata_json: Option<&str>) -> (String, Option<String>) {
+    let Some(raw) = metadata_json else {
+        return (name.to_string(), None);
+    };
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(raw) else {
+        return (name.to_string(), None);
+    };
+    let string_field = |key: &str| {
+        value
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+    };
+    let local_name = string_field("alias")
+        .or_else(|| string_field("local_name"))
+        .unwrap_or_else(|| name.to_string());
+    let imported_name = string_field("imported_name")
+        .or_else(|| string_field("imported"))
+        .or_else(|| {
+            // If an alias was recorded, the symbol name is the imported name.
+            if local_name != name {
+                Some(name.to_string())
+            } else {
+                None
+            }
+        });
+    (local_name, imported_name)
+}
+
+/// Unresolved pending rows in any of `file_ids` (delta fill scope — no by-files
+/// pending worklist exists in the storage crate, so the resolver loads it here).
+fn unresolved_pending_in_files(
+    conn: &Connection,
+    file_ids: &[&str],
+) -> rusqlite::Result<Vec<PendingWorkItem>> {
+    if file_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let sql = format!(
+        "SELECT pr.pending_relationship_id, pr.from_symbol_id, pr.caller_scope_symbol_id, \
+                pr.file_id, pr.path, f.language, pr.kind, pr.target_display_name, \
+                pr.target_terminal_name, pr.target_receiver, pr.target_namespace_json, \
+                pr.target_import_context, pr.start_line, pr.start_byte, pr.end_byte \
+         FROM pending_relationships pr \
+         JOIN files f ON f.file_id = pr.file_id \
+         WHERE pr.file_id IN ({}) \
+           AND pr.pending_relationship_id NOT IN \
+               (SELECT pending_relationship_id FROM pending_resolutions) \
+         ORDER BY pr.pending_relationship_id",
+        placeholders(file_ids.len())
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map(rusqlite::params_from_iter(file_ids.iter()), |row| {
+        Ok(PendingWorkItem {
+            pending_relationship_id: row.get(0)?,
+            from_symbol_id: row.get(1)?,
+            caller_scope_symbol_id: row.get(2)?,
+            file_id: row.get(3)?,
+            path: row.get(4)?,
+            language: row.get(5)?,
+            kind: row.get(6)?,
+            target_display_name: row.get(7)?,
+            target_terminal_name: row.get(8)?,
+            target_receiver: row.get(9)?,
+            target_namespace_json: row.get(10)?,
+            target_import_context: row.get(11)?,
+            start_line: row.get(12)?,
+            start_byte: row.get(13)?,
+            end_byte: row.get(14)?,
+        })
+    })?;
+    rows.collect()
+}
+
+fn placeholders(count: usize) -> String {
+    vec!["?"; count].join(", ")
+}
+
+/// Identifier ids that are co-located with a pending row or a resolvable
+/// relationship — the propagation-owned identifiers. The generic identifier chain
+/// skips these so it never clobbers a span-propagated target with a weaker guess.
+fn covered_identifiers(
+    conn: &Connection,
+    index: &WorkspaceCandidateIndex,
+    locator: &IdentifierLocator,
+) -> rusqlite::Result<HashSet<String>> {
+    let mut covered = HashSet::new();
+
+    let mut stmt = conn.prepare(
+        "SELECT file_id, target_terminal_name, start_byte, end_byte, start_line \
+         FROM pending_relationships",
+    )?;
+    let pending = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<i64>>(2)?,
+                row.get::<_, Option<i64>>(3)?,
+                row.get::<_, i64>(4)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    for (file_id, name, start_byte, end_byte, start_line) in pending {
+        if let Some(id) = locator.locate(&file_id, &name, start_byte, end_byte, start_line) {
+            covered.insert(id);
+        }
+    }
+
+    let mut stmt = conn.prepare(
+        "SELECT to_symbol_id, file_id, kind, start_line, start_byte, end_byte FROM relationships",
+    )?;
+    let relationships = stmt
+        .query_map([], map_relationship_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte) in relationships {
+        if ReferenceKind::from_relationship_kind(&kind).is_none() {
+            continue;
+        }
+        if let Some(name) = index.symbol_name(&to_symbol_id) {
+            let name = name.to_string();
+            if let Some(id) = locator.locate(&file_id, &name, start_byte, end_byte, start_line) {
+                covered.insert(id);
+            }
+        }
+    }
+    Ok(covered)
+}
+
+/// One identifier's location, for span-based propagation joins.
+struct IdentifierLocation {
+    identifier_id: String,
+    name: String,
+    start_line: i64,
+    start_byte: i64,
+    end_byte: i64,
+}
+
+/// In-memory identifier index keyed by file, for co-location joins. Built once per
+/// pass; each file's list is sorted by `identifier_id` for deterministic matching.
+struct IdentifierLocator {
+    by_file: HashMap<String, Vec<IdentifierLocation>>,
+}
+
+impl IdentifierLocator {
+    fn load(conn: &Connection) -> rusqlite::Result<Self> {
+        let mut stmt = conn.prepare(
+            "SELECT identifier_id, file_id, name, start_line, start_byte, end_byte \
+             FROM identifiers ORDER BY identifier_id",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(1)?,
+                IdentifierLocation {
+                    identifier_id: row.get(0)?,
+                    name: row.get(2)?,
+                    start_line: row.get(3)?,
+                    start_byte: row.get(4)?,
+                    end_byte: row.get(5)?,
+                },
+            ))
+        })?;
+        let mut by_file: HashMap<String, Vec<IdentifierLocation>> = HashMap::new();
+        for row in rows {
+            let (file_id, location) = row?;
+            by_file.entry(file_id).or_default().push(location);
+        }
+        Ok(Self { by_file })
+    }
+
+    /// The single identifier co-located with a reference span, or `None` when the
+    /// join is empty or ambiguous.
+    ///
+    /// A pending/relationship span is the whole call/expression node, WIDER than
+    /// the callee identifier (Task 2 handoff). So the byte join accepts an
+    /// identifier whose span is CONTAINED within the reference span (or shares its
+    /// start byte) — never a byte-exact equality that would miss. When the byte
+    /// join is empty (NULL spans on `html`/`json`, or a shape it can't match) it
+    /// falls back to `(file_id, start_line, name)`, and BOTH joins propagate only
+    /// when EXACTLY ONE identifier matches (never into an ambiguous line join).
+    /// Byte columns are 0-based; lines 1-based.
+    fn locate(
+        &self,
+        file_id: &str,
+        name: &str,
+        span_start_byte: Option<i64>,
+        span_end_byte: Option<i64>,
+        span_start_line: i64,
+    ) -> Option<String> {
+        let locations = self.by_file.get(file_id)?;
+        if let (Some(start), Some(end)) = (span_start_byte, span_end_byte) {
+            let mut hit: Option<&IdentifierLocation> = None;
+            let mut count = 0usize;
+            for location in locations.iter().filter(|loc| loc.name == name) {
+                let contained = location.start_byte >= start && location.end_byte <= end;
+                let shares_start = location.start_byte == start;
+                if contained || shares_start {
+                    count += 1;
+                    hit = Some(location);
+                }
+            }
+            if count == 1 {
+                return Some(hit.unwrap().identifier_id.clone());
+            }
+            if count > 1 {
+                return None; // ambiguous byte join: do not propagate.
+            }
+        }
+        // Line fallback: exactly one same-name identifier on the reference line.
+        let mut hit: Option<&IdentifierLocation> = None;
+        let mut count = 0usize;
+        for location in locations
+            .iter()
+            .filter(|loc| loc.name == name && loc.start_line == span_start_line)
+        {
+            count += 1;
+            hit = Some(location);
+        }
+        if count == 1 {
+            Some(hit.unwrap().identifier_id.clone())
+        } else {
+            None
+        }
     }
 }
 
@@ -1408,6 +2266,129 @@ mod tests {
         assert_eq!(
             ReferenceKind::from_identifier_kind("member_access"),
             Some(ReferenceKind::MemberAccess)
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Workspace-pass tests (DB-facing: metadata finalization + the failed path)
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod workspace_tests {
+    use super::*;
+    use julie_extract_artifact::metadata::ArtifactMetadata;
+    use julie_extract_artifact::model::{ResolutionWriteOutcome, WriteResult};
+    use julie_extract_artifact::resolution_store::{self, ResolutionStatus};
+    use julie_extract_artifact::writer::ArtifactWriter;
+
+    fn metadata() -> ArtifactMetadata {
+        ArtifactMetadata {
+            artifact_id: "artifact-test".to_string(),
+            root_path: "/tmp/root".to_string(),
+            binary_version: "0.0.0-test".to_string(),
+            hash_algorithm: "blake3".to_string(),
+            parser_inventory_fingerprint: "sha256:parser".to_string(),
+            capability_snapshot_fingerprint: "sha256:capability".to_string(),
+            created_at: "1970-01-01T00:00:00Z".to_string(),
+            updated_at: "1970-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    fn report(status: ResolutionStatus, last_full_revision: i64) -> ResolutionReport {
+        ResolutionReport {
+            rows: Vec::new(),
+            status,
+            version: RESOLUTION_VERSION,
+            last_full_revision,
+            tier2_gated_languages: BTreeSet::new(),
+        }
+    }
+
+    #[test]
+    fn finalize_writes_failed_status_when_hook_reported_failure() {
+        // INVARIANT: an injected failing hook (the writer surfaces `failed`) makes
+        // the CLI record a durable `failed` status even though the hook's
+        // in-transaction writes were rolled back. This is why metadata is written
+        // post-commit, not inside the hook.
+        let writer = ArtifactWriter::open_in_memory(metadata()).unwrap();
+        let conn = writer.into_connection();
+        let write_result = WriteResult {
+            resolution: ResolutionWriteOutcome {
+                counts: Default::default(),
+                failed: Some("resolver boom".to_string()),
+            },
+            ..Default::default()
+        };
+        // A failed hook leaves no captured report (the closure returned Err).
+        assert!(finalize_resolution_metadata(&conn, &write_result, None));
+        let meta = resolution_store::read_resolution_metadata(&conn)
+            .unwrap()
+            .expect("failed status must be recorded durably");
+        assert_eq!(meta.status, ResolutionStatus::Failed);
+        assert_eq!(meta.version, RESOLUTION_VERSION);
+    }
+
+    #[test]
+    fn finalize_writes_report_status_on_success() {
+        // INVARIANT: a successful pass records the report's status/version/revision.
+        let writer = ArtifactWriter::open_in_memory(metadata()).unwrap();
+        let conn = writer.into_connection();
+        let write_result = WriteResult::default();
+        assert!(finalize_resolution_metadata(
+            &conn,
+            &write_result,
+            Some(&report(ResolutionStatus::Complete, 7)),
+        ));
+        let meta = resolution_store::read_resolution_metadata(&conn)
+            .unwrap()
+            .expect("complete status must be recorded");
+        assert_eq!(meta.status, ResolutionStatus::Complete);
+        assert_eq!(meta.last_full_revision, 7);
+    }
+
+    #[test]
+    fn finalize_failure_preserves_last_full_revision() {
+        // INVARIANT: a later failure keeps the last known-good `last_full_revision`
+        // instead of clobbering it (Miller keeps gating on the last good full pass).
+        let writer = ArtifactWriter::open_in_memory(metadata()).unwrap();
+        let conn = writer.into_connection();
+        // Seed a prior clean Full at revision 5.
+        finalize_resolution_metadata(
+            &conn,
+            &WriteResult::default(),
+            Some(&report(ResolutionStatus::Complete, 5)),
+        );
+        // A subsequent hook failure records `failed` but preserves revision 5.
+        let failed = WriteResult {
+            resolution: ResolutionWriteOutcome {
+                counts: Default::default(),
+                failed: Some("boom".to_string()),
+            },
+            ..Default::default()
+        };
+        finalize_resolution_metadata(&conn, &failed, None);
+        let meta = resolution_store::read_resolution_metadata(&conn)
+            .unwrap()
+            .unwrap();
+        assert_eq!(meta.status, ResolutionStatus::Failed);
+        assert_eq!(meta.last_full_revision, 5);
+    }
+
+    #[test]
+    fn finalize_is_noop_without_report_or_failure() {
+        // INVARIANT: a hookless write (no report, no failure) writes no metadata.
+        let writer = ArtifactWriter::open_in_memory(metadata()).unwrap();
+        let conn = writer.into_connection();
+        assert!(!finalize_resolution_metadata(
+            &conn,
+            &WriteResult::default(),
+            None
+        ));
+        assert!(
+            resolution_store::read_resolution_metadata(&conn)
+                .unwrap()
+                .is_none()
         );
     }
 }
