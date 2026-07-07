@@ -2,6 +2,9 @@
 
 <h1>@Format(Title)</h1>
 
+<WorkerCard Snapshot="Title" />
+<input @bind-Value="Title" />
+
 @code {
     [Route("/worker")]
     public partial class WorkerPage

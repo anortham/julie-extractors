@@ -2688,4 +2688,60 @@ mod razor_variable_ref_tests {
             "variable_ref must carry containing_symbol_id"
         );
     }
+
+    /// Regression: the tree-sitter-razor grammar previously dropped two
+    /// attribute-value shapes, so the identifiers inside them never reached the
+    /// tree and could never be emitted as reads:
+    ///   1. A Blazor component-parameter value with a bare identifier
+    ///      (`Activity="EffectiveActivity"`) was swallowed as opaque text.
+    ///   2. A `@bind-Value="field"` directive-attribute value was dropped
+    ///      entirely (only `@bind` matched).
+    /// The grammar fix parses both as C# expressions like the working
+    /// `@onclick="Handler"` path; the existing value-read arm then emits them.
+    #[test]
+    fn test_razor_attribute_value_reads() {
+        let razor_code = r#"@page "/demo"
+
+<WorkspaceDetailStack Snapshot="Snapshot" Activity="EffectiveActivity" />
+<InputText @bind-Value="DisplayName" />
+
+@code {
+    private object Snapshot = new();
+    private object EffectiveActivity = new();
+    private string DisplayName = "x";
+}"#;
+
+        let workspace_root = PathBuf::from("/tmp/test");
+        let tree = init_parser(razor_code, "razor");
+        let mut extractor = RazorExtractor::new(
+            "razor".to_string(),
+            "test.razor".to_string(),
+            razor_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        // Shape 1: component-attribute value with a bare identifier.
+        assert!(
+            var_refs.contains(&"Snapshot"),
+            "component attribute value `Snapshot` must emit a variable_ref; got {var_refs:?}"
+        );
+        assert!(
+            var_refs.contains(&"EffectiveActivity"),
+            "component attribute value `EffectiveActivity` must emit a variable_ref; got {var_refs:?}"
+        );
+
+        // Shape 2: @bind-Value directive-attribute value.
+        assert!(
+            var_refs.contains(&"DisplayName"),
+            "@bind-Value value `DisplayName` must emit a variable_ref; got {var_refs:?}"
+        );
+    }
 }

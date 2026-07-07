@@ -1164,7 +1164,7 @@ dependencies = [
 [[package]]
 name = "tree-sitter-razor"
 version = "0.1.1"
-source = "git+https://github.com/tris203/tree-sitter-razor?rev=a3399c26610817c6d32c7643793caf3729cfb6d2#a3399c26610817c6d32c7643793caf3729cfb6d2"
+source = "git+https://github.com/anortham/tree-sitter-razor?rev=cf7b0e56f5ba9469c70f85d617c52e35eaffa153#cf7b0e56f5ba9469c70f85d617c52e35eaffa153"
 dependencies = [
  "cc",
  "tree-sitter-language",
