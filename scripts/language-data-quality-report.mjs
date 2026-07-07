@@ -465,6 +465,9 @@ const result = analyze();
 validateDomainApplicability(result.byDomain);
 printReport(result);
 
-if (process.argv.includes("--strict") && result.silentCells.length > 0) {
+if (
+  process.argv.includes("--strict") &&
+  (result.silentCells.length > 0 || result.qualityDebts.length > 0)
+) {
   process.exitCode = 1;
 }
