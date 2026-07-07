@@ -76,6 +76,26 @@ impl IdentifierExtractor {
                         "arguments" => {
                             let mut arg_cursor = child.walk();
                             for (pos, arg) in child.named_children(&mut arg_cursor).enumerate() {
+                                // variable_ref (Batch F): `var(--x)` is the read of a
+                                // custom property declared as `--x: value`. Only the
+                                // FIRST argument is the reference — later arguments
+                                // are fallback values, substituted as literal text,
+                                // never dereferenced. The name keeps its `--` prefix
+                                // to match the declared Property symbol's name.
+                                if pos == 0
+                                    && function_name.as_deref() == Some("var")
+                                    && arg.kind() == "plain_value"
+                                {
+                                    let arg_text = base.get_node_text(&arg);
+                                    if arg_text.starts_with("--") {
+                                        base.create_identifier(
+                                            &arg,
+                                            arg_text,
+                                            IdentifierKind::VariableRef,
+                                            containing_symbol_id.clone(),
+                                        );
+                                    }
+                                }
                                 if let Some(text) = base.decode_string_literal(&arg) {
                                     base.record_literal(
                                         &arg,

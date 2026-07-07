@@ -280,4 +280,81 @@ mod identifier_extraction_tests {
             "Duplicate calls should have different line numbers"
         );
     }
+
+    /// variable_ref emission (Batch F): `var(--x)` is CSS's genuine
+    /// reference-of-a-named-thing — the read of a custom property declared as
+    /// `--x: value`. Custom-property symbols keep the full `--x` name
+    /// (see PropertyExtractor::extract_custom_property), so the reference is
+    /// emitted with the same `--`-prefixed name for kind-blind name matching.
+    #[test]
+    fn test_css_var_custom_property_reference_emits_variable_ref() {
+        let css_code = r#"
+:root {
+    --main-color: #333;
+    --pad: 4px;
+}
+.button {
+    color: var(--main-color);
+    padding: calc(var(--pad, 8px) * 2);
+}
+"#;
+
+        let mut parser = init_parser();
+        let tree = parser.parse(css_code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = CSSExtractor::new(
+            "css".to_string(),
+            "test.css".to_string(),
+            css_code.to_string(),
+            &workspace_root,
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        // The referenced custom-property name (with `--` prefix, matching the
+        // declared symbol name) must be a VariableRef.
+        let main_color_ref = identifiers
+            .iter()
+            .find(|id| id.name == "--main-color" && id.kind == IdentifierKind::VariableRef);
+        assert!(
+            main_color_ref.is_some(),
+            "var(--main-color) should emit a VariableRef named --main-color; got: {:?}",
+            identifiers
+                .iter()
+                .map(|i| (&i.name, &i.kind))
+                .collect::<Vec<_>>()
+        );
+
+        // Works with a fallback argument too: var(--pad, 8px).
+        let pad_ref = identifiers
+            .iter()
+            .find(|id| id.name == "--pad" && id.kind == IdentifierKind::VariableRef);
+        assert!(
+            pad_ref.is_some(),
+            "var(--pad, 8px) should emit a VariableRef named --pad"
+        );
+
+        // The fallback value must NOT become a VariableRef.
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.name == "8px" && id.kind == IdentifierKind::VariableRef),
+            "fallback value must not be emitted as VariableRef"
+        );
+
+        // variable_ref stays non-resolvable: no target binding at extraction.
+        assert!(
+            main_color_ref.unwrap().target_symbol_id.is_none(),
+            "css VariableRef must not bind a target at extraction time"
+        );
+
+        // The `var` call identifier itself is unchanged (still emitted).
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "var" && id.kind == IdentifierKind::Call),
+            "var() call identifier emission must be preserved"
+        );
+    }
 }

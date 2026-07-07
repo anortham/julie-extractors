@@ -207,6 +207,38 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
+      "key": "fixtures/extraction/css/cross_file/source.css:--primary:variable_ref:15:13",
+      "name": "--primary",
+      "kind": "variable_ref",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/cross_file/source.css",
+      "start_line": 15,
+      "start_column": 13,
+      "end_line": 15,
+      "end_column": 22,
+      "start_byte": 412,
+      "end_byte": 421,
+      "containing_key": "fixtures/extraction/css/cross_file/source.css:.local_helper:14:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/css/cross_file/source.css:--primary:variable_ref:21:13",
+      "name": "--primary",
+      "kind": "variable_ref",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/cross_file/source.css",
+      "start_line": 21,
+      "start_column": 13,
+      "end_line": 21,
+      "end_column": 22,
+      "start_byte": 494,
+      "end_byte": 503,
+      "containing_key": "fixtures/extraction/css/cross_file/source.css:.entry:19:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/cross_file/source.css:entry:member_access:19:0",
       "name": "entry",
       "kind": "member_access",

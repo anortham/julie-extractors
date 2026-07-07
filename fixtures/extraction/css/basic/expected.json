@@ -264,6 +264,22 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
+      "key": "fixtures/extraction/css/basic/source.css:--accent:variable_ref:11:15",
+      "name": "--accent",
+      "kind": "variable_ref",
+      "language": "css",
+      "file_path": "fixtures/extraction/css/basic/source.css",
+      "start_line": 11,
+      "start_column": 15,
+      "end_line": 11,
+      "end_column": 23,
+      "start_byte": 126,
+      "end_byte": 134,
+      "containing_key": "fixtures/extraction/css/basic/source.css:.button,\n#save:9:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/css/basic/source.css:button:member_access:16:4",
       "name": "button",
       "kind": "member_access",
