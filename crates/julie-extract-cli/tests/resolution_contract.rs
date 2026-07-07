@@ -240,6 +240,27 @@ fn tier2_aliased_import_resolves_after_lead_fix() {
 }
 
 #[test]
+fn tier2_aliased_import_requires_resolved_source_module() {
+    // The imported-name side of an alias is trustworthy only when the import
+    // source resolves to the defining file. Otherwise `alias()` could point at
+    // any same-language symbol named `missing` elsewhere in the workspace.
+    let (_t, db) = scan_fixture("typescript/tier2_missing_module_alias");
+    assert!(
+        symbol_count_named(&db, "missing") >= 1,
+        "the fixture supplies a tempting but unrelated same-language symbol"
+    );
+    assert!(
+        !identifier_has_target(&db, "alias"),
+        "an alias from an unresolved module must not resolve to an unrelated definition"
+    );
+    assert_eq!(
+        table_count(&db, "pending_resolutions"),
+        0,
+        "no pending resolution should be written for the unresolved alias import"
+    );
+}
+
+#[test]
 fn tier3_receiver_typed_resolves_csharp() {
     // Receiver -> type_fact -> unique type symbol -> member; tier 3.
     let (_t, db) = scan_fixture("csharp/tier3_receiver");

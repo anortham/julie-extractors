@@ -1863,6 +1863,35 @@ fn uniqueness_regression_demotes_then_removal_re_resolves() {
 }
 
 #[test]
+fn incremental_scan_demotes_uniqueness_regression_from_skipped_file() {
+    // INVARIANT: a normal incremental scan can introduce a new same-name target
+    // while the caller file is skipped as unchanged. The resolved overlay must
+    // still be rechecked and demoted; otherwise `reference_resolution_status`
+    // overstates trust in stale rows.
+    let fixture = cross_file_fixture();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(table_count(&db, "pending_resolutions"), 1);
+
+    std::fs::write(fixture.path("src/c.rs"), "pub fn produce_widget() {}\n").unwrap();
+    let report = json_report(&scan(fixture.root_str(), &db));
+    assert_eq!(
+        table_count(&db, "pending_resolutions"),
+        0,
+        "scan must demote a previously resolved edge when a skipped caller becomes ambiguous"
+    );
+    assert_eq!(identifier_target(&db, "produce_widget"), None);
+    assert_eq!(
+        report["languages"]["reference_resolution"]["status"], "partial",
+        "the scan report must not mark stale or gated resolution data complete"
+    );
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_status"),
+        "partial"
+    );
+}
+
+#[test]
 fn two_identical_scans_produce_byte_identical_resolution_tables() {
     // INVARIANT: determinism — the same source scanned into two fresh artifacts
     // produces byte-identical resolution overlay tables.

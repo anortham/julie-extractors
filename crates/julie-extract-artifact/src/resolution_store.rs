@@ -475,6 +475,31 @@ pub fn worklist_resolved_pending_by_names(
     )
 }
 
+/// Every resolved pending row (overlay present). Used by Full scope to re-check
+/// uniqueness and demote stale overlay rows before filling unresolved rows.
+pub fn worklist_resolved_pending(
+    conn: &Connection,
+) -> rusqlite::Result<Vec<ResolvedPendingWorkItem>> {
+    let sql = format!(
+        "SELECT {PENDING_COLUMNS}, res.target_symbol_id, res.tier, res.confidence, res.method \
+         FROM pending_resolutions res \
+         JOIN pending_relationships pr ON pr.pending_relationship_id = res.pending_relationship_id \
+         JOIN files f ON f.file_id = pr.file_id \
+         ORDER BY pr.pending_relationship_id"
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    stmt.query_map([], |row| {
+        Ok(ResolvedPendingWorkItem {
+            pending: map_pending(row)?,
+            target_symbol_id: row.get(15)?,
+            tier: row.get(16)?,
+            confidence: row.get(17)?,
+            method: row.get(18)?,
+        })
+    })?
+    .collect::<Result<Vec<_>, _>>()
+}
+
 /// Never-attempted identifiers (no overlay row) whose name is in `names`.
 pub fn worklist_never_attempted_identifiers_by_names(
     conn: &Connection,
@@ -548,6 +573,24 @@ pub fn worklist_resolved_identifiers_by_names(
     )
 }
 
+/// Resolved identifier rows whose overlay currently carries a target. Used by
+/// Full scope to re-run and demote stale generic identifier resolutions.
+pub fn worklist_resolved_identifiers(
+    conn: &Connection,
+) -> rusqlite::Result<Vec<ResolvedIdentifierWorkItem>> {
+    let sql = format!(
+        "SELECT {IDENTIFIER_COLUMNS}, r.target_symbol_id, r.tier, r.confidence, r.method, \
+                r.outcome, r.candidates \
+         FROM identifier_resolutions r \
+         JOIN identifiers i ON i.identifier_id = r.identifier_id \
+         WHERE r.target_symbol_id IS NOT NULL \
+         ORDER BY i.identifier_id"
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    stmt.query_map([], map_resolved_identifier)?
+        .collect::<Result<Vec<_>, _>>()
+}
+
 /// Every identifier that still needs resolution work: never-attempted OR
 /// attempted-with-NULL-target (ambiguous/missing/no_context). Used for Full scope
 /// and v3-artifact backfill.
@@ -597,20 +640,21 @@ fn map_resolved_identifier(
 /// overlay rows contribute their recorded outcome (tier NULL for non-resolved).
 pub fn resolution_report(conn: &Connection) -> rusqlite::Result<Vec<ResolutionReportRow>> {
     let mut stmt = conn.prepare(
-        "SELECT language, tier, outcome, cnt FROM ( \
-           SELECT f.language AS language, p.tier AS tier, 'resolved' AS outcome, \
-                  COUNT(*) AS cnt \
-           FROM pending_resolutions p \
-           JOIN pending_relationships pr ON pr.pending_relationship_id = p.pending_relationship_id \
-           JOIN files f ON f.file_id = pr.file_id \
-           GROUP BY f.language, p.tier \
-           UNION ALL \
-           SELECT i.language AS language, r.tier AS tier, r.outcome AS outcome, \
-                  COUNT(*) AS cnt \
-           FROM identifier_resolutions r \
-           JOIN identifiers i ON i.identifier_id = r.identifier_id \
-           GROUP BY i.language, r.tier, r.outcome \
-         ) ORDER BY language, tier, outcome",
+        "SELECT language, tier, outcome, SUM(cnt) AS cnt FROM ( \
+             SELECT f.language AS language, p.tier AS tier, 'resolved' AS outcome, \
+                    COUNT(*) AS cnt \
+             FROM pending_resolutions p \
+             JOIN pending_relationships pr ON pr.pending_relationship_id = p.pending_relationship_id \
+             JOIN files f ON f.file_id = pr.file_id \
+             GROUP BY f.language, p.tier \
+             UNION ALL \
+             SELECT i.language AS language, r.tier AS tier, r.outcome AS outcome, \
+                    COUNT(*) AS cnt \
+             FROM identifier_resolutions r \
+             JOIN identifiers i ON i.identifier_id = r.identifier_id \
+             GROUP BY i.language, r.tier, r.outcome \
+           ) GROUP BY language, tier, outcome \
+           ORDER BY language, tier, outcome",
     )?;
     let rows = stmt
         .query_map([], |row| {

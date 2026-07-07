@@ -670,27 +670,29 @@ fn resolution_report_aggregates_by_language_tier_outcome() {
     resolution_store::record_identifier_outcome(
         &tx,
         "i1",
-        Outcome::Ambiguous,
+        Outcome::Resolved,
+        Some("s_target"),
+        Some(2),
+        Some(0.85),
+        Some("tier2"),
         None,
-        None,
-        None,
-        None,
-        Some(3),
         1,
     )
     .unwrap();
     tx.commit().unwrap();
 
     let rows = resolution_store::resolution_report(&conn).unwrap();
-    // One resolved pending (rust/tier2) + one ambiguous identifier (rust/none).
+    assert_eq!(
+        rows.iter()
+            .filter(|r| r.language == "rust" && r.tier == Some(2) && r.outcome == "resolved")
+            .count(),
+        1,
+        "pending and identifier overlays in the same bucket must collapse to one report row"
+    );
     assert!(rows.iter().any(|r| r.language == "rust"
         && r.tier == Some(2)
         && r.outcome == "resolved"
-        && r.count == 1));
-    assert!(rows.iter().any(|r| r.language == "rust"
-        && r.tier.is_none()
-        && r.outcome == "ambiguous"
-        && r.count == 1));
+        && r.count == 2));
 }
 
 // ---------------------------------------------------------------------------

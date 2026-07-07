@@ -281,6 +281,7 @@ pub struct ImportRecord {
     pub file_id: String,
     pub local_name: String,
     pub imported_name: Option<String>,
+    pub source: Option<String>,
     pub module_file_id: Option<String>,
 }
 
@@ -566,10 +567,12 @@ fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
                 .as_deref()
                 .unwrap_or(&import.local_name);
             for cand in index.by_name(target_name) {
-                let module_ok = import
-                    .module_file_id
-                    .as_deref()
-                    .is_none_or(|m| m == cand.file_id);
+                let module_ok = match (import.source.as_deref(), import.module_file_id.as_deref()) {
+                    (Some(_), Some(module_file)) => module_file == cand.file_id,
+                    (Some(_), None) => false,
+                    (None, Some(module_file)) => module_file == cand.file_id,
+                    (None, None) => true,
+                };
                 if cand.language == edge.language && kinds.contains(&cand.kind) && module_ok {
                     set.insert(cand.symbol_id.clone());
                 }
@@ -979,6 +982,25 @@ fn resolve_full(
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
 ) -> rusqlite::Result<()> {
+    // 0. Recheck already-resolved overlays against the whole current workspace.
+    // A full pass must not preserve stale rows if a prior unique target became
+    // ambiguous or disappeared.
+    recheck_resolved_pending_items(
+        tx,
+        &resolution_store::worklist_resolved_pending(tx)?,
+        index,
+        locator,
+        gated,
+    )?;
+    recheck_resolved_identifier_items(
+        tx,
+        &resolution_store::worklist_resolved_identifiers(tx)?,
+        index,
+        covered,
+        revision,
+        counts,
+        gated,
+    )?;
     // 1. Resolve every unresolved pending row; propagate resolved ones.
     let pending = resolution_store::worklist_full_pending(tx)?;
     resolve_pending_items(tx, &pending, index, locator, revision, counts, gated)?;
@@ -1010,45 +1032,26 @@ fn resolve_delta(
     let files: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
 
     // --- Demotion sweep -----------------------------------------------------
-    // Resolved pending whose terminal OR receiver name is touched: re-run the
-    // chain; if the outcome no longer yields the same single target, demote. The
-    // fill sweep below re-resolves it if a new single candidate exists.
-    for resolved in resolution_store::worklist_resolved_pending_by_names(tx, &names)? {
-        let keep = match UnresolvedEdge::from_pending(&resolved.pending) {
-            Some(edge) => matches!(
-                resolve_one(&edge, index),
-                TierOutcome::Resolved { ref target_symbol_id, tier, .. }
-                    if *target_symbol_id == resolved.target_symbol_id
-                        && i64::from(tier) == resolved.tier
-            ),
-            None => false,
-        };
-        if !keep {
-            let pending = &resolved.pending;
-            resolution_store::demote_pending(tx, &pending.pending_relationship_id)?;
-            // Clear the co-located identifier too: `demote_pending` only removes the
-            // pending overlay, but the propagated identifier resolution must go with
-            // it (the fill sweep re-propagates if the edge re-resolves).
-            if let Some(identifier_id) = locator.locate(
-                &pending.file_id,
-                &pending.target_terminal_name,
-                pending.start_byte,
-                pending.end_byte,
-                pending.start_line,
-            ) {
-                resolution_store::demote_identifier(tx, &identifier_id)?;
-            }
-        }
-    }
-    // Resolved *generic* identifiers whose name is touched (propagation-owned ones
-    // are `covered` and left to their propagation lane): re-run and re-record so a
-    // uniqueness regression demotes (idempotent upsert overwrites the outcome).
-    for resolved in resolution_store::worklist_resolved_identifiers_by_names(tx, &names)? {
-        if covered.contains(&resolved.identifier.identifier_id) {
-            continue;
-        }
-        record_identifier_edge(tx, &resolved.identifier, index, revision, counts, gated)?;
-    }
+    // Resolved pending/identifiers whose terminal OR receiver name is touched:
+    // re-run the chain; if the outcome no longer yields the same single target,
+    // demote or overwrite with the current outcome. The fill sweep below
+    // re-resolves demoted pending rows if a new single candidate exists.
+    recheck_resolved_pending_items(
+        tx,
+        &resolution_store::worklist_resolved_pending_by_names(tx, &names)?,
+        index,
+        locator,
+        gated,
+    )?;
+    recheck_resolved_identifier_items(
+        tx,
+        &resolution_store::worklist_resolved_identifiers_by_names(tx, &names)?,
+        index,
+        covered,
+        revision,
+        counts,
+        gated,
+    )?;
 
     // --- Fill sweep ---------------------------------------------------------
     // Unresolved pending matching touched names, PLUS every unresolved pending in a
@@ -1082,6 +1085,64 @@ fn resolve_delta(
         }
     }
     resolve_identifier_items(tx, &identifiers, index, covered, revision, counts, gated)?;
+    Ok(())
+}
+
+fn recheck_resolved_pending_items(
+    tx: &Transaction<'_>,
+    items: &[resolution_store::ResolvedPendingWorkItem],
+    index: &WorkspaceCandidateIndex,
+    locator: &IdentifierLocator,
+    gated: &mut BTreeSet<String>,
+) -> rusqlite::Result<()> {
+    for resolved in items {
+        if !tier2_enabled(&resolved.pending.language) {
+            gated.insert(resolved.pending.language.clone());
+        }
+        let keep = match UnresolvedEdge::from_pending(&resolved.pending) {
+            Some(edge) => matches!(
+                resolve_one(&edge, index),
+                TierOutcome::Resolved { ref target_symbol_id, tier, .. }
+                    if *target_symbol_id == resolved.target_symbol_id
+                        && i64::from(tier) == resolved.tier
+            ),
+            None => false,
+        };
+        if !keep {
+            let pending = &resolved.pending;
+            resolution_store::demote_pending(tx, &pending.pending_relationship_id)?;
+            // Clear the co-located identifier too: `demote_pending` only removes the
+            // pending overlay, but the propagated identifier resolution must go with
+            // it. A later fill sweep re-propagates if the edge re-resolves.
+            if let Some(identifier_id) = locator.locate(
+                &pending.file_id,
+                &pending.target_terminal_name,
+                pending.start_byte,
+                pending.end_byte,
+                pending.start_line,
+            ) {
+                resolution_store::demote_identifier(tx, &identifier_id)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn recheck_resolved_identifier_items(
+    tx: &Transaction<'_>,
+    items: &[resolution_store::ResolvedIdentifierWorkItem],
+    index: &WorkspaceCandidateIndex,
+    covered: &HashSet<String>,
+    revision: i64,
+    counts: &mut ResolutionCounts,
+    gated: &mut BTreeSet<String>,
+) -> rusqlite::Result<()> {
+    for resolved in items {
+        if covered.contains(&resolved.identifier.identifier_id) {
+            continue;
+        }
+        record_identifier_edge(tx, &resolved.identifier, index, revision, counts, gated)?;
+    }
     Ok(())
 }
 
@@ -1402,42 +1463,68 @@ fn load_type_facts(conn: &Connection) -> rusqlite::Result<Vec<TypeFact>> {
 
 fn load_import_records(conn: &Connection) -> rusqlite::Result<Vec<ImportRecord>> {
     // Imports are `kind='import'` symbols; there is no dedicated imports table
-    // (Task 4 handoff). `module_file_id` is left None — module-specifier→file_id
-    // normalization is F4; tier 2 still matches on local binding / alias name.
-    let mut stmt =
-        conn.prepare("SELECT file_id, name, metadata_json FROM symbols WHERE kind = 'import'")?;
+    // (Task 4 handoff). Resolve relative module specifiers here so tier 2 only
+    // trusts aliased imports whose source module maps to a concrete workspace file.
+    let files_by_path = load_file_ids_by_path(conn)?;
+    let mut stmt = conn.prepare(
+        "SELECT file_id, path, language, name, metadata_json FROM symbols WHERE kind = 'import'",
+    )?;
     let rows = stmt.query_map([], |row| {
         Ok((
             row.get::<_, String>(0)?,
             row.get::<_, String>(1)?,
-            row.get::<_, Option<String>>(2)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, Option<String>>(4)?,
         ))
     })?;
     let mut out = Vec::new();
     for row in rows {
-        let (file_id, name, metadata_json) = row?;
-        let (local_name, imported_name) = import_binding(&name, metadata_json.as_deref());
+        let (file_id, path, language, name, metadata_json) = row?;
+        let (local_name, imported_name, source) = import_binding(&name, metadata_json.as_deref());
+        let module_file_id =
+            resolve_import_module_file(&path, source.as_deref(), &files_by_path, &language);
         out.push(ImportRecord {
             file_id,
             local_name,
             imported_name,
-            module_file_id: None,
+            source,
+            module_file_id,
         });
+    }
+    Ok(out)
+}
+
+fn load_file_ids_by_path(conn: &Connection) -> rusqlite::Result<HashMap<String, (String, String)>> {
+    let mut stmt = conn.prepare("SELECT path, file_id, language FROM files")?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            (row.get::<_, String>(1)?, row.get::<_, String>(2)?),
+        ))
+    })?;
+    let mut out = HashMap::new();
+    for row in rows {
+        let (path, file) = row?;
+        out.insert(path, file);
     }
     Ok(out)
 }
 
 /// Best-effort local-binding / imported-name split from an import symbol. Falls
 /// back to the symbol name as the local binding. Alias keys (`alias`,
-/// `local_name`) and imported-name keys (`imported_name`, `imported`) are read
-/// from `metadata_json` when present; per-language import metadata is not a
-/// normalized contract yet (F4), so this stays defensive.
-fn import_binding(name: &str, metadata_json: Option<&str>) -> (String, Option<String>) {
+/// `local_name`), imported-name keys (`imported_name`, `imported`), and `source`
+/// are read from `metadata_json` when present; per-language import metadata is
+/// not a normalized contract yet (F4), so this stays defensive.
+fn import_binding(
+    name: &str,
+    metadata_json: Option<&str>,
+) -> (String, Option<String>, Option<String>) {
     let Some(raw) = metadata_json else {
-        return (name.to_string(), None);
+        return (name.to_string(), None, None);
     };
     let Ok(value) = serde_json::from_str::<serde_json::Value>(raw) else {
-        return (name.to_string(), None);
+        return (name.to_string(), None, None);
     };
     let string_field = |key: &str| {
         value
@@ -1462,7 +1549,70 @@ fn import_binding(name: &str, metadata_json: Option<&str>) -> (String, Option<St
                 None
             }
         });
-    (local_name, imported_name)
+    let source = string_field("source");
+    (local_name, imported_name, source)
+}
+
+fn resolve_import_module_file(
+    importing_path: &str,
+    source: Option<&str>,
+    files_by_path: &HashMap<String, (String, String)>,
+    language: &str,
+) -> Option<String> {
+    let source = source?;
+    if !(source.starts_with("./") || source.starts_with("../")) {
+        return None;
+    }
+    let base = importing_path.rsplit_once('/').map_or("", |(base, _)| base);
+    let module_path = normalize_relative_module_path(base, source)?;
+    for candidate in module_path_candidates(&module_path, language) {
+        if let Some((file_id, file_language)) = files_by_path.get(&candidate)
+            && file_language == language
+        {
+            return Some(file_id.clone());
+        }
+    }
+    None
+}
+
+fn normalize_relative_module_path(base: &str, source: &str) -> Option<String> {
+    let mut parts: Vec<&str> = if base.is_empty() {
+        Vec::new()
+    } else {
+        base.split('/').collect()
+    };
+    for part in source.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                parts.pop()?;
+            }
+            other => parts.push(other),
+        }
+    }
+    Some(parts.join("/"))
+}
+
+fn module_path_candidates(module_path: &str, language: &str) -> Vec<String> {
+    let file_name = module_path
+        .rsplit_once('/')
+        .map_or(module_path, |(_, file)| file);
+    if file_name.contains('.') {
+        return vec![module_path.to_string()];
+    }
+    let extensions: &[&str] = match language {
+        "typescript" => &["ts", "tsx", "js", "jsx"],
+        "javascript" => &["js", "jsx", "ts", "tsx"],
+        _ => &[],
+    };
+    let mut candidates = Vec::new();
+    for ext in extensions {
+        candidates.push(format!("{module_path}.{ext}"));
+    }
+    for ext in extensions {
+        candidates.push(format!("{module_path}/index.{ext}"));
+    }
+    candidates
 }
 
 /// Unresolved pending rows in any of `file_ids` (delta fill scope — no by-files
@@ -1961,6 +2111,7 @@ mod tests {
                 file_id: "src".to_string(),
                 local_name: "Foo".to_string(),
                 imported_name: None,
+                source: None,
                 module_file_id: Some("mod".to_string()),
             }],
         );
@@ -1983,6 +2134,7 @@ mod tests {
                 file_id: "src".to_string(),
                 local_name: "Foo".to_string(),
                 imported_name: None,
+                source: None,
                 module_file_id: Some("mod".to_string()),
             }],
         );
@@ -2002,6 +2154,7 @@ mod tests {
                 file_id: "src".to_string(),
                 local_name: "Bar".to_string(),
                 imported_name: Some("Foo".to_string()),
+                source: None,
                 module_file_id: Some("mod".to_string()),
             }],
         );
@@ -2025,6 +2178,7 @@ mod tests {
                 file_id: "src".to_string(),
                 local_name: "Foo".to_string(),
                 imported_name: None,
+                source: None,
                 module_file_id: Some("mod".to_string()),
             }],
         );
@@ -2054,6 +2208,7 @@ mod tests {
                 file_id: "src".to_string(),
                 local_name: "Foo".to_string(),
                 imported_name: None,
+                source: None,
                 module_file_id: Some("mod".to_string()),
             }],
         );
@@ -2115,12 +2270,14 @@ mod tests {
                     file_id: "src".to_string(),
                     local_name: "handle".to_string(),
                     imported_name: None,
+                    source: None,
                     module_file_id: Some("modA".to_string()),
                 },
                 ImportRecord {
                     file_id: "src".to_string(),
                     local_name: "handle".to_string(),
                     imported_name: None,
+                    source: None,
                     module_file_id: Some("modB".to_string()),
                 },
             ],
