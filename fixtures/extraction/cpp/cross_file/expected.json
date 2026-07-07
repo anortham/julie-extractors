@@ -136,6 +136,22 @@
       "containing_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/cross_file/source.cpp:other_ns:variable_ref:13:4",
+      "name": "other_ns",
+      "kind": "variable_ref",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/cross_file/source.cpp",
+      "start_line": 13,
+      "start_column": 4,
+      "end_line": 13,
+      "end_column": 12,
+      "start_byte": 384,
+      "end_byte": 392,
+      "containing_key": "fixtures/extraction/cpp/cross_file/source.cpp:entry:12:0",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [

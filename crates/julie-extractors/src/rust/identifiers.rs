@@ -240,8 +240,185 @@ fn extract_identifier_from_node(
             record_rust_macro_arg_literals(extractor, node, containing_symbols);
         }
 
+        // `variable_ref` complement arm: a bare `identifier` used as a value,
+        // a field-access receiver, or a scoped-access path receiver (`X` in
+        // `X::Y()`) — the reads the Call/MemberAccess/TypeUsage arms above do
+        // not own. Rust keywords, `self`, `true`/`false`, and lifetimes are
+        // distinct grammar kinds, so no name filter is needed (the TypeUsage
+        // arms carry none either). See the LOCKED SEMANTIC CONTRACT doc
+        // comment in `csharp/identifiers.rs`.
+        "identifier" => {
+            if is_rust_value_read_identifier(node) {
+                let name = {
+                    let base = extractor.get_base_mut();
+                    base.get_node_text(&node)
+                };
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                let base = extractor.get_base_mut();
+                base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
+        // Rule 1: a struct-literal field name (`bar` in `Sample { bar: seed }`)
+        // is a member reference in an initializer context; no other arm owns it
+        // (the MemberAccess arm only covers `field_expression`).
+        "field_identifier" => {
+            if let Some(parent) = node.parent()
+                && parent.kind() == "field_initializer"
+            {
+                let name = {
+                    let base = extractor.get_base_mut();
+                    base.get_node_text(&node)
+                };
+                let containing_symbol_id = find_containing_symbol_id(node, containing_symbols);
+                let base = extractor.get_base_mut();
+                base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         _ => {}
     }
+}
+
+/// Rule 1/4 predicate for Rust `variable_ref` emission: is this bare
+/// `identifier` a value read, a field-access receiver, or a scoped-access path
+/// receiver (the complement of the Call/MemberAccess/TypeUsage arms)? Node
+/// kinds and field names were verified against the vendored tree-sitter-rust
+/// grammar (see task probes): plain assignment is `assignment_expression`
+/// while compound assignment is the separate `compound_assignment_expr` kind
+/// (whose target therefore reads by default), patterns bind via dedicated
+/// `*_pattern` kinds, and loop labels wrap their identifier in a `label` node.
+fn is_rust_value_read_identifier(node: tree_sitter::Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    let is_field =
+        |field: &str| parent.child_by_field_name(field).map(|f| f.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 1/2: in `X::Y` only the leftmost `path` segment is the receiver
+        // read; the `name` is owned by the scoped TypeUsage arm (or by the
+        // Call arm when the chain is a callee).
+        "scoped_identifier" => is_field("path") && rust_scoped_path_is_read_context(parent),
+        "scoped_type_identifier" => false,
+
+        // Rule 2: callees are owned by the Call arm (including the inner
+        // function of a turbofish `generic_function`).
+        "call_expression" | "generic_function" => !is_field("function"),
+
+        // Rule 2 (complement boundary): no arm owns a macro callee today; the
+        // Call arm should, so it is NOT emitted here (see open-gaps note).
+        // Token-tree interiors ARE reads when the tree belongs to a macro
+        // invocation (`println!("{}", macro_only)`), but not in `macro_rules!`
+        // bodies or attribute arguments.
+        "macro_invocation" => false,
+        "token_tree" => rust_token_tree_belongs_to_macro_invocation(node),
+
+        // Rule 3: declaration names.
+        "function_item"
+        | "function_signature_item"
+        | "mod_item"
+        | "const_item"
+        | "static_item"
+        | "enum_variant"
+        | "macro_definition"
+        | "extern_crate_declaration"
+        | "use_as_clause"
+        | "label" => false,
+
+        // Rule 3: pattern positions bind rather than read.
+        "let_declaration" | "parameter" | "for_expression" => !is_field("pattern"),
+        "closure_parameters"
+        | "match_pattern"
+        | "tuple_struct_pattern"
+        | "tuple_pattern"
+        | "slice_pattern"
+        | "struct_pattern"
+        | "reference_pattern"
+        | "ref_pattern"
+        | "mut_pattern"
+        | "captured_pattern"
+        | "or_pattern"
+        | "range_pattern" => false,
+
+        // Rule 3: import trees and attribute/meta positions are not reads.
+        "use_declaration"
+        | "use_list"
+        | "scoped_use_list"
+        | "use_wildcard"
+        | "attribute"
+        | "attribute_item"
+        | "inner_attribute_item"
+        | "visibility_modifier" => false,
+
+        // Rule 4: plain-assignment LHS is write-only (compound assignment is
+        // the separate `compound_assignment_expr` kind, which reads).
+        "assignment_expression" => !is_field("left"),
+
+        // Every other position — argument, binary operand, return value,
+        // `field_expression` receiver (`value` field), array element,
+        // `shorthand_field_initializer`, match value, index, await/try
+        // operand — is a read.
+        _ => true,
+    }
+}
+
+/// Context check for the `path` receiver of a `scoped_identifier`: climb to
+/// the outermost `::` chain; a chain that resolves into a type position
+/// (`scoped_type_identifier`), an import (`use ...`), an attribute, or a
+/// visibility modifier is not a value read. Call-callee chains DO keep their
+/// receiver read (`Sample` in `Sample::default_bar()`), mirroring the C#
+/// reference where the static-access receiver stays live.
+fn rust_scoped_path_is_read_context(mut scoped: tree_sitter::Node) -> bool {
+    while let Some(parent) = scoped.parent() {
+        match parent.kind() {
+            "scoped_identifier" => scoped = parent,
+            "scoped_type_identifier" => return false,
+            _ => break,
+        }
+    }
+    let Some(owner) = scoped.parent() else {
+        return false;
+    };
+    !matches!(
+        owner.kind(),
+        "use_declaration"
+            | "use_list"
+            | "scoped_use_list"
+            | "use_as_clause"
+            | "use_wildcard"
+            | "attribute"
+            | "attribute_item"
+            | "inner_attribute_item"
+            | "visibility_modifier"
+            | "mod_item"
+    )
+}
+
+/// True when a `token_tree` interior identifier belongs to a macro INVOCATION
+/// (its tokens are call-site expressions and therefore reads), as opposed to a
+/// `macro_rules!` body or an attribute argument list.
+fn rust_token_tree_belongs_to_macro_invocation(node: tree_sitter::Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "token_tree" => current = parent,
+            "macro_invocation" => return true,
+            _ => return false,
+        }
+    }
+    false
 }
 
 fn is_rust_declaration_type_name(node: tree_sitter::Node) -> bool {

@@ -434,4 +434,85 @@ void run() {
             "Duplicate calls should have different line numbers"
         );
     }
+
+    #[test]
+    fn test_c_variable_ref_emission() {
+        // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
+        // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
+        let c_code = r#"
+enum Mode { MODE_A, MODE_B };
+struct Point { int x; int y; };
+
+static int visibility_unknown = 3;
+
+int reach(struct Point *p, int seed, int unused_param) {
+    int local = seed;                          /* declaration name, seed read */
+    int dead_local = 1;                        /* declaration name, never read */
+    local = 7;                                 /* plain write LHS -> NOT a read */
+    local += seed;                             /* compound assignment -> read local */
+    struct Point pt = { .x = seed, .y = 2 };   /* designated member .x/.y -> reads */
+    pt.y = p->x;                               /* pt + p receivers -> reads */
+    if (p != NULL) {                           /* NULL is builtin-filtered */
+        pt.x = 0;
+    }
+    return local + visibility_unknown + MODE_A; /* bare value reads */
+}
+/* GhostToken appears only in this comment and must never be an identifier. */
+"#;
+
+        let mut parser = init_parser();
+        let tree = parser.parse(c_code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = CExtractor::new(
+            "c".to_string(),
+            "test.c".to_string(),
+            c_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        // --- Positive cases (rules 1/4) ---
+        for expected in [
+            "seed",               // initializer / RHS value reads
+            "local",              // compound-assignment target + bare return read
+            "x",                  // designated-initializer member LHS `.x = seed`
+            "pt",                 // member-write receiver `pt.y = ...`
+            "p",                  // member-access receiver `p->x`
+            "visibility_unknown", // bare return read
+            "MODE_A",             // enumerator value read
+        ] {
+            assert!(
+                var_refs.contains(&expected),
+                "expected C variable_ref for {expected}; got {var_refs:?}"
+            );
+        }
+
+        // --- Negative cases (rules 2/3/4/5) ---
+        for forbidden in [
+            "dead_local",   // declaration name only
+            "unused_param", // parameter name only
+            "reach",        // function declaration name
+            "Point",        // type usage, owned by the TypeUsage arm
+            "NULL",         // builtin/keyword filter
+            "GhostToken",   // comment-only mention
+        ] {
+            assert!(
+                !var_refs.contains(&forbidden),
+                "{forbidden} must NOT be a C variable_ref; got {var_refs:?}"
+            );
+        }
+
+        // GhostToken must not appear as ANY identifier kind.
+        assert!(
+            !identifiers.iter().any(|id| id.name == "GhostToken"),
+            "comment-only GhostToken must not be extracted at all"
+        );
+    }
 }

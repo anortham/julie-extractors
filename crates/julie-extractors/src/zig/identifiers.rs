@@ -174,11 +174,132 @@ fn extract_identifier_from_node(
                         );
                     }
                 }
+                // `variable_ref` complement arm: a bare `identifier` used as a
+                // value or as a member-access receiver — the reads the Call/
+                // MemberAccess/TypeUsage arms do not own. Evaluated only when
+                // the TypeUsage guard above did not claim the node. See the
+                // LOCKED SEMANTIC CONTRACT doc comment in
+                // `csharp/identifiers.rs`.
+                else if is_zig_value_read_identifier(node, parent) {
+                    let name = base.get_node_text(&node);
+                    // Rule 5: reuse the TypeUsage arm's builtin filter (also
+                    // covers `undefined`/`null`); `_` is never a read.
+                    if !is_zig_builtin_type(&name) && name != "_" {
+                        let containing_symbol_id =
+                            find_containing_symbol_id(base, node, symbol_map);
+                        base.create_identifier(
+                            &node,
+                            name,
+                            IdentifierKind::VariableRef,
+                            containing_symbol_id,
+                        );
+                    }
+                }
             }
         }
 
         _ => {}
     }
+}
+
+/// Rule 1/4 predicate for Zig `variable_ref` emission: is this bare
+/// `identifier` a value read or a member-access receiver (the complement of
+/// the Call/MemberAccess/TypeUsage arms)? Node kinds and field names were
+/// verified against the vendored tree-sitter-zig grammar (see task probes).
+/// Grammar quirk (load-bearing): statement-level assignments (`x = 2;`,
+/// `x += n;`) parse as `variable_declaration` WITHOUT a `var`/`const` keyword,
+/// so declarations and write targets are both "first named child of
+/// variable_declaration" and are told apart by the keyword/operator tokens.
+/// Expression-level assignment (`while (...) : (x += 1)`) is a separate
+/// `assignment_expression` kind with an `operator` field.
+fn is_zig_value_read_identifier(node: Node, parent: Node) -> bool {
+    match parent.kind() {
+        "variable_declaration" => {
+            if !is_first_named_child(parent, node) {
+                // Value/RHS position of a declaration or assignment statement.
+                return true;
+            }
+            if has_zig_decl_keyword(parent) {
+                // Rule 3: `var x ...` / `const x ...` declaration name.
+                return false;
+            }
+            // Assignment-statement shape: compound targets read (`x += n`),
+            // plain `=` targets are write-only (rule 4).
+            has_zig_compound_assign_token(parent)
+        }
+        "assignment_expression" => {
+            let is_left = parent.child_by_field_name("left").map(|l| l.id()) == Some(node.id());
+            if !is_left {
+                return true;
+            }
+            parent
+                .child_by_field_name("operator")
+                .map(|op| op.kind() != "=")
+                .unwrap_or(false)
+        }
+
+        // Rule 3: declaration names; their non-name children stay reads.
+        // Rule 2: a bare return type (`T` in `fn identity(...) T`) is the
+        // `type` field of function_declaration — a type position, not a value
+        // read (mirrors the C# reference's `returns` exclusion; the TypeUsage
+        // arm does not cover bare return types today, see open-gaps note).
+        "function_declaration" | "parameter" | "container_field" => {
+            parent.child_by_field_name("name").map(|n| n.id()) != Some(node.id())
+                && parent.child_by_field_name("type").map(|t| t.id()) != Some(node.id())
+        }
+        // Rule 3: `error{ NotFound, Busy }` members are declarations; capture
+        // payloads (`|item|`) are bindings.
+        "error_set_declaration" | "payload" => false,
+
+        // Rule 1/2: only the `object` receiver of a member access is a read;
+        // the `member` is owned by the MemberAccess/Call arms.
+        "field_expression" => {
+            parent.child_by_field_name("member").map(|m| m.id()) != Some(node.id())
+        }
+
+        // Rule 2: the callee is owned by the Call arm; Zig call arguments are
+        // direct children of `call_expression` (no wrapper) and stay reads.
+        "call_expression" => {
+            parent.child_by_field_name("function").map(|f| f.id()) != Some(node.id())
+        }
+
+        // Every other position — switch operand/case value, condition operand,
+        // return value, struct-initializer type (`Sample{ ... }`), initializer
+        // element, `for (arr)` operand, argument — is a read.
+        _ => true,
+    }
+}
+
+/// True when `node` is the first NAMED child of `parent` (the declared name /
+/// write-target slot of Zig's `variable_declaration`).
+fn is_first_named_child(parent: Node, node: Node) -> bool {
+    let mut cursor = parent.walk();
+    parent
+        .named_children(&mut cursor)
+        .next()
+        .map(|first| first.id() == node.id())
+        .unwrap_or(false)
+}
+
+/// True when a `variable_declaration` is a real declaration (`var`/`const`/
+/// `comptime var` keyword present) rather than the grammar's folded
+/// assignment-statement shape.
+fn has_zig_decl_keyword(decl: Node) -> bool {
+    let mut cursor = decl.walk();
+    decl.children(&mut cursor)
+        .any(|child| matches!(child.kind(), "var" | "const" | "comptime"))
+}
+
+/// True when the folded assignment-statement shape carries a COMPOUND operator
+/// token (`+=`, `-%=`, `<<=`, ...). Comparison tokens (`==`, `<=`, ...) never
+/// appear as direct children of `variable_declaration`, so "multi-char token
+/// ending in `=`" safely identifies compound assignment.
+fn has_zig_compound_assign_token(decl: Node) -> bool {
+    let mut cursor = decl.walk();
+    decl.children(&mut cursor).any(|child| {
+        let kind = child.kind();
+        kind.len() > 1 && kind.ends_with('=') && !matches!(kind, "==" | "!=" | "<=" | ">=")
+    })
 }
 
 /// Find the ID of the symbol that contains this node

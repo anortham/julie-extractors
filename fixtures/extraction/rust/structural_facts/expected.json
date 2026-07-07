@@ -68,6 +68,22 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/rust/structural_facts/source.rs:core:variable_ref:3:8",
+      "name": "core",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+      "start_line": 3,
+      "start_column": 8,
+      "end_line": 3,
+      "end_column": 12,
+      "start_byte": 60,
+      "end_byte": 64,
+      "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/rust/structural_facts/source.rs:read_volatile:call:3:19",
       "name": "read_volatile",
       "kind": "call",
@@ -79,6 +95,22 @@
       "end_column": 32,
       "start_byte": 71,
       "end_byte": 84,
+      "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/structural_facts/source.rs:value:variable_ref:3:33",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/structural_facts/source.rs",
+      "start_line": 3,
+      "start_column": 33,
+      "end_line": 3,
+      "end_column": 38,
+      "start_byte": 85,
+      "end_byte": 90,
       "containing_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
       "target_key": null,
       "confidence": "1.000"

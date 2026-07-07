@@ -140,8 +140,122 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm: a bare `identifier` used as a value or
+        // as the object/receiver of a member access — the reads the Call/
+        // MemberAccess/TypeUsage arms above do not own. Type positions never
+        // reach here (C uses the distinct `type_identifier` kind), and field
+        // names are the distinct `field_identifier` kind. See the LOCKED
+        // SEMANTIC CONTRACT doc comment in `csharp/identifiers.rs`.
+        "identifier" if is_c_value_read_identifier(node) => {
+            let name = extractor.base.get_node_text(&node);
+            // Rule 5: C keywords (`sizeof`, `return`, ...) and C23 `true`/
+            // `false`/`nullptr` are distinct grammar tokens, so the only
+            // builtin-flavored names that parse as plain identifiers are the
+            // classic stdlib macros filtered here.
+            if !is_c_builtin_value_name(&name) {
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                extractor.base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
+        // Rule 1: a designated-initializer member LHS (`.x` in
+        // `struct Point p = { .x = seed }`) is a member reference in an
+        // initializer context. The grammar wraps it as
+        // `field_designator (field_identifier)`; no other arm owns it.
+        "field_identifier" => {
+            if let Some(parent) = node.parent()
+                && parent.kind() == "field_designator"
+            {
+                let name = extractor.base.get_node_text(&node);
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                extractor.base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         _ => {}
     }
+}
+
+/// Rule 1/4 predicate for C `variable_ref` emission: is this bare `identifier`
+/// a value read or a member-access receiver (the complement of the Call/
+/// MemberAccess/TypeUsage arms)? Node kinds and field names were verified
+/// against the vendored tree-sitter-c grammar (see task probes): declarators
+/// carry a `declarator` field, `assignment_expression` carries an anonymous
+/// `operator` field (`=`, `+=`, ...), and labels/goto targets are the distinct
+/// `statement_identifier` kind so they never reach this predicate.
+fn is_c_value_read_identifier(node: tree_sitter::Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    // Rule 3: any declarator-position identifier is a declaration name. This
+    // one field check covers `init_declarator`, `function_declarator`,
+    // `array_declarator`, `pointer_declarator`, `parameter_declaration`, and a
+    // bare `declaration declarator: (identifier)` uniformly.
+    if parent.child_by_field_name("declarator").map(|d| d.id()) == Some(node.id()) {
+        return false;
+    }
+
+    match parent.kind() {
+        // Rule 2: the callee is owned by the Call arm; arguments live under the
+        // separate `argument_list` node and stay reads.
+        "call_expression" => {
+            parent.child_by_field_name("function").map(|f| f.id()) != Some(node.id())
+        }
+
+        // Rule 3: `#define NAME ...` / `#define NAME(args) ...` define NAME and
+        // its macro parameters; `enumerator` defines the enum constant. Their
+        // non-name children (e.g. an enumerator's explicit value) stay reads.
+        "preproc_def" | "preproc_function_def" | "enumerator" => {
+            parent.child_by_field_name("name").map(|n| n.id()) != Some(node.id())
+        }
+        "preproc_params" => false,
+
+        // Meta positions: `[[nodiscard]]` attribute names and the arguments of
+        // `__attribute__((...))` are not value reads.
+        "attribute" => false,
+        "argument_list" => parent
+            .parent()
+            .map(|gp| gp.kind() != "attribute_specifier")
+            .unwrap_or(true),
+
+        // Rule 4: the LHS of a PLAIN assignment (`x = 5`) is write-only; a
+        // compound assignment (`x += 1`) reads its target. `x++`/`x--` are the
+        // separate `update_expression` kind and fall through as reads.
+        "assignment_expression" => {
+            let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
+            if !is_left {
+                return true;
+            }
+            parent
+                .child_by_field_name("operator")
+                .map(|op| op.kind() != "=")
+                .unwrap_or(false)
+        }
+
+        // Every other position — argument, initializer value, return value,
+        // binary operand, subscript, receiver (`argument` of field_expression),
+        // sizeof operand, `#if`/`#ifdef` macro condition — is a read.
+        _ => true,
+    }
+}
+
+/// Rule 5 filter: C's TypeUsage arm needs no name filter (builtin types are the
+/// distinct `primitive_type` kind), so the only value-position builtins to
+/// exclude are the stdlib macro spellings that parse as plain identifiers in
+/// pre-C23 code.
+fn is_c_builtin_value_name(name: &str) -> bool {
+    matches!(name, "NULL" | "true" | "false")
 }
 
 /// Find the ID of the symbol that contains this node

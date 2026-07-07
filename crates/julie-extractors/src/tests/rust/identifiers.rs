@@ -192,3 +192,107 @@ impl UserService {
         );
     }
 }
+
+#[test]
+fn test_rust_variable_ref_emission() {
+    // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
+    // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
+    let code = r#"
+const VISIBILITY_UNKNOWN: i32 = 3;
+
+pub struct Sample {
+    bar: i32,
+}
+
+impl Sample {
+    pub fn default_bar() -> i32 {
+        1
+    }
+}
+
+pub fn reach() -> i32 {
+    0
+}
+
+#[derive(Debug)]
+pub struct Tagged;
+
+pub fn evaluate(seed: i32, unused_param: i32) -> i32 {
+    let mut local = seed;              // pattern binding, seed read
+    let dead_local = 1;                // pattern binding, never read
+    local = 7;                         // plain write LHS -> NOT a read
+    local += seed;                     // compound assignment -> read local
+    let s = Sample { bar: seed };      // field-initializer member bar -> read
+    let size = seed;
+    let shorthand = Sample { bar: size }; // size value read
+    let b = s.bar + Sample::default_bar() + reach(); // s receiver + Sample scope path -> reads
+    let macro_only = seed;
+    println!("{} {}", local, macro_only); // macro-invocation args -> reads
+    match local {
+        0 => seed,
+        _other => 0,                   // pattern binding, never a read
+    };
+    b + local + VISIBILITY_UNKNOWN + shorthand.bar
+}
+
+// GhostToken appears only in this comment and must never be an identifier.
+"#;
+
+    let (_symbols, identifiers) = extract_all(code);
+    let var_refs: Vec<&str> = identifiers
+        .iter()
+        .filter(|id| id.kind == IdentifierKind::VariableRef)
+        .map(|id| id.name.as_str())
+        .collect();
+
+    // --- Positive cases (rules 1/4) ---
+    for expected in [
+        "seed",               // RHS / argument / match-arm value reads
+        "local",              // compound-assignment target + macro arg read
+        "bar",                // struct-literal field initializer `Sample { bar: seed }`
+        "size",               // struct-literal field value read
+        "s",                  // field-access receiver `s.bar`
+        "Sample",             // scoped-access path receiver (`X` in `X::Y()`)
+        "b",                  // bare return read
+        "VISIBILITY_UNKNOWN", // bare value read
+        "shorthand",          // field-access receiver in return expression
+        "macro_only",         // read only inside a macro-invocation token tree
+    ] {
+        assert!(
+            var_refs.contains(&expected),
+            "expected Rust variable_ref for {expected}; got {var_refs:?}"
+        );
+    }
+
+    // --- Negative cases (rules 2/3/4/5) ---
+    for forbidden in [
+        "dead_local",   // let-pattern binding only
+        "unused_param", // parameter name only
+        "evaluate",     // function declaration name
+        "reach",        // call callee, owned by the Call arm
+        "default_bar",  // scoped call callee, owned by the Call arm
+        "_other",       // match-pattern binding
+        "Debug",        // attribute/token-tree meta position
+        "Tagged",       // struct declaration name
+        "GhostToken",   // comment-only mention
+    ] {
+        assert!(
+            !var_refs.contains(&forbidden),
+            "{forbidden} must NOT be a Rust variable_ref; got {var_refs:?}"
+        );
+    }
+
+    // Receiver + call coexist: Sample::default_bar() must still yield a Call.
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "default_bar" && id.kind == IdentifierKind::Call),
+        "Sample::default_bar() must still yield a Call identifier"
+    );
+
+    // GhostToken must not appear as ANY identifier kind.
+    assert!(
+        !identifiers.iter().any(|id| id.name == "GhostToken"),
+        "comment-only GhostToken must not be extracted at all"
+    );
+}

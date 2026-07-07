@@ -151,6 +151,22 @@
       "containing_key": "fixtures/extraction/c/structural_facts/source.c:read_value:4:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/c/structural_facts/source.c:LIMIT:variable_ref:5:18",
+      "name": "LIMIT",
+      "kind": "variable_ref",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/structural_facts/source.c",
+      "start_line": 5,
+      "start_column": 18,
+      "end_line": 5,
+      "end_column": 23,
+      "start_byte": 86,
+      "end_byte": 91,
+      "containing_key": "fixtures/extraction/c/structural_facts/source.c:read_value:4:0",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [

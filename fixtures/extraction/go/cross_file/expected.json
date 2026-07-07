@@ -184,6 +184,22 @@
       "containing_key": "fixtures/extraction/go/cross_file/source.go:entry:14:0",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/go/cross_file/source.go:other:variable_ref:15:1",
+      "name": "other",
+      "kind": "variable_ref",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/cross_file/source.go",
+      "start_line": 15,
+      "start_column": 1,
+      "end_line": 15,
+      "end_column": 6,
+      "start_byte": 361,
+      "end_byte": 366,
+      "containing_key": "fixtures/extraction/go/cross_file/source.go:entry:14:0",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [

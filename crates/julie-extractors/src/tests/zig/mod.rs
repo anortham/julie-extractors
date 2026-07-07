@@ -2,6 +2,7 @@
 mod annotations;
 mod complexity;
 pub mod extractor;
+mod identifiers;
 #[cfg(test)]
 mod task15;
 

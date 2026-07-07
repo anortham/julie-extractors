@@ -136,6 +136,69 @@ impl CppExtractor {
                 record_outermost_cpp_type_arguments(&mut self.base, node, &identifier);
             }
 
+            // `variable_ref` complement arm: a bare `identifier` used as a
+            // value or as a qualified static-member value read — the reads the
+            // Call/MemberAccess/TypeUsage arms above do not own. Type positions
+            // never reach here (C++ uses the distinct `type_identifier` kind),
+            // member names are `field_identifier`, and `this` is its own node
+            // kind. See the LOCKED SEMANTIC CONTRACT doc comment in
+            // `csharp/identifiers.rs`.
+            "identifier" => {
+                if is_cpp_value_read_identifier(node) {
+                    let name = self.base.get_node_text(&node);
+                    // Rule 5: reuse the TypeUsage arm's noise filter, plus the
+                    // pre-C++11 NULL macro (parses as a plain identifier).
+                    if !helpers::is_noise_type(&name) && name != "NULL" {
+                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                        self.base.create_identifier(
+                            &node,
+                            name,
+                            IdentifierKind::VariableRef,
+                            containing_symbol_id,
+                        );
+                    }
+                }
+            }
+
+            // Rule 1: the scope receiver of a static/qualified VALUE access
+            // (`GraphTraversal` in `GraphTraversal::reach()` /
+            // `GraphTraversal::limit`) — `X` in `X::Y`. The grammar gives scope
+            // segments the distinct `namespace_identifier` kind, so they need
+            // their own arm; type-context chains (terminal `type_identifier` /
+            // `template_type`) stay with the TypeUsage arm.
+            "namespace_identifier" => {
+                if is_cpp_scope_receiver_read(node) {
+                    let name = self.base.get_node_text(&node);
+                    if !helpers::is_noise_type(&name) {
+                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                        self.base.create_identifier(
+                            &node,
+                            name,
+                            IdentifierKind::VariableRef,
+                            containing_symbol_id,
+                        );
+                    }
+                }
+            }
+
+            // Rule 1: a designated-initializer member LHS (`.x` in
+            // `Point pt = { .x = seed }`) is a member reference in an
+            // initializer context; no other arm owns it.
+            "field_identifier" => {
+                if let Some(parent) = node.parent()
+                    && parent.kind() == "field_designator"
+                {
+                    let name = self.base.get_node_text(&node);
+                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
+                }
+            }
+
             _ => {}
         }
     }
@@ -183,6 +246,167 @@ impl CppExtractor {
             }
         }
     }
+}
+
+/// Rule 1/4 predicate for C++ `variable_ref` emission: is this bare
+/// `identifier` a value read (the complement of the Call/MemberAccess/TypeUsage
+/// arms)? Node kinds and field names were verified against the vendored
+/// tree-sitter-cpp grammar (see task probes): declarators carry a `declarator`
+/// field, `assignment_expression` carries an anonymous `operator` field, scope
+/// segments are `namespace_identifier`, and labels are `statement_identifier`.
+fn is_cpp_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    // Rule 3: any declarator-position identifier is a declaration name
+    // (`init_declarator`, `function_declarator`, `array_declarator`,
+    // `parameter_declaration`, bare `declaration declarator:`).
+    if parent.child_by_field_name("declarator").map(|d| d.id()) == Some(node.id()) {
+        return false;
+    }
+
+    match parent.kind() {
+        // Rule 3: declarator wrappers whose inner identifier carries no field
+        // (`*p`, `&item`, `auto [u, v]`).
+        "pointer_declarator"
+        | "reference_declarator"
+        | "structured_binding_declarator"
+        | "variadic_declarator" => false,
+
+        // Rule 2: the callee is owned by the Call arm; a `template_function`
+        // name (`foo<int>`) is likewise Call/type material, never a bare read.
+        "call_expression" => {
+            parent.child_by_field_name("function").map(|f| f.id()) != Some(node.id())
+        }
+        "template_function" => false,
+
+        // Rule 2/3: a qualified name's terminal `identifier` is a value read
+        // (`GraphTraversal::limit`) unless the chain is an out-of-line
+        // declarator, a call callee (the Call arm records the full qualified
+        // text), or an import-like context.
+        "qualified_identifier" => {
+            parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id())
+                && cpp_qualified_chain_is_value_read(parent)
+        }
+
+        // Rule 3: `#define NAME`, macro params, enum constants, namespaces,
+        // aliases, and imports are declaration/meta positions.
+        "preproc_def" | "preproc_function_def" | "enumerator" => {
+            parent.child_by_field_name("name").map(|n| n.id()) != Some(node.id())
+        }
+        "preproc_params"
+        | "namespace_definition"
+        | "namespace_alias_definition"
+        | "using_declaration" => false,
+
+        // Meta positions: `[[nodiscard]]` attribute names and the arguments of
+        // `__attribute__((...))` are not value reads.
+        "attribute" => false,
+        "argument_list" => parent
+            .parent()
+            .map(|gp| gp.kind() != "attribute_specifier")
+            .unwrap_or(true),
+
+        // Rule 4: plain-assignment LHS is write-only; compound assignment
+        // reads its target. `x++`/`x--` are `update_expression` (reads).
+        "assignment_expression" => {
+            let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
+            if !is_left {
+                return true;
+            }
+            parent
+                .child_by_field_name("operator")
+                .map(|op| op.kind() != "=")
+                .unwrap_or(false)
+        }
+
+        // Every other position — argument, initializer element, return value,
+        // binary operand, lambda capture, subscript, `delete p`, receiver
+        // (`argument` of field_expression) — is a read.
+        _ => true,
+    }
+}
+
+/// Walk from a `qualified_identifier` to the outermost node of its `::` chain.
+fn outermost_cpp_qualified(mut node: Node) -> Node {
+    while let Some(parent) = node.parent() {
+        if parent.kind() == "qualified_identifier" {
+            node = parent;
+        } else {
+            break;
+        }
+    }
+    node
+}
+
+/// Context check shared by the qualified-name and scope-receiver predicates:
+/// the outermost `X::Y::Z` chain is a VALUE read only when it is not an
+/// out-of-line declarator (`int Widget::grow(...)`), not a call callee (owned
+/// by the Call arm as full qualified text), and not a `using` import.
+fn cpp_qualified_chain_is_value_read(scoped: Node) -> bool {
+    let outer = outermost_cpp_qualified(scoped);
+    let Some(owner) = outer.parent() else {
+        return false;
+    };
+    if owner.child_by_field_name("declarator").map(|d| d.id()) == Some(outer.id()) {
+        return false;
+    }
+    if owner.kind() == "call_expression"
+        && owner.child_by_field_name("function").map(|f| f.id()) == Some(outer.id())
+    {
+        return false;
+    }
+    !matches!(
+        owner.kind(),
+        "using_declaration" | "namespace_alias_definition" | "function_declarator"
+    )
+}
+
+/// Rule 1 predicate for the scope receiver of a qualified access: `X` in
+/// `X::Y` / `X::Y()` emits as a read (mirrors the C# reference where the
+/// static-access receiver keeps the accessed type/namespace alive). Type
+/// context is detected by the chain's terminal name kind: `identifier` means a
+/// value/callee chain, while `type_identifier`/`template_type` chains belong to
+/// the TypeUsage arm.
+fn is_cpp_scope_receiver_read(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    if parent.kind() != "qualified_identifier"
+        || parent.child_by_field_name("scope").map(|s| s.id()) != Some(node.id())
+    {
+        return false;
+    }
+
+    let outer = outermost_cpp_qualified(parent);
+
+    // Terminal name: descend nested qualified chains to the innermost name.
+    let mut terminal = outer.child_by_field_name("name");
+    while let Some(t) = terminal {
+        if t.kind() == "qualified_identifier" {
+            terminal = t.child_by_field_name("name");
+        } else {
+            break;
+        }
+    }
+    if terminal.map(|t| t.kind()) != Some("identifier") {
+        return false;
+    }
+
+    let Some(owner) = outer.parent() else {
+        return false;
+    };
+    if owner.child_by_field_name("declarator").map(|d| d.id()) == Some(outer.id()) {
+        return false;
+    }
+    // Unlike the terminal name, the scope receiver reads even in a call-callee
+    // chain (`GraphTraversal::reach()`), so only declaration/import contexts
+    // are excluded here.
+    !matches!(
+        owner.kind(),
+        "using_declaration" | "namespace_alias_definition" | "function_declarator"
+    )
 }
 
 /// Truncate a callee segment at its first `<` so generic arguments don't leak

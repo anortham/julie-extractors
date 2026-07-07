@@ -330,4 +330,106 @@ private:
             "Duplicate calls should have different line numbers"
         );
     }
+
+    #[test]
+    fn test_cpp_variable_ref_emission() {
+        // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
+        // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
+        let cpp_code = r#"
+namespace demo {
+
+class GraphTraversal {
+public:
+    static int reach();
+    static int limit;
+};
+
+class Sample {
+public:
+    int bar;
+    static const int visibility_unknown = 3;
+
+    int evaluate(int seed, int unused_param) {
+        int local = seed;                    // declaration name, seed read
+        int dead_local = 1;                  // declaration name, never read
+        local = 7;                           // plain write LHS -> NOT a read
+        local += seed;                       // compound assignment -> read local
+        int got = GraphTraversal::reach();   // GraphTraversal scope receiver -> read
+        int lim = GraphTraversal::limit;     // limit static-member value -> read
+        this->bar = seed;                    // bar owned by MemberAccess arm
+        Sample s{seed};
+        s.bar = local;                       // s member-write receiver -> read
+        return local + lim + got + visibility_unknown;
+    }
+};
+
+// GhostToken appears only in this comment and must never be an identifier.
+}
+"#;
+
+        let mut parser = init_parser();
+        let tree = parser.parse(cpp_code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = CppExtractor::new(
+            "test.cpp".to_string(),
+            cpp_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        // --- Positive cases (rules 1/4) ---
+        for expected in [
+            "seed",               // initializer / RHS / argument value reads
+            "local",              // compound-assignment target + bare return read
+            "GraphTraversal",     // static-access scope receiver (`X` in `X::Y`)
+            "limit",              // qualified static-member value read
+            "s",                  // member-write receiver `s.bar = ...`
+            "got",                // bare return read
+            "lim",                // bare return read
+            "visibility_unknown", // bare return read
+        ] {
+            assert!(
+                var_refs.contains(&expected),
+                "expected C++ variable_ref for {expected}; got {var_refs:?}"
+            );
+        }
+
+        // --- Negative cases (rules 2/3/4/5) ---
+        for forbidden in [
+            "dead_local",   // declaration name only
+            "unused_param", // parameter name only
+            "evaluate",     // method declaration name
+            "reach",        // call callee, owned by the Call arm
+            "bar",          // accessed member, owned by the MemberAccess arm
+            "Sample",       // type usage, owned by the TypeUsage arm
+            "demo",         // namespace definition name
+            "GhostToken",   // comment-only mention
+        ] {
+            assert!(
+                !var_refs.contains(&forbidden),
+                "{forbidden} must NOT be a C++ variable_ref; got {var_refs:?}"
+            );
+        }
+
+        // Receiver + call coexist: GraphTraversal::reach() must still yield a Call.
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.kind == IdentifierKind::Call && id.name.ends_with("reach")),
+            "GraphTraversal::reach() must still yield a Call identifier"
+        );
+
+        // GhostToken must not appear as ANY identifier kind.
+        assert!(
+            !identifiers.iter().any(|id| id.name == "GhostToken"),
+            "comment-only GhostToken must not be extracted at all"
+        );
+    }
 }

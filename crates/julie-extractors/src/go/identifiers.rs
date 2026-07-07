@@ -132,6 +132,28 @@ impl super::GoExtractor {
                 }
             }
 
+            // `variable_ref` complement arm: a bare `identifier` used as a
+            // value or as a selector receiver — the reads the Call/
+            // MemberAccess/TypeUsage arms above do not own. Type positions
+            // never reach here (`type_identifier`), member names are
+            // `field_identifier`, packages in clauses are `package_identifier`,
+            // and labels are `label_name`. See the LOCKED SEMANTIC CONTRACT
+            // doc comment in `csharp/identifiers.rs`.
+            "identifier" if is_go_value_read_identifier(node) => {
+                let name = self.base.get_node_text(&node);
+                // Rule 5: reuse the TypeUsage arm's builtin filter; the
+                // blank identifier is never a read.
+                if !is_go_builtin_type(&name) && name != "_" {
+                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
+                }
+            }
+
             _ => {}
         }
     }
@@ -291,6 +313,83 @@ fn decompose_go_type_arg<'a>(
             Some((base.get_node_text(&inner), None))
         }
     }
+}
+
+/// Rule 1/4 predicate for Go `variable_ref` emission: is this bare
+/// `identifier` a value read or a selector receiver (the complement of the
+/// Call/MemberAccess/TypeUsage arms)? Node kinds and field names were verified
+/// against the vendored tree-sitter-go grammar (see task probes):
+/// `assignment_statement`/`range_clause` wrap their sides in
+/// `expression_list`, declarations carry repeated `name` fields, and
+/// `assignment_statement` carries an anonymous `operator` field (`=`, `+=`).
+fn is_go_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    match parent.kind() {
+        // Assignment/declaration sides are wrapped in an expression_list; the
+        // grandparent decides whether this side binds, writes, or reads.
+        "expression_list" => {
+            let Some(gp) = parent.parent() else {
+                return true;
+            };
+            let is_left = gp.child_by_field_name("left").map(|l| l.id()) == Some(parent.id());
+            match gp.kind() {
+                // Rule 3: `x := ...` and `for k := range ...` bind their LHS;
+                // a `for k = range` LHS is a write target either way.
+                "short_var_declaration" | "range_clause" => !is_left,
+                // Rule 3: `switch v := x.(type)` binds its alias.
+                "type_switch_statement" => {
+                    gp.child_by_field_name("alias").map(|a| a.id()) != Some(parent.id())
+                }
+                // Rule 4: plain-assignment LHS is write-only; compound
+                // assignment (`x += 1`) reads. `x++` is `inc_statement` and
+                // falls through as a read.
+                "assignment_statement" => {
+                    if !is_left {
+                        return true;
+                    }
+                    gp.child_by_field_name("operator")
+                        .map(|op| op.kind() != "=")
+                        .unwrap_or(false)
+                }
+                _ => true,
+            }
+        }
+
+        // Rule 2: the callee is owned by the Call arm; arguments live under
+        // `argument_list` and stay reads.
+        "call_expression" => {
+            parent.child_by_field_name("function").map(|f| f.id()) != Some(node.id())
+        }
+
+        // Rule 3: declaration names (a declaration can carry SEVERAL repeated
+        // `name` fields: `var p, q = ...`, `func f(a, b int)`). Non-name
+        // children (values, defaults) stay reads.
+        "function_declaration"
+        | "var_spec"
+        | "const_spec"
+        | "parameter_declaration"
+        | "variadic_parameter_declaration"
+        | "type_parameter_declaration" => !is_go_name_field_child(parent, node),
+
+        // Every other position — selector `operand` receiver, composite
+        // literal `literal_element` (both keys and values read per the
+        // contract), binary operand, index, argument, return value, channel
+        // send/receive, `inc`/`dec` target — is a read.
+        _ => true,
+    }
+}
+
+/// True when `node` is one of `parent`'s (possibly repeated) `name`-field
+/// children. `child_by_field_name` only returns the FIRST such child, which
+/// would leak `b` in `func f(a, b int)`.
+fn is_go_name_field_child(parent: Node, node: Node) -> bool {
+    let mut cursor = parent.walk();
+    parent
+        .children_by_field_name("name", &mut cursor)
+        .any(|child| child.id() == node.id())
 }
 
 fn is_go_type_usage_identifier(base: &BaseExtractor, node: Node) -> bool {

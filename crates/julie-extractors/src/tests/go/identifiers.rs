@@ -104,3 +104,88 @@ func VariadicFunction(format string, args ...interface{}) {
         );
     }
 }
+
+#[test]
+fn test_go_variable_ref_emission() {
+    // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
+    // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
+    let code = r#"
+package main
+
+type Config struct {
+	Limit int
+}
+
+var visibilityUnknown = 3
+
+func reach() int { return 0 }
+
+func evaluate(seed int, unusedParam int) int {
+	local := seed              // declaration LHS, seed read
+	deadLocal := 1             // declaration LHS, never read (parse-only fixture)
+	local = 7                  // plain write LHS -> NOT a read
+	local += seed              // compound assignment -> read local
+	cfg := Config{Limit: seed} // composite-literal key Limit -> read
+	cfg.Limit = local          // cfg selector receiver -> read
+	got := reach()             // reach owned by the Call arm
+	total := got + visibilityUnknown + cfg.Limit
+	return total
+}
+
+// GhostToken appears only in this comment and must never be an identifier.
+"#;
+
+    let (_symbols, identifiers) = extract_all(code);
+    let var_refs: Vec<&str> = identifiers
+        .iter()
+        .filter(|id| id.kind == IdentifierKind::VariableRef)
+        .map(|id| id.name.as_str())
+        .collect();
+
+    // --- Positive cases (rules 1/4) ---
+    for expected in [
+        "seed",              // RHS / compound-assignment value reads
+        "local",             // compound-assignment target + RHS read
+        "Limit",             // composite-literal key `Config{Limit: seed}`
+        "cfg",               // selector receiver `cfg.Limit`
+        "got",               // binary-expression read
+        "visibilityUnknown", // bare value read
+        "total",             // bare return read
+    ] {
+        assert!(
+            var_refs.contains(&expected),
+            "expected Go variable_ref for {expected}; got {var_refs:?}"
+        );
+    }
+
+    // --- Negative cases (rules 2/3/4/5) ---
+    for forbidden in [
+        "deadLocal",   // := declaration LHS only
+        "unusedParam", // parameter name only
+        "evaluate",    // function declaration name
+        "reach",       // call callee, owned by the Call arm
+        "Config",      // type usage, owned by the TypeUsage arm
+        "int",         // builtin
+        "GhostToken",  // comment-only mention
+        "_",           // blank identifier is never a read
+    ] {
+        assert!(
+            !var_refs.contains(&forbidden),
+            "{forbidden} must NOT be a Go variable_ref; got {var_refs:?}"
+        );
+    }
+
+    // Receiver + call coexist: reach() must still yield a Call identifier.
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "reach" && id.kind == IdentifierKind::Call),
+        "reach() must still yield a Call identifier"
+    );
+
+    // GhostToken must not appear as ANY identifier kind.
+    assert!(
+        !identifiers.iter().any(|id| id.name == "GhostToken"),
+        "comment-only GhostToken must not be extracted at all"
+    );
+}

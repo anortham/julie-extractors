@@ -236,6 +236,38 @@
       "containing_key": "fixtures/extraction/go/malformed_recovery/source.go:Empty:6:4",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/go/malformed_recovery/source.go:args:variable_ref:13:37",
+      "name": "args",
+      "kind": "variable_ref",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/malformed_recovery/source.go",
+      "start_line": 13,
+      "start_column": 37,
+      "end_line": 13,
+      "end_column": 41,
+      "start_byte": 170,
+      "end_byte": 174,
+      "containing_key": "fixtures/extraction/go/malformed_recovery/source.go:VariadicFunction:13:5",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/go/malformed_recovery/source.go:format:variable_ref:13:22",
+      "name": "format",
+      "kind": "variable_ref",
+      "language": "go",
+      "file_path": "fixtures/extraction/go/malformed_recovery/source.go",
+      "start_line": 13,
+      "start_column": 22,
+      "end_line": 13,
+      "end_column": 28,
+      "start_byte": 155,
+      "end_byte": 161,
+      "containing_key": "fixtures/extraction/go/malformed_recovery/source.go:VariadicFunction:13:5",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [],
