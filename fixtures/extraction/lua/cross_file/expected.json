@@ -245,6 +245,22 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:entry:variable_ref:23:7",
+      "name": "entry",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 23,
+      "start_column": 7,
+      "end_line": 23,
+      "end_column": 12,
+      "start_byte": 579,
+      "end_byte": 584,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/lua/cross_file/source.lua:fn:call:19:10",
       "name": "fn",
       "kind": "call",
@@ -256,6 +272,22 @@
       "end_column": 12,
       "start_byte": 528,
       "end_byte": 530,
+      "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:i:variable_ref:16:28",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 16,
+      "start_column": 28,
+      "end_line": 16,
+      "end_column": 29,
+      "start_byte": 496,
+      "end_byte": 497,
       "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
       "target_key": null,
       "confidence": "1.000"
@@ -293,6 +325,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:other:variable_ref:19:4",
+      "name": "other",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 19,
+      "start_column": 4,
+      "end_line": 19,
+      "end_column": 9,
+      "start_byte": 522,
+      "end_byte": 527,
+      "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/lua/cross_file/source.lua:require:call:6:14",
       "name": "require",
       "kind": "call",
@@ -305,6 +353,38 @@
       "start_byte": 303,
       "end_byte": 310,
       "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:total:variable_ref:16:20",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 16,
+      "start_column": 20,
+      "end_line": 16,
+      "end_column": 25,
+      "start_byte": 488,
+      "end_byte": 493,
+      "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/lua/cross_file/source.lua:total:variable_ref:20:11",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "lua",
+      "file_path": "fixtures/extraction/lua/cross_file/source.lua",
+      "start_line": 20,
+      "start_column": 11,
+      "end_line": 20,
+      "end_column": 16,
+      "start_byte": 544,
+      "end_byte": 549,
+      "containing_key": "fixtures/extraction/lua/cross_file/source.lua:entry:12:0",
       "target_key": null,
       "confidence": "1.000"
     }

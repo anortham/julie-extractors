@@ -76,3 +76,109 @@ def login() -> list[AuthResult | User]:
         Some("list[AuthResult | User]")
     );
 }
+
+#[test]
+fn test_python_variable_ref_emission() {
+    // Locked variable_ref contract (see csharp/identifiers.rs): receivers + bare
+    // value reads, the complement of the Call/MemberAccess/TypeUsage arms.
+    let code = r#"
+GHOST = 3
+
+class Sample:
+    def evaluate(self, seed, unused_param):
+        count = 0
+        count += 1                              # compound assignment -> read count
+        x = 5
+        x = 7                                   # plain write LHS -> NOT a read
+        total = seed                            # seed on RHS -> read
+        g = GraphTraversal.reach()              # receiver -> read; reach -> call
+        f = configure(mode=5, source=seed)      # kwarg NAME mode skipped; seed read
+        h = filter_items(is_user_type)          # bare function-ref argument -> read
+        # ghost_token appears only in this comment and must never be extracted
+        return total if total > 0 else visibility_unknown
+"#;
+
+    let (symbols, identifiers, _extractor) = extract_all(code);
+
+    let var_refs: Vec<&str> = identifiers
+        .iter()
+        .filter(|id| id.kind == IdentifierKind::VariableRef)
+        .map(|id| id.name.as_str())
+        .collect();
+
+    // Positive cases (rules 1/4)
+    for expected in [
+        "count",              // compound-assignment target
+        "seed",               // RHS + keyword-argument VALUE read
+        "GraphTraversal",     // attribute receiver
+        "is_user_type",       // bare function-ref argument
+        "total",              // condition + return reads
+        "visibility_unknown", // bare return read
+    ] {
+        assert!(
+            var_refs.contains(&expected),
+            "expected variable_ref for {expected}; got {var_refs:?}"
+        );
+    }
+
+    // Receiver + call coexist: GraphTraversal.reach()
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "reach" && id.kind == IdentifierKind::Call),
+        "GraphTraversal.reach() must still yield a call named reach"
+    );
+
+    // Negative cases (rules 2/3/4/5)
+    for forbidden in [
+        "x",            // plain-write LHS only
+        "unused_param", // parameter name only
+        "mode",         // keyword-argument NAME (parameter ref, per plan)
+        "ghost_token",  // comment-only mention
+        "Sample",       // class declaration name
+        "evaluate",     // method declaration name
+        "GHOST",        // module-level plain-assignment LHS (declaration form)
+        "self",         // receiver convention, filtered
+    ] {
+        assert!(
+            !var_refs.contains(&forbidden),
+            "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+        );
+    }
+    assert!(
+        !identifiers.iter().any(|id| id.name == "ghost_token"),
+        "comment-only ghost_token must not be extracted at all"
+    );
+
+    // No duplicate rows: each (name, kind, span) is unique.
+    let mut keys: Vec<(String, String, u32, u32)> = identifiers
+        .iter()
+        .map(|id| {
+            (
+                id.name.clone(),
+                id.kind.to_string(),
+                id.start_byte,
+                id.end_byte,
+            )
+        })
+        .collect();
+    let before = keys.len();
+    keys.sort();
+    keys.dedup();
+    assert_eq!(before, keys.len(), "duplicate identifier rows detected");
+
+    // containing_symbol_id is populated on a variable_ref.
+    let evaluate = symbols
+        .iter()
+        .find(|s| s.name == "evaluate")
+        .expect("evaluate method extracted");
+    let graph_ref = identifiers
+        .iter()
+        .find(|id| id.name == "GraphTraversal" && id.kind == IdentifierKind::VariableRef)
+        .expect("GraphTraversal variable_ref");
+    assert_eq!(
+        graph_ref.containing_symbol_id.as_deref(),
+        Some(evaluate.id.as_str()),
+        "receiver variable_ref should be contained in evaluate"
+    );
+}

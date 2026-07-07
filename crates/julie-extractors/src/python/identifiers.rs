@@ -172,7 +172,93 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm (locked contract — see the doc comment in
+        // csharp/identifiers.rs): a bare `identifier` used as a value or as the
+        // object/receiver of an attribute access — the reads the Call/MemberAccess/
+        // TypeUsage arms above do not own. Evaluated only after the TypeUsage guard,
+        // so type positions never reach here (single row per node; no duplicates).
+        "identifier" if is_python_value_read_identifier(node) => {
+            let name = extractor.base_mut().get_node_text(&node);
+            // Rule 5: reuse the builtin filter (`True`/`False`/`None` are distinct
+            // grammar nodes and never reach this arm). `self`/`cls` receiver
+            // conventions and `__name__`-style dunders are pure noise for
+            // name-liveness, so they are filtered here as well.
+            if !is_python_builtin_type(&name)
+                && name != "self"
+                && name != "cls"
+                && !(name.starts_with("__") && name.ends_with("__"))
+            {
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                extractor.base_mut().create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         _ => {}
+    }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
+/// value read or an attribute-receiver read (the complement of the Call/
+/// MemberAccess/TypeUsage arms)? Inclusive by default with enumerated
+/// exclusions, mirroring `is_csharp_value_read_identifier`. Node kinds and
+/// field names verified against the vendored tree-sitter-python 0.25.0 grammar.
+fn is_python_value_read_identifier(node: Node) -> bool {
+    // Rule 3: never a class/function/type-alias definition name.
+    if is_python_declaration_name(node) {
+        return false;
+    }
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_name_field = parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 2: the callee is owned by the Call arm; argument identifiers sit
+        // inside `argument_list`, not directly under `call`.
+        "call" => parent.child_by_field_name("function").map(|f| f.id()) != Some(node.id()),
+        // Rule 1/2: only the object (receiver) of an attribute access is a read;
+        // the accessed `.name` is owned by the MemberAccess/Call/TypeUsage arms.
+        "attribute" => parent.child_by_field_name("object").map(|o| o.id()) == Some(node.id()),
+        // Rule 4: a plain assignment LHS is write-only — and it is also how
+        // Python declares locals/globals, so this covers rule 3 for variables.
+        "assignment" => parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id()),
+        // Rule 4: an augmented assignment (`x += 1`) reads both sides.
+        "augmented_assignment" => true,
+        // The walrus (`n := seed`) binds its `name`; the value is a read.
+        "named_expression" => !is_name_field,
+        // Per plan: keyword-argument NAMES (`foo(bar=5)`) are parameter refs —
+        // skip them; keyword-argument VALUES are reads.
+        "keyword_argument" => !is_name_field,
+        // Rule 3: parameter declarations (a default VALUE is a read).
+        "parameters" | "lambda_parameters" | "typed_parameter" => false,
+        "default_parameter" | "typed_default_parameter" => !is_name_field,
+        // Rule 4: destructuring / splat patterns are write targets.
+        "pattern_list"
+        | "tuple_pattern"
+        | "list_pattern"
+        | "list_splat_pattern"
+        | "dictionary_splat_pattern" => false,
+        // Rule 4: the for-loop target binds; the iterated collection is a read.
+        "for_statement" => parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id()),
+        // `with … as X` / `except E as X` bind X.
+        "as_pattern_target" => false,
+        // Rule 3: import paths and aliases are declarations, not reads.
+        "dotted_name"
+        | "aliased_import"
+        | "import_statement"
+        | "import_from_statement"
+        | "relative_import" => false,
+        // `global`/`nonlocal`/`del` mention names without reading their values.
+        "global_statement" | "nonlocal_statement" | "delete_statement" => false,
+        // Every other expression/statement value slot — return / operand /
+        // argument / condition / collection element / subscript / decorator — is
+        // a read.
+        _ => true,
     }
 }
 

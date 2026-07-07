@@ -157,10 +157,75 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm (locked contract — see the doc comment
+        // in csharp/identifiers.rs): a bare `identifier` used as a value or as
+        // the table receiver of a dot/method index — the reads the Call/
+        // MemberAccess arms above do not own. `nil`/`true`/`false` are distinct
+        // grammar nodes and never reach here.
+        "identifier" if is_lua_value_read_identifier(node) => {
+            let name = extractor.base().get_node_text(&node);
+            // Rule 5: `self` is a receiver convention, never a symbol name.
+            if name != "self" {
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                extractor.base_mut().create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         _ => {
             // Skip other node types for now
             // Future: type usage, import statements, etc.
         }
+    }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
+/// value read or a table-receiver read (the complement of the Call/MemberAccess
+/// arms)? Inclusive by default with enumerated exclusions, mirroring
+/// `is_csharp_value_read_identifier`. Node kinds and field names verified
+/// against the vendored tree-sitter-lua 0.5.0 grammar.
+fn is_lua_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_name_field = parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 2: the callee is owned by the Call arm; call arguments sit inside
+        // an `arguments` node, not directly under `function_call`.
+        "function_call" => false,
+        // Rule 1/2: only the `table` receiver of a dot/method index is our read;
+        // the accessed field/method name is owned by the Call/MemberAccess arms.
+        // This also fires for `function Obj.helper()` declarations, where `Obj`
+        // is a genuine table read that keeps the table name-live.
+        "dot_index_expression" | "method_index_expression" => {
+            parent.child_by_field_name("table").map(|t| t.id()) == Some(node.id())
+        }
+        // Rule 4: `variable_list` is the LHS of assignment_statement — Lua's
+        // plain write AND its declaration form (`local x = 5`). Lua has no
+        // compound assignment, so every direct LHS identifier is write-only.
+        // (Generic-for loop variables also sit in a `variable_list`.)
+        "variable_list" => false,
+        // Rule 3: parameter and function declaration names.
+        "parameters" => false,
+        "function_declaration" | "function_definition" => false,
+        // Rule 4: the numeric-for loop variable binds; start/end/step are reads.
+        "for_numeric_clause" => !is_name_field,
+        // Rule 3: labels are not values.
+        "goto_statement" | "label_statement" => false,
+        // A table-constructor field: `key = v` has a syntactic key (skip); a
+        // computed `[k] = v` key is a read; the value side is always a read.
+        "field" if is_name_field => node
+            .prev_sibling()
+            .map(|s| s.kind() == "[")
+            .unwrap_or(false),
+        // Every other value slot — expression_list element, argument, binary
+        // operand, condition, return value — is a read.
+        _ => true,
     }
 }
 

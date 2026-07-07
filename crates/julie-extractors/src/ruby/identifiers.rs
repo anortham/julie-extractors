@@ -120,9 +120,86 @@ fn extract_identifier_from_node(
             base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing_symbol_id);
         }
 
+        // `variable_ref` complement arm (locked contract — see the doc comment in
+        // csharp/identifiers.rs): a bare `identifier` used as a value or as the
+        // receiver of a call — the reads the Call/MemberAccess/TypeUsage arms
+        // above do not own.
+        //
+        // Ruby boundary: a bare lowercase identifier in value position can be a
+        // local read OR a receiverless zero-arg method call. tree-sitter-ruby
+        // yields a `call` node only when parens/args/blocks/receivers are
+        // present (owned by the Call arm above); the bare-`identifier`
+        // complement lands here, making both meanings name-visible. Constants
+        // are `constant` nodes and stay owned by the TypeUsage arm; `self`/
+        // `nil`/`true`/`false` are distinct grammar nodes and never reach here.
+        "identifier" if is_ruby_value_read_identifier(node) => {
+            let name = base.get_node_text(&node);
+            // Rule 5: Ruby has no builtin-type filter to reuse; the only
+            // keyword-like bare identifiers worth filtering are the visibility
+            // modifiers, which appear in statement position in nearly every
+            // class and are never symbol names.
+            if !matches!(
+                name.as_str(),
+                "private" | "protected" | "public" | "module_function"
+            ) {
+                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+
+                base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         _ => {
             // Skip other node types for now
         }
+    }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
+/// value read or a call-receiver read (the complement of the Call/MemberAccess/
+/// TypeUsage arms)? Inclusive by default with enumerated exclusions, mirroring
+/// `is_csharp_value_read_identifier`. Node kinds and field names verified
+/// against the vendored tree-sitter-ruby 0.23.1 grammar.
+fn is_ruby_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_name_field = parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 1/2: only the receiver of a `call` is our read; the `method`
+        // name is owned by the Call/MemberAccess arms.
+        "call" => parent.child_by_field_name("receiver").map(|r| r.id()) == Some(node.id()),
+        // Rule 4: a plain assignment LHS is write-only — and it is also how Ruby
+        // declares locals, so this covers rule 3 for variables.
+        "assignment" => parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id()),
+        // Rule 4: a compound assignment (`x += 1`, `y ||= total`) reads both sides.
+        "operator_assignment" => true,
+        // Rule 4: multiple-assignment targets are writes.
+        "left_assignment_list" | "destructured_left_assignment" | "rest_assignment" => false,
+        // Rule 3: parameter declarations (an optional/keyword default VALUE is a read).
+        "method_parameters"
+        | "block_parameters"
+        | "lambda_parameters"
+        | "splat_parameter"
+        | "hash_splat_parameter"
+        | "block_parameter" => false,
+        "optional_parameter" | "keyword_parameter" => !is_name_field,
+        // Rule 3: method definition names.
+        "method" | "singleton_method" => !is_name_field,
+        // Rule 4: the `for` loop pattern binds; the iterated value is a read.
+        "for" => parent.child_by_field_name("pattern").map(|p| p.id()) != Some(node.id()),
+        // `rescue … => err` binds err.
+        "exception_variable" => false,
+        // Rule 3: alias/undef operate on method-name positions, not values.
+        "alias" | "undef" => false,
+        // Every other value slot — argument, array element, ternary/condition
+        // operand, binary operand, return value, interpolation — is a read.
+        _ => true,
     }
 }
 

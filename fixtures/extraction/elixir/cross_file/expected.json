@@ -256,6 +256,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/elixir/cross_file/source.ex:acc:variable_ref:14:17",
+      "name": "acc",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
+      "start_line": 14,
+      "start_column": 17,
+      "end_line": 14,
+      "end_column": 20,
+      "start_byte": 457,
+      "end_byte": 460,
+      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/elixir/cross_file/source.ex:for:call:13:8",
       "name": "for",
       "kind": "call",
@@ -267,6 +283,22 @@
       "end_column": 11,
       "start_byte": 412,
       "end_byte": 415,
+      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/cross_file/source.ex:i:variable_ref:14:23",
+      "name": "i",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
+      "start_line": 14,
+      "start_column": 23,
+      "end_line": 14,
+      "end_column": 24,
+      "start_byte": 463,
+      "end_byte": 464,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"
@@ -331,6 +363,22 @@
       "end_column": 16,
       "start_byte": 520,
       "end_byte": 525,
+      "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/cross_file/source.ex:total:variable_ref:21:4",
+      "name": "total",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
+      "start_line": 21,
+      "start_column": 4,
+      "end_line": 21,
+      "end_column": 9,
+      "start_byte": 532,
+      "end_byte": 537,
       "containing_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
       "target_key": null,
       "confidence": "1.000"

@@ -379,3 +379,126 @@ function standalone(App $app): void {
         "App type_usage should be contained within standalone function"
     );
 }
+
+#[test]
+fn test_php_variable_ref_emission() {
+    // Locked variable_ref contract (see csharp/identifiers.rs): receivers + bare
+    // value reads, the complement of the Call/MemberAccess/TypeUsage arms.
+    // PHP variable rows use the sigil-free inner `name` text ($total -> "total"),
+    // matching extract_variable_assignment symbol naming.
+    let php_code = r#"<?php
+
+class Sample {
+    public int $bar = 0;
+
+    public function evaluate(int $seed, int $unusedParam): int {
+        $count = 0;
+        $count += 1;                            // compound assignment -> read count
+        $x = 5;
+        $x = 7;                                 // plain write LHS -> NOT a read
+        $total = $seed;                         // seed on RHS -> read
+        $g = GraphTraversal::reach();           // scope receiver -> read; reach -> call
+        $f = configure(mode: 5, source: $seed); // named-arg LABEL mode skipped; seed read
+        // ghostToken appears only in this comment and must never be extracted
+        echo VISIBILITY_UNKNOWN;                // bare constant read
+        return $total > 0 ? $total : $fallback;
+    }
+}
+"#;
+
+    let mut parser = init_parser();
+    let tree = parser.parse(php_code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = PhpExtractor::new(
+        "php".to_string(),
+        "test.php".to_string(),
+        php_code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    let var_refs: Vec<&str> = identifiers
+        .iter()
+        .filter(|id| id.kind == IdentifierKind::VariableRef)
+        .map(|id| id.name.as_str())
+        .collect();
+
+    // Positive cases (rules 1/4)
+    for expected in [
+        "count",              // compound-assignment target
+        "seed",               // RHS + named-argument VALUE read
+        "total",              // condition + ternary reads
+        "GraphTraversal",     // static-call scope receiver
+        "VISIBILITY_UNKNOWN", // bare constant read (echo)
+        "fallback",           // bare value read
+    ] {
+        assert!(
+            var_refs.contains(&expected),
+            "expected variable_ref for {expected}; got {var_refs:?}"
+        );
+    }
+
+    // Receiver + call coexist: GraphTraversal::reach()
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "reach" && id.kind == IdentifierKind::Call),
+        "GraphTraversal::reach() must still yield a call named reach"
+    );
+
+    // Negative cases (rules 2/3/4/5)
+    for forbidden in [
+        "x",           // plain-write LHS only
+        "unusedParam", // parameter name only
+        "mode",        // named-argument LABEL (parameter ref, per plan)
+        "ghostToken",  // comment-only mention
+        "Sample",      // class declaration name
+        "evaluate",    // method declaration name
+        "bar",         // property declaration name
+        "this",        // receiver convention, filtered
+        "configure",   // call callee (owned by the Call arm)
+        "int",         // primitive_type node, never an identifier here
+    ] {
+        assert!(
+            !var_refs.contains(&forbidden),
+            "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+        );
+    }
+    assert!(
+        !identifiers.iter().any(|id| id.name == "ghostToken"),
+        "comment-only ghostToken must not be extracted at all"
+    );
+
+    // No duplicate rows: each (name, kind, span) is unique.
+    let mut keys: Vec<(String, String, u32, u32)> = identifiers
+        .iter()
+        .map(|id| {
+            (
+                id.name.clone(),
+                id.kind.to_string(),
+                id.start_byte,
+                id.end_byte,
+            )
+        })
+        .collect();
+    let before = keys.len();
+    keys.sort();
+    keys.dedup();
+    assert_eq!(before, keys.len(), "duplicate identifier rows detected");
+
+    // containing_symbol_id is populated on a variable_ref.
+    let evaluate = symbols
+        .iter()
+        .find(|s| s.name == "evaluate")
+        .expect("evaluate method extracted");
+    let graph_ref = identifiers
+        .iter()
+        .find(|id| id.name == "GraphTraversal" && id.kind == IdentifierKind::VariableRef)
+        .expect("GraphTraversal variable_ref");
+    assert_eq!(
+        graph_ref.containing_symbol_id.as_deref(),
+        Some(evaluate.id.as_str()),
+        "receiver variable_ref should be contained in evaluate"
+    );
+}

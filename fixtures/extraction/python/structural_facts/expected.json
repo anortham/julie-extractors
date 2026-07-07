@@ -82,7 +82,40 @@
   "relationships": [],
   "pending_relationships": [],
   "structured_pending_relationships": [],
-  "identifiers": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/python/structural_facts/source.py:fn:variable_ref:2:11",
+      "name": "fn",
+      "kind": "variable_ref",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "start_line": 2,
+      "start_column": 11,
+      "end_line": 2,
+      "end_column": 13,
+      "start_byte": 26,
+      "end_byte": 28,
+      "containing_key": "fixtures/extraction/python/structural_facts/source.py:timed:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/python/structural_facts/source.py:timed:variable_ref:5:1",
+      "name": "timed",
+      "kind": "variable_ref",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/structural_facts/source.py",
+      "start_line": 5,
+      "start_column": 1,
+      "end_line": 5,
+      "end_column": 6,
+      "start_byte": 32,
+      "end_byte": 37,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [

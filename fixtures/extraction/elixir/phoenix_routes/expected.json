@@ -203,6 +203,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/elixir/phoenix_routes/source.ex:path:variable_ref:28:20",
+      "name": "path",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/phoenix_routes/source.ex",
+      "start_line": 28,
+      "start_column": 20,
+      "end_line": 28,
+      "end_column": 24,
+      "start_byte": 701,
+      "end_byte": 705,
+      "containing_key": "fixtures/extraction/elixir/phoenix_routes/source.ex:MyAppWeb.Router:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/elixir/phoenix_routes/source.ex:pipe_through:call:9:4",
       "name": "pipe_through",
       "kind": "call",
@@ -326,6 +342,22 @@
       "end_column": 7,
       "start_byte": 107,
       "end_byte": 112,
+      "containing_key": "fixtures/extraction/elixir/phoenix_routes/source.ex:MyAppWeb.Router:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/elixir/phoenix_routes/source.ex:tenant:variable_ref:27:18",
+      "name": "tenant",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/phoenix_routes/source.ex",
+      "start_line": 27,
+      "start_column": 18,
+      "end_line": 27,
+      "end_column": 24,
+      "start_byte": 647,
+      "end_byte": 653,
       "containing_key": "fixtures/extraction/elixir/phoenix_routes/source.ex:MyAppWeb.Router:1:0",
       "target_key": null,
       "confidence": "1.000"

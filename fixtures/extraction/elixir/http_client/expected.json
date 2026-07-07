@@ -584,6 +584,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/elixir/http_client/source.ex:id:variable_ref:18:22",
+      "name": "id",
+      "kind": "variable_ref",
+      "language": "elixir",
+      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
+      "start_line": 18,
+      "start_column": 22,
+      "end_line": 18,
+      "end_column": 24,
+      "start_byte": 379,
+      "end_byte": 381,
+      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/elixir/http_client/source.ex:moduledoc:call:2:3",
       "name": "moduledoc",
       "kind": "call",

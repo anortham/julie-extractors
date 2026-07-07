@@ -102,8 +102,142 @@ fn extract_identifier_from_node(
                 let containing = find_containing_symbol_id(base, node, symbol_map);
                 base.create_identifier(&node, name, IdentifierKind::TypeUsage, containing);
             }
+        // `variable_ref` complement arm (locked contract — see the doc comment
+        // in csharp/identifiers.rs): a bare `identifier` used as a value or as
+        // the variable receiver of a dot access (`conn` in `conn.status`) — the
+        // reads the Call/dot arms above do not own. Module receivers are `alias`
+        // nodes and stay owned by the dot/alias arms (no double emission);
+        // keyword-list keys are atoms and never reach here; `nil`/`true`/`false`
+        // are distinct grammar nodes.
+        "identifier" if is_elixir_value_read_identifier(base, node) => {
+            let name = base.get_node_text(&node);
+            // Rule 5: `__MODULE__`-style special forms are never symbol names;
+            // a bare `_` placeholder only occurs in patterns but is filtered
+            // defensively.
+            if name != "_" && !(name.starts_with("__") && name.ends_with("__")) {
+                let containing = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
+            }
+        }
         _ => {}
     }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
+/// value read or a dot-receiver read (the complement of the Call/dot arms)?
+///
+/// Elixir is expression/pattern soup, so unlike the single-parent C# predicate
+/// this needs two checks verified against the vendored tree-sitter-elixir 0.3
+/// grammar:
+/// 1. parent-local ownership (call targets, dot members), then
+/// 2. an ancestor walk excluding pattern binds (`=`/`<-` LHS, stab-clause
+///    heads), def/defp/defmacro function heads, and `@spec`-family typespec
+///    trees (owned by the typespec walk). A pinned `^var` in a pattern is a
+///    READ and short-circuits to true.
+fn is_elixir_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    match parent.kind() {
+        // Rule 2: a call target is owned by the Call arm (or is a definition
+        // macro handled there).
+        "call" => {
+            if parent.child_by_field_name("target").map(|t| t.id()) == Some(node.id()) {
+                return false;
+            }
+        }
+        // Rule 1/2: only the left (receiver) of a dot is our read; the right
+        // side is the accessed member.
+        "dot" => {
+            return parent.child_by_field_name("left").map(|l| l.id()) == Some(node.id());
+        }
+        _ => {}
+    }
+
+    // Ancestor walk: exclude pattern binds, function heads, and typespec trees.
+    let mut prev = node;
+    let mut current = parent;
+    loop {
+        match current.kind() {
+            // Rule 4: the LHS of a `=` match or `<-` generator binds (write);
+            // everything on the RHS reads. A pin below already returned true.
+            "binary_operator" => {
+                let is_bind_op = current
+                    .child_by_field_name("operator")
+                    .map(|op| matches!(op.kind(), "=" | "<-"))
+                    .unwrap_or(false);
+                if is_bind_op
+                    && current.child_by_field_name("left").map(|l| l.id()) == Some(prev.id())
+                {
+                    return false;
+                }
+            }
+            // Rule 1/4: `^var` inside a pattern is a read of the bound value.
+            "unary_operator" => {
+                let op = current.child_by_field_name("operator").map(|o| o.kind());
+                if op == Some("^") {
+                    return true;
+                }
+                // Rule 2: `@spec`/`@type`-family attribute trees are owned by
+                // the typespec walk; `@other_attribute` reads stay ours.
+                if op == Some("@") && is_elixir_typespec_attribute(base, current) {
+                    return false;
+                }
+            }
+            // Rule 3: a stab-clause head (`fn q -> …`, `case … do; pat -> …`)
+            // binds its patterns.
+            "stab_clause" => {
+                if current.child_by_field_name("left").map(|l| l.id()) == Some(prev.id()) {
+                    return false;
+                }
+            }
+            // Rule 3: inside a def/defp/defmacro/defguard head (reached without
+            // crossing a body boundary) — parameter patterns and head names.
+            "call" => {
+                if current
+                    .child_by_field_name("target")
+                    .map(|t| {
+                        t.kind() == "identifier" && is_definition_keyword(&base.get_node_text(&t))
+                    })
+                    .unwrap_or(false)
+                {
+                    return false;
+                }
+            }
+            // Crossing into a body context: do-blocks, stab bodies, or the
+            // keyword list carrying `do:`/`else:` bodies. Anything past these
+            // is an ordinary value slot.
+            "do_block" | "body" | "keywords" | "source" => return true,
+            _ => {}
+        }
+        prev = current;
+        let Some(next) = current.parent() else {
+            return true;
+        };
+        current = next;
+    }
+}
+
+/// True when `attr` (a `@` unary_operator) is a `@spec`/`@type`-family
+/// attribute whose tree is owned by the typespec walk (see
+/// `extract_typespec_type_arguments_from_attribute`).
+fn is_elixir_typespec_attribute(base: &BaseExtractor, attr: Node) -> bool {
+    let Some(operand) = attr.child_by_field_name("operand") else {
+        return false;
+    };
+    if operand.kind() != "call" {
+        return false;
+    }
+    operand
+        .child_by_field_name("target")
+        .map(|t| {
+            t.kind() == "identifier"
+                && matches!(
+                    base.get_node_text(&t).as_str(),
+                    "spec" | "type" | "typep" | "opaque" | "callback" | "macrocallback"
+                )
+        })
+        .unwrap_or(false)
 }
 
 fn is_definition_keyword(name: &str) -> bool {

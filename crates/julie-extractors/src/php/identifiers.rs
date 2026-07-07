@@ -152,9 +152,214 @@ pub(super) fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm, `$variable` half (locked contract — see
+        // the doc comment in csharp/identifiers.rs): a `variable_name` used as a
+        // value or as the object/receiver of a member access — the reads the
+        // Call/MemberAccess/TypeUsage arms above do not own. The row uses the
+        // sigil-free inner `name` text (`$total` -> `total`), matching
+        // `extract_variable_assignment` symbol naming so name-liveness matches.
+        "variable_name" => {
+            if is_php_value_read_variable(node) {
+                let name = php_variable_bare_name(extractor.get_base(), node);
+                // Rule 5: `$this` is a receiver convention, never a symbol name.
+                if let Some(name) = name
+                    && name != "this"
+                {
+                    let containing_symbol_id =
+                        find_containing_symbol_id(extractor, node, symbol_map);
+                    extractor.get_base_mut().create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
+                }
+            }
+        }
+
+        // `variable_ref` complement arm, bare-`name` half: constants in value
+        // position (`echo VISIBILITY_UNKNOWN`) and class receivers of static
+        // access (`GraphTraversal` in `GraphTraversal::reach()`) — names the
+        // Call/MemberAccess/TypeUsage arms above do not own.
+        "name" if is_php_value_read_name(node) => {
+            let name = extractor.get_base().get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+            extractor.get_base_mut().create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
         _ => {
             // Skip other node types for now
         }
+    }
+}
+
+/// The sigil-free name of a `variable_name` node (`$total` -> `total`).
+fn php_variable_bare_name(base: &BaseExtractor, node: Node) -> Option<String> {
+    let mut cursor = node.walk();
+    let name_node = node
+        .named_children(&mut cursor)
+        .find(|c| c.kind() == "name");
+    match name_node {
+        Some(n) => Some(base.get_node_text(&n)),
+        None => {
+            let text = base.get_node_text(&node);
+            let trimmed = text.trim_start_matches('$');
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        }
+    }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm, `$variable` half: is this
+/// `variable_name` a value read or a receiver read? Inclusive by default with
+/// enumerated exclusions, mirroring `is_csharp_value_read_identifier`. Node
+/// kinds and field names verified against the vendored tree-sitter-php 0.24.2
+/// grammar.
+fn is_php_value_read_variable(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_name_field = parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 4: a plain assignment LHS is write-only (also PHP's declaration
+        // form for locals); a compound assignment reads both sides.
+        "assignment_expression" => {
+            parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id())
+        }
+        "augmented_assignment_expression" => true,
+        // Rule 1/2: only the object/scope receiver of a member/scoped access is
+        // our read; the accessed member `name` is owned by the Call/MemberAccess
+        // arms (or is member-shaped for scoped property access).
+        "member_access_expression"
+        | "member_call_expression"
+        | "nullsafe_member_access_expression"
+        | "nullsafe_member_call_expression" => {
+            parent.child_by_field_name("object").map(|o| o.id()) == Some(node.id())
+        }
+        "scoped_call_expression" | "scoped_property_access_expression" => {
+            parent.child_by_field_name("scope").map(|s| s.id()) == Some(node.id())
+        }
+        // Rule 3: declarations — parameters, properties, static/global binders,
+        // catch binders.
+        "simple_parameter"
+        | "variadic_parameter"
+        | "property_promotion_parameter"
+        | "property_element"
+        | "static_variable_declaration"
+        | "global_declaration"
+        | "catch_clause" => false,
+        // Rule 4: `[$a, $b] = …` / `list($a, $b) = …` destructuring targets.
+        "list_literal" => false,
+        // Rule 4: `foreach ($items as $item)` — the source before `as` is a
+        // read; bound variables after `as` are writes.
+        "foreach_statement" => php_precedes_as_keyword(parent, node),
+        "pair" | "by_ref" => {
+            // A `$k => $v` pair (or by-ref binder) directly under foreach binds;
+            // pairs in array literals are value reads.
+            !parent
+                .parent()
+                .map(|gp| gp.kind() == "foreach_statement")
+                .unwrap_or(false)
+        }
+        // Dynamic member names (`$obj->$prop`) ride in a `name` field — the
+        // member side is rule-2 territory; receivers were handled above.
+        _ if is_name_field => !matches!(parent.kind(), "member_access_expression"),
+        // Every other value slot — argument, array element, echo/print operand,
+        // condition, return value, interpolation, use-clause capture — is a read.
+        _ => true,
+    }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm, bare-`name` half. PHP `name`
+/// nodes appear in many syntactic positions; only genuine value reads and
+/// static-access receivers qualify. Verified against tree-sitter-php 0.24.2.
+fn is_php_value_read_name(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    match parent.kind() {
+        // Rule 2: the inner `name` of a `$variable` is owned by the
+        // `variable_name` arm — never emit it twice.
+        "variable_name" => false,
+        // Rule 2: callees and accessed member names are owned by the Call/
+        // MemberAccess arms; only the static `scope` receiver is our read.
+        "function_call_expression"
+        | "member_call_expression"
+        | "member_access_expression"
+        | "nullsafe_member_call_expression"
+        | "nullsafe_member_access_expression" => false,
+        "scoped_call_expression" | "scoped_property_access_expression" => {
+            parent.child_by_field_name("scope").map(|s| s.id()) == Some(node.id())
+        }
+        // `Foo::BAR`: the first named child is the class receiver (a read); the
+        // accessed constant is member-shaped (rule 2, unowned today).
+        "class_constant_access_expression" => {
+            let mut cursor = parent.walk();
+            parent.named_children(&mut cursor).next().map(|c| c.id()) == Some(node.id())
+        }
+        // Rule 2: type positions (owned by the TypeUsage arm or type-shaped).
+        "named_type"
+        | "object_creation_expression"
+        | "base_clause"
+        | "class_interface_clause"
+        | "attribute" => false,
+        // Rule 3: namespace/import machinery and aliases.
+        "namespace_name"
+        | "qualified_name"
+        | "namespace_use_clause"
+        | "namespace_aliasing_clause"
+        | "namespace_definition"
+        | "namespace_use_group"
+        | "use_declaration" => false,
+        // Rule 3: declaration names.
+        "class_declaration"
+        | "interface_declaration"
+        | "trait_declaration"
+        | "enum_declaration"
+        | "enum_case"
+        | "function_definition"
+        | "method_declaration"
+        | "const_element"
+        | "const_declaration" => false,
+        // Per plan: named-argument LABELS (`foo(bar: 5)`) are parameter refs — skip.
+        "argument" => parent.child_by_field_name("name").map(|n| n.id()) != Some(node.id()),
+        // Rule 2: the `instanceof` RHS is owned by the binary_expression
+        // TypeUsage arm; other binary operands are reads.
+        "binary_expression" => {
+            let is_instanceof_rhs = parent
+                .child_by_field_name("operator")
+                .map(|op| op.kind() == "instanceof")
+                .unwrap_or(false)
+                && parent.child_by_field_name("right").map(|r| r.id()) == Some(node.id());
+            !is_instanceof_rhs
+        }
+        // Every other value slot — echo operand, array element, condition,
+        // argument value, return value — is a read.
+        _ => true,
+    }
+}
+
+/// True when `node` starts before the `as` keyword of a `foreach` statement —
+/// i.e. it is the iterated source (a read), not a bound loop variable.
+fn php_precedes_as_keyword(foreach_node: Node, node: Node) -> bool {
+    let mut cursor = foreach_node.walk();
+    let as_start = foreach_node
+        .children(&mut cursor)
+        .find(|c| c.kind() == "as")
+        .map(|c| c.start_byte());
+    match as_start {
+        Some(as_start) => node.start_byte() < as_start,
+        None => true,
     }
 }
 
