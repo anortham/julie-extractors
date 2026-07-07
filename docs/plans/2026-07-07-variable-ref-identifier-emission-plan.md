@@ -20,7 +20,7 @@ These bind every task. Copy verbatim into every worker prompt.
 1. **Read in value or receiver position** — N is a reference to a binding used as an expression, operand, argument, initializer, return value, collection element, OR **the object/receiver of a member access** (`X` in `X.Y` / `X.Y()` / `X::Y`), OR a **member-reference LHS in an initializer/named-argument context** — the member name in an object/record initializer (`Bar` in `new Foo { Bar = 5 }`), an attribute/annotation named argument (`Bar` in `[Foo(Bar = 1)]`), and equivalent per-language constructs (Python keyword-arg names are parameter refs, NOT this — skip those). These are syntactically distinguishable member references, not local write targets; without them, an internal property set only via initializers is falsely flagged dead (its only textual reference is one the old same-file lexical scan caught and pure read-emission would miss).
 2. **Not already emitted by another arm** — N is not a call callee (`Call`), not the accessed `.name` of a member access (`MemberAccess`/`Call`), not a type usage (`TypeUsage`). The `variable_ref` arm is the *complement* of the arms already in that file.
 3. **Not a declaration name** — N is not the defining identifier of a type/method/property/field/enum-member/parameter/local declaration, a label, or an import/using-alias LHS.
-4. **Not a write-only target** — N is not the LHS of a **plain** assignment (`x = 5`) nor a write-only `out`/`ref` slot. A **compound assignment** (`x += 1`, `x ||= y`) IS a read — emit. Initializer/named-argument member LHS is a read per rule 1 — emit. Liveness counts *reads*; a binding only ever plain-written is not "used." **Accepted residual (document, don't fight):** a non-local written only via bare same-class assignment (`Bar = 5;` where `Bar` is a property) is grammatically indistinguishable from a local write without scope analysis and will NOT emit; a write-only property/constant that surfaces as a candidate is classified a **true dead-ish find** at the gate (see gate classification note), not a false positive.
+4. **Not a write-only target** — N is not the LHS of a **plain** assignment (`x = 5`). A **compound assignment** (`x += 1`, `x ||= y`) IS a read — emit. An `out`/`ref`-style argument slot MAY emit as a read (as-built C# reference behavior: any non-label argument child is a read) — emitting is the safe direction and bare write-slot targets are locals, which are never dead-code candidates; do not add per-language complexity to exclude them. Initializer/named-argument member LHS is a read per rule 1 — emit. Liveness counts *reads*; a binding only ever plain-written is not "used." **Accepted residual (document, don't fight):** a non-local written only via bare same-class assignment (`Bar = 5;` where `Bar` is a property) is grammatically indistinguishable from a local write without scope analysis and will NOT emit; a write-only property/constant that surfaces as a candidate is classified a **true dead-ish find** at the gate (see gate classification note), not a false positive.
 5. **Not a keyword/builtin** — reuse each language's existing builtin/keyword filter (the same one the `type_usage` arm uses, e.g. C#'s `is_csharp_builtin_type`); do not emit `true`, `null`, `this`, `base`, contextual keywords, or builtin type names.
 6. **`containing_symbol_id`** is set via the existing byte-range containment helper (`find_containing_symbol[_from_map]`), exactly as the sibling arms do.
 
@@ -117,13 +117,13 @@ Add `fn is_csharp_value_read_identifier(node) -> bool` mirroring the structure o
 **Step 5 — Apply commit mode (`serial-worker-commit`).** Commit `crates/julie-extractors/src/csharp/identifiers.rs` + `fixtures/extraction/csharp/**` after the per-language gate passes. Commit body ends with `Claude-Session: https://claude.ai/code/session_011wAsc41pUFZpynGDGyxrrm`.
 
 **Acceptance criteria:**
-- [ ] `GraphTraversal.Reach()` yields a `variable_ref` named `GraphTraversal` (receiver) + a `call` named `Reach`.
-- [ ] `return VisibilityUnknown;` and a method-group arg yield `variable_ref` rows by name.
-- [ ] Object-initializer members, attribute named args, compound-assignment targets, and `nameof` operands yield rows (rule 1/4 amendments).
-- [ ] Declaration names, parameter names, plain-assignment-LHS locals, builtins, and comment-only mentions get NO `variable_ref`.
-- [ ] No duplicate identifier rows; existing call/member/type rows unchanged.
-- [ ] The locked contract doc-comment + the fixture-regen procedure are recorded for rollout tasks.
-- [ ] `cargo test -p julie-extractors csharp` green; change committed.
+- [x] `GraphTraversal.Reach()` yields a `variable_ref` named `GraphTraversal` (receiver) + a `call` named `Reach`.
+- [x] `return VisibilityUnknown;` and a method-group arg yield `variable_ref` rows by name.
+- [x] Object-initializer members, attribute named args, compound-assignment targets, and `nameof` operands yield rows (rule 1/4 amendments).
+- [x] Declaration names, parameter names, plain-assignment-LHS locals, builtins, and comment-only mentions get NO `variable_ref`.
+- [x] No duplicate identifier rows; existing call/member/type rows unchanged.
+- [x] The locked contract doc-comment + the fixture-regen procedure are recorded for rollout tasks.
+- [x] `cargo test -p julie-extractors csharp` green; change committed.
 
 ---
 
