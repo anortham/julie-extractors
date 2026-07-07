@@ -9,6 +9,9 @@ use serde::Serialize;
 use serde_json::{Map, Value, json};
 
 use crate::metadata::{REQUIRED_METADATA_KEYS, read_metadata};
+use crate::resolution_store::{
+    KEY_RESOLUTION_LAST_FULL_REVISION, KEY_RESOLUTION_STATUS, KEY_RESOLUTION_VERSION,
+};
 use crate::schema::EXTRACT_CONTRACT_VERSION;
 
 pub const JSONL_SCHEMA_VERSION: i64 = 3;
@@ -211,6 +214,10 @@ fn export_artifact<W: Write>(
         "capability_snapshot_fingerprint": required_metadata(metadata, "capability_snapshot_fingerprint")?,
         "created_at": required_metadata(metadata, "created_at")?,
         "updated_at": required_metadata(metadata, "updated_at")?,
+        "reference_resolution_status": metadata.get(KEY_RESOLUTION_STATUS),
+        "reference_resolution_version": optional_metadata_i64(metadata, KEY_RESOLUTION_VERSION)?,
+        "reference_resolution_last_full_revision":
+            optional_metadata_i64(metadata, KEY_RESOLUTION_LAST_FULL_REVISION)?,
     });
     write_record(
         writer,
@@ -1685,6 +1692,25 @@ fn metadata_i64(metadata: &BTreeMap<String, String>, key: &'static str) -> Jsonl
             key,
             value: value.to_string(),
         })
+}
+
+/// Absent key exports as `null` — the resolution metadata keys exist only once
+/// a resolution pass has run (absent = resolution status `absent`).
+fn optional_metadata_i64(
+    metadata: &BTreeMap<String, String>,
+    key: &'static str,
+) -> JsonlExportResult<Option<i64>> {
+    metadata
+        .get(key)
+        .map(|value| {
+            value
+                .parse()
+                .map_err(|_| JsonlExportError::InvalidMetadata {
+                    key,
+                    value: value.clone(),
+                })
+        })
+        .transpose()
 }
 
 fn capability_flags(

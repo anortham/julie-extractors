@@ -188,8 +188,56 @@ Fields:
   shape and key catalog (source of truth). This is additive:
   `report_schema_version` stays `3`.
 
+- `languages`: additive top-level object emitted only by artifact-mutating
+  commands (`scan`, `update`, `delete`) when a reference-resolution pass ran or
+  failed; omitted everywhere else so other report shapes are byte-unchanged.
+  This is additive: `report_schema_version` stays `3`. See
+  [Reference Resolution Section](#reference-resolution-section).
+
 Commands that do not use an artifact, such as `languages`, set `artifact` and
 `revision` to `null`.
+
+## Reference Resolution Section
+
+Schema v4 artifacts run a workspace reference-resolution pass inside the writer
+transaction of every mutating command (see `sqlite-schema-v4.md` § Reference
+Resolution). Those commands report it under the top-level `languages` key:
+
+```json
+"languages": {
+  "reference_resolution": {
+    "status": "complete",
+    "version": 1,
+    "last_full_revision": 7,
+    "counts": {
+      "pending_resolutions": 4618,
+      "identifier_resolutions": 62189
+    },
+    "gated_languages": ["python", "rust"],
+    "failed": null,
+    "by_language": [
+      { "language": "rust", "tier": 1, "outcome": "resolved", "count": 8479 },
+      { "language": "rust", "tier": null, "outcome": "ambiguous", "count": 90 }
+    ]
+  }
+}
+```
+
+- `status`: durable resolution status (`complete`, `partial`, or `failed`) —
+  the same value written to the `reference_resolution_status` metadata key.
+- `version`: resolution contract version; `0` when the pass failed before
+  producing a report.
+- `last_full_revision`: revision of the last Full pass; `0` when unknown.
+- `counts`: overlay rows written by this pass (`pending_resolutions`,
+  `identifier_resolutions`).
+- `gated_languages`: languages in this pass gated out of tier-2 import
+  resolution (sorted).
+- `failed`: `null` on success, or the non-fatal resolver error message. A
+  failure also emits a `resolution_failed` warning and durable status `failed`;
+  the scan itself still commits.
+- `by_language`: whole-artifact per-language/per-tier/per-outcome counts taken
+  at the end of the pass. `tier` is an integer 1–4 for `resolved` rows and
+  `null` for non-resolved outcomes (`ambiguous`, `missing`, `no_context`).
 
 `counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v3
 row domains. Commands must emit every key with `0` when that row kind is not
@@ -318,6 +366,10 @@ Warnings use the same shape and may use warning-only codes such as
   should include the partial scan profile available at the failure point.
 - Successful reports include a top-N `counts.file_rows` offender summary for
   the persisted artifact.
+- Mutating reports include the `languages.reference_resolution` section when a
+  resolution pass ran or failed (see
+  [Reference Resolution Section](#reference-resolution-section)); `update` and
+  `delete` reports include it under the same rule.
 
 ### `update`
 

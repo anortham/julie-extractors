@@ -516,7 +516,7 @@ wrong edges.
 | `resolved` | Exactly one candidate at some tier. | Non-`NULL` |
 | `ambiguous` | Some tier yielded ≥2 candidates and none yielded exactly one. | `NULL` |
 | `missing` | Every applicable tier yielded 0 candidates. | `NULL` |
-| `no_context` | No tier was applicable (e.g. identifier `member_access`, which has no receiver context on identifiers today; F1 adds it). | `NULL` |
+| `no_context` | No tier was applicable: identifier `member_access` (no receiver context on identifiers today; F1 adds it), and any identifier kind outside the resolver's supported set, which receives a blanket `no_context` row so it leaves the never-attempted worklist. Consumers counting "attempted" outcomes should expect unsupported kinds here. | `NULL` |
 
 Which surface records which outcome:
 
@@ -546,6 +546,14 @@ resolution data present and trustworthy". Only the status key does:
 Read `reference_resolution_version` to confirm the contract version and
 `reference_resolution_last_full_revision` to detect staleness against the current
 `extraction_revisions` head.
+
+One caution for dead-code-style consumers that suppress verdicts by unresolved
+same-name references: an unresolved reference recorded under a local alias
+(e.g. TypeScript `import { X as Y }` used as `Y(...)`) carries
+`identifiers.name = "Y"`, so name-based suppression alone will not shield the
+aliased-to symbol `X`. Suppression logic should also consult import symbol rows
+and `pending_relationships.target_display_name` where alias information
+survives.
 
 ### `--strict-schema` read preflight
 

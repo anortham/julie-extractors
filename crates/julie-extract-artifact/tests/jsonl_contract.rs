@@ -168,6 +168,39 @@ fn structural_fact_metadata_export_compacts_raw_object_whitespace() {
 }
 
 #[test]
+fn artifact_record_exports_reference_resolution_metadata() {
+    // Absent resolution metadata (resolution never ran) exports as null —
+    // JSONL consumers apply the same detection rule as SQLite consumers:
+    // gate on the status value, never on the schema version.
+    let conn = populated_artifact();
+    let records = export_records(&conn);
+    let artifact = record(&records, "artifact");
+    assert_eq!(artifact["reference_resolution_status"], Value::Null);
+    assert_eq!(artifact["reference_resolution_version"], Value::Null);
+    assert_eq!(
+        artifact["reference_resolution_last_full_revision"],
+        Value::Null
+    );
+
+    for (key, value) in [
+        ("reference_resolution_status", "complete"),
+        ("reference_resolution_version", "1"),
+        ("reference_resolution_last_full_revision", "7"),
+    ] {
+        conn.execute(
+            "INSERT INTO artifact_metadata (key, value) VALUES (?1, ?2)",
+            [key, value],
+        )
+        .unwrap();
+    }
+    let records = export_records(&conn);
+    let artifact = record(&records, "artifact");
+    assert_eq!(artifact["reference_resolution_status"], "complete");
+    assert_eq!(artifact["reference_resolution_version"], 1);
+    assert_eq!(artifact["reference_resolution_last_full_revision"], 7);
+}
+
+#[test]
 fn every_record_kind_uses_exact_payload_keys() {
     let conn = populated_artifact();
     let records = export_records(&conn);
@@ -187,6 +220,9 @@ fn every_record_kind_uses_exact_payload_keys() {
             "capability_snapshot_fingerprint",
             "created_at",
             "updated_at",
+            "reference_resolution_status",
+            "reference_resolution_version",
+            "reference_resolution_last_full_revision",
         ],
     );
     assert_record_keys(

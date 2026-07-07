@@ -280,6 +280,40 @@ fn exit_codes_and_json_errors_match_contract() {
 }
 
 #[test]
+fn strict_schema_rejects_older_v3_artifact_with_migration_required() {
+    let temp = TempDir::new().unwrap();
+    let old_v3_db = temp.path().join("old-v3.sqlite");
+    create_artifact_metadata(&old_v3_db, "artifact-old-v3", "3", "3", "3");
+
+    let old_v3 = julie_extract(&[
+        "info",
+        "--db",
+        old_v3_db.to_str().unwrap(),
+        "--strict-schema",
+        "--json",
+    ]);
+    assert_eq!(old_v3.status.code(), Some(3));
+    let report = json_report(&old_v3);
+    assert_common_report_shape(&report, "failed", "info", "read_only");
+    assert_eq!(report["errors"][0]["code"], "schema_migration_required");
+    assert_eq!(
+        report["errors"][0]["details"]["required_sqlite_schema_version"],
+        4
+    );
+    assert_eq!(
+        report["errors"][0]["details"]["artifact_sqlite_schema_version"],
+        3
+    );
+
+    let non_strict = julie_extract(&["info", "--db", old_v3_db.to_str().unwrap(), "--json"]);
+    assert_ne!(
+        json_report(&non_strict)["errors"][0]["code"],
+        "schema_migration_required",
+        "without --strict-schema a v3 artifact must not be rejected for migration"
+    );
+}
+
+#[test]
 fn cli_crate_does_not_link_forbidden_julie_behaviors() {
     let manifest = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))
         .expect("CLI manifest should be readable");

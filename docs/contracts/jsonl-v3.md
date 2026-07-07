@@ -133,9 +133,22 @@ keys are part of the v3 contract.
   "parser_inventory_fingerprint": "sha256:...",
   "capability_snapshot_fingerprint": "sha256:...",
   "created_at": "2026-05-31T16:00:00Z",
-  "updated_at": "2026-05-31T16:05:00Z"
+  "updated_at": "2026-05-31T16:05:00Z",
+  "reference_resolution_status": "complete",
+  "reference_resolution_version": 1,
+  "reference_resolution_last_full_revision": 7
 }
 ```
+
+The three `reference_resolution_*` fields (additive, schema v4 artifacts) mirror
+the SQLite `artifact_metadata` keys of the same names. All three are `null` when
+the artifact has never run a resolution pass. **JSONL consumers apply the same
+detection rule as SQLite consumers:** treat resolution data (including
+`identifier.target_symbol_id`, which the resolution pass populates) as present
+and trustworthy only when `reference_resolution_status` is `complete` or
+`partial`; on `null` or `"failed"`, treat a `null` `target_symbol_id` as
+"unknown", exactly as before resolution existed. Never gate on
+`sqlite_schema_version`. See `sqlite-schema-v4.md` § Reference Resolution.
 
 ### `file`
 
@@ -328,7 +341,13 @@ Fields:
 - `name`: string
 - `kind`: string
 - `containing_symbol_id`: string or `null`
-- `target_symbol_id`: string or `null`
+- `target_symbol_id`: string or `null` — extraction leaves this `null`; on
+  schema v4 artifacts the workspace resolution pass fills it for resolved
+  references. `null` means "unknown", never "definitely unresolvable". Gate on
+  the artifact record's `reference_resolution_status` before treating populated
+  values as workspace-resolution output. Resolution provenance (tier,
+  confidence, outcome) is SQLite-only (`identifier_resolutions`); JSONL exports
+  the denormalized target only.
 - `span`: span object
 - `confidence`: number
 - `code_context`: string or `null`
