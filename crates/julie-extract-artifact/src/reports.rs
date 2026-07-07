@@ -28,6 +28,8 @@ pub const SQLITE_ROW_DOMAINS: &[&str] = &[
     "structural_facts",
     "complexity_metrics",
     "parse_diagnostics",
+    "pending_resolutions",
+    "identifier_resolutions",
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -231,6 +233,11 @@ pub struct RowDomainCounts {
     pub structural_facts: i64,
     pub complexity_metrics: i64,
     pub parse_diagnostics: i64,
+    /// Resolution overlay (schema v4). Written only by the writer's resolution
+    /// hook, never by the extraction row-count path, so revision accounting stays
+    /// truthful about the two derived overlay tables.
+    pub pending_resolutions: i64,
+    pub identifier_resolutions: i64,
 }
 
 impl RowDomainCounts {
@@ -256,6 +263,8 @@ impl RowDomainCounts {
             || self.structural_facts != 0
             || self.complexity_metrics != 0
             || self.parse_diagnostics != 0
+            || self.pending_resolutions != 0
+            || self.identifier_resolutions != 0
     }
 
     pub fn add_counts(&mut self, other: &Self) {
@@ -280,6 +289,8 @@ impl RowDomainCounts {
         self.structural_facts += other.structural_facts;
         self.complexity_metrics += other.complexity_metrics;
         self.parse_diagnostics += other.parse_diagnostics;
+        self.pending_resolutions += other.pending_resolutions;
+        self.identifier_resolutions += other.identifier_resolutions;
     }
 
     pub fn from_extraction_rows(row_counts: &RowCounts) -> Self {
@@ -334,6 +345,11 @@ pub enum ReportCode {
     MetadataMissing,
     CapabilityGap,
     SlowFileSkipped,
+    /// A resolver hook returned an error. Non-fatal: the scan still commits with
+    /// the affected rows left unresolved, and the scan report records the message
+    /// (design §"Failure semantics"). Not an `ERROR_CODES` member — it never fails
+    /// the write.
+    ResolutionFailed,
 }
 
 impl ReportCode {

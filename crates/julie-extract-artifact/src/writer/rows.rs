@@ -9,6 +9,45 @@ use crate::model::{
 
 use super::ExistingFile;
 
+/// Max `file_id` placeholders per chunk when collecting existing symbol names.
+/// The effective chunk is capped at the connection's runtime variable limit so a
+/// low limit never blows the host-parameter budget.
+const SYMBOL_NAME_QUERY_MAX_CHUNK: usize = 500;
+
+/// Collect the `symbols.name` values currently stored under any of `file_ids`.
+///
+/// Seeds the resolution hook's `touched_symbol_names` with the OLD names of files
+/// about to be deleted or rewritten: the incoming file set cannot supply a name
+/// that a rewrite removed or a delete dropped, so these must be read from the DB
+/// **before** `delete_file_rows` runs (design §"Incremental correctness",
+/// round-3 note).
+pub(super) fn collect_existing_symbol_names(
+    tx: &Transaction<'_>,
+    file_ids: &[&str],
+) -> rusqlite::Result<HashSet<String>> {
+    let mut names = HashSet::new();
+    if file_ids.is_empty() {
+        return Ok(names);
+    }
+    let variable_limit = tx.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)?.max(1) as usize;
+    let chunk_size = variable_limit.min(SYMBOL_NAME_QUERY_MAX_CHUNK).max(1);
+    for chunk in file_ids.chunks(chunk_size) {
+        let placeholders = std::iter::repeat("?")
+            .take(chunk.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!("SELECT name FROM symbols WHERE file_id IN ({placeholders})");
+        let mut stmt = tx.prepare_cached(&sql)?;
+        let rows = stmt.query_map(params_from_iter(chunk.iter()), |row| {
+            row.get::<_, String>(0)
+        })?;
+        for name in rows {
+            names.insert(name?);
+        }
+    }
+    Ok(names)
+}
+
 #[cfg(test)]
 pub(super) mod writer_prepare_metrics {
     use std::sync::atomic::{AtomicUsize, Ordering};

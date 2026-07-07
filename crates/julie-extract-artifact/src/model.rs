@@ -154,6 +154,22 @@ pub struct WriteResult {
     pub files_deleted: usize,
     pub files_skipped: usize,
     pub transactions_committed: usize,
+    /// Outcome of the in-transaction resolution hook for this write. `Default`
+    /// (zero counts, no failure) when no hook ran or the hook was a no-op — every
+    /// existing hookless caller therefore sees an empty resolution outcome.
+    pub resolution: ResolutionWriteOutcome,
+}
+
+/// What the writer surfaces to callers about the resolution hook that ran inside
+/// this write's transaction. The writer consumes only `ResolutionCounts` for
+/// revision accounting; `failed` carries the hook's error message (design
+/// §"Failure semantics") so the caller can record `ResolutionFailed` in its
+/// report. The per-language `ResolutionReport` never travels through the writer —
+/// Task 5's closure keeps it in its own captured state.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ResolutionWriteOutcome {
+    pub counts: crate::resolution_store::ResolutionCounts,
+    pub failed: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]

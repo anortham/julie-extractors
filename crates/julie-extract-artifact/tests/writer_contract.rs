@@ -8,7 +8,11 @@ use julie_extract_artifact::model::{
     ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus, RevisionInput,
     WriteMode, WriteOperation,
 };
-use julie_extract_artifact::writer::{ArtifactFileSpool, ArtifactWriteError, ArtifactWriter};
+use julie_extract_artifact::resolution_store::{ResolutionCounts, record_pending_resolution};
+use julie_extract_artifact::writer::{
+    ArtifactFileSpool, ArtifactWriteError, ArtifactWriter, ResolutionHookError,
+    ResolutionScopeInput,
+};
 use rusqlite::{Connection, limits::Limit};
 use serde_json::json;
 use std::path::PathBuf;
@@ -1119,6 +1123,336 @@ fn capability_snapshot_sync_writes_static_rows_once() {
     );
     assert_eq!(count(writer.connection(), "language_capability_gaps"), 1);
     assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
+}
+
+#[test]
+fn resolution_hook_runs_in_transaction_and_folds_counts() {
+    // INVARIANT: the hook fires inside the write transaction AFTER row writes (it
+    // can reference the pending row + target symbol just inserted this scan) and
+    // BEFORE the revision counts are finalized (its overlay writes fold into
+    // counts_json). write_scan is a Full-scope path.
+    let mut writer = open_writer();
+    let file = file_with_pending("file-a", "src/a.rs", "hash-a");
+
+    let mut fired = 0;
+    let result = writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            std::slice::from_ref(&file),
+            |tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                fired += 1;
+                assert!(scope.is_full_scan, "write_scan is a Full-scope path");
+                assert_eq!(scope.changed_file_ids, vec!["file-a".to_string()]);
+                record_pending_resolution(
+                    tx,
+                    "file-a-pending-1",
+                    "file-a-symbol-1",
+                    2,
+                    0.9,
+                    "test",
+                    current_revision(tx),
+                )
+                .map_err(|err| ResolutionHookError::new(err.to_string()))?;
+                Ok(ResolutionCounts {
+                    pending_resolutions: 1,
+                    identifier_resolutions: 0,
+                })
+            },
+        )
+        .unwrap();
+
+    assert_eq!(fired, 1, "the hook must fire exactly once");
+    assert_eq!(result.resolution.counts.pending_resolutions, 1);
+    assert!(result.resolution.failed.is_none());
+    // The overlay row persisted, proving the hook ran inside the committed tx and
+    // could see the pending/symbol rows written earlier in the same tx.
+    assert_eq!(count(writer.connection(), "pending_resolutions"), 1);
+    // Folded before update_revision_counts.
+    assert_eq!(
+        revision_counts_pending_resolutions(writer.connection()),
+        1,
+        "hook overlay writes must fold into the revision counts_json"
+    );
+}
+
+#[test]
+fn resolution_hook_scope_includes_old_names_on_full_rescan() {
+    // INVARIANT: touched_symbol_names carries OLD DB names of a rewritten file,
+    // including a symbol the rewrite removed (the incoming file cannot supply it).
+    let mut writer = open_writer();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols(
+                "file-a",
+                "src/a.rs",
+                "hash-a",
+                ["Foo", "Bar"],
+            )],
+        )
+        .unwrap();
+
+    let mut captured = None;
+    writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a2", ["Bar"])],
+            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                captured = Some(sorted_names(scope));
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+
+    let names = captured.expect("hook must fire on a rewrite");
+    assert!(
+        names.contains(&"Foo".to_string()),
+        "old removed symbol must be in the touched set, got {names:?}"
+    );
+    assert!(names.contains(&"Bar".to_string()), "got {names:?}");
+}
+
+#[test]
+fn resolution_hook_scope_includes_old_names_on_update_and_delete() {
+    // INVARIANT: update and delete (Delta paths) both seed touched_symbol_names
+    // from OLD DB rows of the affected file.
+    let mut writer = open_writer();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols(
+                "file-a",
+                "src/a.rs",
+                "hash-a",
+                ["Foo", "Bar"],
+            )],
+        )
+        .unwrap();
+
+    let mut updated = None;
+    writer
+        .write_update_with_resolution(
+            revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
+            &file_with_symbols("file-a", "src/a.rs", "hash-a2", ["Bar"]),
+            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                assert!(!scope.is_full_scan, "write_update is a Delta path");
+                updated = Some(sorted_names(scope));
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+    let names = updated.expect("hook must fire on update");
+    assert!(names.contains(&"Foo".to_string()), "got {names:?}");
+    assert!(names.contains(&"Bar".to_string()), "got {names:?}");
+
+    let mut deleted = None;
+    writer
+        .delete_file_with_resolution(
+            revision(WriteOperation::Delete, Some(WriteMode::SingleFile)),
+            "src/a.rs",
+            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                assert!(!scope.is_full_scan, "delete_file is a Delta path");
+                assert_eq!(scope.changed_file_ids, vec!["file-a".to_string()]);
+                deleted = Some(sorted_names(scope));
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+    // After the update, the file holds only "Bar"; delete sees the old row names.
+    assert_eq!(
+        deleted.expect("hook must fire on delete"),
+        vec!["Bar".to_string()]
+    );
+}
+
+#[test]
+fn resolution_hook_error_is_non_fatal_and_rolls_back_overlay() {
+    // INVARIANT: a hook error never rolls back the scan. Its overlay writes are
+    // discarded (savepoint), the message is surfaced, and the counts stay zero.
+    let mut writer = open_writer();
+    let file = file_with_pending("file-a", "src/a.rs", "hash-a");
+
+    let result = writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            std::slice::from_ref(&file),
+            |tx: &rusqlite::Transaction<'_>, _scope: &ResolutionScopeInput| {
+                // Write an overlay row, THEN fail — the savepoint must discard it.
+                record_pending_resolution(
+                    tx,
+                    "file-a-pending-1",
+                    "file-a-symbol-1",
+                    2,
+                    0.9,
+                    "test",
+                    current_revision(tx),
+                )
+                .map_err(|err| ResolutionHookError::new(err.to_string()))?;
+                Err(ResolutionHookError::new("resolver boom"))
+            },
+        )
+        .unwrap();
+
+    // The scan itself committed.
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+    assert_eq!(
+        symbols_for_path(writer.connection(), "src/a.rs"),
+        vec!["alpha", "target"]
+    );
+    // The failure is surfaced and the counts are zeroed.
+    assert_eq!(result.resolution.failed.as_deref(), Some("resolver boom"));
+    assert_eq!(result.resolution.counts, ResolutionCounts::default());
+    // The hook's overlay write was rolled back — the row stays unresolved.
+    assert_eq!(count(writer.connection(), "pending_resolutions"), 0);
+    assert_eq!(
+        revision_counts_pending_resolutions(writer.connection()),
+        0,
+        "a failed hook must leave the revision counts truthful (zero)"
+    );
+}
+
+#[test]
+fn resolution_hook_fires_in_spooled_and_unsupported_paths() {
+    // INVARIANT: both spooled scan paths (Full) and remove_unsupported_file
+    // (Delta) run the hook with the correct scope.
+    let mut writer = open_writer();
+    let file = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    let snapshot_paths = vec![file.path.clone()];
+    let temp_dir = unique_temp_dir("resolution-spooled");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file).unwrap();
+
+    let mut spooled = None;
+    writer
+        .write_scan_spooled_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                spooled = Some((
+                    scope.is_full_scan,
+                    scope.changed_file_ids.clone(),
+                    sorted_names(scope),
+                ));
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+    let (full, ids, names) = spooled.expect("spooled hook must fire");
+    assert!(full, "write_scan_spooled is a Full-scope path");
+    assert_eq!(ids, vec!["file-a".to_string()]);
+    assert!(names.contains(&"alpha".to_string()), "got {names:?}");
+
+    // Preserving-missing spooled variant: a rewrite carries old + new names.
+    let file2 = file_with_symbols("file-a", "src/a.rs", "hash-a2", ["alpha_v2"]);
+    let snapshot_paths2 = vec![file2.path.clone()];
+    let mut spool2 = ArtifactFileSpool::create(temp_dir.join("files2.jsonl")).unwrap();
+    spool2.push(&file2).unwrap();
+    let mut preserved = None;
+    writer
+        .write_scan_spooled_preserving_missing_paths_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths2,
+            &[],
+            &mut spool2,
+            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                assert!(scope.is_full_scan);
+                preserved = Some(sorted_names(scope));
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+    let names2 = preserved.expect("preserving-missing hook must fire");
+    assert!(
+        names2.contains(&"alpha".to_string()),
+        "old name, got {names2:?}"
+    );
+    assert!(
+        names2.contains(&"alpha_v2".to_string()),
+        "new name, got {names2:?}"
+    );
+
+    // remove_unsupported_file is a Delta path that seeds old names.
+    let mut unsupported = None;
+    writer
+        .remove_unsupported_file_with_resolution(
+            revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
+            "src/a.rs",
+            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                unsupported = Some((scope.is_full_scan, sorted_names(scope)));
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+    let (full3, names3) = unsupported.expect("remove_unsupported hook must fire");
+    assert!(!full3, "remove_unsupported_file is a Delta path");
+    assert_eq!(names3, vec!["alpha_v2".to_string()]);
+
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn hookless_write_leaves_resolution_outcome_empty() {
+    // INVARIANT: existing hookless callers see an empty resolution outcome and no
+    // overlay rows — the no-op delegation preserves current behavior.
+    let mut writer = open_writer();
+    let result = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        )
+        .unwrap();
+
+    assert_eq!(result.resolution.counts, ResolutionCounts::default());
+    assert!(result.resolution.failed.is_none());
+    assert_eq!(count(writer.connection(), "pending_resolutions"), 0);
+    assert_eq!(count(writer.connection(), "identifier_resolutions"), 0);
+}
+
+fn file_with_pending(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
+    let mut file = file_with_symbols(file_id, path, hash, ["alpha", "target"]);
+    file.pending_relationships
+        .push(ArtifactPendingRelationship {
+            pending_relationship_id: format!("{file_id}-pending-1"),
+            from_symbol_id: format!("{file_id}-symbol-0"),
+            kind: "uses".to_string(),
+            target_display_name: "target".to_string(),
+            target_terminal_name: "target".to_string(),
+            ..ArtifactPendingRelationship::default()
+        });
+    file
+}
+
+fn sorted_names(scope: &ResolutionScopeInput) -> Vec<String> {
+    let mut names = scope
+        .touched_symbol_names
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
+    names.sort();
+    names
+}
+
+fn current_revision(tx: &rusqlite::Transaction<'_>) -> i64 {
+    tx.query_row(
+        "SELECT MAX(revision_id) FROM extraction_revisions",
+        [],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn revision_counts_pending_resolutions(conn: &Connection) -> i64 {
+    let counts_json: String = conn
+        .query_row(
+            "SELECT counts_json FROM extraction_revisions ORDER BY revision_id DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let value: serde_json::Value = serde_json::from_str(&counts_json).unwrap();
+    value["pending_resolutions"].as_i64().unwrap()
 }
 
 fn open_writer() -> ArtifactWriter {

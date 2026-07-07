@@ -9,19 +9,20 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
-    ArtifactCapabilitySnapshot, ArtifactFile, FileStatus, RevisionChangeKind, RevisionInput,
-    RowCounts, WriteMode, WriteOperation, WriteResult,
+    ArtifactCapabilitySnapshot, ArtifactFile, FileStatus, ResolutionWriteOutcome,
+    RevisionChangeKind, RevisionInput, RowCounts, WriteMode, WriteOperation, WriteResult,
 };
 use crate::reports::RowDomainCounts;
+use crate::resolution_store::ResolutionCounts;
 use crate::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_schema};
 
 mod capabilities;
 mod rows;
 
 use rows::{
-    ChildRowInserters, FileRowInserters, collect_file_symbol_ids, collect_requested_symbol_ids,
-    is_preserved_failure, is_preserved_failure_update, load_symbol_lookup,
-    replace_parse_diagnostics, update_failed_preserved_file,
+    ChildRowInserters, FileRowInserters, collect_existing_symbol_names, collect_file_symbol_ids,
+    collect_requested_symbol_ids, is_preserved_failure, is_preserved_failure_update,
+    load_symbol_lookup, replace_parse_diagnostics, update_failed_preserved_file,
 };
 
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
@@ -245,6 +246,62 @@ impl Iterator for ArtifactFileSpoolIter {
     }
 }
 
+/// What a mutating write touched, handed to the resolution hook so it can scope
+/// its work (design §"Module placement & interface", §"Resolution state model").
+///
+/// `touched_symbol_names` is the union of names inserted by this write and the
+/// OLD names of every symbol in the files this write deleted or rewrote (collected
+/// from the DB before deletion). `changed_file_ids` is every file this write
+/// deleted, rewrote, or inserted. `is_full_scan` is true for the whole-tree scan
+/// paths (`Full` scope) and false for single-file update/delete (`Delta` scope).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ResolutionScopeInput {
+    pub changed_file_ids: Vec<String>,
+    pub touched_symbol_names: HashSet<String>,
+    pub is_full_scan: bool,
+}
+
+/// Error returned by a resolution hook. Non-fatal by contract: the scan still
+/// commits, the hook's overlay writes are rolled back, and the message lands in
+/// the scan report as `ResolutionFailed` (design §"Failure semantics").
+#[derive(Debug, Clone)]
+pub struct ResolutionHookError {
+    message: String,
+}
+
+impl ResolutionHookError {
+    pub fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    fn into_message(self) -> String {
+        self.message
+    }
+}
+
+impl std::fmt::Display for ResolutionHookError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for ResolutionHookError {}
+
+/// The no-op hook that hookless writer methods delegate with, so existing callers
+/// compile and behave unchanged: it writes nothing and reports zero counts.
+fn no_resolution_hook(
+    _tx: &Transaction<'_>,
+    _scope: &ResolutionScopeInput,
+) -> Result<ResolutionCounts, ResolutionHookError> {
+    Ok(ResolutionCounts::default())
+}
+
 pub struct ArtifactWriter {
     connection: Connection,
     metadata: ArtifactMetadata,
@@ -326,8 +383,25 @@ impl ArtifactWriter {
         revision: RevisionInput,
         files: &[ArtifactFile],
     ) -> ArtifactWriteResult<WriteResult> {
+        self.write_scan_with_resolution(revision, files, no_resolution_hook)
+    }
+
+    /// `write_scan` with a resolution hook that runs inside the write transaction
+    /// (`Full` scope). Task 5 supplies the policy closure.
+    pub fn write_scan_with_resolution<F>(
+        &mut self,
+        revision: RevisionInput,
+        files: &[ArtifactFile],
+        mut hook: F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         debug_assert_eq!(revision.operation, WriteOperation::Scan);
-        self.write_scan_snapshot(revision, files)
+        self.write_scan_snapshot(revision, files, &mut hook)
     }
 
     pub fn write_scan_spooled(
@@ -336,9 +410,26 @@ impl ArtifactWriter {
         snapshot_paths: &[String],
         spool: &mut ArtifactFileSpool,
     ) -> ArtifactWriteResult<WriteResult> {
+        self.write_scan_spooled_with_resolution(revision, snapshot_paths, spool, no_resolution_hook)
+    }
+
+    /// `write_scan_spooled` with a resolution hook (`Full` scope).
+    pub fn write_scan_spooled_with_resolution<F>(
+        &mut self,
+        revision: RevisionInput,
+        snapshot_paths: &[String],
+        spool: &mut ArtifactFileSpool,
+        mut hook: F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         debug_assert_eq!(revision.operation, WriteOperation::Scan);
         spool.finish()?;
-        self.write_scan_spooled_snapshot(revision, snapshot_paths, &[], spool)
+        self.write_scan_spooled_snapshot(revision, snapshot_paths, &[], spool, &mut hook)
     }
 
     pub fn write_scan_spooled_preserving_missing_paths(
@@ -348,9 +439,40 @@ impl ArtifactWriter {
         preserved_missing_paths: &[String],
         spool: &mut ArtifactFileSpool,
     ) -> ArtifactWriteResult<WriteResult> {
+        self.write_scan_spooled_preserving_missing_paths_with_resolution(
+            revision,
+            snapshot_paths,
+            preserved_missing_paths,
+            spool,
+            no_resolution_hook,
+        )
+    }
+
+    /// `write_scan_spooled_preserving_missing_paths` with a resolution hook
+    /// (`Full` scope).
+    pub fn write_scan_spooled_preserving_missing_paths_with_resolution<F>(
+        &mut self,
+        revision: RevisionInput,
+        snapshot_paths: &[String],
+        preserved_missing_paths: &[String],
+        spool: &mut ArtifactFileSpool,
+        mut hook: F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         debug_assert_eq!(revision.operation, WriteOperation::Scan);
         spool.finish()?;
-        self.write_scan_spooled_snapshot(revision, snapshot_paths, preserved_missing_paths, spool)
+        self.write_scan_spooled_snapshot(
+            revision,
+            snapshot_paths,
+            preserved_missing_paths,
+            spool,
+            &mut hook,
+        )
     }
 
     pub fn write_update(
@@ -358,8 +480,24 @@ impl ArtifactWriter {
         revision: RevisionInput,
         file: &ArtifactFile,
     ) -> ArtifactWriteResult<WriteResult> {
+        self.write_update_with_resolution(revision, file, no_resolution_hook)
+    }
+
+    /// `write_update` with a resolution hook (`Delta` scope).
+    pub fn write_update_with_resolution<F>(
+        &mut self,
+        revision: RevisionInput,
+        file: &ArtifactFile,
+        mut hook: F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         debug_assert_eq!(revision.operation, WriteOperation::Update);
-        self.write_files(revision, std::slice::from_ref(file))
+        self.write_files(revision, std::slice::from_ref(file), &mut hook)
     }
 
     pub fn delete_file(
@@ -367,8 +505,24 @@ impl ArtifactWriter {
         revision: RevisionInput,
         path: &str,
     ) -> ArtifactWriteResult<WriteResult> {
+        self.delete_file_with_resolution(revision, path, no_resolution_hook)
+    }
+
+    /// `delete_file` with a resolution hook (`Delta` scope).
+    pub fn delete_file_with_resolution<F>(
+        &mut self,
+        revision: RevisionInput,
+        path: &str,
+        mut hook: F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         debug_assert_eq!(revision.operation, WriteOperation::Delete);
-        self.remove_file_rows(revision, path, RevisionChangeKind::Deleted)
+        self.remove_file_rows(revision, path, RevisionChangeKind::Deleted, &mut hook)
     }
 
     pub fn remove_unsupported_file(
@@ -376,16 +530,39 @@ impl ArtifactWriter {
         revision: RevisionInput,
         path: &str,
     ) -> ArtifactWriteResult<WriteResult> {
-        debug_assert_eq!(revision.operation, WriteOperation::Update);
-        self.remove_file_rows(revision, path, RevisionChangeKind::Unsupported)
+        self.remove_unsupported_file_with_resolution(revision, path, no_resolution_hook)
     }
 
-    fn remove_file_rows(
+    /// `remove_unsupported_file` with a resolution hook (`Delta` scope).
+    pub fn remove_unsupported_file_with_resolution<F>(
+        &mut self,
+        revision: RevisionInput,
+        path: &str,
+        mut hook: F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
+        debug_assert_eq!(revision.operation, WriteOperation::Update);
+        self.remove_file_rows(revision, path, RevisionChangeKind::Unsupported, &mut hook)
+    }
+
+    fn remove_file_rows<F>(
         &mut self,
         revision: RevisionInput,
         path: &str,
         change_kind: RevisionChangeKind,
-    ) -> ArtifactWriteResult<WriteResult> {
+        hook: &mut F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
         let existing = load_existing_file(&tx, path)?;
@@ -406,6 +583,9 @@ impl ArtifactWriter {
         let parent_revision_id = current_revision_id(&tx)?;
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
         write_metadata(&tx, &self.metadata)?;
+        // OLD names of the file being removed — collected before deletion drops them.
+        let touched_symbol_names =
+            collect_existing_symbol_names(&tx, &[existing.file_id.as_str()])?;
         delete_file_rows(&tx, &existing.file_id, path)?;
 
         let row_counts = RowCounts {
@@ -418,9 +598,19 @@ impl ArtifactWriter {
             )?,
             ..RowCounts::default()
         };
-        let revision_counts =
-            revision_counts_with_capabilities(&row_counts, &capability_rows_written);
-        update_revision_counts(&tx, revision_id, &revision_counts)?;
+        let scope = ResolutionScopeInput {
+            changed_file_ids: vec![existing.file_id.clone()],
+            touched_symbol_names,
+            is_full_scan: false,
+        };
+        let resolution = run_resolution_hook(
+            &tx,
+            revision_id,
+            &row_counts,
+            &capability_rows_written,
+            &scope,
+            hook,
+        )?;
         tx.commit()?;
         checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = capability_rows_written;
@@ -432,14 +622,22 @@ impl ArtifactWriter {
             files_deleted: 1,
             files_skipped: 0,
             transactions_committed: 1,
+            resolution,
         })
     }
 
-    fn write_files(
+    fn write_files<F>(
         &mut self,
         revision: RevisionInput,
         files: &[ArtifactFile],
-    ) -> ArtifactWriteResult<WriteResult> {
+        hook: &mut F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
@@ -491,6 +689,21 @@ impl ArtifactWriter {
         write_metadata(&tx, &self.metadata)?;
         let mut row_counts = RowCounts::default();
 
+        // Resolution-hook scope: OLD names of every file about to be rewritten
+        // (read before deletion), unioned with the NEW names in the incoming files.
+        let existing_file_ids = planned
+            .iter()
+            .filter_map(|(_, existing, _)| existing.as_ref().map(|row| row.file_id.as_str()))
+            .collect::<Vec<_>>();
+        let mut touched_symbol_names = collect_existing_symbol_names(&tx, &existing_file_ids)?;
+        for (file, _, _) in &planned {
+            touched_symbol_names.extend(file.symbols.iter().map(|symbol| symbol.name.clone()));
+        }
+        let changed_file_ids = planned
+            .iter()
+            .map(|(file, _, _)| file.file_id.clone())
+            .collect::<Vec<_>>();
+
         for (file, existing, _) in &planned {
             if let Some(existing) = existing {
                 delete_file_rows(&tx, &existing.file_id, &file.path)?;
@@ -527,9 +740,19 @@ impl ArtifactWriter {
             }
         }
 
-        let revision_counts =
-            revision_counts_with_capabilities(&row_counts, &capability_rows_written);
-        update_revision_counts(&tx, revision_id, &revision_counts)?;
+        let scope = ResolutionScopeInput {
+            changed_file_ids,
+            touched_symbol_names,
+            is_full_scan: false,
+        };
+        let resolution = run_resolution_hook(
+            &tx,
+            revision_id,
+            &row_counts,
+            &capability_rows_written,
+            &scope,
+            hook,
+        )?;
         tx.commit()?;
         checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = capability_rows_written;
@@ -541,14 +764,22 @@ impl ArtifactWriter {
             files_skipped,
             rows_written: row_counts,
             transactions_committed: 1,
+            resolution,
         })
     }
 
-    fn write_scan_snapshot(
+    fn write_scan_snapshot<F>(
         &mut self,
         revision: RevisionInput,
         files: &[ArtifactFile],
-    ) -> ArtifactWriteResult<WriteResult> {
+        hook: &mut F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
@@ -610,6 +841,20 @@ impl ArtifactWriter {
         write_metadata(&tx, &self.metadata)?;
         let mut row_counts = RowCounts::default();
 
+        // OLD names of every file this scan deletes or rewrites, read before the
+        // delete loops drop them (deleted files supply names the incoming set can't).
+        let old_name_file_ids = deleted
+            .iter()
+            .map(|existing| existing.file_id.as_str())
+            .chain(planned.iter().filter_map(|(file, existing, _)| {
+                if is_preserved_failure_update(file, existing.as_ref()) {
+                    return None;
+                }
+                existing.as_ref().map(|row| row.file_id.as_str())
+            }))
+            .collect::<Vec<_>>();
+        let mut touched_symbol_names = collect_existing_symbol_names(&tx, &old_name_file_ids)?;
+
         for (file, existing, _) in &planned {
             if is_preserved_failure_update(file, existing.as_ref()) {
                 continue;
@@ -623,6 +868,16 @@ impl ArtifactWriter {
             .iter()
             .filter(|(file, existing, _)| !is_preserved_failure_update(file, existing.as_ref()))
             .map(|(file, _, _)| *file)
+            .collect::<Vec<_>>();
+
+        // NEW names from the rewritten files, plus every touched file_id.
+        for file in &rewritten_files {
+            touched_symbol_names.extend(file.symbols.iter().map(|symbol| symbol.name.clone()));
+        }
+        let changed_file_ids = rewritten_files
+            .iter()
+            .map(|file| file.file_id.clone())
+            .chain(deleted.iter().map(|existing| existing.file_id.clone()))
             .collect::<Vec<_>>();
 
         let symbol_lookup = {
@@ -672,9 +927,19 @@ impl ArtifactWriter {
             }
         }
 
-        let revision_counts =
-            revision_counts_with_capabilities(&row_counts, &capability_rows_written);
-        update_revision_counts(&tx, revision_id, &revision_counts)?;
+        let scope = ResolutionScopeInput {
+            changed_file_ids,
+            touched_symbol_names,
+            is_full_scan: true,
+        };
+        let resolution = run_resolution_hook(
+            &tx,
+            revision_id,
+            &row_counts,
+            &capability_rows_written,
+            &scope,
+            hook,
+        )?;
         tx.commit()?;
         checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = capability_rows_written;
@@ -686,16 +951,24 @@ impl ArtifactWriter {
             files_skipped,
             rows_written: row_counts,
             transactions_committed: 1,
+            resolution,
         })
     }
 
-    fn write_scan_spooled_snapshot(
+    fn write_scan_spooled_snapshot<F>(
         &mut self,
         revision: RevisionInput,
         snapshot_paths: &[String],
         preserved_missing_paths: &[String],
         spool: &ArtifactFileSpool,
-    ) -> ArtifactWriteResult<WriteResult> {
+        hook: &mut F,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.unchecked_transaction()?;
         // Symbol parent FKs can point to symbols inserted later in the same spooled transaction.
@@ -719,6 +992,9 @@ impl ArtifactWriter {
         // letting the insert resolve parent_symbol_id inline instead of in a second UPDATE pass.
         let mut requested_symbol_ids = HashSet::new();
         let mut local_symbol_ids = HashSet::new();
+        // NEW names for the resolution hook, gathered in this same planning pass
+        // (which already deserializes every file); OLD names are added below.
+        let mut touched_symbol_names: HashSet<String> = HashSet::new();
 
         for file in spool.iter()? {
             let file = file?;
@@ -746,6 +1022,7 @@ impl ArtifactWriter {
                 rewritten_file_ids.insert(file.file_id.clone());
                 collect_requested_symbol_ids(&file, &mut requested_symbol_ids);
                 collect_file_symbol_ids(&file, &mut local_symbol_ids);
+                touched_symbol_names.extend(file.symbols.iter().map(|symbol| symbol.name.clone()));
             }
             // Carry the existing-file lookup forward; pass B reuses it instead of re-SELECTing.
             // Nothing mutates a planned path's `files` row between here and its insert in pass B,
@@ -771,6 +1048,23 @@ impl ArtifactWriter {
                 ..WriteResult::default()
             });
         }
+
+        // OLD names of every existing file this scan will rewrite or delete, read
+        // before the insert pass drops those rows. Deleted files supply names the
+        // spooled snapshot can't. (Preserved-failure files keep their rows, so
+        // including their names is a harmless superset for the demotion worklist.)
+        let old_name_file_ids = deleted
+            .iter()
+            .map(|existing| existing.file_id.as_str())
+            .chain(
+                planned_files
+                    .values()
+                    .filter_map(|existing| existing.as_ref().map(|row| row.file_id.as_str())),
+            )
+            .collect::<Vec<_>>();
+        touched_symbol_names.extend(collect_existing_symbol_names(&tx, &old_name_file_ids)?);
+        let mut changed_file_ids = rewritten_file_ids.iter().cloned().collect::<Vec<_>>();
+        changed_file_ids.extend(deleted.iter().map(|existing| existing.file_id.clone()));
 
         let parent_revision_id = current_revision_id(&tx)?;
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
@@ -841,9 +1135,19 @@ impl ArtifactWriter {
             }
         }
 
-        let revision_counts =
-            revision_counts_with_capabilities(&row_counts, &capability_rows_written);
-        update_revision_counts(&tx, revision_id, &revision_counts)?;
+        let scope = ResolutionScopeInput {
+            changed_file_ids,
+            touched_symbol_names,
+            is_full_scan: true,
+        };
+        let resolution = run_resolution_hook(
+            &tx,
+            revision_id,
+            &row_counts,
+            &capability_rows_written,
+            &scope,
+            hook,
+        )?;
         tx.commit()?;
         checkpoint_wal(&self.connection)?;
         self.last_capability_rows_written = capability_rows_written;
@@ -855,6 +1159,7 @@ impl ArtifactWriter {
             files_skipped,
             rows_written: row_counts,
             transactions_committed: 1,
+            resolution,
         })
     }
 }
@@ -951,6 +1256,59 @@ fn insert_revision(
         ],
     )?;
     Ok(tx.last_insert_rowid())
+}
+
+/// Run the resolution hook inside the open write transaction — after all row
+/// writes, before `update_revision_counts` and commit — and fold its overlay
+/// writes into the revision counts so accounting stays truthful.
+///
+/// The hook runs inside a `SAVEPOINT`: on error the savepoint is rolled back so
+/// the affected rows simply stay unresolved (nothing written), the counts are
+/// zeroed, and the message is surfaced for the report — the scan itself still
+/// commits (design §"Failure semantics"). This one helper carries the hook call,
+/// count folding, and failure wrap for every mutating writer path.
+fn run_resolution_hook<F>(
+    tx: &Transaction<'_>,
+    revision_id: i64,
+    row_counts: &RowCounts,
+    capability_rows_written: &RowDomainCounts,
+    scope: &ResolutionScopeInput,
+    hook: &mut F,
+) -> ArtifactWriteResult<ResolutionWriteOutcome>
+where
+    F: for<'t> FnMut(
+        &Transaction<'t>,
+        &ResolutionScopeInput,
+    ) -> Result<ResolutionCounts, ResolutionHookError>,
+{
+    tx.execute_batch("SAVEPOINT resolution_hook")?;
+    let outcome = match hook(tx, scope) {
+        Ok(counts) => {
+            tx.execute_batch("RELEASE resolution_hook")?;
+            ResolutionWriteOutcome {
+                counts,
+                failed: None,
+            }
+        }
+        Err(error) => {
+            // Discard whatever the hook wrote before failing, then drop the
+            // savepoint. The affected rows revert to unresolved and the scan
+            // commits without them.
+            tx.execute_batch("ROLLBACK TO resolution_hook")?;
+            tx.execute_batch("RELEASE resolution_hook")?;
+            ResolutionWriteOutcome {
+                counts: ResolutionCounts::default(),
+                failed: Some(error.into_message()),
+            }
+        }
+    };
+
+    let mut revision_counts =
+        revision_counts_with_capabilities(row_counts, capability_rows_written);
+    revision_counts.pending_resolutions += outcome.counts.pending_resolutions as i64;
+    revision_counts.identifier_resolutions += outcome.counts.identifier_resolutions as i64;
+    update_revision_counts(tx, revision_id, &revision_counts)?;
+    Ok(outcome)
 }
 
 fn update_revision_counts(

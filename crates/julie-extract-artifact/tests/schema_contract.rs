@@ -803,6 +803,33 @@ fn expected_tables() -> Vec<ExpectedTable> {
             "evidence_json TEXT",
         ],
     );
+    // Resolution overlay (schema v4). Task 3 folds these into the row-domain
+    // contract so `report_row_domains_cover_every_sqlite_v3_public_table` and the
+    // column-contract test cover them.
+    tables.insert(
+        "pending_resolutions",
+        vec![
+            "pending_relationship_id TEXT",
+            "target_symbol_id TEXT",
+            "tier INTEGER",
+            "confidence REAL",
+            "method TEXT",
+            "resolved_at_revision INTEGER",
+        ],
+    );
+    tables.insert(
+        "identifier_resolutions",
+        vec![
+            "identifier_id TEXT",
+            "target_symbol_id TEXT",
+            "tier INTEGER",
+            "confidence REAL",
+            "method TEXT",
+            "outcome TEXT",
+            "candidates INTEGER",
+            "resolved_at_revision INTEGER",
+        ],
+    );
 
     tables
         .into_iter()
