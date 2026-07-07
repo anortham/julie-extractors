@@ -18,6 +18,126 @@ use std::path::PathBuf;
 mod identifier_extraction_tests {
     use super::*;
 
+    #[test]
+    fn test_csharp_pointer_misparse_multiplication_emits_variable_refs() {
+        // tree-sitter-c-sharp resolves `identifier * identifier` in argument/expression
+        // position as a pointer-type declaration_expression. C# pointer types are legal
+        // ONLY in `unsafe` contexts, so with no enclosing unsafe context this is really a
+        // multiplication: BOTH operands are value reads. See identifiers.rs LOCKED CONTRACT.
+        let csharp_code = r#"
+public class Calc {
+    // (a) argument-position multiplication misparsed as `pointer_type limit` / name `K`
+    public int Score(int limit, int K) {
+        int s = System.Math.Max(limit * K, 24);
+        return s;
+    }
+
+    // (c) literal RHS cannot be a declarator, so this already parses as multiplication
+    public int Twice(int limit) {
+        int t = limit * 3;
+        return t;
+    }
+}
+"#;
+
+        let (_symbols, identifiers) = extract_all(csharp_code);
+
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        // (a) BOTH operands of `limit * K` are value reads.
+        assert!(
+            var_refs.contains(&"limit"),
+            "expected variable_ref for `limit`; got {var_refs:?}"
+        );
+        assert!(
+            var_refs.contains(&"K"),
+            "expected variable_ref for `K` (declaration_expression name of the misparse); got {var_refs:?}"
+        );
+
+        // (a) `limit` must NOT be emitted as a bogus type usage (kind honesty).
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.name == "limit" && id.kind == IdentifierKind::TypeUsage),
+            "`limit` must not be a type_usage in the misparse shape"
+        );
+
+        // (a)+(c) `limit` appears once in Score (`limit * K`) and once in Twice
+        // (`limit * 3`); BOTH are value reads, no bogus type_usage, no duplicates.
+        let limit_rows: Vec<&IdentifierKind> = identifiers
+            .iter()
+            .filter(|id| id.name == "limit")
+            .map(|id| &id.kind)
+            .collect();
+        assert_eq!(
+            limit_rows.len(),
+            2,
+            "expected exactly one `limit` row per usage (Score + Twice); got {limit_rows:?}"
+        );
+        assert!(
+            limit_rows
+                .iter()
+                .all(|k| **k == IdentifierKind::VariableRef),
+            "every `limit` usage must be a variable_ref; got {limit_rows:?}"
+        );
+    }
+
+    #[test]
+    fn test_csharp_unsafe_pointer_declaration_unchanged() {
+        // Genuine unsafe pointer syntax must be left exactly as today: the pointee is a
+        // type usage and the declarator name is excluded. The unsafe-context gate must
+        // ALSO suppress the multiplication-recovery on the misparse shape.
+        let csharp_code = r#"
+public class Node {}
+
+public class Ptr {
+    // Genuine pointer declaration inside an unsafe method: `Node` is a type usage.
+    public unsafe void Use(int seed) {
+        Node* p = null;
+    }
+
+    // Misparse shape wrapped in an unsafe block: gate honored, behavior unchanged.
+    public void Guarded(int limit, int K) {
+        unsafe {
+            int s = System.Math.Max(limit * K, 24);
+        }
+    }
+}
+"#;
+
+        let (_symbols, identifiers) = extract_all(csharp_code);
+
+        // Genuine unsafe pointer: pointee `Node` stays a type usage.
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "Node" && id.kind == IdentifierKind::TypeUsage),
+            "genuine unsafe pointer pointee `Node` must remain a type_usage"
+        );
+
+        // Unsafe gate honored on the misparse shape: `K` (declaration name) is not
+        // resurrected as a value read, and `limit` keeps its current type_usage.
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+        assert!(
+            !var_refs.contains(&"K"),
+            "inside `unsafe`, the pointer parse is authoritative; `K` must not become a variable_ref; got {var_refs:?}"
+        );
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "limit" && id.kind == IdentifierKind::TypeUsage),
+            "inside `unsafe`, `limit` keeps its (unchanged) type_usage behavior"
+        );
+    }
+
     fn extract_all(csharp_code: &str) -> (Vec<Symbol>, Vec<Identifier>) {
         let mut parser = init_parser();
         let tree = parser.parse(csharp_code, None).unwrap();

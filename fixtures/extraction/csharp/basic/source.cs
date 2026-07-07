@@ -63,6 +63,7 @@ public sealed class Registry
 {
     public int Capacity;
     private const int Default = 8;
+    private const int Scale = 4;
 
     [Trace(Level = 1)]
     public int Configure(int requested)
@@ -71,5 +72,14 @@ public sealed class Registry
         var slot = new Registry { Capacity = reached };
         var label = nameof(Default);
         return slot.Capacity > 0 ? reached : Default;
+    }
+
+    // Pointer mis-parse recovery: tree-sitter-c-sharp resolves `requested * Scale`
+    // in argument position as a pointer-type declaration_expression. With no unsafe
+    // context it is a multiplication, so both operands emit variable_ref (otherwise
+    // the `Scale` const looks dead). Mirrors Miller's SymbolSuggestionEngine hit.
+    public int Scaled(int requested)
+    {
+        return Math.Max(requested * Scale, 1);
     }
 }

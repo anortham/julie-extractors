@@ -105,6 +105,27 @@ fn extract_identifier_from_node(
                 );
             }
         }
+        // `A * B` mis-parse recovery (LOCKED CONTRACT addendum). tree-sitter-c-sharp
+        // resolves `identifier * identifier` in expression/argument position as a
+        // pointer-type `declaration_expression` (`type: (pointer_type type: (identifier A))
+        // name: (identifier B)`). C# pointer types are legal ONLY in `unsafe` contexts, so
+        // with no enclosing unsafe context this shape is really a multiplication and BOTH
+        // operand identifiers are value reads. Evaluated BEFORE the TypeUsage arm so the
+        // pointee identifier `A` becomes a `variable_ref` instead of a bogus `type_usage`,
+        // and the `name` identifier `B` (which every other arm excludes) is recovered.
+        // Genuine unsafe pointer declarations are gated out and keep today's behavior.
+        "identifier" if is_csharp_misparsed_mul_operand(base, node) => {
+            let name = base.get_node_text(&node);
+            if !is_csharp_builtin_type(&name) {
+                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
         "identifier" if is_csharp_type_usage_identifier(node) => {
             let name = base.get_node_text(&node);
             if !is_csharp_builtin_type(&name) {
@@ -331,6 +352,21 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
 // stays call/type_usage/member_access — new rows are consumed by name-match only);
 // the `identifiers` schema / `IdentifierKind` enum / `sqlite_schema_version` are
 // unchanged (`variable_ref` is already a valid kind). Serialized string: `variable_ref`.
+//
+// HEURISTIC ADDENDUM — `A * B` pointer mis-parse recovery. tree-sitter-c-sharp
+// resolves `identifier * identifier` in expression/argument position as a pointer-type
+// `declaration_expression` (`type: (pointer_type type: (identifier A)) name: (identifier B)`):
+// `A` is emitted as a bogus `type_usage` and `B` (a declarator name) is dropped entirely,
+// so a multiplication like `Math.Max(limit * K, 24)` makes both operands invisible to
+// liveness. C# pointer types are legal ONLY in an `unsafe` context, so when NO enclosing
+// unsafe context exists (no ancestor `unsafe_statement`; no `unsafe` modifier on a
+// containing method/type/local-function) the shape is unambiguously a multiplication and
+// BOTH operands are value reads — each is emitted as a single `variable_ref` (the mis-parse
+// arm runs before the TypeUsage arm, so `A` never doubles as a type_usage). Genuine unsafe
+// pointer declarations (`Node* p;` in an unsafe method/block) are gated out and keep their
+// existing behavior (pointee `type_usage`, declarator name excluded). A literal operand
+// (`limit * 3`) cannot be a declarator and already parses as `binary_expression`.
+// See `is_csharp_misparsed_mul_operand` / `is_in_csharp_unsafe_context`.
 
 /// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
 /// receiver (the complement of the Call/MemberAccess/TypeUsage arms)? Mirrors the
@@ -440,6 +476,71 @@ fn is_csharp_value_read_identifier(node: Node) -> bool {
         // constant pattern / … — is a read.
         _ => true,
     }
+}
+
+/// LOCKED CONTRACT addendum — `A * B` pointer mis-parse recovery.
+///
+/// tree-sitter-c-sharp resolves `identifier * identifier` in expression/argument
+/// position as a pointer-type `declaration_expression`
+/// (`type: (pointer_type type: (identifier A)) name: (identifier B)`) — the `*`
+/// binds as a pointer declarator, not multiplication. C# pointer types are legal
+/// ONLY inside an `unsafe` context, so when NO enclosing unsafe context exists the
+/// shape is unambiguously a multiplication and both operand identifiers are value
+/// reads. Returns true for either operand identifier (`A` the pointee, or `B` the
+/// declaration_expression name) of such a non-unsafe pointer-type
+/// `declaration_expression`. A literal operand (`limit * 3`) cannot be a declarator
+/// so it already parses as `binary_expression` and never reaches this shape.
+fn is_csharp_misparsed_mul_operand(base: &BaseExtractor, node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    // Operand `B`: the `name` identifier of the pointer-type declaration_expression.
+    if parent.kind() == "declaration_expression"
+        && parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id())
+    {
+        return parent
+            .child_by_field_name("type")
+            .map(|t| t.kind() == "pointer_type")
+            .unwrap_or(false)
+            && !is_in_csharp_unsafe_context(base, parent);
+    }
+
+    // Operand `A`: the pointee identifier of the `pointer_type` used as the
+    // declaration_expression's `type`.
+    if parent.kind() == "pointer_type"
+        && parent.child_by_field_name("type").map(|n| n.id()) == Some(node.id())
+        && let Some(decl) = parent.parent()
+        && decl.kind() == "declaration_expression"
+        && decl.child_by_field_name("type").map(|t| t.id()) == Some(parent.id())
+    {
+        return !is_in_csharp_unsafe_context(base, decl);
+    }
+
+    false
+}
+
+/// True when `node` sits inside an `unsafe` context: an ancestor `unsafe_statement`
+/// (an `unsafe { … }` block), or an ancestor declaration carrying an `unsafe`
+/// modifier (method / type / local-function / property / …). C# pointer syntax is
+/// legal only in such contexts, so this gate distinguishes a genuine pointer
+/// declaration from the `A * B` multiplication mis-parse.
+fn is_in_csharp_unsafe_context(base: &BaseExtractor, node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        if parent.kind() == "unsafe_statement" || csharp_node_has_unsafe_modifier(base, parent) {
+            return true;
+        }
+        current = parent;
+    }
+    false
+}
+
+/// Direct `modifier` child of `node` whose source text is `unsafe`.
+fn csharp_node_has_unsafe_modifier(base: &BaseExtractor, node: Node) -> bool {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .any(|child| child.kind() == "modifier" && base.get_node_text(&child) == "unsafe")
 }
 
 fn is_csharp_declaration_name(node: Node) -> bool {
