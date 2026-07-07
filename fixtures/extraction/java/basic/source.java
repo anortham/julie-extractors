@@ -79,4 +79,10 @@ class Worker implements Job {
         }
         return total;
     }
+
+    /** Fully-qualified static call: the terminal receiver `Worker` must stay name-visible. */
+    static void auditViaQualifiedCall() {
+        int latest = fixture.Worker.evaluate(2, true);
+        fixture.Worker.observeRun("qualified-audit", latest);
+    }
 }

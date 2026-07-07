@@ -629,3 +629,111 @@ class Decorated {
         );
     }
 }
+
+#[cfg(test)]
+mod fq_static_receiver_tests {
+    use super::*;
+    use crate::base::IdentifierKind;
+    use crate::java::JavaExtractor;
+    use crate::tests::helpers::init_parser;
+    use std::path::PathBuf;
+
+    /// Fix round 1 (adversarial-review finding): in a fully-qualified static
+    /// METHOD call `com.acme.GraphTraversal.reach()`, the terminal class
+    /// receiver `GraphTraversal` emitted NO identifier row (while `com` was a
+    /// variable_ref and `acme` a member_access), so a helper class referenced
+    /// ONLY via FQ static calls looked dead to Miller's name-liveness. The
+    /// terminal receiver of a qualified invocation chain must be name-visible.
+    #[test]
+    fn test_java_fq_static_method_call_receiver_is_name_visible() {
+        let java_code = r#"
+public class GraphTraversal {
+    public static int reach() { return 0; }
+}
+
+public class T {
+    void m() {
+        com.acme.GraphTraversal.reach();      // FQ static method call -> GraphTraversal must be visible
+        int x = com.acme.Config.MAX;          // FQ static field access (regression guard)
+        GraphTraversal.reach();               // unqualified receiver (regression guard)
+    }
+}
+"#;
+
+        let workspace_root = PathBuf::from("/tmp/test");
+        let tree = init_parser(java_code, "java");
+        let mut extractor = JavaExtractor::new(
+            "java".to_string(),
+            "test.java".to_string(),
+            java_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let rows: Vec<(&str, IdentifierKind)> = identifiers
+            .iter()
+            .map(|id| (id.name.as_str(), id.kind.clone()))
+            .collect();
+
+        // THE defect: the FQ-call terminal receiver must produce a row. Two
+        // GraphTraversal usages exist (FQ + unqualified); both must be visible.
+        let graph_rows: Vec<&IdentifierKind> = rows
+            .iter()
+            .filter(|(n, _)| *n == "GraphTraversal")
+            .map(|(_, k)| k)
+            .collect();
+        assert_eq!(
+            graph_rows.len(),
+            2,
+            "both the FQ-chain terminal receiver and the unqualified receiver \
+             must emit a row; got {rows:?}"
+        );
+        // Kind-honesty: the FQ terminal receiver is the `field` of a
+        // field_access (like `Config` in the FQ field read) -> member_access;
+        // the unqualified receiver stays a variable_ref.
+        assert!(
+            graph_rows
+                .iter()
+                .any(|k| **k == IdentifierKind::MemberAccess),
+            "FQ terminal receiver should be a member_access; got {graph_rows:?}"
+        );
+        assert!(
+            graph_rows
+                .iter()
+                .any(|k| **k == IdentifierKind::VariableRef),
+            "unqualified receiver should stay a variable_ref; got {graph_rows:?}"
+        );
+
+        // Regression guards: FQ static FIELD access already worked.
+        assert!(
+            rows.contains(&("Config", IdentifierKind::MemberAccess)),
+            "FQ static field access must keep emitting member_access Config; got {rows:?}"
+        );
+        // Both calls still emit the callee.
+        assert_eq!(
+            rows.iter()
+                .filter(|(n, k)| *n == "reach" && *k == IdentifierKind::Call)
+                .count(),
+            2,
+            "both reach() calls must remain Call rows; got {rows:?}"
+        );
+
+        // No duplicate rows: each (name, kind, span) is unique.
+        let mut keys: Vec<(String, String, u32, u32)> = identifiers
+            .iter()
+            .map(|id| {
+                (
+                    id.name.clone(),
+                    id.kind.to_string(),
+                    id.start_byte,
+                    id.end_byte,
+                )
+            })
+            .collect();
+        let before = keys.len();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(before, keys.len(), "duplicate identifier rows detected");
+    }
+}

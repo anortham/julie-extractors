@@ -103,15 +103,19 @@ fn extract_identifier_from_node(
         }
 
         // Field access: object.field
+        //
+        // This fires for a field_access ANYWHERE, including as the `object`
+        // (receiver chain) of a method_invocation: in
+        // `com.acme.GraphTraversal.reach()` the terminal receiver
+        // `GraphTraversal` is the `field` of that object chain and this arm is
+        // the only thing that makes it name-visible (the Call arm emits only
+        // the invocation's `name`, never the receiver chain, so there is no
+        // double-emission). An earlier `parent == method_invocation` early
+        // return dropped exactly that row, making a class referenced ONLY via
+        // fully-qualified static calls look dead to name-liveness (fix round 1,
+        // adversarial-review finding). This also mirrors the C# reference arm,
+        // where the `name` of a receiver member_access_expression is emitted.
         "field_access" => {
-            // Only extract if it's NOT part of a method_invocation
-            // (we handle those in the method_invocation case above)
-            if let Some(parent) = node.parent()
-                && parent.kind() == "method_invocation"
-            {
-                return; // Skip - handled by method_invocation
-            }
-
             // Extract the rightmost identifier (the field name)
             if let Some(name_node) = node.child_by_field_name("field") {
                 let name = extractor.base().get_node_text(&name_node);
