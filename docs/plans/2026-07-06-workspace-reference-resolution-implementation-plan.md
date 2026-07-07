@@ -146,11 +146,11 @@ Schema-contract test asserts version 4 and both tables exist after `create_schem
 AND an existing v3 database (additive upgrade path).
 
 **Acceptance criteria:**
-- [ ] `SQLITE_SCHEMA_VERSION == 4`; both tables + indexes in `SCHEMA_SQL`; additive creation on a v3 artifact verified
-- [ ] CHECK and both FK actions proven by tests (cascade on target death, pending context intact, NULL-target rows unaffected)
-- [ ] Atomic primitives are the only exported write surface; demote clears denormalized column in the same batch
-- [ ] `write/read_resolution_metadata` round-trips status keys without touching `ArtifactMetadata::rows()`
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
+- [x] `SQLITE_SCHEMA_VERSION == 4`; both tables + indexes in `SCHEMA_SQL`; additive creation on a v3 artifact verified
+- [x] CHECK and both FK actions proven by tests (cascade on target death, pending context intact, NULL-target rows unaffected)
+- [x] Atomic primitives are the only exported write surface; demote clears denormalized column in the same batch
+- [x] `write/read_resolution_metadata` round-trips status keys without touching `ArtifactMetadata::rows()`
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
 
 ### Task 2: Pending span emission + occurrence-distinct IDs
 

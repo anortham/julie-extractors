@@ -54,6 +54,93 @@ fn schema_creates_every_sqlite_v3_public_table_with_contract_columns() {
 }
 
 #[test]
+fn sqlite_schema_version_is_v4() {
+    // INVARIANT: the additive resolution overlay bumps the single-integer schema
+    // version 3 -> 4.
+    assert_eq!(SQLITE_SCHEMA_VERSION, 4);
+}
+
+#[test]
+fn schema_creates_resolution_overlay_tables_with_contract_columns() {
+    // INVARIANT: both overlay tables exist with the exact design DDL columns.
+    let conn = open_schema();
+
+    assert_eq!(
+        table_columns(&conn, "pending_resolutions"),
+        vec![
+            "pending_relationship_id TEXT",
+            "target_symbol_id TEXT",
+            "tier INTEGER",
+            "confidence REAL",
+            "method TEXT",
+            "resolved_at_revision INTEGER",
+        ]
+    );
+    assert_eq!(
+        table_columns(&conn, "identifier_resolutions"),
+        vec![
+            "identifier_id TEXT",
+            "target_symbol_id TEXT",
+            "tier INTEGER",
+            "confidence REAL",
+            "method TEXT",
+            "outcome TEXT",
+            "candidates INTEGER",
+            "resolved_at_revision INTEGER",
+        ]
+    );
+}
+
+#[test]
+fn schema_upgrade_from_v3_is_additive_and_preserves_data() {
+    // INVARIANT: running create_schema on an existing v3 artifact (overlay tables
+    // absent, data present) adds only the two overlay tables and leaves the
+    // existing rows intact.
+    let conn = Connection::open_in_memory().unwrap();
+    conn.pragma_update(None, "foreign_keys", true).unwrap();
+    create_schema(&conn).unwrap();
+
+    // Simulate a v3 artifact: the overlay tables never existed, but real data does.
+    conn.execute(
+        "INSERT INTO extraction_revisions \
+         (revision_id, operation, started_at, completed_at, binary_version, \
+          extract_contract_version, sqlite_schema_version, counts_json) \
+         VALUES (1, 'scan', 't', 't', 'v', 3, 3, '{}')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO files \
+         (file_id, path, language, content_hash, content_bytes, indexed_at, \
+          last_revision_id, status) \
+         VALUES ('f1', 'src/a.rs', 'rust', 'h', 10, 't', 1, 'active')",
+        [],
+    )
+    .unwrap();
+    conn.execute("DROP TABLE identifier_resolutions", [])
+        .unwrap();
+    conn.execute("DROP TABLE pending_resolutions", []).unwrap();
+
+    // Re-open with the v4 schema.
+    create_schema(&conn).unwrap();
+
+    let tables: BTreeSet<String> = conn
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .unwrap()
+        .query_map([], |r| r.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert!(tables.contains("pending_resolutions"));
+    assert!(tables.contains("identifier_resolutions"));
+
+    let file_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM files", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(file_count, 1, "existing v3 data must survive the upgrade");
+}
+
+#[test]
 fn schema_creates_required_indexes_with_contract_columns() {
     let conn = open_schema();
 
@@ -184,7 +271,7 @@ fn metadata_required_keys_are_inserted_and_readable() {
     }
     assert_eq!(rows["artifact_id"], "artifact-test-1");
     assert_eq!(rows["root_path"], "/repo");
-    assert_eq!(rows["schema_version"], "3");
+    assert_eq!(rows["schema_version"], "4");
     assert_eq!(rows["extract_contract_version"], "3");
     assert_eq!(
         rows["sqlite_schema_version"],
@@ -953,6 +1040,21 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_diagnostics_file",
             table: "parse_diagnostics",
             columns: vec!["file_id"],
+        },
+        ExpectedIndex {
+            name: "idx_identifiers_file_line_name",
+            table: "identifiers",
+            columns: vec!["file_id", "start_line", "name"],
+        },
+        ExpectedIndex {
+            name: "idx_pending_resolutions_target",
+            table: "pending_resolutions",
+            columns: vec!["target_symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_identifier_resolutions_target",
+            table: "identifier_resolutions",
+            columns: vec!["target_symbol_id"],
         },
     ]
 }

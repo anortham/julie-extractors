@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-pub const SQLITE_SCHEMA_VERSION: i64 = 3;
+pub const SQLITE_SCHEMA_VERSION: i64 = 4;
 pub const EXTRACT_CONTRACT_VERSION: i64 = 3;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
@@ -175,6 +175,39 @@ CREATE TABLE IF NOT EXISTS pending_relationships (
   FOREIGN KEY (from_symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE,
   FOREIGN KEY (caller_scope_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL,
   FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE
+);
+
+-- Resolution overlay (schema v4): pending rows are durable facts; resolution is
+-- a derived overlay. A pending row is "resolved" iff it has a
+-- `pending_resolutions` row. If the target symbol dies, CASCADE removes the
+-- resolution and the pending row reverts to unresolved with its context intact.
+CREATE TABLE IF NOT EXISTS pending_resolutions (
+  pending_relationship_id TEXT PRIMARY KEY
+    REFERENCES pending_relationships(pending_relationship_id) ON DELETE CASCADE,
+  target_symbol_id TEXT NOT NULL
+    REFERENCES symbols(symbol_id) ON DELETE CASCADE,
+  tier INTEGER NOT NULL,
+  confidence REAL NOT NULL,
+  method TEXT NOT NULL,
+  resolved_at_revision INTEGER NOT NULL
+);
+
+-- Identifier resolution overlay (schema v4). Resolved rows carry a target and
+-- CASCADE away when it dies; ambiguous/missing rows have NULL target. The CHECK
+-- enforces outcome/target coherence (outcome='resolved' <=> target NOT NULL).
+-- No resolution provenance is ever written to `identifiers.metadata_json`.
+CREATE TABLE IF NOT EXISTS identifier_resolutions (
+  identifier_id TEXT PRIMARY KEY
+    REFERENCES identifiers(identifier_id) ON DELETE CASCADE,
+  target_symbol_id TEXT
+    REFERENCES symbols(symbol_id) ON DELETE CASCADE,
+  tier INTEGER,
+  confidence REAL,
+  method TEXT,
+  outcome TEXT NOT NULL,
+  candidates INTEGER,
+  resolved_at_revision INTEGER NOT NULL,
+  CHECK ((outcome = 'resolved') = (target_symbol_id IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS type_facts (
@@ -394,4 +427,7 @@ CREATE INDEX IF NOT EXISTS idx_complexity_metrics_scope_language ON complexity_m
 CREATE INDEX IF NOT EXISTS idx_complexity_metrics_symbol ON complexity_metrics(symbol_id);
 CREATE INDEX IF NOT EXISTS idx_diagnostics_path ON parse_diagnostics(path);
 CREATE INDEX IF NOT EXISTS idx_diagnostics_file ON parse_diagnostics(file_id);
+CREATE INDEX IF NOT EXISTS idx_identifiers_file_line_name ON identifiers(file_id, start_line, name);
+CREATE INDEX IF NOT EXISTS idx_pending_resolutions_target ON pending_resolutions(target_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_identifier_resolutions_target ON identifier_resolutions(target_symbol_id);
 "#;
