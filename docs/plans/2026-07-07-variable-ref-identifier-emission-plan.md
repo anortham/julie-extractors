@@ -189,11 +189,11 @@ Add `fn is_csharp_value_read_identifier(node) -> bool` mirroring the structure o
 - Coverage query shows a non-trivial `variable_ref` count for every general-purpose language.
 
 **Acceptance criteria:**
-- [ ] `capabilities.json` reflects real per-language `variable_ref` support / `not_applicable` reasons; `--strict` report at 0 debts.
-- [ ] Per-language coverage query pasted into release evidence; no general-purpose language at 0.
-- [ ] `cargo build --release` 0 warnings; full `cargo test` + `dogfood` + `performance` green/in-budget.
-- [ ] All three crate manifests bumped to `2.10.0` + `Cargo.lock` refreshed; `cargo xtask release preflight --version 2.10.0` passes; release note + evidence written.
-- [ ] Change committed (`serial-worker-commit`).
+- [x] `capabilities.json` reflects real per-language `variable_ref` support / `not_applicable` reasons; `--strict` report at 0 debts.
+- [x] Per-language coverage query pasted into release evidence; no general-purpose language at 0.
+- [x] `cargo build --release` 0 warnings; full `cargo test` + `dogfood` + `performance` green/in-budget.
+- [x] All three crate manifests bumped to `2.10.0` + `Cargo.lock` refreshed; `cargo xtask release preflight --version 2.10.0` passes; release note + evidence written.
+- [x] Change committed (`serial-worker-commit`).
 
 ---
 

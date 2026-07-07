@@ -84,7 +84,8 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -258,7 +259,8 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -392,7 +394,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -533,7 +536,8 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -662,7 +666,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -851,7 +856,8 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1044,7 +1050,8 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1246,7 +1253,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
+            "member_access",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1421,7 +1429,8 @@
         },
         "identifiers": {
           "supported": [
-            "call"
+            "call",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1566,7 +1575,9 @@
             "call",
             "member_access"
           ],
-          "not_applicable": [],
+          "not_applicable": [
+            "variable_ref"
+          ],
           "open_gaps": []
         },
         "body_spans": {
@@ -1722,7 +1733,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
+            "member_access",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -1882,7 +1894,8 @@
         },
         "identifiers": {
           "supported": [
-            "call"
+            "call",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2029,7 +2042,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
+            "member_access",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2172,7 +2186,8 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2318,7 +2333,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2446,7 +2462,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
+            "member_access",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2586,7 +2603,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
+            "member_access",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2746,7 +2764,8 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2880,7 +2899,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3022,7 +3042,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3171,7 +3192,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3300,7 +3322,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3433,7 +3456,8 @@
           "supported": [
             "call",
             "member_access",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3592,7 +3616,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
+            "member_access",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -3980,7 +4005,8 @@
         },
         "identifiers": {
           "supported": [
-            "call"
+            "call",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4106,7 +4132,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "member_access"
+            "member_access",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4232,7 +4259,8 @@
         "identifiers": {
           "supported": [
             "call",
-            "type_usage"
+            "type_usage",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4373,7 +4401,8 @@
         },
         "identifiers": {
           "supported": [
-            "call"
+            "call",
+            "variable_ref"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4497,7 +4526,9 @@
           "supported": [
             "member_access"
           ],
-          "not_applicable": [],
+          "not_applicable": [
+            "variable_ref"
+          ],
           "open_gaps": []
         },
         "body_spans": {
@@ -4646,7 +4677,9 @@
             "call",
             "member_access"
           ],
-          "not_applicable": [],
+          "not_applicable": [
+            "variable_ref"
+          ],
           "open_gaps": []
         },
         "body_spans": {
