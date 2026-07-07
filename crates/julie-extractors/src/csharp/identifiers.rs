@@ -118,6 +118,25 @@ fn extract_identifier_from_node(
                 record_outermost_generic_type_arguments(base, node, &identifier);
             }
         }
+        // `variable_ref` complement arm: a bare `identifier` used as a value or as
+        // the object/receiver of a member access — the reads the Call/MemberAccess/
+        // TypeUsage arms above do not own. Evaluated only after the TypeUsage guard,
+        // so type positions never reach here (single row per node; no duplicates).
+        "identifier" if is_csharp_value_read_identifier(node) => {
+            let name = base.get_node_text(&node);
+            // Rule 5: reuse the builtin/keyword filter. (`this`/`base`/`true`/`false`/
+            // `null` are distinct grammar nodes, not `identifier`, so they never
+            // reach this arm.)
+            if !is_csharp_builtin_type(&name) {
+                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
         _ => {}
     }
 }
@@ -273,6 +292,154 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
     }
 
     false
+}
+
+// ============================================================================
+// variable_ref emission — LOCKED SEMANTIC CONTRACT (reference implementation)
+// ============================================================================
+//
+// Miller's dead-code candidate reader decides name-liveness by whether any
+// `identifiers` row has `name = S.name` OUTSIDE S's own definition. A bare read
+// (`return VisibilityUnknown;`) or a static-access receiver (`GraphTraversal` in
+// `GraphTraversal.Reach()`) previously emitted NO identifier, so live symbols were
+// falsely flagged dead. `variable_ref` closes that gap. Every rollout task copies
+// this arm's structure verbatim, so the six rules below are load-bearing.
+//
+// Emit `IdentifierKind::VariableRef` for a name node N when ALL hold:
+//   1. Read in value or receiver position — N is used as an expression / operand /
+//      argument / initializer / return value / collection element, OR the object
+//      (receiver) of a member access (`X` in `X.Y` / `X.Y()`), OR a member-reference
+//      LHS in an initializer/named-argument context (`Bar` in `new Foo { Bar = 5 }`,
+//      `Bar` in `[Foo(Bar = 1)]`).
+//   2. Not already emitted by another arm — not a call callee (Call), not the
+//      accessed `.name` of a member access (MemberAccess/Call), not a type usage
+//      (TypeUsage). This arm is the *complement*; match ordering (TypeUsage guard
+//      first) guarantees a type identifier never reaches here.
+//   3. Not a declaration name — not the defining identifier of a type / method /
+//      constructor / property / field / enum-member / parameter / local /
+//      local-function / label / using-alias LHS.
+//   4. Not a write-only target — not the LHS of a PLAIN assignment (`x = 5`). A
+//      COMPOUND assignment (`x += 1`) IS a read. An initializer/named-argument
+//      member LHS is a read (rule 1). Liveness counts *reads*.
+//   5. Not a keyword/builtin — reuse `is_csharp_builtin_type`; `this`/`base`/
+//      `true`/`false`/`null` are distinct grammar nodes and never appear as
+//      `identifier`, so they are structurally excluded.
+//   6. `containing_symbol_id` is set via `find_containing_symbol_id`, exactly as
+//      the sibling arms do.
+//
+// NON-GOALS: `variable_ref` is NOT made resolvable (`ReferenceKind::from_identifier_kind`
+// stays call/type_usage/member_access — new rows are consumed by name-match only);
+// the `identifiers` schema / `IdentifierKind` enum / `sqlite_schema_version` are
+// unchanged (`variable_ref` is already a valid kind). Serialized string: `variable_ref`.
+
+/// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
+/// receiver (the complement of the Call/MemberAccess/TypeUsage arms)? Mirrors the
+/// structure of `is_csharp_type_usage_identifier` but for value/receiver reads,
+/// reusing `is_csharp_declaration_name` for exclusions. Node kinds and field names
+/// were verified against the vendored tree-sitter-c-sharp 0.23.5 grammar.
+fn is_csharp_value_read_identifier(node: Node) -> bool {
+    // Rule 3: never a type/method/property/namespace/type-parameter definition name.
+    if is_csharp_declaration_name(node) {
+        return false;
+    }
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    // Rule 2: a `type`/`returns` field identifier is a type usage, not a value. The
+    // TypeUsage arm owns the type positions its predicate recognizes, but its walk
+    // misses a bare method `returns` type; excluding both fields here keeps a type
+    // from being mislabeled as a read (a return type is not "value position").
+    if parent.child_by_field_name("type").map(|t| t.id()) == Some(node.id())
+        || parent.child_by_field_name("returns").map(|t| t.id()) == Some(node.id())
+    {
+        return false;
+    }
+
+    let is_name_field = parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 2: the callee identifier of a call is owned by the Call arm.
+        "invocation_expression" => false,
+        // Rule 1/2: only the receiver (`expression`) of a member access is a read;
+        // the accessed member `name` is owned by the MemberAccess/Call arms.
+        "member_access_expression" => {
+            parent.child_by_field_name("expression").map(|e| e.id()) == Some(node.id())
+        }
+        // `?.Prop`: the `condition` receiver is a read; the bound member name is not.
+        "conditional_access_expression" => {
+            parent.child_by_field_name("condition").map(|c| c.id()) == Some(node.id())
+        }
+        "member_binding_expression" => false,
+
+        // Rule 3: definition names the shared declaration guard does not cover. Their
+        // NON-name identifier children (a declarator initializer value, the foreach
+        // collection) fall through below as reads.
+        "constructor_declaration"
+        | "destructor_declaration"
+        | "record_declaration"
+        | "record_struct_declaration"
+        | "delegate_declaration"
+        | "enum_member_declaration"
+        | "local_function_statement"
+        | "event_declaration" => !is_name_field,
+        "variable_declarator"
+        | "parameter"
+        | "declaration_expression"
+        | "catch_declaration"
+        | "implicit_parameter" => !is_name_field,
+        // foreach loop variable (`left`) is a definition; the `right` collection reads.
+        "foreach_statement" => {
+            parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id())
+        }
+
+        // Rule 3: labels and using/extern aliases / namespace names are not variables.
+        "labeled_statement"
+        | "goto_statement"
+        | "using_directive"
+        | "extern_alias_directive"
+        | "namespace_declaration"
+        | "file_scoped_namespace_declaration" => false,
+
+        // Rule 1: an argument value is a read; the `name:` label of a named argument
+        // (`foo(bar: 5)`) is a parameter name, not a read.
+        "argument" => !is_name_field,
+        // Rule 1: attribute named-arg member / positional value is a read; the
+        // attribute's own `name` is a type usage.
+        "attribute" => false,
+        "attribute_argument" => true,
+
+        // Rule 4: assignment RHS is a read; the LHS is a read only for a COMPOUND
+        // operator or an object/collection-initializer member. A plain `x = 5` LHS is
+        // write-only.
+        "assignment_expression" => {
+            let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
+            if !is_left {
+                return true;
+            }
+            if parent
+                .parent()
+                .map(|g| g.kind() == "initializer_expression")
+                .unwrap_or(false)
+            {
+                return true;
+            }
+            parent
+                .child_by_field_name("operator")
+                .map(|op| op.kind() != "=")
+                .unwrap_or(false)
+        }
+
+        // Type positions (also removed by the TypeUsage arm via match ordering; kept
+        // explicit so the predicate is correct in isolation).
+        "qualified_name" | "generic_name" | "type_argument_list" | "array_type"
+        | "nullable_type" | "pointer_type" | "tuple_type" | "base_list" => false,
+
+        // Every other expression/statement value slot — return / binary / conditional /
+        // interpolation / initializer element / switch value / element access / cast /
+        // constant pattern / … — is a read.
+        _ => true,
+    }
 }
 
 fn is_csharp_declaration_name(node: Node) -> bool {

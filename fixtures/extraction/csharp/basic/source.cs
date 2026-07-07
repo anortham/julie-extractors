@@ -46,3 +46,30 @@ public static class ComplexityFixture
         return total;
     }
 }
+
+public static class GraphTraversal
+{
+    public static int Reach(int seed) => seed;
+}
+
+public sealed class TraceAttribute : Attribute
+{
+    public int Level;
+}
+
+// variable_ref reference cases: static-access receiver, object-initializer
+// member, attribute named argument, nameof operand, and a bare const read.
+public sealed class Registry
+{
+    public int Capacity;
+    private const int Default = 8;
+
+    [Trace(Level = 1)]
+    public int Configure(int requested)
+    {
+        var reached = GraphTraversal.Reach(requested);
+        var slot = new Registry { Capacity = reached };
+        var label = nameof(Default);
+        return slot.Capacity > 0 ? reached : Default;
+    }
+}

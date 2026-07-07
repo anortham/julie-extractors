@@ -325,6 +325,143 @@ public class Controller {
     }
 
     #[test]
+    fn test_csharp_variable_ref_emission() {
+        // Locked variable_ref contract: receivers + bare value reads, cross-cutting
+        // the call/member/type arms. See identifiers.rs doc-comment for the 6 rules.
+        let csharp_code = r#"
+namespace Demo;
+
+using System;
+
+public static class GraphTraversal {
+    public static int Reach() => 0;
+}
+
+public class Sample {
+    private int count;
+    public int Bar;
+
+    // GhostToken appears only in this comment and must never be an identifier.
+    public int Evaluate(int seed, int unusedParam) {
+        count += 1;                          // compound assignment -> read count
+        int x = 5;                           // declaration name, no ref
+        x = 7;                               // plain write LHS -> NOT a read
+        var total = seed;                    // seed on RHS -> read
+        var g = GraphTraversal.Reach();      // GraphTraversal receiver -> read; Reach -> call
+        var f = new Sample { Bar = seed };   // Bar initializer member -> read
+        var n = nameof(VisibilityUnknown);   // nameof operand -> read
+        var w = Filter(IsUserType);          // method-group arg -> read
+        return total > 0 ? total : VisibilityUnknown; // bare read of VisibilityUnknown
+    }
+
+    private bool IsUserType(int a) => true;
+    private int Filter(Func<int, bool> p) => 0;
+    private const int VisibilityUnknown = 3;
+
+    // Return-type identifier is a type usage, not a value read.
+    public Widget Build() => null;
+}
+
+public sealed class Widget {}
+
+public sealed class FooAttribute : Attribute {
+    public int Baz;
+}
+
+public class Decorated {
+    [Foo(Baz = 1)]                           // attribute named arg -> read Baz
+    public void M() {}
+}
+"#;
+
+        let (symbols, identifiers) = extract_all(csharp_code);
+
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        // --- Positive cases (rule 1/4) ---
+        for expected in [
+            "GraphTraversal",    // static-access receiver
+            "VisibilityUnknown", // nameof operand + bare return read
+            "IsUserType",        // method-group argument
+            "Bar",               // object-initializer member LHS
+            "Baz",               // attribute named argument
+            "count",             // compound-assignment target
+            "seed",              // RHS / argument value read
+        ] {
+            assert!(
+                var_refs.contains(&expected),
+                "expected variable_ref for {expected}; got {var_refs:?}"
+            );
+        }
+
+        // Receiver + call coexist: GraphTraversal.Reach()
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "Reach" && id.kind == IdentifierKind::Call),
+            "GraphTraversal.Reach() must still yield a call named Reach"
+        );
+
+        // --- Negative cases (rules 2/3/4/5) ---
+        for forbidden in [
+            "x",           // declaration name + plain-write LHS
+            "unusedParam", // parameter name only
+            "int",         // builtin type
+            "GhostToken",  // comment-only mention
+            "Sample",      // type/declaration name, never a value read
+            "Evaluate",    // method declaration name
+            "Demo",        // file-scoped namespace name
+            "Widget",      // method return type -> type usage, not a value read
+        ] {
+            assert!(
+                !var_refs.contains(&forbidden),
+                "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+            );
+        }
+        // GhostToken must not appear as ANY identifier kind.
+        assert!(
+            !identifiers.iter().any(|id| id.name == "GhostToken"),
+            "comment-only GhostToken must not be extracted at all"
+        );
+
+        // No duplicate rows: each (name, kind, span) is unique.
+        let mut keys: Vec<(String, String, u32, u32)> = identifiers
+            .iter()
+            .map(|id| {
+                (
+                    id.name.clone(),
+                    id.kind.to_string(),
+                    id.start_byte,
+                    id.end_byte,
+                )
+            })
+            .collect();
+        let before = keys.len();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(before, keys.len(), "duplicate identifier rows detected");
+
+        // containing_symbol_id is populated on a variable_ref.
+        let evaluate = symbols
+            .iter()
+            .find(|s| s.name == "Evaluate")
+            .expect("Evaluate method extracted");
+        let graph_ref = identifiers
+            .iter()
+            .find(|id| id.name == "GraphTraversal" && id.kind == IdentifierKind::VariableRef)
+            .expect("GraphTraversal variable_ref");
+        assert_eq!(
+            graph_ref.containing_symbol_id.as_deref(),
+            Some(evaluate.id.as_str()),
+            "receiver variable_ref should be contained in Evaluate"
+        );
+    }
+
+    #[test]
     fn test_csharp_object_creation_emits_constructor_call_identifier() {
         let csharp_code = r#"
 public class User {}

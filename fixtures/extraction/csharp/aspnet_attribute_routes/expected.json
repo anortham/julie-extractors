@@ -873,6 +873,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Routes:variable_ref:22:13",
+      "name": "Routes",
+      "kind": "variable_ref",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 22,
+      "start_column": 13,
+      "end_line": 22,
+      "end_column": 19,
+      "start_byte": 501,
+      "end_byte": 507,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Sample:type_usage:3:10",
       "name": "Sample",
       "kind": "type_usage",
@@ -885,6 +901,22 @@
       "start_byte": 43,
       "end_byte": 49,
       "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Version:variable_ref:25:26",
+      "name": "Version",
+      "kind": "variable_ref",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 25,
+      "start_column": 26,
+      "end_line": 25,
+      "end_column": 33,
+      "start_byte": 583,
+      "end_byte": 590,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
       "target_key": null,
       "confidence": "1.000"
     }
