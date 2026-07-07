@@ -175,6 +175,7 @@ impl BaseExtractor {
             node.start_position().row as u32 + 1,
             confidence.unwrap_or(1.0),
         )
+        .with_span(NormalizedSpan::from_node(node))
     }
 
     /// Find containing symbol - exact port of findContainingSymbol

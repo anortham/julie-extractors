@@ -189,11 +189,11 @@ for every language whose emitters route through the shared helpers", asserted pe
 Task 6 fixtures, with genuine gaps recorded there.
 
 **Acceptance criteria:**
-- [ ] Pending rows carry spans where emitters supply them; live-artifact-style mapping test proves non-NULL span columns for at least C#, TypeScript, Python fixtures
-- [ ] Two same-name same-line calls produce two pending rows (ID test)
-- [ ] Rows without spans keep today's ID and dedup behavior (no regression in existing extraction tests)
-- [ ] `cargo xtask test language <lang>` green for every language whose emitter files changed
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
+- [x] Pending rows carry spans where emitters supply them; live-artifact-style mapping test proves non-NULL span columns for at least C#, TypeScript, Python fixtures
+- [x] Two same-name same-line calls produce two pending rows (ID test)
+- [x] Rows without spans keep today's ID and dedup behavior (no regression in existing extraction tests)
+- [x] `cargo xtask test language <lang>` green for every language whose emitter files changed (no per-language emitter changed — coverage flows through the shared `create_pending_relationship` helper; ran csharp/typescript/python + full extractors 2790 suite)
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
 
 ### Task 3: ResolutionHook seam in the writer
 

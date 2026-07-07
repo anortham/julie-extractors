@@ -9,7 +9,9 @@ use julie_extract_artifact::model::{
     ArtifactSourceRegion, ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation,
     ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
 };
-use julie_extractors::base::{ComplexityMetric, StructuralFact, StructuredPendingRelationship};
+use julie_extractors::base::{
+    ComplexityMetric, NormalizedSpan, StructuralFact, StructuredPendingRelationship,
+};
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
     ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship, SourceRegion,
@@ -504,12 +506,14 @@ fn map_structured_pending(
 ) -> Result<ArtifactPendingRelationship, ExtractFileError> {
     let namespace_json = json_string(&pending.target.namespace_path, target)
         .map_err(|error| serialization_error(target, error))?;
+    let span = pending.span.as_ref();
     Ok(ArtifactPendingRelationship {
         pending_relationship_id: pending_id(
             pending.pending.from_symbol_id.as_str(),
             pending.target.display_name.as_str(),
             pending.pending.kind.to_string().as_str(),
             pending.pending.line_number,
+            span,
         ),
         from_symbol_id: pending.pending.from_symbol_id.clone(),
         caller_scope_symbol_id: pending.caller_scope_symbol_id.clone(),
@@ -519,12 +523,17 @@ fn map_structured_pending(
         target_receiver: pending.target.receiver.clone(),
         target_namespace_json: namespace_json,
         target_import_context: pending.target.import_context.clone(),
-        start_line: i64::from(pending.pending.line_number),
-        start_column: None,
-        end_line: None,
-        end_column: None,
-        start_byte: None,
-        end_byte: None,
+        // Prefer the span's byte-accurate start line when present; fall back to
+        // the pending's 1-based line number for spanless rows.
+        start_line: span.map_or_else(
+            || i64::from(pending.pending.line_number),
+            |span| i64::from(span.start_line),
+        ),
+        start_column: span.map(|span| i64::from(span.start_column)),
+        end_line: span.map(|span| i64::from(span.end_line)),
+        end_column: span.map(|span| i64::from(span.end_column)),
+        start_byte: span.map(|span| i64::from(span.start_byte)),
+        end_byte: span.map(|span| i64::from(span.end_byte)),
         confidence: f64::from(pending.pending.confidence),
         metadata_json: None,
     })
@@ -540,6 +549,7 @@ fn map_legacy_pending(
             pending.callee_name.as_str(),
             pending.kind.to_string().as_str(),
             pending.line_number,
+            None,
         ),
         from_symbol_id: pending.from_symbol_id.clone(),
         caller_scope_symbol_id: None,
@@ -811,16 +821,39 @@ fn serialization_error(target: &FileTarget, error: serde_json::Error) -> Extract
     }
 }
 
-fn pending_id(from_symbol_id: &str, target_name: &str, kind: &str, line_number: u32) -> String {
-    stable_id(
-        "pending_relationship",
-        [
-            from_symbol_id,
-            target_name,
-            kind,
-            line_number.to_string().as_str(),
-        ],
-    )
+fn pending_id(
+    from_symbol_id: &str,
+    target_name: &str,
+    kind: &str,
+    line_number: u32,
+    span: Option<&NormalizedSpan>,
+) -> String {
+    // Spanless rows keep the historical (from, name, kind, line) identity so
+    // their dedup behavior is unchanged. When a call-site span is present, fold
+    // in the occurrence's start_byte/start_column so two same-name calls on one
+    // line become distinct rows.
+    match span {
+        Some(span) => stable_id(
+            "pending_relationship",
+            [
+                from_symbol_id,
+                target_name,
+                kind,
+                line_number.to_string().as_str(),
+                span.start_byte.to_string().as_str(),
+                span.start_column.to_string().as_str(),
+            ],
+        ),
+        None => stable_id(
+            "pending_relationship",
+            [
+                from_symbol_id,
+                target_name,
+                kind,
+                line_number.to_string().as_str(),
+            ],
+        ),
+    }
 }
 
 fn type_argument_usage_id(usage: &TypeArgumentUsage) -> String {
@@ -941,6 +974,50 @@ mod tests {
             content_bytes: 0,
             line_count: Some(0),
         }
+    }
+
+    fn span_at(start_byte: u32, start_column: u32) -> NormalizedSpan {
+        NormalizedSpan {
+            start_line: 5,
+            start_column,
+            end_line: 5,
+            end_column: start_column + 3,
+            start_byte,
+            end_byte: start_byte + 3,
+        }
+    }
+
+    /// Invariant: a spanless pending row keeps the historical
+    /// (from, name, kind, line) identity, so two spanless occurrences with the
+    /// same key still dedup to one id (no regression for legacy/spanless rows).
+    #[test]
+    fn pending_id_without_span_is_stable_and_dedups() {
+        let a = pending_id("from#1", "bar", "calls", 5, None);
+        let b = pending_id("from#1", "bar", "calls", 5, None);
+        assert_eq!(a, b, "spanless ids for the same key must be identical");
+    }
+
+    /// Invariant: adding a span never collides with the spanless id, and two
+    /// same-line occurrences with different byte offsets get distinct ids —
+    /// the property the occurrence-distinct row test relies on.
+    #[test]
+    fn pending_id_with_distinct_spans_is_occurrence_distinct() {
+        let spanless = pending_id("from#1", "bar", "calls", 5, None);
+        let first = pending_id("from#1", "bar", "calls", 5, Some(&span_at(40, 11)));
+        let second = pending_id("from#1", "bar", "calls", 5, Some(&span_at(48, 19)));
+
+        assert_ne!(
+            spanless, first,
+            "spanned id must not collide with the spanless id"
+        );
+        assert_ne!(
+            first, second,
+            "two same-line occurrences must produce distinct ids"
+        );
+
+        // Same span twice is deterministic (stable id).
+        let first_again = pending_id("from#1", "bar", "calls", 5, Some(&span_at(40, 11)));
+        assert_eq!(first, first_again, "same span must yield the same id");
     }
 
     fn utf16le_bom_bytes(content: &str) -> Vec<u8> {

@@ -1,7 +1,15 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use super::span::NormalizedSpan;
 use super::types::{PendingRelationship, RelationshipKind, Symbol, SymbolKind};
+
+/// Byte-accurate source span for a pending relationship's call site.
+///
+/// Reuses [`NormalizedSpan`] so a pending row's span is byte-identical to the
+/// identifier extracted at the same site — the join key Task 4/5 relies on when
+/// attaching resolved relationships back to identifiers by byte span.
+pub type PendingSpan = NormalizedSpan;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct UnresolvedTarget {
@@ -48,6 +56,12 @@ pub struct StructuredPendingRelationship {
         skip_serializing_if = "Option::is_none"
     )]
     pub caller_scope_symbol_id: Option<String>,
+    /// Byte-accurate span of the call site, populated wherever the emitting call
+    /// site had the AST node in hand (via [`StructuredPendingRelationship::with_span`]
+    /// or the shared `create_pending_relationship` helper). `None` when the
+    /// emitter had no node span; such rows keep the pre-span dedup identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub span: Option<PendingSpan>,
 }
 
 impl StructuredPendingRelationship {
@@ -64,6 +78,7 @@ impl StructuredPendingRelationship {
         Self {
             target,
             caller_scope_symbol_id,
+            span: None,
             pending: PendingRelationship {
                 from_symbol_id,
                 callee_name: display_name,
@@ -73,6 +88,13 @@ impl StructuredPendingRelationship {
                 confidence,
             },
         }
+    }
+
+    /// Attach a byte-accurate call-site span. Builder form so existing `::new`
+    /// call sites without a span in hand are unaffected.
+    pub fn with_span(mut self, span: PendingSpan) -> Self {
+        self.span = Some(span);
+        self
     }
 
     pub fn into_pending_relationship(self) -> PendingRelationship {

@@ -2013,3 +2013,164 @@ fn path_str(path: &Path) -> &str {
 fn canonical_string(path: &Path) -> String {
     path.canonicalize().unwrap().display().to_string()
 }
+
+#[derive(Debug)]
+struct PendingSpanRow {
+    terminal_name: String,
+    start_line: i64,
+    start_column: Option<i64>,
+    end_line: Option<i64>,
+    end_column: Option<i64>,
+    start_byte: Option<i64>,
+    end_byte: Option<i64>,
+    pending_relationship_id: String,
+}
+
+fn pending_rows_for_path(db: &Path, path: &str) -> Vec<PendingSpanRow> {
+    let conn = Connection::open(db).unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT target_terminal_name, start_line, start_column, end_line, end_column,
+                    start_byte, end_byte, pending_relationship_id
+             FROM pending_relationships
+             WHERE path = ?1
+             ORDER BY start_byte, pending_relationship_id",
+        )
+        .unwrap();
+    stmt.query_map([path], |row| {
+        Ok(PendingSpanRow {
+            terminal_name: row.get(0)?,
+            start_line: row.get(1)?,
+            start_column: row.get(2)?,
+            end_line: row.get(3)?,
+            end_column: row.get(4)?,
+            start_byte: row.get(5)?,
+            end_byte: row.get(6)?,
+            pending_relationship_id: row.get(7)?,
+        })
+    })
+    .unwrap()
+    .collect::<Result<Vec<_>, _>>()
+    .unwrap()
+}
+
+/// Invariant: pending rows emitted through the shared `create_pending_relationship`
+/// helper carry byte-accurate spans (start_column/end_line/end_column/start_byte/
+/// end_byte all NON-NULL) once the emitter had the AST node in hand. Proven live
+/// through the SQLite artifact for C#, TypeScript, and Python — the three languages
+/// the brief names, all of which route their call sites through the shared helper.
+#[test]
+fn scan_populates_pending_relationship_spans_for_multiple_languages() {
+    let fixture = FixtureRoot::with_file(
+        "src/caller.py",
+        "from other import bar\n\n\ndef entry():\n    return bar()\n",
+    );
+
+    let cs = fixture.path("src/Source.cs");
+    std::fs::write(
+        &cs,
+        "using OtherNs;\n\nnamespace Fixture;\n\npublic class Source\n{\n    public int Entry()\n    {\n        var x = new OtherClass();\n        return 0;\n    }\n}\n",
+    )
+    .unwrap();
+
+    let ts = fixture.path("src/caller.ts");
+    std::fs::write(
+        &ts,
+        "import { Foo } from './other';\n\nexport function entry(): number {\n    const x = new Foo();\n    return 0;\n}\n",
+    )
+    .unwrap();
+
+    let db = fixture.path("artifact.sqlite");
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+    assert_success(output);
+
+    for (path, terminal) in [
+        ("src/caller.py", "bar"),
+        ("src/Source.cs", "OtherClass"),
+        ("src/caller.ts", "Foo"),
+    ] {
+        let rows = pending_rows_for_path(&db, path);
+        let row = rows
+            .iter()
+            .find(|r| r.terminal_name == terminal)
+            .unwrap_or_else(|| {
+                panic!("expected pending row for {terminal} in {path}; got {rows:#?}")
+            });
+        assert!(row.start_line >= 1, "{path}: start_line must be 1-based");
+        assert!(
+            row.start_column.is_some(),
+            "{path}: start_column must be populated, got NULL ({row:?})"
+        );
+        assert!(
+            row.end_line.is_some(),
+            "{path}: end_line must be populated ({row:?})"
+        );
+        assert!(
+            row.end_column.is_some(),
+            "{path}: end_column must be populated ({row:?})"
+        );
+        assert!(
+            row.start_byte.is_some(),
+            "{path}: start_byte must be populated ({row:?})"
+        );
+        assert!(
+            row.end_byte.is_some(),
+            "{path}: end_byte must be populated ({row:?})"
+        );
+        assert!(
+            row.end_byte.unwrap() > row.start_byte.unwrap(),
+            "{path}: end_byte must exceed start_byte ({row:?})"
+        );
+    }
+}
+
+/// Invariant: two same-name calls on the SAME line produce TWO DISTINCT pending
+/// rows, because the pending_relationship_id now folds in the occurrence's byte
+/// offset. Before this change they deduped to a single row keyed on (name, kind,
+/// line).
+#[test]
+fn scan_emits_distinct_pending_rows_for_same_line_duplicate_calls() {
+    let fixture = FixtureRoot::with_file(
+        "src/dup.py",
+        "from other import bar\n\n\ndef entry():\n    return bar() + bar()\n",
+    );
+    let db = fixture.path("artifact.sqlite");
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+    assert_success(output);
+
+    let rows: Vec<_> = pending_rows_for_path(&db, "src/dup.py")
+        .into_iter()
+        .filter(|r| r.terminal_name == "bar")
+        .collect();
+    assert_eq!(
+        rows.len(),
+        2,
+        "two same-line bar() calls must yield two distinct pending rows; got {rows:#?}"
+    );
+    assert_eq!(
+        rows[0].start_line, rows[1].start_line,
+        "both occurrences are on the same source line"
+    );
+    assert_ne!(
+        rows[0].pending_relationship_id, rows[1].pending_relationship_id,
+        "same-line occurrences must have distinct pending_relationship_id"
+    );
+    assert_ne!(
+        rows[0].start_byte, rows[1].start_byte,
+        "same-line occurrences must have distinct start_byte"
+    );
+}
