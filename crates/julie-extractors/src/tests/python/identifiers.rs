@@ -182,3 +182,103 @@ class Sample:
         "receiver variable_ref should be contained in evaluate"
     );
 }
+
+#[test]
+fn test_python_variable_ref_excludes_match_pattern_bindings() {
+    // Fix round 1 (adversarial review): structural pattern-matching BINDINGS
+    // must not emit variable_ref reads. Per the language spec, a bare lowercase
+    // name in a case pattern is always a capture (binding); the grammar wraps
+    // those in dotted_name/splat_pattern/as_pattern/keyword_pattern nodes under
+    // case_pattern. Guards and case bodies are ordinary value slots (reads).
+    let code = r#"
+def route(v, default):
+    match v:
+        case [*items]:                          # splat BINDING, no ref
+            return items                        # genuine read
+        case _ as handler:                      # as-pattern BINDING, no ref
+            return handler()                    # call read (Call arm)
+        case {"k": payload, **rest}:            # captures/splat BINDING, no ref
+            return payload                      # genuine read
+        case Point(x=px, y=py):                 # attr name + capture BINDINGS
+            return px + py                      # genuine reads
+        case Color.RED:                         # value reference (dotted)
+            return v
+        case captured if captured > default:    # capture BINDING; guard reads
+            return captured                     # genuine read
+        case other:                             # capture BINDING, no ref
+            return other                        # genuine read
+"#;
+
+    let (_symbols, identifiers, _extractor) = extract_all(code);
+
+    let var_refs: Vec<(&str, u32)> = identifiers
+        .iter()
+        .filter(|id| id.kind == IdentifierKind::VariableRef)
+        .map(|id| (id.name.as_str(), id.start_line))
+        .collect();
+    let names: Vec<&str> = var_refs.iter().map(|(n, _)| *n).collect();
+
+    // Pattern BINDING positions must not emit at their binding line.
+    // (source line numbers: case lines are 4,6,8,10,12,14,16)
+    for (binding, case_line) in [
+        ("items", 4),     // [*items] splat binding
+        ("handler", 6),   // _ as handler binding
+        ("payload", 8),   // dict-value capture binding
+        ("rest", 8),      // **rest splat binding
+        ("x", 10),        // class-pattern attribute NAME
+        ("px", 10),       // class-pattern capture binding
+        ("py", 10),       // class-pattern capture binding
+        ("captured", 14), // bare capture binding (guard read is line 14 too — see below)
+        ("other", 16),    // bare capture binding
+    ] {
+        let at_binding = var_refs
+            .iter()
+            .filter(|(n, l)| *n == binding && *l == case_line)
+            .count();
+        // `captured` legitimately reads once on line 14 inside the guard.
+        let allowed = if binding == "captured" { 1 } else { 0 };
+        assert!(
+            at_binding <= allowed,
+            "{binding} bound on line {case_line} leaked {at_binding} variable_ref row(s) \
+             (allowed {allowed}); got {var_refs:?}"
+        );
+    }
+
+    // Case-body and guard reads must still emit.
+    for read in [
+        "items", "payload", "px", "py", "captured", "default", "other",
+    ] {
+        assert!(
+            names.contains(&read),
+            "expected case-body/guard variable_ref for {read}; got {var_refs:?}"
+        );
+    }
+    // handler() in the body is a Call, not a variable_ref.
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "handler" && id.kind == IdentifierKind::Call),
+        "handler() body call must still emit a Call identifier"
+    );
+    // `captured` reads exactly twice (guard + body), never at the binding slot.
+    assert_eq!(
+        names.iter().filter(|n| **n == "captured").count(),
+        2,
+        "captured must read in guard + body only; got {var_refs:?}"
+    );
+    // `items` reads exactly once (body), proving the splat binding is silent.
+    assert_eq!(
+        names.iter().filter(|n| **n == "items").count(),
+        1,
+        "items must read in the body only; got {var_refs:?}"
+    );
+
+    // Documented capture-semantics boundary: dotted VALUE references in case
+    // patterns (`case Color.RED:`) are grammar-wrapped in dotted_name, which
+    // stays excluded (shared with import machinery) — they do not emit today.
+    // A liveness MISS is the safe direction; a binding leak is not.
+    assert!(
+        !names.contains(&"Color") && !names.contains(&"RED"),
+        "dotted case-pattern value refs stay non-emitting (documented boundary)"
+    );
+}

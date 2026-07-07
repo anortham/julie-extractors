@@ -247,6 +247,21 @@ fn is_python_value_read_identifier(node: Node) -> bool {
         "for_statement" => parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id()),
         // `with … as X` / `except E as X` bind X.
         "as_pattern_target" => false,
+        // Rule 3/4: match-statement pattern BINDINGS (PEP 634 — a bare name in a
+        // case pattern is always a capture). Probed shapes: `[*items]`/`**rest`
+        // put the name under `splat_pattern`; `case _ as handler` puts the
+        // binder DIRECTLY under `as_pattern` (only in case context — with/except
+        // binders ride in `as_pattern_target`, handled above, and their
+        // as_pattern-child value stays a read); `Point(x=…)` attribute names sit
+        // under `keyword_pattern`. Bare captures (`case other:`) are wrapped in
+        // `dotted_name` and were already excluded below. Dotted VALUE references
+        // (`case Color.RED:`) also ride in `dotted_name` and stay non-emitting —
+        // the safe (miss, not false-alive) direction.
+        "splat_pattern" | "keyword_pattern" => false,
+        "as_pattern" => !parent
+            .parent()
+            .map(|gp| gp.kind() == "case_pattern")
+            .unwrap_or(false),
         // Rule 3: import paths and aliases are declarations, not reads.
         "dotted_name"
         | "aliased_import"
