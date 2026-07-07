@@ -434,10 +434,10 @@ rows are API contracts; capabilities.json evidence rules in CLAUDE.md.
 code changes beyond capability data.
 
 **Acceptance criteria:**
-- [ ] Contract doc covers: both overlay tables, metadata keys and their status semantics, tier/confidence table, outcome vocabulary, the "Miller gates on metadata keys, never schema version" rule
-- [ ] capabilities.json claims match Task 6 evidence exactly; `--strict` data-quality report clean (0 silent_cells, 0 quality_bar_debts) with the hardened script exiting non-zero on either
-- [ ] Release-notes draft records measured per-language resolution rates and perf numbers
-- [ ] Worker-scope verification passes; `serial-worker-commit` with recorded SHA
+- [x] Contract doc covers: both overlay tables, metadata keys and their status semantics, tier/confidence table, outcome vocabulary, the "Miller gates on metadata keys, never schema version" rule (docs/contracts/sqlite-schema-v4.md)
+- [x] capabilities.json claims match Task 6 evidence exactly; `--strict` data-quality report clean (0 silent_cells, 0 quality_bar_debts) with the hardened script exiting non-zero on either (top-level `reference_resolution` block — static gap rows would collide with runtime `language_capability_gaps` PK, see Task 8 FINDING 1)
+- [x] Release-notes draft records measured per-language resolution rates and perf numbers (docs/release-notes/v2.9.0.md — 38.7% / 66,807 outcomes; Full 1212ms, Delta ~110ms)
+- [x] Worker-scope verification passes; `serial-worker-commit` (worker staged; lead completed the commit after review)
 
 ---
 
