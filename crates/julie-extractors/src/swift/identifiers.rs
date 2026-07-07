@@ -116,15 +116,37 @@ impl SwiftExtractor {
 
             "simple_identifier" | "type_identifier" => {
                 let name = self.base.get_node_text(&node);
-                if is_swift_type_usage_identifier(node) && !is_swift_builtin_type(&name) {
+                if is_swift_type_usage_identifier(node) {
+                    if !is_swift_builtin_type(&name) {
+                        let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                        let identifier = self.base.create_identifier(
+                            &node,
+                            name,
+                            IdentifierKind::TypeUsage,
+                            containing_symbol_id,
+                        );
+                        record_outermost_swift_type_arguments(&mut self.base, node, &identifier);
+                    }
+                }
+                // `variable_ref` complement arm (locked contract — see the
+                // reference implementation doc comment in csharp/identifiers.rs):
+                // a bare `simple_identifier` used as a value or as the target/
+                // receiver of a navigation — the reads the Call/MemberAccess/
+                // TypeUsage arms do not own. Evaluated only when the type-usage
+                // predicate rejected the node, so type positions never reach it.
+                else if node.kind() == "simple_identifier"
+                    && is_swift_value_read_identifier(node)
+                    // Rule 5: reuse the builtin filter. (`self`/`super`/`true`/
+                    // `nil` are distinct grammar nodes, never simple_identifier.)
+                    && !is_swift_builtin_type(&name)
+                {
                     let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
-                    let identifier = self.base.create_identifier(
+                    self.base.create_identifier(
                         &node,
                         name,
-                        IdentifierKind::TypeUsage,
+                        IdentifierKind::VariableRef,
                         containing_symbol_id,
                     );
-                    record_outermost_swift_type_arguments(&mut self.base, node, &identifier);
                 }
             }
 
@@ -348,6 +370,100 @@ fn decompose_swift_type_arg<'a>(
             // Use the full source text as a leaf type name.
             Some((base.get_node_text(&node), None))
         }
+    }
+}
+
+/// The field name of `node` within its parent, found via a cursor walk.
+/// (`Node` has no direct field-name accessor, and `child_by_field_name` only
+/// returns the FIRST child of a field — Swift uses repeated `name`/
+/// `bound_identifier` fields, so identity must be checked per child.)
+fn swift_node_field_name(node: Node) -> Option<&'static str> {
+    let parent = node.parent()?;
+    let mut cursor = parent.walk();
+    if cursor.goto_first_child() {
+        loop {
+            if cursor.node().id() == node.id() {
+                return cursor.field_name();
+            }
+            if !cursor.goto_next_sibling() {
+                break;
+            }
+        }
+    }
+    None
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare
+/// `simple_identifier` a value read or a navigation receiver (the complement of
+/// the Call/MemberAccess/TypeUsage arms)? Node kinds and field names were
+/// verified empirically against the vendored tree-sitter-swift 0.7.2 grammar.
+fn is_swift_value_read_identifier(node: Node) -> bool {
+    if is_swift_declaration_name(node) {
+        return false;
+    }
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let field = swift_node_field_name(node);
+
+    // Rule 3: `bound_identifier` fields BIND names everywhere they appear —
+    // property/for patterns, `if let`/`guard let` conditions, catch patterns.
+    if field == Some("bound_identifier") {
+        return false;
+    }
+
+    match parent.kind() {
+        // Rule 2: the direct identifier child of a call is the callee (Call arm).
+        "call_expression" => false,
+
+        // Rule 1/2: only the `target` receiver of a navigation is a read; the
+        // suffix member name is owned by the MemberAccess/Call arms.
+        "navigation_expression" => field == Some("target"),
+        "navigation_suffix" => false,
+
+        // Rule 1: an argument VALUE is a read; a `value_argument_label`
+        // (`bar:` in `f(bar: seed)`) names a parameter, not a member.
+        "value_argument" => field == Some("value"),
+        "value_argument_label" => false,
+
+        // Rule 4: the LHS wrapper of an assignment. A PLAIN `=` target is
+        // write-only; a COMPOUND operator (`+=`, …) reads its target.
+        "directly_assignable_expression" => parent
+            .parent()
+            .and_then(|assignment| assignment.child_by_field_name("operator"))
+            .map(|op| op.kind() != "=")
+            .unwrap_or(false),
+
+        // Rule 3: parameter/enum-case declaration names (a `parameter` node's
+        // simple_identifier children are its external/internal names; an
+        // `enum_entry` may carry several `name` fields). Protocol requirement
+        // names are declarations the shared guard does not cover.
+        "parameter"
+        | "lambda_parameter"
+        | "enum_entry"
+        | "type_parameter"
+        | "protocol_function_declaration"
+        | "protocol_property_declaration" => false,
+
+        // Rule 5-adjacent: attribute meta-arguments (`iOS`/`deprecated`/
+        // `message` in `@available(iOS 17.0, *)`) are not value reads.
+        "attribute" => false,
+
+        // Rule 3: tuple LABELS declare element names; tuple values are reads.
+        "tuple_expression" => field != Some("name"),
+
+        // Rule 3: import paths — swift wraps dotted import segments in an
+        // `identifier` container node.
+        "identifier" | "import_declaration" => false,
+
+        // Rule 1: a property initializer VALUE is a read (the declared name
+        // sits inside a `pattern`, handled by bound_identifier above).
+        "property_declaration" => field == Some("value"),
+
+        // Every other position — operand, return value, interpolation,
+        // condition, collection, switch subject, `.case` pattern shorthand —
+        // is a read.
+        _ => true,
     }
 }
 

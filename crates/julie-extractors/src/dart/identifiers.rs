@@ -133,7 +133,128 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm (locked contract — see the reference
+        // implementation doc comment in csharp/identifiers.rs): a bare `identifier`
+        // used as a value or as the object/receiver of a member access — the reads
+        // the Call/MemberAccess/TypeUsage arms above do not own. Dart type
+        // positions are `type_identifier` nodes, so they never reach this arm.
+        // (`this`/`super`/`true`/`null` are distinct grammar tokens, never
+        // `identifier`, so rule 5 is structurally satisfied.)
+        "identifier" if is_dart_value_read_identifier(node) => {
+            let name = get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
+        // Rule 1: a simple `$name` string interpolation is a value read, but the
+        // tree-sitter-dart grammar lexes it as a distinct `identifier_dollar_escaped`
+        // node (only `${...}` holds ordinary expression identifiers), so it needs
+        // its own arm. The node text is the bare name without the `$`.
+        "identifier_dollar_escaped"
+            if node
+                .parent()
+                .is_some_and(|p| p.kind() == "template_substitution") =>
+        {
+            let name = get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
         _ => {}
+    }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
+/// value read or a member-access receiver (the complement of the Call/
+/// MemberAccess/TypeUsage arms)? Node kinds and field names were verified
+/// empirically against the vendored tree-sitter-dart 0.2.0 grammar.
+fn is_dart_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_field = |name: &str| parent.child_by_field_name(name).map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 2: the callee `function` of a call is owned by the Call arm.
+        "call_expression" => !is_field("function"),
+
+        // Rule 1/2: only the `object` receiver of a member access is a read;
+        // the accessed `property` is owned by the MemberAccess/Call arms.
+        "member_expression" | "null_aware_member_expression" => is_field("object"),
+
+        // Rule 2: cascade/selector member positions are member references owned
+        // by the selector arms (or plain write targets); the cascade RECEIVER
+        // is an ordinary expression child elsewhere and falls through as a read.
+        "cascade_call_expression"
+        | "cascade_selector"
+        | "member_access"
+        | "unconditional_assignable_selector" => false,
+
+        // Rule 4: the LHS wrapper of an assignment. A PLAIN `=` target is
+        // write-only; a COMPOUND operator (`+=`, …) reads its target. An
+        // `assignable_expression` outside an assignment LHS (e.g. `x++`) reads.
+        "assignable_expression" => {
+            let Some(assignment) = parent.parent() else {
+                return true;
+            };
+            if assignment.kind() != "assignment_expression"
+                || assignment.child_by_field_name("left").map(|l| l.id()) != Some(parent.id())
+            {
+                return true;
+            }
+            assignment
+                .child_by_field_name("operator")
+                .map(|op| op.kind() != "=")
+                .unwrap_or(false)
+        }
+
+        // Rule 3: declaration names. Their `value` initializer children are
+        // reads; everything else under these parents is a definition name.
+        "initialized_identifier" | "initialized_variable_definition" => is_field("value"),
+        "class_declaration"
+        | "enum_declaration"
+        | "enum_constant"
+        | "mixin_declaration"
+        | "extension_declaration"
+        | "function_signature"
+        | "constructor_signature"
+        | "getter_signature"
+        | "setter_signature"
+        | "type_alias"
+        | "formal_parameter"
+        | "constructor_param"
+        | "normal_parameter_type" => false,
+
+        // Rule 3: a for-in loop binds `name`; the `value` collection reads.
+        "for_statement" => !is_field("name"),
+
+        // Rule 3: catch parameters (`catch (e, st)`) are definitions.
+        "catch_clause" => false,
+
+        // Rule 1: a named-argument LABEL (`bar:` in `f(bar: seed)`) names a
+        // PARAMETER, not a member; statement labels are not variables either.
+        "label" => false,
+
+        // Rule 2: an annotation's name (`@override`, `@Deprecated(...)`) is a
+        // type-ish usage, not a value read.
+        "annotation" | "marker_annotation" => false,
+
+        // Rule 3: import prefixes/aliases and library names.
+        "import_specification" | "library_name" | "dotted_identifier_list" => false,
+
+        // Every other position — argument, operand, return value, ternary arm,
+        // `${...}` interpolation, switch constant, cascade receiver — is a read.
+        _ => true,
     }
 }
 

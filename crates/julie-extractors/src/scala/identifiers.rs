@@ -144,7 +144,121 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm (locked contract — see the reference
+        // implementation doc comment in csharp/identifiers.rs): a bare `identifier`
+        // used as a value or as the object/receiver of a field access — the reads
+        // the Call/MemberAccess/TypeUsage arms above do not own. Scala type
+        // positions are `type_identifier` nodes, so they never reach this arm.
+        "identifier" if is_scala_value_read_identifier(base, node) => {
+            let name = base.get_node_text(&node);
+            // Rule 5: reuse the existing noise filter. (`this`/`super`/`true`/
+            // `null` are distinct grammar nodes, never `identifier`.)
+            if !is_scala_noise_type(&name) {
+                let containing = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
+            }
+        }
+
         _ => {}
+    }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
+/// value read or a field-access receiver (the complement of the Call/
+/// MemberAccess/TypeUsage arms)? Node kinds and field names were verified
+/// empirically against the vendored tree-sitter-scala 0.26.0 grammar.
+///
+/// Pattern positions use Scala's own syntactic disambiguation rule: a
+/// Capitalized identifier in a pattern is a STABLE REFERENCE (a read of an
+/// existing value, e.g. `case First =>`), while a lowercase identifier BINDS a
+/// new name (`case fallback =>`). This mirrors scalac; the rare backtick-quoted
+/// lowercase stable pattern is not distinguishable here and is skipped.
+fn is_scala_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_field = |name: &str| parent.child_by_field_name(name).map(|n| n.id()) == Some(node.id());
+    let starts_uppercase = || {
+        base.get_node_text(&node)
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_uppercase())
+    };
+
+    match parent.kind() {
+        // Rule 2: the callee is owned by the Call arm.
+        "call_expression" => !is_field("function"),
+        "generic_function" => false,
+
+        // Rule 1/2: only the `value` receiver of a field access is a read; the
+        // accessed `field` is owned by the MemberAccess/Call arms.
+        "field_expression" => is_field("value"),
+
+        // Rule 2-adjacent: a word operator (`a max b`) is a method reference,
+        // not a value read; operands are reads.
+        "infix_expression" => !is_field("operator"),
+
+        // Rule 4: Scala `assignment_expression` is always PLAIN `=` (compound
+        // `+=` parses as infix_expression), so its LHS is write-only. This also
+        // skips named-argument labels (`bar` in `f(bar = seed)`), which name
+        // parameters. The RHS is a read.
+        "assignment_expression" => !is_field("left"),
+
+        // Rule 3: declaration names/patterns. Initializer values fall through
+        // as reads via their own parents.
+        "val_definition" | "var_definition" | "val_declaration" | "var_declaration" => {
+            !(is_field("pattern") || is_field("name"))
+        }
+        "function_definition"
+        | "function_declaration"
+        | "class_definition"
+        | "object_definition"
+        | "trait_definition"
+        | "enum_definition"
+        | "type_definition"
+        | "given_definition"
+        | "parameter"
+        | "class_parameter"
+        | "binding" => !is_field("name"),
+        "lambda_expression" => !is_field("parameters"),
+        "self_type" => false,
+
+        // Rule 3: a for-comprehension enumerator binds its first child; the
+        // generator collection (and guards) are reads.
+        "enumerator" => parent.named_child(0).map(|c| c.id()) != Some(node.id()),
+
+        // Rule 2: the interpolator (`s` in s"...") is a StringContext method,
+        // not a value read; `${...}` bodies fall through as reads.
+        "interpolated_string_expression" => !is_field("interpolator"),
+
+        // Rule 3: package/import segments, selectors, and renames.
+        "package_identifier"
+        | "package_clause"
+        | "import_declaration"
+        | "export_declaration"
+        | "namespace_selectors"
+        | "arrow_renamed_identifier"
+        | "namespace_wildcard" => false,
+
+        // Patterns: capitalized = stable reference read; lowercase = binding.
+        "case_clause" => {
+            if is_field("pattern") {
+                starts_uppercase()
+            } else {
+                true // guard / body positions directly under the clause
+            }
+        }
+        "tuple_pattern"
+        | "case_class_pattern"
+        | "infix_pattern"
+        | "alternative_pattern"
+        | "typed_pattern"
+        | "capture_pattern"
+        | "stable_identifier_pattern" => starts_uppercase(),
+
+        // Every other position — argument, operand, return value, if/match
+        // branch, interpolation body, generator collection — is a read.
+        _ => true,
     }
 }
 

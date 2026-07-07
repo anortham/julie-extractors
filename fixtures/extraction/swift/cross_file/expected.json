@@ -176,6 +176,22 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/swift/cross_file/source.swift:Other:variable_ref:10:8",
+      "name": "Other",
+      "kind": "variable_ref",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/cross_file/source.swift",
+      "start_line": 10,
+      "start_column": 8,
+      "end_line": 10,
+      "end_column": 13,
+      "start_byte": 346,
+      "end_byte": 351,
+      "containing_key": "fixtures/extraction/swift/cross_file/source.swift:entry:9:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/swift/cross_file/source.swift:localHelper:call:11:15",
       "name": "localHelper",
       "kind": "call",

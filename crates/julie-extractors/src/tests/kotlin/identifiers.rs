@@ -157,3 +157,139 @@ val items: List<T> = emptyList()
         type_names
     );
 }
+
+#[test]
+fn test_kotlin_variable_ref_emission() {
+    // Locked variable_ref contract (see csharp/identifiers.rs doc comment):
+    // receivers + bare value reads, the complement of the Call/MemberAccess/
+    // TypeUsage arms.
+    let code = r#"
+object GraphTraversal {
+    fun reach(): Int = 0
+}
+
+enum class Level { LOW, HIGH }
+
+typealias Alias = List<Int>
+
+class Sample(val bar: Int) {
+    var count = 0
+    val visibilityUnknown = 3
+
+    // GhostToken appears only in this comment and must never be an identifier.
+    fun evaluate(seed: Int, unusedParam: Int): Int {
+        count += 1                       // compound assignment -> read count
+        var x = 5                        // declaration name, no ref
+        x = 7                            // plain write LHS -> NOT a read
+        val total = seed                 // initializer -> read seed
+        val g = GraphTraversal.reach()   // receiver -> read; reach -> call
+        val f = Sample(bar = seed)       // named-arg label names a parameter -> NOT a read
+        val l = Level.LOW                // Level receiver -> read; LOW -> member access
+        val s = "brace ${limit + 1}"     // interpolation expression -> read limit
+        listOf(count).forEach { println(it) } // `it` soft keyword -> NOT a read
+        val r = lo until cap               // infix callee -> NOT a read; operands are
+        return if (total > 0) total else visibilityUnknown
+    }
+}
+"#;
+
+    let mut parser = init_parser();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = KotlinExtractor::new(
+        "kotlin".to_string(),
+        "test.kt".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    let var_refs: Vec<&str> = identifiers
+        .iter()
+        .filter(|id| id.kind == IdentifierKind::VariableRef)
+        .map(|id| id.name.as_str())
+        .collect();
+
+    // --- Positive cases (rules 1/4) ---
+    for expected in [
+        "GraphTraversal",    // object receiver
+        "lo",                // infix left operand
+        "cap",               // infix right operand
+        "count",             // compound-assignment target + argument value
+        "seed",              // initializer + named-argument VALUE read
+        "total",             // if condition + branch reads
+        "visibilityUnknown", // bare read in else branch
+        "Level",             // enum receiver
+        "limit",             // string interpolation expression read
+    ] {
+        assert!(
+            var_refs.contains(&expected),
+            "expected variable_ref for {expected}; got {var_refs:?}"
+        );
+    }
+
+    // Receiver + call coexist: GraphTraversal.reach()
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "reach" && id.kind == IdentifierKind::Call),
+        "GraphTraversal.reach() must still yield a call named reach"
+    );
+
+    // --- Negative cases (rules 2/3/4/5) ---
+    for forbidden in [
+        "x",           // declaration name + plain-write LHS
+        "unusedParam", // parameter name only
+        "GhostToken",  // comment-only mention
+        "Sample",      // class declaration name + call callee
+        "evaluate",    // function declaration name
+        "bar",         // named-argument label + class parameter name
+        "LOW",         // enum entry declaration + member access (owned elsewhere)
+        "Alias",       // typealias declaration name
+        "it",          // implicit lambda parameter soft keyword
+        "until",       // infix function callee
+        "Int",         // builtin type (noise filter)
+    ] {
+        assert!(
+            !var_refs.contains(&forbidden),
+            "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+        );
+    }
+    assert!(
+        !identifiers.iter().any(|id| id.name == "GhostToken"),
+        "comment-only GhostToken must not be extracted at all"
+    );
+
+    // No duplicate rows: each (name, kind, span) is unique.
+    let mut keys: Vec<(String, String, u32, u32)> = identifiers
+        .iter()
+        .map(|id| {
+            (
+                id.name.clone(),
+                id.kind.to_string(),
+                id.start_byte,
+                id.end_byte,
+            )
+        })
+        .collect();
+    let before = keys.len();
+    keys.sort();
+    keys.dedup();
+    assert_eq!(before, keys.len(), "duplicate identifier rows detected");
+
+    // containing_symbol_id is populated on a variable_ref.
+    let evaluate = symbols
+        .iter()
+        .find(|s| s.name == "evaluate")
+        .expect("evaluate function extracted");
+    let graph_ref = identifiers
+        .iter()
+        .find(|id| id.name == "GraphTraversal" && id.kind == IdentifierKind::VariableRef)
+        .expect("GraphTraversal variable_ref");
+    assert_eq!(
+        graph_ref.containing_symbol_id.as_deref(),
+        Some(evaluate.id.as_str()),
+        "receiver variable_ref should be contained in evaluate"
+    );
+}

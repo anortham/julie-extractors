@@ -610,6 +610,38 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/kotlin/spring_routes/source.kt:RequestMethod:variable_ref:15:58",
+      "name": "RequestMethod",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_routes/source.kt",
+      "start_line": 15,
+      "start_column": 58,
+      "end_line": 15,
+      "end_column": 71,
+      "start_byte": 384,
+      "end_byte": 397,
+      "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:search:15:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_routes/source.kt:RequestMethod:variable_ref:15:77",
+      "name": "RequestMethod",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_routes/source.kt",
+      "start_line": 15,
+      "start_column": 77,
+      "end_line": 15,
+      "end_column": 90,
+      "start_byte": 403,
+      "end_byte": 416,
+      "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:search:15:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/kotlin/spring_routes/source.kt:RestController:type_usage:29:1",
       "name": "RestController",
       "kind": "type_usage",
@@ -638,6 +670,22 @@
       "start_byte": 51,
       "end_byte": 65,
       "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/spring_routes/source.kt:suffix:variable_ref:25:31",
+      "name": "suffix",
+      "kind": "variable_ref",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/spring_routes/source.kt",
+      "start_line": 25,
+      "start_column": 31,
+      "end_line": 25,
+      "end_column": 37,
+      "start_byte": 691,
+      "end_byte": 697,
+      "containing_key": "fixtures/extraction/kotlin/spring_routes/source.kt:deleteUser:25:4",
       "target_key": null,
       "confidence": "1.000"
     }

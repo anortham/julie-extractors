@@ -157,10 +157,113 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm (locked contract — see the reference
+        // implementation doc comment in csharp/identifiers.rs): a bare `identifier`
+        // used as a value or as the object/receiver of a navigation — the reads the
+        // Call/MemberAccess/TypeUsage arms above do not own. Kotlin type positions
+        // live inside `user_type`, which the predicate excludes.
+        "identifier" if is_kotlin_value_read_identifier(node) => {
+            let name = base.get_node_text(&node);
+            // Rule 5: reuse the existing noise filter, plus the `it`/`field`
+            // soft keywords (implicit lambda parameter / property backing
+            // field), which parse as plain identifiers in kotlin-ng.
+            // (`this`/`super`/`true`/`null` are distinct grammar nodes.)
+            if !is_kotlin_noise_type(&name) && name != "it" && name != "field" {
+                let containing = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(&node, name, IdentifierKind::VariableRef, containing);
+            }
+        }
+
         _ => {
             // Skip other node types
         }
     }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
+/// value read or a navigation receiver (the complement of the Call/MemberAccess/
+/// TypeUsage arms)? Node kinds and field names were verified empirically against
+/// the vendored tree-sitter-kotlin-ng 1.1.0 grammar (which differs from older
+/// kotlin grammars — e.g. simple `$name` string interpolation is lexed as
+/// `string_content` and never reaches identifier extraction).
+fn is_kotlin_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_field = |name: &str| parent.child_by_field_name(name).map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 2: type positions are owned by the `user_type` (TypeUsage) arm.
+        "user_type" => false,
+
+        // Rule 2: the direct identifier child of a call is the callee (Call arm).
+        "call_expression" => false,
+
+        // Rule 1/2: only the leading receiver of a navigation is a read this arm
+        // owns; the member name is owned by the MemberAccess/Call arms.
+        "navigation_expression" => parent.child(0).map(|c| c.id()) == Some(node.id()),
+
+        // Rule 3: declaration names. `variable_declaration` also covers lambda
+        // parameters and `for` loop variables in kotlin-ng.
+        "variable_declaration"
+        | "parameter"
+        | "class_parameter"
+        | "type_parameter"
+        | "enum_entry"
+        | "type_alias"
+        | "function_declaration"
+        | "class_declaration"
+        | "object_declaration"
+        | "companion_object"
+        | "catch_block" => false,
+
+        // Rule 3: package/import segments, aliases, and labels are not reads.
+        "qualified_identifier"
+        | "package_header"
+        | "import"
+        | "import_alias"
+        | "import_list"
+        | "label"
+        | "labeled_expression" => false,
+
+        // Rule 1: a named-argument LABEL (`bar` in `f(bar = seed)`) names a
+        // PARAMETER, not a member — skip it; the argument VALUE is a read.
+        "value_argument" => !is_kotlin_named_argument_label(parent, node),
+
+        // Rule 2-adjacent: the middle identifier of an infix expression
+        // (`until` in `0 until count`) is the infix FUNCTION, a callee — not a
+        // value read. The operands (children 0 and 2) are reads.
+        "infix_expression" => parent.child(1).map(|c| c.id()) != Some(node.id()),
+
+        // Rule 4: the LHS of a PLAIN assignment is write-only; a COMPOUND
+        // operator (`+=`, …) reads. The RHS is always a read.
+        "assignment" => {
+            !is_field("left")
+                || parent
+                    .child_by_field_name("operator")
+                    .map(|op| op.kind() != "=")
+                    .unwrap_or(false)
+        }
+
+        // Every other position — argument value, operand, return value, `if`/
+        // `when` branch, `${...}` interpolation, `for` collection, when-entry
+        // constant — is a read.
+        _ => true,
+    }
+}
+
+/// Is `node` the label of a named argument (`bar` in `f(bar = seed)`)? The
+/// kotlin-ng grammar has no field for it: a labeled `value_argument` holds
+/// `[identifier, "=", expression]`, so the label is the first child when an
+/// anonymous `=` token is present.
+fn is_kotlin_named_argument_label(value_argument: Node, node: Node) -> bool {
+    if value_argument.child(0).map(|c| c.id()) != Some(node.id()) {
+        return false;
+    }
+    let mut cursor = value_argument.walk();
+    value_argument
+        .children(&mut cursor)
+        .any(|c| !c.is_named() && c.kind() == "=")
 }
 
 /// Record outermost generic type arguments for a `user_type` node.

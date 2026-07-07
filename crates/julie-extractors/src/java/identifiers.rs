@@ -157,10 +157,104 @@ fn extract_identifier_from_node(
             record_outermost_java_type_arguments(extractor, node, &identifier);
         }
 
+        // `variable_ref` complement arm (locked contract — see the reference
+        // implementation doc comment in csharp/identifiers.rs): a bare `identifier`
+        // used as a value or as the object/receiver of a member access — the reads
+        // the Call/MemberAccess/TypeUsage arms above do not own. Java type positions
+        // are `type_identifier` nodes, so they never reach this arm.
+        "identifier" if is_java_value_read_identifier(node) => {
+            let name = extractor.base().get_node_text(&node);
+            // Rule 5: reuse the existing noise filter. (`this`/`super`/`true`/
+            // `null` and primitive types are distinct grammar nodes, never
+            // `identifier`, so they are structurally excluded.)
+            if !is_java_noise_type(&name) {
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                extractor.base_mut().create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         _ => {
             // Skip other node types for now
             // Future: constructor calls, etc.
         }
+    }
+}
+
+/// Rule 1/4 predicate for the `variable_ref` arm: is this bare `identifier` a
+/// value read or a member-access receiver (the complement of the Call/
+/// MemberAccess/TypeUsage arms)? Node kinds and field names were verified
+/// empirically against the vendored tree-sitter-java 0.23.5 grammar.
+fn is_java_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_field = |name: &str| parent.child_by_field_name(name).map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 2: the callee `name` of a call is owned by the Call arm and the
+        // accessed `field` by the MemberAccess arm; only the `object` receiver
+        // is a read this arm owns.
+        "method_invocation" | "field_access" => is_field("object"),
+
+        // Rule 3: declaration names. Their NON-name identifier children (a
+        // declarator initializer value, the enhanced-for collection) fall
+        // through as reads.
+        "class_declaration"
+        | "interface_declaration"
+        | "enum_declaration"
+        | "annotation_type_declaration"
+        | "record_declaration"
+        | "method_declaration"
+        | "constructor_declaration"
+        | "compact_constructor_declaration"
+        | "annotation_type_element_declaration"
+        | "variable_declarator"
+        | "formal_parameter"
+        | "spread_parameter"
+        | "catch_formal_parameter"
+        | "enhanced_for_statement"
+        | "enum_constant"
+        | "type_parameter"
+        | "module_declaration" => !is_field("name"),
+
+        // Rule 3: lambda parameters are definitions; the body falls through as
+        // reads via other parents.
+        "lambda_expression" => !is_field("parameters"),
+        "inferred_parameters" => false,
+
+        // Rule 3: `instanceof` pattern bindings (`x instanceof Foo f`).
+        "instanceof_expression" => !is_field("name"),
+
+        // Rule 3: package/import segments and qualified names are not reads.
+        "scoped_identifier" | "package_declaration" | "import_declaration" => false,
+
+        // Rule 2: an annotation's name is a type-ish usage, not a value read.
+        // (`element_value_pair` keys — annotation named args — fall through to
+        // the default read arm: they ARE member references per the contract.)
+        "annotation" | "marker_annotation" => false,
+
+        // Rule 3: labels are not variables.
+        "labeled_statement" | "break_statement" | "continue_statement" => false,
+
+        // Rule 4: the LHS of a PLAIN assignment is write-only; a COMPOUND
+        // operator (`+=`, `|=`, …) reads. The RHS is always a read.
+        "assignment_expression" => {
+            !is_field("left")
+                || parent
+                    .child_by_field_name("operator")
+                    .map(|op| op.kind() != "=")
+                    .unwrap_or(false)
+        }
+
+        // Every other position — argument, operand, return value, ternary arm,
+        // array element/index, switch label constant, method-reference member,
+        // update expression (`i++` reads), annotation named-arg key — is a read.
+        _ => true,
     }
 }
 
