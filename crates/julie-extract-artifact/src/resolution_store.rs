@@ -360,30 +360,67 @@ fn placeholders(count: usize) -> String {
     vec!["?"; count].join(", ")
 }
 
+/// Max distinct names/ids bound into one `IN (...)` clause. Kept well under
+/// SQLite's compiled `SQLITE_MAX_VARIABLE_NUMBER` (default 32766) so that a
+/// by-names worklist which binds `2 * N` variables (terminal + receiver) cannot
+/// overflow it on a large delta. A delta touching more distinct names is split
+/// into chunks whose results are unioned; see [`chunked_by`].
+const WORKLIST_QUERY_CHUNK: usize = 8000;
+
+/// Run `run` once per `WORKLIST_QUERY_CHUNK`-sized chunk of `items` and union the
+/// rows. A single query never yields intra-chunk duplicates, but a `terminal IN
+/// (..) OR receiver IN (..)` row can match one chunk on its terminal name and
+/// another on its receiver name, so results are de-duplicated by `key` and then
+/// re-sorted by `key` to preserve the deterministic per-query `ORDER BY <id>`.
+fn chunked_by<T>(
+    items: &[&str],
+    key: impl Fn(&T) -> String,
+    mut run: impl FnMut(&[&str]) -> rusqlite::Result<Vec<T>>,
+) -> rusqlite::Result<Vec<T>> {
+    if items.is_empty() {
+        return Ok(Vec::new());
+    }
+    if items.len() <= WORKLIST_QUERY_CHUNK {
+        return run(items);
+    }
+    let mut seen = std::collections::HashSet::new();
+    let mut out: Vec<T> = Vec::new();
+    for chunk in items.chunks(WORKLIST_QUERY_CHUNK) {
+        for item in run(chunk)? {
+            if seen.insert(key(&item)) {
+                out.push(item);
+            }
+        }
+    }
+    out.sort_by_key(|item| key(item));
+    Ok(out)
+}
+
 /// Unresolved pending rows whose terminal OR receiver name is in `names`.
 pub fn worklist_unresolved_pending_by_names(
     conn: &Connection,
     names: &[&str],
 ) -> rusqlite::Result<Vec<PendingWorkItem>> {
-    if names.is_empty() {
-        return Ok(Vec::new());
-    }
-    let ph = placeholders(names.len());
-    let sql = format!(
-        "SELECT {PENDING_COLUMNS} \
-         FROM pending_relationships pr \
-         JOIN files f ON f.file_id = pr.file_id \
-         WHERE pr.pending_relationship_id NOT IN \
-               (SELECT pending_relationship_id FROM pending_resolutions) \
-           AND (pr.target_terminal_name IN ({ph}) OR pr.target_receiver IN ({ph})) \
-         ORDER BY pr.pending_relationship_id"
-    );
-    let bind = names.iter().chain(names.iter());
-    let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt
-        .query_map(params_from_iter(bind), map_pending)?
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(rows)
+    chunked_by(
+        names,
+        |item: &PendingWorkItem| item.pending_relationship_id.clone(),
+        |chunk| {
+            let ph = placeholders(chunk.len());
+            let sql = format!(
+                "SELECT {PENDING_COLUMNS} \
+                 FROM pending_relationships pr \
+                 JOIN files f ON f.file_id = pr.file_id \
+                 WHERE pr.pending_relationship_id NOT IN \
+                       (SELECT pending_relationship_id FROM pending_resolutions) \
+                   AND (pr.target_terminal_name IN ({ph}) OR pr.target_receiver IN ({ph})) \
+                 ORDER BY pr.pending_relationship_id"
+            );
+            let bind = chunk.iter().chain(chunk.iter());
+            let mut stmt = conn.prepare(&sql)?;
+            stmt.query_map(params_from_iter(bind), map_pending)?
+                .collect::<Result<Vec<_>, _>>()
+        },
+    )
 }
 
 /// Every unresolved pending row (Full scope / v3 backfill).
@@ -409,32 +446,33 @@ pub fn worklist_resolved_pending_by_names(
     conn: &Connection,
     names: &[&str],
 ) -> rusqlite::Result<Vec<ResolvedPendingWorkItem>> {
-    if names.is_empty() {
-        return Ok(Vec::new());
-    }
-    let ph = placeholders(names.len());
-    let sql = format!(
-        "SELECT {PENDING_COLUMNS}, res.target_symbol_id, res.tier, res.confidence, res.method \
-         FROM pending_resolutions res \
-         JOIN pending_relationships pr ON pr.pending_relationship_id = res.pending_relationship_id \
-         JOIN files f ON f.file_id = pr.file_id \
-         WHERE pr.target_terminal_name IN ({ph}) OR pr.target_receiver IN ({ph}) \
-         ORDER BY pr.pending_relationship_id"
-    );
-    let bind = names.iter().chain(names.iter());
-    let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt
-        .query_map(params_from_iter(bind), |row| {
-            Ok(ResolvedPendingWorkItem {
-                pending: map_pending(row)?,
-                target_symbol_id: row.get(15)?,
-                tier: row.get(16)?,
-                confidence: row.get(17)?,
-                method: row.get(18)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(rows)
+    chunked_by(
+        names,
+        |item: &ResolvedPendingWorkItem| item.pending.pending_relationship_id.clone(),
+        |chunk| {
+            let ph = placeholders(chunk.len());
+            let sql = format!(
+                "SELECT {PENDING_COLUMNS}, res.target_symbol_id, res.tier, res.confidence, res.method \
+                 FROM pending_resolutions res \
+                 JOIN pending_relationships pr ON pr.pending_relationship_id = res.pending_relationship_id \
+                 JOIN files f ON f.file_id = pr.file_id \
+                 WHERE pr.target_terminal_name IN ({ph}) OR pr.target_receiver IN ({ph}) \
+                 ORDER BY pr.pending_relationship_id"
+            );
+            let bind = chunk.iter().chain(chunk.iter());
+            let mut stmt = conn.prepare(&sql)?;
+            stmt.query_map(params_from_iter(bind), |row| {
+                Ok(ResolvedPendingWorkItem {
+                    pending: map_pending(row)?,
+                    target_symbol_id: row.get(15)?,
+                    tier: row.get(16)?,
+                    confidence: row.get(17)?,
+                    method: row.get(18)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()
+        },
+    )
 }
 
 /// Never-attempted identifiers (no overlay row) whose name is in `names`.
@@ -442,22 +480,23 @@ pub fn worklist_never_attempted_identifiers_by_names(
     conn: &Connection,
     names: &[&str],
 ) -> rusqlite::Result<Vec<IdentifierWorkItem>> {
-    if names.is_empty() {
-        return Ok(Vec::new());
-    }
-    let ph = placeholders(names.len());
-    let sql = format!(
-        "SELECT {IDENTIFIER_COLUMNS} \
-         FROM identifiers i \
-         WHERE i.identifier_id NOT IN (SELECT identifier_id FROM identifier_resolutions) \
-           AND i.name IN ({ph}) \
-         ORDER BY i.identifier_id"
-    );
-    let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt
-        .query_map(params_from_iter(names.iter()), map_identifier)?
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(rows)
+    chunked_by(
+        names,
+        |item: &IdentifierWorkItem| item.identifier_id.clone(),
+        |chunk| {
+            let ph = placeholders(chunk.len());
+            let sql = format!(
+                "SELECT {IDENTIFIER_COLUMNS} \
+                 FROM identifiers i \
+                 WHERE i.identifier_id NOT IN (SELECT identifier_id FROM identifier_resolutions) \
+                   AND i.name IN ({ph}) \
+                 ORDER BY i.identifier_id"
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            stmt.query_map(params_from_iter(chunk.iter()), map_identifier)?
+                .collect::<Result<Vec<_>, _>>()
+        },
+    )
 }
 
 /// Never-attempted identifiers (no overlay row) in any of `file_ids`.
@@ -465,22 +504,23 @@ pub fn worklist_never_attempted_identifiers_by_files(
     conn: &Connection,
     file_ids: &[&str],
 ) -> rusqlite::Result<Vec<IdentifierWorkItem>> {
-    if file_ids.is_empty() {
-        return Ok(Vec::new());
-    }
-    let ph = placeholders(file_ids.len());
-    let sql = format!(
-        "SELECT {IDENTIFIER_COLUMNS} \
-         FROM identifiers i \
-         WHERE i.identifier_id NOT IN (SELECT identifier_id FROM identifier_resolutions) \
-           AND i.file_id IN ({ph}) \
-         ORDER BY i.identifier_id"
-    );
-    let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt
-        .query_map(params_from_iter(file_ids.iter()), map_identifier)?
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(rows)
+    chunked_by(
+        file_ids,
+        |item: &IdentifierWorkItem| item.identifier_id.clone(),
+        |chunk| {
+            let ph = placeholders(chunk.len());
+            let sql = format!(
+                "SELECT {IDENTIFIER_COLUMNS} \
+                 FROM identifiers i \
+                 WHERE i.identifier_id NOT IN (SELECT identifier_id FROM identifier_resolutions) \
+                   AND i.file_id IN ({ph}) \
+                 ORDER BY i.identifier_id"
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            stmt.query_map(params_from_iter(chunk.iter()), map_identifier)?
+                .collect::<Result<Vec<_>, _>>()
+        },
+    )
 }
 
 /// Resolved identifier rows (overlay present) whose name is in `names`.
@@ -488,23 +528,24 @@ pub fn worklist_resolved_identifiers_by_names(
     conn: &Connection,
     names: &[&str],
 ) -> rusqlite::Result<Vec<ResolvedIdentifierWorkItem>> {
-    if names.is_empty() {
-        return Ok(Vec::new());
-    }
-    let ph = placeholders(names.len());
-    let sql = format!(
-        "SELECT {IDENTIFIER_COLUMNS}, r.target_symbol_id, r.tier, r.confidence, r.method, \
-                r.outcome, r.candidates \
-         FROM identifier_resolutions r \
-         JOIN identifiers i ON i.identifier_id = r.identifier_id \
-         WHERE i.name IN ({ph}) \
-         ORDER BY i.identifier_id"
-    );
-    let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt
-        .query_map(params_from_iter(names.iter()), map_resolved_identifier)?
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(rows)
+    chunked_by(
+        names,
+        |item: &ResolvedIdentifierWorkItem| item.identifier.identifier_id.clone(),
+        |chunk| {
+            let ph = placeholders(chunk.len());
+            let sql = format!(
+                "SELECT {IDENTIFIER_COLUMNS}, r.target_symbol_id, r.tier, r.confidence, r.method, \
+                        r.outcome, r.candidates \
+                 FROM identifier_resolutions r \
+                 JOIN identifiers i ON i.identifier_id = r.identifier_id \
+                 WHERE i.name IN ({ph}) \
+                 ORDER BY i.identifier_id"
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            stmt.query_map(params_from_iter(chunk.iter()), map_resolved_identifier)?
+                .collect::<Result<Vec<_>, _>>()
+        },
+    )
 }
 
 /// Every identifier that still needs resolution work: never-attempted OR

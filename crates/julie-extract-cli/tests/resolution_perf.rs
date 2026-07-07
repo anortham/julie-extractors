@@ -68,16 +68,16 @@ const DELTA_DESIGN_TARGET: Duration = Duration::from_millis(100);
 // release-only speed. Headroom is deliberately generous (CI hosts are noisy),
 // mirroring `writer_perf.rs`'s soft-floor convention.
 //
-//   measured Full  : release 1212ms, debug 3813ms
-//   measured Delta : release ~110ms, debug  380ms
+//   measured Full  : release 1247ms, debug 3820ms
+//   measured Delta : release   81ms, debug  ~250ms  (after the FINDING-1 fix below)
 //
-// The Delta release ceiling (175ms) sits ABOVE the 100ms design target on purpose:
-// the target is currently MISSED (~110ms) because the delta pass builds the whole
-// workspace index/locator/covered-set every pass — a Task 5 optimization concern
-// reported as a FINDING, NOT papered over by relabeling 175ms as "the budget".
+// The Delta pass now scopes its identifier locator + covered-set load to the files
+// the delta touches (an O(delta) load, since every co-location join is same-file),
+// so single-file Delta MEETS the 100ms design target (81ms release). The release
+// ceiling (150ms) is the measured 81ms × generous headroom for noisy CI hosts.
 const FULL_CEIL_RELEASE: Duration = Duration::from_millis(2_000);
 const FULL_CEIL_DEBUG: Duration = Duration::from_millis(8_000);
-const DELTA_CEIL_RELEASE: Duration = Duration::from_millis(175);
+const DELTA_CEIL_RELEASE: Duration = Duration::from_millis(150);
 const DELTA_CEIL_DEBUG: Duration = Duration::from_millis(750);
 
 /// Pick the profile-appropriate regression ceiling.
@@ -230,19 +230,25 @@ fn single_file_delta_is_within_budget() {
         DELTA_DESIGN_TARGET.as_secs_f64() / elapsed.as_secs_f64().max(1e-9),
     );
 
-    // Soft check against the design target. As of 2026-07-06 the single-file delta
-    // measures ~110ms in release — a marginal MISS of the 100ms target. It is NOT
-    // delta-size-driven: the pass rebuilds the whole-workspace candidate index,
-    // identifier locator (all 92k identifiers) and covered-set on every invocation,
-    // so the fixed O(workspace) build already exceeds the budget before any
-    // delta-specific work runs. Reported as a FINDING for Task 5 optimization
-    // (scope the locator/covered load to changed files, or lazy-build), NOT hidden
-    // by relabeling the ceiling as the budget.
-    if elapsed >= DELTA_DESIGN_TARGET {
+    // Soft check against the design target. Since the FINDING-1 fix the delta pass
+    // scopes its identifier locator + covered-set load to the touched files (O(delta),
+    // not O(workspace)), so single-file delta measures ~81ms release — it MEETS the
+    // 100ms target. Debug builds run ~3x slower and may exceed it; that is expected
+    // and only noted. The hard gate is the regression ceiling below.
+    if elapsed < DELTA_DESIGN_TARGET {
         println!(
-            "resolution_perf: FINDING — DELTA {elapsed:?} exceeds the {DELTA_DESIGN_TARGET:?} \
-             design target (run profile: {}). Root cause: workspace-wide index/locator/covered \
-             build is O(workspace) per delta, not O(delta). Task 5 optimization concern.",
+            "resolution_perf: DELTA {elapsed:?} MEETS the {DELTA_DESIGN_TARGET:?} design target \
+             (run profile: {}).",
+            if cfg!(debug_assertions) {
+                "debug"
+            } else {
+                "release"
+            },
+        );
+    } else {
+        println!(
+            "resolution_perf: NOTE — DELTA {elapsed:?} exceeds the {DELTA_DESIGN_TARGET:?} design \
+             target (run profile: {}); expected in debug, investigate if seen in release.",
             if cfg!(debug_assertions) {
                 "debug"
             } else {
@@ -260,18 +266,16 @@ fn single_file_delta_is_within_budget() {
     );
 }
 
-/// Probe for Task 5 concern #2: the by-names / by-files delta worklists are NOT
-/// chunked, so a large touched-name set binds `2 * N` SQLite variables (the
-/// pending queries bind terminal + receiver names). This exercises escalating
-/// scales and reports where — if anywhere — the pass stops returning `Ok`.
-///
-/// The pass maps any storage error to a non-fatal `ResolutionHookError`, so hitting
-/// the bound-variable ceiling degrades resolution rather than crashing. This test
-/// asserts **no panic** and records the boundary for the lead. If a future SQLite /
-/// rusqlite bump raises the ceiling above every probed scale, the test still passes
-/// and prints that no boundary was hit.
+/// Regression guard for the by-names / by-files delta worklists: they bind up to
+/// `2 * N` SQLite variables (the pending queries bind terminal + receiver names),
+/// so a delta touching a large distinct-name set once overflowed SQLite's compiled
+/// `SQLITE_MAX_VARIABLE_NUMBER` (32766, i.e. N ≈ 16.4k) and degraded to a non-fatal
+/// error. The worklists now chunk their `IN (...)` binds, so a huge touched-name
+/// set must RESOLVE, not degrade. This probes escalating scales well past the old
+/// boundary and asserts the pass returns `Ok` (and never panics) at every one; a
+/// returned `Err` now means the chunking regressed.
 #[test]
-fn delta_with_huge_touched_name_set_does_not_panic() {
+fn delta_with_huge_touched_name_set_resolves_via_chunking() {
     let mut conn = fresh_artifact();
     // Small artifact — the probe is about the query's bound-variable count, driven
     // by the scope name-set size, not the corpus size.
@@ -294,11 +298,9 @@ fn delta_with_huge_touched_name_set_does_not_panic() {
         finalize_resolution_metadata(&conn, &clean_write_result(), Some(&report));
     }
 
-    // 2 * N bound variables on the pending queries; SQLite's compiled-in default
-    // ceiling (SQLITE_MAX_VARIABLE_NUMBER) is 32766 on modern builds, so the flip
-    // is expected around N ≈ 16.4k.
+    // Probe scales straddling and well past the old ~16.4k boundary (2*N > 32766).
+    // With chunked binds every one must resolve.
     let probe_sizes = [8_000usize, 16_000, 16_384, 20_000, 40_000, 80_000];
-    let mut first_error_at: Option<usize> = None;
 
     for &n in &probe_sizes {
         let names: HashSet<String> = (0..n).map(|i| format!("probe_name_{i}")).collect();
@@ -308,9 +310,8 @@ fn delta_with_huge_touched_name_set_does_not_panic() {
             is_full_scan: false,
         };
 
-        // catch_unwind guards against a panic being a *real* bug (the brief's
-        // "if it DOES panic, that is a real bug"). A returned Err is the graceful,
-        // by-design degradation and is recorded, not asserted against.
+        // catch_unwind so a panic is reported as the real bug it would be, distinct
+        // from a returned Err.
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let tx = conn.transaction().unwrap();
             let result = resolve_workspace(&tx, &scope);
@@ -321,39 +322,25 @@ fn delta_with_huge_touched_name_set_does_not_panic() {
 
         match outcome {
             Err(_) => panic!(
-                "resolve_workspace PANICKED at touched_names={n} (2*N bound vars) — this is a \
-                 REQUIRED-LEAD-FIX: the delta worklists must chunk their IN(...) binds"
+                "resolve_workspace PANICKED at touched_names={n} (2*N bound vars) — the delta \
+                 worklists must chunk their IN(...) binds"
             ),
             Ok(Ok(_)) => {
-                println!("resolution_perf: variable-limit probe N={n:>6} -> Ok");
+                println!("resolution_perf: chunked delta N={n:>6} -> Ok");
             }
-            Ok(Err(err)) => {
-                println!(
-                    "resolution_perf: variable-limit probe N={n:>6} -> Err (graceful, non-fatal): {}",
-                    err.message()
-                );
-                if first_error_at.is_none() {
-                    first_error_at = Some(n);
-                }
-            }
+            Ok(Err(err)) => panic!(
+                "resolve_workspace returned Err at touched_names={n} ({}) — the by-names/by-files \
+                 worklists must chunk their IN(...) binds under SQLITE_MAX_VARIABLE_NUMBER so a \
+                 huge delta RESOLVES instead of degrading",
+                err.message()
+            ),
         }
     }
 
-    match first_error_at {
-        Some(n) => println!(
-            "resolution_perf: FINDING — delta resolution degrades to a non-fatal error at \
-             touched_names >= {n}. The by-names/by-files worklists bind 2*N (pending) SQLite \
-             variables and are NOT chunked (Task 5 concern #2). REQUIRED-LEAD-FIX if real deltas \
-             can touch that many distinct names; not a panic/crash.",
-        ),
-        None => println!(
-            "resolution_perf: variable-limit probe hit no ceiling up to N={} (SQLite bound-var \
-             limit not reached at probed scales)",
-            probe_sizes.last().unwrap()
-        ),
-    }
-    // Contract of this probe: never a panic. The Err-vs-Ok boundary is reported,
-    // not gated, because graceful degradation is the current (by-design) behavior.
+    println!(
+        "resolution_perf: chunked delta resolved at all probed scales up to N={}",
+        probe_sizes.last().unwrap()
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -393,7 +380,7 @@ fn fresh_artifact() -> Connection {
 }
 
 fn lang(index: usize) -> &'static str {
-    if index % 10 == 0 {
+    if index.is_multiple_of(10) {
         "typescript"
     } else {
         "rust"
@@ -645,7 +632,7 @@ fn seed_artifact(conn: &mut Connection, files: usize) -> SeedCounts {
                 }
                 identifiers += 1;
             }
-            drop(push_ident);
+            let _ = push_ident; // end the closure's &mut borrows before reusing the vectors
 
             // Tier-1 relationships (covered-set + propagation cost).
             for r in 0..RELATIONSHIPS_PER_FILE {

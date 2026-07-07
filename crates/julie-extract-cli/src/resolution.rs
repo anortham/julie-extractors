@@ -894,14 +894,25 @@ fn run_resolution(
     // (design §"Contract & rollout" item 2 — the WRITE path).
     let effective_full = scope.is_full_scan || prior.is_none();
 
-    // Build the workspace-wide candidate index and identifier locator ONCE per
-    // hook invocation (design §"Performance & determinism"). The index is always
-    // whole-workspace: a delta edge may resolve to a symbol in an unchanged file.
+    // Build the candidate index ONCE per hook invocation (design §"Performance &
+    // determinism"). The index is always whole-workspace: a delta edge may resolve
+    // to a symbol in an unchanged file.
     let index = load_index(tx)?;
-    let locator = IdentifierLocator::load(tx)?;
-    // Identifiers co-located with any pending row OR any resolvable relationship
-    // are owned by propagation, never the generic identifier chain.
-    let covered = covered_identifiers(tx, &index, &locator)?;
+    // The identifier locator + covered-set are only consulted for same-file
+    // co-location joins, so a delta scopes both to the files it touches (FINDING 1:
+    // an O(delta) load rather than reloading every identifier each incremental
+    // scan). A full pass loads the whole workspace.
+    let (locator, covered) = if effective_full {
+        let locator = IdentifierLocator::load_scoped(tx, None)?;
+        let covered = covered_identifiers(tx, &index, &locator, None)?;
+        (locator, covered)
+    } else {
+        let files = delta_scope_files(tx, scope)?;
+        let file_refs: Vec<&str> = files.iter().map(String::as_str).collect();
+        let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
+        let covered = covered_identifiers(tx, &index, &locator, Some(&file_refs))?;
+        (locator, covered)
+    };
 
     let mut counts = ResolutionCounts::default();
     let mut gated: BTreeSet<String> = BTreeSet::new();
@@ -1289,6 +1300,27 @@ fn propagate_relationships(
     Ok(())
 }
 
+/// Max file ids bound into one `IN (...)` clause for the delta-scoped loads. Kept
+/// under SQLite's `SQLITE_MAX_VARIABLE_NUMBER` (default 32766); larger deltas are
+/// chunked.
+const FILE_QUERY_CHUNK: usize = 16000;
+
+/// Map an `identifiers` row to `(file_id, IdentifierLocation)` for the locator.
+fn map_identifier_location(
+    row: &rusqlite::Row<'_>,
+) -> rusqlite::Result<(String, IdentifierLocation)> {
+    Ok((
+        row.get::<_, String>(1)?,
+        IdentifierLocation {
+            identifier_id: row.get(0)?,
+            name: row.get(2)?,
+            start_line: row.get(3)?,
+            start_byte: row.get(4)?,
+            end_byte: row.get(5)?,
+        },
+    ))
+}
+
 type RelationshipRow = (String, String, String, i64, Option<i64>, Option<i64>);
 
 fn map_relationship_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RelationshipRow> {
@@ -1489,15 +1521,16 @@ fn covered_identifiers(
     conn: &Connection,
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
+    files: Option<&[&str]>,
 ) -> rusqlite::Result<HashSet<String>> {
     let mut covered = HashSet::new();
 
-    let mut stmt = conn.prepare(
-        "SELECT file_id, target_terminal_name, start_byte, end_byte, start_line \
-         FROM pending_relationships",
-    )?;
-    let pending = stmt
-        .query_map([], |row| {
+    let pending = query_scoped_rows(
+        conn,
+        "file_id, target_terminal_name, start_byte, end_byte, start_line",
+        "pending_relationships",
+        files,
+        |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
@@ -1505,20 +1538,21 @@ fn covered_identifiers(
                 row.get::<_, Option<i64>>(3)?,
                 row.get::<_, i64>(4)?,
             ))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        },
+    )?;
     for (file_id, name, start_byte, end_byte, start_line) in pending {
         if let Some(id) = locator.locate(&file_id, &name, start_byte, end_byte, start_line) {
             covered.insert(id);
         }
     }
 
-    let mut stmt = conn.prepare(
-        "SELECT to_symbol_id, file_id, kind, start_line, start_byte, end_byte FROM relationships",
+    let relationships = query_scoped_rows(
+        conn,
+        "to_symbol_id, file_id, kind, start_line, start_byte, end_byte",
+        "relationships",
+        files,
+        map_relationship_row,
     )?;
-    let relationships = stmt
-        .query_map([], map_relationship_row)?
-        .collect::<Result<Vec<_>, _>>()?;
     for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte) in relationships {
         if ReferenceKind::from_relationship_kind(&kind).is_none() {
             continue;
@@ -1531,6 +1565,70 @@ fn covered_identifiers(
         }
     }
     Ok(covered)
+}
+
+/// Load rows from `table` (all rows when `files = None`, else only rows whose
+/// `file_id` is in `files`, chunked under the SQLite variable limit). Both scoped
+/// callers here filter on the `file_id` column.
+fn query_scoped_rows<T>(
+    conn: &Connection,
+    columns: &str,
+    table: &str,
+    files: Option<&[&str]>,
+    map: impl Fn(&rusqlite::Row<'_>) -> rusqlite::Result<T>,
+) -> rusqlite::Result<Vec<T>> {
+    let mut out = Vec::new();
+    match files {
+        None => {
+            let sql = format!("SELECT {columns} FROM {table}");
+            let mut stmt = conn.prepare(&sql)?;
+            for row in stmt.query_map([], &map)? {
+                out.push(row?);
+            }
+        }
+        Some(files) => {
+            for chunk in files.chunks(FILE_QUERY_CHUNK) {
+                let sql = format!(
+                    "SELECT {columns} FROM {table} WHERE file_id IN ({})",
+                    placeholders(chunk.len())
+                );
+                let mut stmt = conn.prepare(&sql)?;
+                for row in stmt.query_map(rusqlite::params_from_iter(chunk.iter()), &map)? {
+                    out.push(row?);
+                }
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// The set of files a delta pass will touch: changed files plus the files holding
+/// any pending/identifier the by-name worklists surface (a matching name may live
+/// in an unchanged file). Scopes the delta locator + covered-set load to O(delta)
+/// instead of O(workspace) — safe because every co-location join is same-file.
+fn delta_scope_files(
+    conn: &Connection,
+    scope: &ResolutionScopeInput,
+) -> rusqlite::Result<Vec<String>> {
+    let names: Vec<&str> = scope
+        .touched_symbol_names
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let mut files: BTreeSet<String> = scope.changed_file_ids.iter().cloned().collect();
+    for item in resolution_store::worklist_resolved_pending_by_names(conn, &names)? {
+        files.insert(item.pending.file_id);
+    }
+    for item in resolution_store::worklist_unresolved_pending_by_names(conn, &names)? {
+        files.insert(item.file_id);
+    }
+    for item in resolution_store::worklist_resolved_identifiers_by_names(conn, &names)? {
+        files.insert(item.identifier.file_id);
+    }
+    for item in resolution_store::worklist_never_attempted_identifiers_by_names(conn, &names)? {
+        files.insert(item.file_id);
+    }
+    Ok(files.into_iter().collect())
 }
 
 /// One identifier's location, for span-based propagation joins.
@@ -1549,29 +1647,49 @@ struct IdentifierLocator {
 }
 
 impl IdentifierLocator {
-    fn load(conn: &Connection) -> rusqlite::Result<Self> {
-        let mut stmt = conn.prepare(
-            "SELECT identifier_id, file_id, name, start_line, start_byte, end_byte \
-             FROM identifiers ORDER BY identifier_id",
-        )?;
-        let rows = stmt.query_map([], |row| {
-            Ok((
-                row.get::<_, String>(1)?,
-                IdentifierLocation {
-                    identifier_id: row.get(0)?,
-                    name: row.get(2)?,
-                    start_line: row.get(3)?,
-                    start_byte: row.get(4)?,
-                    end_byte: row.get(5)?,
-                },
-            ))
-        })?;
+    /// Load identifier locations for co-location joins. `files = None` loads the
+    /// whole workspace (Full pass); `Some(files)` loads only those files (Delta
+    /// pass — an O(delta) load instead of O(workspace), since every co-location
+    /// join is same-file, so a delta only ever locates within the files it
+    /// touches). File ids are chunked to stay under the SQLite variable limit.
+    fn load_scoped(conn: &Connection, files: Option<&[&str]>) -> rusqlite::Result<Self> {
+        let base = "SELECT identifier_id, file_id, name, start_line, start_byte, end_byte \
+                    FROM identifiers";
         let mut by_file: HashMap<String, Vec<IdentifierLocation>> = HashMap::new();
+        match files {
+            None => {
+                let sql = format!("{base} ORDER BY identifier_id");
+                let mut stmt = conn.prepare(&sql)?;
+                let rows = stmt.query_map([], map_identifier_location)?;
+                Self::collect(&mut by_file, rows)?;
+            }
+            Some(files) => {
+                for chunk in files.chunks(FILE_QUERY_CHUNK) {
+                    let sql = format!(
+                        "{base} WHERE file_id IN ({}) ORDER BY identifier_id",
+                        placeholders(chunk.len())
+                    );
+                    let mut stmt = conn.prepare(&sql)?;
+                    let rows = stmt.query_map(
+                        rusqlite::params_from_iter(chunk.iter()),
+                        map_identifier_location,
+                    )?;
+                    Self::collect(&mut by_file, rows)?;
+                }
+            }
+        }
+        Ok(Self { by_file })
+    }
+
+    fn collect(
+        by_file: &mut HashMap<String, Vec<IdentifierLocation>>,
+        rows: impl Iterator<Item = rusqlite::Result<(String, IdentifierLocation)>>,
+    ) -> rusqlite::Result<()> {
         for row in rows {
             let (file_id, location) = row?;
             by_file.entry(file_id).or_default().push(location);
         }
-        Ok(Self { by_file })
+        Ok(())
     }
 
     /// The single identifier co-located with a reference span, or `None` when the
