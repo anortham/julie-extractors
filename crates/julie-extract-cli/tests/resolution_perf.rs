@@ -177,6 +177,97 @@ fn full_resolve_is_within_budget_at_scale() {
     );
 }
 
+// --- Savepoint-seam gate. The other two tests call `resolve_workspace` directly
+// on a bare transaction, which is the harness blind spot that let the v2.9.0
+// quadratic ship: the pass only pays the `memjrnlTruncate` cost when it runs
+// inside the writer's OPEN `SAVEPOINT resolution_hook` (a full scan of the
+// julie-extractors repo went 6.5s -> 425s; a `sample` showed 11,789/11,797 stacks
+// in `memjrnlTruncate`). Each statement-end truncates the savepoint sub-journal by
+// walking its ever-growing chunk list from the head, so ~125k per-row statements
+// inside the open savepoint is quadratic. This test reproduces the exact seam and
+// gates wall-clock. The seed is scaled down (so the FIXED pass is fast) but large
+// enough that the quadratic clearly blows the ceiling on the unfixed code.
+// ~1000 files * 46 identifiers/file ≈ 46k identifier outcomes. At this scale the
+// unfixed quadratic measures ~12s through the seam (RED), while the batched flush
+// brings it to ~1s (GREEN) — a clear, noise-proof gap around the 5s ceiling.
+const SEAM_FILES: usize = 1_000;
+const SEAM_CEIL: Duration = Duration::from_secs(5);
+
+#[test]
+fn full_resolve_through_savepoint_seam_is_within_budget() {
+    let files = env_usize("JULIE_PERF_SEAM_FILES", SEAM_FILES);
+    // On-disk artifact (NOT in-memory): the quadratic `memjrnlTruncate` cost only
+    // manifests when the savepoint sub-journal accumulates pages spread across a
+    // real on-disk table — an in-memory DB stays linear and would hide the bug.
+    let dir = tempfile::tempdir().unwrap();
+    let db_path = dir.path().join("seam.db");
+    let mut conn = Connection::open(&db_path).unwrap();
+    // Mirror the production writer's connection PRAGMAs (writer.rs `open`). The
+    // load-bearing one is `temp_store = MEMORY`: it keeps the savepoint sub-journal
+    // as an in-memory `memjrnl` that GROWS instead of spilling to a cheap temp file,
+    // so `memjrnlTruncate` walks an ever-longer chunk list at every statement end —
+    // the exact production hot path (11,789/11,797 `sample` stacks). Without these
+    // the sub-journal spills and the quadratic hides.
+    conn.pragma_update(None, "journal_mode", "WAL").unwrap();
+    conn.pragma_update(None, "synchronous", "NORMAL").unwrap();
+    conn.pragma_update(None, "temp_store", "MEMORY").unwrap();
+    conn.pragma_update(None, "cache_size", -131_072i64).unwrap();
+    create_schema(&conn).unwrap();
+    // Scattered ids (scatter_ids = true) reproduce production's content-hash
+    // identifier ids, which is what makes the open-savepoint sub-journal grow per
+    // statement and exposes the quadratic.
+    let counts = seed_artifact_with(&mut conn, files, true);
+    print_seed("seam", &counts);
+
+    let scope = ResolutionScopeInput {
+        changed_file_ids: Vec::new(),
+        touched_symbol_names: HashSet::new(),
+        is_full_scan: true,
+    };
+
+    // Mirror `run_resolution_hook` (writer.rs): open the same savepoint, run the
+    // pass, release. This is the seam the two direct-call tests bypass.
+    let tx = conn.transaction().unwrap();
+    tx.execute_batch("SAVEPOINT resolution_hook").unwrap();
+    let started = Instant::now();
+    let (resolution_counts, _report) = resolve_workspace(&tx, &scope).expect("seam full resolve");
+    let elapsed = started.elapsed();
+    tx.execute_batch("RELEASE resolution_hook").unwrap();
+    tx.commit().unwrap();
+
+    println!(
+        "resolution_perf: SEAM full resolve (through open SAVEPOINT) {} ms | identifiers={} \
+         | overlay writes: identifier_resolutions={} pending_resolutions={} | ceiling={} ms",
+        elapsed.as_millis(),
+        counts.identifiers,
+        resolution_counts.identifier_resolutions,
+        resolution_counts.pending_resolutions,
+        SEAM_CEIL.as_millis(),
+    );
+
+    // Sanity: the pass must have done the O(identifiers) write work inside the
+    // savepoint (otherwise a trivially fast run would pass the gate for free).
+    assert!(
+        resolution_counts.identifier_resolutions as usize >= counts.identifiers,
+        "seam pass recorded {} identifier outcomes but seeded {} identifiers — the \
+         O(identifiers) write cost was not exercised inside the savepoint",
+        resolution_counts.identifier_resolutions,
+        counts.identifiers,
+    );
+
+    // Hard gate: through the savepoint seam the pass must stay linear. Unfixed
+    // v2.9.0 blows this by ~10x+ (tens of seconds at this scale); the batched flush
+    // brings it back under a second.
+    assert!(
+        elapsed < SEAM_CEIL,
+        "FULL resolve THROUGH the open savepoint seam took {elapsed:?}, over the {SEAM_CEIL:?} \
+         ceiling at {} identifiers — the quadratic memjrnl-truncate regression is back. The pass \
+         must batch its overlay writes so only a FEW statements end inside the open savepoint, \
+         not one per row. Do NOT relax the ceiling to make it pass.",
+        counts.identifiers,
+    );
+}
+
 #[test]
 fn single_file_delta_is_within_budget() {
     let files = env_usize("JULIE_PERF_FILES", DEFAULT_FILES);
@@ -387,9 +478,29 @@ fn lang(index: usize) -> &'static str {
     }
 }
 
+/// Bijective scramble of a sequence counter (odd multiplier mod 2^32 is a
+/// permutation), so `identifier_id` sort order is UNCORRELATED with insertion
+/// (row) order. This reproduces production's content-hash ids: the resolution
+/// worklists `ORDER BY identifier_id`, so scattered ids make every overlay INSERT
+/// (`identifier_resolutions` PK b-tree) and denorm UPDATE (`idx_identifiers_target`
+/// b-tree) dirty a fresh page — which is what makes the open-savepoint sub-journal
+/// grow per statement and turns the pass quadratic. Sequential ids stay on the same
+/// pages and hide the bug.
+fn scramble_id(seq: usize) -> String {
+    let key = (seq as u64).wrapping_mul(2_654_435_761).wrapping_add(1) & 0xFFFF_FFFF;
+    format!("id-{key:010}")
+}
+
 /// Seed a v4 artifact with a realistic-mix corpus. Everything is deterministic
-/// (no RNG) so two runs at the same size produce byte-identical inputs.
+/// (no RNG) so two runs at the same size produce byte-identical inputs. When
+/// `scatter_ids` is set, identifier ids are scrambled (see [`scramble_id`]) so the
+/// savepoint-seam gate observes the real quadratic; the two direct-call tests use
+/// sequential ids (`scatter_ids = false`) to keep their loads cheap.
 fn seed_artifact(conn: &mut Connection, files: usize) -> SeedCounts {
+    seed_artifact_with(conn, files, false)
+}
+
+fn seed_artifact_with(conn: &mut Connection, files: usize, scatter_ids: bool) -> SeedCounts {
     // Same-language peer file for cross-file tier-4 targets, so a resolvable call's
     // referent lives in a *different* file of the *same* language.
     let same_lang_peer = |i: usize| -> usize {
@@ -419,6 +530,9 @@ fn seed_artifact(conn: &mut Connection, files: usize) -> SeedCounts {
     let mut relationships = 0usize;
     let mut type_facts = 0usize;
     let mut imports = 0usize;
+    // Global identifier counter (across files) so scrambled ids scatter over the
+    // whole corpus, not just within a file.
+    let mut global_ident_seq = 0usize;
 
     {
         let mut ins_file = tx
@@ -589,7 +703,12 @@ fn seed_artifact(conn: &mut Connection, files: usize) -> SeedCounts {
             let mut line = 200i64;
             let mut ident_seq = 0usize;
             let mut push_ident = |kind: &str, name: &str| {
-                let id = format!("id-{i}-{ident_seq}");
+                let id = if scatter_ids {
+                    scramble_id(global_ident_seq)
+                } else {
+                    format!("id-{i}-{ident_seq}")
+                };
+                global_ident_seq += 1;
                 ins_ident
                     .execute((
                         &id,
