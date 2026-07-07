@@ -102,6 +102,10 @@ fn release_package_list_is_exact_and_ordered() {
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
+                path_template: "docs/contracts/sqlite-schema-v4.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
                 path_template: "docs/contracts/jsonl-v1.md",
             },
             ReleasePackageItem {
@@ -159,6 +163,7 @@ fn release_package_list_renders_as_a_stable_xtask_manifest() {
     assert!(rendered.contains("binary\tdist/{target}/julie-extract{exe_suffix}\n"));
     assert!(rendered.contains("checksum\tdist/{target}/julie-extract{exe_suffix}.sha256\n"));
     assert!(rendered.contains("doc\tdocs/contracts/cli.md\n"));
+    assert!(rendered.contains("doc\tdocs/contracts/sqlite-schema-v4.md\n"));
     assert!(rendered.contains("doc\tdocs/contracts/extracted-data-v1.md\n"));
     assert!(rendered.contains("doc\tdocs/contracts/extracted-data-v2.md\n"));
     assert!(rendered.contains("doc\tdocs/contracts/extracted-data-v3.md\n"));
@@ -441,6 +446,38 @@ fn release_package_manifest_rejects_forbidden_paths() {
         error.to_string().contains("forbidden package path"),
         "unexpected error: {error}"
     );
+}
+
+#[test]
+fn dependency_policy_allows_pinned_git_parser_sources() {
+    let root = repo_root();
+    let cargo_toml = std::fs::read_to_string(root.join("crates/julie-extractors/Cargo.toml"))
+        .expect("extractor Cargo.toml");
+    let deny_toml = std::fs::read_to_string(root.join("deny.toml")).expect("deny.toml");
+
+    let mut git_sources = cargo_toml
+        .lines()
+        .filter(|line| line.contains("tree-sitter") && line.contains("git = "))
+        .filter_map(|line| {
+            let (_, rest) = line.split_once("git = \"")?;
+            let (url, _) = rest.split_once('"')?;
+            Some(url)
+        })
+        .collect::<Vec<_>>();
+    git_sources.sort_unstable();
+    git_sources.dedup();
+
+    assert!(
+        !git_sources.is_empty(),
+        "expected at least one pinned git parser source"
+    );
+
+    for url in git_sources {
+        assert!(
+            deny_toml.contains(&format!("\"{url}\"")),
+            "deny.toml allow-git must include pinned parser source {url}"
+        );
+    }
 }
 
 fn repo_root() -> PathBuf {

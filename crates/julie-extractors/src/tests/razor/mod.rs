@@ -2696,6 +2696,7 @@ mod razor_variable_ref_tests {
     ///      (`Activity="EffectiveActivity"`) was swallowed as opaque text.
     ///   2. A `@bind-Value="field"` directive-attribute value was dropped
     ///      entirely (only `@bind` matched).
+    ///
     /// The grammar fix parses both as C# expressions like the working
     /// `@onclick="Handler"` path; the existing value-read arm then emits them.
     #[test]
