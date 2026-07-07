@@ -90,13 +90,13 @@ in the task report. Reuse same-HEAD passing evidence rather than rerunning expen
 | Task | Parallel batch | File ownership | Serialization required | Dependency reason |
 |---|---|---|---|---|
 | Task 1: Schema + storage primitives | Batch A | Create: `crates/julie-extract-artifact/src/resolution_store.rs`; Modify: `crates/julie-extract-artifact/src/schema.rs`, `crates/julie-extract-artifact/src/lib.rs`, `crates/julie-extract-artifact/src/metadata.rs`; Test: `crates/julie-extract-artifact/tests/resolution_store_contract.rs`, `crates/julie-extract-artifact/tests/schema_contract.rs` | No | None - safe parallel batch. |
-| Task 2: Pending span emission | Batch A | Modify: `crates/julie-extractors/src/base/relationship_resolution.rs`, `crates/julie-extractors/src/base/types.rs`, per-language emitter call sites of `StructuredPendingRelationship::new`, `crates/julie-extract-cli/src/extraction.rs:505-535`; Test: `crates/julie-extract-cli/tests/` pending-span cases + touched language unit suites | No | None - safe parallel batch. |
+| Task 2: Pending span emission | Batch A | Modify: `crates/julie-extractors/src/base/relationship_resolution.rs`, `crates/julie-extractors/src/base/types.rs`, per-language emitter call sites of `StructuredPendingRelationship::new`, `crates/julie-extract-cli/src/extraction.rs:501,523,814`; Test: `crates/julie-extract-cli/tests/` pending-span cases + touched language unit suites | No | None - safe parallel batch. |
 | Task 3: ResolutionHook writer seam | Batch B | Modify: `crates/julie-extract-artifact/src/writer.rs`, `crates/julie-extract-artifact/src/writer/rows.rs`, `crates/julie-extract-artifact/src/reports.rs`; Test: `crates/julie-extract-artifact/tests/writer_contract.rs` | No | None - safe parallel batch (after Batch A; consumes Task 1's tables/report types). |
 | Task 4: Resolver core (tier chain) | Batch B | Create: `crates/julie-extract-cli/src/resolution.rs` (+ submodules if split); Test: unit tests in-module | No | None - safe parallel batch (after Batch A; consumes Task 1's row/report types and Task 2's span-bearing pending shape). |
-| Task 5: Workspace pass wiring | None - serial | Modify: `crates/julie-extract-cli/src/commands.rs` (call sites ~:223, ~:498, ~:1502-1510), `crates/julie-extract-cli/src/reports.rs`, `crates/julie-extract-cli/src/capability_snapshot.rs`, `crates/julie-extract-cli/src/resolution.rs`; Test: `crates/julie-extract-cli/tests/` resolution flow cases | Yes | Consumes Tasks 1–4 (hook seam + primitives + tier chain). |
+| Task 5: Workspace pass wiring | None - serial | Modify: `crates/julie-extract-cli/src/commands.rs` (call sites ~:223, ~:498, ~:1502-1510), `crates/julie-extract-cli/src/reports.rs`, `crates/julie-extract-cli/src/capability_snapshot.rs`, `crates/julie-extract-cli/src/resolution.rs`, `xtask/src/dogfood.rs` (ResolutionFailed gate); Test: `crates/julie-extract-cli/tests/` resolution flow cases | Yes | Consumes Tasks 1–4 (hook seam + primitives + tier chain). |
 | Task 6: Contract + incremental fixtures | Batch C | Create: `crates/julie-extract-cli/tests/resolution_contract.rs`, fixture files under `fixtures/extraction/` per language; no src edits | No | None - safe parallel batch (after Task 5). |
 | Task 7: Perf gate | Batch C | Modify: `crates/julie-extract-artifact/tests/writer_perf.rs` (or a sibling `resolution_perf.rs` behind `test-perf`), `crates/julie-extract-artifact/Cargo.toml` only if a new feature name is needed; Test: the perf harness itself | No | None - safe parallel batch (after Task 5). |
-| Task 8: Contracts, capabilities, docs | None - serial | Modify: artifact contract doc under `docs/contracts/` (locate the schema contract doc), `fixtures/extraction/capabilities.json`, `docs/release-notes/` draft, `CLAUDE.md`+`AGENTS.md` only if guidance changes | Yes | Needs measured rates and gap rows from Tasks 5–7. |
+| Task 8: Contracts, capabilities, docs | None - serial | Modify: artifact contract doc under `docs/contracts/`, `fixtures/extraction/capabilities.json`, `scripts/language-data-quality-report.mjs` (strict gate hardening), `docs/release-notes/` draft, `CLAUDE.md`+`AGENTS.md` only if guidance changes | Yes | Needs measured rates and gap rows from Tasks 5–7. |
 
 Commit mode: `serial-worker-commit` for serial tasks (5, 8); `parallel-lead-commit` for
 Batch A, Batch B, and Batch C members.
@@ -118,7 +118,7 @@ Batch A, Batch B, and Batch C members.
   - `resolution_store::record_pending_resolution(tx, pending_relationship_id, target_symbol_id, tier: u8, confidence: f64, method: &str, revision: i64)`
   - `resolution_store::record_identifier_outcome(tx, identifier_id, outcome: Outcome, target: Option<&str>, tier/confidence/method/candidates, revision)` — atomically writes the overlay row AND the denormalized `identifiers.target_symbol_id` in one statement batch
   - `resolution_store::demote_pending(tx, pending_relationship_id)` / `demote_identifier(tx, identifier_id)` — delete overlay row AND clear the denormalized column atomically
-  - `resolution_store::worklist_*` queries: unresolved pending rows by terminal/receiver-name set; resolved rows (both overlays) by terminal/receiver-name set; never-attempted identifiers by name set or file set
+  - `resolution_store::worklist_*` queries: unresolved pending rows by terminal/receiver-name set; resolved rows (both overlays) by terminal/receiver-name set; never-attempted identifiers by name set or file set; **and full-pass variants** (`worklist_full_pending`, `worklist_full_identifiers`: every unresolved pending row / every never-attempted or NULL-target identifier) for `Full` scope and v3-artifact backfill
   - `resolution_store::write_resolution_metadata(conn, status: ResolutionStatus, version, last_full_revision)` and `read_resolution_metadata(conn)` — upserts `reference_resolution_status|version|last_full_revision` into `artifact_metadata` (separate upsert; do NOT widen `ArtifactMetadata::rows()`'s fixed array)
   - `ResolutionCounts` (rows written per table) for revision accounting, and `ResolutionReportRow` (language, tier, outcome, count)
 
@@ -155,7 +155,7 @@ AND an existing v3 database (additive upgrade path).
 ### Task 2: Pending span emission + occurrence-distinct IDs
 
 **Files:**
-- Modify: `crates/julie-extractors/src/base/relationship_resolution.rs` (`StructuredPendingRelationship`), `crates/julie-extractors/src/base/types.rs` (`PendingRelationship` if span lives there), per-language call sites of `StructuredPendingRelationship::new` (discover with a grep; mechanical), `crates/julie-extract-cli/src/extraction.rs:505-535` (the pending row mapping that currently hardcodes `start_column: None` and keys IDs by `(display_name, kind, line)`)
+- Modify: `crates/julie-extractors/src/base/relationship_resolution.rs` (`StructuredPendingRelationship`), `crates/julie-extractors/src/base/types.rs` (`PendingRelationship` if span lives there), per-language call sites of `StructuredPendingRelationship::new` (discover with a grep; mechanical), `crates/julie-extract-cli/src/extraction.rs` — the pending row mapping at `:501` (`start_column: None` at `:523`) and the `pending_id` helper at `:814` (the ID must incorporate occurrence identity)
 - Test: pending-span assertions in the existing CLI extraction tests (`crates/julie-extract-cli/tests/`), plus touched language unit suites
 
 **Interfaces:**
@@ -170,7 +170,7 @@ AND an existing v3 database (additive upgrade path).
 **Contract inputs:** design §"Data flow" step 1; §"Verified current state" bullet on span
 columns; extraction.rs mapping seen at lines ~505–535.
 
-**File ownership:** Modify: `crates/julie-extractors/src/base/relationship_resolution.rs`, `crates/julie-extractors/src/base/types.rs`, per-language emitter call sites of `StructuredPendingRelationship::new`, `crates/julie-extract-cli/src/extraction.rs:505-535`; Test: `crates/julie-extract-cli/tests/` pending-span cases + touched language unit suites
+**File ownership:** Modify: `crates/julie-extractors/src/base/relationship_resolution.rs`, `crates/julie-extractors/src/base/types.rs`, per-language emitter call sites of `StructuredPendingRelationship::new`, `crates/julie-extract-cli/src/extraction.rs:501,523,814`; Test: `crates/julie-extract-cli/tests/` pending-span cases + touched language unit suites
 
 **Serialization required:** No
 
@@ -206,7 +206,14 @@ Task 6 fixtures, with genuine gaps recorded there.
 - Produces (Task 5 relies on): a hook parameter on each mutating method (design: `_with_resolution`
   variants or an `Option<&mut dyn ...>`-free generic — non-escaping HRTB closure
   `F: for<'t> FnMut(&rusqlite::Transaction<'t>, &ResolutionScopeInput) -> Result<ResolutionCounts, ResolutionHookError>`),
-  where `ResolutionScopeInput { changed_file_ids: Vec<String>, touched_symbol_names: HashSet<String>, is_full_scan: bool }`;
+  where `ResolutionScopeInput { changed_file_ids: Vec<String>, touched_symbol_names: HashSet<String>, is_full_scan: bool }`.
+  **Return-contract note (Codex plan review, blocker 1):** the writer consumes ONLY
+  `ResolutionCounts` (all it needs for revision accounting); the per-language
+  `ResolutionReport` is NOT returned through the writer — Task 5's closure writes it into its
+  own captured state (`&mut Option<ResolutionReport>`), which is exactly why the hook is
+  specified as a non-escaping `FnMut`. Task 3 also adds the stable
+  `ReportCode::ResolutionFailed` variant to the existing `ReportCode` enum
+  (`crates/julie-extract-artifact/src/reports.rs:315`);
   `touched_symbol_names` = names inserted this scan ∪ names collected from old DB rows **before**
   `delete_file_rows` runs (design §"Incremental correctness", round-3 note). Hook runs after all
   row writes, before `update_revision_counts` and commit, in EVERY path including the spooled
@@ -287,7 +294,7 @@ by `symbol_id`.
 ### Task 5: Workspace pass wiring — Full/Delta, demotion, reports, capabilities
 
 **Files:**
-- Modify: `crates/julie-extract-cli/src/resolution.rs` (add `resolve_workspace`), `crates/julie-extract-cli/src/commands.rs` (hook closures at the scan call site ~:223, update ~:498, delete/unsupported ~:1502-1510, and the force-rebuild scan path), `crates/julie-extract-cli/src/reports.rs` (resolution section in scan reports), `crates/julie-extract-cli/src/capability_snapshot.rs` (`reference_resolution.tier2_import` / `tier3_receiver` capability rows)
+- Modify: `crates/julie-extract-cli/src/resolution.rs` (add `resolve_workspace`), `crates/julie-extract-cli/src/commands.rs` (hook closures at the scan call site ~:223, update ~:498, delete/unsupported ~:1502-1510, and the force-rebuild scan path), `crates/julie-extract-cli/src/reports.rs` (resolution section in scan reports), `crates/julie-extract-cli/src/capability_snapshot.rs` (`reference_resolution.tier2_import` / `tier3_receiver` capability rows), `xtask/src/dogfood.rs` (fail the dogfood gate when `ResolutionFailed` appears in the scan output — today it checks exit success only, `dogfood.rs:321`)
 - Test: `crates/julie-extract-cli/tests/` — end-to-end scan flows on tiny fixtures
 
 **Interfaces:**
@@ -318,8 +325,12 @@ flow, with set-based SQL through temp tables (no per-row round trips) and stable
 
 **Approach:** Build the candidate index once per hook invocation from a single set of queries
 (symbols by name+language+kind, imports by file, type facts by symbol). Delta scoping keys off
-`ResolutionScopeInput`. Old-artifact backfill: opening a v3 artifact (Task 1's additive create)
-followed by any scan triggers a Full resolve when `reference_resolution_status` is absent.
+`ResolutionScopeInput`. The closure returns `ResolutionCounts` to the writer and stores the
+`ResolutionReport` in captured state (Task 3's return-contract note). Old-artifact backfill:
+opening a v3 artifact (Task 1's additive create) followed by any scan triggers a Full resolve
+when `reference_resolution_status` is absent — this runs on the WRITE path; the existing
+`--strict-schema` read preflight (`artifact_access.rs:278`) keeps rejecting un-upgraded
+artifacts on read, unchanged (Task 8 documents this in the contract doc).
 End-to-end tests: scan a two-file fixture → cross-file call resolved; rewrite the target file →
 resolution cascades away, pending context intact, re-resolve restores it; add a colliding
 same-name symbol → uniqueness-regression demotion; remove it → re-resolves; `status=failed`
@@ -402,7 +413,7 @@ asserting the measured budgets with headroom.
 ### Task 8: Contracts, capabilities, release notes
 
 **Files:**
-- Modify: the artifact schema/contract doc under `docs/contracts/` (locate the existing artifact contract doc and extend it with the resolution state model, tiers, confidence values, outcome semantics, metadata keys, and the Miller detection rule), `fixtures/extraction/capabilities.json` (resolution capability claims backed by Task 6 evidence), `docs/release-notes/` draft for 2.9.0 with measured per-language rates from the dogfood run
+- Modify: the artifact schema/contract doc under `docs/contracts/` (locate the existing artifact contract doc and extend it with the resolution state model, tiers, confidence values, outcome semantics, metadata keys, the Miller detection rule, and the `--strict-schema` read-preflight behavior for un-upgraded v3 artifacts), `fixtures/extraction/capabilities.json` (resolution capability claims backed by Task 6 evidence), `scripts/language-data-quality-report.mjs` (Codex plan review: `--strict` exits non-zero only for `silentCells` at `:468` — harden it to also fail on `quality_bar_debts > 0`, which AGENTS.md already requires kept at 0; if main has pre-existing debts, report a plan mismatch instead of weakening the rule), `docs/release-notes/` draft for 2.9.0 with measured per-language rates from the dogfood run
 - Test: `node scripts/language-data-quality-report.mjs --strict` clean; `scripts/check-agent-doc-sync.sh` if guidance files changed
 
 **Interfaces:**
@@ -413,7 +424,7 @@ asserting the measured budgets with headroom.
 **Contract inputs:** design §"Contract & rollout"; repo rule that schemas/reports/capability
 rows are API contracts; capabilities.json evidence rules in CLAUDE.md.
 
-**File ownership:** Modify: artifact contract doc under `docs/contracts/`, `fixtures/extraction/capabilities.json`, `docs/release-notes/` draft, `CLAUDE.md`+`AGENTS.md` only if guidance changes
+**File ownership:** Modify: artifact contract doc under `docs/contracts/`, `fixtures/extraction/capabilities.json`, `scripts/language-data-quality-report.mjs` (strict gate hardening), `docs/release-notes/` draft, `CLAUDE.md`+`AGENTS.md` only if guidance changes
 
 **Serialization required:** Yes
 
@@ -424,7 +435,7 @@ code changes beyond capability data.
 
 **Acceptance criteria:**
 - [ ] Contract doc covers: both overlay tables, metadata keys and their status semantics, tier/confidence table, outcome vocabulary, the "Miller gates on metadata keys, never schema version" rule
-- [ ] capabilities.json claims match Task 6 evidence exactly; `--strict` data-quality report clean (0 silent_cells, 0 quality_bar_debts)
+- [ ] capabilities.json claims match Task 6 evidence exactly; `--strict` data-quality report clean (0 silent_cells, 0 quality_bar_debts) with the hardened script exiting non-zero on either
 - [ ] Release-notes draft records measured per-language resolution rates and perf numbers
 - [ ] Worker-scope verification passes; `serial-worker-commit` with recorded SHA
 
