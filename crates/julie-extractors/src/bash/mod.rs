@@ -267,6 +267,37 @@ impl BashExtractor {
                     }
                 }
             }
+            // variable_ref (Batch F): `$var` (simple_expansion) and `${var}`
+            // (expansion) are bash's genuine variable reads; before this arm
+            // they emitted nothing, so declared variables looked dead to
+            // kind-blind name matching. Only a DIRECT `variable_name` child is
+            // taken: in `${arr[$i]}` the array name sits inside the `subscript`
+            // node (owned by the MemberAccess arm above — kind untouched), so
+            // no double emission; the index read `$i` is its own
+            // simple_expansion and is picked up here by the walker. Positional
+            // parameters (`$1` parses as variable_name "1") are skipped via the
+            // all-digits check; special parameters (`$@`, `$?`, …) parse as
+            // `special_variable_name` and never match. Non-resolvable: no
+            // target binding at extraction.
+            "simple_expansion" | "expansion" => {
+                let mut cursor = node.walk();
+                for child in node.children(&mut cursor) {
+                    if child.kind() == "variable_name" {
+                        let name = self.base.get_node_text(&child);
+                        if !name.is_empty() && !name.bytes().all(|b| b.is_ascii_digit()) {
+                            let containing_symbol_id =
+                                self.find_containing_symbol_id(node, symbol_map);
+                            self.base.create_identifier(
+                                &child,
+                                name,
+                                crate::base::IdentifierKind::VariableRef,
+                                containing_symbol_id,
+                            );
+                        }
+                        break;
+                    }
+                }
+            }
             _ => {}
         }
     }

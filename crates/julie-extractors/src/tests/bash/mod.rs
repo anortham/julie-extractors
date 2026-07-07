@@ -1033,6 +1033,97 @@ process_data() {
         );
     }
 
+    /// variable_ref emission (Batch F): `$var` / `${var}` expansions are
+    /// bash's genuine variable reads. Before this arm, plain expansions
+    /// emitted NOTHING (only array-subscript names surfaced, as
+    /// member_access), so declared variables looked dead to kind-blind
+    /// name matching. Positional (`$1`) and special (`$@`, `$?`)
+    /// parameters are skipped — they are not named declarations.
+    #[test]
+    fn test_extract_variable_expansion_reads_as_variable_ref() {
+        let bash_code = r#"#!/bin/bash
+NAME="world"
+GREETING="hello"
+echo "$NAME"
+echo ${GREETING}
+echo "${ARR[$IDX]}"
+echo $1
+echo "$@"
+"#;
+
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut parser = init_parser();
+        let tree = parser.parse(bash_code, None).unwrap();
+        let mut extractor = BashExtractor::new(
+            "bash".to_string(),
+            "test.sh".to_string(),
+            bash_code.to_string(),
+            &workspace_root,
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        // Plain `$NAME` read (simple_expansion inside a string).
+        let name_ref = identifiers
+            .iter()
+            .find(|id| id.name == "NAME" && id.kind == IdentifierKind::VariableRef);
+        assert!(
+            name_ref.is_some(),
+            "$NAME read should emit VariableRef; got: {:?}",
+            identifiers
+                .iter()
+                .map(|i| (&i.name, &i.kind))
+                .collect::<Vec<_>>()
+        );
+
+        // Braced `${GREETING}` read (expansion node).
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "GREETING" && id.kind == IdentifierKind::VariableRef),
+            "${{GREETING}} read should emit VariableRef"
+        );
+
+        // Array subscript keeps its existing MemberAccess row for the array
+        // name (kind untouched — resolvable rows must not change kind)...
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "ARR" && id.kind == IdentifierKind::MemberAccess),
+            "array name in subscript must stay MemberAccess"
+        );
+        // ...and must NOT gain a duplicate VariableRef for the array name.
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.name == "ARR" && id.kind == IdentifierKind::VariableRef),
+            "array name must not double-emit as VariableRef"
+        );
+        // The index read `$IDX` inside the subscript IS a genuine read.
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "IDX" && id.kind == IdentifierKind::VariableRef),
+            "subscript index $IDX read should emit VariableRef"
+        );
+
+        // Positional and special parameters are not named declarations.
+        assert!(
+            !identifiers
+                .iter()
+                .any(|id| id.kind == IdentifierKind::VariableRef
+                    && (id.name == "1" || id.name == "@")),
+            "positional/special parameters must not emit VariableRef"
+        );
+
+        // variable_ref stays non-resolvable: no target binding at extraction.
+        assert!(
+            name_ref.unwrap().target_symbol_id.is_none(),
+            "bash VariableRef must not bind a target at extraction time"
+        );
+    }
+
     #[test]
     fn test_file_scoped_containing_symbol() {
         // This test ensures we ONLY match symbols from the SAME FILE
