@@ -228,6 +228,38 @@
       "containing_key": "fixtures/extraction/vbnet/cross_file/source.vb:Run:10:8",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/cross_file/source.vb:value:variable_ref:16:19",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/cross_file/source.vb",
+      "start_line": 16,
+      "start_column": 19,
+      "end_line": 16,
+      "end_column": 24,
+      "start_byte": 545,
+      "end_byte": 550,
+      "containing_key": "fixtures/extraction/vbnet/cross_file/source.vb:Helper:15:8",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vbnet/cross_file/source.vb:x:variable_ref:12:26",
+      "name": "x",
+      "kind": "variable_ref",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/cross_file/source.vb",
+      "start_line": 12,
+      "start_column": 26,
+      "end_line": 12,
+      "end_column": 27,
+      "start_byte": 434,
+      "end_byte": 435,
+      "containing_key": "fixtures/extraction/vbnet/cross_file/source.vb:Run:10:8",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [

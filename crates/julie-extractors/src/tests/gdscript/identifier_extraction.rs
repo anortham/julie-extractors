@@ -466,4 +466,135 @@ func process(entity: PandoraEntity) -> void:
             "Type annotation inside function should have function as containing symbol"
         );
     }
+
+    #[test]
+    fn test_gdscript_variable_ref_emission() {
+        // Locked variable_ref contract (see csharp/identifiers.rs): receivers +
+        // bare value reads, the complement of the Call/MemberAccess/TypeUsage arms.
+        let gdscript_code = r#"
+extends Node
+
+var speed: int = 5
+var health := 10
+
+enum State { IDLE, RUNNING }
+
+func evaluate(seed, unused_param) -> int:
+    health -= seed              # compound target + RHS -> both reads
+    var local_x = 5
+    local_x = 7                 # plain write LHS -> NOT a read
+    var total = speed           # bare RHS read
+    var g = GraphUtil.reach()   # receiver read; reach stays a call
+    var fn_ref = compute        # bare read of a function name
+    var arr = [seed, health]    # collection elements -> reads
+    for item in items:
+        total += item
+    var w = self.hp             # self receiver is a keyword, not a variable_ref
+    match total:
+        speed:
+            pass
+        _:                      # wildcard pattern is not a read
+            pass
+    # GhostToken appears only in this comment
+    return total
+
+func compute(v: int) -> int:
+    return v
+"#;
+
+        let tree = init_parser(gdscript_code, "gdscript");
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = GDScriptExtractor::new(
+            "gdscript".to_string(),
+            "test.gd".to_string(),
+            gdscript_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        // --- Positive cases (rules 1/4) ---
+        for expected in [
+            "GraphUtil", // member-access receiver
+            "speed",     // bare RHS read
+            "seed",      // compound-assignment RHS + array element
+            "health",    // compound-assignment target
+            "compute",   // bare read of a function name (method-group analogue)
+            "total",     // augmented target + bare return read
+            "items",     // for-loop collection
+        ] {
+            assert!(
+                var_refs.contains(&expected),
+                "expected variable_ref for {expected}; got {var_refs:?}"
+            );
+        }
+
+        // Receiver + call coexist: GraphUtil.reach()
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "reach" && id.kind == IdentifierKind::Call),
+            "GraphUtil.reach() must still yield a call named reach"
+        );
+
+        // --- Negative cases (rules 2/3/4/5) ---
+        for forbidden in [
+            "local_x",      // declaration name + plain-write LHS only
+            "unused_param", // parameter name only
+            "int",          // type annotation -> TypeUsage territory
+            "GhostToken",   // comment-only mention
+            "evaluate",     // function declaration name (a `name` node)
+            "IDLE",         // enum member declaration name
+            "self",         // keyword receiver
+            "reach",        // call callee, owned by the Call arm
+            "_",            // match wildcard pattern, not a read
+        ] {
+            assert!(
+                !var_refs.contains(&forbidden),
+                "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+            );
+        }
+        assert!(
+            !identifiers.iter().any(|id| id.name == "GhostToken"),
+            "comment-only GhostToken must not be extracted at all"
+        );
+
+        // No duplicate rows: each (name, kind, span) is unique.
+        let mut keys: Vec<(String, String, u32, u32)> = identifiers
+            .iter()
+            .map(|id| {
+                (
+                    id.name.clone(),
+                    id.kind.to_string(),
+                    id.start_byte,
+                    id.end_byte,
+                )
+            })
+            .collect();
+        let before = keys.len();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(before, keys.len(), "duplicate identifier rows detected");
+
+        // containing_symbol_id is populated on a variable_ref.
+        let evaluate = symbols
+            .iter()
+            .find(|s| s.name == "evaluate")
+            .expect("evaluate function extracted");
+        let graph_ref = identifiers
+            .iter()
+            .find(|id| id.name == "GraphUtil" && id.kind == IdentifierKind::VariableRef)
+            .expect("GraphUtil variable_ref");
+        assert_eq!(
+            graph_ref.containing_symbol_id.as_deref(),
+            Some(evaluate.id.as_str()),
+            "receiver variable_ref should be contained in evaluate"
+        );
+    }
 }

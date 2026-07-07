@@ -130,7 +130,146 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm (locked contract in csharp/identifiers.rs):
+        // a bare `identifier` used as a value or as the object/receiver of a member
+        // access — the reads the Call/MemberAccess/TypeUsage arms above do not own.
+        // The other arms match on PARENT node kinds (`invocation`, `member_access`,
+        // `generic_type`), so this arm fires once per identifier node and the
+        // predicate excludes every position those arms own (no duplicate rows).
+        // VB keywords (`Me`, `MyBase`, `True`, `Nothing`) and primitive types
+        // (`Integer`, `Object`) are distinct grammar node kinds — never `identifier`
+        // — so rule 5 is satisfied structurally (verified against
+        // tree-sitter-vb-dotnet rev 25dca4a).
+        "identifier" if is_vbnet_value_read_identifier(node) => {
+            let name = base.get_node_text(&node);
+            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
         _ => {}
+    }
+}
+
+/// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
+/// receiver (the complement of the Call/MemberAccess/TypeUsage arms)? Mirrors
+/// `is_csharp_value_read_identifier`; node kinds and field names were verified
+/// empirically against tree-sitter-vb-dotnet rev 25dca4a (probe evidence in the
+/// Task 6 report): declaration names are `name` fields, plain assignment parses
+/// as BOTH `call_statement > binary_expression(left, "=", right)` (statement
+/// level) and `assignment_statement > left_hand_side` (nested level), and
+/// compound assignment reuses `left_hand_side` under
+/// `compound_assignment_statement`.
+fn is_vbnet_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    let is_name_field = parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 2: the bare callee (`target`) of a call is owned by the Call arm.
+        "invocation" | "invocation_expression" => false,
+        // Rule 1/2: only the `object` receiver of a member access is a read; the
+        // accessed `member` is owned by the MemberAccess/Call arms.
+        "member_access" | "member_access_expression" => {
+            parent.child_by_field_name("object").map(|o| o.id()) == Some(node.id())
+        }
+        // `.Member` inside a With block: a member name, never a bare variable read
+        // (mirrors the C# member_binding_expression exclusion).
+        "implicit_member_access" => false,
+
+        // Rule 2/3: namespace/type name positions — imports, `As` clauses, `New T`,
+        // generic bases and type arguments, qualified names, inheritance clauses.
+        "namespace_name" | "qualified_name" | "generic_type" | "type_argument_list" => false,
+
+        // Rule 3: declaration names. Their NON-name identifier children (an
+        // initializer value, an enum member's value expression) fall through as
+        // reads via `!is_name_field`.
+        "class_block"
+        | "module_block"
+        | "structure_block"
+        | "interface_block"
+        | "enum_block"
+        | "method_declaration"
+        | "abstract_method_declaration"
+        | "constructor_declaration"
+        | "operator_declaration"
+        | "property_declaration"
+        | "event_declaration"
+        | "delegate_declaration"
+        | "declare_statement"
+        | "variable_declarator"
+        | "dim_statement"
+        | "const_declaration"
+        | "enum_member"
+        | "parameter"
+        | "lambda_parameter"
+        | "type_parameter" => !is_name_field,
+
+        // Rule 3: the `variable` of For/For Each is a definition; `collection`,
+        // `start`, and `end` positions read.
+        "for_each_statement" | "for_statement" => {
+            parent.child_by_field_name("variable").map(|v| v.id()) != Some(node.id())
+        }
+
+        // Rule 3: labels and GoTo targets are not variables.
+        "label_statement" | "goto_statement" => false,
+
+        // Rule 1: an argument value is a read; the `name` of a named argument
+        // (`Foo(bar:=5)`) is a parameter label — EXCEPT in an attribute, where the
+        // named argument is a member reference (`<Foo(Baz:=1)>` reads Baz).
+        "argument" => {
+            if !is_name_field {
+                return true;
+            }
+            parent
+                .parent() // argument_list
+                .and_then(|list| list.parent())
+                .map(|owner| owner.kind() == "attribute")
+                .unwrap_or(false)
+        }
+        // Rule 2: the attribute's own name is a type usage, not a value read.
+        "attribute" => false,
+
+        // Rule 1: a With-initializer member LHS is a read (`New Foo With {.Bar = 5}`
+        // reads Bar); its `value` side reads too.
+        "member_initializer" | "object_initializer" => true,
+
+        // Rule 4: statement-level plain assignment parses as
+        // `call_statement > binary_expression` with operator `=`; its LHS is
+        // write-only. Every other binary_expression position (comparisons,
+        // arithmetic, `If x = y` equality) is a read.
+        "binary_expression" => {
+            let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
+            if !is_left {
+                return true;
+            }
+            let is_statement_assignment = parent
+                .parent()
+                .map(|g| g.kind() == "call_statement")
+                .unwrap_or(false);
+            let is_plain_eq = parent
+                .child_by_field_name("operator")
+                .map(|op| op.kind() == "=")
+                .unwrap_or(false);
+            !(is_statement_assignment && is_plain_eq)
+        }
+        // Rule 4: `left_hand_side` is shared by plain `assignment_statement`
+        // (write-only) and `compound_assignment_statement` (a read).
+        "left_hand_side" => parent
+            .parent()
+            .map(|g| g.kind() == "compound_assignment_statement")
+            .unwrap_or(false),
+
+        // Every other expression/statement value slot — return / condition /
+        // argument element / RaiseEvent / interpolation / unary operand / … — is
+        // a read.
+        _ => true,
     }
 }
 

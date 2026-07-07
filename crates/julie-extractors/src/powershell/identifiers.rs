@@ -197,10 +197,169 @@ fn extract_identifier_from_node(
             base.record_type_arguments(&identifier, arguments);
         }
 
+        // `variable_ref` complement arm (locked contract in csharp/identifiers.rs).
+        // PowerShell was GREENFIELD here: `variables.rs::extract_variable_reference`
+        // creates SYMBOLS for automatic/environment variables only and never emits
+        // identifiers, so a `$var` read previously produced no identifier row at
+        // all. `$var` reads are `variable` nodes in tree-sitter-powershell (airbus-
+        // cert rev d398441); command/function callees are `command_name` /
+        // `function_name` nodes, member names are `member_name > simple_name`, and
+        // type usages are `type_identifier` — none of which are `variable`, so this
+        // arm never overlaps the Call/MemberAccess/TypeUsage arms (rule 2 is
+        // structural).
+        //
+        // NAMING: the emitted name strips the `$` sigil and scope qualifiers with
+        // the exact replace chain `variables.rs::extract_variable` uses to name
+        // Variable SYMBOLS, because Miller's dead-code name-match compares
+        // identifiers.name = symbols.name exactly (case-sensitive).
+        "variable" => {
+            if !is_powershell_variable_read(node) {
+                return;
+            }
+            let raw = base.get_node_text(&node);
+            // Rule 5: environment variables (`$env:PATH`) are engine-owned, and
+            // variables.rs already records each such read as a Symbol.
+            if raw.to_lowercase().contains("env:") {
+                return;
+            }
+            // Same replace chain as variables.rs::extract_variable (symbol naming).
+            let name = raw
+                .replace("$", "")
+                .replace("Global:", "")
+                .replace("Script:", "")
+                .replace("Local:", "")
+                .replace("Using:", "");
+            // Rule 5: automatic variables and engine constants are not user symbols.
+            if is_powershell_automatic_or_constant(&name) {
+                return;
+            }
+            let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+            base.create_identifier(
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                containing_symbol_id,
+            );
+        }
+
         _ => {
             // Skip other node types for now
         }
     }
+}
+
+/// Rule 5 filter: PowerShell automatic variables and engine constants. Extends
+/// the exact-match convention of `documentation.rs::is_automatic_variable` to a
+/// case-insensitive comparison because PowerShell variable names are
+/// case-insensitive (`$null`, `$NULL`, and `$Null` are the same engine constant),
+/// and adds the engine constants and pipeline variables that list omits
+/// (`$_`, `$PSItem`, `$null`, `$true`, `$false`, `$this`, ...).
+fn is_powershell_automatic_or_constant(name: &str) -> bool {
+    const AUTOMATIC_OR_CONSTANT: [&str; 30] = [
+        "_",
+        "psitem",
+        "args",
+        "input",
+        "null",
+        "true",
+        "false",
+        "this",
+        "error",
+        "host",
+        "home",
+        "pid",
+        "profile",
+        "pwd",
+        "shellid",
+        "lastexitcode",
+        "matches",
+        "myinvocation",
+        "nestedpromptlevel",
+        "psboundparameters",
+        "pscmdlet",
+        "pscommandpath",
+        "psculture",
+        "psdebugcontext",
+        "pshome",
+        "psscriptroot",
+        "pssenderinfo",
+        "psuiculture",
+        "psversiontable",
+        "stacktrace",
+    ];
+    let lower = name.to_lowercase();
+    AUTOMATIC_OR_CONSTANT.contains(&lower.as_str())
+}
+
+/// Rule 1/3/4 predicate: is this `variable` node a read? Node kinds and field
+/// names were verified empirically against tree-sitter-powershell rev d398441
+/// (probe evidence in the Task 6 report): a plain assignment nests its LHS
+/// variable under `left_assignment_expression` through a fixed chain of
+/// expression wrapper kinds, `param(...)` parameters are `script_parameter >
+/// variable`, and the `foreach` loop variable is a DIRECT `variable` child of
+/// `foreach_statement` (the collection is wrapped in a `pipeline`).
+fn is_powershell_variable_read(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    match parent.kind() {
+        // Rule 3: `param([int]$x)` / `function F($x)` parameter declarations and
+        // class method/constructor parameters (`Worker([int]$id)`).
+        "script_parameter" | "class_method_parameter" => false,
+        // Rule 3: class property declarations (`[int]$Id` inside a class body).
+        "class_property_definition" => false,
+        // Rule 3: the foreach loop variable is a definition.
+        "foreach_statement" => false,
+        _ => !is_powershell_plain_assignment_lhs(node),
+    }
+}
+
+/// Rule 4: is this variable the target of a PLAIN `=` assignment (write-only)?
+/// The LHS variable of `$x = 5` sits under `left_assignment_expression` behind a
+/// fixed chain of precedence wrapper kinds; the RHS enters
+/// `assignment_expression` via its `pipeline` value child instead, so climbing
+/// through ONLY the wrapper kinds cannot cross from one side to the other. A
+/// receiver inside the LHS (`$obj.Prop = 5`) leaves the wrapper chain at the
+/// `invokation_expression`/`member_access` node and stays a read. Compound
+/// assignment (`$x += 1`) shares the LHS shape but its
+/// `assignement_operator` (grammar spelling) is not `=`, so it reads.
+fn is_powershell_plain_assignment_lhs(node: Node) -> bool {
+    const WRAPPER_KINDS: [&str; 11] = [
+        "unary_expression",
+        "array_literal_expression",
+        "range_expression",
+        "format_expression",
+        "multiplicative_expression",
+        "additive_expression",
+        "comparison_expression",
+        "bitwise_expression",
+        "logical_expression",
+        // A typed LHS (`[int]$x = 5`) wraps the variable in a cast:
+        "expression_with_unary_operator",
+        "cast_expression",
+    ];
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "left_assignment_expression" => {
+                let Some(assignment) = parent.parent() else {
+                    return false;
+                };
+                let mut cursor = assignment.walk();
+                let operator = assignment
+                    .children(&mut cursor)
+                    .find(|c| c.kind() == "assignement_operator");
+                return operator
+                    .map(|op| {
+                        op.start_byte() + 1 == op.end_byte() // exactly "="
+                    })
+                    .unwrap_or(false);
+            }
+            kind if WRAPPER_KINDS.contains(&kind) => current = parent,
+            _ => return false,
+        }
+    }
+    false
 }
 
 // ============================================================================

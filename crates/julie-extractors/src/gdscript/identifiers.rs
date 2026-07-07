@@ -173,7 +173,118 @@ fn extract_identifier_from_node(
             }
         }
 
+        // `variable_ref` complement arm (locked contract in csharp/identifiers.rs):
+        // a bare `identifier` used as a value or as the receiver of an attribute
+        // access — the reads the Call/MemberAccess/TypeUsage arms above do not own.
+        // The other arms match on PARENT node kinds (`call`, `attribute`, `type`,
+        // `subscript`), so this arm fires once per identifier node and the predicate
+        // excludes every position those arms own (no duplicate rows). Declaration
+        // names in tree-sitter-gdscript 6.1.0 are `name` nodes (a distinct kind), so
+        // most of rule 3 is satisfied structurally; parameters and enum members are
+        // the exceptions handled in the predicate.
+        "identifier" if is_gdscript_value_read_identifier(node) => {
+            let name = base.get_node_text(&node);
+            // Rule 5: `self`/`super` parse as plain `identifier` nodes in receiver
+            // and value positions; they are keywords, not user variables.
+            if !is_gdscript_keyword_identifier(&name) {
+                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+        }
+
         _ => {}
+    }
+}
+
+/// Rule 5 filter: GDScript keywords that the grammar tokenizes as ordinary
+/// `identifier` nodes (`true`/`false`/`null` are distinct node kinds and never
+/// reach the identifier arm; `self`/`super` do). `_` is the match-pattern
+/// wildcard / discard convention, never a user symbol read.
+fn is_gdscript_keyword_identifier(name: &str) -> bool {
+    matches!(name, "self" | "super" | "_")
+}
+
+/// Rule 2 helper: is this identifier inside a TYPE annotation? Type positions are
+/// owned by the TypeUsage arm (`type` nodes) and by
+/// `record_gdscript_subscript_as_type` (generic annotations such as
+/// `Array[String]`, including nested generics and `Outer.Inner` attribute bases),
+/// so the read arm must never fire there. Climbs through the node shapes a type
+/// annotation can nest (`subscript`, `subscript_arguments`, `attribute`) looking
+/// for a `type` ancestor.
+fn is_gdscript_type_position(node: Node) -> bool {
+    let mut current = node;
+    while let Some(parent) = current.parent() {
+        match parent.kind() {
+            "type" => return true,
+            "subscript" | "subscript_arguments" | "attribute" => current = parent,
+            _ => return false,
+        }
+    }
+    false
+}
+
+/// Rule 1/4 predicate: is this bare `identifier` a value read or an attribute
+/// (member-access) receiver — the complement of the Call/MemberAccess/TypeUsage
+/// arms? Mirrors `is_csharp_value_read_identifier`; node kinds and field names
+/// were verified empirically against tree-sitter-gdscript 6.1.0 (probe evidence
+/// in the Task 6 report): declaration names are `name` nodes, plain assignment is
+/// `assignment` (left/right fields) while compound assignment is a distinct
+/// `augmented_assignment` kind, and `a.b.c()` parses as a flat
+/// `attribute { a, b, attribute_call(c) }`.
+fn is_gdscript_value_read_identifier(node: Node) -> bool {
+    // Rule 2: type annotations belong to the TypeUsage arm.
+    if is_gdscript_type_position(node) {
+        return false;
+    }
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    match parent.kind() {
+        // Rule 2: call callees are owned by the Call arm (`call` for bare calls,
+        // `attribute_call` for `recv.method()` method names).
+        "call" | "attribute_call" => false,
+        // Rule 1/2: only the FIRST child of a flat `attribute` chain is the
+        // receiver (a read). The rightmost name is owned by the MemberAccess/Call
+        // arms; interior names of `a.b.c` are member accesses, not bare reads.
+        "attribute" => {
+            let mut cursor = parent.walk();
+            parent
+                .children(&mut cursor)
+                .find(|c| c.is_named())
+                .map(|first| first.id() == node.id())
+                .unwrap_or(false)
+        }
+        // Rule 3: annotation names (`@export`, `@onready`) are not variables.
+        "annotation" => false,
+        // Rule 3: parameter names. A bare parameter is a direct `parameters` child;
+        // typed parameters own only their name as a direct identifier child (the
+        // type lives under a `type` node). A default parameter's `value` field is
+        // an initializer expression — a read.
+        "parameters" | "typed_parameter" => false,
+        "default_parameter" | "typed_default_parameter" => {
+            parent.child_by_field_name("value").map(|v| v.id()) == Some(node.id())
+        }
+        // Rule 3: enum member declaration names (`enumerator` left); a member's
+        // explicit value expression (`FLAG_B = flag_seed`) reads.
+        "enumerator" => parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id()),
+        // Rule 4: plain-assignment LHS is write-only; the RHS reads. Compound
+        // assignment is the distinct `augmented_assignment` kind — both of its
+        // sides read, so it falls through to the default arm.
+        "assignment" => parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id()),
+        // Rule 3: the `for` loop variable (`left`) is a definition; the iterated
+        // collection (`right`) reads.
+        "for_statement" => parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id()),
+        // Every other expression/statement value slot — return / binary operand /
+        // condition / argument / array or dictionary element / match subject or
+        // pattern / augmented-assignment side / subscript base or index / … — is
+        // a read.
+        _ => true,
     }
 }
 
