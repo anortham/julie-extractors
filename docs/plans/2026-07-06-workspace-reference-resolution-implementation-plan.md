@@ -337,12 +337,12 @@ same-name symbol → uniqueness-regression demotion; remove it → re-resolves; 
 path via an injected failing hook.
 
 **Acceptance criteria:**
-- [ ] All artifact-mutating CLI flows (scan, update, delete, remove-unsupported, force rebuild) run the pass with correct Full/Delta scope
-- [ ] Incremental sequences from design §Testing pass: FK demotion, uniqueness regression, re-resolution, file move, no stale edges
-- [ ] `reference_resolution_*` metadata keys maintained per the status rules; backfill on v3-artifact open proven
-- [ ] Scan report + capability snapshot carry per-language/per-tier counts and gated-language gaps
-- [ ] Determinism: two identical full scans → byte-identical resolution tables (test compares dumps)
-- [ ] Worker-scope verification passes; `serial-worker-commit` with recorded SHA
+- [x] All artifact-mutating CLI flows (scan, update, delete, remove-unsupported, force rebuild) run the pass with correct Full/Delta scope
+- [x] Incremental sequences from design §Testing pass: FK demotion, uniqueness regression, re-resolution, file move, no stale edges
+- [x] `reference_resolution_*` metadata keys maintained per the status rules; backfill on v3-artifact open proven
+- [x] Scan report + capability snapshot carry per-language/per-tier counts and gated-language gaps
+- [x] Determinism: two identical full scans → byte-identical resolution tables (test compares dumps)
+- [x] Worker-scope verification passes; `serial-worker-commit` with recorded SHA (6480d30)
 
 ### Task 6: Per-language contract fixtures
 
@@ -375,10 +375,10 @@ passing assertion nor a recorded gap fails the suite (that is the parity guard).
 out of the default tier only if it exceeds the fast budget; prefer keeping tiny fixtures fast.
 
 **Acceptance criteria:**
-- [ ] Every supported language has, per tier: a passing fixture assertion OR a recorded `language_capability_gaps` row — enforced by the suite itself
-- [ ] All design §Testing contract cases implemented
-- [ ] Suite runs inside the default tier budget or is named in `cargo xtask test list` with a tier route
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
+- [x] Every supported language has, per tier: a passing fixture assertion OR a recorded `language_capability_gaps` row — enforced by the suite itself (parity guard on gated tiers 2&3; tiers 1&4 universal, representative matrix)
+- [x] All design §Testing contract cases implemented
+- [x] Suite runs inside the default tier budget or is named in `cargo xtask test list` with a tier route (0.59s, kept in default)
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
 
 ### Task 7: Performance gate
 
@@ -406,9 +406,9 @@ rule.
 asserting the measured budgets with headroom.
 
 **Acceptance criteria:**
-- [ ] Harness behind `test-perf`; convention guard extended if a new file is added
-- [ ] Full and Delta timings measured and recorded in the task report; thresholds set from measurement with stated headroom
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
+- [x] Harness behind `test-perf`; convention guard extended if a new file is added (CLI-side `perf_gate_convention.rs` mirrors artifact `test_tiers.rs`)
+- [x] Full and Delta timings measured and recorded in the task report; thresholds set from measurement with stated headroom (Full 1212ms<2s; Delta ~110ms — FINDING: marginally over 100ms target, documented for Task 8)
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
 
 ### Task 8: Contracts, capabilities, release notes
 

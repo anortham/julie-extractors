@@ -11,6 +11,17 @@ description = "Command-line interface for julie-extract artifacts"
 name = "julie-extract"
 path = "src/main.rs"
 
+[lib]
+name = "julie_extract_cli"
+path = "src/lib.rs"
+
+[features]
+# Feature-gated performance harness (`tests/resolution_perf.rs`). Intentionally
+# slow / synthetic-scale, so it is kept out of the default suite by the test-tier
+# convention (guarded by `tests/perf_gate_convention.rs`). Run on demand with:
+#   cargo test -p julie-extract-cli --features test-perf --test resolution_perf -- --nocapture
+test-perf = []
+
 [lints]
 workspace = true
 
