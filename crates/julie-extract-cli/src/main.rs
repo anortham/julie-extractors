@@ -6,6 +6,7 @@ mod discovery;
 mod extraction;
 mod paths;
 mod reports;
+mod resolution;
 
 fn main() -> std::process::ExitCode {
     commands::run_from_env()

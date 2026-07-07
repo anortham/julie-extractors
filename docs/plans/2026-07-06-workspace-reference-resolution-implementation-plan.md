@@ -240,11 +240,11 @@ to-be-deleted file_ids before `delete_file_rows`. Keep existing method signature
 (hookless variants delegate with a no-op) so current callers/tests compile unchanged.
 
 **Acceptance criteria:**
-- [ ] Hook fires in all six mutating paths inside the open transaction, before `update_revision_counts`
-- [ ] `touched_symbol_names` includes old-row names for updated AND deleted files (test: rewrite a file removing symbol `Foo` → hook sees `Foo`)
-- [ ] Hook error does not roll back the scan; report carries `resolution_failed`; counts stay truthful
-- [ ] Existing writer_contract tests pass unchanged via the hookless variants
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
+- [x] Hook fires in all six mutating paths inside the open transaction, before `update_revision_counts`
+- [x] `touched_symbol_names` includes old-row names for updated AND deleted files (test: rewrite a file removing symbol `Foo` → hook sees `Foo`)
+- [x] Hook error does not roll back the scan; report carries `resolution_failed`; counts stay truthful
+- [x] Existing writer_contract tests pass unchanged via the hookless variants
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
 
 ### Task 4: Resolver core — candidate filters + tier chain
 
@@ -286,10 +286,10 @@ tier-2 gated language → skips to tier 3/4 with a recorded gap. Deterministic c
 by `symbol_id`.
 
 **Acceptance criteria:**
-- [ ] Every tier-table row and restriction from the design has at least one positive and one negative unit test
-- [ ] Exactly-one rule + ambiguous/missing/no_context outcomes proven; no code path selects among >1 candidates
-- [ ] Tier-2 language gate is data-driven (a per-language allowlist constant with a doc comment pointing at the fixture evidence), not scattered ifs
-- [ ] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
+- [x] Every tier-table row and restriction from the design has at least one positive and one negative unit test
+- [x] Exactly-one rule + ambiguous/missing/no_context outcomes proven; no code path selects among >1 candidates
+- [x] Tier-2 language gate is data-driven (a per-language allowlist constant with a doc comment pointing at the fixture evidence), not scattered ifs
+- [x] Worker-scope verification passes and the change is handed to the lead per `parallel-lead-commit`
 
 ### Task 5: Workspace pass wiring — Full/Delta, demotion, reports, capabilities
 
