@@ -795,7 +795,7 @@ fn tier4_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
 use std::collections::HashSet;
 
 use julie_extract_artifact::resolution_store::{
-    self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus,
+    self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus, ResolutionWriteBuffer,
 };
 use julie_extract_artifact::writer::{ResolutionHookError, ResolutionScopeInput};
 use rusqlite::{Connection, Transaction};
@@ -982,18 +982,29 @@ fn resolve_full(
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
 ) -> rusqlite::Result<()> {
+    // Overlay writes are buffered and flushed at each phase boundary (below). The
+    // flush points are exactly the places where the ORIGINAL immediate-write code
+    // let a later worklist SELECT observe an earlier write, so behavior is
+    // bit-identical while the count of statement-ends inside the open savepoint
+    // drops from ~O(rows) to O(phases × chunks). See the buffer's ordering contract.
+    let mut buf = ResolutionWriteBuffer::new();
+
     // 0. Recheck already-resolved overlays against the whole current workspace.
     // A full pass must not preserve stale rows if a prior unique target became
     // ambiguous or disappeared.
     recheck_resolved_pending_items(
-        tx,
+        &mut buf,
         &resolution_store::worklist_resolved_pending(tx)?,
         index,
         locator,
         gated,
     )?;
+    // Flush demotions so the next worklist SELECT (resolved identifiers, then the
+    // unresolved-pending fill) sees the demoted rows as unresolved — matches the
+    // original immediate-demote ordering.
+    buf.flush(tx)?;
     recheck_resolved_identifier_items(
-        tx,
+        &mut buf,
         &resolution_store::worklist_resolved_identifiers(tx)?,
         index,
         covered,
@@ -1001,15 +1012,29 @@ fn resolve_full(
         counts,
         gated,
     )?;
+    buf.flush(tx)?;
     // 1. Resolve every unresolved pending row; propagate resolved ones.
     let pending = resolution_store::worklist_full_pending(tx)?;
-    resolve_pending_items(tx, &pending, index, locator, revision, counts, gated)?;
+    resolve_pending_items(&mut buf, &pending, index, locator, revision, counts, gated)?;
+    // Flush pending resolutions + their co-located identifier writes before the
+    // tier-1 propagation and the generic identifier worklist read them.
+    buf.flush(tx)?;
     // 2. Propagate tier-1 (extraction-time, same-file) relationships workspace-wide.
-    propagate_relationships(tx, index, locator, None, revision, counts)?;
+    propagate_relationships(tx, &mut buf, index, locator, None, revision, counts)?;
+    buf.flush(tx)?;
     // 3. Generic identifier chain for every identifier with no pending/relationship
     //    counterpart (the propagation-owned ones were just written or are covered).
     let identifiers = resolution_store::worklist_full_identifiers(tx)?;
-    resolve_identifier_items(tx, &identifiers, index, covered, revision, counts, gated)?;
+    resolve_identifier_items(
+        &mut buf,
+        &identifiers,
+        index,
+        covered,
+        revision,
+        counts,
+        gated,
+    )?;
+    buf.flush(tx)?;
     Ok(())
 }
 
@@ -1031,20 +1056,28 @@ fn resolve_delta(
         .collect();
     let files: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
 
+    // Buffered writes, flushed at each phase boundary (below). The flush points are
+    // exactly where the original immediate-write code let a later worklist SELECT
+    // observe an earlier write, so behavior is bit-identical.
+    let mut buf = ResolutionWriteBuffer::new();
+
     // --- Demotion sweep -----------------------------------------------------
     // Resolved pending/identifiers whose terminal OR receiver name is touched:
     // re-run the chain; if the outcome no longer yields the same single target,
     // demote or overwrite with the current outcome. The fill sweep below
     // re-resolves demoted pending rows if a new single candidate exists.
     recheck_resolved_pending_items(
-        tx,
+        &mut buf,
         &resolution_store::worklist_resolved_pending_by_names(tx, &names)?,
         index,
         locator,
         gated,
     )?;
+    // Flush demotions so the resolved-identifier sweep and the unresolved-pending
+    // fill worklists (both filter on the overlay tables) see them.
+    buf.flush(tx)?;
     recheck_resolved_identifier_items(
-        tx,
+        &mut buf,
         &resolution_store::worklist_resolved_identifiers_by_names(tx, &names)?,
         index,
         covered,
@@ -1052,6 +1085,7 @@ fn resolve_delta(
         counts,
         gated,
     )?;
+    buf.flush(tx)?;
 
     // --- Fill sweep ---------------------------------------------------------
     // Unresolved pending matching touched names, PLUS every unresolved pending in a
@@ -1067,10 +1101,14 @@ fn resolve_delta(
             pending.push(item);
         }
     }
-    resolve_pending_items(tx, &pending, index, locator, revision, counts, gated)?;
+    resolve_pending_items(&mut buf, &pending, index, locator, revision, counts, gated)?;
+    // Flush pending resolutions + co-located identifier writes before propagation
+    // and the never-attempted identifier worklists read the overlay tables.
+    buf.flush(tx)?;
 
     // Tier-1 relationships in the changed files (their rows were re-extracted).
-    propagate_relationships(tx, index, locator, Some(&files), revision, counts)?;
+    propagate_relationships(tx, &mut buf, index, locator, Some(&files), revision, counts)?;
+    buf.flush(tx)?;
 
     // Never-attempted identifiers matching touched names or in changed files.
     let mut identifiers =
@@ -1084,12 +1122,21 @@ fn resolve_delta(
             identifiers.push(item);
         }
     }
-    resolve_identifier_items(tx, &identifiers, index, covered, revision, counts, gated)?;
+    resolve_identifier_items(
+        &mut buf,
+        &identifiers,
+        index,
+        covered,
+        revision,
+        counts,
+        gated,
+    )?;
+    buf.flush(tx)?;
     Ok(())
 }
 
 fn recheck_resolved_pending_items(
-    tx: &Transaction<'_>,
+    buf: &mut ResolutionWriteBuffer,
     items: &[resolution_store::ResolvedPendingWorkItem],
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
@@ -1110,7 +1157,7 @@ fn recheck_resolved_pending_items(
         };
         if !keep {
             let pending = &resolved.pending;
-            resolution_store::demote_pending(tx, &pending.pending_relationship_id)?;
+            buf.demote_pending(&pending.pending_relationship_id);
             // Clear the co-located identifier too: `demote_pending` only removes the
             // pending overlay, but the propagated identifier resolution must go with
             // it. A later fill sweep re-propagates if the edge re-resolves.
@@ -1121,7 +1168,7 @@ fn recheck_resolved_pending_items(
                 pending.end_byte,
                 pending.start_line,
             ) {
-                resolution_store::demote_identifier(tx, &identifier_id)?;
+                buf.demote_identifier(&identifier_id);
             }
         }
     }
@@ -1129,7 +1176,7 @@ fn recheck_resolved_pending_items(
 }
 
 fn recheck_resolved_identifier_items(
-    tx: &Transaction<'_>,
+    buf: &mut ResolutionWriteBuffer,
     items: &[resolution_store::ResolvedIdentifierWorkItem],
     index: &WorkspaceCandidateIndex,
     covered: &HashSet<String>,
@@ -1141,7 +1188,7 @@ fn recheck_resolved_identifier_items(
         if covered.contains(&resolved.identifier.identifier_id) {
             continue;
         }
-        record_identifier_edge(tx, &resolved.identifier, index, revision, counts, gated)?;
+        record_identifier_edge(buf, &resolved.identifier, index, revision, counts, gated)?;
     }
     Ok(())
 }
@@ -1151,7 +1198,7 @@ fn recheck_resolved_identifier_items(
 // ---------------------------------------------------------------------------
 
 fn resolve_pending_items(
-    tx: &Transaction<'_>,
+    buf: &mut ResolutionWriteBuffer,
     items: &[PendingWorkItem],
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
@@ -1175,15 +1222,14 @@ fn resolve_pending_items(
             method,
         } = resolve_one(&edge, index)
         {
-            resolution_store::record_pending_resolution(
-                tx,
+            buf.record_pending_resolution(
                 &item.pending_relationship_id,
                 &target_symbol_id,
                 tier,
                 confidence,
                 &method,
                 revision,
-            )?;
+            );
             counts.pending_resolutions += 1;
             // Propagate onto the co-located identifier by span (line fallback only
             // when exactly one identifier matches — never into an ambiguous join).
@@ -1194,8 +1240,7 @@ fn resolve_pending_items(
                 item.end_byte,
                 item.start_line,
             ) {
-                resolution_store::record_identifier_outcome(
-                    tx,
+                buf.record_identifier_outcome(
                     &identifier_id,
                     Outcome::Resolved,
                     Some(&target_symbol_id),
@@ -1204,7 +1249,7 @@ fn resolve_pending_items(
                     Some(&method),
                     None,
                     revision,
-                )?;
+                );
                 counts.identifier_resolutions += 1;
             }
         }
@@ -1213,7 +1258,7 @@ fn resolve_pending_items(
 }
 
 fn resolve_identifier_items(
-    tx: &Transaction<'_>,
+    buf: &mut ResolutionWriteBuffer,
     items: &[IdentifierWorkItem],
     index: &WorkspaceCandidateIndex,
     covered: &HashSet<String>,
@@ -1225,7 +1270,7 @@ fn resolve_identifier_items(
         if covered.contains(&item.identifier_id) {
             continue; // owned by pending/relationship propagation.
         }
-        record_identifier_edge(tx, item, index, revision, counts, gated)?;
+        record_identifier_edge(buf, item, index, revision, counts, gated)?;
     }
     Ok(())
 }
@@ -1234,7 +1279,7 @@ fn resolve_identifier_items(
 /// (resolved/ambiguous/missing/no_context are all recorded — design §"Data flow"
 /// step 4). Idempotent upsert, so re-running demotes a regressed resolution.
 fn record_identifier_edge(
-    tx: &Transaction<'_>,
+    buf: &mut ResolutionWriteBuffer,
     item: &IdentifierWorkItem,
     index: &WorkspaceCandidateIndex,
     revision: i64,
@@ -1244,8 +1289,7 @@ fn record_identifier_edge(
     let Some(edge) = UnresolvedEdge::from_identifier(item) else {
         // Unsupported identifier kind: record no-context so it stops re-entering
         // the never-attempted worklist for its kind.
-        resolution_store::record_identifier_outcome(
-            tx,
+        buf.record_identifier_outcome(
             &item.identifier_id,
             Outcome::NoContext,
             None,
@@ -1254,7 +1298,7 @@ fn record_identifier_edge(
             None,
             None,
             revision,
-        )?;
+        );
         counts.identifier_resolutions += 1;
         return Ok(());
     };
@@ -1286,8 +1330,7 @@ fn record_identifier_edge(
         TierOutcome::Missing => (Outcome::Missing, None, None, None, None, None),
         TierOutcome::NoContext => (Outcome::NoContext, None, None, None, None, None),
     };
-    resolution_store::record_identifier_outcome(
-        tx,
+    buf.record_identifier_outcome(
         &item.identifier_id,
         outcome,
         target.as_deref(),
@@ -1296,7 +1339,7 @@ fn record_identifier_edge(
         method.as_deref(),
         candidates,
         revision,
-    )?;
+    );
     counts.identifier_resolutions += 1;
     Ok(())
 }
@@ -1306,6 +1349,7 @@ fn record_identifier_edge(
 /// pass; `None` covers the whole workspace on a full pass.
 fn propagate_relationships(
     tx: &Transaction<'_>,
+    buf: &mut ResolutionWriteBuffer,
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
     file_filter: Option<&[&str]>,
@@ -1344,8 +1388,7 @@ fn propagate_relationships(
         if let Some(identifier_id) =
             locator.locate(&file_id, &name, start_byte, end_byte, start_line)
         {
-            resolution_store::record_identifier_outcome(
-                tx,
+            buf.record_identifier_outcome(
                 &identifier_id,
                 Outcome::Resolved,
                 Some(&to_symbol_id),
@@ -1354,7 +1397,7 @@ fn propagate_relationships(
                 Some(METHOD_TIER1),
                 None,
                 revision,
-            )?;
+            );
             counts.identifier_resolutions += 1;
         }
     }

@@ -12,6 +12,7 @@
 
 use std::collections::BTreeMap;
 
+use rusqlite::types::Value;
 use rusqlite::{Connection, Transaction, params, params_from_iter};
 
 // ---------------------------------------------------------------------------
@@ -304,6 +305,332 @@ pub fn demote_identifier(tx: &Transaction<'_>, identifier_id: &str) -> rusqlite:
         params![identifier_id],
     )?;
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Batched write buffer (collect-then-flush — the ONLY perf-safe write path for a
+// whole-pass resolve; the per-row `record_*`/`demote_*` primitives above stay for
+// single-shot callers and the pinned contract tests)
+// ---------------------------------------------------------------------------
+
+/// Max rows bound into one batched statement. Kept well under SQLite's compiled
+/// `SQLITE_MAX_VARIABLE_NUMBER` (32766): the widest batch is the 8-column
+/// `identifier_resolutions` upsert (8 × 500 = 4000 binds); every other batch binds
+/// fewer.
+const FLUSH_CHUNK: usize = 500;
+
+/// A buffered `pending_resolutions` op. Collapsed per key (last-op-wins) at flush.
+enum PendingOp {
+    Upsert {
+        target_symbol_id: String,
+        tier: u8,
+        confidence: f64,
+        method: String,
+        revision: i64,
+    },
+    Demote,
+}
+
+/// A buffered `identifier_resolutions` op (plus the denormalized column). Collapsed
+/// per key (last-op-wins) at flush.
+enum IdentifierOp {
+    Upsert {
+        target: Option<String>,
+        tier: Option<u8>,
+        confidence: Option<f64>,
+        method: Option<String>,
+        outcome: Outcome,
+        candidates: Option<i64>,
+        revision: i64,
+    },
+    Demote,
+}
+
+/// In-memory accumulator for a resolution pass's overlay writes.
+///
+/// The resolver records outcomes here instead of issuing one `INSERT`/`UPDATE` per
+/// row; [`ResolutionWriteBuffer::flush`] then emits a SMALL number of chunked,
+/// multi-row statements. This keeps the count of statement-ends inside the writer's
+/// open `SAVEPOINT resolution_hook` in the low hundreds rather than ~125k — the
+/// v2.9.0 quadratic: each statement end truncates the in-memory savepoint
+/// sub-journal (`temp_store = MEMORY`) by walking its ever-growing chunk list, so
+/// ~125k statements over a growing journal is O(n²) `memjrnlTruncate` CPU.
+///
+/// **Ordering contract.** Ops are collapsed per key to the LAST op recorded, which
+/// is exactly how a sequence of `record_*`/`demote_*` calls resolves (idempotent
+/// upsert / delete, last-write-wins). A key recorded then demoted flushes as a
+/// delete; demoted then recorded flushes as an upsert. Because the collapse is
+/// per-key, the relative order of DIFFERENT keys never matters. Callers MUST
+/// [`ResolutionWriteBuffer::flush`] at every point where a later same-pass `SELECT`
+/// could observe these writes — the resolver flushes at each phase boundary so
+/// cross-phase read-after-write dependencies see the same state they did when every
+/// write was immediate.
+#[derive(Default)]
+pub struct ResolutionWriteBuffer {
+    // Append-ordered so the per-key collapse keeps the last op.
+    pending: Vec<(String, PendingOp)>,
+    identifiers: Vec<(String, IdentifierOp)>,
+}
+
+impl ResolutionWriteBuffer {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.pending.is_empty() && self.identifiers.is_empty()
+    }
+
+    /// Buffer a pending-relationship resolution (mirrors [`record_pending_resolution`]).
+    pub fn record_pending_resolution(
+        &mut self,
+        pending_relationship_id: &str,
+        target_symbol_id: &str,
+        tier: u8,
+        confidence: f64,
+        method: &str,
+        revision: i64,
+    ) {
+        self.pending.push((
+            pending_relationship_id.to_string(),
+            PendingOp::Upsert {
+                target_symbol_id: target_symbol_id.to_string(),
+                tier,
+                confidence,
+                method: method.to_string(),
+                revision,
+            },
+        ));
+    }
+
+    /// Buffer a pending demotion (mirrors [`demote_pending`]).
+    pub fn demote_pending(&mut self, pending_relationship_id: &str) {
+        self.pending
+            .push((pending_relationship_id.to_string(), PendingOp::Demote));
+    }
+
+    /// Buffer an identifier resolution outcome plus its denormalized column
+    /// (mirrors [`record_identifier_outcome`]).
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_identifier_outcome(
+        &mut self,
+        identifier_id: &str,
+        outcome: Outcome,
+        target: Option<&str>,
+        tier: Option<u8>,
+        confidence: Option<f64>,
+        method: Option<&str>,
+        candidates: Option<i64>,
+        revision: i64,
+    ) {
+        self.identifiers.push((
+            identifier_id.to_string(),
+            IdentifierOp::Upsert {
+                target: target.map(str::to_string),
+                tier,
+                confidence,
+                method: method.map(str::to_string),
+                outcome,
+                candidates,
+                revision,
+            },
+        ));
+    }
+
+    /// Buffer an identifier demotion (mirrors [`demote_identifier`]).
+    pub fn demote_identifier(&mut self, identifier_id: &str) {
+        self.identifiers
+            .push((identifier_id.to_string(), IdentifierOp::Demote));
+    }
+
+    /// Flush every buffered op to `tx` as a small number of chunked, multi-row
+    /// statements, then clear the buffer. Byte-for-byte equivalent to having called
+    /// the per-row primitives in order (last-write-wins per key), but with hundreds
+    /// of statement-ends instead of tens of thousands.
+    pub fn flush(&mut self, tx: &Transaction<'_>) -> rusqlite::Result<()> {
+        self.flush_pending(tx)?;
+        self.flush_identifiers(tx)?;
+        Ok(())
+    }
+
+    fn flush_pending(&mut self, tx: &Transaction<'_>) -> rusqlite::Result<()> {
+        if self.pending.is_empty() {
+            return Ok(());
+        }
+        // Collapse to last-op-per-key (BTreeMap → deterministic, id-sorted order).
+        let mut collapsed: BTreeMap<String, PendingOp> = BTreeMap::new();
+        for (id, op) in self.pending.drain(..) {
+            collapsed.insert(id, op);
+        }
+        let mut upserts: Vec<(String, String, u8, f64, String, i64)> = Vec::new();
+        let mut demotes: Vec<String> = Vec::new();
+        for (id, op) in collapsed {
+            match op {
+                PendingOp::Upsert {
+                    target_symbol_id,
+                    tier,
+                    confidence,
+                    method,
+                    revision,
+                } => upserts.push((id, target_symbol_id, tier, confidence, method, revision)),
+                PendingOp::Demote => demotes.push(id),
+            }
+        }
+
+        for chunk in upserts.chunks(FLUSH_CHUNK) {
+            let values = repeat_row_placeholders(chunk.len(), 6);
+            let sql = format!(
+                "INSERT INTO pending_resolutions \
+                 (pending_relationship_id, target_symbol_id, tier, confidence, method, resolved_at_revision) \
+                 VALUES {values} \
+                 ON CONFLICT(pending_relationship_id) DO UPDATE SET \
+                   target_symbol_id = excluded.target_symbol_id, \
+                   tier = excluded.tier, \
+                   confidence = excluded.confidence, \
+                   method = excluded.method, \
+                   resolved_at_revision = excluded.resolved_at_revision"
+            );
+            let mut binds: Vec<Value> = Vec::with_capacity(chunk.len() * 6);
+            for (id, target, tier, confidence, method, revision) in chunk {
+                binds.push(Value::Text(id.clone()));
+                binds.push(Value::Text(target.clone()));
+                binds.push(Value::Integer(i64::from(*tier)));
+                binds.push(Value::Real(*confidence));
+                binds.push(Value::Text(method.clone()));
+                binds.push(Value::Integer(*revision));
+            }
+            tx.execute(&sql, params_from_iter(binds.iter()))?;
+        }
+
+        for chunk in demotes.chunks(FLUSH_CHUNK) {
+            let sql = format!(
+                "DELETE FROM pending_resolutions WHERE pending_relationship_id IN ({})",
+                placeholders(chunk.len())
+            );
+            tx.execute(&sql, params_from_iter(chunk.iter()))?;
+        }
+        Ok(())
+    }
+
+    fn flush_identifiers(&mut self, tx: &Transaction<'_>) -> rusqlite::Result<()> {
+        if self.identifiers.is_empty() {
+            return Ok(());
+        }
+        let mut collapsed: BTreeMap<String, IdentifierOp> = BTreeMap::new();
+        for (id, op) in self.identifiers.drain(..) {
+            collapsed.insert(id, op);
+        }
+        #[allow(clippy::type_complexity)]
+        let mut upserts: Vec<(
+            String,
+            Option<String>,
+            Option<u8>,
+            Option<f64>,
+            Option<String>,
+            Outcome,
+            Option<i64>,
+            i64,
+        )> = Vec::new();
+        let mut demotes: Vec<String> = Vec::new();
+        for (id, op) in collapsed {
+            match op {
+                IdentifierOp::Upsert {
+                    target,
+                    tier,
+                    confidence,
+                    method,
+                    outcome,
+                    candidates,
+                    revision,
+                } => upserts.push((
+                    id, target, tier, confidence, method, outcome, candidates, revision,
+                )),
+                IdentifierOp::Demote => demotes.push(id),
+            }
+        }
+
+        // Demotions first: delete the overlay row and clear the denormalized column
+        // (equivalent to `demote_identifier`). Upsert and demote keys are disjoint
+        // after the collapse, so order between the two groups is immaterial.
+        for chunk in demotes.chunks(FLUSH_CHUNK) {
+            let ph = placeholders(chunk.len());
+            tx.execute(
+                &format!("DELETE FROM identifier_resolutions WHERE identifier_id IN ({ph})"),
+                params_from_iter(chunk.iter()),
+            )?;
+            tx.execute(
+                &format!(
+                    "UPDATE identifiers SET target_symbol_id = NULL WHERE identifier_id IN ({ph})"
+                ),
+                params_from_iter(chunk.iter()),
+            )?;
+        }
+
+        for chunk in upserts.chunks(FLUSH_CHUNK) {
+            let values = repeat_row_placeholders(chunk.len(), 8);
+            let sql = format!(
+                "INSERT INTO identifier_resolutions \
+                 (identifier_id, target_symbol_id, tier, confidence, method, outcome, candidates, resolved_at_revision) \
+                 VALUES {values} \
+                 ON CONFLICT(identifier_id) DO UPDATE SET \
+                   target_symbol_id = excluded.target_symbol_id, \
+                   tier = excluded.tier, \
+                   confidence = excluded.confidence, \
+                   method = excluded.method, \
+                   outcome = excluded.outcome, \
+                   candidates = excluded.candidates, \
+                   resolved_at_revision = excluded.resolved_at_revision"
+            );
+            let mut binds: Vec<Value> = Vec::with_capacity(chunk.len() * 8);
+            let mut ids: Vec<Value> = Vec::with_capacity(chunk.len());
+            for (id, target, tier, confidence, method, outcome, candidates, revision) in chunk {
+                binds.push(Value::Text(id.clone()));
+                binds.push(opt_text(target.clone()));
+                binds.push(opt_int(tier.map(i64::from)));
+                binds.push(opt_real(*confidence));
+                binds.push(opt_text(method.clone()));
+                binds.push(Value::Text(outcome.as_str().to_string()));
+                binds.push(opt_int(*candidates));
+                binds.push(Value::Integer(*revision));
+                ids.push(Value::Text(id.clone()));
+            }
+            tx.execute(&sql, params_from_iter(binds.iter()))?;
+
+            // Denormalized `identifiers.target_symbol_id`, kept in lockstep with the
+            // overlay exactly as `record_identifier_outcome` does. The correlated
+            // subquery reads the row we just wrote above, so a resolved outcome sets
+            // the target and every non-resolved outcome clears it (overlay target is
+            // NULL) — one statement per chunk instead of one UPDATE per row.
+            let update_sql = format!(
+                "UPDATE identifiers SET target_symbol_id = ( \
+                     SELECT ir.target_symbol_id FROM identifier_resolutions ir \
+                     WHERE ir.identifier_id = identifiers.identifier_id \
+                 ) WHERE identifier_id IN ({})",
+                placeholders(ids.len())
+            );
+            tx.execute(&update_sql, params_from_iter(ids.iter()))?;
+        }
+        Ok(())
+    }
+}
+
+fn opt_text(value: Option<String>) -> Value {
+    value.map(Value::Text).unwrap_or(Value::Null)
+}
+
+fn opt_int(value: Option<i64>) -> Value {
+    value.map(Value::Integer).unwrap_or(Value::Null)
+}
+
+fn opt_real(value: Option<f64>) -> Value {
+    value.map(Value::Real).unwrap_or(Value::Null)
+}
+
+/// `"(?, ?, ...), (?, ?, ...)"` — `rows` groups of `cols` placeholders each, for a
+/// multi-row `VALUES` clause.
+fn repeat_row_placeholders(rows: usize, cols: usize) -> String {
+    let one = format!("({})", placeholders(cols));
+    vec![one; rows].join(", ")
 }
 
 // ---------------------------------------------------------------------------
