@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 const REPORT_SCHEMA_VERSION: i64 = 3;
-const SQLITE_SCHEMA_VERSION: i64 = 3;
+const SQLITE_SCHEMA_VERSION: i64 = 4;
 const EXTRACT_CONTRACT_VERSION: i64 = 3;
 const JSONL_SCHEMA_VERSION: i64 = 3;
 const REQUIRED_METADATA_KEYS: &[&str] = &[
