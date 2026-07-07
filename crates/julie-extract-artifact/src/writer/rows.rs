@@ -30,12 +30,9 @@ pub(super) fn collect_existing_symbol_names(
         return Ok(names);
     }
     let variable_limit = tx.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)?.max(1) as usize;
-    let chunk_size = variable_limit.min(SYMBOL_NAME_QUERY_MAX_CHUNK).max(1);
+    let chunk_size = variable_limit.clamp(1, SYMBOL_NAME_QUERY_MAX_CHUNK);
     for chunk in file_ids.chunks(chunk_size) {
-        let placeholders = std::iter::repeat("?")
-            .take(chunk.len())
-            .collect::<Vec<_>>()
-            .join(", ");
+        let placeholders = vec!["?"; chunk.len()].join(", ");
         let sql = format!("SELECT name FROM symbols WHERE file_id IN ({placeholders})");
         let mut stmt = tx.prepare_cached(&sql)?;
         let rows = stmt.query_map(params_from_iter(chunk.iter()), |row| {

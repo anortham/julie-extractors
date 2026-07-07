@@ -569,7 +569,7 @@ fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
                 let module_ok = import
                     .module_file_id
                     .as_deref()
-                    .map_or(true, |m| m == cand.file_id);
+                    .is_none_or(|m| m == cand.file_id);
                 if cand.language == edge.language && kinds.contains(&cand.kind) && module_ok {
                     set.insert(cand.symbol_id.clone());
                 }
