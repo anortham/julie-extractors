@@ -693,6 +693,38 @@
       "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/nestjs_routes/source.ts:id:variable_ref:31:15",
+      "name": "id",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nestjs_routes/source.ts",
+      "start_line": 31,
+      "start_column": 15,
+      "end_line": 31,
+      "end_column": 17,
+      "start_byte": 438,
+      "end_byte": 440,
+      "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/nestjs_routes/source.ts:suffix:variable_ref:37:16",
+      "name": "suffix",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nestjs_routes/source.ts",
+      "start_line": 37,
+      "start_column": 16,
+      "end_line": 37,
+      "end_column": 22,
+      "start_byte": 562,
+      "end_byte": 568,
+      "containing_key": "fixtures/extraction/typescript/nestjs_routes/source.ts:UsersController:4:7",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [],

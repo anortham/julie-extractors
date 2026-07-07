@@ -1664,3 +1664,144 @@ fn expected_identifier_id(identifier: &crate::base::Identifier) -> String {
         identifier.end_byte,
     )
 }
+
+#[cfg(test)]
+mod vue_variable_ref_tests {
+    use crate::base::IdentifierKind;
+    use crate::vue::VueExtractor;
+    use std::path::PathBuf;
+
+    fn extract(vue_code: &str) -> Vec<crate::base::Identifier> {
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = VueExtractor::new(
+            "vue".to_string(),
+            "test.vue".to_string(),
+            vue_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(None);
+        extractor.extract_identifiers(&symbols)
+    }
+
+    #[test]
+    fn test_vue_variable_ref_emission_js_script() {
+        // Locked variable_ref contract over the embedded <script> (JS grammar).
+        let vue_code = r#"
+<template>
+  <div>{{ message }}</div>
+</template>
+
+<script>
+// GhostToken appears only in this comment and must never be an identifier.
+const graphKit = { reach() { return 1; } };
+const fallbackValue = 3;
+
+export default {
+  methods: {
+    evaluate(seed, unusedParam) {
+      let count = 0;
+      count += 1;                    // compound assignment -> read count
+      let x = 5;                     // declaration name, no ref
+      x = 7;                         // plain write LHS -> NOT a read
+      const total = seed;            // seed on RHS -> read
+      const g = graphKit.reach();    // graphKit receiver -> read; reach -> call
+      const pack = { seed };         // shorthand property -> read of seed
+      return total > 0 ? total : fallbackValue;
+    }
+  }
+}
+</script>
+"#;
+
+        let identifiers = extract(vue_code);
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        for expected in ["count", "seed", "graphKit", "fallbackValue", "total"] {
+            assert!(
+                var_refs.contains(&expected),
+                "expected variable_ref for {expected}; got {var_refs:?}"
+            );
+        }
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "reach" && id.kind == IdentifierKind::Call),
+            "graphKit.reach() must still yield a call named reach"
+        );
+        for forbidden in ["x", "unusedParam", "GhostToken", "evaluate"] {
+            assert!(
+                !var_refs.contains(&forbidden),
+                "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+            );
+        }
+        assert!(
+            !identifiers.iter().any(|id| id.name == "GhostToken"),
+            "comment-only GhostToken must not be extracted at all"
+        );
+
+        // Spans must be remapped to the host SFC: every variable_ref sits inside
+        // the file and carries a containing symbol when inside a method.
+        let count_ref = identifiers
+            .iter()
+            .find(|id| id.name == "count" && id.kind == IdentifierKind::VariableRef)
+            .expect("count variable_ref");
+        assert!(
+            count_ref.containing_symbol_id.is_some(),
+            "variable_ref must carry containing_symbol_id"
+        );
+        assert!(
+            count_ref.start_line > 7,
+            "span must be remapped to host SFC lines, got {}",
+            count_ref.start_line
+        );
+    }
+
+    #[test]
+    fn test_vue_variable_ref_emission_ts_script() {
+        // TS-specific shapes inside <script lang="ts">: typed params are
+        // declarations; type annotations stay TypeUsage.
+        let vue_code = r#"
+<template>
+  <div />
+</template>
+
+<script lang="ts">
+const fallbackValue = 3;
+
+export function evaluate(seed: number, unusedParam: string): number {
+  let count = 0;
+  count += 1;
+  const anno: WidgetShape = shapeSrc;
+  return count > 0 ? seed : fallbackValue;
+}
+
+interface WidgetShape { size: number; }
+const shapeSrc: WidgetShape = { size: 1 };
+</script>
+"#;
+
+        let identifiers = extract(vue_code);
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        for expected in ["count", "seed", "fallbackValue", "shapeSrc"] {
+            assert!(
+                var_refs.contains(&expected),
+                "expected variable_ref for {expected}; got {var_refs:?}"
+            );
+        }
+        for forbidden in ["unusedParam", "evaluate", "WidgetShape"] {
+            assert!(
+                !var_refs.contains(&forbidden),
+                "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+            );
+        }
+    }
+}

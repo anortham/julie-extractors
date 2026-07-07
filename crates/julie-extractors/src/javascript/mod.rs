@@ -11,7 +11,9 @@
 mod assignments;
 mod functions;
 mod helpers;
-mod identifiers;
+// pub(crate): identifiers exports `is_ecmascript_value_read_identifier`, the
+// variable_ref rule-1/4 predicate shared with the TypeScript and Vue extractors.
+pub(crate) mod identifiers;
 mod imports;
 mod relationships;
 mod signatures;

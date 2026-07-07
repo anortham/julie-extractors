@@ -630,3 +630,135 @@ type Rec = Record<string, number>;
         );
     }
 }
+
+#[test]
+fn test_typescript_variable_ref_emission() {
+    // Locked variable_ref contract: receivers + bare value reads, the complement
+    // of the Call/MemberAccess/TypeUsage arms. See csharp/identifiers.rs for the 6 rules.
+    let code = r#"
+// GhostToken appears only in this comment and must never be an identifier.
+const graphKit = { reach(): number { return 1; } };
+const fallbackValue = 3;
+
+enum Shade { Dark = seedTone }
+namespace Registry { export const slot = 1; }
+
+const seedTone = 2;
+
+function evaluate(seed: number, unusedParam: string): number {
+    let count = 0;
+    count += 1;                        // compound assignment -> read count
+    let x = 5;                         // declaration name, no ref
+    x = 7;                             // plain write LHS -> NOT a read
+    const total = seed;                // seed on RHS -> read
+    const g = graphKit.reach();        // graphKit receiver -> read; reach -> call
+    const pack = { seed };             // shorthand property -> read of seed
+    const widen = total as unknown;    // as-expression operand -> read
+    const anno: WidgetShape = shapeSrc; // WidgetShape is a TypeUsage, not a variable_ref
+    return total > 0 ? total : fallbackValue;
+}
+
+interface WidgetShape { size: number; }
+const shapeSrc: WidgetShape = { size: 1 };
+export { fallbackValue as exportedAlias };
+"#;
+
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "test.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+    let var_refs: Vec<&str> = identifiers
+        .iter()
+        .filter(|id| id.kind == IdentifierKind::VariableRef)
+        .map(|id| id.name.as_str())
+        .collect();
+
+    // --- Positive cases (rules 1/4) ---
+    for expected in [
+        "count",         // compound-assignment target
+        "seed",          // RHS read + shorthand property {seed}
+        "graphKit",      // member-access receiver
+        "fallbackValue", // bare ternary read + export {name} local-binding read
+        "total",         // reads incl. as-expression operand
+        "seedTone",      // enum member value read
+        "shapeSrc",      // annotated declarator RHS read
+    ] {
+        assert!(
+            var_refs.contains(&expected),
+            "expected variable_ref for {expected}; got {var_refs:?}"
+        );
+    }
+
+    // Receiver + call coexist: graphKit.reach()
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "reach" && id.kind == IdentifierKind::Call),
+        "graphKit.reach() must still yield a call named reach"
+    );
+    // Type annotation stays a TypeUsage, and never doubles as a variable_ref.
+    assert!(
+        identifiers
+            .iter()
+            .any(|id| id.name == "WidgetShape" && id.kind == IdentifierKind::TypeUsage),
+        "WidgetShape annotation must remain a TypeUsage"
+    );
+
+    // --- Negative cases (rules 2/3/4/5) ---
+    for forbidden in [
+        "x",             // declaration name + plain-write LHS
+        "unusedParam",   // parameter name only
+        "GhostToken",    // comment-only mention
+        "evaluate",      // function declaration name
+        "Shade",         // enum declaration name
+        "Registry",      // namespace declaration name
+        "WidgetShape",   // type usage, not a value read
+        "exportedAlias", // export alias, not a read
+    ] {
+        assert!(
+            !var_refs.contains(&forbidden),
+            "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+        );
+    }
+    assert!(
+        !identifiers.iter().any(|id| id.name == "GhostToken"),
+        "comment-only GhostToken must not be extracted at all"
+    );
+
+    // No duplicate rows: each (name, kind, span) is unique.
+    let mut keys: Vec<(String, String, u32, u32)> = identifiers
+        .iter()
+        .map(|id| {
+            (
+                id.name.clone(),
+                id.kind.to_string(),
+                id.start_byte,
+                id.end_byte,
+            )
+        })
+        .collect();
+    let before = keys.len();
+    keys.sort();
+    keys.dedup();
+    assert_eq!(before, keys.len(), "duplicate identifier rows detected");
+
+    let count_ref = identifiers
+        .iter()
+        .find(|id| id.name == "count" && id.kind == IdentifierKind::VariableRef)
+        .expect("count variable_ref");
+    assert!(
+        count_ref.containing_symbol_id.is_some(),
+        "variable_ref must carry containing_symbol_id"
+    );
+}

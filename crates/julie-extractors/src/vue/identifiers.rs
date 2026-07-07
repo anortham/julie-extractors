@@ -12,6 +12,7 @@ use crate::base::{
     BaseExtractor, EmbeddedSpanOffset, Identifier, IdentifierKind, NormalizedSpan, Symbol,
     SymbolKind,
 };
+use crate::javascript::identifiers::is_ecmascript_value_read_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use literals::record_vue_call_arg_literals;
 use std::collections::HashMap;
@@ -308,6 +309,43 @@ fn extract_identifier_from_node_with_content(
                 let arguments = extract_vue_type_arguments(arg_list, script_content);
                 base.record_type_arguments(&identifier, arguments);
             }
+        }
+
+        // `variable_ref` complement arm: a bare `identifier` used as a value or as
+        // the object/receiver of a member access inside the embedded <script> —
+        // the reads the Call/MemberAccess/TypeUsage arms above do not own. The
+        // rule-1/4 predicate is SHARED with the standalone JavaScript and
+        // TypeScript extractors (Vue parses <script> with those same grammars),
+        // and it excludes the positions owned by the extends_clause /
+        // new_expression / type_identifier arms above, so no node yields two rows.
+        // Spans are remapped to the host SFC exactly as the sibling arms do.
+        "identifier" if is_ecmascript_value_read_identifier(node) => {
+            let name = get_node_text_from_content(&node, script_content);
+            create_identifier_with_offset(
+                base,
+                &node,
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                symbol_map,
+                offset,
+            );
+        }
+
+        // `{foo}` object-literal shorthand is a READ of the binding `foo`; the
+        // destructuring form is a distinct `shorthand_property_identifier_pattern`
+        // node kind and stays excluded.
+        "shorthand_property_identifier" => {
+            let name = get_node_text_from_content(&node, script_content);
+            create_identifier_with_offset(
+                base,
+                &node,
+                &node,
+                name,
+                IdentifierKind::VariableRef,
+                symbol_map,
+                offset,
+            );
         }
 
         _ => {

@@ -413,6 +413,22 @@
       "containing_key": "fixtures/extraction/javascript/nestjs_routes/source.js:reset:15:2",
       "target_key": null,
       "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/javascript/nestjs_routes/source.js:routePath:variable_ref:21:7",
+      "name": "routePath",
+      "kind": "variable_ref",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nestjs_routes/source.js",
+      "start_line": 21,
+      "start_column": 7,
+      "end_line": 21,
+      "end_column": 16,
+      "start_byte": 325,
+      "end_byte": 334,
+      "containing_key": "fixtures/extraction/javascript/nestjs_routes/source.js:dynamic:21:2",
+      "target_key": null,
+      "confidence": "1.000"
     }
   ],
   "types": [],

@@ -119,9 +119,20 @@ impl super::RazorExtractor {
             // Type references in C# code blocks: `List<IBrowserFile>`, generics, etc.
             // Razor embeds C# with the same `generic_name` + `type_argument_list` grammar
             // as standalone C# — reuse the same outermost-check and decomposer logic.
+            //
+            // `variable_ref` complement arm (else-branch): a bare `identifier` used as
+            // a value or as the object/receiver of a member access — the reads the
+            // Call/MemberAccess/TypeUsage arms do not own. The TypeUsage check runs
+            // first, so a type position never reaches the value-read predicate
+            // (single row per node; no duplicates).
             "identifier" => {
                 let name = self.base.get_node_text(&node);
-                if is_csharp_type_usage_identifier(node) && !is_csharp_builtin_type(&name) {
+                // Rule 5: reuse the existing builtin/keyword filter (`this`/`true`/
+                // `false`/`null` are distinct grammar nodes and never reach here).
+                if is_csharp_builtin_type(&name) {
+                    return;
+                }
+                if is_csharp_type_usage_identifier(node) {
                     let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
                     let identifier = self.base.create_identifier(
                         &node,
@@ -130,6 +141,14 @@ impl super::RazorExtractor {
                         containing_symbol_id,
                     );
                     record_outermost_generic_type_arguments(&mut self.base, node, &identifier);
+                } else if is_razor_value_read_identifier(node) {
+                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    self.base.create_identifier(
+                        &node,
+                        name,
+                        IdentifierKind::VariableRef,
+                        containing_symbol_id,
+                    );
                 }
             }
 
@@ -334,6 +353,129 @@ fn is_csharp_type_usage_identifier(node: Node) -> bool {
         current = parent;
     }
     false
+}
+
+/// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
+/// receiver — the complement of the Call/MemberAccess/TypeUsage arms? Mirror of
+/// the locked reference `is_csharp_value_read_identifier` in csharp/identifiers.rs
+/// (see its LOCKED SEMANTIC CONTRACT doc comment for the six rules), adapted to
+/// the tree-sitter-razor grammar, which embeds C#-shaped statement/expression
+/// nodes inside Razor markup nodes. Razor-specific facts verified empirically:
+/// `assignment_expression` carries the same `operator` field as C#;
+/// `razor_foreach` (markup) and `foreach_statement` (@code) both declare their
+/// loop variable in `left`; `razor_implicit_expression` (`@total`),
+/// `razor_condition` (`@if (flag)`), and `razor_attribute_value`
+/// (`@onclick="Handler"`) identifiers are value READS and fall through to the
+/// inclusive default; `@inherits`/`@implements`/`@typeparam`/`@layout`
+/// directives name types, not values.
+fn is_razor_value_read_identifier(node: Node) -> bool {
+    // Rule 3: never a type/method/property/namespace/type-parameter definition name.
+    if is_csharp_declaration_name(node) {
+        return false;
+    }
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+
+    // Rule 2: a `type`/`returns` field identifier is a type usage, not a value
+    // (the TypeUsage arm owns type positions; excluding both fields here keeps
+    // the predicate correct in isolation, mirroring the C# reference).
+    if parent.child_by_field_name("type").map(|t| t.id()) == Some(node.id())
+        || parent.child_by_field_name("returns").map(|t| t.id()) == Some(node.id())
+    {
+        return false;
+    }
+
+    let is_name_field = parent.child_by_field_name("name").map(|n| n.id()) == Some(node.id());
+
+    match parent.kind() {
+        // Rule 2: the callee identifier of a call is owned by the Call arm.
+        "invocation_expression" => false,
+        // Rule 1/2: only the receiver (`expression`) of a member access is a read;
+        // the accessed member `name` is owned by the MemberAccess/Call arms.
+        "member_access_expression" => {
+            parent.child_by_field_name("expression").map(|e| e.id()) == Some(node.id())
+        }
+        // `?.Prop`: the `condition` receiver is a read; the bound member name is not.
+        "conditional_access_expression" => {
+            parent.child_by_field_name("condition").map(|c| c.id()) == Some(node.id())
+        }
+        "member_binding_expression" => false,
+
+        // Rule 3: definition names the shared declaration guard does not cover.
+        // Their NON-name identifier children (a declarator initializer value, the
+        // foreach collection) fall through below as reads.
+        "constructor_declaration"
+        | "destructor_declaration"
+        | "record_declaration"
+        | "record_struct_declaration"
+        | "delegate_declaration"
+        | "enum_member_declaration"
+        | "local_function_statement"
+        | "event_declaration" => !is_name_field,
+        "variable_declarator"
+        | "parameter"
+        | "declaration_expression"
+        | "catch_declaration"
+        | "implicit_parameter" => !is_name_field,
+        // foreach loop variable (`left`) is a definition; the `right` collection
+        // reads. Covers both the @code-block statement and the markup form.
+        "foreach_statement" | "razor_foreach" => {
+            parent.child_by_field_name("left").map(|l| l.id()) != Some(node.id())
+        }
+
+        // Rule 3: labels and using/extern aliases / namespace names are not variables.
+        "labeled_statement"
+        | "goto_statement"
+        | "using_directive"
+        | "extern_alias_directive"
+        | "namespace_declaration"
+        | "file_scoped_namespace_declaration" => false,
+        // Razor directives that name a type, type parameter, or layout — not values.
+        "razor_inherits_directive"
+        | "razor_implements_directive"
+        | "razor_typeparam_directive"
+        | "razor_layout_directive" => false,
+
+        // Rule 1: an argument value is a read; the `name:` label of a named
+        // argument (`foo(bar: 5)`) is a parameter name, not a read.
+        "argument" => !is_name_field,
+        // Rule 1: attribute named-arg member / positional value is a read; the
+        // attribute's own `name` is a type usage.
+        "attribute" => false,
+        "attribute_argument" => true,
+
+        // Rule 4: assignment RHS is a read; the LHS is a read only for a COMPOUND
+        // operator or an object/collection-initializer member. A plain `x = 5`
+        // LHS is write-only.
+        "assignment_expression" => {
+            let is_left = parent.child_by_field_name("left").map(|n| n.id()) == Some(node.id());
+            if !is_left {
+                return true;
+            }
+            if parent
+                .parent()
+                .map(|g| g.kind() == "initializer_expression")
+                .unwrap_or(false)
+            {
+                return true;
+            }
+            parent
+                .child_by_field_name("operator")
+                .map(|op| op.kind() != "=")
+                .unwrap_or(false)
+        }
+
+        // Type positions (also removed by the TypeUsage arm via ordering; kept
+        // explicit so the predicate is correct in isolation).
+        "qualified_name" | "generic_name" | "type_argument_list" | "array_type"
+        | "nullable_type" | "pointer_type" | "tuple_type" | "base_list" => false,
+
+        // Every other value slot — return / binary / conditional / interpolation /
+        // initializer element / razor implicit or explicit expression / razor
+        // condition / razor attribute value — is a read.
+        _ => true,
+    }
 }
 
 /// Returns `true` when `node` is the declared name of a type, method, property,

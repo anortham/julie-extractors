@@ -78,7 +78,24 @@
   "relationships": [],
   "pending_relationships": [],
   "structured_pending_relationships": [],
-  "identifiers": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/jsx/htmx_attributes/source.jsx:dynamicUrl:variable_ref:6:25",
+      "name": "dynamicUrl",
+      "kind": "variable_ref",
+      "language": "jsx",
+      "file_path": "fixtures/extraction/jsx/htmx_attributes/source.jsx",
+      "start_line": 6,
+      "start_column": 25,
+      "end_line": 6,
+      "end_column": 35,
+      "start_byte": 203,
+      "end_byte": 213,
+      "containing_key": "fixtures/extraction/jsx/htmx_attributes/source.jsx:TodoList:1:7",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [

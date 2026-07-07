@@ -53,6 +53,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:event:variable_ref:2:30",
+      "name": "event",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "start_line": 2,
+      "start_column": 30,
+      "end_line": 2,
+      "end_column": 35,
+      "start_byte": 77,
+      "end_byte": 82,
+      "containing_key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:getRouterParam:call:2:15",
       "name": "getRouterParam",
       "kind": "call",
@@ -65,6 +81,22 @@
       "start_byte": 62,
       "end_byte": 76,
       "containing_key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:2:10",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts:id:variable_ref:3:13",
+      "name": "id",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nuxt_server_route/server/api/users/[id].get.ts",
+      "start_line": 3,
+      "start_column": 13,
+      "end_line": 3,
+      "end_column": 15,
+      "start_byte": 104,
+      "end_byte": 106,
+      "containing_key": null,
       "target_key": null,
       "confidence": "1.000"
     }

@@ -2564,3 +2564,128 @@ mod blazor_extraction_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod razor_variable_ref_tests {
+    use super::*;
+    use crate::base::IdentifierKind;
+
+    #[test]
+    fn test_razor_variable_ref_emission() {
+        // Locked variable_ref contract over Razor's embedded C#: receivers + bare
+        // value reads, the complement of the Call/MemberAccess/TypeUsage arms.
+        let razor_code = r#"@page "/demo"
+@inherits DemoBase
+
+<h1>@currentTitle</h1>
+<p>@viewer.Name</p>
+<button @onclick="IncrementCount">Go</button>
+
+@code {
+    private int count;
+    private string currentTitle = "t";
+    private Person viewer = new Person();
+
+    // GhostToken appears only in this comment and must never be an identifier.
+    private void Evaluate(int seed, int unusedParam) {
+        count += 1;                          // compound assignment -> read count
+        int x = 5;                           // declaration name, no ref
+        x = 7;                               // plain write LHS -> NOT a read
+        var total = seed;                    // seed on RHS -> read
+        var g = GraphTraversal.Reach();      // GraphTraversal receiver -> read; Reach -> call
+        var f = new Sample { Bar = seed };   // Bar initializer member -> read
+        Console.WriteLine(total);            // argument -> read total
+    }
+
+    private void IncrementCount() { count = 0; }
+}"#;
+
+        let workspace_root = PathBuf::from("/tmp/test");
+        let tree = init_parser(razor_code, "razor");
+        let mut extractor = RazorExtractor::new(
+            "razor".to_string(),
+            "test.razor".to_string(),
+            razor_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let var_refs: Vec<&str> = identifiers
+            .iter()
+            .filter(|id| id.kind == IdentifierKind::VariableRef)
+            .map(|id| id.name.as_str())
+            .collect();
+
+        // --- Positive cases (rules 1/4) ---
+        for expected in [
+            "count",          // compound-assignment target
+            "seed",           // RHS / argument value read
+            "GraphTraversal", // static-access receiver
+            "Bar",            // object-initializer member LHS
+            "total",          // declarator RHS + argument read
+            "currentTitle",   // razor implicit expression @currentTitle
+            "viewer",         // razor implicit expression receiver @viewer.Name
+            "IncrementCount", // Blazor event-handler attribute value
+        ] {
+            assert!(
+                var_refs.contains(&expected),
+                "expected variable_ref for {expected}; got {var_refs:?}"
+            );
+        }
+
+        // Receiver + call coexist: GraphTraversal.Reach()
+        assert!(
+            identifiers
+                .iter()
+                .any(|id| id.name == "Reach" && id.kind == IdentifierKind::Call),
+            "GraphTraversal.Reach() must still yield a call named Reach"
+        );
+
+        // --- Negative cases (rules 2/3/4/5) ---
+        for forbidden in [
+            "x",           // declaration name + plain-write LHS
+            "unusedParam", // parameter name only
+            "int",         // builtin type
+            "GhostToken",  // comment-only mention
+            "Evaluate",    // method declaration name
+            "DemoBase",    // @inherits base type, not a value read
+            "Person",      // field type / constructor -> type usage or call, not a read
+        ] {
+            assert!(
+                !var_refs.contains(&forbidden),
+                "{forbidden} must NOT be a variable_ref; got {var_refs:?}"
+            );
+        }
+        assert!(
+            !identifiers.iter().any(|id| id.name == "GhostToken"),
+            "comment-only GhostToken must not be extracted at all"
+        );
+
+        // No duplicate rows: each (name, kind, span) is unique.
+        let mut keys: Vec<(String, String, u32, u32)> = identifiers
+            .iter()
+            .map(|id| {
+                (
+                    id.name.clone(),
+                    id.kind.to_string(),
+                    id.start_byte,
+                    id.end_byte,
+                )
+            })
+            .collect();
+        let before = keys.len();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(before, keys.len(), "duplicate identifier rows detected");
+
+        let count_ref = identifiers
+            .iter()
+            .find(|id| id.name == "count" && id.kind == IdentifierKind::VariableRef)
+            .expect("count variable_ref");
+        assert!(
+            count_ref.containing_symbol_id.is_some(),
+            "variable_ref must carry containing_symbol_id"
+        );
+    }
+}

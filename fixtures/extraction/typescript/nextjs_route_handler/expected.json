@@ -204,6 +204,22 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
+      "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:NextResponse:variable_ref:7:11",
+      "name": "NextResponse",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
+      "start_line": 7,
+      "start_column": 11,
+      "end_line": 7,
+      "end_column": 23,
+      "start_byte": 172,
+      "end_byte": 184,
+      "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:Promise:type_usage:10:32",
       "name": "Promise",
       "kind": "type_usage",
@@ -327,6 +343,22 @@
       "end_column": 28,
       "start_byte": 185,
       "end_byte": 189,
+      "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:params:variable_ref:7:35",
+      "name": "params",
+      "kind": "variable_ref",
+      "language": "typescript",
+      "file_path": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts",
+      "start_line": 7,
+      "start_column": 35,
+      "end_line": 7,
+      "end_column": 41,
+      "start_byte": 196,
+      "end_byte": 202,
       "containing_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
       "target_key": null,
       "confidence": "1.000"

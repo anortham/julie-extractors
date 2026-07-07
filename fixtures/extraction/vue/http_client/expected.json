@@ -219,6 +219,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/vue/http_client/source.vue:axios:variable_ref:10:8",
+      "name": "axios",
+      "kind": "variable_ref",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/http_client/source.vue",
+      "start_line": 10,
+      "start_column": 8,
+      "end_line": 10,
+      "end_column": 13,
+      "start_byte": 184,
+      "end_byte": 189,
+      "containing_key": "fixtures/extraction/vue/http_client/source.vue:load:8:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/vue/http_client/source.vue:fetch:call:9:8",
       "name": "fetch",
       "kind": "call",

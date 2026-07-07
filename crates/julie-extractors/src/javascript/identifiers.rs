@@ -144,6 +144,36 @@ impl super::JavaScriptExtractor {
                 }
             }
 
+            // `variable_ref` complement arm: a bare `identifier` used as a value or
+            // as the object/receiver of a member access — the reads the Call/
+            // MemberAccess arms above do not own. Property names are a distinct
+            // `property_identifier` node kind, so they can never reach this arm.
+            "identifier" if is_ecmascript_value_read_identifier(node) => {
+                let name = self.base.get_node_text(&node);
+                let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                self.base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+
+            // `{foo}` object-literal shorthand is a READ of the binding `foo`.
+            // The destructuring form (`const {foo} = o`) is a distinct node kind
+            // (`shorthand_property_identifier_pattern`) and stays excluded; an
+            // object-literal KEY (`{foo: 1}`) is a `property_identifier`, not this.
+            "shorthand_property_identifier" => {
+                let name = self.base.get_node_text(&node);
+                let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                self.base.create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
+            }
+
             _ => {
                 // Skip other node types for now
                 // Future: type usage, constructor calls, etc.
@@ -251,5 +281,108 @@ impl super::JavaScriptExtractor {
                 .and_then(|property| self.terminal_identifier(property)),
             _ => None,
         }
+    }
+}
+
+// ============================================================================
+// variable_ref emission — ECMAScript rule 1/4 predicate
+// ============================================================================
+//
+// Shared by the JavaScript, TypeScript, and Vue extractors (Vue parses embedded
+// <script> sections with these same tree-sitter grammars — do not fork this).
+// Mirrors the STRUCTURE of the locked reference `is_csharp_value_read_identifier`
+// in csharp/identifiers.rs (see its LOCKED SEMANTIC CONTRACT doc comment for the
+// six rules); node kinds and field names below were verified empirically against
+// the vendored tree-sitter-javascript and tree-sitter-typescript grammars.
+// TS-only node kinds simply never occur under the JS grammar.
+//
+// Rule 5 note: `this` / `true` / `false` / `null` / `undefined` are distinct
+// node kinds in both grammars (never `identifier`), so keywords are structurally
+// excluded and no name-based builtin filter is needed.
+
+/// Rule 1/4 predicate: is this bare `identifier` a value read or a member-access
+/// receiver — the complement of the Call/MemberAccess/TypeUsage arms? The default
+/// is inclusive (`_ => true`) with enumerated exclusions, exactly like the C#
+/// reference arm.
+pub(crate) fn is_ecmascript_value_read_identifier(node: Node) -> bool {
+    let Some(parent) = node.parent() else {
+        return false;
+    };
+    let is_field = |field: &str| {
+        parent
+            .child_by_field_name(field)
+            .map(|f| f.id() == node.id())
+            .unwrap_or(false)
+    };
+
+    match parent.kind() {
+        // Rule 2: the bare callee of a call / constructor of `new` is owned by the
+        // Call arm. Call arguments are wrapped in an `arguments` node and never
+        // appear as direct children here.
+        "call_expression" | "new_expression" => false,
+        // Rule 1/2: only the receiver (`object`) of a member access is a read; the
+        // accessed `property` is a `property_identifier` (MemberAccess/Call arms).
+        "member_expression" => is_field("object"),
+        // Rule 2 (TS): `class A extends Base` puts `Base` in an expression-context
+        // `value` field owned by the TypeUsage extends_clause arm. The JS grammar
+        // uses `class_heritage` instead, which no arm owns — it falls through to
+        // the default below as a read.
+        "extends_clause" => false,
+        // Rule 2 (JSX): element names are owned by the JSX Call arm (uppercase
+        // components) or are plain HTML tag names (lowercase) — never value reads.
+        "jsx_opening_element" | "jsx_closing_element" | "jsx_self_closing_element" => false,
+
+        // Rule 3: declaration names. Their NON-name identifier children (e.g. a
+        // declarator's initializer value) fall through below as reads.
+        "variable_declarator"
+        | "function_declaration"
+        | "generator_function_declaration"
+        | "function_expression"
+        | "generator_function"
+        | "class_declaration"
+        | "class"
+        | "enum_declaration"
+        | "module"
+        | "internal_module" => !is_field("name"),
+        // JS bare parameters sit directly under `formal_parameters`; TS wraps them
+        // in (required|optional)_parameter with the name in `pattern` and an
+        // optional default in `value` — the default IS a read.
+        "formal_parameters" => false,
+        "required_parameter" | "optional_parameter" => !is_field("pattern"),
+        // Single-parameter arrow form `x => ...` declares `x` in the `parameter`
+        // field; the body expression falls through as a read.
+        "arrow_function" => !is_field("parameter"),
+        "catch_clause" => !is_field("parameter"),
+        // Destructuring patterns DECLARE bindings (`const {a, b: c} = o`); the
+        // source object is the declarator's `value` and falls through as a read.
+        "array_pattern" | "object_pattern" | "rest_pattern" | "pair_pattern" => false,
+        // Pattern/parameter default value: `left` declares, `right` reads.
+        "assignment_pattern" => !is_field("left"),
+        // Import bindings are declarations (default, named, namespace, require).
+        "import_specifier" | "import_clause" | "namespace_import" | "import_require_clause" => {
+            false
+        }
+        // `export { local as alias }`: `name` READS the local binding (it keeps
+        // the symbol alive); `alias` only names the export (rule 3).
+        "export_specifier" => is_field("name"),
+        // TS: index-signature parameter (`[key: string]`) and type-predicate
+        // subject (`x is T`) are type-context names, not value reads.
+        "index_signature" | "type_predicate" => false,
+        // TS type positions that can contain a bare `identifier` (the qualifier of
+        // `NS.Type`, nested jsx/module names) — type machinery, not value reads.
+        "nested_type_identifier" | "nested_identifier" => false,
+
+        // Rule 4: a PLAIN assignment LHS is write-only; the RHS reads. Compound
+        // assignment (`x += 1`) is a distinct `augmented_assignment_expression`
+        // node kind, so its LHS falls through below as a read.
+        "assignment_expression" => !is_field("left"),
+        // for-in/of: the loop binding (`left`) is a write target/declaration; the
+        // iterated collection (`right`) reads.
+        "for_in_statement" => !is_field("left"),
+
+        // Every other position — argument, operand, return value, template
+        // substitution, JSX expression `{x}`, collection element, spread,
+        // decorator, `typeof` query, update expression — is a read (rule 1).
+        _ => true,
     }
 }

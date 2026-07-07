@@ -133,6 +133,22 @@
   ],
   "identifiers": [
     {
+      "key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:body:variable_ref:3:23",
+      "name": "body",
+      "kind": "variable_ref",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js",
+      "start_line": 3,
+      "start_column": 23,
+      "end_line": 3,
+      "end_column": 27,
+      "start_byte": 116,
+      "end_byte": 120,
+      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:defineEventHandler:call:1:15",
       "name": "defineEventHandler",
       "kind": "call",
@@ -144,6 +160,22 @@
       "end_column": 33,
       "start_byte": 15,
       "end_byte": 33,
+      "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:event:variable_ref:2:32",
+      "name": "event",
+      "kind": "variable_ref",
+      "language": "javascript",
+      "file_path": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js",
+      "start_line": 2,
+      "start_column": 32,
+      "end_line": 2,
+      "end_column": 37,
+      "start_byte": 85,
+      "end_byte": 90,
       "containing_key": "fixtures/extraction/javascript/nuxt_server_route/server/api/messages.post.js:default:1:0",
       "target_key": null,
       "confidence": "1.000"
