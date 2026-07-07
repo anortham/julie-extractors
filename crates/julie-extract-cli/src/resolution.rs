@@ -1419,6 +1419,9 @@ fn import_binding(name: &str, metadata_json: Option<&str>) -> (String, Option<St
         .unwrap_or_else(|| name.to_string());
     let imported_name = string_field("imported_name")
         .or_else(|| string_field("imported"))
+        // The TS/JS extractor records the imported name under camelCase `importedName`
+        // (fixture-confirmed, Task 6). Without this an aliased import misses tier 2.
+        .or_else(|| string_field("importedName"))
         .or_else(|| {
             // If an alias was recorded, the symbol name is the imported name.
             if local_name != name {
