@@ -1063,6 +1063,15 @@ CREATE TABLE language_capabilities (
 );
 ```
 
+`kind_coverage_json` stores the same additive capability object, including the
+`test_detection` domain. That domain uses the fixed units `test_case`,
+`test_container`, and `test_lifecycle`; each unit appears in `supported`,
+`not_applicable`, or `open_gaps`. See
+[Test Evidence v1](test-evidence-v1.md) for the evidence and consumer rules.
+
+Adding `test_detection` inside this existing JSON object does not change the
+SQLite v4 table shape or the extraction contract version.
+
 ### `language_capability_fixtures`
 
 Fixture evidence rows referenced by a capability snapshot.

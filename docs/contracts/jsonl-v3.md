@@ -256,9 +256,13 @@ Fields:
 - `target_capabilities`: capability flag object
 - `actual_capabilities`: capability flag object
 - `kind_coverage`: object with `symbols`, `relationships`, `identifiers`,
-  `body_spans`, `structural_facts`, and `complexity_metrics` domains
+  `body_spans`, `structural_facts`, `complexity_metrics`, and `test_detection` domains
 
 Each `kind_coverage` domain has `supported`, `not_applicable`, and `open_gaps`.
+`test_detection` uses the fixed units `test_case`, `test_container`, and
+`test_lifecycle`. It is additive inside the existing object, so JSONL remains
+version 3 and the extraction contract version does not change. See
+[Test Evidence v1](test-evidence-v1.md) for evidence and consumer rules.
 
 ### `language_capability_fixture`
 

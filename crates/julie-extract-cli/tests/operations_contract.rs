@@ -1595,12 +1595,32 @@ fn languages_json_emits_capability_snapshot_data() {
             language["kind_coverage"], expected_kind_coverage[language_name],
             "languages --json must expose exact kind_coverage for {language_name}"
         );
+        assert_eq!(
+            language["kind_coverage"]["test_detection"],
+            expected_kind_coverage[language_name]["test_detection"],
+            "languages --json must expose exact test_detection evidence for {language_name}"
+        );
         assert!(
             language["kind_coverage"]["structural_facts"]["supported"].is_array(),
             "languages --json must expose structural fact pattern coverage for {language_name}"
         );
         assert!(language["fixtures"].as_i64().unwrap() > 0);
     }
+}
+
+#[test]
+fn languages_json_test_detection_surface_is_documented() {
+    let contract_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../docs/contracts/test-evidence-v1.md");
+    assert!(
+        contract_path.is_file(),
+        "the test-evidence-v1 consumer contract must exist"
+    );
+    let contract = std::fs::read_to_string(contract_path).unwrap();
+    assert!(
+        contract.contains("`julie-extract languages --json`"),
+        "the test-evidence-v1 contract must name the public CLI surface"
+    );
 }
 
 fn expected_capability_languages() -> BTreeSet<String> {

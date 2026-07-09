@@ -52,8 +52,38 @@ fn sqlite_json_text_columns_are_decoded_into_json_values() {
         json!(["rs"])
     );
     assert_eq!(
-        record(&records, "language_capability")["kind_coverage"]["symbols"]["supported"],
-        json!(["function"])
+        record(&records, "language_capability")["kind_coverage"],
+        json!({
+            "symbols": {"supported": ["function"], "not_applicable": [], "open_gaps": []},
+            "relationships": {"supported": ["calls"], "not_applicable": [], "open_gaps": []},
+            "identifiers": {"supported": ["call"], "not_applicable": [], "open_gaps": []},
+            "body_spans": {"supported": ["function"], "not_applicable": [], "open_gaps": []},
+            "test_detection": {
+                "supported": [],
+                "not_applicable": [],
+                "open_gaps": [
+                    {
+                        "kind": "test_case",
+                        "reason": "No registered rust golden expected artifact currently emits is_test=true.",
+                        "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+                        "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+                    },
+                    {
+                        "kind": "test_container",
+                        "reason": "No registered rust golden expected artifact currently emits test_container=true.",
+                        "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+                        "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+                    },
+                    {
+                        "kind": "test_lifecycle",
+                        "reason": "No registered rust golden expected artifact currently emits test_lifecycle=true.",
+                        "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+                        "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+                    }
+                ]
+            }
+        }),
+        "language_capability JSONL must preserve the exact kind_coverage object"
     );
     assert_eq!(
         record(&records, "language_capability_gap")["evidence"],
@@ -674,7 +704,31 @@ fn insert_capability_rows(conn: &Connection) {
               "symbols":{"supported":["function"],"not_applicable":[],"open_gaps":[]},
               "relationships":{"supported":["calls"],"not_applicable":[],"open_gaps":[]},
               "identifiers":{"supported":["call"],"not_applicable":[],"open_gaps":[]},
-              "body_spans":{"supported":["function"],"not_applicable":[],"open_gaps":[]}
+              "body_spans":{"supported":["function"],"not_applicable":[],"open_gaps":[]},
+              "test_detection":{
+                "supported":[],
+                "not_applicable":[],
+                "open_gaps":[
+                  {
+                    "kind":"test_case",
+                    "reason":"No registered rust golden expected artifact currently emits is_test=true.",
+                    "required_closure":"add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+                    "planned_closure_task":"docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+                  },
+                  {
+                    "kind":"test_container",
+                    "reason":"No registered rust golden expected artifact currently emits test_container=true.",
+                    "required_closure":"add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+                    "planned_closure_task":"docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+                  },
+                  {
+                    "kind":"test_lifecycle",
+                    "reason":"No registered rust golden expected artifact currently emits test_lifecycle=true.",
+                    "required_closure":"add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+                    "planned_closure_task":"docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+                  }
+                ]
+              }
             }"#
         ],
     )

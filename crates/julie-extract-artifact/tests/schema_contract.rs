@@ -355,15 +355,24 @@ fn contract_docs_define_body_hash_algorithm_and_limits() {
 
 #[test]
 fn jsonl_v3_docs_list_all_capability_kind_coverage_domains() {
+    const SQLITE_V4: &str = include_str!("../../../docs/contracts/sqlite-schema-v4.md");
     const JSONL_V3: &str = include_str!("../../../docs/contracts/jsonl-v3.md");
+    let sqlite_searchable = compact_whitespace(SQLITE_V4);
     let searchable = compact_whitespace(JSONL_V3);
 
     assert!(
         searchable.contains(
             "`kind_coverage`: object with `symbols`, `relationships`, `identifiers`, \
-             `body_spans`, `structural_facts`, and `complexity_metrics` domains"
+             `body_spans`, `structural_facts`, `complexity_metrics`, and `test_detection` domains"
         ),
         "jsonl-v3.md language_capability docs must list every kind_coverage domain"
+    );
+    assert!(
+        sqlite_searchable.contains(
+            "`kind_coverage_json` stores the same additive capability object, including the \
+             `test_detection` domain"
+        ),
+        "sqlite-schema-v4.md must document test_detection inside kind_coverage_json"
     );
 }
 
