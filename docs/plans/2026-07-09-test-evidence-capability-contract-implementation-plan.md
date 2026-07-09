@@ -151,11 +151,11 @@ Expected: PASS for legacy defaulting and new-field projection.
 Use `parallel-lead-commit`: hand the verified diff and ledger to the lead without committing.
 
 **Acceptance criteria:**
-- [ ] Legacy capability JSON still deserializes.
-- [ ] New rows preserve all three coverage arrays.
-- [ ] CLI projection emits the exact domain.
-- [ ] No schema/top-level capability flag is added.
-- [ ] Worker-scope verification passes and the change is handed to the lead per commit mode.
+- [x] Legacy capability JSON still deserializes.
+- [x] New rows preserve all three coverage arrays.
+- [x] CLI projection emits the exact domain.
+- [x] No schema/top-level capability flag is added.
+- [x] Worker-scope verification passes and the change is handed to the lead per commit mode.
 
 ### Task 2: Classify every language and extend quality reporting
 

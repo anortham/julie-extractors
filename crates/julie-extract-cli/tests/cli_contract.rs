@@ -200,6 +200,41 @@ fn languages_json_report_matches_report_contract() {
 }
 
 #[test]
+fn languages_json_report_projects_test_detection_kind_coverage() {
+    let output = julie_extract(&["languages", "--json"]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    let rust_report = report["languages"]["languages"]
+        .as_array()
+        .expect("languages report must contain an array")
+        .iter()
+        .find(|row| row["language"] == "rust")
+        .expect("languages report must contain rust");
+    let rust_snapshot = julie_extractors::capability_snapshot()
+        .get("rust")
+        .expect("capability snapshot must contain rust");
+    let test_detection = &rust_snapshot.kind_coverage.test_detection;
+    let expected = json!({
+        "supported": &test_detection.supported,
+        "not_applicable": &test_detection.not_applicable,
+        "open_gaps": test_detection.open_gaps.iter().map(|gap| {
+            json!({
+                "kind": &gap.kind,
+                "reason": &gap.reason,
+                "required_closure": &gap.required_closure,
+                "planned_closure_task": &gap.planned_closure_task,
+            })
+        }).collect::<Vec<_>>(),
+    });
+
+    assert_eq!(
+        rust_report["kind_coverage"]["test_detection"], expected,
+        "languages --json must exactly project typed test-detection coverage"
+    );
+}
+
+#[test]
 fn languages_json_report_publishes_structural_fact_pattern_registry() {
     let output = julie_extract(&["languages", "--json"]);
 

@@ -65,6 +65,8 @@ pub struct CapabilityKindCoverage {
     pub literals: KindCoverage,
     #[serde(default)]
     pub source_regions: KindCoverage,
+    #[serde(default)]
+    pub test_detection: KindCoverage,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]

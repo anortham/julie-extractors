@@ -337,6 +337,7 @@ pub(crate) fn kind_coverage_json(kind_coverage: &CapabilityKindCoverage) -> Valu
         "doc_comments": kind_coverage_domain(&kind_coverage.doc_comments),
         "literals": kind_coverage_domain(&kind_coverage.literals),
         "source_regions": kind_coverage_domain(&kind_coverage.source_regions),
+        "test_detection": kind_coverage_domain(&kind_coverage.test_detection),
     })
 }
 

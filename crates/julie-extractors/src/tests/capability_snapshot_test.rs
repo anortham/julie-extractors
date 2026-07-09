@@ -131,6 +131,11 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
               "planned_closure_task": "docs/plans/2026-06-10-language-data-quality.md Task 4"
             }
           ]
+        },
+        "test_detection": {
+          "supported": ["test_case"],
+          "not_applicable": [],
+          "open_gaps": []
         }
       },
       "fixtures": []
@@ -144,6 +149,15 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
     let legacy = snap.get("legacy").expect("legacy row should be indexed");
     assert!(legacy.capabilities.symbols);
     assert!(legacy.kind_coverage.symbols.supported.is_empty());
+    assert!(legacy.kind_coverage.test_detection.supported.is_empty());
+    assert!(
+        legacy
+            .kind_coverage
+            .test_detection
+            .not_applicable
+            .is_empty()
+    );
+    assert!(legacy.kind_coverage.test_detection.open_gaps.is_empty());
 
     let new = snap.get("new").expect("new row should be indexed");
     assert_eq!(new.kind_coverage.symbols.supported, vec!["function"]);
@@ -165,6 +179,12 @@ fn test_capability_snapshot_deserializes_mixed_legacy_and_kind_coverage_rows() {
         vec!["comment", "string_literal"]
     );
     assert_eq!(new.kind_coverage.source_regions.open_gaps.len(), 1);
+    assert_eq!(
+        new.kind_coverage.test_detection.supported,
+        vec!["test_case"]
+    );
+    assert!(new.kind_coverage.test_detection.not_applicable.is_empty());
+    assert!(new.kind_coverage.test_detection.open_gaps.is_empty());
     let gap = &new.kind_coverage.source_regions.open_gaps[0];
     assert_eq!(gap.kind, "embedded");
     assert!(gap.required_closure.contains("embedded source regions"));
