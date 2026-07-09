@@ -18,7 +18,10 @@ const DOMAINS = [
   "doc_comments",
   "literals",
   "source_regions",
+  "test_detection",
 ];
+
+const TEST_ROLE_UNITS = ["test_case", "test_container", "test_lifecycle"];
 
 const OBSERVED_DOMAINS = [
   ...DOMAINS,
@@ -159,24 +162,10 @@ const capabilities = JSON.parse(fs.readFileSync(CAPABILITIES_PATH, "utf8"));
 const ALL_LANGUAGES = capabilities.languages.map((row) => row.language);
 
 function expectedFiles(language) {
-  const root = path.join(ROOT, "fixtures/extraction", language);
-  if (!fs.existsSync(root)) {
-    return [];
-  }
-  const files = [];
-  const stack = [root];
-  while (stack.length > 0) {
-    const dir = stack.pop();
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(fullPath);
-      } else if (entry.name === "expected.json") {
-        files.push(fullPath);
-      }
-    }
-  }
-  return files.sort();
+  const row = capabilities.languages.find((candidate) => candidate.language === language);
+  return (row?.fixtures ?? [])
+    .map((fixture) => path.join(ROOT, fixture.expected))
+    .sort();
 }
 
 function rows(value, field) {
@@ -184,7 +173,9 @@ function rows(value, field) {
 }
 
 function emptyCounts() {
-  return Object.fromEntries(OBSERVED_DOMAINS.map((domain) => [domain, 0]));
+  return Object.fromEntries(
+    [...OBSERVED_DOMAINS, ...TEST_ROLE_UNITS].map((domain) => [domain, 0]),
+  );
 }
 
 function observedCounts(language) {
@@ -214,8 +205,27 @@ function observedCounts(language) {
       if (Array.isArray(symbol.annotations) && symbol.annotations.length > 0) {
         counts.annotations += 1;
       }
+      if (symbol.is_test === true || symbol.metadata?.is_test === true) {
+        counts.test_case += 1;
+      }
+      if (
+        symbol.test_container === true ||
+        symbol.metadata?.test_container === true
+      ) {
+        counts.test_container += 1;
+      }
+      if (
+        symbol.test_lifecycle === true ||
+        symbol.metadata?.test_lifecycle === true
+      ) {
+        counts.test_lifecycle += 1;
+      }
     }
   }
+  counts.test_detection = TEST_ROLE_UNITS.reduce(
+    (total, role) => total + counts[role],
+    0,
+  );
   return counts;
 }
 
@@ -452,6 +462,16 @@ function printReport({ byDomain, qualityDebts, rowsByLanguage, silentCells }) {
     for (const debt of qualityDebts) {
       console.log(`${debt.language}.${debt.domain} ${debt.state}`);
     }
+  }
+  console.log("");
+  console.log("## Test-Detection Role Coverage");
+  for (const { row, counts } of rowsByLanguage) {
+    const state = coverageState(row, "test_detection");
+    const supported = state.supported.join(", ") || "none";
+    const open = state.openGaps.map((gap) => gap.kind).join(", ") || "none";
+    console.log(
+      `${row.language}: observed test_case=${counts.test_case} test_container=${counts.test_container} test_lifecycle=${counts.test_lifecycle}; supported=${state.supported.length} [${supported}]; open=${state.openGaps.length} [${open}]`,
+    );
   }
   console.log("");
   console.log("## Per-Language Summary");

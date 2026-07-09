@@ -192,6 +192,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered rust golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered rust golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered rust golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -321,6 +345,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered c golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered c golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered c golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -459,6 +507,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered cpp golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered cpp golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered cpp golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -606,6 +678,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered go golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered go golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered go golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -734,6 +830,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered zig golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered zig golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered zig golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -939,6 +1059,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered typescript golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered typescript golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered typescript golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -1131,6 +1275,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered tsx golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered tsx golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered tsx golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -1337,6 +1505,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered javascript golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered javascript golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered javascript golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -1507,6 +1699,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered jsx golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered jsx golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered jsx golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -1652,6 +1868,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered html golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered html golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered html golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -1805,6 +2045,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered css golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered css golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered css golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -1970,6 +2234,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered vue golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered vue golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered vue golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -2119,6 +2407,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered python golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered python golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered python golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -2256,6 +2568,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered java golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered java golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered java golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -2400,6 +2736,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered csharp golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered csharp golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered csharp golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -2529,6 +2889,26 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [
+            "test_case"
+          ],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_container",
+              "reason": "No registered vbnet golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered vbnet golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -2698,6 +3078,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered php golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered php golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered php golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -2837,6 +3241,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered ruby golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered ruby golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered ruby golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -2970,6 +3398,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered swift golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered swift golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered swift golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -3131,6 +3583,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered kotlin golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered kotlin golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered kotlin golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -3261,6 +3737,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered scala golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered scala golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered scala golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -3387,6 +3887,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered dart golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered dart golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered dart golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -3545,6 +4069,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered elixir golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered elixir golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered elixir golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -3686,6 +4234,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered lua golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered lua golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered lua golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -3815,6 +4387,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered qml golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered qml golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered qml golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -3948,6 +4544,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered r golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered r golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered r golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -4070,6 +4690,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered bash golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered bash golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered bash golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -4199,6 +4843,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered powershell golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered powershell golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered powershell golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -4326,6 +4994,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered gdscript golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered gdscript golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered gdscript golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -4467,6 +5159,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered razor golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered razor golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered razor golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -4606,6 +5322,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered sql golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered sql golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered sql golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -4754,6 +5494,30 @@
             "string_literal"
           ],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered regex golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered regex golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered regex golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -4921,6 +5685,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered markdown golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered markdown golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered markdown golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -5081,6 +5869,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered json golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered json golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered json golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -5251,6 +6063,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered toml golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered toml golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered toml golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     },
@@ -5400,6 +6236,30 @@
           ],
           "not_applicable": [],
           "open_gaps": []
+        },
+        "test_detection": {
+          "supported": [],
+          "not_applicable": [],
+          "open_gaps": [
+            {
+              "kind": "test_case",
+              "reason": "No registered yaml golden expected artifact currently emits is_test=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_container",
+              "reason": "No registered yaml golden expected artifact currently emits test_container=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            },
+            {
+              "kind": "test_lifecycle",
+              "reason": "No registered yaml golden expected artifact currently emits test_lifecycle=true.",
+              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
+            }
+          ]
         }
       }
     }
@@ -5410,8 +6270,15 @@
     "schema_version": 4,
     "detection_rule": "Consumers gate on the reference_resolution_status metadata key, never on the schema version or table probing.",
     "outcomes": {
-      "pending_resolutions": ["resolved"],
-      "identifier_resolutions": ["resolved", "ambiguous", "missing", "no_context"]
+      "pending_resolutions": [
+        "resolved"
+      ],
+      "identifier_resolutions": [
+        "resolved",
+        "ambiguous",
+        "missing",
+        "no_context"
+      ]
     },
     "metadata_keys": {
       "reference_resolution_status": "complete | partial | failed | absent (key missing)",
@@ -5423,15 +6290,26 @@
         "confidence": 0.95,
         "method": "tier1_local",
         "gating": "universal",
-        "fixture_proven_languages": ["rust", "python", "go", "java"],
+        "fixture_proven_languages": [
+          "rust",
+          "python",
+          "go",
+          "java"
+        ],
         "evidence": "fixtures/extraction/resolution_contract (tier1_same_file + TIER14 matrix)"
       },
       "tier2_import": {
         "confidence": 0.85,
         "method": "tier2_import",
         "gating": "per_language",
-        "enabled_languages": ["typescript", "javascript"],
-        "fixture_proven_languages": ["typescript", "javascript"],
+        "enabled_languages": [
+          "typescript",
+          "javascript"
+        ],
+        "fixture_proven_languages": [
+          "typescript",
+          "javascript"
+        ],
         "gap_capability": "reference_resolution.tier2_import",
         "gap_reason": "import-guided resolution is gated off outside languages with a fixture-tested import contract",
         "required_closure": "normalize per-language import facts (module specifier + local binding + imported name) as first-class rows, then enable tier 2",
@@ -5443,7 +6321,9 @@
         "confidence_inferred": 0.65,
         "method": "tier3_receiver",
         "gating": "per_language_type_facts_bounded",
-        "fixture_proven_languages": ["csharp"],
+        "fixture_proven_languages": [
+          "csharp"
+        ],
         "gap_capability": "reference_resolution.tier3_receiver",
         "gap_reason": "receiver-typed resolution coverage is bounded by this language's type_facts emission; the tier ships with measured coverage, not a completeness claim",
         "required_closure": "broaden type_facts emission (especially for local variables) toward full receiver coverage",
@@ -5454,14 +6334,24 @@
         "confidence": 0.55,
         "method": "tier4_global",
         "gating": "universal",
-        "fixture_proven_languages": ["rust", "python", "go"],
-        "disabled_for": ["member_access", "method_calls"],
+        "fixture_proven_languages": [
+          "rust",
+          "python",
+          "go"
+        ],
+        "disabled_for": [
+          "member_access",
+          "method_calls"
+        ],
         "evidence": "fixtures/extraction/resolution_contract (tier4_cross_file + TIER14 matrix)"
       }
     },
     "not_applicable_languages": {
       "reason": "no reference surface: the language emits neither identifiers nor pending_relationships, so tiers 1-4 never fire",
-      "languages": ["markdown", "toml"]
+      "languages": [
+        "markdown",
+        "toml"
+      ]
     }
   }
 }

@@ -1103,6 +1103,7 @@ fn capability_matrix_has_no_silent_kind_coverage_cells() {
             "doc_comments",
             "literals",
             "source_regions",
+            "test_detection",
         ] {
             let Some(domain_coverage) = coverage.get(domain) else {
                 errors.push(format!("{language} is missing kind_coverage.{domain}"));
@@ -1122,6 +1123,88 @@ fn capability_matrix_has_no_silent_kind_coverage_cells() {
     }
 
     assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
+fn capability_matrix_test_detection_classifies_fixed_vocabulary_exactly_once() {
+    const TEST_DETECTION_UNITS: [&str; 3] = ["test_case", "test_container", "test_lifecycle"];
+    const CLOSURE_PLAN: &str =
+        "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md";
+
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        let Some(coverage) = row["kind_coverage"].get("test_detection") else {
+            errors.push(format!(
+                "{language} is missing kind_coverage.test_detection"
+            ));
+            continue;
+        };
+        let supported = coverage["supported"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{language} test_detection.supported must be an array"));
+        let not_applicable = coverage["not_applicable"].as_array().unwrap_or_else(|| {
+            panic!("{language} test_detection.not_applicable must be an array")
+        });
+        let open_gaps = coverage["open_gaps"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{language} test_detection.open_gaps must be an array"));
+
+        for value in supported.iter().chain(not_applicable) {
+            let unit = value.as_str().unwrap_or_else(|| {
+                panic!("{language} test_detection classifications must be strings")
+            });
+            if !TEST_DETECTION_UNITS.contains(&unit) {
+                errors.push(format!(
+                    "{language} test_detection uses unsupported unit `{unit}`"
+                ));
+            }
+        }
+        for gap in open_gaps {
+            let unit = gap.get("kind").and_then(Value::as_str).unwrap_or("");
+            if !TEST_DETECTION_UNITS.contains(&unit) {
+                errors.push(format!(
+                    "{language} test_detection uses unsupported open-gap unit `{unit}`"
+                ));
+            }
+            if gap.get("planned_closure_task").and_then(Value::as_str) != Some(CLOSURE_PLAN) {
+                errors.push(format!(
+                    "{language} test_detection open gap `{unit}` must point to {CLOSURE_PLAN}"
+                ));
+            }
+        }
+
+        for unit in TEST_DETECTION_UNITS {
+            let occurrences = supported
+                .iter()
+                .chain(not_applicable)
+                .filter(|value| value.as_str() == Some(unit))
+                .count()
+                + open_gaps
+                    .iter()
+                    .filter(|gap| gap.get("kind").and_then(Value::as_str) == Some(unit))
+                    .count();
+            if occurrences != 1 {
+                errors.push(format!(
+                    "{language} test_detection must classify `{unit}` exactly once; found {occurrences}"
+                ));
+            }
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
+fn capability_matrix_test_detection_claims_have_golden_evidence() {
+    assert_golden_domain_claims_match(
+        "test_detection",
+        "test role",
+        observed_test_detection_roles,
+    );
 }
 
 #[test]
@@ -1687,6 +1770,26 @@ fn observed_annotation_symbol_kinds(expected: &Value, into: &mut BTreeSet<String
             .is_some_and(|annotations| !annotations.is_empty());
         if has_annotations && let Some(kind) = symbol.get("kind").and_then(Value::as_str) {
             into.insert(kind.to_string());
+        }
+    }
+}
+
+fn observed_test_detection_roles(expected: &Value, into: &mut BTreeSet<String>) {
+    for symbol in golden_items(expected, "symbols") {
+        for (field, role) in [
+            ("is_test", "test_case"),
+            ("test_container", "test_container"),
+            ("test_lifecycle", "test_lifecycle"),
+        ] {
+            let first_class = symbol.get(field).and_then(Value::as_bool) == Some(true);
+            let metadata = symbol
+                .get("metadata")
+                .and_then(|value| value.get(field))
+                .and_then(Value::as_bool)
+                == Some(true);
+            if first_class || metadata {
+                into.insert(role.to_string());
+            }
         }
     }
 }

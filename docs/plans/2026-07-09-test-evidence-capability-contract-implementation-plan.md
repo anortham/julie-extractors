@@ -213,12 +213,12 @@ Expected: PASS with `silent_cells: 0` and `quality_bar_debts: 0`; report output 
 Use `parallel-lead-commit`: hand the verified diff, strict report, and per-language classification ledger to the lead without committing.
 
 **Acceptance criteria:**
-- [ ] Every supported language classifies all three fixed units exactly once.
-- [ ] Supported claims are registered-golden-backed.
-- [ ] All unproven roles point to the named closure plan.
-- [ ] No uncertain language is marked not applicable.
-- [ ] Strict report remains zero/zero.
-- [ ] Worker-scope verification passes and the change is handed to the lead per commit mode.
+- [x] Every supported language classifies all three fixed units exactly once.
+- [x] Supported claims are registered-golden-backed.
+- [x] All unproven roles point to the named closure plan.
+- [x] No uncertain language is marked not applicable.
+- [x] Strict report remains zero/zero.
+- [x] Worker-scope verification passes and the change is handed to the lead per commit mode.
 
 ### Task 3: Round-trip the public artifact and document consumer rules
 
