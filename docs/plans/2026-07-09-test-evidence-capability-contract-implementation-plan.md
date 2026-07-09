@@ -289,18 +289,18 @@ Expected: all pass; strict report remains zero/zero.
 Use `serial-worker-commit`: commit after focused and branch gates pass; record the SHA.
 
 **Acceptance criteria:**
-- [ ] SQLite, JSONL, and CLI round-trip exact capability data.
-- [ ] Contract docs define diagnostic and failed-preserved gates.
-- [ ] Docs distinguish extracted roles from runner inventory and semantic impact.
-- [ ] No schema/contract version is bumped unnecessarily.
-- [ ] Default, capability, contract, and strict report gates pass.
-- [ ] Worker-scope verification passes and the change is committed per commit mode.
+- [x] SQLite, JSONL, and CLI round-trip exact capability data.
+- [x] Contract docs define diagnostic and failed-preserved gates.
+- [x] Docs distinguish extracted roles from runner inventory and semantic impact.
+- [x] No schema/contract version is bumped unnecessarily.
+- [x] Default, capability, contract, and strict report gates pass.
+- [x] Worker-scope verification passes and the change is committed per commit mode.
 
 ## Program Exit Criteria
 
-- [ ] Every language has a non-silent, vocabulary-valid `test_detection` cell.
-- [ ] No supported role lacks registered golden evidence.
-- [ ] Missing evidence points to the explicit golden-closure plan.
-- [ ] All public artifact forms expose the same additive object.
-- [ ] Consumer docs prevent false negative/exhaustiveness claims.
-- [ ] Default/capability/contract gates and strict quality report pass.
+- [x] Every language has a non-silent, vocabulary-valid `test_detection` cell.
+- [x] No supported role lacks registered golden evidence.
+- [x] Missing evidence points to the explicit golden-closure plan.
+- [x] All public artifact forms expose the same additive object.
+- [x] Consumer docs prevent false negative/exhaustiveness claims.
+- [x] Default/capability/contract gates and strict quality report pass.
