@@ -2536,14 +2536,14 @@
           "open_gaps": [
             {
               "kind": "test_container",
-              "reason": "No registered java golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "The registered java:test_roles golden emits JUnit and TestNG annotated method cases, while its ManagedTestRoles class carries no test_container metadata; Java extraction applies test detection to callables and has no framework-suite container classifier.",
+              "required_closure": "confirm language-native applicability for JUnit and TestNG test containers, add type-level framework base-class or annotation classification that emits test_container=true with negative controls, and update the registered java:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered java golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "The Java annotation detector recognizes JUnit lifecycle keys such as beforeEach and afterEach, but callable extraction only writes is_test and never test_lifecycle; the registered java:test_roles golden therefore contains method cases but no lifecycle role.",
+              "required_closure": "confirm language-native applicability for JUnit and TestNG lifecycle annotations, map supported setup and teardown annotations to is_test=true plus test_lifecycle=true with negative controls, and update the registered java:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2705,14 +2705,14 @@
           "open_gaps": [
             {
               "kind": "test_container",
-              "reason": "No registered csharp golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "The registered csharp:test_roles golden emits xUnit, NUnit, and MSTest annotated method cases, while its ManagedTestRoles class carries no test_container metadata; C# test detection currently runs only for callable members.",
+              "required_closure": "confirm language-native applicability for xUnit, NUnit, and MSTest test containers, add type-level framework marker or base-type classification that emits test_container=true with negative controls, and update the registered csharp:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered csharp golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "The shared C# annotation detector recognizes NUnit and MSTest setup and teardown keys, but member extraction only writes is_test and never test_lifecycle; the registered csharp:test_roles golden therefore contains cases but no lifecycle role.",
+              "required_closure": "confirm language-native applicability for xUnit, NUnit, and MSTest lifecycle forms, map each supported setup and teardown form to is_test=true plus test_lifecycle=true with negative controls, and update the registered csharp:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2859,14 +2859,14 @@
           "open_gaps": [
             {
               "kind": "test_container",
-              "reason": "No registered vbnet golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "The registered vbnet:test_roles golden emits xUnit, NUnit, and MSTest annotated method cases, while its ManagedTestRoles class carries no test_container metadata; VB.NET test detection currently runs only for callable members.",
+              "required_closure": "confirm language-native applicability for xUnit, NUnit, and MSTest VB.NET test containers, add type-level framework marker or base-type classification that emits test_container=true with negative controls, and update the registered vbnet:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered vbnet golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "VB.NET uses the shared C# annotation detector for setup and teardown keys, but member extraction only writes is_test and never test_lifecycle; the registered vbnet:test_roles golden therefore contains cases but no lifecycle role.",
+              "required_closure": "confirm language-native applicability for xUnit, NUnit, and MSTest VB.NET lifecycle forms, map each supported setup and teardown annotation to is_test=true plus test_lifecycle=true with negative controls, and update the registered vbnet:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -3703,8 +3703,8 @@
           "open_gaps": [
             {
               "kind": "test_lifecycle",
-              "reason": "No registered scala golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "The registered scala:test_roles golden emits ScalaTest describe and it roles, but SCALA_VOCAB has no lifecycle entries and ScalaTest lifecycle overrides are extracted as ordinary methods without test_lifecycle metadata.",
+              "required_closure": "confirm language-native applicability for ScalaTest and MUnit lifecycle overrides or calls, add supported lifecycle recognition that emits is_test=true plus test_lifecycle=true with negative controls, and update the registered scala:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5120,14 +5120,14 @@
           "open_gaps": [
             {
               "kind": "test_container",
-              "reason": "No registered razor golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "The registered razor:test_roles golden emits a Fact method case through the embedded C# path, while RazorTestRoles and the generated component class carry no test_container metadata; the embedded flow has no type-level test-role classification.",
+              "required_closure": "confirm language-native applicability for test containers inside Razor embedded C# blocks, add supported type-level framework classification that emits test_container=true with negative controls, and update the registered razor:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered razor golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "Razor's embedded C# method flow now passes normalized annotations into the shared detector, but it only writes is_test and has no lifecycle-role promotion; the registered razor:test_roles golden therefore contains a Fact case but no lifecycle role.",
+              "required_closure": "confirm language-native applicability for NUnit and MSTest lifecycle annotations inside Razor embedded C# blocks, map supported setup and teardown forms to is_test=true plus test_lifecycle=true with negative controls, and update the registered razor:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
