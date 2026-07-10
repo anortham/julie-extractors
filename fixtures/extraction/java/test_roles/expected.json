@@ -1,0 +1,403 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
+      "name": "ManagedTestRoles",
+      "kind": "class",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 278,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 23,
+        "end_line": 16,
+        "end_column": 1,
+        "start_byte": 23,
+        "end_byte": 278
+      },
+      "body_hash": "eb3e8a59e29ecf54e404272e51453137",
+      "signature": "class ManagedTestRoles",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/test_roles/source.java:junitCase:2:4",
+      "name": "junitCase",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 5,
+      "start_byte": 29,
+      "end_byte": 85,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 21,
+        "end_line": 4,
+        "end_column": 5,
+        "start_byte": 78,
+        "end_byte": 85
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "@org.junit.jupiter.api.Test void junitCase()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "Test",
+          "annotation_key": "test",
+          "raw_text": "org.junit.jupiter.api.Test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/test_roles/source.java:parameterizedCase:6:4",
+      "name": "parameterizedCase",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 5,
+      "start_byte": 91,
+      "end_byte": 171,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 29,
+        "end_line": 8,
+        "end_column": 5,
+        "start_byte": 164,
+        "end_byte": 171
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "@org.junit.jupiter.params.ParameterizedTest void parameterizedCase()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "ParameterizedTest",
+          "annotation_key": "parameterizedtest",
+          "raw_text": "org.junit.jupiter.params.ParameterizedTest"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/test_roles/source.java:testNamedButOrdinary:14:4",
+      "name": "testNamedButOrdinary",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "start_line": 14,
+      "start_column": 4,
+      "end_line": 15,
+      "end_column": 5,
+      "start_byte": 241,
+      "end_byte": 276,
+      "body_span": {
+        "start_line": 14,
+        "start_column": 32,
+        "end_line": 15,
+        "end_column": 5,
+        "start_byte": 269,
+        "end_byte": 276
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "void testNamedButOrdinary()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/java/test_roles/source.java:testNgCase:10:4",
+      "name": "testNgCase",
+      "kind": "method",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 177,
+      "end_byte": 235,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 22,
+        "end_line": 12,
+        "end_column": 5,
+        "start_byte": 228,
+        "end_byte": 235
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "@org.testng.annotations.Test void testNgCase()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/java/test_roles/source.java:ManagedTestRoles:1:0",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "Test",
+          "annotation_key": "test",
+          "raw_text": "org.testng.annotations.Test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/java/test_roles/source.java:junitCase:2:4",
+      "resolved_type": "Test void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/test_roles/source.java:parameterizedCase:6:4",
+      "resolved_type": "ParameterizedTest void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/test_roles/source.java:testNamedButOrdinary:14:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/java/test_roles/source.java:testNgCase:10:4",
+      "resolved_type": "Test void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "java",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "java.marker_annotation.v1",
+      "capture_name": "marker_annotation",
+      "node_kind": "marker_annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "containing_key": "fixtures/extraction/java/test_roles/source.java:junitCase:2:4",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 2,
+      "end_column": 31,
+      "start_byte": 29,
+      "end_byte": 56,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "org.junit.jupiter.api.Test",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "java.marker_annotation.v1",
+      "capture_name": "marker_annotation",
+      "node_kind": "marker_annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "containing_key": "fixtures/extraction/java/test_roles/source.java:parameterizedCase:6:4",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 6,
+      "end_column": 47,
+      "start_byte": 91,
+      "end_byte": 134,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "org.junit.jupiter.params.ParameterizedTest",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "java.marker_annotation.v1",
+      "capture_name": "marker_annotation",
+      "node_kind": "marker_annotation",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "containing_key": "fixtures/extraction/java/test_roles/source.java:testNgCase:10:4",
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 10,
+      "end_column": 32,
+      "start_byte": 177,
+      "end_byte": 205,
+      "confidence": "1.000",
+      "metadata": {
+        "annotation_name": "org.testng.annotations.Test",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "covered_lines": 17,
+      "covered_bytes": 279,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 279,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/test_roles/source.java:junitCase:2:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 21,
+      "end_line": 4,
+      "end_column": 5,
+      "start_byte": 78,
+      "end_byte": 85,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/test_roles/source.java:parameterizedCase:6:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 29,
+      "end_line": 8,
+      "end_column": 5,
+      "start_byte": 164,
+      "end_byte": 171,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/test_roles/source.java:testNamedButOrdinary:14:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 14,
+      "start_column": 32,
+      "end_line": 15,
+      "end_column": 5,
+      "start_byte": 269,
+      "end_byte": 276,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/java/test_roles/source.java:testNgCase:10:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "java",
+      "file_path": "fixtures/extraction/java/test_roles/source.java",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 22,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 228,
+      "end_byte": 235,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

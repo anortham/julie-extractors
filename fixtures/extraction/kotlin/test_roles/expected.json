@@ -1,0 +1,509 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0",
+      "name": "ManagedTestRoles",
+      "kind": "class",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 2,
+      "start_byte": 0,
+      "end_byte": 157,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 38,
+        "end_line": 9,
+        "end_column": 1,
+        "start_byte": 38,
+        "end_byte": 156
+      },
+      "body_hash": "e72c7229e946d84e473d5ee634cda5a8",
+      "signature": "class ManagedTestRoles : DescribeSpec({\n    beforeEach {\n    }\n\n    describe(\"kotlin roles\") {\n        it(\"extracts a Kotlin test case\") {\n        }\n    }\n})",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:2:4",
+      "name": "beforeEach",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 3,
+      "end_column": 5,
+      "start_byte": 44,
+      "end_byte": 62,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 15,
+        "end_line": 3,
+        "end_column": 5,
+        "start_byte": 55,
+        "end_byte": 62
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "beforeEach()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0",
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
+      "name": "extracts a Kotlin test case",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 6,
+      "start_column": 8,
+      "end_line": 7,
+      "end_column": 9,
+      "start_byte": 103,
+      "end_byte": 148,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 42,
+        "end_line": 7,
+        "end_column": 9,
+        "start_byte": 137,
+        "end_byte": 148
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "it(\"extracts a Kotlin test case\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+      "name": "kotlin roles",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 5,
+      "start_byte": 68,
+      "end_byte": 154,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 29,
+        "end_line": 8,
+        "end_column": 5,
+        "start_byte": 93,
+        "end_byte": 154
+      },
+      "body_hash": "0447df7e5d39cb71cd722dfed2d70263",
+      "signature": "describe(\"kotlin roles\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0",
+      "metadata": {
+        "test_container": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:testNamedButOrdinary:11:0",
+      "name": "testNamedButOrdinary",
+      "kind": "function",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 1,
+      "start_byte": 159,
+      "end_byte": 189,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 27,
+        "end_line": 12,
+        "end_column": 1,
+        "start_byte": 186,
+        "end_byte": 189
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "fun testNamedButOrdinary()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:2:4",
+      "to_key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:2:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "line_number": 2,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0",
+      "callee_name": "DescribeSpec",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "line_number": 1,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
+      "callee_name": "it",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "line_number": 6,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+      "callee_name": "describe",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "line_number": 5,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0",
+        "callee_name": "DescribeSpec",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+        "line_number": 1,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "DescribeSpec",
+        "terminal_name": "DescribeSpec",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
+        "callee_name": "it",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+        "line_number": 6,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "it",
+        "terminal_name": "it",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+        "callee_name": "describe",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+        "line_number": 5,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "describe",
+        "terminal_name": "describe",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:DescribeSpec:type_usage:1:25",
+      "name": "DescribeSpec",
+      "kind": "type_usage",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 1,
+      "start_column": 25,
+      "end_line": 1,
+      "end_column": 37,
+      "start_byte": 25,
+      "end_byte": 37,
+      "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:call:2:4",
+      "name": "beforeEach",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 2,
+      "end_column": 14,
+      "start_byte": 44,
+      "end_byte": 54,
+      "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:2:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:describe:call:5:4",
+      "name": "describe",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 12,
+      "start_byte": 68,
+      "end_byte": 76,
+      "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/kotlin/test_roles/source.kt:it:call:6:8",
+      "name": "it",
+      "kind": "call",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 6,
+      "start_column": 8,
+      "end_line": 6,
+      "end_column": 10,
+      "start_byte": 103,
+      "end_byte": 105,
+      "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "covered_lines": 13,
+      "covered_bytes": 190,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 190,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/test_roles/source.kt:beforeEach:2:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "covered_lines": 2,
+      "covered_bytes": 7,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 2,
+      "start_column": 15,
+      "end_line": 3,
+      "end_column": 5,
+      "start_byte": 55,
+      "end_byte": 62,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "covered_lines": 2,
+      "covered_bytes": 11,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 6,
+      "start_column": 42,
+      "end_line": 7,
+      "end_column": 9,
+      "start_byte": 137,
+      "end_byte": 148,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "covered_lines": 4,
+      "covered_bytes": 61,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 5,
+      "start_column": 29,
+      "end_line": 8,
+      "end_column": 5,
+      "start_byte": 93,
+      "end_byte": 154,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/kotlin/test_roles/source.kt:testNamedButOrdinary:11:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "covered_lines": 2,
+      "covered_bytes": 3,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 27,
+      "end_line": 12,
+      "end_column": 1,
+      "start_byte": 186,
+      "end_byte": 189,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "extracts a Kotlin test case",
+      "kind": "other",
+      "carrier": "it",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 6,
+      "start_column": 11,
+      "end_line": 6,
+      "end_column": 40,
+      "start_byte": 106,
+      "end_byte": 135,
+      "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "kotlin roles",
+      "kind": "other",
+      "carrier": "describe",
+      "arg_position": 0,
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "start_line": 5,
+      "start_column": 13,
+      "end_line": 5,
+      "end_column": 27,
+      "start_byte": 77,
+      "end_byte": 91,
+      "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
+      "start_line": 6,
+      "start_column": 11,
+      "end_line": 6,
+      "end_column": 40,
+      "start_byte": 106,
+      "end_byte": 135,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "kotlin",
+      "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
+      "containing_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+      "start_line": 5,
+      "start_column": 13,
+      "end_line": 5,
+      "end_column": 27,
+      "start_byte": 77,
+      "end_byte": 91,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

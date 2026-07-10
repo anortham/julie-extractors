@@ -1,0 +1,308 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/razor/test_roles/source.razor:Fact:9:8",
+      "name": "Fact",
+      "kind": "method",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "start_line": 9,
+      "start_column": 8,
+      "end_line": 11,
+      "end_column": 9,
+      "start_byte": 129,
+      "end_byte": 167,
+      "body_span": {
+        "start_line": 10,
+        "start_column": 8,
+        "end_line": 11,
+        "end_column": 9,
+        "start_byte": 156,
+        "end_byte": 167
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "public void Fact()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/test_roles/source.razor:RazorTestRoles:2:4",
+      "metadata": {
+        "attributes": "",
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "void",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/test_roles/source.razor:RazorCase:4:8",
+      "name": "RazorCase",
+      "kind": "method",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "start_line": 4,
+      "start_column": 8,
+      "end_line": 7,
+      "end_column": 9,
+      "start_byte": 61,
+      "end_byte": 119,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 8,
+        "end_line": 7,
+        "end_column": 9,
+        "start_byte": 108,
+        "end_byte": 119
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "[Fact] public void RazorCase()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/test_roles/source.razor:RazorTestRoles:2:4",
+      "metadata": {
+        "attributes": "[Fact]",
+        "is_test": true,
+        "modifiers": "public",
+        "parameters": "()",
+        "returnType": "void",
+        "type": "method"
+      },
+      "annotations": [
+        {
+          "annotation": "Fact",
+          "annotation_key": "fact",
+          "raw_text": "Fact"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/test_roles/source.razor:RazorTestRoles:2:4",
+      "name": "RazorTestRoles",
+      "kind": "class",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 12,
+      "end_byte": 173,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 5,
+        "start_byte": 51,
+        "end_byte": 173
+      },
+      "body_hash": "bcc3ffef2ae0753d9ffe380562c74bba",
+      "signature": "public sealed class RazorTestRoles",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "public, sealed",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/test_roles/source.razor:source:1:0",
+      "name": "source",
+      "kind": "class",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 176,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 6,
+        "end_line": 13,
+        "end_column": 1,
+        "start_byte": 6,
+        "end_byte": 175
+      },
+      "body_hash": "38d63c932d3818059e3a8055652e22c7",
+      "signature": "component source",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "qualifiedName": "source",
+        "type": "razor-component"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Fact:9:8",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:RazorCase:4:8",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:RazorTestRoles:2:4",
+      "resolved_type": "sealed",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:source:1:0",
+      "resolved_type": "unknown",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "razor.code_block.v1",
+      "capture_name": "code_block",
+      "node_kind": "razor_block",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "containing_key": "fixtures/extraction/razor/test_roles/source.razor:source:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 175,
+      "confidence": "1.000",
+      "metadata": {
+        "block_type": "code",
+        "framework": "razor",
+        "pattern_version": 1,
+        "query_family": "component_code"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "covered_lines": 14,
+      "covered_bytes": 176,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 176,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:Fact:9:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "covered_lines": 2,
+      "covered_bytes": 11,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 10,
+      "start_column": 8,
+      "end_line": 11,
+      "end_column": 9,
+      "start_byte": 156,
+      "end_byte": 167,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/razor/test_roles/source.razor:RazorCase:4:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "covered_lines": 2,
+      "covered_bytes": 11,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 6,
+      "start_column": 8,
+      "end_line": 7,
+      "end_column": 9,
+      "start_byte": 108,
+      "end_byte": 119,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/test_roles/source.razor",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 175,
+      "metadata": {
+        "block_type": "code",
+        "embedded_language": "csharp",
+        "host_node_kind": "razor_block"
+      }
+    }
+  ],
+  "type_argument_usages": []
+}

@@ -284,13 +284,19 @@ impl super::RazorExtractor {
         // Extract C# XML doc comment
         let doc_comment = self.base.find_doc_comment(&node);
 
-        // Test detection uses normalized annotation keys supplied by later extraction tasks.
+        let annotations = normalize_annotations(&attributes, "csharp");
+        let annotation_keys = annotations
+            .iter()
+            .map(|annotation| annotation.annotation_key.clone())
+            .collect::<Vec<_>>();
+
+        // Test detection consumes the same normalized annotation keys persisted on the symbol.
         let is_test = is_test_symbol(
             "razor",
             &name,
             &self.base.file_path,
             &SymbolKind::Method,
-            &[],
+            &annotation_keys,
             doc_comment.as_deref(),
         );
 
@@ -334,7 +340,7 @@ impl super::RazorExtractor {
                     metadata
                 }),
                 doc_comment,
-                annotations: normalize_annotations(&attributes, "csharp"),
+                annotations,
             },
         ))
     }

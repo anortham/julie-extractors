@@ -31,6 +31,33 @@ fn extract_relationships(code: &str, symbols: &[Symbol]) -> Vec<Relationship> {
     extractor.extract_relationships(&tree, symbols)
 }
 
+#[test]
+fn fact_annotation_marks_embedded_csharp_method_as_test() {
+    let symbols = extract_symbols(
+        r#"@code {
+    public sealed class RazorTests
+    {
+        [Fact]
+        public void RazorCase() {}
+    }
+}"#,
+    );
+
+    let method = symbols
+        .iter()
+        .find(|symbol| symbol.name == "RazorCase")
+        .unwrap_or_else(|| panic!("expected RazorCase method, got {symbols:#?}"));
+    assert_eq!(
+        method
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("is_test"))
+            .and_then(serde_json::Value::as_bool),
+        Some(true),
+        "embedded C# [Fact] must set is_test; got {method:#?}"
+    );
+}
+
 #[cfg(test)]
 mod annotations;
 #[cfg(test)]
