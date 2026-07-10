@@ -1,0 +1,275 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/c/test_roles/source.c:helper_named_like_a_test:5:0",
+      "name": "helper_named_like_a_test",
+      "kind": "function",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 38,
+      "start_byte": 54,
+      "end_byte": 92,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 36,
+        "end_line": 5,
+        "end_column": 38,
+        "start_byte": 90,
+        "end_byte": 92
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "void helper_named_like_a_test(void)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "isDefinition": "true",
+        "isStatic": "false",
+        "name": "helper_named_like_a_test",
+        "parameters": "void",
+        "returnType": "void",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+      "name": "math.addition",
+      "kind": "function",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 20,
+      "start_byte": 0,
+      "end_byte": 20,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 4,
+        "end_line": 1,
+        "end_column": 20,
+        "start_byte": 4,
+        "end_byte": 20
+      },
+      "body_hash": "9ab24d0b1559ddcc8d8c2bb05dd22213",
+      "signature": "Test(\"math.addition\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+      "callee_name": "Test",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "line_number": 1,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+        "callee_name": "Test",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/c/test_roles/source.c",
+        "line_number": 1,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Test",
+        "terminal_name": "Test",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/c/test_roles/source.c:Test:call:1:0",
+      "name": "Test",
+      "kind": "call",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 4,
+      "start_byte": 0,
+      "end_byte": 4,
+      "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/c/test_roles/source.c:addition:variable_ref:1:11",
+      "name": "addition",
+      "kind": "variable_ref",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "start_line": 1,
+      "start_column": 11,
+      "end_line": 1,
+      "end_column": 19,
+      "start_byte": 11,
+      "end_byte": 19,
+      "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/c/test_roles/source.c:cr_assert_eq:call:2:4",
+      "name": "cr_assert_eq",
+      "kind": "call",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 2,
+      "end_column": 16,
+      "start_byte": 27,
+      "end_byte": 39,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/c/test_roles/source.c:math:variable_ref:1:5",
+      "name": "math",
+      "kind": "variable_ref",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "start_line": 1,
+      "start_column": 5,
+      "end_line": 1,
+      "end_column": 9,
+      "start_byte": 5,
+      "end_byte": 9,
+      "containing_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/c/test_roles/source.c:helper_named_like_a_test:5:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "c",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+      "resolved_type": "Test(\"",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "c",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [
+    {
+      "kind": "Missing",
+      "start_line": 1,
+      "start_column": 20,
+      "end_line": 1,
+      "end_column": 20,
+      "start_byte": 20,
+      "end_byte": 20
+    }
+  ],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "covered_lines": 6,
+      "covered_bytes": 93,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 93,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/c/test_roles/source.c:helper_named_like_a_test:5:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 5,
+      "start_column": 36,
+      "end_line": 5,
+      "end_column": 38,
+      "start_byte": 90,
+      "end_byte": 92,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "c",
+      "file_path": "fixtures/extraction/c/test_roles/source.c",
+      "covered_lines": 1,
+      "covered_bytes": 16,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 4,
+      "end_line": 1,
+      "end_column": 20,
+      "start_byte": 4,
+      "end_byte": 20,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

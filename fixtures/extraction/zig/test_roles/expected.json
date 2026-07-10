@@ -1,0 +1,276 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+      "name": "addition works",
+      "kind": "function",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 1,
+      "start_byte": 29,
+      "end_byte": 94,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 22,
+        "end_line": 5,
+        "end_column": 1,
+        "start_byte": 51,
+        "end_byte": 94
+      },
+      "body_hash": "06a4c4bf36dbf8ca078fde823e6a6caf",
+      "signature": "test \"addition works\"",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/zig/test_roles/source.zig:helperNamedLikeATest:7:0",
+      "name": "helperNamedLikeATest",
+      "kind": "function",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 33,
+      "start_byte": 96,
+      "end_byte": 129,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 31,
+        "end_line": 7,
+        "end_column": 33,
+        "start_byte": 127,
+        "end_byte": 129
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "fn helperNamedLikeATest() void",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/zig/test_roles/source.zig:std:1:0",
+      "name": "std",
+      "kind": "import",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 27,
+      "start_byte": 0,
+      "end_byte": 27,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 19,
+        "end_line": 1,
+        "end_column": 26,
+        "start_byte": 19,
+        "end_byte": 26
+      },
+      "body_hash": "f74aa1e8b0f059a91c743c72f040fea4",
+      "signature": "const std = @import(\"std\")",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "source": "std"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/zig/test_roles/source.zig:expect:call:4:20",
+      "name": "expect",
+      "kind": "call",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "start_line": 4,
+      "start_column": 20,
+      "end_line": 4,
+      "end_column": 26,
+      "start_byte": 73,
+      "end_byte": 79,
+      "containing_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/zig/test_roles/source.zig:std:variable_ref:4:8",
+      "name": "std",
+      "kind": "variable_ref",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "start_line": 4,
+      "start_column": 8,
+      "end_line": 4,
+      "end_column": 11,
+      "start_byte": 61,
+      "end_byte": 64,
+      "containing_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/zig/test_roles/source.zig:testing:member_access:4:12",
+      "name": "testing",
+      "kind": "member_access",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "start_line": 4,
+      "start_column": 12,
+      "end_line": 4,
+      "end_column": 19,
+      "start_byte": 65,
+      "end_byte": 72,
+      "containing_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "zig.builtin_call.v1",
+      "capture_name": "builtin_call",
+      "node_kind": "builtin_function",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 12,
+      "end_line": 1,
+      "end_column": 26,
+      "start_byte": 12,
+      "end_byte": 26,
+      "confidence": "1.000",
+      "metadata": {
+        "builtin_name": "import",
+        "pattern_version": 1,
+        "query_family": "builtin"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "covered_lines": 8,
+      "covered_bytes": 130,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 130,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "covered_lines": 3,
+      "covered_bytes": 43,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 3,
+      "start_column": 22,
+      "end_line": 5,
+      "end_column": 1,
+      "start_byte": 51,
+      "end_byte": 94,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/zig/test_roles/source.zig:helperNamedLikeATest:7:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 31,
+      "end_line": 7,
+      "end_column": 33,
+      "start_byte": 127,
+      "end_byte": 129,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "containing_key": "fixtures/extraction/zig/test_roles/source.zig:addition works:3:0",
+      "start_line": 3,
+      "start_column": 5,
+      "end_line": 3,
+      "end_column": 21,
+      "start_byte": 34,
+      "end_byte": 50,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "zig",
+      "file_path": "fixtures/extraction/zig/test_roles/source.zig",
+      "containing_key": "fixtures/extraction/zig/test_roles/source.zig:std:1:0",
+      "start_line": 1,
+      "start_column": 20,
+      "end_line": 1,
+      "end_column": 25,
+      "start_byte": 20,
+      "end_byte": 25,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

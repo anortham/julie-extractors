@@ -1,0 +1,152 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case:2:0",
+      "name": "extracts_test_case",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 8,
+      "end_byte": 61,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 24,
+        "end_line": 4,
+        "end_column": 1,
+        "start_byte": 32,
+        "end_byte": 61
+      },
+      "body_hash": "b2a4af118dffc645f96e971da61886cd",
+      "signature": "fn extracts_test_case()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "test",
+          "annotation_key": "test",
+          "raw_text": "test"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/test_roles/source.rs:test_named_but_unannotated_is_not_a_test:6:0",
+      "name": "test_named_but_unannotated_is_not_a_test",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 48,
+      "start_byte": 63,
+      "end_byte": 111,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 46,
+        "end_line": 6,
+        "end_column": 48,
+        "start_byte": 109,
+        "end_byte": 111
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "fn test_named_but_unannotated_is_not_a_test()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 7,
+      "covered_bytes": 112,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 112,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:extracts_test_case:2:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 29,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 2,
+      "start_column": 24,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 32,
+      "end_byte": 61,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/test_roles/source.rs:test_named_but_unannotated_is_not_a_test:6:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/test_roles/source.rs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 6,
+      "start_column": 46,
+      "end_line": 6,
+      "end_column": 48,
+      "start_byte": 109,
+      "end_byte": 111,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

@@ -1,0 +1,422 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/cpp/test_roles/source.cpp:helper_named_like_a_test_case:7:0",
+      "name": "helper_named_like_a_test_case",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 39,
+      "start_byte": 100,
+      "end_byte": 139,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 37,
+        "end_line": 7,
+        "end_column": 39,
+        "start_byte": 137,
+        "end_byte": 139
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "void helper_named_like_a_test_case()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
+      "name": "push grows",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 44,
+      "end_byte": 65,
+      "body_span": {
+        "start_line": 2,
+        "start_column": 11,
+        "end_line": 2,
+        "end_column": 25,
+        "start_byte": 51,
+        "end_byte": 65
+      },
+      "body_hash": "029310cebd69456534e801108ee78a09",
+      "signature": "SECTION(\"push grows\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "test_container": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+      "name": "vector grows",
+      "kind": "function",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 37,
+      "start_byte": 0,
+      "end_byte": 37,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 9,
+        "end_line": 1,
+        "end_column": 37,
+        "start_byte": 9,
+        "end_byte": 37
+      },
+      "body_hash": "d2a1b735c0f36a4c66e46f104c74e60a",
+      "signature": "TEST_CASE(\"vector grows\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
+      "callee_name": "SECTION",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "line_number": 2,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+      "callee_name": "TEST_CASE",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "line_number": 1,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
+        "callee_name": "SECTION",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+        "line_number": 2,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "SECTION",
+        "terminal_name": "SECTION",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+        "callee_name": "TEST_CASE",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+        "line_number": 1,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "TEST_CASE",
+        "terminal_name": "TEST_CASE",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/cpp/test_roles/source.cpp:REQUIRE:call:3:8",
+      "name": "REQUIRE",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 3,
+      "start_column": 8,
+      "end_line": 3,
+      "end_column": 15,
+      "start_byte": 76,
+      "end_byte": 83,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_roles/source.cpp:SECTION:call:2:4",
+      "name": "SECTION",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 2,
+      "start_column": 4,
+      "end_line": 2,
+      "end_column": 11,
+      "start_byte": 44,
+      "end_byte": 51,
+      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/cpp/test_roles/source.cpp:TEST_CASE:call:1:0",
+      "name": "TEST_CASE",
+      "kind": "call",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 9,
+      "start_byte": 0,
+      "end_byte": 9,
+      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:helper_named_like_a_test_case:7:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "cpp",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [
+    {
+      "kind": "Missing",
+      "start_line": 1,
+      "start_column": 37,
+      "end_line": 1,
+      "end_column": 37,
+      "start_byte": 37,
+      "end_byte": 37
+    },
+    {
+      "kind": "Missing",
+      "start_line": 2,
+      "start_column": 25,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 65,
+      "end_byte": 65
+    }
+  ],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "covered_lines": 8,
+      "covered_bytes": 140,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 140,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:helper_named_like_a_test_case:7:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 37,
+      "end_line": 7,
+      "end_column": 39,
+      "start_byte": 137,
+      "end_byte": 139,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 14,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 2,
+      "start_column": 11,
+      "end_line": 2,
+      "end_column": 25,
+      "start_byte": 51,
+      "end_byte": 65,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "covered_lines": 1,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 9,
+      "end_line": 1,
+      "end_column": 37,
+      "start_byte": 9,
+      "end_byte": 37,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "[vector]",
+      "kind": "other",
+      "carrier": "TEST_CASE",
+      "arg_position": 1,
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 1,
+      "start_column": 26,
+      "end_line": 1,
+      "end_column": 36,
+      "start_byte": 26,
+      "end_byte": 36,
+      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "push grows",
+      "kind": "other",
+      "carrier": "SECTION",
+      "arg_position": 0,
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 2,
+      "start_column": 12,
+      "end_line": 2,
+      "end_column": 24,
+      "start_byte": 52,
+      "end_byte": 64,
+      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "vector grows",
+      "kind": "other",
+      "carrier": "TEST_CASE",
+      "arg_position": 0,
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "start_line": 1,
+      "start_column": 10,
+      "end_line": 1,
+      "end_column": 24,
+      "start_byte": 10,
+      "end_byte": 24,
+      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:push grows:2:4",
+      "start_line": 2,
+      "start_column": 12,
+      "end_line": 2,
+      "end_column": 24,
+      "start_byte": 52,
+      "end_byte": 64,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+      "start_line": 1,
+      "start_column": 10,
+      "end_line": 1,
+      "end_column": 24,
+      "start_byte": 10,
+      "end_byte": 24,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "cpp",
+      "file_path": "fixtures/extraction/cpp/test_roles/source.cpp",
+      "containing_key": "fixtures/extraction/cpp/test_roles/source.cpp:vector grows:1:0",
+      "start_line": 1,
+      "start_column": 26,
+      "end_line": 1,
+      "end_column": 36,
+      "start_byte": 26,
+      "end_byte": 36,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

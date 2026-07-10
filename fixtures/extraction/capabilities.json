@@ -49,6 +49,11 @@
           "name": "http_client",
           "source": "fixtures/extraction/rust/http_client/source.rs",
           "expected": "fixtures/extraction/rust/http_client/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/rust/test_roles/source.rs",
+          "expected": "fixtures/extraction/rust/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -194,25 +199,21 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "test_case",
-              "reason": "No registered rust golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
               "kind": "test_container",
-              "reason": "No registered rust golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "Rust #[test] and supported async/parameterized test attributes classify callable test cases, but the extractor does not classify modules or framework suite macros as test containers.",
+              "required_closure": "determine language-native applicability for a stable Rust test-container signal, then add language-local extraction coverage and register golden evidence when applicable",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered rust golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "Rust's built-in #[test] construct has no lifecycle annotation, and supported framework fixture hooks are not currently materialized as lifecycle symbols.",
+              "required_closure": "determine language-native applicability for a stable Rust lifecycle construct, then add language-local extraction coverage and register golden evidence when applicable",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -249,6 +250,11 @@
           "name": "structural_facts",
           "source": "fixtures/extraction/c/structural_facts/source.c",
           "expected": "fixtures/extraction/c/structural_facts/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/c/test_roles/source.c",
+          "expected": "fixtures/extraction/c/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -347,25 +353,21 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "test_case",
-              "reason": "No registered c golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
               "kind": "test_container",
-              "reason": "No registered c golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "The C Criterion adapter materializes Test(suite, name) cases but its supported vocabulary has no distinct container construct; suite arguments are currently part of the case name only.",
+              "required_closure": "determine language-native applicability for a stable C framework container construct, then implement it without fabricating suite symbols from Criterion name arguments and register golden evidence",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered c golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "Criterion's extracted Test macro has no lifecycle call vocabulary, while Unity/CMocka setup and teardown functions are ordinary functions that are not yet classified as lifecycle symbols.",
+              "required_closure": "determine language-native applicability for C lifecycle hooks, then add narrowly framework-aware classification with false-positive controls and register golden evidence",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -408,6 +410,11 @@
           "name": "structural_facts",
           "source": "fixtures/extraction/cpp/structural_facts/source.cpp",
           "expected": "fixtures/extraction/cpp/structural_facts/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/cpp/test_roles/source.cpp",
+          "expected": "fixtures/extraction/cpp/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -509,25 +516,16 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "test_case",
-              "reason": "No registered cpp golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered cpp golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
               "kind": "test_lifecycle",
-              "reason": "No registered cpp golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "The supported Catch2 call vocabulary emits test cases and SECTION-style containers but contains no lifecycle calls; fixture setup and teardown methods are not yet classified.",
+              "required_closure": "determine language-native applicability for C++ fixture lifecycle hooks, then add narrowly framework-aware classification with false-positive controls and register golden evidence",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -573,6 +571,11 @@
           "name": "backend_http_boundaries",
           "source": "fixtures/extraction/go/backend_http_boundaries/source.go",
           "expected": "fixtures/extraction/go/backend_http_boundaries/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/go/test_roles/source_test.go",
+          "expected": "fixtures/extraction/go/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -680,28 +683,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered go golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered go golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered go golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -729,6 +717,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/zig/cross_file/source.zig",
           "expected": "fixtures/extraction/zig/cross_file/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/zig/test_roles/source.zig",
+          "expected": "fixtures/extraction/zig/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -832,25 +825,21 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "test_case",
-              "reason": "No registered zig golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
               "kind": "test_container",
-              "reason": "No registered zig golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "Zig test declarations are emitted as individual test cases, but the extractor has no stable language-native grouping construct that it classifies as a test container.",
+              "required_closure": "determine language-native applicability for a stable Zig framework or language grouping signal, then implement it with false-positive controls and register golden evidence",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered zig golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "Zig test declarations do not provide a built-in lifecycle annotation, and ordinary setup or teardown helpers are not currently classified as lifecycle symbols.",
+              "required_closure": "determine language-native applicability for a stable Zig lifecycle convention, then implement it with false-positive controls and register golden evidence",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
