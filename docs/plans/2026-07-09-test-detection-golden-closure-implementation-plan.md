@@ -367,17 +367,17 @@ node scripts/language-data-quality-report.mjs --strict
 **Step 5: Use `serial-worker-commit` and record the final SHA/ledger.**
 
 **Acceptance criteria:**
-- [ ] `test_detection` is enforced for code languages.
-- [ ] Strict report is `silent_cells: 0`, `quality_bar_debts: 0`.
-- [ ] Final findings map every supported role to a golden fixture.
-- [ ] Remaining role variants are explicit, owned gaps.
-- [ ] Full branch gate passes and the task is committed.
+- [x] `test_detection` is enforced for code languages.
+- [x] Strict report is `silent_cells: 0`, `quality_bar_debts: 0`.
+- [x] Final findings map every supported role to a golden fixture.
+- [x] Remaining role variants are explicit, owned gaps.
+- [x] Full branch gate passes and the task is committed.
 
 ## Program Exit Criteria
 
-- [ ] Every executable supported language has registered golden test-role evidence or an evidence-backed exception.
-- [ ] Every fixed role unit is supported, not applicable, or explicitly open for every language.
-- [ ] Negative controls guard against false-positive role detection.
-- [ ] `test_detection` is part of the strict code-language quality bar.
-- [ ] No runtime CT behavior or runner inventory leaked into julie-extractors.
-- [ ] Default, golden, capability, contract, and strict-report gates pass.
+- [x] Every executable supported language has registered golden test-role evidence or an evidence-backed exception.
+- [x] Every fixed role unit is supported, not applicable, or explicitly open for every language.
+- [x] Negative controls guard against false-positive role detection.
+- [x] `test_detection` is part of the strict code-language quality bar.
+- [x] No runtime CT behavior or runner inventory leaked into julie-extractors.
+- [x] Default, golden, capability, contract, and strict-report gates pass.
