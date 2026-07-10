@@ -49,10 +49,7 @@ pub(super) fn unwrap_to_function_declarator(node: Node) -> Option<Node> {
                         )
                     })
                 });
-                match next {
-                    Some(n) => current = n,
-                    None => return None,
-                }
+                current = next?;
             }
             _ => return None,
         }

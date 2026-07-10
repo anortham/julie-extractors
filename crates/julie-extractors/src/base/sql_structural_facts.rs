@@ -716,12 +716,9 @@ fn column_type_name(content: &str, node: Node<'_>) -> Option<String> {
     node.child_by_field_name("type")
         .or_else(|| find_child(node, "data_type"))
         .or_else(|| {
-            find_child(node, "identifier").and_then(|first| {
-                if first == node.child_by_field_name("name")? {
-                    None
-                } else {
-                    Some(first)
-                }
+            find_child(node, "identifier").filter(|&first| {
+                node.child_by_field_name("name")
+                    .is_some_and(|name| first != name)
             })
         })
         .and_then(|type_node| {

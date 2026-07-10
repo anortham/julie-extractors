@@ -27,11 +27,8 @@ impl RuleExtractor {
             }
         }
 
-        let selector_text = if let Some(selectors) = selectors_node {
-            base.get_node_text(&selectors)
-        } else {
-            return None;
-        };
+        let selectors = selectors_node?;
+        let selector_text = base.get_node_text(&selectors);
 
         let signature = Self::build_rule_signature(base, &node, &selector_text);
 

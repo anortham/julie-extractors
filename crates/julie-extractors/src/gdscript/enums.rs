@@ -22,11 +22,8 @@ pub(super) fn extract_enum_definition(
     } else {
         // Try to extract name from the text pattern: "enum Name { ... }"
         let text = base.get_node_text(&node);
-        if let Some(captures) = ENUM_NAME_RE.captures(&text) {
-            captures.get(1)?.as_str().to_string()
-        } else {
-            return None;
-        }
+        let captures = ENUM_NAME_RE.captures(&text)?;
+        captures.get(1)?.as_str().to_string()
     };
 
     let signature = base.get_node_text(&node);

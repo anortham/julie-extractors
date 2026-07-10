@@ -56,46 +56,42 @@ pub(super) fn extract_function_definition_statement(
         name = base.get_node_text(&name_n);
     } else {
         // Check for colon syntax: function obj:method() or dot syntax: function obj.method()
-        if let Some(variable_node) = helpers::find_child_by_type(&node, "variable")
+        let variable_node = helpers::find_child_by_type(&node, "variable")
             .or_else(|| helpers::find_child_by_type(&node, "dot_index_expression"))
-            .or_else(|| helpers::find_child_by_type(&node, "method_index_expression"))
-        {
-            let full_name = base.get_node_text(&variable_node);
+            .or_else(|| helpers::find_child_by_type(&node, "method_index_expression"))?;
+        let full_name = base.get_node_text(&variable_node);
 
-            // Handle colon syntax: function obj:method()
-            if full_name.contains(':') {
-                let parts: Vec<&str> = full_name.split(':').collect();
-                if parts.len() == 2 {
-                    let object_name = parts[0];
-                    let method_name = parts[1];
-                    name = method_name.to_string();
-                    name_node = Some(variable_node);
-                    kind = SymbolKind::Method;
+        // Handle colon syntax: function obj:method()
+        if full_name.contains(':') {
+            let parts: Vec<&str> = full_name.split(':').collect();
+            if parts.len() == 2 {
+                let object_name = parts[0];
+                let method_name = parts[1];
+                name = method_name.to_string();
+                name_node = Some(variable_node);
+                kind = SymbolKind::Method;
 
-                    // Try to find the object this method belongs to
-                    if let Some(object_symbol) = symbols.iter().find(|s| s.name == object_name) {
-                        method_parent_id = Some(object_symbol.id.clone());
-                    }
-                } else {
-                    return None;
+                // Try to find the object this method belongs to
+                if let Some(object_symbol) = symbols.iter().find(|s| s.name == object_name) {
+                    method_parent_id = Some(object_symbol.id.clone());
                 }
+            } else {
+                return None;
             }
-            // Handle dot syntax: function obj.method()
-            else if full_name.contains('.') {
-                let parts: Vec<&str> = full_name.split('.').collect();
-                if parts.len() == 2 {
-                    let object_name = parts[0];
-                    let method_name = parts[1];
-                    name = method_name.to_string();
-                    name_node = Some(variable_node);
-                    kind = SymbolKind::Method;
+        }
+        // Handle dot syntax: function obj.method()
+        else if full_name.contains('.') {
+            let parts: Vec<&str> = full_name.split('.').collect();
+            if parts.len() == 2 {
+                let object_name = parts[0];
+                let method_name = parts[1];
+                name = method_name.to_string();
+                name_node = Some(variable_node);
+                kind = SymbolKind::Method;
 
-                    // Try to find the object this method belongs to
-                    if let Some(object_symbol) = symbols.iter().find(|s| s.name == object_name) {
-                        method_parent_id = Some(object_symbol.id.clone());
-                    }
-                } else {
-                    return None;
+                // Try to find the object this method belongs to
+                if let Some(object_symbol) = symbols.iter().find(|s| s.name == object_name) {
+                    method_parent_id = Some(object_symbol.id.clone());
                 }
             } else {
                 return None;

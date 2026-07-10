@@ -325,14 +325,12 @@ pub(super) fn extract_friend_declaration(
     {
         // This is a friend operator
         (base.get_node_text(&operator_name), SymbolKind::Operator)
-    } else if let Some(identifier) = function_declarator
-        .children(&mut function_declarator.walk())
-        .find(|c| c.kind() == "identifier")
-    {
+    } else {
+        let identifier = function_declarator
+            .children(&mut function_declarator.walk())
+            .find(|c| c.kind() == "identifier")?;
         // This is a friend function
         (base.get_node_text(&identifier), SymbolKind::Function)
-    } else {
-        return None;
     };
 
     // Build friend signature

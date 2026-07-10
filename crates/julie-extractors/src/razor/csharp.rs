@@ -136,13 +136,8 @@ impl super::RazorExtractor {
         node: Node,
         parent_id: Option<&str>,
     ) -> Option<Symbol> {
-        let name = if let Some(name_node) =
-            self.find_child_by_types(node, &["qualified_name", "identifier"])
-        {
-            self.base.get_node_text(&name_node)
-        } else {
-            return None;
-        };
+        let name_node = self.find_child_by_types(node, &["qualified_name", "identifier"])?;
+        let name = self.base.get_node_text(&name_node);
 
         // Extract C# XML doc comment
         let doc_comment = self.base.find_doc_comment(&node);
