@@ -2251,6 +2251,11 @@
           "name": "backend_http_boundaries",
           "source": "fixtures/extraction/python/backend_http_boundaries/source.py",
           "expected": "fixtures/extraction/python/backend_http_boundaries/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/python/test_roles/test_source.py",
+          "expected": "fixtures/extraction/python/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -2363,25 +2368,21 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "test_case",
-              "reason": "No registered python golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
               "kind": "test_container",
-              "reason": "No registered python golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "The registered python:test_roles golden emits pytest- and unittest-style test functions and methods, while its ArithmeticTest unittest.TestCase class carries no test_container metadata because Python test detection is applied only to callable symbols.",
+              "required_closure": "determine language-native applicability for unittest.TestCase and pytest class containers, add supported classification with a nearby ordinary-class negative, then update the registered python:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered python golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "The registered python:test_roles golden emits unittest setUp with is_test=true but no test_lifecycle metadata; the named-declaration detector currently records only the generic is_test marker.",
+              "required_closure": "determine language-native applicability for unittest setUp, tearDown, setUpClass, and tearDownClass, classify supported hooks as lifecycle roles with ordinary-method negatives, then update the registered python:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2908,6 +2909,11 @@
           "name": "http_client",
           "source": "fixtures/extraction/php/http_client/source.php",
           "expected": "fixtures/extraction/php/http_client/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/php/test_roles/test_source.php",
+          "expected": "fixtures/extraction/php/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3041,28 +3047,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered php golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered php golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered php golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -3096,6 +3087,11 @@
           "name": "backend_http_boundaries",
           "source": "fixtures/extraction/ruby/backend_http_boundaries/source.rb",
           "expected": "fixtures/extraction/ruby/backend_http_boundaries/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/ruby/test_roles/test_source.rb",
+          "expected": "fixtures/extraction/ruby/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3204,28 +3200,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered ruby golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered ruby golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered ruby golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -4067,6 +4048,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/lua/cross_file/source.lua",
           "expected": "fixtures/extraction/lua/cross_file/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/lua/test_roles/test_source.lua",
+          "expected": "fixtures/extraction/lua/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4183,28 +4169,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered lua golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered lua golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered lua golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -4386,6 +4357,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/r/cross_file/source.R",
           "expected": "fixtures/extraction/r/cross_file/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/r/test_roles/test_source.r",
+          "expected": "fixtures/extraction/r/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4493,25 +4469,16 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "test_case",
-              "reason": "No registered r golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered r golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
               "kind": "test_lifecycle",
-              "reason": "No registered r golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "The registered r:test_roles golden emits testthat test_that/it cases and a describe container, while R_VOCAB has an empty lifecycle vocabulary and no symbol carries test_lifecycle metadata.",
+              "required_closure": "determine language-native applicability for testthat or RUnit lifecycle constructs, materialize supported hooks with test_lifecycle=true plus ordinary-call negatives, and update the registered r:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -4543,6 +4510,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/bash/cross_file/source.sh",
           "expected": "fixtures/extraction/bash/cross_file/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/bash/test_roles/test_source.sh",
+          "expected": "fixtures/extraction/bash/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4639,25 +4611,16 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container"
+          ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "test_case",
-              "reason": "No registered bash golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered bash golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
               "kind": "test_lifecycle",
-              "reason": "No registered bash golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "The registered bash:test_roles golden emits ShellSpec cases and containers; its setup function is recognized only as is_test=true, and BASH_VOCAB has no lifecycle entries, so no symbol emits test_lifecycle metadata.",
+              "required_closure": "determine language-native applicability for Bats or ShellSpec setup/teardown functions, classify supported hooks as lifecycle roles with ordinary-function negatives, then update the registered bash:test_roles golden",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -4690,6 +4653,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/powershell/cross_file/source.ps1",
           "expected": "fixtures/extraction/powershell/cross_file/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/powershell/test_roles/source.ps1",
+          "expected": "fixtures/extraction/powershell/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4792,28 +4760,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered powershell golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered powershell golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered powershell golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
