@@ -168,11 +168,11 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 **Step 5: Apply commit mode.** Use `serial-worker-commit` and record the SHA plus per-language role ledger.
 
 **Acceptance criteria:**
-- [ ] Five registered fixtures pass.
-- [ ] DSL test/container/lifecycle roles match actual emitted metadata.
-- [ ] Embedded/component extraction does not fabricate a role the Vue path cannot support.
-- [ ] Negative controls remain non-test.
-- [ ] Task gates pass and the task is committed.
+- [x] Five registered fixtures pass.
+- [x] DSL test/container/lifecycle roles match actual emitted metadata.
+- [x] Embedded/component extraction does not fabricate a role the Vue path cannot support.
+- [x] Negative controls remain non-test.
+- [x] Task gates pass and the task is committed.
 
 ### Task 3: Managed and JVM languages
 
