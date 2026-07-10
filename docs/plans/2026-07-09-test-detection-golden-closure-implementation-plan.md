@@ -323,10 +323,10 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 **Step 5: Apply commit mode.** Use `serial-worker-commit` and record the SHA plus the applicability finding path.
 
 **Acceptance criteria:**
-- [ ] All eight languages classify all role units.
-- [ ] Every not-applicable claim has written source reasoning.
-- [ ] Uncertain or framework-defined roles remain open gaps.
-- [ ] Task gates pass and the task is committed.
+- [x] All eight languages classify all role units.
+- [x] Every not-applicable claim has written source reasoning.
+- [x] Uncertain or framework-defined roles remain open gaps.
+- [x] Task gates pass and the task is committed.
 
 ### Task 7: Promote the strict quality bar
 
