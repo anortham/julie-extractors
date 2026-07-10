@@ -159,6 +159,9 @@ Historical v0.1.0 release-candidate audit evidence:
 Current published v2.11.0 release evidence:
 `docs/release-evidence/2026-07-07-v2-11-0-release.md`.
 
+Prepared v2.12.0 release notes:
+`docs/release-notes/v2.12.0.md`.
+
 Historical v2.10.0 release evidence:
 `docs/release-evidence/2026-07-07-v2-10-0-release.md`.
 

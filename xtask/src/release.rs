@@ -187,11 +187,19 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/test-evidence-v1.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
             path_template: "docs/architecture/product-boundary.md",
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
             path_template: "docs/architecture/schema-principles.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
+            path_template: "docs/architecture/continuous-testing-evidence-boundary.md",
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,

@@ -113,7 +113,7 @@ precedence contract.
 
 ## Artifact Contract
 
-SQLite v3 is the source of truth for durable output. It stores:
+SQLite schema v4 is the source of truth for durable output. It stores:
 
 - artifact metadata and schema versions;
 - parser inventory and language capability snapshots;
@@ -167,6 +167,12 @@ Current quality scorecard:
 | Pending relationships | 30/36 | 30/30 |
 | Types | 29/36 | 29/29 |
 | Type argument usages | 20/36 | 20/20 |
+
+Test detection is role-aware rather than a single language-level capability.
+Golden fixtures prove at least one emitted test role for all 28 code languages.
+Across the 108 language-role cells, 60 are supported, 6 are source-backed
+`not_applicable`, and 42 remain explicit `open_gaps`; there are no unclassified
+cells.
 
 "Applicable closure" means the language either has fixture-proven native
 coverage for that domain or a recorded reason why the domain is not a real
@@ -303,15 +309,17 @@ Product and architecture:
 - [Product boundary](docs/architecture/product-boundary.md)
 - [CLI architecture contract](docs/architecture/cli-contract.md)
 - [Schema principles](docs/architecture/schema-principles.md)
+- [Continuous-testing evidence boundary](docs/architecture/continuous-testing-evidence-boundary.md)
 - [Decision 0001](docs/decisions/0001-standalone-extraction-product.md)
 
 Public contracts:
 
 - [CLI contract](docs/contracts/cli.md)
 - [Extracted data v3](docs/contracts/extracted-data-v3.md)
-- [SQLite schema v3](docs/contracts/sqlite-schema-v3.md)
+- [SQLite schema v4](docs/contracts/sqlite-schema-v4.md)
 - [JSONL v3](docs/contracts/jsonl-v3.md)
 - [JSON reports](docs/contracts/reports.md)
+- [Test evidence v1](docs/contracts/test-evidence-v1.md)
 
 Language support:
 
@@ -323,6 +331,7 @@ Release and testing:
 
 - [Testing strategy](docs/testing-strategy.md)
 - [Release and certification](docs/release.md)
+- [prepared v2.12.0 release notes](docs/release-notes/v2.12.0.md)
 - [v2.11.0 release notes](docs/release-notes/v2.11.0.md)
 - [v2.11.0 release evidence](docs/release-evidence/2026-07-07-v2-11-0-release.md)
 - [historical v2.10.0 release notes](docs/release-notes/v2.10.0.md)
