@@ -209,10 +209,10 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 **Step 5: Apply commit mode.** Use `serial-worker-commit` and record the SHA/ledger.
 
 **Acceptance criteria:**
-- [ ] Six registered fixtures pass without weakening annotation normalization.
-- [ ] Annotated positives and unannotated negatives are distinguished.
-- [ ] Razor claims only roles actually emitted through its embedded C# path.
-- [ ] Task gates pass and the task is committed.
+- [x] Six registered fixtures pass without weakening annotation normalization.
+- [x] Annotated positives and unannotated negatives are distinguished.
+- [x] Razor claims only roles actually emitted through its embedded C# path.
+- [x] Task gates pass and the task is committed.
 
 ### Task 4: Script languages
 
