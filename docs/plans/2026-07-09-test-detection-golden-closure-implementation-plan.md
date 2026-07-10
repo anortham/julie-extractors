@@ -258,11 +258,11 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 ### Task 5: Remaining executable languages
 
 **Files:**
-- Create: `fixtures/extraction/swift/test_roles/source.swift`, `expected.json`
+- Create: `fixtures/extraction/swift/test_roles/test_source.swift`, `expected.json`
 - Create: `fixtures/extraction/dart/test_roles/source.dart`, `expected.json`
 - Create: `fixtures/extraction/elixir/test_roles/source.ex`, `expected.json`
-- Create: `fixtures/extraction/gdscript/test_roles/source.gd`, `expected.json`
-- Create: `fixtures/extraction/qml/test_roles/source.qml`, `expected.json`
+- Create: `fixtures/extraction/gdscript/test_roles/test_source.gd`, `expected.json`
+- Create: `fixtures/extraction/qml/test_roles/test_source.qml`, `expected.json`
 - Modify: `fixtures/extraction/capabilities.json`
 - Test when required: corresponding language-local test-detection modules
 
@@ -289,10 +289,10 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 **Step 5: Apply commit mode.** Use `serial-worker-commit` and record the SHA/ledger.
 
 **Acceptance criteria:**
-- [ ] Every evidence-backed fixture passes.
-- [ ] Unsupported native forms remain explicit gaps.
-- [ ] Generic fallback is not presented as framework-complete support.
-- [ ] Task gates pass and the task is committed.
+- [x] Every evidence-backed fixture passes.
+- [x] Unsupported native forms remain explicit gaps.
+- [x] Generic fallback is not presented as framework-complete support.
+- [x] Task gates pass and the task is committed.
 
 ### Task 6: Non-executable applicability audit
 
