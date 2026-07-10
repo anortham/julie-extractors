@@ -256,7 +256,8 @@ Fields:
 - `target_capabilities`: capability flag object
 - `actual_capabilities`: capability flag object
 - `kind_coverage`: object with `symbols`, `relationships`, `identifiers`,
-  `body_spans`, `structural_facts`, `complexity_metrics`, and `test_detection` domains
+  `body_spans`, `structural_facts`, `complexity_metrics`, `annotations`,
+  `doc_comments`, `literals`, `source_regions`, and `test_detection` domains
 
 Each `kind_coverage` domain has `supported`, `not_applicable`, and `open_gaps`.
 `test_detection` uses the fixed units `test_case`, `test_container`, and

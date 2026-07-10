@@ -23,6 +23,18 @@ const DOMAINS = [
 
 const TEST_ROLE_UNITS = ["test_case", "test_container", "test_lifecycle"];
 
+function roleTrue(symbol, field) {
+  return symbol[field] === true || symbol.metadata?.[field] === true;
+}
+
+// Per test-evidence-v1: lifecycle hooks also set is_test, so test_case
+// evidence requires is_test without test_lifecycle.
+const TEST_ROLE_PREDICATES = {
+  test_case: (symbol) => roleTrue(symbol, "is_test") && !roleTrue(symbol, "test_lifecycle"),
+  test_container: (symbol) => roleTrue(symbol, "test_container"),
+  test_lifecycle: (symbol) => roleTrue(symbol, "test_lifecycle"),
+};
+
 const OBSERVED_DOMAINS = [
   ...DOMAINS,
   "pending_relationships",
@@ -168,6 +180,44 @@ function expectedFiles(language) {
     .sort();
 }
 
+// Every expected.json on disk must be registered in capabilities.json, and
+// every registered golden must exist on disk. Unregistered goldens are
+// invisible to every evidence gate; registered-but-missing goldens would
+// otherwise crash observedCounts with a bare ENOENT.
+function reconcileGoldenRegistry() {
+  const registered = new Set(
+    capabilities.languages.flatMap((row) =>
+      (row.fixtures ?? []).map((fixture) => path.join(ROOT, fixture.expected)),
+    ),
+  );
+  const problems = [];
+
+  for (const file of registered) {
+    if (!fs.existsSync(file)) {
+      problems.push(
+        `registered golden missing on disk: ${path.relative(ROOT, file)} (fix the capabilities.json fixtures entry or restore the file)`,
+      );
+    }
+  }
+
+  const stack = [path.join(ROOT, "fixtures/extraction")];
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (entry.name === "expected.json" && !registered.has(fullPath)) {
+        problems.push(
+          `golden on disk is not registered in capabilities.json: ${path.relative(ROOT, fullPath)}`,
+        );
+      }
+    }
+  }
+
+  return problems;
+}
+
 function rows(value, field) {
   return Array.isArray(value?.[field]) ? value[field] : [];
 }
@@ -205,20 +255,10 @@ function observedCounts(language) {
       if (Array.isArray(symbol.annotations) && symbol.annotations.length > 0) {
         counts.annotations += 1;
       }
-      if (symbol.is_test === true || symbol.metadata?.is_test === true) {
-        counts.test_case += 1;
-      }
-      if (
-        symbol.test_container === true ||
-        symbol.metadata?.test_container === true
-      ) {
-        counts.test_container += 1;
-      }
-      if (
-        symbol.test_lifecycle === true ||
-        symbol.metadata?.test_lifecycle === true
-      ) {
-        counts.test_lifecycle += 1;
+      for (const unit of TEST_ROLE_UNITS) {
+        if (TEST_ROLE_PREDICATES[unit](symbol)) {
+          counts[unit] += 1;
+        }
       }
     }
   }
@@ -331,8 +371,16 @@ function sortedUnique(languages) {
   return [...new Set(languages)].sort();
 }
 
+// test_detection is excluded: its classification is per unit, lives in
+// capabilities.json (enforced exactly-once by capability_matrix tests), and is
+// reported in the Test-Detection Role Coverage section. A language-level
+// bucket view would misreport those classified gaps as unclassified.
+const APPLICABILITY_VIEW_DOMAINS = OBSERVED_DOMAINS.filter(
+  (domain) => domain !== "test_detection",
+);
+
 function applicabilityView(byDomain) {
-  return OBSERVED_DOMAINS.map((domain) => {
+  return APPLICABILITY_VIEW_DOMAINS.map((domain) => {
     const meta = DOMAIN_APPLICABILITY[domain] ?? {
       not_applicable: [],
       convention_only: [],
@@ -479,6 +527,15 @@ function printReport({ byDomain, qualityDebts, rowsByLanguage, silentCells }) {
     const populated = OBSERVED_DOMAINS.filter((domain) => counts[domain] > 0);
     console.log(`${row.language}: ${populated.join(", ") || "none"}`);
   }
+}
+
+const registryProblems = reconcileGoldenRegistry();
+if (registryProblems.length > 0) {
+  console.error("golden fixture registry is out of sync with disk:");
+  for (const problem of registryProblems) {
+    console.error(`  ${problem}`);
+  }
+  process.exit(1);
 }
 
 const result = analyze();

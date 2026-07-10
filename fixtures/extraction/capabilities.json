@@ -200,19 +200,19 @@
             {
               "kind": "test_case",
               "reason": "No registered rust golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered rust golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered rust golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -353,19 +353,19 @@
             {
               "kind": "test_case",
               "reason": "No registered c golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered c golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered c golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -515,19 +515,19 @@
             {
               "kind": "test_case",
               "reason": "No registered cpp golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered cpp golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered cpp golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -686,19 +686,19 @@
             {
               "kind": "test_case",
               "reason": "No registered go golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered go golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered go golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -838,19 +838,19 @@
             {
               "kind": "test_case",
               "reason": "No registered zig golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered zig golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered zig golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -1067,19 +1067,19 @@
             {
               "kind": "test_case",
               "reason": "No registered typescript golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered typescript golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered typescript golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -1283,19 +1283,19 @@
             {
               "kind": "test_case",
               "reason": "No registered tsx golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered tsx golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered tsx golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -1513,19 +1513,19 @@
             {
               "kind": "test_case",
               "reason": "No registered javascript golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered javascript golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered javascript golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -1707,19 +1707,19 @@
             {
               "kind": "test_case",
               "reason": "No registered jsx golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered jsx golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered jsx golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -1876,19 +1876,19 @@
             {
               "kind": "test_case",
               "reason": "No registered html golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered html golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered html golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2053,19 +2053,19 @@
             {
               "kind": "test_case",
               "reason": "No registered css golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered css golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered css golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2242,19 +2242,19 @@
             {
               "kind": "test_case",
               "reason": "No registered vue golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered vue golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered vue golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2415,19 +2415,19 @@
             {
               "kind": "test_case",
               "reason": "No registered python golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered python golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered python golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2576,19 +2576,19 @@
             {
               "kind": "test_case",
               "reason": "No registered java golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered java golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered java golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2744,19 +2744,19 @@
             {
               "kind": "test_case",
               "reason": "No registered csharp golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered csharp golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered csharp golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -2899,13 +2899,13 @@
             {
               "kind": "test_container",
               "reason": "No registered vbnet golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered vbnet golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -3086,19 +3086,19 @@
             {
               "kind": "test_case",
               "reason": "No registered php golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered php golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered php golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -3249,19 +3249,19 @@
             {
               "kind": "test_case",
               "reason": "No registered ruby golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered ruby golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered ruby golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -3406,19 +3406,19 @@
             {
               "kind": "test_case",
               "reason": "No registered swift golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered swift golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered swift golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -3591,19 +3591,19 @@
             {
               "kind": "test_case",
               "reason": "No registered kotlin golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered kotlin golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered kotlin golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -3745,19 +3745,19 @@
             {
               "kind": "test_case",
               "reason": "No registered scala golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered scala golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered scala golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -3895,19 +3895,19 @@
             {
               "kind": "test_case",
               "reason": "No registered dart golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered dart golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered dart golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -4077,19 +4077,19 @@
             {
               "kind": "test_case",
               "reason": "No registered elixir golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered elixir golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered elixir golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -4242,19 +4242,19 @@
             {
               "kind": "test_case",
               "reason": "No registered lua golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered lua golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered lua golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -4395,19 +4395,19 @@
             {
               "kind": "test_case",
               "reason": "No registered qml golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered qml golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered qml golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -4552,19 +4552,19 @@
             {
               "kind": "test_case",
               "reason": "No registered r golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered r golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered r golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -4698,19 +4698,19 @@
             {
               "kind": "test_case",
               "reason": "No registered bash golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered bash golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered bash golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -4851,19 +4851,19 @@
             {
               "kind": "test_case",
               "reason": "No registered powershell golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered powershell golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered powershell golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5002,19 +5002,19 @@
             {
               "kind": "test_case",
               "reason": "No registered gdscript golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered gdscript golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered gdscript golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5167,19 +5167,19 @@
             {
               "kind": "test_case",
               "reason": "No registered razor golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered razor golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered razor golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5330,19 +5330,19 @@
             {
               "kind": "test_case",
               "reason": "No registered sql golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered sql golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered sql golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5502,19 +5502,19 @@
             {
               "kind": "test_case",
               "reason": "No registered regex golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered regex golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered regex golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5693,19 +5693,19 @@
             {
               "kind": "test_case",
               "reason": "No registered markdown golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered markdown golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered markdown golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5877,19 +5877,19 @@
             {
               "kind": "test_case",
               "reason": "No registered json golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered json golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered json golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -6071,19 +6071,19 @@
             {
               "kind": "test_case",
               "reason": "No registered toml golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered toml golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered toml golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -6244,19 +6244,19 @@
             {
               "kind": "test_case",
               "reason": "No registered yaml golden expected artifact currently emits is_test=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove is_test=true for test_case",
+              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
               "reason": "No registered yaml golden expected artifact currently emits test_container=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_container=true for test_container",
+              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
               "reason": "No registered yaml golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "add and register a golden fixture whose expected symbols prove test_lifecycle=true for test_lifecycle",
+              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]

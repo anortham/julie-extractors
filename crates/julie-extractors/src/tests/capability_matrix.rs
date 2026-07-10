@@ -1128,8 +1128,6 @@ fn capability_matrix_has_no_silent_kind_coverage_cells() {
 #[test]
 fn capability_matrix_test_detection_classifies_fixed_vocabulary_exactly_once() {
     const TEST_DETECTION_UNITS: [&str; 3] = ["test_case", "test_container", "test_lifecycle"];
-    const CLOSURE_PLAN: &str =
-        "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md";
 
     let root = workspace_root();
     let matrix = load_matrix_json(&root);
@@ -1170,9 +1168,27 @@ fn capability_matrix_test_detection_classifies_fixed_vocabulary_exactly_once() {
                     "{language} test_detection uses unsupported open-gap unit `{unit}`"
                 ));
             }
-            if gap.get("planned_closure_task").and_then(Value::as_str) != Some(CLOSURE_PLAN) {
+            let plan = gap
+                .get("planned_closure_task")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            if !plan.starts_with("docs/plans/") || !root.join(plan).is_file() {
                 errors.push(format!(
-                    "{language} test_detection open gap `{unit}` must point to {CLOSURE_PLAN}"
+                    "{language} test_detection open gap `{unit}` planned_closure_task must name an existing plan under docs/plans/; got `{plan}`"
+                ));
+            }
+            let required_closure = gap
+                .get("required_closure")
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            if !required_closure.contains("language-native applicability") {
+                errors.push(format!(
+                    "{language} test_detection open gap `{unit}` must require applicability determination before golden registration"
+                ));
+            }
+            if required_closure.contains("prove ") {
+                errors.push(format!(
+                    "{language} test_detection open gap `{unit}` must not claim construct existence via prove-* closure wording"
                 ));
             }
         }
@@ -1775,19 +1791,23 @@ fn observed_annotation_symbol_kinds(expected: &Value, into: &mut BTreeSet<String
 }
 
 fn observed_test_detection_roles(expected: &Value, into: &mut BTreeSet<String>) {
-    for symbol in golden_items(expected, "symbols") {
-        for (field, role) in [
-            ("is_test", "test_case"),
-            ("test_container", "test_container"),
-            ("test_lifecycle", "test_lifecycle"),
-        ] {
-            let first_class = symbol.get(field).and_then(Value::as_bool) == Some(true);
-            let metadata = symbol
+    fn role_true(symbol: &Value, field: &str) -> bool {
+        symbol.get(field).and_then(Value::as_bool) == Some(true)
+            || symbol
                 .get("metadata")
                 .and_then(|value| value.get(field))
                 .and_then(Value::as_bool)
-                == Some(true);
-            if first_class || metadata {
+                == Some(true)
+    }
+
+    for symbol in golden_items(expected, "symbols") {
+        // Per test-evidence-v1: lifecycle hooks also set is_test, so test_case
+        // evidence requires is_test without test_lifecycle.
+        if role_true(symbol, "is_test") && !role_true(symbol, "test_lifecycle") {
+            into.insert("test_case".to_string());
+        }
+        for role in ["test_container", "test_lifecycle"] {
+            if role_true(symbol, role) {
                 into.insert(role.to_string());
             }
         }

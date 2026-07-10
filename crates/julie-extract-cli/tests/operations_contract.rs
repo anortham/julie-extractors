@@ -1595,11 +1595,6 @@ fn languages_json_emits_capability_snapshot_data() {
             language["kind_coverage"], expected_kind_coverage[language_name],
             "languages --json must expose exact kind_coverage for {language_name}"
         );
-        assert_eq!(
-            language["kind_coverage"]["test_detection"],
-            expected_kind_coverage[language_name]["test_detection"],
-            "languages --json must expose exact test_detection evidence for {language_name}"
-        );
         assert!(
             language["kind_coverage"]["structural_facts"]["supported"].is_array(),
             "languages --json must expose structural fact pattern coverage for {language_name}"
@@ -1620,6 +1615,20 @@ fn languages_json_test_detection_surface_is_documented() {
     assert!(
         contract.contains("`julie-extract languages --json`"),
         "the test-evidence-v1 contract must name the public CLI surface"
+    );
+    for unit in ["test_case", "test_container", "test_lifecycle"] {
+        assert!(
+            contract.contains(unit),
+            "the test-evidence-v1 contract must define the `{unit}` vocabulary unit"
+        );
+    }
+    assert!(
+        contract.contains("Consumer Gates"),
+        "the test-evidence-v1 contract must document consumer absence gates"
+    );
+    assert!(
+        contract.contains("language-native applicability"),
+        "the test-evidence-v1 contract must forbid treating open gaps as construct proof"
     );
 }
 

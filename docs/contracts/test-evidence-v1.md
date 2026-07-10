@@ -23,9 +23,13 @@ The fixed capability units map to the only emitted classification fields:
 
 | Capability unit | Positive role evidence |
 | --- | --- |
-| `test_case` | a `symbols` row with `is_test = 1` |
+| `test_case` | a `symbols` row with `is_test = 1` and `test_lifecycle = 0` |
 | `test_container` | a `symbols` row with `test_container = 1` |
 | `test_lifecycle` | a `symbols` row with `test_lifecycle = 1` |
+
+`is_test = 1` alone is not `test_case` evidence: sqlite-schema-v4 requires
+lifecycle hooks to also set `is_test = 1`, so consumers counting test cases
+must exclude rows where `test_lifecycle = 1`.
 
 A true role column is positive evidence for that symbol. Consumers must not
 create a second classifier from names, paths, annotations, framework guesses,
@@ -41,7 +45,10 @@ Each language publishes `supported`, `not_applicable`, and `open_gaps` under
 - `not_applicable` means source verification established that the language
   genuinely lacks that role. Failure to detect a role is not enough.
 - `open_gaps` means the role is not yet proven. Each gap names the missing
-  evidence and its closure task.
+  evidence and its closure task. Gap closures must first determine
+  language-native applicability; only roles that exist for the language then
+  require registered golden proof. Do not treat an open gap as proof that the
+  language has the construct.
 
 Capability evidence describes what the extractor is proven to emit. It is not a
 test runner inventory and does not prove that every runnable test was found.

@@ -363,7 +363,8 @@ fn jsonl_v3_docs_list_all_capability_kind_coverage_domains() {
     assert!(
         searchable.contains(
             "`kind_coverage`: object with `symbols`, `relationships`, `identifiers`, \
-             `body_spans`, `structural_facts`, `complexity_metrics`, and `test_detection` domains"
+             `body_spans`, `structural_facts`, `complexity_metrics`, `annotations`, \
+             `doc_comments`, `literals`, `source_regions`, and `test_detection` domains"
         ),
         "jsonl-v3.md language_capability docs must list every kind_coverage domain"
     );
