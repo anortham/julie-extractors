@@ -1,0 +1,525 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "name": "Source",
+      "kind": "class",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 1,
+      "start_column": 1,
+      "end_line": 20,
+      "end_column": 10,
+      "start_byte": 0,
+      "end_byte": 383,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 37,
+        "end_line": 19,
+        "end_column": 46,
+        "start_byte": 111,
+        "end_byte": 371
+      },
+      "body_hash": "fa554e07ca121f04ed73064408458aee",
+      "signature": "<Source />",
+      "doc_comment": "Vue Single File Component: Source",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "sections": "template,script",
+        "type": "vue-sfc"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:ordinary:13:6",
+      "name": "ordinary",
+      "kind": "variable",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 13,
+      "start_column": 6,
+      "end_line": 17,
+      "end_column": 1,
+      "start_byte": 235,
+      "end_byte": 322,
+      "body_span": {
+        "start_line": 13,
+        "start_column": 17,
+        "end_line": 17,
+        "end_column": 1,
+        "start_byte": 246,
+        "end_byte": 322
+      },
+      "body_hash": "bb64f9d52524ebf023346decc4ae6c1a",
+      "signature": "const ordinary",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:testNamedButOrdinary:11:0",
+      "name": "testNamedButOrdinary",
+      "kind": "function",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 11,
+      "end_column": 40,
+      "start_byte": 187,
+      "end_byte": 227,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 38,
+        "end_line": 11,
+        "end_column": 40,
+        "start_byte": 225,
+        "end_byte": 227
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "function testNamedButOrdinary()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "callee_name": "beforeEach",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "line_number": 7,
+      "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "callee_name": "callback",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "line_number": 15,
+      "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "callee_name": "describe",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "line_number": 6,
+      "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "callee_name": "test",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "line_number": 19,
+      "confidence": "0.800"
+    },
+    {
+      "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "callee_name": "test",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "line_number": 8,
+      "confidence": "0.800"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+        "callee_name": "beforeEach",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+        "line_number": 7,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "beforeEach",
+        "terminal_name": "beforeEach",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+        "callee_name": "callback",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+        "line_number": 15,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "callback",
+        "terminal_name": "callback",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+        "callee_name": "describe",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+        "line_number": 6,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "describe",
+        "terminal_name": "describe",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+        "callee_name": "test",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+        "line_number": 19,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "test",
+        "terminal_name": "test",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+        "callee_name": "test",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+        "line_number": 8,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "test",
+        "terminal_name": "test",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:beforeEach:call:7:2",
+      "name": "beforeEach",
+      "kind": "call",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 7,
+      "start_column": 2,
+      "end_line": 7,
+      "end_column": 12,
+      "start_byte": 115,
+      "end_byte": 125,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:callback:call:15:4",
+      "name": "callback",
+      "kind": "call",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 15,
+      "start_column": 4,
+      "end_line": 15,
+      "end_column": 12,
+      "start_byte": 304,
+      "end_byte": 312,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:describe:call:6:0",
+      "name": "describe",
+      "kind": "call",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 8,
+      "start_byte": 74,
+      "end_byte": 82,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:ordinary:variable_ref:19:0",
+      "name": "ordinary",
+      "kind": "variable_ref",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 8,
+      "start_byte": 325,
+      "end_byte": 333,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:test:call:19:9",
+      "name": "test",
+      "kind": "call",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 19,
+      "start_column": 9,
+      "end_line": 19,
+      "end_column": 13,
+      "start_byte": 334,
+      "end_byte": 338,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/vue/test_roles/source.vue:test:call:8:2",
+      "name": "test",
+      "kind": "call",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 8,
+      "start_column": 2,
+      "end_line": 8,
+      "end_column": 6,
+      "start_byte": 139,
+      "end_byte": 143,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "resolved_type": "vue-sfc",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vue",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 11,
+      "start_byte": 0,
+      "end_byte": 47,
+      "confidence": "1.000",
+      "metadata": {
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "template",
+        "setup": false
+      }
+    },
+    {
+      "pattern_id": "vue.sfc_section.v1",
+      "capture_name": "section",
+      "node_kind": "sfc_section",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 9,
+      "start_byte": 49,
+      "end_byte": 383,
+      "confidence": "1.000",
+      "metadata": {
+        "lang": "ts",
+        "pattern_version": 1,
+        "query_family": "component_structure",
+        "scoped": false,
+        "section_type": "script",
+        "setup": true
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "covered_lines": 14,
+      "covered_bytes": 299,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 48,
+      "start_byte": 74,
+      "end_byte": 373,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vue/test_roles/source.vue:testNamedButOrdinary:11:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 38,
+      "end_line": 11,
+      "end_column": 40,
+      "start_byte": 225,
+      "end_byte": 227,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "ordinary member call",
+      "kind": "other",
+      "carrier": "ordinary.test",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 19,
+      "start_column": 14,
+      "end_line": 19,
+      "end_column": 36,
+      "start_byte": 339,
+      "end_byte": 361,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "renders a Vue test case",
+      "kind": "other",
+      "carrier": "test",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 8,
+      "start_column": 7,
+      "end_line": 8,
+      "end_column": 32,
+      "start_byte": 144,
+      "end_byte": 169,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "vue embedded roles",
+      "kind": "other",
+      "carrier": "describe",
+      "arg_position": 0,
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "start_line": 6,
+      "start_column": 9,
+      "end_line": 6,
+      "end_column": 29,
+      "start_byte": 83,
+      "end_byte": 103,
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "embedded",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "containing_key": null,
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 9,
+      "start_byte": 49,
+      "end_byte": 383,
+      "metadata": {
+        "embedded_language": "typescript",
+        "host_node_kind": "script_element",
+        "host_tag": "script",
+        "lang": "ts",
+        "setup": true
+      }
+    },
+    {
+      "kind": "string_literal",
+      "language": "vue",
+      "file_path": "fixtures/extraction/vue/test_roles/source.vue",
+      "containing_key": "fixtures/extraction/vue/test_roles/source.vue:Source:1:1",
+      "start_line": 5,
+      "start_column": 19,
+      "end_line": 5,
+      "end_column": 23,
+      "start_byte": 68,
+      "end_byte": 72,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

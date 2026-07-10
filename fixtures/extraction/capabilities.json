@@ -927,6 +927,11 @@
           "name": "nestjs_routes",
           "source": "fixtures/extraction/typescript/nestjs_routes/source.ts",
           "expected": "fixtures/extraction/typescript/nestjs_routes/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/typescript/test_roles/source.ts",
+          "expected": "fixtures/extraction/typescript/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1050,28 +1055,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered typescript golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered typescript golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered typescript golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -1149,6 +1139,11 @@
           "name": "backend_http_boundaries",
           "source": "fixtures/extraction/tsx/backend_http_boundaries/source.tsx",
           "expected": "fixtures/extraction/tsx/backend_http_boundaries/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/tsx/test_roles/source.tsx",
+          "expected": "fixtures/extraction/tsx/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1266,28 +1261,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered tsx golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered tsx golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered tsx golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -1377,6 +1357,11 @@
           "name": "nestjs_routes",
           "source": "fixtures/extraction/javascript/nestjs_routes/source.js",
           "expected": "fixtures/extraction/javascript/nestjs_routes/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/javascript/test_roles/source.js",
+          "expected": "fixtures/extraction/javascript/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1496,28 +1481,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered javascript golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered javascript golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered javascript golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -1580,6 +1550,11 @@
           "name": "backend_http_boundaries",
           "source": "fixtures/extraction/jsx/backend_http_boundaries/source.jsx",
           "expected": "fixtures/extraction/jsx/backend_http_boundaries/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/jsx/test_roles/source.jsx",
+          "expected": "fixtures/extraction/jsx/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
@@ -1690,28 +1665,13 @@
           "open_gaps": []
         },
         "test_detection": {
-          "supported": [],
+          "supported": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered jsx golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered jsx golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered jsx golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -2115,6 +2075,11 @@
           "name": "htmx_attributes",
           "source": "fixtures/extraction/vue/htmx_attributes/source.vue",
           "expected": "fixtures/extraction/vue/htmx_attributes/expected.json"
+        },
+        {
+          "name": "test_roles",
+          "source": "fixtures/extraction/vue/test_roles/source.vue",
+          "expected": "fixtures/extraction/vue/test_roles/expected.json"
         }
       ],
       "target_capabilities": {
