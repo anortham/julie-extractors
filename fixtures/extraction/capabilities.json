@@ -1824,20 +1824,20 @@
           "open_gaps": [
             {
               "kind": "test_case",
-              "reason": "No registered html golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
+              "reason": "HTML has no native test-case construct, but the extractor preserves arbitrary markup attributes and delegates inline JavaScript, so framework-defined case semantics are possible; no registered HTML golden proves a stable signal.",
+              "required_closure": "determine language-native applicability for a stable HTML-contained framework signal, add similar non-test markup and script controls, and register a golden that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
-              "reason": "No registered html golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "HTML has no native suite or container construct, but nested markup and embedded JavaScript can carry framework-defined grouping semantics; no registered HTML golden proves a stable signal.",
+              "required_closure": "determine language-native applicability for a stable HTML-contained suite signal, add similar non-suite controls, and register a golden that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered html golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "HTML has no native lifecycle construct, but embedded JavaScript and framework-specific markup can encode setup or teardown semantics; no registered HTML golden proves a stable signal.",
+              "required_closure": "determine language-native applicability for a stable HTML-contained lifecycle signal, add similar non-hook controls, and register a golden that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -1997,27 +1997,12 @@
         },
         "test_detection": {
           "supported": [],
-          "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered css golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered css golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered css golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "not_applicable": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "open_gaps": []
         }
       }
     },
@@ -5202,20 +5187,20 @@
           "open_gaps": [
             {
               "kind": "test_case",
-              "reason": "No registered sql golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
+              "reason": "SQL has no native test-case marker, but external SQL testing frameworks can assign case semantics to queries, procedures, and functions; no registered SQL golden proves a stable convention.",
+              "required_closure": "determine language-native applicability for a named SQL testing framework contract, add similar non-test query and routine controls, and register a golden that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
-              "reason": "No registered sql golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "SQL has no native test-container marker, but external frameworks can assign suite semantics to schemas, routines, or naming conventions; no registered SQL golden proves a stable convention.",
+              "required_closure": "determine language-native applicability for a named SQL testing framework container contract, add similar non-suite schema and routine controls, and register a golden that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered sql golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "SQL has no native test-lifecycle marker, but external frameworks can assign setup or teardown semantics to routines and transactions; no registered SQL golden proves a stable convention.",
+              "required_closure": "determine language-native applicability for a named SQL testing framework lifecycle contract, add similar non-hook routine and transaction controls, and register a golden that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5370,27 +5355,12 @@
         },
         "test_detection": {
           "supported": [],
-          "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_case",
-              "reason": "No registered regex golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_container",
-              "reason": "No registered regex golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "No registered regex golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "not_applicable": [
+            "test_case",
+            "test_container",
+            "test_lifecycle"
+          ],
+          "open_gaps": []
         }
       }
     },
@@ -5565,20 +5535,20 @@
           "open_gaps": [
             {
               "kind": "test_case",
-              "reason": "No registered markdown golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
+              "reason": "Markdown has no native test-case construct, but documentation-test tools can assign executable case semantics to fenced code and surrounding metadata; no registered Markdown golden proves a stable convention.",
+              "required_closure": "determine language-native applicability for a named Markdown documentation-test contract, add similar non-test fence controls, and register a golden that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
-              "reason": "No registered markdown golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "Markdown has no native test-container construct, but documentation-test tools can assign suite semantics to headings, sections, or frontmatter; no registered Markdown golden proves a stable convention.",
+              "required_closure": "determine language-native applicability for a named Markdown documentation-test grouping contract, add similar non-suite section controls, and register a golden that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered markdown golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "Markdown has no native test-lifecycle construct, but documentation-test tools can assign setup or teardown semantics to fences or metadata; no registered Markdown golden proves a stable convention.",
+              "required_closure": "determine language-native applicability for a named Markdown documentation-test lifecycle contract, add similar non-hook fence and metadata controls, and register a golden that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5749,20 +5719,20 @@
           "open_gaps": [
             {
               "kind": "test_case",
-              "reason": "No registered json golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
+              "reason": "JSON has no native test-case construct, but external schemas can assign case semantics to objects, arrays, and keys; no registered JSON golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named JSON test-schema contract, add structurally similar non-test controls, and register a golden that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
-              "reason": "No registered json golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "JSON has no native test-container construct, but external schemas can assign suite semantics to nested objects and arrays; no registered JSON golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named JSON test-schema grouping contract, add structurally similar non-suite controls, and register a golden that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered json golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "JSON has no native test-lifecycle construct, but external schemas can assign setup or teardown semantics to keys and values; no registered JSON golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named JSON test-schema lifecycle contract, add structurally similar non-hook controls, and register a golden that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -5943,20 +5913,20 @@
           "open_gaps": [
             {
               "kind": "test_case",
-              "reason": "No registered toml golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
+              "reason": "TOML has no native test-case construct, but external schemas can assign case semantics to tables and key/value pairs; no registered TOML golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named TOML test-schema contract, add structurally similar non-test controls, and register a golden that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
-              "reason": "No registered toml golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "TOML has no native test-container construct, but external schemas can assign suite semantics to tables and array tables; no registered TOML golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named TOML test-schema grouping contract, add structurally similar non-suite controls, and register a golden that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered toml golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "TOML has no native test-lifecycle construct, but external schemas can assign setup or teardown semantics to tables and keys; no registered TOML golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named TOML test-schema lifecycle contract, add structurally similar non-hook controls, and register a golden that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
@@ -6116,20 +6086,20 @@
           "open_gaps": [
             {
               "kind": "test_case",
-              "reason": "No registered yaml golden expected artifact currently emits is_test=true.",
-              "required_closure": "determine language-native applicability for test_case, then either record source-backed not_applicable or register a golden fixture that emits is_test=true",
+              "reason": "YAML has no native test-case construct, but external schemas can assign case semantics to mappings, sequences, and keys; no registered YAML golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named YAML test-schema contract, add structurally similar non-test controls, and register a golden that emits is_test=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_container",
-              "reason": "No registered yaml golden expected artifact currently emits test_container=true.",
-              "required_closure": "determine language-native applicability for test_container, then either record source-backed not_applicable or register a golden fixture that emits test_container=true",
+              "reason": "YAML has no native test-container construct, but external schemas can assign suite semantics to nested mappings and sequences; no registered YAML golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named YAML test-schema grouping contract, add structurally similar non-suite controls, and register a golden that emits test_container=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             },
             {
               "kind": "test_lifecycle",
-              "reason": "No registered yaml golden expected artifact currently emits test_lifecycle=true.",
-              "required_closure": "determine language-native applicability for test_lifecycle, then either record source-backed not_applicable or register a golden fixture that emits test_lifecycle=true",
+              "reason": "YAML has no native test-lifecycle construct, but external schemas can assign setup or teardown semantics to mappings, sequences, and keys; no registered YAML golden proves a stable schema contract.",
+              "required_closure": "determine language-native applicability for a named YAML test-schema lifecycle contract, add structurally similar non-hook controls, and register a golden that emits test_lifecycle=true",
               "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
             }
           ]
