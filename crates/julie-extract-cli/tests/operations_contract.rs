@@ -1605,8 +1605,8 @@ fn languages_json_emits_capability_snapshot_data() {
 
 #[test]
 fn languages_json_test_detection_surface_is_documented() {
-    let contract_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../docs/contracts/test-evidence-v1.md");
+    let contract_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/contracts/test-evidence-v1.md");
     assert!(
         contract_path.is_file(),
         "the test-evidence-v1 consumer contract must exist"

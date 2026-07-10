@@ -1128,6 +1128,8 @@ fn capability_matrix_has_no_silent_kind_coverage_cells() {
 #[test]
 fn capability_matrix_test_detection_classifies_fixed_vocabulary_exactly_once() {
     const TEST_DETECTION_UNITS: [&str; 3] = ["test_case", "test_container", "test_lifecycle"];
+    const CLOSURE_PLAN: &str =
+        "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md";
 
     let root = workspace_root();
     let matrix = load_matrix_json(&root);
@@ -1144,9 +1146,9 @@ fn capability_matrix_test_detection_classifies_fixed_vocabulary_exactly_once() {
         let supported = coverage["supported"]
             .as_array()
             .unwrap_or_else(|| panic!("{language} test_detection.supported must be an array"));
-        let not_applicable = coverage["not_applicable"].as_array().unwrap_or_else(|| {
-            panic!("{language} test_detection.not_applicable must be an array")
-        });
+        let not_applicable = coverage["not_applicable"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{language} test_detection.not_applicable must be an array"));
         let open_gaps = coverage["open_gaps"]
             .as_array()
             .unwrap_or_else(|| panic!("{language} test_detection.open_gaps must be an array"));
@@ -1168,13 +1170,9 @@ fn capability_matrix_test_detection_classifies_fixed_vocabulary_exactly_once() {
                     "{language} test_detection uses unsupported open-gap unit `{unit}`"
                 ));
             }
-            let plan = gap
-                .get("planned_closure_task")
-                .and_then(Value::as_str)
-                .unwrap_or("");
-            if !plan.starts_with("docs/plans/") || !root.join(plan).is_file() {
+            if gap.get("planned_closure_task").and_then(Value::as_str) != Some(CLOSURE_PLAN) {
                 errors.push(format!(
-                    "{language} test_detection open gap `{unit}` planned_closure_task must name an existing plan under docs/plans/; got `{plan}`"
+                    "{language} test_detection open gap `{unit}` must point to {CLOSURE_PLAN}"
                 ));
             }
             let required_closure = gap
@@ -1216,11 +1214,7 @@ fn capability_matrix_test_detection_classifies_fixed_vocabulary_exactly_once() {
 
 #[test]
 fn capability_matrix_test_detection_claims_have_golden_evidence() {
-    assert_golden_domain_claims_match(
-        "test_detection",
-        "test role",
-        observed_test_detection_roles,
-    );
+    assert_golden_domain_claims_match("test_detection", "test role", observed_test_detection_roles);
 }
 
 #[test]
