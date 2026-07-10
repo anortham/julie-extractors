@@ -101,7 +101,7 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 - Create: `fixtures/extraction/rust/test_roles/source.rs`, `expected.json`
 - Create: `fixtures/extraction/c/test_roles/source.c`, `expected.json`
 - Create: `fixtures/extraction/cpp/test_roles/source.cpp`, `expected.json`
-- Create: `fixtures/extraction/go/test_roles/source.go`, `expected.json`
+- Create: `fixtures/extraction/go/test_roles/source_test.go`, `expected.json`
 - Create: `fixtures/extraction/zig/test_roles/source.zig`, `expected.json`
 - Modify: `fixtures/extraction/capabilities.json`
 - Test when required: language-local files under `crates/julie-extractors/src/tests/{rust,c,cpp,go,zig}/`
@@ -129,10 +129,10 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 **Step 5: Use `serial-worker-commit` and record the SHA.**
 
 **Acceptance criteria:**
-- [ ] Five registered fixtures pass.
-- [ ] Every positive emits `test_case`; negative controls do not.
-- [ ] Container/lifecycle units are supported, not applicable, or concretely open—never silent.
-- [ ] Capability and golden tiers pass and the task is committed.
+- [x] Five registered fixtures pass.
+- [x] Every positive emits `test_case`; negative controls do not.
+- [x] Container/lifecycle units are supported, not applicable, or concretely open—never silent.
+- [x] Capability and golden tiers pass and the task is committed.
 
 ### Task 2: JavaScript and component languages
 
