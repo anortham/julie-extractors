@@ -1,0 +1,811 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
+      "name": "CalculatorTests",
+      "kind": "class",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 13,
+      "end_column": 1,
+      "start_byte": 42,
+      "end_byte": 202,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 40,
+        "end_line": 13,
+        "end_column": 1,
+        "start_byte": 82,
+        "end_byte": 202
+      },
+      "body_hash": "2ed2e3abb1fd2e5ca86ca411ce19ac28",
+      "signature": "class CalculatorTests: XCTestCase",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "base_types": [
+          "XCTestCase"
+        ],
+        "modifiers": "",
+        "type": "class"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:Nimble:3:0",
+      "name": "Nimble",
+      "kind": "import",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 13,
+      "start_byte": 27,
+      "end_byte": 40,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import Nimble",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:Quick:2:0",
+      "name": "Quick",
+      "kind": "import",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 12,
+      "start_byte": 14,
+      "end_byte": 26,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import Quick",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:XCTest:1:0",
+      "name": "XCTest",
+      "kind": "import",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 13,
+      "start_byte": 0,
+      "end_byte": 13,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import XCTest",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "name": "adds two numbers",
+      "kind": "function",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 20,
+      "end_column": 5,
+      "start_byte": 253,
+      "end_byte": 318,
+      "body_span": {
+        "start_line": 18,
+        "start_column": 27,
+        "end_line": 20,
+        "end_column": 5,
+        "start_byte": 276,
+        "end_byte": 318
+      },
+      "body_hash": "cbabe4037697ee6a0e48c70808e336da",
+      "signature": "it(\"adds two numbers\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculator:15:0",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:beforeEach:16:4",
+      "name": "beforeEach",
+      "kind": "function",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 18,
+      "start_byte": 233,
+      "end_byte": 247,
+      "body_span": {
+        "start_line": 16,
+        "start_column": 15,
+        "end_line": 16,
+        "end_column": 18,
+        "start_byte": 244,
+        "end_byte": 247
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "beforeEach()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculator:15:0",
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:calculateTotal:10:4",
+      "name": "calculateTotal",
+      "kind": "method",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 154,
+      "end_byte": 200,
+      "body_span": {
+        "start_line": 10,
+        "start_column": 33,
+        "end_line": 12,
+        "end_column": 5,
+        "start_byte": 183,
+        "end_byte": 200
+      },
+      "body_hash": "d2268014e1e7d22c25510b97f6900787",
+      "signature": "func calculateTotal() -> Int",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
+      "metadata": {
+        "modifiers": "",
+        "parameters": "()",
+        "returnType": "Int",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:calculator:15:0",
+      "name": "calculator",
+      "kind": "function",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 21,
+      "end_column": 1,
+      "start_byte": 204,
+      "end_byte": 320,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 23,
+        "end_line": 21,
+        "end_column": 1,
+        "start_byte": 227,
+        "end_byte": 320
+      },
+      "body_hash": "a78306c264b3d6356c452e89b1530868",
+      "signature": "describe(\"calculator\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "test_container": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:itNamedButNotCalled:23:0",
+      "name": "itNamedButNotCalled",
+      "kind": "function",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 23,
+      "end_column": 30,
+      "start_byte": 322,
+      "end_byte": 352,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 27,
+        "end_line": 23,
+        "end_column": 30,
+        "start_byte": 349,
+        "end_byte": 352
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "func itNamedButNotCalled()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "modifiers": "",
+        "parameters": "()",
+        "returnType": "Void",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:testAddition:6:4",
+      "name": "testAddition",
+      "kind": "method",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 6,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 5,
+      "start_byte": 88,
+      "end_byte": 148,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 24,
+        "end_line": 8,
+        "end_column": 5,
+        "start_byte": 108,
+        "end_byte": 148
+      },
+      "body_hash": "399276f114bf3f1f0cbd700c37056cb2",
+      "signature": "func testAddition()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
+      "metadata": {
+        "is_test": true,
+        "modifiers": "",
+        "parameters": "()",
+        "returnType": "Void",
+        "type": "function"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:beforeEach:16:4",
+      "to_key": "fixtures/extraction/swift/test_roles/test_source.swift:beforeEach:16:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 16,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
+      "callee_name": "XCTestCase",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 5,
+      "confidence": "0.900"
+    },
+    {
+      "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "callee_name": "equal",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "line_number": 19,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
+        "callee_name": "XCTestCase",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 5,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "XCTestCase",
+        "terminal_name": "XCTestCase",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+        "callee_name": "equal",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "equal",
+        "terminal_name": "equal",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:XCTAssertEqual:call:7:8",
+      "name": "XCTAssertEqual",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 7,
+      "start_column": 8,
+      "end_line": 7,
+      "end_column": 22,
+      "start_byte": 118,
+      "end_byte": 132,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:testAddition:6:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:XCTestCase:type_usage:5:29",
+      "name": "XCTestCase",
+      "kind": "type_usage",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 5,
+      "start_column": 29,
+      "end_line": 5,
+      "end_column": 39,
+      "start_byte": 71,
+      "end_byte": 81,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:beforeEach:call:16:4",
+      "name": "beforeEach",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 14,
+      "start_byte": 233,
+      "end_byte": 243,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:beforeEach:16:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:describe:call:15:0",
+      "name": "describe",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 8,
+      "start_byte": 204,
+      "end_byte": 212,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculator:15:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:equal:call:19:25",
+      "name": "equal",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 19,
+      "start_column": 25,
+      "end_line": 19,
+      "end_column": 30,
+      "start_byte": 303,
+      "end_byte": 308,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:expect:call:19:8",
+      "name": "expect",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 19,
+      "start_column": 8,
+      "end_line": 19,
+      "end_column": 14,
+      "start_byte": 286,
+      "end_byte": 292,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:it:call:18:4",
+      "name": "it",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 6,
+      "start_byte": 253,
+      "end_byte": 255,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/swift/test_roles/test_source.swift:to:call:19:22",
+      "name": "to",
+      "kind": "call",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 19,
+      "start_column": 22,
+      "end_line": 19,
+      "end_column": 24,
+      "start_byte": 300,
+      "end_byte": 302,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:CalculatorTests:5:0",
+      "resolved_type": "class",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:Nimble:3:0",
+      "resolved_type": "import",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:Quick:2:0",
+      "resolved_type": "import",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:XCTest:1:0",
+      "resolved_type": "import",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculateTotal:10:4",
+      "resolved_type": "Int",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:itNamedButNotCalled:23:0",
+      "resolved_type": "Void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:testAddition:6:4",
+      "resolved_type": "Void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "swift",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 24,
+      "covered_bytes": 353,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 353,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 42,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 18,
+      "start_column": 27,
+      "end_line": 20,
+      "end_column": 5,
+      "start_byte": 276,
+      "end_byte": 318,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:beforeEach:16:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 1,
+      "covered_bytes": 3,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 16,
+      "start_column": 15,
+      "end_line": 16,
+      "end_column": 18,
+      "start_byte": 244,
+      "end_byte": 247,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculateTotal:10:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 17,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 10,
+      "start_column": 33,
+      "end_line": 12,
+      "end_column": 5,
+      "start_byte": 183,
+      "end_byte": 200,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculator:15:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 7,
+      "covered_bytes": 93,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 15,
+      "start_column": 23,
+      "end_line": 21,
+      "end_column": 1,
+      "start_byte": 227,
+      "end_byte": 320,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:itNamedButNotCalled:23:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 1,
+      "covered_bytes": 3,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 23,
+      "start_column": 27,
+      "end_line": 23,
+      "end_column": 30,
+      "start_byte": 349,
+      "end_byte": 352,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/swift/test_roles/test_source.swift:testAddition:6:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "covered_lines": 3,
+      "covered_bytes": 40,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 6,
+      "start_column": 24,
+      "end_line": 8,
+      "end_column": 5,
+      "start_byte": 108,
+      "end_byte": 148,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "adds two numbers",
+      "kind": "other",
+      "carrier": "it",
+      "arg_position": 0,
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 18,
+      "start_column": 7,
+      "end_line": 18,
+      "end_column": 25,
+      "start_byte": 256,
+      "end_byte": 274,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "calculator",
+      "kind": "other",
+      "carrier": "describe",
+      "arg_position": 0,
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "start_line": 15,
+      "start_column": 9,
+      "end_line": 15,
+      "end_column": 21,
+      "start_byte": 213,
+      "end_byte": 225,
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculator:15:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:adds two numbers:18:4",
+      "start_line": 18,
+      "start_column": 7,
+      "end_line": 18,
+      "end_column": 25,
+      "start_byte": 256,
+      "end_byte": 274,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "swift",
+      "file_path": "fixtures/extraction/swift/test_roles/test_source.swift",
+      "containing_key": "fixtures/extraction/swift/test_roles/test_source.swift:calculator:15:0",
+      "start_line": 15,
+      "start_column": 9,
+      "end_line": 15,
+      "end_column": 21,
+      "start_byte": 213,
+      "end_byte": 225,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

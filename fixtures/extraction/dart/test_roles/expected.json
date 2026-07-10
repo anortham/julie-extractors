@@ -1,0 +1,799 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:adds two numbers:7:4",
+      "name": "adds two numbers",
+      "kind": "function",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 9,
+      "end_column": 6,
+      "start_byte": 98,
+      "end_byte": 166,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 32,
+        "end_line": 9,
+        "end_column": 5,
+        "start_byte": 126,
+        "end_byte": 165
+      },
+      "body_hash": "271ff28116cb4c9dc1506925d5287871",
+      "signature": "test(\"adds two numbers\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "name": "calculator",
+      "kind": "function",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 4,
+      "start_column": 2,
+      "end_line": 12,
+      "end_column": 4,
+      "start_byte": 50,
+      "end_byte": 217,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 25,
+        "end_line": 12,
+        "end_column": 3,
+        "start_byte": 73,
+        "end_byte": 216
+      },
+      "body_hash": "8df1a8f81973e0e811942183c65ac320",
+      "signature": "group(\"calculator\")",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": null,
+      "metadata": {
+        "test_container": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "name": "main",
+      "kind": "function",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 11,
+      "start_byte": 34,
+      "end_byte": 45,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 9,
+        "end_line": 3,
+        "end_column": 11,
+        "start_byte": 43,
+        "end_byte": 45
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "void main()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:package:test/test.dart:1:0",
+      "name": "package:test/test.dart",
+      "kind": "import",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 32,
+      "start_byte": 0,
+      "end_byte": 32,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "import 'package:test/test.dart';",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "type": "import"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "name": "runExample",
+      "kind": "function",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 54,
+      "start_byte": 255,
+      "end_byte": 309,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 15,
+        "end_line": 17,
+        "end_column": 54,
+        "start_byte": 270,
+        "end_byte": 309
+      },
+      "body_hash": "cede3bedc2d8843782acf7ea7fe2fbc7",
+      "signature": "void runExample(String name, void Function() callback)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:setUp:5:4",
+      "name": "setUp",
+      "kind": "function",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 16,
+      "start_byte": 79,
+      "end_byte": 91,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 13,
+        "end_line": 5,
+        "end_column": 15,
+        "start_byte": 88,
+        "end_byte": 90
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "setUp()",
+      "doc_comment": null,
+      "visibility": null,
+      "parent_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "metadata": {
+        "is_test": true,
+        "test_lifecycle": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:testNamedButNotCalled:15:0",
+      "name": "testNamedButNotCalled",
+      "kind": "function",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 15,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 28,
+      "start_byte": 222,
+      "end_byte": 250,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 26,
+        "end_line": 15,
+        "end_column": 28,
+        "start_byte": 248,
+        "end_byte": 250
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "void testNamedButNotCalled()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "to_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 11,
+      "confidence": "0.900",
+      "metadata": null
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "to_key": "fixtures/extraction/dart/test_roles/source.dart:setUp:5:4",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 5,
+      "confidence": "0.900",
+      "metadata": null
+    }
+  ],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "callee_name": "equals",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "callee_name": "expect",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "callee_name": "group",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 4,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "callee_name": "test",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "callee_name": "callback",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "line_number": 18,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+        "callee_name": "equals",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "equals",
+        "terminal_name": "equals",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+        "callee_name": "expect",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "expect",
+        "terminal_name": "expect",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+        "callee_name": "group",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+        "line_number": 4,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "group",
+        "terminal_name": "group",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+        "callee_name": "test",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "test",
+        "terminal_name": "test",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+        "callee_name": "callback",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+        "line_number": 18,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "callback",
+        "terminal_name": "callback",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:String:type_usage:17:16",
+      "name": "String",
+      "kind": "type_usage",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 17,
+      "start_column": 16,
+      "end_line": 17,
+      "end_column": 22,
+      "start_byte": 271,
+      "end_byte": 277,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:callback:call:18:2",
+      "name": "callback",
+      "kind": "call",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 18,
+      "start_column": 2,
+      "end_line": 18,
+      "end_column": 10,
+      "start_byte": 314,
+      "end_byte": 322,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:equals:call:8:20",
+      "name": "equals",
+      "kind": "call",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 8,
+      "start_column": 20,
+      "end_line": 8,
+      "end_column": 26,
+      "start_byte": 148,
+      "end_byte": 154,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:adds two numbers:7:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:expect:call:8:6",
+      "name": "expect",
+      "kind": "call",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 8,
+      "start_column": 6,
+      "end_line": 8,
+      "end_column": 12,
+      "start_byte": 134,
+      "end_byte": 140,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:adds two numbers:7:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:group:call:4:2",
+      "name": "group",
+      "kind": "call",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 4,
+      "start_column": 2,
+      "end_line": 4,
+      "end_column": 7,
+      "start_byte": 50,
+      "end_byte": 55,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:runExample:call:11:4",
+      "name": "runExample",
+      "kind": "call",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 11,
+      "start_column": 4,
+      "end_line": 11,
+      "end_column": 14,
+      "start_byte": 173,
+      "end_byte": 183,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:setUp:call:5:4",
+      "name": "setUp",
+      "kind": "call",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 9,
+      "start_byte": 79,
+      "end_byte": 84,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:setUp:5:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/dart/test_roles/source.dart:test:call:7:4",
+      "name": "test",
+      "kind": "call",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 8,
+      "start_byte": 98,
+      "end_byte": 102,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:adds two numbers:7:4",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "dart",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "dart",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:testNamedButNotCalled:15:0",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "dart",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "covered_lines": 20,
+      "covered_bytes": 328,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 328,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:adds two numbers:7:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "covered_lines": 3,
+      "covered_bytes": 39,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 32,
+      "end_line": 9,
+      "end_column": 5,
+      "start_byte": 126,
+      "end_byte": 165,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "covered_lines": 9,
+      "covered_bytes": 143,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 4,
+      "start_column": 25,
+      "end_line": 12,
+      "end_column": 3,
+      "start_byte": 73,
+      "end_byte": 216,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:main:3:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "covered_lines": 11,
+      "covered_bytes": 174,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 12,
+      "end_line": 13,
+      "end_column": 1,
+      "start_byte": 46,
+      "end_byte": 220,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:runExample:17:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "covered_lines": 3,
+      "covered_bytes": 17,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 17,
+      "start_column": 55,
+      "end_line": 19,
+      "end_column": 1,
+      "start_byte": 310,
+      "end_byte": 327,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:setUp:5:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 5,
+      "start_column": 13,
+      "end_line": 5,
+      "end_column": 15,
+      "start_byte": 88,
+      "end_byte": 90,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/dart/test_roles/source.dart:testNamedButNotCalled:15:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 15,
+      "start_column": 29,
+      "end_line": 15,
+      "end_column": 31,
+      "start_byte": 251,
+      "end_byte": 253,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "adds two numbers",
+      "kind": "other",
+      "carrier": "test",
+      "arg_position": 0,
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 7,
+      "start_column": 9,
+      "end_line": 7,
+      "end_column": 27,
+      "start_byte": 103,
+      "end_byte": 121,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:adds two numbers:7:4",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "calculator",
+      "kind": "other",
+      "carrier": "group",
+      "arg_position": 0,
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 4,
+      "start_column": 8,
+      "end_line": 4,
+      "end_column": 20,
+      "start_byte": 56,
+      "end_byte": 68,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "ordinary callback",
+      "kind": "other",
+      "carrier": "runExample",
+      "arg_position": 0,
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "start_line": 11,
+      "start_column": 15,
+      "end_line": 11,
+      "end_column": 34,
+      "start_byte": 184,
+      "end_byte": 203,
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:adds two numbers:7:4",
+      "start_line": 7,
+      "start_column": 9,
+      "end_line": 7,
+      "end_column": 27,
+      "start_byte": 103,
+      "end_byte": 121,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "start_line": 11,
+      "start_column": 15,
+      "end_line": 11,
+      "end_column": 34,
+      "start_byte": 184,
+      "end_byte": 203,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:calculator:4:2",
+      "start_line": 4,
+      "start_column": 8,
+      "end_line": 4,
+      "end_column": 20,
+      "start_byte": 56,
+      "end_byte": 68,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "dart",
+      "file_path": "fixtures/extraction/dart/test_roles/source.dart",
+      "containing_key": "fixtures/extraction/dart/test_roles/source.dart:package:test/test.dart:1:0",
+      "start_line": 1,
+      "start_column": 7,
+      "end_line": 1,
+      "end_column": 31,
+      "start_byte": 7,
+      "end_byte": 31,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

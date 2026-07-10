@@ -1,0 +1,336 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:before_each:3:0",
+      "name": "before_each",
+      "kind": "function",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 8,
+      "start_byte": 17,
+      "end_byte": 45,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 19,
+        "end_line": 4,
+        "end_column": 8,
+        "start_byte": 36,
+        "end_byte": 45
+      },
+      "body_hash": "1a1dc91c907325c69271ddf0c944bc72",
+      "signature": "func before_each():",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0",
+      "name": "test_addition",
+      "kind": "function",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 23,
+      "start_byte": 47,
+      "end_byte": 92,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 21,
+        "end_line": 7,
+        "end_column": 23,
+        "start_byte": 68,
+        "end_byte": 92
+      },
+      "body_hash": "8beb85753407b5bd9ee1f7d8f6a94738",
+      "signature": "func test_addition():",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+      "name": "test_source",
+      "kind": "class",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 0,
+      "end_byte": 15,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "extends GutTest",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "baseClass": "GutTest",
+        "base_types": [
+          "GutTest"
+        ]
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:verify_addition:9:0",
+      "name": "verify_addition",
+      "kind": "function",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 21,
+      "start_byte": 94,
+      "end_byte": 139,
+      "body_span": {
+        "start_line": 9,
+        "start_column": 23,
+        "end_line": 10,
+        "end_column": 21,
+        "start_byte": 117,
+        "end_byte": 139
+      },
+      "body_hash": "c15c8190e47a1c3e94dc9e49f2de9488",
+      "signature": "func verify_addition():",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0",
+      "callee_name": "assert_eq",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "line_number": 7,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+      "callee_name": "GutTest",
+      "kind": "extends",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "line_number": 1,
+      "confidence": "0.800"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0",
+        "callee_name": "assert_eq",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+        "line_number": 7,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "assert_eq",
+        "terminal_name": "assert_eq",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+        "callee_name": "GutTest",
+        "kind": "extends",
+        "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+        "line_number": 1,
+        "confidence": "0.800"
+      },
+      "target": {
+        "display_name": "GutTest",
+        "terminal_name": "GutTest",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:GutTest:type_usage:1:8",
+      "name": "GutTest",
+      "kind": "type_usage",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "start_line": 1,
+      "start_column": 8,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 8,
+      "end_byte": 15,
+      "containing_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/gdscript/test_roles/test_source.gd:assert_eq:call:7:4",
+      "name": "assert_eq",
+      "kind": "call",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 13,
+      "start_byte": 73,
+      "end_byte": 82,
+      "containing_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "gdscript.extends_declaration.v1",
+      "capture_name": "extends_declaration",
+      "node_kind": "extends_statement",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "containing_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 0,
+      "end_byte": 15,
+      "confidence": "1.000",
+      "metadata": {
+        "base_type": "GutTest",
+        "pattern_version": 1,
+        "query_family": "inheritance"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "covered_lines": 11,
+      "covered_bytes": 140,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 11,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 140,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:before_each:3:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 9,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 19,
+      "end_line": 4,
+      "end_column": 8,
+      "start_byte": 36,
+      "end_byte": 45,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 24,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 6,
+      "start_column": 21,
+      "end_line": 7,
+      "end_column": 23,
+      "start_byte": 68,
+      "end_byte": 92,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:verify_addition:9:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "gdscript",
+      "file_path": "fixtures/extraction/gdscript/test_roles/test_source.gd",
+      "covered_lines": 2,
+      "covered_bytes": 22,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 9,
+      "start_column": 23,
+      "end_line": 10,
+      "end_column": 21,
+      "start_byte": 117,
+      "end_byte": 139,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}
