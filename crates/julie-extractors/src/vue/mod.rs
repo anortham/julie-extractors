@@ -22,6 +22,7 @@ mod script;
 mod script_setup;
 mod style;
 mod template;
+mod test_calls;
 
 // Public re-exports
 pub use crate::base::{IdentifierKind, RelationshipKind};
@@ -176,13 +177,15 @@ impl VueExtractor {
     fn extract_section_symbols(&self, section: &VueSection) -> Vec<Symbol> {
         match section.section_type.as_str() {
             "script" => {
-                if section.is_setup {
+                let mut symbols = if section.is_setup {
                     // <script setup> uses tree-sitter for Composition API extraction
                     script_setup::extract_script_setup_symbols(&self.base, section)
                 } else {
                     // Regular <script> uses regex for Options API extraction
                     script::extract_script_symbols(&self.base, section)
-                }
+                };
+                symbols.extend(test_calls::extract_script_test_symbols(&self.base, section));
+                symbols
             }
             "template" => {
                 // Extract template-owned definitions without treating component usages as definitions.

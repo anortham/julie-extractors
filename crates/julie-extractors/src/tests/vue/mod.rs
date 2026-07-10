@@ -8,6 +8,7 @@ pub mod literals;
 pub mod parsing;
 pub mod relationships;
 pub mod structural_facts;
+pub mod test_detection;
 pub mod type_arguments;
 
 mod complexity;

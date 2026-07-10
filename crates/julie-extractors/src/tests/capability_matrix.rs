@@ -1126,6 +1126,41 @@ fn capability_matrix_has_no_silent_kind_coverage_cells() {
 }
 
 #[test]
+fn capability_matrix_code_languages_require_resolved_test_detection() {
+    const DOMAIN_LANGUAGES: [&str; 8] = [
+        "css", "html", "json", "markdown", "regex", "sql", "toml", "yaml",
+    ];
+
+    let root = workspace_root();
+    let matrix = load_matrix_json(&root);
+    let mut errors = Vec::new();
+
+    for row in matrix["languages"].as_array().unwrap() {
+        let language = row["language"].as_str().unwrap();
+        if DOMAIN_LANGUAGES.contains(&language) {
+            continue;
+        }
+
+        let Some(coverage) = row["kind_coverage"].get("test_detection") else {
+            errors.push(format!(
+                "{language} is missing kind_coverage.test_detection"
+            ));
+            continue;
+        };
+        let supported = coverage_array_len(language, "test_detection", coverage, "supported");
+        let not_applicable =
+            coverage_array_len(language, "test_detection", coverage, "not_applicable");
+        if supported + not_applicable == 0 {
+            errors.push(format!(
+                "{language} kind_coverage.test_detection has only open or silent classifications; add golden-backed supported evidence or a source-backed not_applicable classification"
+            ));
+        }
+    }
+
+    assert!(errors.is_empty(), "{}", errors.join("\n"));
+}
+
+#[test]
 fn capability_matrix_test_detection_classifies_fixed_vocabulary_exactly_once() {
     const TEST_DETECTION_UNITS: [&str; 3] = ["test_case", "test_container", "test_lifecycle"];
     const CLOSURE_PLAN: &str =

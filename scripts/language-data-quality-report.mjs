@@ -50,6 +50,7 @@ const CODE_LANGUAGE_EXPECTATIONS = new Set([
   "literals",
   "source_regions",
   "structural_facts",
+  "test_detection",
 ]);
 
 const DOMAIN_LANGUAGE_EXPECTATIONS = new Set([
