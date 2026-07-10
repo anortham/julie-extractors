@@ -217,12 +217,12 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 ### Task 4: Script languages
 
 **Files:**
-- Create: `fixtures/extraction/python/test_roles/source.py`, `expected.json`
-- Create: `fixtures/extraction/php/test_roles/source.php`, `expected.json`
-- Create: `fixtures/extraction/ruby/test_roles/source.rb`, `expected.json`
-- Create: `fixtures/extraction/lua/test_roles/source.lua`, `expected.json`
-- Create: `fixtures/extraction/r/test_roles/source.r`, `expected.json`
-- Create: `fixtures/extraction/bash/test_roles/source.sh`, `expected.json`
+- Create: `fixtures/extraction/python/test_roles/test_source.py`, `expected.json`
+- Create: `fixtures/extraction/php/test_roles/test_source.php`, `expected.json`
+- Create: `fixtures/extraction/ruby/test_roles/test_source.rb`, `expected.json`
+- Create: `fixtures/extraction/lua/test_roles/test_source.lua`, `expected.json`
+- Create: `fixtures/extraction/r/test_roles/test_source.r`, `expected.json`
+- Create: `fixtures/extraction/bash/test_roles/test_source.sh`, `expected.json`
 - Create: `fixtures/extraction/powershell/test_roles/source.ps1`, `expected.json`
 - Modify: `fixtures/extraction/capabilities.json`
 - Test when required: corresponding language-local test-detection modules
@@ -250,10 +250,10 @@ Every task uses `serial-worker-commit` after its language/group gate passes so t
 **Step 5: Apply commit mode.** Use `serial-worker-commit` and record the SHA/ledger.
 
 **Acceptance criteria:**
-- [ ] Seven registered fixtures pass.
-- [ ] Naming/path guards have explicit negative controls.
-- [ ] Call-style containers/lifecycle roles match actual output.
-- [ ] Task gates pass and the task is committed.
+- [x] Seven registered fixtures pass.
+- [x] Naming/path guards have explicit negative controls.
+- [x] Call-style containers/lifecycle roles match actual output.
+- [x] Task gates pass and the task is committed.
 
 ### Task 5: Remaining executable languages
 
