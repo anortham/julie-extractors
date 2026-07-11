@@ -53,9 +53,20 @@ A release is not complete until source control is reconciled in the primary
 checkout. Worktrees may be used for implementation, but the primary checkout
 must be returned to a clean, current `main` before the release is called done.
 
+Release-state tripwire — run this at session start and as the first closeout
+check. It fails when the source tree declares a version whose tag was never
+pushed, when local `main` is ahead of `origin/main`, or when a local tag is
+missing from origin, so an abandoned in-flight release announces itself
+instead of sitting silent:
+
+```bash
+scripts/check-release-state.sh
+```
+
 Required closeout checks:
 
 ```bash
+scripts/check-release-state.sh
 git fetch origin --tags
 test "$(git branch --show-current)" = "main"
 git status --short --branch
