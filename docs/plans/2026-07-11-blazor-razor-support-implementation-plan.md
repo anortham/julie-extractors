@@ -77,9 +77,9 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 **Approach:** Run each snippet through the branch parser (`tree-sitter parse`) before classifying — do not classify against the pinned rev. Anything already fixed by the branch goes in the classification as "covered by 07eab9c".
 
 **Acceptance criteria:**
-- [ ] Every Razor diagnostic in the Task 1 start-of-work query result maps to a corpus snippet or a named duplicate; the recorded baseline starts from 235 on 2026-07-11
-- [ ] Classification doc lists per-class counts, branch coverage, and a re-estimate for Tasks 2–3
-- [ ] Corpus files committed to the grammar repo on `fix/attribute-value-expressions`
+- [x] Every Razor diagnostic in the Task 1 start-of-work query result maps to a corpus snippet or a named duplicate; the recorded baseline is 235 on 2026-07-11 (`acc610f`, `8ff20ab`)
+- [x] Classification doc lists per-class counts, branch coverage, FluentUI additions, and a re-estimate for Tasks 2–3 (`e1299f0`, `fc9bf57`)
+- [x] Corpus files committed to the grammar repo on `fix/attribute-value-expressions`
 
 ### Task 2: Grammar — attribute-value expressions
 
@@ -91,16 +91,17 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 - Consumes: Task 1 corpus and classification.
 - Produces: grammar rev where implicit expressions (`@typeof(App).Assembly`, member access, method calls, indexers) and explicit expressions (`@(...)` with lambdas, ternaries, casts, collection expressions) inside attribute values produce expression nodes, not ERROR/opaque text.
 
-**What to build:** Extend attribute-value rules to parse `@`-expressions via the embedded tree-sitter-c-sharp rules the grammar already uses. Keep the opaque pattern only for genuinely expressionless values.
+**What to build:** Extend attribute-value rules to parse `@`-expressions via the embedded tree-sitter-c-sharp rules the grammar already uses. Keep the opaque pattern only for genuinely expressionless values. Close Task 1 case O1 so generic component type values such as `TValue="string"` parse as `predefined_type` rather than ERROR or opaque text.
 
 **Approach:** Work per construct class in Task 1 frequency order. If direct composition destabilizes the grammar (conflicts, state explosion), stop and report — the recorded fallback is nested C# parsing of the attribute text, a design-level decision the lead confirms before pivoting.
 
 **Acceptance criteria:**
 - [ ] All Task 1 corpus files in the implicit/explicit expression classes pass `tree-sitter test`
+- [ ] Generic component type values in Task 1 case O1 pass as named C# type nodes
 - [ ] Expression content appears as parsed nodes (assert node kinds in corpus expectations, not just absence of ERROR)
 - [ ] Existing grammar corpus stays green
 
-### Task 3: Grammar — directive-attribute modifiers, rendermode, typeparam
+### Task 3: Grammar — directive-attribute modifiers, rendermode, typeparam, render fragments
 
 **Files:**
 - Modify: `~/source/tree-sitter-razor/grammar.js` (directive attribute rules; render-mode rule at line 190 is closed to three keywords)
@@ -110,10 +111,11 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 - Consumes: Task 1 corpus.
 - Produces: grammar rev parsing `@on{event}:{modifier}` (e.g. `@onsubmit:preventDefault`), `@bind-{Prop}:{event|format|get|set|after}`, open-set `@rendermode` arguments, constrained `@typeparam T where T : ...`.
 
-**What to build:** Modifier suffix parsing on directive attributes; widen the render-mode rule from its closed keyword list; typeparam constraint clause.
+**What to build:** Modifier suffix parsing on directive attributes; widen the render-mode rule from its closed keyword list; typeparam constraint clause; close Task 1 case O6 by allowing Razor template literals as expression values inside embedded-C# switch-expression arms.
 
 **Acceptance criteria:**
 - [ ] Corpus files for modifiers/rendermode/typeparam pass with named nodes
+- [ ] Task 1 case O6 parses render-fragment literals in switch-expression arms without ERROR or opaque consumption
 - [ ] Existing grammar corpus stays green
 - [ ] Grammar changes committed at a concrete rev for Task 4 to pin; tag/push happens only after explicit approval
 
