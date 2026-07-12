@@ -76,6 +76,16 @@ const FIXTURES: &[Fixture] = &[
             "../../../../../fixtures/extraction/razor/attribute-expressions/directives/expected.json"
         ),
     },
+    Fixture {
+        name: "explicit render mode",
+        path: "fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor",
+        source: include_str!(
+            "../../../../../fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor"
+        ),
+        expected: include_str!(
+            "../../../../../fixtures/extraction/razor/attribute-expressions/rendermode-explicit/expected.json"
+        ),
+    },
 ];
 
 #[test]
@@ -96,6 +106,11 @@ fn directive_modifiers_are_clean_and_semantically_visible() {
 #[test]
 fn directives_and_render_fragment_are_clean_and_semantically_visible() {
     assert_fixture(&FIXTURES[3]);
+}
+
+#[test]
+fn explicit_render_mode_is_clean_and_semantically_visible() {
+    assert_fixture(&FIXTURES[4]);
 }
 
 fn assert_fixture(fixture: &Fixture) {
