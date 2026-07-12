@@ -43,7 +43,7 @@ const FIXTURES: &[Fixture] = &[
             "../../../../../fixtures/extraction/razor/attribute-expressions/implicit/source.razor"
         ),
         expected: include_str!(
-            "../../../../../fixtures/extraction/razor/attribute-expressions/implicit/expected.json"
+            "../../../../../fixtures/extraction/razor/attribute-expressions/implicit/evidence.json"
         ),
     },
     Fixture {
@@ -53,7 +53,7 @@ const FIXTURES: &[Fixture] = &[
             "../../../../../fixtures/extraction/razor/attribute-expressions/explicit/source.razor"
         ),
         expected: include_str!(
-            "../../../../../fixtures/extraction/razor/attribute-expressions/explicit/expected.json"
+            "../../../../../fixtures/extraction/razor/attribute-expressions/explicit/evidence.json"
         ),
     },
     Fixture {
@@ -63,7 +63,7 @@ const FIXTURES: &[Fixture] = &[
             "../../../../../fixtures/extraction/razor/attribute-expressions/modifiers/source.razor"
         ),
         expected: include_str!(
-            "../../../../../fixtures/extraction/razor/attribute-expressions/modifiers/expected.json"
+            "../../../../../fixtures/extraction/razor/attribute-expressions/modifiers/evidence.json"
         ),
     },
     Fixture {
@@ -73,7 +73,7 @@ const FIXTURES: &[Fixture] = &[
             "../../../../../fixtures/extraction/razor/attribute-expressions/directives/source.razor"
         ),
         expected: include_str!(
-            "../../../../../fixtures/extraction/razor/attribute-expressions/directives/expected.json"
+            "../../../../../fixtures/extraction/razor/attribute-expressions/directives/evidence.json"
         ),
     },
     Fixture {
@@ -83,7 +83,7 @@ const FIXTURES: &[Fixture] = &[
             "../../../../../fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor"
         ),
         expected: include_str!(
-            "../../../../../fixtures/extraction/razor/attribute-expressions/rendermode-explicit/expected.json"
+            "../../../../../fixtures/extraction/razor/attribute-expressions/rendermode-explicit/evidence.json"
         ),
     },
 ];

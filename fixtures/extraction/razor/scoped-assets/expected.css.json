@@ -1,0 +1,93 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor.css:.scoped-panel:1:0",
+      "name": ".scoped-panel",
+      "kind": "property",
+      "language": "css",
+      "file_path": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor.css",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 47,
+      "body_span": {
+        "start_line": 1,
+        "start_column": 14,
+        "end_line": 4,
+        "end_column": 1,
+        "start_byte": 14,
+        "end_byte": 47
+      },
+      "body_hash": "8557e708c6db8b176c0e2b1d9e8aa289",
+      "signature": ".scoped-panel { display: grid; gap: 1rem }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "properties": [
+          "display: grid;",
+          "gap: 1rem;"
+        ],
+        "selector": ".scoped-panel",
+        "type": "css-rule"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [],
+  "structured_pending_relationships": [],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor.css:scoped-panel:member_access:1:0",
+      "name": "scoped-panel",
+      "kind": "member_access",
+      "language": "css",
+      "file_path": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor.css",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 13,
+      "start_byte": 0,
+      "end_byte": 13,
+      "containing_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor.css:.scoped-panel:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "css.selector_rule.v1",
+      "capture_name": "rule_set",
+      "node_kind": "rule_set",
+      "language": "css",
+      "file_path": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor.css",
+      "containing_key": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor.css:.scoped-panel:1:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 47,
+      "confidence": "1.000",
+      "metadata": {
+        "declaration_count": 2,
+        "pattern_version": 1,
+        "query_family": "stylesheet_structure",
+        "selector": ".scoped-panel",
+        "selector_kind": "class"
+      }
+    }
+  ],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [],
+  "type_argument_usages": []
+}

@@ -1,0 +1,10 @@
+@namespace Sample.Components
+
+<section class="scoped-panel">
+    <ChildPanel />
+</section>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Scoped";
+}

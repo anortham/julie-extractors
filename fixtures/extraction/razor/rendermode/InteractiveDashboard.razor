@@ -1,0 +1,9 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+
+<DashboardShell />
+
+@code {
+    [CascadingParameter]
+    public ThemeContext Theme { get; set; } = default!;
+}

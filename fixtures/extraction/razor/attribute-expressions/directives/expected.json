@@ -1,5 +1,0 @@
-{
-  "symbols": ["Badge"],
-  "variable_refs": ["TItem", "PageRenderMode", "state"],
-  "type_usages": ["IEntity", "RenderFragment", "State"]
-}

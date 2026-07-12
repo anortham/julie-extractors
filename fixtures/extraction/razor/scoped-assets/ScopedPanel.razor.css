@@ -1,0 +1,4 @@
+.scoped-panel {
+  display: grid;
+  gap: 1rem;
+}

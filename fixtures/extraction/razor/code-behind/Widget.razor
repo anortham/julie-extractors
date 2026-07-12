@@ -1,0 +1,19 @@
+@page "/widgets/{id?}"
+@namespace Sample.Components
+@using Sample.Shared
+@inject NavigationManager Navigation
+@inject HttpClient Http
+
+<SharedWidget TValue="WidgetModel" />
+<a href="/widgets/new">New widget</a>
+
+@code {
+    [CascadingParameter]
+    public ThemeContext Theme { get; set; } = default!;
+
+    private async Task LoadAsync()
+    {
+        Navigation.NavigateTo("/widgets/current");
+        await Http.GetFromJsonAsync<WidgetModel>("/api/widgets/current");
+    }
+}

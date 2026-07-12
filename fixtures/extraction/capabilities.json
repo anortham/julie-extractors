@@ -1868,6 +1868,11 @@
           "name": "cross_file",
           "source": "fixtures/extraction/css/cross_file/source.css",
           "expected": "fixtures/extraction/css/cross_file/expected.json"
+        },
+        {
+          "name": "razor_scoped_asset",
+          "source": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor.css",
+          "expected": "fixtures/extraction/razor/scoped-assets/expected.css.json"
         }
       ],
       "target_capabilities": {
@@ -2565,6 +2570,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/csharp/test_roles/source.cs",
           "expected": "fixtures/extraction/csharp/test_roles/expected.json"
+        },
+        {
+          "name": "razor_code_behind",
+          "source": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+          "expected": "fixtures/extraction/razor/code-behind/expected.cs.json"
         }
       ],
       "target_capabilities": {
@@ -2624,7 +2634,8 @@
             "aspnet.attribute_route.v1",
             "aspnet.minimal_api.route.v1",
             "aspnet.minimal_api.route_group.v1",
-            "http.client_request.v1"
+            "http.client_request.v1",
+            "razor.route_reference.v1"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2640,7 +2651,8 @@
         "annotations": {
           "supported": [
             "class",
-            "method"
+            "method",
+            "property"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -4889,6 +4901,56 @@
           "name": "test_roles",
           "source": "fixtures/extraction/razor/test_roles/source.razor",
           "expected": "fixtures/extraction/razor/test_roles/expected.json"
+        },
+        {
+          "name": "attribute_expressions_implicit",
+          "source": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
+          "expected": "fixtures/extraction/razor/attribute-expressions/implicit/golden.json"
+        },
+        {
+          "name": "attribute_expressions_explicit",
+          "source": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
+          "expected": "fixtures/extraction/razor/attribute-expressions/explicit/golden.json"
+        },
+        {
+          "name": "attribute_expressions_modifiers",
+          "source": "fixtures/extraction/razor/attribute-expressions/modifiers/source.razor",
+          "expected": "fixtures/extraction/razor/attribute-expressions/modifiers/golden.json"
+        },
+        {
+          "name": "attribute_expressions_directives",
+          "source": "fixtures/extraction/razor/attribute-expressions/directives/source.razor",
+          "expected": "fixtures/extraction/razor/attribute-expressions/directives/golden.json"
+        },
+        {
+          "name": "attribute_expressions_rendermode_explicit",
+          "source": "fixtures/extraction/razor/attribute-expressions/rendermode-explicit/source.razor",
+          "expected": "fixtures/extraction/razor/attribute-expressions/rendermode-explicit/golden.json"
+        },
+        {
+          "name": "code_behind_component",
+          "source": "fixtures/extraction/razor/code-behind/Widget.razor",
+          "expected": "fixtures/extraction/razor/code-behind/expected.razor.json"
+        },
+        {
+          "name": "imports",
+          "source": "fixtures/extraction/razor/imports/_Imports.razor",
+          "expected": "fixtures/extraction/razor/imports/expected.json"
+        },
+        {
+          "name": "scoped_assets",
+          "source": "fixtures/extraction/razor/scoped-assets/ScopedPanel.razor",
+          "expected": "fixtures/extraction/razor/scoped-assets/expected.razor.json"
+        },
+        {
+          "name": "typeparam",
+          "source": "fixtures/extraction/razor/typeparam/GenericList.razor",
+          "expected": "fixtures/extraction/razor/typeparam/expected.json"
+        },
+        {
+          "name": "rendermode",
+          "source": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor",
+          "expected": "fixtures/extraction/razor/rendermode/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4914,8 +4976,10 @@
       "kind_coverage": {
         "symbols": {
           "supported": [
+            "class",
             "import",
             "method",
+            "property",
             "variable"
           ],
           "not_applicable": [],
@@ -4950,9 +5014,12 @@
         "structural_facts": {
           "supported": [
             "alpine.directive.v1",
+            "blazor.component_reference.v1",
             "htmx.attribute.v1",
+            "http.client_request.v1",
             "razor.code_block.v1",
             "razor.page_directive.v1",
+            "razor.route_reference.v1",
             "razor.template_expression.v1"
           ],
           "not_applicable": [],

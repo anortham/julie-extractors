@@ -1,0 +1,9 @@
+@namespace Sample.Components
+@typeparam TItem where TItem : IEntity
+
+<DataGrid TGridItem="TItem" />
+
+@code {
+    [Parameter]
+    public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
+}

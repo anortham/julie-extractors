@@ -1,0 +1,478 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Components:1:0",
+      "name": "Components",
+      "kind": "import",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 38,
+      "start_byte": 0,
+      "end_byte": 38,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "using Microsoft.AspNetCore.Components",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Navigation:7:4",
+      "name": "Navigation",
+      "kind": "property",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 7,
+      "start_column": 4,
+      "end_line": 8,
+      "end_column": 65,
+      "start_byte": 104,
+      "end_byte": 178,
+      "body_span": {
+        "start_line": 8,
+        "start_column": 40,
+        "end_line": 8,
+        "end_column": 53,
+        "start_byte": 153,
+        "end_byte": 166
+      },
+      "body_hash": "128b54e8907b5ba0159a370391345ae3",
+      "signature": "[Inject] public NavigationManager Navigation { get; set; }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "Inject",
+          "annotation_key": "inject",
+          "raw_text": "Inject"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "name": "Refresh",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 13,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 5,
+      "start_byte": 266,
+      "end_byte": 350,
+      "body_span": {
+        "start_line": 14,
+        "start_column": 4,
+        "end_line": 16,
+        "end_column": 5,
+        "start_byte": 292,
+        "end_byte": 350
+      },
+      "body_hash": "61888a71a85cb070233f2a7e4364be61",
+      "signature": "public void Refresh()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Theme:10:4",
+      "name": "Theme",
+      "kind": "property",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 10,
+      "start_column": 4,
+      "end_line": 11,
+      "end_column": 55,
+      "start_byte": 184,
+      "end_byte": 260,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 30,
+        "end_line": 11,
+        "end_column": 43,
+        "start_byte": 235,
+        "end_byte": 248
+      },
+      "body_hash": "128b54e8907b5ba0159a370391345ae3",
+      "signature": "[CascadingParameter] public ThemeContext Theme { get; set; }",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
+      "metadata": {},
+      "annotations": [
+        {
+          "annotation": "CascadingParameter",
+          "annotation_key": "cascadingparameter",
+          "raw_text": "CascadingParameter"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
+      "name": "Widget",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 1,
+      "start_byte": 70,
+      "end_byte": 352,
+      "body_span": {
+        "start_line": 6,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 1,
+        "start_byte": 98,
+        "end_byte": 352
+      },
+      "body_hash": "c245f5735f0e8cc20db477491d9e4df9",
+      "signature": "public partial class Widget",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "csharp_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "callee_name": "Navigation.NavigateTo",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "line_number": 15,
+      "confidence": "0.700"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+        "callee_name": "Navigation.NavigateTo",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+        "line_number": 15,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Navigation.NavigateTo",
+        "terminal_name": "NavigateTo",
+        "receiver": "Navigation",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:AspNetCore:type_usage:1:16",
+      "name": "AspNetCore",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 1,
+      "start_column": 16,
+      "end_line": 1,
+      "end_column": 26,
+      "start_byte": 16,
+      "end_byte": 26,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Components:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Components:type_usage:1:27",
+      "name": "Components",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 1,
+      "start_column": 27,
+      "end_line": 1,
+      "end_column": 37,
+      "start_byte": 27,
+      "end_byte": 37,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Components:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Components:type_usage:3:17",
+      "name": "Components",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 3,
+      "start_column": 17,
+      "end_line": 3,
+      "end_column": 27,
+      "start_byte": 57,
+      "end_byte": 67,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Microsoft:type_usage:1:6",
+      "name": "Microsoft",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 1,
+      "start_column": 6,
+      "end_line": 1,
+      "end_column": 15,
+      "start_byte": 6,
+      "end_byte": 15,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Components:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:NavigateTo:call:15:19",
+      "name": "NavigateTo",
+      "kind": "call",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 15,
+      "start_column": 19,
+      "end_line": 15,
+      "end_column": 29,
+      "start_byte": 313,
+      "end_byte": 323,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Navigation:variable_ref:15:8",
+      "name": "Navigation",
+      "kind": "variable_ref",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 15,
+      "start_column": 8,
+      "end_line": 15,
+      "end_column": 18,
+      "start_byte": 302,
+      "end_byte": 312,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:NavigationManager:type_usage:8:11",
+      "name": "NavigationManager",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 8,
+      "start_column": 11,
+      "end_line": 8,
+      "end_column": 28,
+      "start_byte": 124,
+      "end_byte": 141,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Sample:type_usage:3:10",
+      "name": "Sample",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 3,
+      "start_column": 10,
+      "end_line": 3,
+      "end_column": 16,
+      "start_byte": 50,
+      "end_byte": 56,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:ThemeContext:type_usage:11:11",
+      "name": "ThemeContext",
+      "kind": "type_usage",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 11,
+      "start_column": 11,
+      "end_line": 11,
+      "end_column": 23,
+      "start_byte": 216,
+      "end_byte": 228,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Navigation:7:4",
+      "resolved_type": "[Inject]",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Theme:10:4",
+      "resolved_type": "[CascadingParameter]",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "razor.route_reference.v1",
+      "capture_name": "route_reference",
+      "node_kind": "invocation_expression",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "start_line": 15,
+      "start_column": 8,
+      "end_line": 15,
+      "end_column": 49,
+      "start_byte": 302,
+      "end_byte": 343,
+      "confidence": "1.000",
+      "metadata": {
+        "framework": "blazor",
+        "pattern_version": 1,
+        "query_family": "frontend_navigation",
+        "route_source": "string_literal",
+        "source_kind": "navigate_to",
+        "target_path": "/widgets/refresh"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "covered_lines": 18,
+      "covered_bytes": 353,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 18,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 353,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "covered_lines": 3,
+      "covered_bytes": 58,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 14,
+      "start_column": 4,
+      "end_line": 16,
+      "end_column": 5,
+      "start_byte": 292,
+      "end_byte": 350,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/widgets/refresh",
+      "kind": "other",
+      "carrier": "NavigateTo",
+      "arg_position": 0,
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 15,
+      "start_column": 30,
+      "end_line": 15,
+      "end_column": 48,
+      "start_byte": 324,
+      "end_byte": 342,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "start_line": 15,
+      "start_column": 30,
+      "end_line": 15,
+      "end_column": 48,
+      "start_byte": 324,
+      "end_byte": 342,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

@@ -138,10 +138,10 @@ fn collect_navigation_calls(
     declarations: &[ReceiverDeclaration],
     facts: &mut Vec<StructuralFact>,
 ) {
-    if node.kind() == "invocation_expression" {
-        if let Some(fact) = navigation_call_fact(node, language, file_path, content, declarations) {
-            facts.push(fact);
-        }
+    if node.kind() == "invocation_expression"
+        && let Some(fact) = navigation_call_fact(node, language, file_path, content, declarations)
+    {
+        facts.push(fact);
     }
 
     let mut cursor = node.walk();
@@ -241,20 +241,18 @@ fn collect_razor_hrefs(
     content: &str,
     facts: &mut Vec<StructuralFact>,
 ) {
-    if node.kind() == "element" {
-        if let Some((target_path, value_start, value_end)) = href_literal(node, content) {
-            if is_internal_route(target_path)
-                && !has_razor_expression_in_range(node, value_start, value_end)
-            {
-                facts.push(route_reference_fact(
-                    node,
-                    "razor",
-                    file_path,
-                    target_path,
-                    "href",
-                ));
-            }
-        }
+    if node.kind() == "element"
+        && let Some((target_path, value_start, value_end)) = href_literal(node, content)
+        && is_internal_route(target_path)
+        && !has_razor_expression_in_range(node, value_start, value_end)
+    {
+        facts.push(route_reference_fact(
+            node,
+            "razor",
+            file_path,
+            target_path,
+            "href",
+        ));
     }
 
     let mut cursor = node.walk();
