@@ -159,10 +159,10 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 **What to build:** Add one shared internal Blazor-navigation collector called from both the csharp and razor framework-fact dispatch arms. The csharp path emits supported navigation calls; the razor path emits those calls plus internal `href` references. Register the pattern and metadata keys, update both language pattern-ID sets, regenerate the exported contract JSON, and add a regression test that `razor.page_directive.v1` preserves the raw ASP.NET brace template and `route_parameters` metadata verbatim.
 
 **Acceptance criteria:**
-- [ ] `NavigateTo` in `@code`, `NavigateTo` in a `.cs` file, and internal `href` each emit one fact with correct `target_path`/`source_kind`/`route_source`
-- [ ] External and fragment `href` values emit nothing
-- [ ] Raw-template fidelity test for `razor.page_directive.v1` green (`{id?}`, `{*path}` survive verbatim in the fact payload)
-- [ ] Registry conformance passes for both csharp and razor and the exported contract JSON is synchronized
+- [x] `NavigateTo` in `@code`, `NavigateTo` in a `.cs` file, and internal `href` each emit one fact with correct `target_path`/`source_kind`/`route_source` (`b9b6445`)
+- [x] External and fragment `href` values emit nothing
+- [x] Raw-template fidelity test for `razor.page_directive.v1` green (`{id?}`, `{*path}` survive verbatim in the fact payload)
+- [x] Registry conformance passes for both csharp and razor and the exported contract JSON is synchronized
 
 ### Task 6: `blazor.component_reference.v1`
 
