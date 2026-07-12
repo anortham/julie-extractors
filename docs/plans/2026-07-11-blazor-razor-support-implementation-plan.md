@@ -243,5 +243,5 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 - [x] Razor certified kind_coverage includes class + property (today: import/method/variable only)
 - [x] Capability snapshot certifies `razor.route_reference.v1`, `blazor.component_reference.v1`, razor `http.client_request.v1`
 - [x] `docs/contracts/structural-fact-patterns.json` is byte-synchronized with the registry and all new metadata keys are declared
-- [x] Release prepared as `2.13.0`; extractor candidate `ff05b298e4f8fa510b31a9f0be22cc0fd3eb143b` and grammar rev `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba` recorded for Miller's pin bump
+- [x] Release prepared as `2.13.0`; Task 3 grammar evidence remains at `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba`, and the final review-fix pin is `f82b737c77f5e3ef26bd655eda622b281479bbbc`
 - [x] T-SQL issue filed as `anortham/julie-extractors#10`

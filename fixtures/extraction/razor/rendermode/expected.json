@@ -110,6 +110,22 @@
   "structured_pending_relationships": [],
   "identifiers": [
     {
+      "key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveServer:variable_ref:2:12",
+      "name": "InteractiveServer",
+      "kind": "variable_ref",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor",
+      "start_line": 2,
+      "start_column": 12,
+      "end_line": 2,
+      "end_column": 29,
+      "start_byte": 31,
+      "end_byte": 48,
+      "containing_key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:InteractiveDashboard:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor:ThemeContext:type_usage:8:11",
       "name": "ThemeContext",
       "kind": "type_usage",

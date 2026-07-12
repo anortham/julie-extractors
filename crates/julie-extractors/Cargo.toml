@@ -52,7 +52,7 @@ tree-sitter-scala = "0.26.0"
 tree-sitter-gdscript = "6.1.0"
 tree-sitter-qmljs = { git = "https://github.com/yuja/tree-sitter-qmljs", rev = "606a66b96a13ef30ed5c7ec7e5adc20a9a40157a" }
 tree-sitter-regex = "0.25.0"
-tree-sitter-razor = { git = "https://github.com/anortham/tree-sitter-razor", rev = "99354a050c5a5190c04b9b07bf4f66d4eae0a6ba" }
+tree-sitter-razor = { git = "https://github.com/anortham/tree-sitter-razor", rev = "f82b737c77f5e3ef26bd655eda622b281479bbbc" }
 tree-sitter-powershell = { git = "https://github.com/airbus-cert/tree-sitter-powershell", rev = "d398441825243b00e317e87e1829b9d6a3e54ce0" }
 
 tree-sitter-dart = "0.2.0"

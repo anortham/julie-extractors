@@ -2,10 +2,11 @@
 
 ## Outcome
 
-- Prepared `julie-extractors` feature release `2.13.0` at candidate revision
+- Prepared the initial `julie-extractors` feature release `2.13.0` at candidate revision
   `ff05b298e4f8fa510b31a9f0be22cc0fd3eb143b`.
-- Pinned and recorded `tree-sitter-razor` revision
-  `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba`.
+- Task 4 originally certified `tree-sitter-razor` revision
+  `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba`; final review integration pins
+  `f82b737c77f5e3ef26bd655eda622b281479bbbc`.
 - Did not push, tag, publish, or release.
 
 ## RED evidence
@@ -71,13 +72,13 @@ The strict quality report records 36 languages, `silent_cells: 0`, and
 
 - `cargo fmt --check`: pass
 - `cargo clippy --workspace --all-targets --all-features --no-deps --offline -- -D warnings`: pass
-- `cargo xtask test default`: pass; 2,865 extractor tests plus artifact and CLI suites
+- `cargo xtask test default`: pass; 2,864 extractor tests, 7 ignored, plus artifact and CLI suites
 - `cargo xtask test contract`: pass, including downstream path-dependency smoke
-- `cargo xtask test certification`: pass; capability 40/40 and parser upgrade 2/2
+- `cargo xtask test certification`: pass; capability 39/39, pending-shape 1/1, and parser upgrade 2/2
 - `cargo xtask test golden`: pass; 3/3
-- `cargo xtask test capability`: pass; 40/40
+- `cargo xtask test capability`: pass; capability 39/39 and pending-shape 1/1
 - `node scripts/language-data-quality-report.mjs --strict`: pass; 0 silent cells and 0 quality-bar debts
-- Structural-fact registry unit/export tests: pass; 9/9
+- Structural-fact registry unit/export tests: pass; 10/10
 - CLI structural-fact registry publication contract: pass
 - `cargo deny --all-features check`: advisories, bans, licenses, and sources pass; only the repository's accepted duplicate/wildcard warnings remain
 - `git diff --check`: pass
@@ -98,7 +99,9 @@ The strict quality report records 36 languages, `silent_cells: 0`, and
 
 A clean current CLI scan of `/Users/murphy/source/Terraform` processed 418
 paths, extracted 388 supported files, reported 30 unsupported paths, and had
-zero failed files. Parse diagnostics were:
+zero failed files. The final-review scan used the fresh artifact
+`target/blazor-review-fixes/terraform-f82b737.sqlite`; its release binary was
+built offline against `f82b737c`. Parse diagnostics were:
 
 - Razor: 0
 - SQL: 283 errors and 1 missing node across 6 files
@@ -119,11 +122,13 @@ https://github.com/anortham/julie-extractors/issues/10.
 
 ## Repository state
 
-- Worktree: `/Users/murphy/source/julie-extractors/.worktrees/blazor-razor-support`
-- Branch: `codex/blazor-razor-support`
-- Candidate commit: `ff05b298e4f8fa510b31a9f0be22cc0fd3eb143b`
-- Primary checkout: `main`, clean, one existing commit ahead of `origin/main`
-- Grammar checkout: `fix/attribute-value-expressions`, five commits ahead of
-  its origin branch, with pre-existing untracked `.julieignore` and `.miller/`
+- Worktree: `/Users/murphy/source/julie-extractors/.worktrees/blazor-review-fixes`
+- Branch: `codex/blazor-review-fixes`
+- Verified base before the final integration commit: `5ae311000d7247e0de3a2ddef927d49a769e0a96`
+- Primary checkout: `main`, one existing commit ahead of `origin/main`, with the
+  unrelated untracked T-SQL plan left untouched
+- Grammar checkout: `codex/blazor-review-fixes` at
+  `f82b737c77f5e3ef26bd655eda622b281479bbbc`, with pre-existing untracked
+  `.julieignore` and `.miller/`
 - Approval boundary: the grammar commit must be pushed before a portable
   downstream pin or release can resolve it; no push was attempted.

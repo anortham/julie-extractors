@@ -3,6 +3,7 @@
 ## Result
 
 - Grammar pin updated from `cf7b0e56f5ba9469c70f85d617c52e35eaffa153` through `d24d075afe5b18eae56c4386046ed5e6e3902795` to `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba` in `Cargo.toml` and `Cargo.lock`.
+- Final review integration advances the shipped pin to `f82b737c77f5e3ef26bd655eda622b281479bbbc`; the earlier revisions and ledger rows remain historical Task 4 evidence.
 - Added five caller-facing fixtures covering implicit expressions, explicit expressions, directive modifiers, custom and explicit render modes, generic component types, constrained type parameters, and render fragments.
 - Added a public `extract_canonical` gate requiring zero parse diagnostics plus expected symbols and identifier kinds for every fixture.
 - Added mirrored C# and Razor handling for conditional member binding so `value?.Property` emits `MemberAccess` and `value?.Method()` emits `Call`.
@@ -37,6 +38,7 @@
 | Razor regression scope remains green after the live-gap repin | `cargo test --offline -p julie-extractors razor` | `99354a0` | GREEN: 69 passed, 0 failed | 2026-07-12 |
 | Extractor package ceiling remains green after the live-gap repin | `cargo test --offline -p julie-extractors` | `99354a0` | GREEN: 2,831 passed, 0 failed, 7 ignored; doc tests 1 passed | 2026-07-12 |
 | Full Terraform Razor corpus is parse-clean | Release build + forced scan + SQLite diagnostic count | `99354a0` | GREEN: 28 Razor files indexed, zero failed files, zero Razor parse diagnostics | 2026-07-12 |
+| Final review grammar preserves the live-corpus acceptance bar | Offline release build + fresh forced scan + SQLite diagnostic count | `f82b737` | GREEN: 28 Razor files indexed, zero failed files, zero Razor ERROR/MISSING diagnostics | 2026-07-12 |
 
 ## Plan-mismatch adjudication
 
@@ -46,17 +48,16 @@
 
 ## Terraform re-extraction handoff
 
-Lead-owned, not run by this worker. Repository-documented build and scan forms produce the exact handoff command:
+The final review integration used the repository-documented build and scan forms:
 
 ```bash
 cargo build --release -p julie-extract-cli --bin julie-extract
-mkdir -p target/blazor-razor-support
-target/release/julie-extract scan --root ~/source/Terraform --db target/blazor-razor-support/terraform.sqlite --force --json
-sqlite3 -readonly target/blazor-razor-support/terraform.sqlite "SELECT COUNT(*) FROM parse_diagnostics WHERE language='razor';"
+target/release/julie-extract scan --root ~/source/Terraform --db target/blazor-review-fixes/terraform-f82b737.sqlite --force --json
+sqlite3 -readonly target/blazor-review-fixes/terraform-f82b737.sqlite "SELECT COUNT(*) FROM parse_diagnostics WHERE language='razor' AND lower(kind) IN ('error','missing');"
 ```
 
-The build form is documented in release evidence; the scan contract is documented in `docs/contracts/cli.md` and the data-quality release evidence. The lead completed this handoff after repinning to `99354a0`; the final query returned `0`.
+The final artifact was created at a previously nonexistent path after the release binary compiled `f82b737c`. It contains 28 Razor files, zero failed Razor files, and zero Razor parse diagnostics. The earlier temporary-pin artifact with 338 Razor diagnostics was not reused.
 
 ## Unpublished grammar dependency
 
-`99354a050c5a5190c04b9b07bf4f66d4eae0a6ba` is not pushed to `https://github.com/anortham/tree-sitter-razor`. This worker seeded Cargo's local git cache from `/Users/murphy/source/tree-sitter-razor` and ran dependency-based verification with `--offline`. A clean or fresh environment cannot resolve the manifest pin until push approval is granted and the grammar commit is published. This worker did not push.
+`f82b737c77f5e3ef26bd655eda622b281479bbbc` is not pushed to `https://github.com/anortham/tree-sitter-razor`. This worker seeded Cargo's local git cache from the isolated grammar worktree and ran dependency-based verification with `--offline`. A clean or fresh environment cannot resolve the manifest pin until push approval is granted and the grammar commit is published. This worker did not push.
