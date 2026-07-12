@@ -1,0 +1,24 @@
+<PropertyColumn Property="@(item => item.Name)" />
+<ValidationMessage For="@(() => model.Name)" />
+<InputText ValueChanged="@(value => model.Name = value ?? string.Empty)" />
+<InputText Label="@(mode == GroupMode ? "Group" : "Person")" />
+<InputText ChangeAfterKeyPress="@([KeyPress.For(KeyCode.Enter).WithPreventDefault()])" />
+<FluentIcon Value="@(new Icons.Regular.Size20.Search())" />
+<FluentCard Class="@($"area-card {area.SemanticClass}")" />
+<FluentButton Disabled="@(state != Ready || mutating)" />
+<Result UploadFailures="@(result?.UploadFailures ?? [])" />
+<Result OnRefresh="@(() => result?.Refresh())" />
+<FluentPersona OnDismissClick="@(async () => await ContactList.RemoveSelectedItemAsync(context))" />
+
+@code {
+    private Model model = new();
+    private string mode = "";
+    private string GroupMode = "";
+    private Area area = new();
+    private object state = new();
+    private object Ready = new();
+    private bool mutating;
+    private ResultModel result = new();
+    private ContactCollection ContactList = new();
+    private Context context = new();
+}

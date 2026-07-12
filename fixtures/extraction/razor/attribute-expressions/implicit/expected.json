@@ -1,0 +1,7 @@
+{
+  "symbols": ["StatusColor"],
+  "variable_refs": ["currentValue", "model", "context", "action"],
+  "calls": ["StatusColor"],
+  "type_usages": ["App"],
+  "member_accesses": ["Name", "Status", "Assembly", "Class"]
+}

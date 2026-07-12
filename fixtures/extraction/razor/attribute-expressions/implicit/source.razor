@@ -1,0 +1,13 @@
+<InputText Value="@currentValue" />
+<InputText Value="@model.Name" />
+<FluentBadge Color="@StatusColor(context.Status)" />
+<Router AppAssembly="@typeof(App).Assembly" />
+<a class="area-action @action.Class">Open</a>
+
+@code {
+    private string currentValue = "";
+    private Model model = new();
+    private Context context = new();
+    private ActionModel action = new();
+    private string StatusColor(string status) => status;
+}

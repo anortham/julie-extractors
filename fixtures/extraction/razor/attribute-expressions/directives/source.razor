@@ -1,0 +1,13 @@
+@rendermode InteractiveServerWithoutPrerendering
+@typeparam TItem where TItem : IEntity, new()
+
+<FluentSelect TOption="string" TValue="string" />
+<Routes @rendermode="@PageRenderMode" />
+
+@code {
+    RenderFragment? Badge(State state) => state switch
+    {
+        State.Ready => @<FluentBadge>Ready</FluentBadge>,
+        _ => null,
+    };
+}

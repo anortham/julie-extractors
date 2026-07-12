@@ -1,0 +1,11 @@
+<form @onsubmit="LookupAsync" @onsubmit:preventDefault></form>
+<input @bind-Value="value" @bind-Value:event="oninput" />
+<InputText @bind-Value="value" @bind-Value:after="ValueUpdated" />
+<input @bind:get="value" @bind:set="SetValue" />
+
+@code {
+    private string value = "";
+    private Task LookupAsync() => Task.CompletedTask;
+    private Task ValueUpdated() => Task.CompletedTask;
+    private void SetValue(string next) => value = next;
+}

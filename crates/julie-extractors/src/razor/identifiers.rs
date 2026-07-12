@@ -116,6 +116,24 @@ impl super::RazorExtractor {
                 }
             }
 
+            "member_binding_expression" => {
+                if let Some(name_node) = node.child_by_field_name("name") {
+                    let name = self.base.get_node_text(&name_node);
+                    let kind = if node
+                        .parent()
+                        .and_then(|parent| parent.parent())
+                        .is_some_and(|grandparent| grandparent.kind() == "invocation_expression")
+                    {
+                        IdentifierKind::Call
+                    } else {
+                        IdentifierKind::MemberAccess
+                    };
+                    let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
+                    self.base
+                        .create_identifier(&name_node, name, kind, containing_symbol_id);
+                }
+            }
+
             // Type references in C# code blocks: `List<IBrowserFile>`, generics, etc.
             // Razor embeds C# with the same `generic_name` + `type_argument_list` grammar
             // as standalone C# — reuse the same outermost-check and decomposer logic.

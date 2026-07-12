@@ -105,6 +105,22 @@ fn extract_identifier_from_node(
                 );
             }
         }
+        "member_binding_expression" => {
+            if let Some(name_node) = node.child_by_field_name("name") {
+                let name = base.get_node_text(&name_node);
+                let kind = if node
+                    .parent()
+                    .and_then(|parent| parent.parent())
+                    .is_some_and(|grandparent| grandparent.kind() == "invocation_expression")
+                {
+                    IdentifierKind::Call
+                } else {
+                    IdentifierKind::MemberAccess
+                };
+                let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
+                base.create_identifier(&name_node, name, kind, containing_symbol_id);
+            }
+        }
         // `A * B` mis-parse recovery (LOCKED CONTRACT addendum). tree-sitter-c-sharp
         // resolves `identifier * identifier` in expression/argument position as a
         // pointer-type `declaration_expression` (`type: (pointer_type type: (identifier A))

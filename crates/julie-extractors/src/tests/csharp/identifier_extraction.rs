@@ -154,6 +154,29 @@ public class Ptr {
     }
 
     #[test]
+    fn conditional_access_emits_member_and_call_identifiers() {
+        let source = r#"
+public class ResultReader {
+    public object? Read(ResultModel result) {
+        result?.Refresh();
+        return result?.UploadFailures;
+    }
+}
+"#;
+        let results =
+            crate::pipeline::extract_canonical("test.cs", source, &PathBuf::from("/tmp/test"))
+                .expect("canonical C# extraction should succeed");
+
+        assert!(results.parse_diagnostics.is_empty());
+        assert!(results.identifiers.iter().any(|identifier| {
+            identifier.name == "UploadFailures" && identifier.kind == IdentifierKind::MemberAccess
+        }));
+        assert!(results.identifiers.iter().any(|identifier| {
+            identifier.name == "Refresh" && identifier.kind == IdentifierKind::Call
+        }));
+    }
+
+    #[test]
     fn test_extract_function_calls() {
         let csharp_code = r#"
 using System;
