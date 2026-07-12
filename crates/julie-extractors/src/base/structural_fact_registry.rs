@@ -3477,6 +3477,35 @@ const SPECS: &[StructuralFactPatternSpec] = &[
         ],
     },
     StructuralFactPatternSpec {
+        pattern_id: "razor.route_reference.v1",
+        languages: &["csharp", "razor"],
+        query_family: "frontend_navigation",
+        description: "A Blazor NavigationManager call or static Razor href route reference.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key(
+                "target_path",
+                STR,
+                ALWAYS,
+                "Raw static route path from the navigation target.",
+            ),
+            key(
+                "source_kind",
+                STR,
+                ALWAYS,
+                "Reference origin (navigate_to, navigate_to_login, or href).",
+            ),
+            key(
+                "route_source",
+                STR,
+                ALWAYS,
+                "Origin of the parsed route (string_literal).",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
         pattern_id: "razor.template_expression.v1",
         languages: &["razor"],
         query_family: "component_template",

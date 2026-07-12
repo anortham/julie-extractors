@@ -153,6 +153,10 @@ fn razor_page_directive_facts_parse_optional_and_catch_all_parameters() {
     );
     let optional_params = route_parameters(optional_page);
     assert_eq!(
+        metadata_str(optional_page, "route_template"),
+        Some("/orders/{orderId?}")
+    );
+    assert_eq!(
         metadata_bool_field(&optional_params[0], "optional"),
         Some(true)
     );
@@ -160,6 +164,10 @@ fn razor_page_directive_facts_parse_optional_and_catch_all_parameters() {
     let catch_all = extract(r#"@page "/files/{*path}""#);
     let catch_all_page = facts_with_parameter(&catch_all, "path").expect("catch-all route");
     let catch_all_params = route_parameters(catch_all_page);
+    assert_eq!(
+        metadata_str(catch_all_page, "route_template"),
+        Some("/files/{*path}")
+    );
     assert_eq!(
         metadata_bool_field(&catch_all_params[0], "catch_all"),
         Some(true)
@@ -188,6 +196,78 @@ fn razor_page_directive_facts_parse_optional_and_catch_all_parameters() {
         metadata_object_field(&multi_params[1], "constraint"),
         Some("int")
     );
+}
+
+#[test]
+fn razor_navigation_calls_emit_literal_route_references() {
+    let source = r#"@inject NavigationManager Navigation
+
+@code {
+    void OpenOrders() => Navigation.NavigateTo("/orders/{id?}");
+    void OpenLogin() => Navigation.NavigateToLogin("/authentication/login", new());
+}
+"#;
+
+    let results = extract(source);
+    let facts = facts_with_pattern(&results, "razor.route_reference.v1");
+
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    assert!(facts.iter().any(|fact| {
+        metadata_str(fact, "target_path") == Some("/orders/{id?}")
+            && metadata_str(fact, "source_kind") == Some("navigate_to")
+    }));
+    assert!(facts.iter().any(|fact| {
+        metadata_str(fact, "target_path") == Some("/authentication/login")
+            && metadata_str(fact, "source_kind") == Some("navigate_to_login")
+    }));
+    for fact in facts {
+        assert_eq!(metadata_str(fact, "route_source"), Some("string_literal"));
+        assert_eq!(metadata_str(fact, "framework"), Some("blazor"));
+    }
+}
+
+#[test]
+fn razor_internal_href_emits_one_raw_route_reference() {
+    let source = r##"<nav>
+    <a href="/orders/{id?}">Orders</a>
+    <a href="https://example.com/orders">External</a>
+    <a href="http://example.com/orders">External HTTP</a>
+    <a href="#details">Details</a>
+    <a href="@OrderUrl">Dynamic</a>
+</nav>"##;
+
+    let results = extract(source);
+    let facts = facts_with_pattern(&results, "razor.route_reference.v1");
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "target_path"), Some("/orders/{id?}"));
+    assert_eq!(metadata_str(facts[0], "source_kind"), Some("href"));
+    assert_eq!(
+        metadata_str(facts[0], "route_source"),
+        Some("string_literal")
+    );
+    assert_eq!(metadata_str(facts[0], "framework"), Some("blazor"));
+}
+
+#[test]
+fn razor_navigation_skips_dynamic_arguments_and_unproven_receivers() {
+    let source = r#"@inject NavigationManager Navigation
+
+@code {
+    string OrderUrl = "/orders";
+    void OpenProven() => Navigation.NavigateTo("/orders");
+    void SkipDynamic() => Navigation.NavigateTo(OrderUrl);
+    void SkipInterpolated() => Navigation.NavigateTo($"/orders/{OrderId}");
+    void SkipUnproven() => router.NavigateTo("/admin");
+    void SkipShadowed(Router Navigation) => Navigation.NavigateTo("/shadowed");
+}
+"#;
+
+    let results = extract(source);
+    let facts = facts_with_pattern(&results, "razor.route_reference.v1");
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "target_path"), Some("/orders"));
 }
 
 #[test]

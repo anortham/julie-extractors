@@ -1,6 +1,7 @@
 mod actix;
 mod aspnet;
 mod axum;
+mod blazor_navigation;
 mod go_http;
 mod helpers;
 mod http_clients;
@@ -22,6 +23,7 @@ use tree_sitter::Tree;
 use self::actix::collect_actix_routes;
 use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_routes};
 use self::axum::collect_axum_routes;
+use self::blazor_navigation::collect_blazor_navigation_facts;
 use self::go_http::collect_go_http_boundary_facts;
 use self::http_clients::collect_backend_http_client_requests;
 use self::kotlin_spring::collect_kotlin_spring_routes;
@@ -77,6 +79,7 @@ pub(super) const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1"
 pub(super) const HTMX_ATTRIBUTE_PATTERN_ID: &str = "htmx.attribute.v1";
 pub(super) const ALPINE_DIRECTIVE_PATTERN_ID: &str = "alpine.directive.v1";
 pub(super) const RAZOR_PAGE_DIRECTIVE_PATTERN_ID: &str = "razor.page_directive.v1";
+pub(super) const RAZOR_ROUTE_REFERENCE_PATTERN_ID: &str = "razor.route_reference.v1";
 pub(super) const RAZOR_CODE_BLOCK_PATTERN_ID: &str = "razor.code_block.v1";
 pub(super) const RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID: &str = "razor.template_expression.v1";
 
@@ -86,6 +89,7 @@ const CSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     ASPNET_MINIMAL_API_ROUTE_GROUP_PATTERN_ID,
     ASPNET_MINIMAL_API_ROUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
+    RAZOR_ROUTE_REFERENCE_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const MARKUP_FRAMEWORK_PATTERN_IDS: &[&str] =
@@ -166,6 +170,7 @@ const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     HTMX_ATTRIBUTE_PATTERN_ID,
     RAZOR_CODE_BLOCK_PATTERN_ID,
     RAZOR_PAGE_DIRECTIVE_PATTERN_ID,
+    RAZOR_ROUTE_REFERENCE_PATTERN_ID,
     RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
 ];
 
@@ -186,6 +191,9 @@ pub fn collect_framework_structural_facts(
             csharp_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
+            csharp_facts.extend(collect_blazor_navigation_facts(
+                language, tree, file_path, content,
+            ));
             csharp_facts
         }
         "python" => {
@@ -199,6 +207,9 @@ pub fn collect_framework_structural_facts(
         "razor" => {
             let mut razor_facts = collect_razor_structural_facts(tree, file_path, content);
             razor_facts.extend(collect_markup_framework_attributes(
+                language, tree, file_path, content,
+            ));
+            razor_facts.extend(collect_blazor_navigation_facts(
                 language, tree, file_path, content,
             ));
             razor_facts

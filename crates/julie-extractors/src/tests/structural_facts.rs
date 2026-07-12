@@ -138,6 +138,64 @@ app.MapPost("/static", () => "ok");
 }
 
 #[test]
+fn csharp_navigation_manager_calls_emit_literal_route_references() {
+    let source = r#"using Microsoft.AspNetCore.Components;
+
+sealed class OrdersPage
+{
+    private readonly NavigationManager navigation;
+
+    OrdersPage(NavigationManager navigation) => this.navigation = navigation;
+
+    void OpenOrders() => navigation.NavigateTo("/orders/{id?}");
+    void OpenLogin() => navigation.NavigateToLogin("/authentication/login", new());
+}
+"#;
+
+    let results = extract("src/OrdersPage.cs", source);
+    let facts = facts_with_pattern(&results, "razor.route_reference.v1");
+
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    assert!(facts.iter().any(|fact| {
+        metadata_str(fact, "target_path") == Some("/orders/{id?}")
+            && metadata_str(fact, "source_kind") == Some("navigate_to")
+    }));
+    assert!(facts.iter().any(|fact| {
+        metadata_str(fact, "target_path") == Some("/authentication/login")
+            && metadata_str(fact, "source_kind") == Some("navigate_to_login")
+    }));
+    for fact in facts {
+        assert_common_framework_fact(fact, "route_reference", "frontend_navigation");
+        assert_eq!(metadata_str(fact, "route_source"), Some("string_literal"));
+        assert_eq!(metadata_str(fact, "framework"), Some("blazor"));
+    }
+}
+
+#[test]
+fn csharp_navigation_skips_dynamic_arguments_and_unproven_receivers() {
+    let source = r#"using Microsoft.AspNetCore.Components;
+
+sealed class OrdersPage
+{
+    private readonly NavigationManager navigation;
+    private readonly Router router;
+
+    void OpenProven() => this.navigation.NavigateTo("/orders");
+    void SkipDynamic(string path) => navigation.NavigateTo(path);
+    void SkipInterpolated(int id) => navigation.NavigateTo($"/orders/{id}");
+    void SkipUnproven() => router.NavigateTo("/admin");
+    void SkipShadowed(Router navigation) => navigation.NavigateTo("/shadowed");
+}
+"#;
+
+    let results = extract("src/OrdersPage.cs", source);
+    let facts = facts_with_pattern(&results, "razor.route_reference.v1");
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "target_path"), Some("/orders"));
+}
+
+#[test]
 fn csharp_minimal_api_route_groups_emit_group_and_effective_route_facts() {
     let source = r#"using Microsoft.AspNetCore.Builder;
 

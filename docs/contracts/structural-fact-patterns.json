@@ -4952,6 +4952,53 @@
     "query_family": "component_routing"
   },
   {
+    "description": "A Blazor NavigationManager call or static Razor href route reference.",
+    "languages": [
+      "csharp",
+      "razor"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the navigation target.",
+        "key": "target_path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Reference origin (navigate_to, navigate_to_login, or href).",
+        "key": "source_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Origin of the parsed route (string_literal).",
+        "key": "route_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "razor.route_reference.v1",
+    "query_family": "frontend_navigation"
+  },
+  {
     "description": "A Razor template expression (`@expr` or `@(expr)`).",
     "languages": [
       "razor"
