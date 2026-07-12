@@ -96,10 +96,10 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 **Approach:** Work per construct class in Task 1 frequency order. If direct composition destabilizes the grammar (conflicts, state explosion), stop and report — the recorded fallback is nested C# parsing of the attribute text, a design-level decision the lead confirms before pivoting.
 
 **Acceptance criteria:**
-- [ ] All Task 1 corpus files in the implicit/explicit expression classes pass `tree-sitter test`
-- [ ] Generic component type values in Task 1 case O1 pass as named C# type nodes
-- [ ] Expression content appears as parsed nodes (assert node kinds in corpus expectations, not just absence of ERROR)
-- [ ] Existing grammar corpus stays green
+- [x] All Task 1 corpus files in the implicit/explicit expression classes pass `tree-sitter test` (`0323849`)
+- [x] Generic component type values in Task 1 case O1 pass as named C# type nodes
+- [x] Expression content appears as parsed nodes (assert node kinds in corpus expectations, not just absence of ERROR)
+- [x] Existing grammar corpus stays green (102/110 total; only the eight Task 3 cases remain RED)
 
 ### Task 3: Grammar — directive-attribute modifiers, rendermode, typeparam, render fragments
 
