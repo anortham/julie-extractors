@@ -152,10 +152,7 @@ fn blazor_component_reference_fact(
     context: &RazorComponentContext,
 ) -> Option<StructuralFact> {
     let element = node_text(content, node)?;
-    let tag = opening_tag_name(element)?;
-    if !tag.chars().next().is_some_and(char::is_uppercase) {
-        return None;
-    }
+    let tag = crate::razor::component_tag_name(element)?;
 
     let mut metadata = base_metadata("component_reference", "blazor");
     insert_string(&mut metadata, "tag", tag);
@@ -190,15 +187,6 @@ fn blazor_component_reference_fact(
     ))
 }
 
-fn opening_tag_name(element: &str) -> Option<&str> {
-    let remainder = element.strip_prefix('<')?;
-    let end = remainder
-        .find(|character: char| character.is_whitespace() || matches!(character, '/' | '>'))
-        .unwrap_or(remainder.len());
-    let tag = &remainder[..end];
-    (!tag.is_empty()).then_some(tag)
-}
-
 fn component_generic_arguments(node: Node<'_>, content: &str) -> Vec<Value> {
     let mut arguments = Vec::new();
     let mut cursor = node.walk();
@@ -219,6 +207,9 @@ fn component_generic_arguments(node: Node<'_>, content: &str) -> Vec<Value> {
         {
             continue;
         }
+        if !is_static_component_type_value(value) {
+            continue;
+        }
 
         let mut fields = serde_json::Map::new();
         fields.insert("name".to_string(), Value::String(name.to_string()));
@@ -226,6 +217,17 @@ fn component_generic_arguments(node: Node<'_>, content: &str) -> Vec<Value> {
         arguments.push(Value::Object(fields));
     }
     arguments
+}
+
+fn is_static_component_type_value(value: &str) -> bool {
+    !value.is_empty()
+        && value.chars().all(|character| {
+            character.is_ascii_alphanumeric()
+                || matches!(
+                    character,
+                    '_' | '.' | ':' | '<' | '>' | '[' | ']' | '?' | ',' | ' '
+                )
+        })
 }
 
 fn component_attribute_parts(attribute: &str) -> Option<(&str, &str)> {

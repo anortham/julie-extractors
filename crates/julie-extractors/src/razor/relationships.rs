@@ -6,9 +6,6 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use tree_sitter::Node;
 
-// Static regexes compiled once for performance
-static COMPONENT_TAG_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"<([A-Z][A-Za-z0-9]*)\b").unwrap());
 static BIND_PROPERTY_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@bind-(\w+)").unwrap());
 static EVENT_BINDING_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"@on(\w+)").unwrap());
 
@@ -225,56 +222,48 @@ impl super::RazorExtractor {
         symbols: &[Symbol],
         relationships: &mut Vec<Relationship>,
     ) {
-        // Extract relationships from HTML elements that might bind to properties
         let element_text = self.base.get_node_text(&node);
 
-        // Check for component usage using regex to find all components in the element
-        for captures in COMPONENT_TAG_RE.captures_iter(&element_text) {
-            if let Some(tag_match) = captures.get(1) {
-                let tag_name = tag_match.as_str();
+        if let Some(tag_name) = super::component_tag_name(&element_text) {
+            if let Some(component_symbol) = symbols.iter().find(|s| s.name == tag_name) {
+                let from_symbol = symbols
+                    .iter()
+                    .find(|s| {
+                        s.signature
+                            .as_ref()
+                            .is_some_and(|sig| sig.contains("@page"))
+                    })
+                    .or_else(|| {
+                        symbols
+                            .iter()
+                            .find(|s| s.kind == SymbolKind::Module && s.id != component_symbol.id)
+                    })
+                    .or_else(|| {
+                        symbols
+                            .iter()
+                            .find(|s| s.kind == SymbolKind::Class && s.id != component_symbol.id)
+                    });
 
-                // Find the component symbol first, then find a different "from" symbol
-                if let Some(component_symbol) = symbols.iter().find(|s| s.name == tag_name) {
-                    // Find the page/module that USES this component (must not be the component itself)
-                    let from_symbol = symbols
-                        .iter()
-                        .find(|s| {
-                            s.signature
-                                .as_ref()
-                                .is_some_and(|sig| sig.contains("@page"))
-                        })
-                        .or_else(|| {
-                            symbols.iter().find(|s| {
-                                s.kind == SymbolKind::Module && s.id != component_symbol.id
-                            })
-                        })
-                        .or_else(|| {
-                            symbols.iter().find(|s| {
-                                s.kind == SymbolKind::Class && s.id != component_symbol.id
-                            })
-                        });
-
-                    if let Some(from_symbol) = from_symbol {
-                        relationships.push(self.base.create_relationship(
-                            from_symbol.id.clone(),
-                            component_symbol.id.clone(),
-                            RelationshipKind::Uses,
-                            &node,
-                            Some(1.0),
-                            Some({
-                                let mut metadata = HashMap::new();
-                                metadata.insert(
-                                    "component".to_string(),
-                                    serde_json::Value::String(tag_name.to_string()),
-                                );
-                                metadata.insert(
-                                    "type".to_string(),
-                                    serde_json::Value::String("component-usage".to_string()),
-                                );
-                                metadata
-                            }),
-                        ));
-                    }
+                if let Some(from_symbol) = from_symbol {
+                    relationships.push(self.base.create_relationship(
+                        from_symbol.id.clone(),
+                        component_symbol.id.clone(),
+                        RelationshipKind::Uses,
+                        &node,
+                        Some(1.0),
+                        Some({
+                            let mut metadata = HashMap::new();
+                            metadata.insert(
+                                "component".to_string(),
+                                serde_json::Value::String(tag_name.to_string()),
+                            );
+                            metadata.insert(
+                                "type".to_string(),
+                                serde_json::Value::String("component-usage".to_string()),
+                            );
+                            metadata
+                        }),
+                    ));
                 }
             }
         }

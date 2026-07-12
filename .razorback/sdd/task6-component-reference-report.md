@@ -56,3 +56,10 @@
 - Base commit before Task 6: `d8be3476fc9b7c4166b8a6dd4a6aa57e56d96513`
 - Pre-commit dirty state contained only the Task 6 implementation, tests, generated contract JSON, and this report.
 - No push was performed.
+
+## Lead Review Follow-up
+
+- RED reproduced two contract mismatches: `<My-Widget>` was accepted despite the required `[A-Z][A-Za-z0-9]*` component-name shape, and dynamic generic values were recorded as static type arguments.
+- Component tag extraction and validation now live in `razor::component_tag_name` / `is_component_tag_name`. Both structural-fact emission and the existing same-file relationship channel call that same predicate.
+- Generic metadata now accepts only direct static type-syntax values. Razor expressions and call expressions remain absent from `generic_arguments` while their containing component-reference fact still emits.
+- Follow-up verification: component-reference tests 6 passed; existing Razor relationship tests 4 passed; Razor scope 78 passed; registry conformance 10 passed; JSON sync 1 passed; format and diff checks passed.

@@ -23,6 +23,23 @@ static NAMESPACE_RE: LazyLock<Regex> = LazyLock::new(|| {
 static RENDERMODE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"@rendermode="([^"]+)""#).unwrap());
 
+pub(crate) fn component_tag_name(element: &str) -> Option<&str> {
+    let remainder = element.strip_prefix('<')?;
+    let end = remainder
+        .find(|character: char| character.is_whitespace() || matches!(character, '/' | '>'))
+        .unwrap_or(remainder.len());
+    let tag = &remainder[..end];
+    is_component_tag_name(tag).then_some(tag)
+}
+
+fn is_component_tag_name(tag: &str) -> bool {
+    let mut characters = tag.chars();
+    characters
+        .next()
+        .is_some_and(|first| first.is_ascii_uppercase())
+        && characters.all(|character| character.is_ascii_alphanumeric())
+}
+
 // Module declarations
 mod csharp;
 mod directives;

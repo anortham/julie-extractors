@@ -108,10 +108,34 @@ fn fluent_component_facts_keep_local_context_and_generic_arguments() {
 fn lowercase_html_tags_do_not_emit_component_references() {
     let results = extract(
         "Pages/Index.razor",
-        r#"<main><section><button type="button">Save</button></section></main>"#,
+        r#"<main>
+    <section><button type="button">Save</button></section>
+    <My-Widget />
+    <MY_WIDGET />
+</main>"#,
     );
 
     assert!(component_facts(&results).is_empty());
+}
+
+#[test]
+fn dynamic_generic_component_arguments_stay_out_of_reference_metadata() {
+    let results = extract(
+        "Pages/Dynamic.razor",
+        r#"<DynamicGrid TGridItem="@rowType" />
+<ExplicitGrid TGridItem="@(typeof(OrderRow))" />
+<CallGrid TGridItem="ResolveType()" />"#,
+    );
+
+    let facts = component_facts(&results);
+    assert_eq!(facts.len(), 3, "{facts:#?}");
+    for fact in facts {
+        assert_eq!(
+            metadata(fact, "generic_arguments").and_then(Value::as_array),
+            Some(&vec![]),
+            "dynamic type expressions are not static generic arguments: {fact:#?}"
+        );
+    }
 }
 
 #[test]
