@@ -4,21 +4,24 @@
 
 **Goal:** Make the razor extractor parse real-world Blazor markup cleanly (zero diagnostics + correct semantics) and emit the fact families Miller needs for Blazor bridging.
 
-**Architecture:** Grammar-first fix in the tree-sitter-razor fork (repo `~/source/tree-sitter-razor`, branch `fix/attribute-value-expressions` is the starting point; julie pins rev `cf7b0e5` at `crates/julie-extractors/Cargo.toml:55`). Two new additive fact families (`razor.route_reference.v1`, `blazor.component_reference.v1`) plus `http.client_request.v1` for razor. All additive; certified through the capability snapshot.
+**Architecture:** Grammar-first fix in the tree-sitter-razor fork (repo `~/source/tree-sitter-razor`, branch `fix/attribute-value-expressions` is the starting point; julie pins rev `cf7b0e5` at `crates/julie-extractors/Cargo.toml:55`). Two new additive fact families (`razor.route_reference.v1`, `blazor.component_reference.v1`) plus `http.client_request.v1` for razor. Per-file extraction emits only locally observable syntax and context; Miller owns workspace resolution, `_Imports.razor` inheritance, and external/internal component classification. Every new or expanded fact contract is registered in the structural-fact registry, exported contract JSON, and certified capability snapshot.
 
 **Tech Stack:** Rust, tree-sitter (grammar.js + generated parser), julie golden-fixture harness.
 
-**Architecture Quality:** Approved shape per the umbrella design (`/Users/murphy/source/eros/docs/plans/2026-07-11-dotnet-blazor-stack-support-design.md`): grammar work stays in the fork; extractor work stays in `crates/julie-extractors/src/razor/` and `src/base/framework_structural_facts/razor.rs`; no new extractor seams. Rejected: ERROR-node regex recovery as the primary fix; diagnostics-only acceptance gate. Risk: medium (grammar variance — bounded by the Task 1 spike; fallback architecture is nested tree-sitter-c-sharp parsing of attribute expressions, which is structured parsing, not regex recovery).
+**Architecture Quality:** Preserves the ownership boundaries from the umbrella design (`/Users/murphy/source/eros/docs/plans/2026-07-11-dotnet-blazor-stack-support-design.md`) with one correction: the extractor does not own the umbrella's proposed external-tag classification because its framework-fact interface has no workspace index. Grammar work stays in the fork; Razor symbol extraction stays in `crates/julie-extractors/src/razor/`; framework facts use the existing `collect_framework_structural_facts` dispatch and structural-fact registry. One internal `blazor_navigation` collector is justified because the same navigation contract must be emitted from both csharp and razor without duplicating scanners. Golden fixtures and registry conformance are the caller-facing test surface. Rejected: ERROR-node regex recovery as the primary fix; diagnostics-only acceptance; per-file guesses about workspace component resolution; routing structural facts through the Razor symbol extractor. Risk: high until the Task 1 grammar spike proves the direct-composition path, then medium; the fallback is nested tree-sitter-c-sharp parsing of attribute expressions, which is structured parsing, not regex recovery.
 
 ## Global Constraints
 
 - New fact families and symbol kinds must land in the certified capability snapshot (`fixtures/extraction/capabilities.json` kind_coverage / structural_facts), not just code.
+- Every new or expanded structural-fact family must update `crates/julie-extractors/src/base/structural_fact_registry.rs`, the per-language emitted-pattern arrays in `crates/julie-extractors/src/base/framework_structural_facts/mod.rs`, and `docs/contracts/structural-fact-patterns.json`.
+- Route-reference metadata follows the existing route-reference vocabulary: `target_path` is the raw literal, `source_kind` identifies `navigate_to` or `href`, and `route_source` identifies the literal representation.
+- Per-file extraction must not infer workspace absence. `blazor.component_reference.v1` records local namespace/import context and omits `external`; Miller derives resolution and external/internal status from workspace evidence.
 - All fact additions are additive — no changes to existing fact family shapes.
 - Existing razor test suite (~59 tests in `crates/julie-extractors/src/tests/razor/`) stays green throughout.
 - Existing ERROR-node recovery (`razor/mod.rs:255-297`, `@inherits`/`@rendermode` regex) stays as tail safety net.
 - Component identity: `_Imports.razor` and `_ViewImports.cshtml` are NOT components; `App.razor` is.
 - `languages/razor.toml` carries extraction policy only (its own header rule).
-- Reference corpus source: Terraform diagnostics (232 razor errors; query `~/source/Terraform/.miller/symbols.db` table `parse_diagnostics WHERE language='razor'`) plus FluentUI documentation patterns.
+- Reference corpus source: Terraform diagnostics (235 razor diagnostics in the live database on 2026-07-11; re-count at Task 1 start with `~/source/Terraform/.miller/symbols.db` table `parse_diagnostics WHERE language='razor'`) plus FluentUI documentation patterns.
 
 ## Verification Strategy
 
@@ -32,7 +35,7 @@
 
 **Lead affected-change scope:** `cargo test -p julie-extractors` + `cargo test -p julie-extract-artifact --test schema_contract --test jsonl_contract`.
 
-**Branch gate:** full contract suite per README: `cargo test -p xtask`, artifact schema/jsonl contracts, `cargo test -p julie-extract-cli --test cli_contract`, plus a re-extraction of `~/source/Terraform` showing razor diagnostics ≈ 0.
+**Branch gate:** full contract suite per README: `cargo test -p xtask`, artifact schema/jsonl contracts, `cargo test -p julie-extract-cli --test cli_contract`, `cargo test -p julie-extractors --features test-capability-matrix structural_fact_registry`, `node scripts/language-data-quality-report.mjs --strict`, plus a re-extraction of `~/source/Terraform` showing razor diagnostics ≈ 0.
 
 **Escalation triggers:** any change to `src/base/http_boundary.rs` or fact-envelope code → run the full artifact contract suite; grammar rev bump → run the entire razor golden corpus.
 
@@ -47,14 +50,14 @@
 | Task 1: Corpus spike | None - serial | Create: `~/source/tree-sitter-razor/test/corpus/blazor-attributes/*`, `docs/plans/2026-07-11-blazor-corpus-classification.md` | Yes | Everything downstream is scoped by the classification. |
 | Task 2: Attribute-value expressions (grammar) | None - serial | Modify: `~/source/tree-sitter-razor/grammar.js`, generated parser, corpus tests | Yes | Depends on Task 1 corpus; grammar edits conflict file-level with Task 3. |
 | Task 3: Directive-attribute modifiers + rendermode/typeparam (grammar) | None - serial | Modify: `~/source/tree-sitter-razor/grammar.js`, generated parser, corpus tests | Yes | Same grammar.js as Task 2. |
-| Task 4: Pin bump + semantic gate | None - serial | Modify: `crates/julie-extractors/Cargo.toml:55`; Create: `crates/julie-extractors/src/tests/razor/semantic_gate.rs`, `fixtures/extraction/razor/attribute-expressions/*` | Yes | Needs the released grammar rev from Tasks 2–3. |
-| Task 5: razor.route_reference.v1 | Batch A | Modify: `src/base/framework_structural_facts/razor.rs`, `crates/julie-extractors/src/razor/identifiers.rs`; Test: `crates/julie-extractors/src/tests/razor/structural_facts.rs` (route-reference tests only) | No | None - safe parallel batch. |
-| Task 6: blazor.component_reference.v1 | Batch A | Modify: `crates/julie-extractors/src/razor/mod.rs:74-107` (component identity), Create: `src/base/framework_structural_facts/blazor.rs` (new module — do NOT touch `razor.rs`, Task 5 owns it); Test: new file `crates/julie-extractors/src/tests/razor/component_reference.rs` | No | None - safe parallel batch. |
-| Task 7: http.client_request.v1 from @code | Batch A | Modify: `crates/julie-extractors/src/razor/csharp.rs`, `languages/razor.toml` (carrier reuse only); Test: new file `crates/julie-extractors/src/tests/razor/client_request.rs` | No | None - safe parallel batch. |
-| Task 8: test_container closure | Batch A | Modify: `crates/julie-extractors/src/test_detection.rs:86-163`; Test: golden test-detection fixtures for csharp/vbnet/razor containers | No | None - safe parallel batch. |
+| Task 4: Pin bump + semantic gate | None - serial | Modify: `crates/julie-extractors/Cargo.toml:55`; Create: `crates/julie-extractors/src/tests/razor/semantic_gate.rs`, `fixtures/extraction/razor/attribute-expressions/*` | Yes | Needs the committed grammar rev from Tasks 2–3. |
+| Task 5: razor.route_reference.v1 | None - serial | Create: `crates/julie-extractors/src/base/framework_structural_facts/blazor_navigation.rs`; Modify: `crates/julie-extractors/src/base/framework_structural_facts/mod.rs`, `crates/julie-extractors/src/base/structural_fact_registry.rs`, `docs/contracts/structural-fact-patterns.json`; Test: `crates/julie-extractors/src/tests/razor/structural_facts.rs` plus csharp route-reference coverage | Yes | Owns shared framework dispatch and registry before Task 6. |
+| Task 6: blazor.component_reference.v1 | None - serial | Modify: `crates/julie-extractors/src/razor/mod.rs`, `crates/julie-extractors/src/base/framework_structural_facts/razor.rs`, `crates/julie-extractors/src/base/framework_structural_facts/mod.rs`, `crates/julie-extractors/src/base/structural_fact_registry.rs`, `docs/contracts/structural-fact-patterns.json`; Test: new `crates/julie-extractors/src/tests/razor/component_reference.rs` | Yes | Follows Task 5 because both update framework dispatch and registry contracts. |
+| Task 7: http.client_request.v1 from @code | None - serial | Modify: `crates/julie-extractors/src/base/framework_structural_facts/http_clients/csharp.rs`, `crates/julie-extractors/src/base/framework_structural_facts/http_clients/mod.rs`, `crates/julie-extractors/src/base/framework_structural_facts/mod.rs`, `crates/julie-extractors/src/base/structural_fact_registry.rs`, `docs/contracts/structural-fact-patterns.json`; Test: new `crates/julie-extractors/src/tests/razor/client_request.rs` | Yes | Follows Task 6 because it expands the same framework dispatch and registry contracts. |
+| Task 8: test_container closure | None - serial | Modify: `crates/julie-extractors/src/test_detection.rs:86-163`; Test: golden test-detection fixtures for csharp/vbnet/razor containers | Yes | Independent behavior, serialized to keep every accepted task on one verified shared checkout. |
 | Task 9: Synthetic fixtures + certification + release | None - serial | Create: `fixtures/extraction/razor/{code-behind,imports,scoped-assets,typeparam,rendermode}/*`; Modify: `fixtures/extraction/capabilities.json` | Yes | Integrates Tasks 4–8; certification is last. |
 
-Tasks 5–8 do not depend on the grammar tasks (facts read constructs that already parse); they may run before or in parallel with Tasks 2–4 as Batch A under `parallel-lead-commit`. Tasks 1–4 and 9 are `serial-worker-commit`.
+Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because each produces an independently registered, exported, and tested framework-fact contract through shared dispatch and registry files. Task 8 is behaviorally independent but stays serial so no worker lane owns overlapping checkout-wide verification state.
 
 ---
 
@@ -69,12 +72,12 @@ Tasks 5–8 do not depend on the grammar tasks (facts read constructs that alrea
 
 **Contract inputs:** Terraform diagnostics via `sqlite3 -readonly ~/source/Terraform/.miller/symbols.db "SELECT path, start_line, start_column FROM parse_diagnostics WHERE language='razor'"`; read the cited source spans from `~/source/Terraform`.
 
-**What to build:** Harvest every distinct failing construct into minimal repro snippets; classify (attribute-value implicit expression / explicit expression with lambda-ternary-collection / directive-attribute modifier / other). Add FluentUI doc patterns not present in Terraform. Record which classes the existing `fix/attribute-value-expressions` branch (07eab9c) already fixes.
+**What to build:** Re-count the live Razor diagnostics and record the query result in the classification document, then harvest every distinct failing construct into minimal repro snippets; classify (attribute-value implicit expression / explicit expression with lambda-ternary-collection / directive-attribute modifier / other). Add FluentUI doc patterns not present in Terraform. Record which classes the existing `fix/attribute-value-expressions` branch (07eab9c) already fixes.
 
 **Approach:** Run each snippet through the branch parser (`tree-sitter parse`) before classifying — do not classify against the pinned rev. Anything already fixed by the branch goes in the classification as "covered by 07eab9c".
 
 **Acceptance criteria:**
-- [ ] Every one of the 232 Terraform diagnostics maps to a corpus snippet or a named duplicate
+- [ ] Every Razor diagnostic in the Task 1 start-of-work query result maps to a corpus snippet or a named duplicate; the recorded baseline starts from 235 on 2026-07-11
 - [ ] Classification doc lists per-class counts, branch coverage, and a re-estimate for Tasks 2–3
 - [ ] Corpus files committed to the grammar repo on `fix/attribute-value-expressions`
 
@@ -112,7 +115,7 @@ Tasks 5–8 do not depend on the grammar tasks (facts read constructs that alrea
 **Acceptance criteria:**
 - [ ] Corpus files for modifiers/rendermode/typeparam pass with named nodes
 - [ ] Existing grammar corpus stays green
-- [ ] Grammar repo released/tagged at a rev for Task 4 to pin
+- [ ] Grammar changes committed at a concrete rev for Task 4 to pin; tag/push happens only after explicit approval
 
 ### Task 4: Pin bump and the semantic acceptance gate
 
@@ -137,56 +140,69 @@ Tasks 5–8 do not depend on the grammar tasks (facts read constructs that alrea
 ### Task 5: `razor.route_reference.v1`
 
 **Files:**
-- Modify: `src/base/framework_structural_facts/razor.rs`
-- Modify: `crates/julie-extractors/src/razor/identifiers.rs` (NavigateTo call-site literal capture if not already surfaced)
-- Test: `crates/julie-extractors/src/tests/razor/structural_facts.rs`
+- Create: `crates/julie-extractors/src/base/framework_structural_facts/blazor_navigation.rs`
+- Modify: `crates/julie-extractors/src/base/framework_structural_facts/mod.rs` (dispatch from csharp and razor; emitted-pattern arrays)
+- Modify: `crates/julie-extractors/src/base/structural_fact_registry.rs`
+- Modify: `docs/contracts/structural-fact-patterns.json`
+- Test: `crates/julie-extractors/src/tests/razor/structural_facts.rs` and csharp route-reference coverage
 
 **Interfaces:**
-- Produces: fact family `razor.route_reference.v1` — fields: `route` (the literal target), `source` (`navigate_to` | `href`), emitted from `.razor` AND `.cs` files for `NavigationManager.NavigateTo("...")` (incl. `NavigateToLogin` variants only if literal-first-arg) and internal `href="/..."` attributes (skip external `http(s)://` and fragment-only targets). Mirrors the `nextjs.route_reference.v1` shape.
+- Produces: fact family `razor.route_reference.v1` — fields: `target_path` (the raw literal target), `source_kind` (`navigate_to` | `navigate_to_login` | `href`), `route_source` (`string_literal`), and `framework` (`blazor`). Emit from `.razor` and `.cs` files for exact supported `NavigationManager.NavigateTo`/`NavigateToLogin` call shapes and from internal `href="/..."` attributes; skip external `http(s)://` and fragment-only targets. This uses the route-reference vocabulary already exposed by `nextjs.route_reference.v1`.
 - Consumes: nothing from other tasks (constructs parse today in `@code` and `.cs`).
 
-**Contract inputs:** Miller will pair this with `razor.page_directive.v1` in a file-route provider; the `route` string must stay the raw literal — no normalization on the reference side.
+**Contract inputs:** Miller will pair this with `razor.page_directive.v1` in a file-route provider; `target_path` must stay the raw literal — no normalization on the reference side.
 
-**What to build:** Fact emission for navigation targets. Also add a regression test that `razor.page_directive.v1` preserves the raw ASP.NET brace template and `route_parameters` metadata (optional/catch-all flags) verbatim — Miller's Blazor adapter consumes the raw form; julie must not strip markers from it.
+**What to build:** Add one shared internal Blazor-navigation collector called from both the csharp and razor framework-fact dispatch arms. The csharp path emits supported navigation calls; the razor path emits those calls plus internal `href` references. Register the pattern and metadata keys, update both language pattern-ID sets, regenerate the exported contract JSON, and add a regression test that `razor.page_directive.v1` preserves the raw ASP.NET brace template and `route_parameters` metadata verbatim.
 
 **Acceptance criteria:**
-- [ ] `NavigateTo` in `@code`, `NavigateTo` in a `.cs` file, and internal `href` each emit one fact with correct `route`/`source`
+- [ ] `NavigateTo` in `@code`, `NavigateTo` in a `.cs` file, and internal `href` each emit one fact with correct `target_path`/`source_kind`/`route_source`
 - [ ] External and fragment `href` values emit nothing
 - [ ] Raw-template fidelity test for `razor.page_directive.v1` green (`{id?}`, `{*path}` survive verbatim in the fact payload)
+- [ ] Registry conformance passes for both csharp and razor and the exported contract JSON is synchronized
 
 ### Task 6: `blazor.component_reference.v1`
 
 **Files:**
 - Modify: `crates/julie-extractors/src/razor/mod.rs:74-107` (component identity: exclude `_Imports.razor`, `_ViewImports.cshtml`)
-- Create: `src/base/framework_structural_facts/blazor.rs` (component-reference fact emission — new module so Task 5's `razor.rs` ownership is untouched; register it in the framework facts mod)
+- Modify: `crates/julie-extractors/src/base/framework_structural_facts/razor.rs` (component-reference fact emission)
+- Modify: `crates/julie-extractors/src/base/framework_structural_facts/mod.rs` (pattern ID and razor dispatch)
+- Modify: `crates/julie-extractors/src/base/structural_fact_registry.rs`
+- Modify: `docs/contracts/structural-fact-patterns.json`
 - Test: `crates/julie-extractors/src/tests/razor/component_reference.rs`
 
 **Interfaces:**
-- Produces: fact family `blazor.component_reference.v1` — fields: `tag` (PascalCase component name), `containing_component`, `namespace_context` (from `@namespace`/`@using`, including `_Imports.razor` inheritance where resolvable), `generic_arguments`, `external` (bool: tag not resolvable to a workspace component name is marked external, e.g. `FluentButton`).
+- Produces: fact family `blazor.component_reference.v1` — fields: `tag` (PascalCase component name), `containing_component`, `namespace_context` (only locally declared `@namespace`/`@using` values), and `generic_arguments`. The extractor does not emit `external`; Miller resolves the tag against workspace components, inherited `_Imports.razor` context, and external assemblies.
 
 **Contract inputs:** existing same-file `component-usage` relationship logic (`razor/relationships.rs:231`) stays; the fact family is the cross-file channel. PascalCase tag regex already exists (`COMPONENT_TAG_RE`).
 
-**What to build:** Emit one fact per component tag occurrence. Fix component identity so infrastructure files stop producing synthetic components (Terraform currently exposes a `_Imports` component).
+**What to build:** Emit one fact per component tag occurrence using only syntax and symbols observable in the current file. Fix component identity so infrastructure files stop producing synthetic components. Preserve local namespace/import context as resolution input without reading sibling files or guessing that an unresolved tag is external.
 
 **Acceptance criteria:**
-- [ ] Cross-file fixture: `PageA.razor` using `<SharedWidget />` emits a fact naming both sides
+- [ ] Cross-file fixture: `PageA.razor` using `<SharedWidget />` emits a fact naming the containing component and referenced tag without claiming workspace resolution
 - [ ] `_Imports.razor` no longer yields a component symbol; `App.razor` still does
-- [ ] FluentUI tags emit facts flagged `external: true`
+- [ ] FluentUI tags emit reference facts with local namespace/import context and no extractor-owned `external` classification
+- [ ] Registry conformance passes for razor and the exported contract JSON is synchronized
 
 ### Task 7: `http.client_request.v1` from razor `@code`
 
 **Files:**
-- Modify: `crates/julie-extractors/src/razor/csharp.rs` (route embedded-C# through the csharp http-client fact path)
+- Modify: `crates/julie-extractors/src/base/framework_structural_facts/http_clients/csharp.rs` (accept allowed embedded-C# byte ranges while preserving full-file offsets)
+- Modify: `crates/julie-extractors/src/base/framework_structural_facts/http_clients/mod.rs` (Razor-specific entry point)
+- Modify: `crates/julie-extractors/src/base/framework_structural_facts/mod.rs` (invoke the Razor HTTP-client entry point and update emitted-pattern IDs)
+- Modify: `crates/julie-extractors/src/base/structural_fact_registry.rs` (add razor to `http.client_request.v1`)
+- Modify: `docs/contracts/structural-fact-patterns.json`
 - Test: `crates/julie-extractors/src/tests/razor/client_request.rs`
 
 **Interfaces:**
 - Produces: `http.client_request.v1` facts (same shape as csharp: client=httpclient, verb, url) from HttpClient calls inside `@code`/`@functions` blocks; `http.client_request.v1` added to razor's supported structural_facts list.
 
-**What to build:** The embedded-C# pipeline already re-parents symbols; route the same region through the csharp `http_clients` fact collector (see `src/base/framework_structural_facts/http_clients/`).
+**What to build:** Reuse the C# HTTP-client scanner through the framework-fact pipeline, not the Razor symbol extractor. Derive allowed byte ranges from named Razor `@code`/`@functions` C# nodes, scan only those ranges while preserving absolute spans, and keep the normal csharp full-file path unchanged.
 
 **Acceptance criteria:**
 - [ ] Fixture with `await Http.GetFromJsonAsync<Foo>("/api/foo")` in `@code` emits a fact with verb GET and the url
+- [ ] Identical text in Razor markup, strings, or comments outside embedded-C# ranges emits nothing
 - [ ] csharp fact output unchanged (no double emission for `.cs` files)
+- [ ] Registry conformance passes with razor added to `http.client_request.v1` and the exported contract JSON is synchronized
 
 ### Task 8: test_container detection closure (csharp/vbnet/razor)
 
@@ -214,11 +230,12 @@ Tasks 5–8 do not depend on the grammar tasks (facts read constructs that alrea
 - Consumes: Tasks 4–8 output.
 - Produces: the julie-extractors release Miller pins (Lane 2).
 
-**What to build:** Fixtures for shapes Terraform lacks: `.razor` + `.razor.cs` code-behind partial identity (one component, two files), `_Imports.razor` namespace/import inheritance (qualified names must not depend solely on local `@namespace`, `razor/mod.rs:73`), scoped-asset adjacency (fixture documents `Foo.razor.css` belongs to `Foo` — extraction-level association only), constrained `@typeparam`, render modes, cascading parameters. Certify all new facts/kinds. Prepare the release per the repo's release flow (see `scripts/` release-state tripwire). File the T-SQL parse-quality issue (283 errors + 1 missing across six Terraform SQL files, 225 in `db/baseline.sql`) as a separate tracked item.
+**What to build:** Fixtures for shapes Terraform lacks: `.razor` + `.razor.cs` code-behind identity inputs, `_Imports.razor` namespace/import inputs for downstream inheritance resolution, scoped-asset adjacency (fixture documents `Foo.razor.css` belongs to `Foo` — extraction-level association only), constrained `@typeparam`, render modes, cascading parameters. Certify all new facts/kinds and prove the registry export is synchronized. Prepare the release per the repo's release flow; publishing, tagging, or pushing requires separate explicit approval. File the T-SQL parse-quality issue (283 errors + 1 missing across six Terraform SQL files, 225 in `db/baseline.sql`) as a separate tracked item.
 
 **Acceptance criteria:**
 - [ ] All five fixture groups pass the semantic gate
 - [ ] Razor certified kind_coverage includes class + property (today: import/method/variable only)
 - [ ] Capability snapshot certifies `razor.route_reference.v1`, `blazor.component_reference.v1`, razor `http.client_request.v1`
+- [ ] `docs/contracts/structural-fact-patterns.json` is byte-synchronized with the registry and all new metadata keys are declared
 - [ ] Release prepared; version + rev recorded for Miller's pin bump
 - [ ] T-SQL issue filed
