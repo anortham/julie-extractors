@@ -90,3 +90,42 @@ Post-edit calls:
 - `directive-modifiers.txt` already contained the RED expectations from Task 1 and required no content change.
 - Concern: `src/parser.c` has a large generated line diff because parse-table numbering shifts, but the actual byte growth is only 37,886 bytes and repeat generation is byte-identical.
 - Blockers: none.
+
+## Follow-up — parenthesized implicit expressions in element text
+
+Task 4 re-extraction reduced the Terraform artifact to three Razor errors, all in `src/Terraform.Client/Features/Ser/SerFormPage.razor` at lines 47, 85, and 108, column 34. Each source shape placed an implicit member-access expression inside literal parentheses, for example `<span>(@_selectedProvider.ProviderId)</span>`.
+
+- Follow-up grammar revision: `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba`
+- RED: the added `Parenthesized HTML text around implicit member access` corpus case failed while the existing six implicit-expression cases passed.
+- A trial that allowed `(` in the general `_html_text` token made the new case pass but regressed four existing invocation cases by terminating implicit expressions before their argument lists. That trial was discarded.
+- The final fix adds hidden `_parenthesized_razor_implicit_expression` composition only to element content. It consumes literal `(`, the existing structured `razor_implicit_expression`, and literal `)` without widening C# expressions or changing the general HTML text token.
+- GREEN targeted: `tree-sitter test --file-name implicit-expressions.txt --overview-only` passed 7/7.
+- GREEN full: `tree-sitter test --overview-only` passed 111/111 with syntax highlighting 52/52.
+- Live source verification: `tree-sitter parse -p /Users/murphy/source/tree-sitter-razor --quiet --stat /Users/murphy/source/Terraform/src/Terraform.Client/Features/Ser/SerFormPage.razor` passed 1/1 with zero parse failures.
+
+Two consecutive exact-CLI generations were byte-identical:
+
+| Output | Follow-up SHA-256 |
+| --- | --- |
+| `src/grammar.json` | `0f49ba31d46d90406deda6b03287c10e46311411f8744f24ddc3146077dec9e8` |
+| `src/node-types.json` | `ec461c6a0e4a7b846317150b6ab993dada3bf292e43dccc09a506d024a9f199e` |
+| `src/parser.c` | `b48f872f3904f661d1aef0d37270f4e866f3dc0f543102c28a086d3ca8ac82a9` |
+| `src/tree_sitter/parser.h` | `180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2` |
+
+| Metric | `d24d075` | Follow-up | Delta |
+| --- | ---: | ---: | ---: |
+| `STATE_COUNT` | 19,674 | 19,679 | +5 (+0.03%) |
+| `LARGE_STATE_COUNT` | 7,487 | 7,488 | +1 (+0.01%) |
+| `src/parser.c` bytes | 57,683,937 | 57,700,361 | +16,424 (+0.03%) |
+
+Five warmed full-corpus samples were 4,992, 6,086, 5,122, 5,302, and 5,810 bytes/ms, averaging 5,462 bytes/ms. This is 287 bytes/ms (5.0%) below the `d24d075` five-sample average of 5,749, within the observed run-to-run range and without a material parser-size or state increase.
+
+Follow-up Miller evidence used the same workspace ID:
+
+- `context(query="mixed HTML element text with literal parentheses around Razor implicit member access such as (@_selectedProvider.ProviderId)", entry_symbols=["razor_implicit_expression","_html_text","element","_node"], token_budget=4000, workspace_id=...)`
+- Pre-edit `inspect(depth="full")`, `trace(mode="refs")`, and `impact(target=...)` on `_html_text` ID `192a8523e7642e2cc0dbcf0aeae1ba81`, `razor_implicit_expression` ID `1aa5125d4e3e729383c9ce64f5359572`, and `element` ID `6cc003cd31073d7dc308624ddf5ca3c1` proved that `_html_text` was shared by element content and Razor escape while implicit expressions were shared by 14 dependents.
+- `workspace(operation="refresh", workspace_id=...)` advanced the index to revision 5.
+- Post-edit `inspect(depth="full")` on `_parenthesized_razor_implicit_expression` ID `6d289efece3d596b5e1b8961007a536f` and `element` ID `aef1d09f89dc9b9de994b5b8408a53be`, plus `trace(mode="refs")`, proved the new rule has one caller and preserves the existing implicit-expression body.
+- `impact(git=true, max_depth=2, limit=50, workspace_id=...)` identified 11 impacted Razor composition symbols; the 111-case full corpus covered them.
+
+Follow-up state: only `grammar.js`, deterministic `src/grammar.json`, `src/parser.c`, and `test/corpus/blazor-attributes/implicit-expressions.txt` were committed. Pre-existing `.julieignore` and `.miller/` remain untouched. Blockers: none.
