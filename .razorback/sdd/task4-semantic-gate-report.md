@@ -29,6 +29,8 @@
 | Every Razor fixture is parse-clean and semantically visible | `cargo test --offline -p julie-extractors semantic_gate -- --nocapture` | `d24d075` after extractor fix | GREEN: 4 passed, 0 failed | 2026-07-12 |
 | Razor regression scope remains green | `cargo test --offline -p julie-extractors razor` | `d24d075` after extractor fix | GREEN: 68 passed, 0 failed | 2026-07-12 |
 | Extractor package ceiling remains green | `cargo test --offline -p julie-extractors` | `d24d075` after extractor fix | GREEN: 2,830 passed, 0 failed, 7 ignored; doc tests 1 passed | 2026-07-12 |
+| Created qualified type is asserted through the public gate | `cargo test --offline -p julie-extractors explicit_expressions_are_clean_and_semantically_visible -- --nocapture` | `d24d075` follow-up | Expected RED passed immediately: `Search` already emitted as `TypeUsage`; 1 passed, 0 failed | 2026-07-12 |
+| Explicit render-mode construction is parse-clean and semantically visible | `cargo test --offline -p julie-extractors directives_and_render_fragment_are_clean_and_semantically_visible -- --nocapture` | `d24d075` follow-up | Expected RED passed immediately: `InteractiveServerRenderMode` already emitted as `TypeUsage`; 1 passed, 0 failed | 2026-07-12 |
 
 ## Plan-mismatch adjudication
 
@@ -48,3 +50,7 @@ sqlite3 -readonly target/blazor-razor-support/terraform.sqlite "SELECT COUNT(*) 
 ```
 
 The build form is documented in release evidence; the scan contract is documented in `docs/contracts/cli.md` and the data-quality release evidence.
+
+## Unpublished grammar dependency
+
+`d24d075afe5b18eae56c4386046ed5e6e3902795` is not pushed to `https://github.com/anortham/tree-sitter-razor`. This worker seeded Cargo's local git cache from `/Users/murphy/source/tree-sitter-razor` and ran dependency-based verification with `--offline`. A clean or fresh environment cannot resolve the manifest pin until push approval is granted and the grammar commit is published. This worker did not push.

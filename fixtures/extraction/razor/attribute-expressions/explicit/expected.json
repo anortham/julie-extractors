@@ -1,5 +1,6 @@
 {
   "variable_refs": ["item", "model", "value", "mode", "area", "state", "mutating", "result", "ContactList", "context"],
   "calls": ["For", "WithPreventDefault", "Refresh", "RemoveSelectedItemAsync"],
+  "type_usages": ["Search"],
   "member_accesses": ["Name", "Empty", "SemanticClass", "UploadFailures"]
 }
