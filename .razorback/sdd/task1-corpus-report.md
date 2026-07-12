@@ -4,9 +4,9 @@
 
 - Live baseline: 235 Razor diagnostics, 232 `error` and 3 `missing`.
 - Classification: implicit 30, explicit 164, modifier 0, other 41.
-- Corpus: 25 desired-semantics cases; `07eab9c` passes 2 and leaves 23 RED.
+- Corpus: 26 desired-semantics cases; `07eab9c` passes 2 and leaves 24 RED.
 - Existing corpus invariant: 84/84 pre-task parses remain green with Tree-sitter CLI 0.26.10.
-- RED invariant: cases 2-18 and 20-25 contain current `ERROR`/`MISSING` nodes; case 19 is semantically opaque because only the identifier before `.Class` survives.
+- RED invariant: 23 cases contain current `ERROR`/`MISSING` nodes; the mixed HTML case is semantically RED because only the identifier before `.Class` survives.
 
 ## Miller evidence
 
@@ -19,11 +19,14 @@
 
 ## Verification and judgment calls
 
-- The repository's `npx tree-sitter` is 0.24.7 and rejects ABI 15; the pinned local 0.26.10 binary was used for all reported test and parse evidence.
-- All 25 cases were parsed individually with `tree-sitter parse -n 1..25`; current diagnostic counts were recorded before running the full test suite.
+- In this worktree, `npx tree-sitter --version` resolves `/Users/murphy/source/tree-sitter-razor/node_modules/tree-sitter-cli/tree-sitter` as 0.24.7. Both `npx tree-sitter test --overview-only` and `npx tree-sitter parse .../App.razor --quiet --stat` reject the generated ABI 15 parser with `Expected minimum 13, maximum 14`. A plain `npx` success from another shell is reproducible only after recording which version and path it resolved.
+- Successful corpus and targeted parse evidence uses the exact binary `/Users/murphy/.npm/_npx/fc82e01b08b7a8ed/node_modules/tree-sitter-cli/tree-sitter`, version 0.26.10. The commands are `.../tree-sitter test --overview-only`, per-original-file `.../tree-sitter test --file-name <file> --overview-only`, and `.../tree-sitter parse -n 1..26 --cst`.
+- All 26 cases were parsed individually; current diagnostic counts were recorded before running the full test suite.
 - The 35 `HomePage.razor` rows map to the interpolated component value because branch parsing shows that first failure expands into a file-wide root `ERROR`; this includes all 3 missing rows.
 - Generic `TOption="string"`/`TValue="string"` was expected to be covered by `07eab9c`, but the minimal branch parse still emits errors. It is recorded as O1 and added to Task 2 closure.
-- Render-fragment literals in switch expressions are a separate O6 gap rather than being silently assigned to attribute work.
+- O6 render-fragment literals in switch expressions are assigned to Task 3 so the zero-diagnostics gate cannot close with them outstanding.
+- FluentUI-only E10 comes from the official `AutocompleteCustomized.razor` example and was confirmed absent from Terraform with `rg -n '=\"@\\(async \\(\\) => await' /Users/murphy/source/Terraform/src -g '*.razor'`.
+- The row-addressable appendix groups identical path/case mappings but retains every `line:column:kind`; its checked multiplicities are `total=235 I=30 E=164 M=0 O=41`.
 
 ## Repository state before commits
 
