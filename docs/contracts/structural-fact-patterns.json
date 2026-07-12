@@ -2458,6 +2458,7 @@
       "typescript",
       "python",
       "csharp",
+      "razor",
       "go",
       "java",
       "kotlin",

@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::ops::Range;
 
 use tree_sitter::Tree;
 
@@ -35,15 +36,52 @@ pub(super) fn collect_csharp_http_client_requests(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    let mask = SourceMask::new(content, MaskLanguage::CSharp);
-    let receivers = collect_httpclient_receivers(content, &mask);
+    let range = 0..content.len();
+    let ranges = std::slice::from_ref(&range);
+    collect_csharp_http_client_requests_in_ranges(
+        language, tree, file_path, content, ranges, ranges,
+    )
+}
+
+pub(super) fn collect_csharp_http_client_requests_in_ranges(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    call_ranges: &[Range<usize>],
+    receiver_ranges: &[Range<usize>],
+) -> Vec<StructuralFact> {
+    if call_ranges.is_empty() {
+        return Vec::new();
+    }
+
+    let mask_content = content_for_ranges(content, receiver_ranges);
+    let mask = SourceMask::new(&mask_content, MaskLanguage::CSharp);
+    let receivers = collect_httpclient_receivers(content, &mask, receiver_ranges);
     let mut facts = Vec::new();
     for (method, verb) in HTTPCLIENT_METHODS {
         collect_method_calls(
-            language, tree, file_path, content, &mask, &receivers, method, verb, &mut facts,
+            language,
+            tree,
+            file_path,
+            content,
+            &mask,
+            &receivers,
+            call_ranges,
+            method,
+            verb,
+            &mut facts,
         );
     }
-    collect_http_request_messages(language, tree, file_path, content, &mask, &mut facts);
+    collect_http_request_messages(
+        language,
+        tree,
+        file_path,
+        content,
+        &mask,
+        call_ranges,
+        &mut facts,
+    );
     facts
 }
 
@@ -55,6 +93,7 @@ fn collect_method_calls(
     content: &str,
     mask: &SourceMask,
     receivers: &HashSet<String>,
+    allowed_ranges: &[Range<usize>],
     method: &str,
     verb: &str,
     facts: &mut Vec<StructuralFact>,
@@ -63,16 +102,19 @@ fn collect_method_calls(
     while let Some(relative) = content[cursor..].find(method) {
         let method_start = cursor + relative;
         cursor = method_start + method.len();
+        let Some(allowed_range) = containing_range(allowed_ranges, method_start) else {
+            continue;
+        };
         if !is_identifier_boundary(content, method_start, method.len())
             || mask.is_string_or_comment(method_start)
             || !method_receiver_is_httpclient(content, method_start, receivers)
         {
             continue;
         }
-        let mut open = skip_ascii_whitespace_until(content, cursor, content.len());
+        let mut open = skip_ascii_whitespace_until(content, cursor, allowed_range.end);
         if content.as_bytes().get(open) == Some(&b'<') {
             let Some(generics_close) =
-                find_matching_angle_within(content, mask, open, content.len())
+                find_matching_angle_within(content, mask, open, allowed_range.end)
             else {
                 continue;
             };
@@ -84,6 +126,9 @@ fn collect_method_calls(
         let Some(close) = find_matching_paren(content, mask, open) else {
             continue;
         };
+        if close + 1 > allowed_range.end {
+            continue;
+        }
         let first_start = skip_ascii_whitespace_until(content, open + 1, close);
         let first_end = find_top_level_comma_or_end_with_angles(content, mask, first_start, close);
         let Some((target_path, literal_end)) = parse_csharp_url_literal(content, first_start)
@@ -114,19 +159,28 @@ fn collect_method_calls(
     }
 }
 
-fn collect_httpclient_receivers(content: &str, mask: &SourceMask) -> HashSet<String> {
+fn collect_httpclient_receivers(
+    content: &str,
+    mask: &SourceMask,
+    allowed_ranges: &[Range<usize>],
+) -> HashSet<String> {
     let mut receivers = HashSet::new();
     let mut cursor = 0;
     while let Some(relative) = content[cursor..].find("HttpClient") {
         let type_start = cursor + relative;
         cursor = type_start + "HttpClient".len();
+        let Some(allowed_range) = containing_range(allowed_ranges, type_start) else {
+            continue;
+        };
         if !is_identifier_boundary(content, type_start, "HttpClient".len())
             || mask.is_string_or_comment(type_start)
         {
             continue;
         }
-        let name_start = skip_ascii_whitespace_until(content, cursor, content.len());
-        if let Some((name, _)) = parse_csharp_identifier(content, name_start) {
+        let name_start = skip_ascii_whitespace_until(content, cursor, allowed_range.end);
+        if let Some((name, name_end)) = parse_csharp_identifier(content, name_start)
+            && name_end <= allowed_range.end
+        {
             receivers.insert(name.to_string());
         }
     }
@@ -135,13 +189,16 @@ fn collect_httpclient_receivers(content: &str, mask: &SourceMask) -> HashSet<Str
     while let Some(relative) = content[cursor..].find("new HttpClient()") {
         let call_start = cursor + relative;
         cursor = call_start + "new HttpClient()".len();
+        let Some(allowed_range) = containing_range(allowed_ranges, call_start) else {
+            continue;
+        };
         if mask.is_string_or_comment(call_start) {
             continue;
         }
-        let statement_start = content[..call_start]
+        let statement_start = content[allowed_range.start..call_start]
             .rfind(['\n', ';', '{'])
-            .map(|index| index + 1)
-            .unwrap_or(0);
+            .map(|index| allowed_range.start + index + 1)
+            .unwrap_or(allowed_range.start);
         let before = content[statement_start..call_start].trim();
         if let Some(name) = csharp_assignment_name_before_call(before) {
             receivers.insert(name.to_string());
@@ -217,6 +274,7 @@ fn collect_http_request_messages(
     file_path: &str,
     content: &str,
     mask: &SourceMask,
+    allowed_ranges: &[Range<usize>],
     facts: &mut Vec<StructuralFact>,
 ) {
     let needle = "new HttpRequestMessage";
@@ -224,16 +282,22 @@ fn collect_http_request_messages(
     while let Some(relative) = content[cursor..].find(needle) {
         let call_start = cursor + relative;
         cursor = call_start + needle.len();
+        let Some(allowed_range) = containing_range(allowed_ranges, call_start) else {
+            continue;
+        };
         if mask.is_string_or_comment(call_start) {
             continue;
         }
-        let open = skip_ascii_whitespace_until(content, cursor, content.len());
+        let open = skip_ascii_whitespace_until(content, cursor, allowed_range.end);
         if content.as_bytes().get(open) != Some(&b'(') {
             continue;
         }
         let Some(close) = find_matching_paren(content, mask, open) else {
             continue;
         };
+        if close + 1 > allowed_range.end {
+            continue;
+        }
         let method_start = skip_ascii_whitespace_until(content, open + 1, close);
         let method_end =
             find_top_level_comma_or_end_with_angles(content, mask, method_start, close);
@@ -271,6 +335,29 @@ fn collect_http_request_messages(
             facts.push(fact);
         }
     }
+}
+
+fn containing_range(ranges: &[Range<usize>], position: usize) -> Option<&Range<usize>> {
+    ranges
+        .iter()
+        .find(|range| range.start <= position && position < range.end)
+}
+
+fn content_for_ranges(content: &str, ranges: &[Range<usize>]) -> String {
+    let mut masked = String::with_capacity(content.len());
+    for (start, ch) in content.char_indices() {
+        let end = start + ch.len_utf8();
+        if ch == '\n'
+            || ranges
+                .iter()
+                .any(|range| range.start <= start && end <= range.end)
+        {
+            masked.push(ch);
+        } else {
+            masked.extend(std::iter::repeat_n(' ', ch.len_utf8()));
+        }
+    }
+    masked
 }
 
 fn parse_csharp_url_literal(content: &str, start: usize) -> Option<(String, usize)> {

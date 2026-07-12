@@ -8,7 +8,9 @@ mod python;
 mod ruby;
 mod rust;
 
-use tree_sitter::Tree;
+use std::ops::Range;
+
+use tree_sitter::{Node, Tree};
 
 use super::HTTP_CLIENT_REQUEST_PATTERN_ID;
 use super::helpers::{fact_for_span, is_comment_or_string_node, smallest_node_covering_range};
@@ -34,6 +36,65 @@ pub(super) fn collect_backend_http_client_requests(
         "rust" => rust::collect_rust_http_client_requests(language, tree, file_path, content),
         _ => Vec::new(),
     }
+}
+
+pub(super) fn collect_razor_http_client_requests(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let mut call_ranges = Vec::new();
+    let mut receiver_ranges = Vec::new();
+    collect_razor_csharp_ranges(
+        tree.root_node(),
+        content,
+        &mut call_ranges,
+        &mut receiver_ranges,
+    );
+    receiver_ranges.extend(call_ranges.iter().cloned());
+    csharp::collect_csharp_http_client_requests_in_ranges(
+        "razor",
+        tree,
+        file_path,
+        content,
+        &call_ranges,
+        &receiver_ranges,
+    )
+}
+
+fn collect_razor_csharp_ranges(
+    node: Node<'_>,
+    content: &str,
+    call_ranges: &mut Vec<Range<usize>>,
+    receiver_ranges: &mut Vec<Range<usize>>,
+) {
+    match node.kind() {
+        "razor_block" if is_code_or_functions_block(node, content) => {
+            call_ranges.push(node.start_byte()..node.end_byte());
+            return;
+        }
+        "razor_inject_directive" => {
+            receiver_ranges.push(node.start_byte()..node.end_byte());
+        }
+        _ => {}
+    }
+
+    let mut cursor = node.walk();
+    for child in node.named_children(&mut cursor) {
+        collect_razor_csharp_ranges(child, content, call_ranges, receiver_ranges);
+    }
+}
+
+fn is_code_or_functions_block(node: Node<'_>, content: &str) -> bool {
+    let (Some(at_marker), Some(directive)) = (node.child(0), node.child(1)) else {
+        return false;
+    };
+    if at_marker.kind() != "at_block" || directive.kind() != "at_block" {
+        return false;
+    }
+    let at_text = content.get(at_marker.start_byte()..at_marker.end_byte());
+    let directive_text = content.get(directive.start_byte()..directive.end_byte());
+    at_text == Some("@") && matches!(directive_text, Some("code" | "functions"))
 }
 
 /// Shared `http.client_request.v1` fact builder for the five backend-language

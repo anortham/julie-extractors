@@ -4485,6 +4485,7 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             "typescript",
             "python",
             "csharp",
+            "razor",
             "go",
             "java",
             "kotlin",

@@ -25,7 +25,9 @@ use self::aspnet::{collect_aspnet_attribute_routes, collect_aspnet_minimal_api_r
 use self::axum::collect_axum_routes;
 use self::blazor_navigation::collect_blazor_navigation_facts;
 use self::go_http::collect_go_http_boundary_facts;
-use self::http_clients::collect_backend_http_client_requests;
+use self::http_clients::{
+    collect_backend_http_client_requests, collect_razor_http_client_requests,
+};
 use self::kotlin_spring::collect_kotlin_spring_routes;
 use self::laravel::collect_laravel_routes;
 use self::markup::{
@@ -170,6 +172,7 @@ const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     ALPINE_DIRECTIVE_PATTERN_ID,
     BLAZOR_COMPONENT_REFERENCE_PATTERN_ID,
     HTMX_ATTRIBUTE_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
     RAZOR_CODE_BLOCK_PATTERN_ID,
     RAZOR_PAGE_DIRECTIVE_PATTERN_ID,
     RAZOR_ROUTE_REFERENCE_PATTERN_ID,
@@ -214,6 +217,7 @@ pub fn collect_framework_structural_facts(
             razor_facts.extend(collect_blazor_navigation_facts(
                 language, tree, file_path, content,
             ));
+            razor_facts.extend(collect_razor_http_client_requests(tree, file_path, content));
             razor_facts
         }
         "javascript" => {
