@@ -239,9 +239,9 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 **What to build:** Fixtures for shapes Terraform lacks: `.razor` + `.razor.cs` code-behind identity inputs, `_Imports.razor` namespace/import inputs for downstream inheritance resolution, scoped-asset adjacency (fixture documents `Foo.razor.css` belongs to `Foo` — extraction-level association only), constrained `@typeparam`, render modes, cascading parameters. Certify all new facts/kinds and prove the registry export is synchronized. Prepare the release per the repo's release flow; publishing, tagging, or pushing requires separate explicit approval. File the T-SQL parse-quality issue (283 errors + 1 missing across six Terraform SQL files, 225 in `db/baseline.sql`) as a separate tracked item.
 
 **Acceptance criteria:**
-- [ ] All five fixture groups pass the semantic gate
-- [ ] Razor certified kind_coverage includes class + property (today: import/method/variable only)
-- [ ] Capability snapshot certifies `razor.route_reference.v1`, `blazor.component_reference.v1`, razor `http.client_request.v1`
-- [ ] `docs/contracts/structural-fact-patterns.json` is byte-synchronized with the registry and all new metadata keys are declared
-- [ ] Release prepared; version + rev recorded for Miller's pin bump
-- [ ] T-SQL issue filed
+- [x] All five fixture groups pass the semantic gate (`ff05b29`)
+- [x] Razor certified kind_coverage includes class + property (today: import/method/variable only)
+- [x] Capability snapshot certifies `razor.route_reference.v1`, `blazor.component_reference.v1`, razor `http.client_request.v1`
+- [x] `docs/contracts/structural-fact-patterns.json` is byte-synchronized with the registry and all new metadata keys are declared
+- [x] Release prepared as `2.13.0`; extractor candidate `ff05b298e4f8fa510b31a9f0be22cc0fd3eb143b` and grammar rev `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba` recorded for Miller's pin bump
+- [x] T-SQL issue filed as `anortham/julie-extractors#10`
