@@ -36,6 +36,7 @@
 | Semantic acceptance gate remains green after the live-gap repin | `cargo test --offline -p julie-extractors semantic_gate` | `99354a0` | GREEN: 5 passed, 0 failed | 2026-07-12 |
 | Razor regression scope remains green after the live-gap repin | `cargo test --offline -p julie-extractors razor` | `99354a0` | GREEN: 69 passed, 0 failed | 2026-07-12 |
 | Extractor package ceiling remains green after the live-gap repin | `cargo test --offline -p julie-extractors` | `99354a0` | GREEN: 2,831 passed, 0 failed, 7 ignored; doc tests 1 passed | 2026-07-12 |
+| Full Terraform Razor corpus is parse-clean | Release build + forced scan + SQLite diagnostic count | `99354a0` | GREEN: 28 Razor files indexed, zero failed files, zero Razor parse diagnostics | 2026-07-12 |
 
 ## Plan-mismatch adjudication
 
@@ -54,7 +55,7 @@ target/release/julie-extract scan --root ~/source/Terraform --db target/blazor-r
 sqlite3 -readonly target/blazor-razor-support/terraform.sqlite "SELECT COUNT(*) FROM parse_diagnostics WHERE language='razor';"
 ```
 
-The build form is documented in release evidence; the scan contract is documented in `docs/contracts/cli.md` and the data-quality release evidence.
+The build form is documented in release evidence; the scan contract is documented in `docs/contracts/cli.md` and the data-quality release evidence. The lead completed this handoff after repinning to `99354a0`; the final query returned `0`.
 
 ## Unpublished grammar dependency
 

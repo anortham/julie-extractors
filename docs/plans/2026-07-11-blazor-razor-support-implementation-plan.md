@@ -117,12 +117,14 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 - [x] Corpus files for modifiers/rendermode/typeparam pass with named nodes (`d24d075`)
 - [x] Task 1 case O6 parses render-fragment literals in switch-expression arms without ERROR or opaque consumption
 - [x] Existing grammar corpus stays green (110/110)
-- [x] Grammar changes committed at `d24d075afe5b18eae56c4386046ed5e6e3902795` for Task 4 to pin; tag/push remains approval-gated
+- [x] Grammar changes committed at `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba` for Task 4 to pin; tag/push remains approval-gated
 
 ### Task 4: Pin bump and the semantic acceptance gate
 
 **Files:**
 - Modify: `crates/julie-extractors/Cargo.toml:55` (tree-sitter-razor rev)
+- Modify: `crates/julie-extractors/src/{csharp,razor}/identifiers.rs` (shared conditional member-binding gap exposed by the semantic gate)
+- Modify: `crates/julie-extractors/src/tests/csharp/identifier_extraction.rs`
 - Create: `crates/julie-extractors/src/tests/razor/semantic_gate.rs`
 - Create: `fixtures/extraction/razor/attribute-expressions/` (golden fixtures mirroring the corpus)
 
@@ -130,14 +132,14 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 - Consumes: grammar rev from Task 3.
 - Produces: the enforced two-part gate all later razor work runs under.
 
-**What to build:** A test module that, for every fixture in the attribute-expressions corpus, asserts (1) zero `error`/`missing` parse diagnostics and (2) the expected identifiers, calls, literals, and relationships — e.g. `@(mode => mode)` yields a lambda with a `mode` variable_ref; `@typeof(App).Assembly` yields a type_usage of `App`; `@onsubmit="LookupAsync"` yields a call/event-binding reference to `LookupAsync`.
+**What to build:** A test module that, for every fixture in the attribute-expressions corpus, asserts (1) zero `error`/`missing` parse diagnostics and (2) meaningful semantic rows — e.g. lambda variables emit `variable_ref`, `@typeof(App).Assembly` emits `App` as `type_usage`, markup method groups emit resolvable `variable_ref`, actual invocations emit `call`, and conditional member bindings emit truthful `member_access`/`call` rows in both Razor and C#.
 
 **Approach:** Follow the existing golden-fixture pattern in `crates/julie-extractors/src/tests/razor/structural_facts.rs` and `fixtures/extraction/razor/basic/`. Expected-extraction lists live beside each fixture.
 
 **Acceptance criteria:**
-- [ ] Gate test fails if a construct parses opaquely (verified by temporarily re-pointing at the old rev — red), passes on the new rev — green
-- [ ] Existing 59 razor tests green on the new rev
-- [ ] Re-extraction of `~/source/Terraform` reports razor parse diagnostics ≈ 0; each remainder triaged as fixed or a named limitation in the classification doc
+- [x] Gate test fails on old rev `cf7b0e5` and passes on grammar rev `99354a0`
+- [x] Razor test scope is green on the new rev (69/69); extractor package ceiling is 2,831 passed, 7 ignored
+- [x] Release-binary re-extraction of `~/source/Terraform` indexes all 28 Razor files with zero failed files and zero Razor parse diagnostics
 
 ### Task 5: `razor.route_reference.v1`
 
