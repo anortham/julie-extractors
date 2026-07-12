@@ -203,10 +203,10 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 **What to build:** Reuse the C# HTTP-client scanner through the framework-fact pipeline, not the Razor symbol extractor. Derive allowed byte ranges from named Razor `@code`/`@functions` C# nodes, scan only those ranges while preserving absolute spans, and keep the normal csharp full-file path unchanged.
 
 **Acceptance criteria:**
-- [ ] Fixture with `await Http.GetFromJsonAsync<Foo>("/api/foo")` in `@code` emits a fact with verb GET and the url
-- [ ] Identical text in Razor markup, strings, or comments outside embedded-C# ranges emits nothing
-- [ ] csharp fact output unchanged (no double emission for `.cs` files)
-- [ ] Registry conformance passes with razor added to `http.client_request.v1` and the exported contract JSON is synchronized
+- [x] Fixture with `await Http.GetFromJsonAsync<Foo>("/api/foo")` in `@code` emits a fact with verb GET and the url (`ba16b91`)
+- [x] Identical text in Razor markup, strings, or comments outside embedded-C# ranges emits nothing
+- [x] csharp fact output unchanged (no double emission for `.cs` files)
+- [x] Registry conformance passes with razor added to `http.client_request.v1` and the exported contract JSON is synchronized
 
 ### Task 8: test_container detection closure (csharp/vbnet/razor)
 
