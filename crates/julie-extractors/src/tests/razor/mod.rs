@@ -2168,6 +2168,7 @@ mod complexity;
 mod literals; // Phase 3: String-literal call-argument capture
 mod semantic_gate;
 mod structural_facts;
+mod test_containers;
 mod type_arguments; // Phase 2: Generic type-argument capture
 mod types; // Phase 4: Type extraction verification tests
 

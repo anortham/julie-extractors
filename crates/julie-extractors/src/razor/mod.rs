@@ -84,6 +84,7 @@ impl RazorExtractor {
             symbols.push(component_symbol);
         }
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        crate::test_detection::mark_dotnet_test_containers(&mut symbols);
         symbols
     }
 

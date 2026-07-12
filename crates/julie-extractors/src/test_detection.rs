@@ -4,7 +4,8 @@
 //! a symbol is a test based on its language, name, file path, kind, annotation keys,
 //! and doc comment. No tree-sitter, no file I/O.
 
-use crate::base::SymbolKind;
+use crate::base::{Symbol, SymbolKind};
+use std::collections::HashSet;
 
 /// Callable symbol kinds — only these can be actual test functions/methods.
 fn is_callable(kind: &SymbolKind) -> bool {
@@ -178,6 +179,40 @@ fn detect_csharp(annotation_keys: &[String]) -> bool {
     annotation_keys
         .iter()
         .any(|a| test_attrs.contains(&a.as_str()))
+}
+
+pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
+    let containers_with_test_members: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Method)
+        .filter(|symbol| {
+            symbol.annotations.iter().any(|annotation| {
+                matches!(
+                    annotation.annotation_key.as_str(),
+                    "fact" | "theory" | "test"
+                )
+            })
+        })
+        .filter_map(|symbol| symbol.parent_id.clone())
+        .collect();
+
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| symbol.kind == SymbolKind::Class)
+    {
+        let has_container_attribute = symbol.annotations.iter().any(|annotation| {
+            matches!(
+                annotation.annotation_key.as_str(),
+                "testfixture" | "testclass"
+            )
+        });
+        if has_container_attribute || containers_with_test_members.contains(&symbol.id) {
+            symbol
+                .metadata
+                .get_or_insert_with(Default::default)
+                .insert("test_container".to_string(), serde_json::Value::Bool(true));
+        }
+    }
 }
 
 fn detect_go(name: &str, file_path: &str) -> bool {

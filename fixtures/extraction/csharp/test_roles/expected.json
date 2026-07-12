@@ -1,30 +1,108 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/csharp/test_roles/source.cs:Fact:18:4",
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:After:5:4",
+      "name": "After",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 37,
+      "start_byte": 89,
+      "end_byte": 122,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 35,
+        "end_line": 5,
+        "end_column": 37,
+        "start_byte": 120,
+        "end_byte": 122
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "[TearDown] public void After()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitFixture:1:0",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "TearDown",
+          "annotation_key": "teardown",
+          "raw_text": "TearDown"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:Before:4:4",
+      "name": "Before",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 4,
+      "start_column": 4,
+      "end_line": 4,
+      "end_column": 35,
+      "start_byte": 53,
+      "end_byte": 84,
+      "body_span": {
+        "start_line": 4,
+        "start_column": 33,
+        "end_line": 4,
+        "end_column": 35,
+        "start_byte": 82,
+        "end_byte": 84
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "[SetUp] public void Before()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitFixture:1:0",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "SetUp",
+          "annotation_key": "setup",
+          "raw_text": "SetUp"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:Fact:19:4",
       "name": "Fact",
       "kind": "method",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "start_line": 18,
+      "start_line": 19,
       "start_column": 4,
-      "end_line": 20,
-      "end_column": 5,
-      "start_byte": 206,
-      "end_byte": 236,
+      "end_line": 19,
+      "end_column": 25,
+      "start_byte": 383,
+      "end_byte": 404,
       "body_span": {
         "start_line": 19,
-        "start_column": 4,
-        "end_line": 20,
-        "end_column": 5,
-        "start_byte": 229,
-        "end_byte": 236
+        "start_column": 23,
+        "end_line": 19,
+        "end_column": 25,
+        "start_byte": 402,
+        "end_byte": 404
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "public void Fact()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:1:0",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -32,32 +110,33 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:1:0",
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
       "name": "ManagedTestRoles",
       "kind": "class",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "start_line": 1,
+      "start_line": 14,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 20,
       "end_column": 1,
-      "start_byte": 0,
-      "end_byte": 238,
+      "start_byte": 222,
+      "end_byte": 406,
       "body_span": {
-        "start_line": 2,
+        "start_line": 15,
         "start_column": 0,
-        "end_line": 21,
+        "end_line": 20,
         "end_column": 1,
-        "start_byte": 37,
-        "end_byte": 238
+        "start_byte": 259,
+        "end_byte": 406
       },
-      "body_hash": "2b492876b5a9657c6297a7413f918738",
+      "body_hash": "9cdbd0a6fc3ad3d38deca179ccecea46",
       "signature": "public sealed class ManagedTestRoles",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
-        "csharp_visibility": "public"
+        "csharp_visibility": "public",
+        "test_container": true
       },
       "annotations": [],
       "semantic_group": null,
@@ -65,30 +144,54 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestCase:13:4",
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:Marker:25:4",
+      "name": "Marker",
+      "kind": "field",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 25,
+      "start_column": 4,
+      "end_line": 25,
+      "end_column": 50,
+      "start_byte": 464,
+      "end_byte": 510,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "public string Marker = \"[TestFixture] [Fact]\"",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:Ordinary:22:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestCase:11:4",
       "name": "MsTestCase",
       "kind": "method",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "start_line": 13,
+      "start_line": 11,
       "start_column": 4,
-      "end_line": 16,
-      "end_column": 5,
-      "start_byte": 147,
-      "end_byte": 200,
+      "end_line": 11,
+      "end_column": 44,
+      "start_byte": 178,
+      "end_byte": 218,
       "body_span": {
-        "start_line": 15,
-        "start_column": 4,
-        "end_line": 16,
-        "end_column": 5,
-        "start_byte": 193,
-        "end_byte": 200
+        "start_line": 11,
+        "start_column": 42,
+        "end_line": 11,
+        "end_column": 44,
+        "start_byte": 216,
+        "end_byte": 218
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "[TestMethod] public void MsTestCase()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:1:0",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestFixture:8:0",
       "metadata": {
         "is_test": true
       },
@@ -104,30 +207,70 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitCase:8:4",
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestFixture:8:0",
+      "name": "MsTestFixture",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 8,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 1,
+      "start_byte": 126,
+      "end_byte": 220,
+      "body_span": {
+        "start_line": 10,
+        "start_column": 0,
+        "end_line": 12,
+        "end_column": 1,
+        "start_byte": 172,
+        "end_byte": 220
+      },
+      "body_hash": "26aa34db0c79f84c8b18a0363f4f6877",
+      "signature": "[TestClass] public sealed class MsTestFixture",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "csharp_visibility": "public",
+        "test_container": true
+      },
+      "annotations": [
+        {
+          "annotation": "TestClass",
+          "annotation_key": "testclass",
+          "raw_text": "TestClass"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitCase:18:4",
       "name": "NUnitCase",
       "kind": "method",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "start_line": 8,
+      "start_line": 18,
       "start_column": 4,
-      "end_line": 11,
-      "end_column": 5,
-      "start_byte": 95,
-      "end_byte": 141,
+      "end_line": 18,
+      "end_column": 37,
+      "start_byte": 345,
+      "end_byte": 378,
       "body_span": {
-        "start_line": 10,
-        "start_column": 4,
-        "end_line": 11,
-        "end_column": 5,
-        "start_byte": 134,
-        "end_byte": 141
+        "start_line": 18,
+        "start_column": 35,
+        "end_line": 18,
+        "end_column": 37,
+        "start_byte": 376,
+        "end_byte": 378
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "[Test] public void NUnitCase()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:1:0",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
       "metadata": {
         "is_test": true
       },
@@ -143,30 +286,140 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/csharp/test_roles/source.cs:XunitCase:3:4",
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitFixture:1:0",
+      "name": "NUnitFixture",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 1,
+      "start_byte": 0,
+      "end_byte": 124,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 6,
+        "end_column": 1,
+        "start_byte": 47,
+        "end_byte": 124
+      },
+      "body_hash": "06112ada84048af378e51d2b224dc301",
+      "signature": "[TestFixture] public sealed class NUnitFixture",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "csharp_visibility": "public",
+        "test_container": true
+      },
+      "annotations": [
+        {
+          "annotation": "TestFixture",
+          "annotation_key": "testfixture",
+          "raw_text": "TestFixture"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:Ordinary:22:0",
+      "name": "Ordinary",
+      "kind": "class",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 22,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 1,
+      "start_byte": 408,
+      "end_byte": 538,
+      "body_span": {
+        "start_line": 24,
+        "start_column": 0,
+        "end_line": 27,
+        "end_column": 1,
+        "start_byte": 458,
+        "end_byte": 538
+      },
+      "body_hash": "714162919e102f9fac8b9d1097db9652",
+      "signature": "[TestFixtureFactory] public sealed class Ordinary",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "csharp_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "TestFixtureFactory",
+          "annotation_key": "testfixturefactory",
+          "raw_text": "TestFixtureFactory"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:Test:26:4",
+      "name": "Test",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 26,
+      "start_column": 4,
+      "end_line": 26,
+      "end_column": 25,
+      "start_byte": 515,
+      "end_byte": 536,
+      "body_span": {
+        "start_line": 26,
+        "start_column": 23,
+        "end_line": 26,
+        "end_column": 25,
+        "start_byte": 534,
+        "end_byte": 536
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "public void Test()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:Ordinary:22:0",
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:XunitCase:16:4",
       "name": "XunitCase",
       "kind": "method",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "start_line": 3,
+      "start_line": 16,
       "start_column": 4,
-      "end_line": 6,
-      "end_column": 5,
-      "start_byte": 43,
-      "end_byte": 89,
+      "end_line": 16,
+      "end_column": 37,
+      "start_byte": 265,
+      "end_byte": 298,
       "body_span": {
-        "start_line": 5,
-        "start_column": 4,
-        "end_line": 6,
-        "end_column": 5,
-        "start_byte": 82,
-        "end_byte": 89
+        "start_line": 16,
+        "start_column": 35,
+        "end_line": 16,
+        "end_column": 37,
+        "start_byte": 296,
+        "end_byte": 298
       },
       "body_hash": "a1a42f00d5428b4218da76a480474865",
       "signature": "[Fact] public void XunitCase()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:1:0",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
       "metadata": {
         "is_test": true
       },
@@ -180,6 +433,45 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:XunitTheory:17:4",
+      "name": "XunitTheory",
+      "kind": "method",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 17,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 41,
+      "start_byte": 303,
+      "end_byte": 340,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 39,
+        "end_line": 17,
+        "end_column": 41,
+        "start_byte": 338,
+        "end_byte": 340
+      },
+      "body_hash": "a1a42f00d5428b4218da76a480474865",
+      "signature": "[Theory] public void XunitTheory()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:ManagedTestRoles:14:0",
+      "metadata": {
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "Theory",
+          "annotation_key": "theory",
+          "raw_text": "Theory"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -188,7 +480,7 @@
   "identifiers": [],
   "types": [
     {
-      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Fact:18:4",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:After:5:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -197,7 +489,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestCase:13:4",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Before:4:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -206,7 +498,7 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitCase:8:4",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Fact:19:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -215,7 +507,52 @@
       "metadata": null
     },
     {
-      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:XunitCase:3:4",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Marker:25:4",
+      "resolved_type": "string",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestCase:11:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitCase:18:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Test:26:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:XunitCase:16:4",
+      "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:XunitTheory:17:4",
       "resolved_type": "void",
       "generic_params": null,
       "constraints": null,
@@ -233,112 +570,214 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "covered_lines": 22,
-      "covered_bytes": 239,
+      "covered_lines": 28,
+      "covered_bytes": 539,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 22,
+      "end_line": 28,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 239,
+      "end_byte": 539,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Fact:18:4",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:After:5:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "csharp",
       "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "covered_lines": 2,
-      "covered_bytes": 7,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 0,
-      "start_line": 19,
-      "start_column": 4,
-      "end_line": 20,
-      "end_column": 5,
-      "start_byte": 229,
-      "end_byte": 236,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestCase:13:4",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "covered_lines": 2,
-      "covered_bytes": 7,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 0,
-      "start_line": 15,
-      "start_column": 4,
-      "end_line": 16,
-      "end_column": 5,
-      "start_byte": 193,
-      "end_byte": 200,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitCase:8:4",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "covered_lines": 2,
-      "covered_bytes": 7,
-      "decision_count": 0,
-      "loop_count": 0,
-      "max_nesting_depth": 0,
-      "parameter_count": 0,
-      "start_line": 10,
-      "start_column": 4,
-      "end_line": 11,
-      "end_column": 5,
-      "start_byte": 134,
-      "end_byte": 141,
-      "metadata": {
-        "metric_version": 1
-      }
-    },
-    {
-      "scope": "symbol",
-      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:XunitCase:3:4",
-      "algorithm_id": "julie-ast-complexity-v1",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
-      "covered_lines": 2,
-      "covered_bytes": 7,
+      "covered_lines": 1,
+      "covered_bytes": 2,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
       "start_line": 5,
-      "start_column": 4,
-      "end_line": 6,
-      "end_column": 5,
+      "start_column": 35,
+      "end_line": 5,
+      "end_column": 37,
+      "start_byte": 120,
+      "end_byte": 122,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Before:4:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 4,
+      "start_column": 33,
+      "end_line": 4,
+      "end_column": 35,
       "start_byte": 82,
-      "end_byte": 89,
+      "end_byte": 84,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Fact:19:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 19,
+      "start_column": 23,
+      "end_line": 19,
+      "end_column": 25,
+      "start_byte": 402,
+      "end_byte": 404,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:MsTestCase:11:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 11,
+      "start_column": 42,
+      "end_line": 11,
+      "end_column": 44,
+      "start_byte": 216,
+      "end_byte": 218,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitCase:18:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 18,
+      "start_column": 35,
+      "end_line": 18,
+      "end_column": 37,
+      "start_byte": 376,
+      "end_byte": 378,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:Test:26:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 26,
+      "start_column": 23,
+      "end_line": 26,
+      "end_column": 25,
+      "start_byte": 534,
+      "end_byte": 536,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:XunitCase:16:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 16,
+      "start_column": 35,
+      "end_line": 16,
+      "end_column": 37,
+      "start_byte": 296,
+      "end_byte": 298,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:XunitTheory:17:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "covered_lines": 1,
+      "covered_bytes": 2,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 17,
+      "start_column": 39,
+      "end_line": 17,
+      "end_column": 41,
+      "start_byte": 338,
+      "end_byte": 340,
       "metadata": {
         "metric_version": 1
       }
     }
   ],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "containing_key": "fixtures/extraction/csharp/test_roles/source.cs:Marker:25:4",
+      "start_line": 25,
+      "start_column": 27,
+      "end_line": 25,
+      "end_column": 49,
+      "start_byte": 487,
+      "end_byte": 509,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

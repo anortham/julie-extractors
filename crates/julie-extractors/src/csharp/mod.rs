@@ -141,6 +141,7 @@ impl CSharpExtractor {
         let root = tree.root_node();
         self.walk_tree(root, &mut symbols, None, 0);
         self.ensure_file_scope_symbol(root, &mut symbols);
+        crate::test_detection::mark_dotnet_test_containers(&mut symbols);
         symbols
     }
 

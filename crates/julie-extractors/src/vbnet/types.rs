@@ -103,6 +103,14 @@ pub fn extract_class(
     }
 
     let metadata = helpers::vb_visibility_metadata(&modifiers, default_visibility);
+    let attribute_owner = node
+        .parent()
+        .filter(|parent| parent.kind() == "type_declaration")
+        .unwrap_or(node);
+    let annotations = crate::base::annotations::normalize_annotations(
+        &helpers::extract_attributes(base, &attribute_owner),
+        "vbnet",
+    );
 
     let doc_comment = helpers::find_vbnet_doc_comment(base, &node);
 
@@ -112,7 +120,7 @@ pub fn extract_class(
         parent_id,
         metadata: Some(metadata),
         doc_comment,
-        annotations: Vec::new(),
+        annotations,
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Class, options))

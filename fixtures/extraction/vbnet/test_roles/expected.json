@@ -1,30 +1,110 @@
 {
   "symbols": [
     {
-      "key": "fixtures/extraction/vbnet/test_roles/source.vb:Fact:14:4",
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:After:5:4",
+      "name": "After",
+      "kind": "method",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 0,
+      "start_byte": 88,
+      "end_byte": 130,
+      "body_span": {
+        "start_line": 5,
+        "start_column": 31,
+        "end_line": 5,
+        "end_column": 33,
+        "start_byte": 115,
+        "end_byte": 117
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "public Sub After()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitFixture:2:0",
+      "metadata": {
+        "is_test": true,
+        "vb_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "TearDown",
+          "annotation_key": "teardown",
+          "raw_text": "TearDown"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:Before:3:4",
+      "name": "Before",
+      "kind": "method",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 3,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 44,
+      "end_byte": 84,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 29,
+        "end_line": 3,
+        "end_column": 31,
+        "start_byte": 69,
+        "end_byte": 71
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "public Sub Before()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitFixture:2:0",
+      "metadata": {
+        "is_test": true,
+        "vb_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "SetUp",
+          "annotation_key": "setup",
+          "raw_text": "SetUp"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:Fact:22:4",
       "name": "Fact",
       "kind": "method",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "start_line": 14,
+      "start_line": 22,
       "start_column": 4,
-      "end_line": 16,
+      "end_line": 24,
       "end_column": 0,
-      "start_byte": 194,
-      "end_byte": 224,
+      "start_byte": 420,
+      "end_byte": 450,
       "body_span": {
-        "start_line": 14,
+        "start_line": 22,
         "start_column": 19,
-        "end_line": 14,
+        "end_line": 22,
         "end_column": 21,
-        "start_byte": 209,
-        "end_byte": 211
+        "start_byte": 435,
+        "end_byte": 437
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "public Sub Fact()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:1:0",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:15:0",
       "metadata": {
         "vb_visibility": "public"
       },
@@ -34,31 +114,32 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:1:0",
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:15:0",
       "name": "ManagedTestRoles",
       "kind": "class",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "start_line": 1,
+      "start_line": 15,
       "start_column": 0,
-      "end_line": 17,
+      "end_line": 25,
       "end_column": 0,
-      "start_byte": 0,
-      "end_byte": 234,
+      "start_byte": 244,
+      "end_byte": 460,
       "body_span": {
-        "start_line": 3,
-        "start_column": 24,
-        "end_line": 14,
+        "start_line": 16,
+        "start_column": 31,
+        "end_line": 22,
         "end_column": 21,
-        "start_byte": 65,
-        "end_byte": 211
+        "start_byte": 305,
+        "end_byte": 437
       },
-      "body_hash": "f337a144164cc63dde8f343f55c8d900",
+      "body_hash": "e03391bce33eed788891bfd540d34acc",
       "signature": "public Class ManagedTestRoles",
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": null,
       "metadata": {
+        "test_container": true,
         "vb_visibility": "public"
       },
       "annotations": [],
@@ -67,30 +148,63 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vbnet/test_roles/source.vb:MsTestCase:10:4",
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:Marker:28:4",
+      "name": "Marker",
+      "kind": "field",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 28,
+      "start_column": 4,
+      "end_line": 29,
+      "end_column": 0,
+      "start_byte": 508,
+      "end_byte": 557,
+      "body_span": {
+        "start_line": 28,
+        "start_column": 21,
+        "end_line": 29,
+        "end_column": 0,
+        "start_byte": 525,
+        "end_byte": 557
+      },
+      "body_hash": "c40113396acbc9c62bf5310526bd67a1",
+      "signature": "public Dim Marker As String",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:Ordinary:27:0",
+      "metadata": {
+        "vb_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:MsTestCase:11:4",
       "name": "MsTestCase",
       "kind": "method",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "start_line": 10,
+      "start_line": 11,
       "start_column": 4,
       "end_line": 13,
       "end_column": 0,
-      "start_byte": 136,
-      "end_byte": 189,
+      "start_byte": 184,
+      "end_byte": 233,
       "body_span": {
         "start_line": 11,
-        "start_column": 25,
+        "start_column": 38,
         "end_line": 11,
-        "end_column": 27,
-        "start_byte": 174,
-        "end_byte": 176
+        "end_column": 40,
+        "start_byte": 218,
+        "end_byte": 220
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "public Sub MsTestCase()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:1:0",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:MsTestFixture:10:0",
       "metadata": {
         "is_test": true,
         "vb_visibility": "public"
@@ -107,30 +221,70 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitCase:6:4",
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:MsTestFixture:10:0",
+      "name": "MsTestFixture",
+      "kind": "class",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 0,
+      "start_byte": 153,
+      "end_byte": 243,
+      "body_span": {
+        "start_line": 11,
+        "start_column": 38,
+        "end_line": 11,
+        "end_column": 40,
+        "start_byte": 218,
+        "end_byte": 220
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "public Class MsTestFixture",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "test_container": true,
+        "vb_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "TestClass",
+          "annotation_key": "testclass",
+          "raw_text": "TestClass"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitCase:20:4",
       "name": "NUnitCase",
       "kind": "method",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "start_line": 6,
+      "start_line": 20,
       "start_column": 4,
-      "end_line": 9,
+      "end_line": 22,
       "end_column": 0,
-      "start_byte": 85,
-      "end_byte": 131,
+      "start_byte": 374,
+      "end_byte": 416,
       "body_span": {
-        "start_line": 7,
-        "start_column": 24,
-        "end_line": 7,
-        "end_column": 26,
-        "start_byte": 116,
-        "end_byte": 118
+        "start_line": 20,
+        "start_column": 31,
+        "end_line": 20,
+        "end_column": 33,
+        "start_byte": 401,
+        "end_byte": 403
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "public Sub NUnitCase()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:1:0",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:15:0",
       "metadata": {
         "is_test": true,
         "vb_visibility": "public"
@@ -147,30 +301,142 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitCase:2:4",
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitFixture:2:0",
+      "name": "NUnitFixture",
+      "kind": "class",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 0,
+      "start_byte": 14,
+      "end_byte": 140,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 29,
+        "end_line": 5,
+        "end_column": 33,
+        "start_byte": 69,
+        "end_byte": 117
+      },
+      "body_hash": "495c3469030a8f8e55b09638e49509b4",
+      "signature": "public Class NUnitFixture",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "test_container": true,
+        "vb_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "TestFixture",
+          "annotation_key": "testfixture",
+          "raw_text": "TestFixture"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:Ordinary:27:0",
+      "name": "Ordinary",
+      "kind": "class",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 27,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 0,
+      "start_byte": 482,
+      "end_byte": 601,
+      "body_span": {
+        "start_line": 29,
+        "start_column": 19,
+        "end_line": 29,
+        "end_column": 21,
+        "start_byte": 576,
+        "end_byte": 578
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "public Class Ordinary",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "vb_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "TestFixtureFactory",
+          "annotation_key": "testfixturefactory",
+          "raw_text": "TestFixtureFactory"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:Test:29:4",
+      "name": "Test",
+      "kind": "method",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 29,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 0,
+      "start_byte": 561,
+      "end_byte": 591,
+      "body_span": {
+        "start_line": 29,
+        "start_column": 19,
+        "end_line": 29,
+        "end_column": 21,
+        "start_byte": 576,
+        "end_byte": 578
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "public Sub Test()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:Ordinary:27:0",
+      "metadata": {
+        "vb_visibility": "public"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitCase:16:4",
       "name": "XunitCase",
       "kind": "method",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "start_line": 2,
+      "start_line": 16,
       "start_column": 4,
-      "end_line": 5,
+      "end_line": 18,
       "end_column": 0,
-      "start_byte": 34,
-      "end_byte": 80,
+      "start_byte": 278,
+      "end_byte": 320,
       "body_span": {
-        "start_line": 3,
-        "start_column": 24,
-        "end_line": 3,
-        "end_column": 26,
-        "start_byte": 65,
-        "end_byte": 67
+        "start_line": 16,
+        "start_column": 31,
+        "end_line": 16,
+        "end_column": 33,
+        "start_byte": 305,
+        "end_byte": 307
       },
       "body_hash": "22846ff977ceb14610c8da0039a7029b",
       "signature": "public Sub XunitCase()",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:1:0",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:15:0",
       "metadata": {
         "is_test": true,
         "vb_visibility": "public"
@@ -185,13 +451,63 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitTheory:18:4",
+      "name": "XunitTheory",
+      "kind": "method",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "start_line": 18,
+      "start_column": 4,
+      "end_line": 20,
+      "end_column": 0,
+      "start_byte": 324,
+      "end_byte": 370,
+      "body_span": {
+        "start_line": 18,
+        "start_column": 35,
+        "end_line": 18,
+        "end_column": 37,
+        "start_byte": 355,
+        "end_byte": 357
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "public Sub XunitTheory()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:ManagedTestRoles:15:0",
+      "metadata": {
+        "is_test": true,
+        "vb_visibility": "public"
+      },
+      "annotations": [
+        {
+          "annotation": "Theory",
+          "annotation_key": "theory",
+          "raw_text": "Theory"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:Marker:28:4",
+      "resolved_type": "String",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "vbnet",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [
     {
@@ -200,13 +516,53 @@
       "node_kind": "attribute",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:MsTestCase:10:4",
-      "start_line": 10,
+      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:After:5:4",
+      "start_line": 5,
       "start_column": 5,
-      "end_line": 10,
+      "end_line": 5,
+      "end_column": 13,
+      "start_byte": 89,
+      "end_byte": 97,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "TearDown",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "vbnet.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:Before:3:4",
+      "start_line": 3,
+      "start_column": 5,
+      "end_line": 3,
+      "end_column": 10,
+      "start_byte": 45,
+      "end_byte": 50,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "SetUp",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "vbnet.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:MsTestCase:11:4",
+      "start_line": 11,
+      "start_column": 5,
+      "end_line": 11,
       "end_column": 15,
-      "start_byte": 137,
-      "end_byte": 147,
+      "start_byte": 185,
+      "end_byte": 195,
       "confidence": "1.000",
       "metadata": {
         "attribute_name": "TestMethod",
@@ -220,13 +576,13 @@
       "node_kind": "attribute",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitCase:6:4",
-      "start_line": 6,
+      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitCase:20:4",
+      "start_line": 20,
       "start_column": 5,
-      "end_line": 6,
+      "end_line": 20,
       "end_column": 9,
-      "start_byte": 86,
-      "end_byte": 90,
+      "start_byte": 375,
+      "end_byte": 379,
       "confidence": "1.000",
       "metadata": {
         "attribute_name": "Test",
@@ -240,16 +596,96 @@
       "node_kind": "attribute",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitCase:2:4",
-      "start_line": 2,
+      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitCase:16:4",
+      "start_line": 16,
       "start_column": 5,
-      "end_line": 2,
+      "end_line": 16,
       "end_column": 9,
-      "start_byte": 35,
-      "end_byte": 39,
+      "start_byte": 279,
+      "end_byte": 283,
       "confidence": "1.000",
       "metadata": {
         "attribute_name": "Fact",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "vbnet.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitTheory:18:4",
+      "start_line": 18,
+      "start_column": 5,
+      "end_line": 18,
+      "end_column": 11,
+      "start_byte": 325,
+      "end_byte": 331,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "Theory",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "vbnet.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 1,
+      "end_line": 1,
+      "end_column": 12,
+      "start_byte": 1,
+      "end_byte": 12,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "TestFixture",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "vbnet.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "containing_key": null,
+      "start_line": 26,
+      "start_column": 1,
+      "end_line": 26,
+      "end_column": 19,
+      "start_byte": 462,
+      "end_byte": 480,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "TestFixtureFactory",
+        "pattern_version": 1,
+        "query_family": "metadata"
+      }
+    },
+    {
+      "pattern_id": "vbnet.attribute.v1",
+      "capture_name": "attribute",
+      "node_kind": "attribute",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "containing_key": null,
+      "start_line": 9,
+      "start_column": 1,
+      "end_line": 9,
+      "end_column": 10,
+      "start_byte": 142,
+      "end_byte": 151,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "TestClass",
         "pattern_version": 1,
         "query_family": "metadata"
       }
@@ -262,25 +698,69 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "covered_lines": 17,
-      "covered_bytes": 234,
+      "covered_lines": 32,
+      "covered_bytes": 601,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 17,
+      "end_line": 32,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 234,
+      "end_byte": 601,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:Fact:14:4",
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:After:5:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "covered_lines": 3,
+      "covered_bytes": 42,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 5,
+      "start_column": 4,
+      "end_line": 7,
+      "end_column": 0,
+      "start_byte": 88,
+      "end_byte": 130,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:Before:3:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "covered_lines": 3,
+      "covered_bytes": 40,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 3,
+      "start_column": 4,
+      "end_line": 5,
+      "end_column": 0,
+      "start_byte": 44,
+      "end_byte": 84,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:Fact:22:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
@@ -290,84 +770,142 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 14,
+      "start_line": 22,
       "start_column": 4,
-      "end_line": 16,
+      "end_line": 24,
       "end_column": 0,
-      "start_byte": 194,
-      "end_byte": 224,
+      "start_byte": 420,
+      "end_byte": 450,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:MsTestCase:10:4",
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:MsTestCase:11:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "covered_lines": 4,
-      "covered_bytes": 53,
+      "covered_lines": 3,
+      "covered_bytes": 49,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 10,
+      "start_line": 11,
       "start_column": 4,
       "end_line": 13,
       "end_column": 0,
-      "start_byte": 136,
-      "end_byte": 189,
+      "start_byte": 184,
+      "end_byte": 233,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitCase:6:4",
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitCase:20:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "covered_lines": 4,
-      "covered_bytes": 46,
+      "covered_lines": 3,
+      "covered_bytes": 42,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 6,
+      "start_line": 20,
       "start_column": 4,
-      "end_line": 9,
+      "end_line": 22,
       "end_column": 0,
-      "start_byte": 85,
-      "end_byte": 131,
+      "start_byte": 374,
+      "end_byte": 416,
       "metadata": {
         "metric_version": 1
       }
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitCase:2:4",
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:Test:29:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "vbnet",
       "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
-      "covered_lines": 4,
+      "covered_lines": 3,
+      "covered_bytes": 30,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 29,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 0,
+      "start_byte": 561,
+      "end_byte": 591,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitCase:16:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "covered_lines": 3,
+      "covered_bytes": 42,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 18,
+      "end_column": 0,
+      "start_byte": 278,
+      "end_byte": 320,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/vbnet/test_roles/source.vb:XunitTheory:18:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "covered_lines": 3,
       "covered_bytes": 46,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 0,
-      "start_line": 2,
+      "start_line": 18,
       "start_column": 4,
-      "end_line": 5,
+      "end_line": 20,
       "end_column": 0,
-      "start_byte": 34,
-      "end_byte": 80,
+      "start_byte": 324,
+      "end_byte": 370,
       "metadata": {
         "metric_version": 1
       }
     }
   ],
   "literals": [],
-  "source_regions": [],
+  "source_regions": [
+    {
+      "kind": "string_literal",
+      "language": "vbnet",
+      "file_path": "fixtures/extraction/vbnet/test_roles/source.vb",
+      "containing_key": "fixtures/extraction/vbnet/test_roles/source.vb:Marker:28:4",
+      "start_line": 28,
+      "start_column": 30,
+      "end_line": 28,
+      "end_column": 52,
+      "start_byte": 534,
+      "end_byte": 556,
+      "metadata": null
+    }
+  ],
   "type_argument_usages": []
 }

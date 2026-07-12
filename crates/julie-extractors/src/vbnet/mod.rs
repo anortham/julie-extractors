@@ -62,6 +62,7 @@ impl VbNetExtractor {
         let mut symbols = Vec::new();
         let root = tree.root_node();
         self.walk_tree(root, &mut symbols, None, 0);
+        crate::test_detection::mark_dotnet_test_containers(&mut symbols);
         symbols
     }
 
