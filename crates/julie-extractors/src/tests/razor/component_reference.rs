@@ -56,8 +56,43 @@ fn cross_file_component_tag_emits_unresolved_reference_context() {
     assert!(fact.start_byte < fact.end_byte);
     assert_eq!(
         &source[fact.start_byte as usize..fact.end_byte as usize],
-        "<SharedWidget />"
+        "SharedWidget"
     );
+}
+
+#[test]
+fn fully_qualified_pascal_case_component_tags_emit_raw_syntax_evidence() {
+    let source = r#"@namespace Sample.Pages
+
+<main>
+    <section>
+        <Microsoft.AspNetCore.Components.Routing.NavLink>
+            Orders
+        </Microsoft.AspNetCore.Components.Routing.NavLink>
+    </section>
+</main>
+<Microsoft.AspNetCore.components.Routing.NavLink />
+<Microsoft.AspNetCore.Components.My-NavLink />
+<Microsoft.AspNetCore.Components.My_NavLink />
+<Microsoft..AspNetCore.Components.NavLink />
+"#;
+
+    let results = extract("Pages/Qualified.razor", source);
+    let facts = component_facts(&results);
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    let fact = facts[0];
+    let qualified_tag = "Microsoft.AspNetCore.Components.Routing.NavLink";
+    assert_eq!(
+        metadata(fact, "tag").and_then(Value::as_str),
+        Some(qualified_tag)
+    );
+    assert_eq!(
+        &source[fact.start_byte as usize..fact.end_byte as usize],
+        qualified_tag
+    );
+    assert_eq!((fact.start_line, fact.start_column), (5, 9));
+    assert_eq!((fact.end_line, fact.end_column), (5, 56));
 }
 
 #[test]
@@ -136,6 +171,24 @@ fn dynamic_generic_component_arguments_stay_out_of_reference_metadata() {
             "dynamic type expressions are not static generic arguments: {fact:#?}"
         );
     }
+}
+
+#[test]
+fn ordinary_t_prefixed_static_attributes_are_advisory_generic_candidates() {
+    let results = extract(
+        "Pages/CardHost.razor",
+        r#"<Card Title="Orders" TTheme="Dark" />"#,
+    );
+    let facts = component_facts(&results);
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata(facts[0], "generic_arguments").and_then(Value::as_array),
+        Some(&vec![serde_json::json!({
+            "name": "TTheme",
+            "value": "Dark"
+        })])
+    );
 }
 
 #[test]

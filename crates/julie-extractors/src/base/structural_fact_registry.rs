@@ -3434,7 +3434,7 @@ const SPECS: &[StructuralFactPatternSpec] = &[
                 "generic_arguments",
                 OBJARR,
                 ALWAYS,
-                "Generic component arguments as name/value objects, in source order.",
+                "Static T+Uppercase attribute candidate evidence as name/value objects, in source order; naming-convention syntax only, not resolved generic semantics.",
             ),
         ],
     },

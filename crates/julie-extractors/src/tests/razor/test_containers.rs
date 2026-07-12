@@ -22,6 +22,8 @@ fn embedded_csharp_attributes_and_test_members_mark_classes_as_containers() {
     public class MsTestFixture {}
     public class XunitByMembers { [Fact] public void FactCase() {} [Theory] public void TheoryCase() {} }
     public class NUnitByMembers { [Test] public void TestCase() {} }
+    public class NUnitCasesByMembers { [TestCase(1)] public void ParameterizedCase(int value) {} }
+    public class OuterWithNested { public class NestedWithCase { [TestCase(1)] public void NestedCase(int value) {} } }
 }"#,
     );
 
@@ -30,13 +32,24 @@ fn embedded_csharp_attributes_and_test_members_mark_classes_as_containers() {
         "MsTestFixture",
         "XunitByMembers",
         "NUnitByMembers",
+        "NUnitCasesByMembers",
+        "NestedWithCase",
     ] {
         assert!(
             role(&symbols, name, "test_container"),
             "{name} must be a test container"
         );
     }
-    for name in ["Before", "After", "FactCase", "TheoryCase", "TestCase"] {
+    assert!(!role(&symbols, "OuterWithNested", "test_container"));
+    for name in [
+        "Before",
+        "After",
+        "FactCase",
+        "TheoryCase",
+        "TestCase",
+        "ParameterizedCase",
+        "NestedCase",
+    ] {
         assert!(
             role(&symbols, name, "is_test"),
             "{name} must retain method test classification"

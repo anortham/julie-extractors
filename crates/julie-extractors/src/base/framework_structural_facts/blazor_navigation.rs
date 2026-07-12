@@ -1,8 +1,9 @@
 use tree_sitter::{Node, Tree};
 
 use super::RAZOR_ROUTE_REFERENCE_PATTERN_ID;
-use super::helpers::{base_metadata, fact_for_node, insert_string, node_text};
+use super::helpers::{base_metadata, fact_for_node, fact_for_span, insert_string, node_text};
 use super::static_arg::{StaticArgLang, static_route_arg};
+use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 
 struct ReceiverDeclaration {
@@ -245,14 +246,10 @@ fn collect_razor_hrefs(
         && let Some((target_path, value_start, value_end)) = href_literal(node, content)
         && is_internal_route(target_path)
         && !has_razor_expression_in_range(node, value_start, value_end)
+        && let Some(fact) =
+            href_route_reference_fact(content, file_path, target_path, value_start, value_end)
     {
-        facts.push(route_reference_fact(
-            node,
-            "razor",
-            file_path,
-            target_path,
-            "href",
-        ));
+        facts.push(fact);
     }
 
     let mut cursor = node.walk();
@@ -264,7 +261,7 @@ fn collect_razor_hrefs(
 fn href_literal<'a>(node: Node<'_>, content: &'a str) -> Option<(&'a str, usize, usize)> {
     let bytes = content.as_bytes();
     let mut cursor = node.start_byte() + 1;
-    let end = node.end_byte();
+    let end = opening_tag_end(bytes, cursor, node.end_byte())?;
     while cursor < end && is_attribute_name_byte(bytes[cursor]) {
         cursor += 1;
     }
@@ -288,23 +285,42 @@ fn href_literal<'a>(node: Node<'_>, content: &'a str) -> Option<(&'a str, usize,
         }
         cursor = skip_whitespace(bytes, cursor + 1, end);
         let quote = *bytes.get(cursor)?;
-        if !matches!(quote, b'\'' | b'"') {
-            return None;
-        }
-        let value_start = cursor + 1;
+        let quoted = matches!(quote, b'\'' | b'"');
+        let value_start = cursor + usize::from(quoted);
         cursor = value_start;
-        while cursor < end && bytes[cursor] != quote {
+        while cursor < end
+            && if quoted {
+                bytes[cursor] != quote
+            } else {
+                !bytes[cursor].is_ascii_whitespace() && bytes[cursor] != b'>'
+            }
+        {
             cursor += 1;
         }
-        if cursor >= end {
+        if quoted && (cursor >= end || bytes[cursor] != quote) {
             return None;
         }
         let value_end = cursor;
-        cursor += 1;
+        cursor += usize::from(quoted);
         if name.eq_ignore_ascii_case("href") {
             return Some((&content[value_start..value_end], value_start, value_end));
         }
     }
+}
+
+fn opening_tag_end(bytes: &[u8], mut cursor: usize, element_end: usize) -> Option<usize> {
+    let mut quote = None;
+    while cursor < element_end {
+        let byte = bytes[cursor];
+        match quote {
+            Some(active_quote) if byte == active_quote => quote = None,
+            None if matches!(byte, b'\'' | b'"') => quote = Some(byte),
+            None if byte == b'>' => return Some(cursor + 1),
+            _ => {}
+        }
+        cursor += 1;
+    }
+    None
 }
 
 fn skip_whitespace(bytes: &[u8], mut cursor: usize, end: usize) -> usize {
@@ -338,10 +354,7 @@ fn route_reference_fact(
     target_path: &str,
     source_kind: &str,
 ) -> StructuralFact {
-    let mut metadata = base_metadata("frontend_navigation", "blazor");
-    insert_string(&mut metadata, "target_path", target_path);
-    insert_string(&mut metadata, "source_kind", source_kind);
-    insert_string(&mut metadata, "route_source", "string_literal");
+    let metadata = route_reference_metadata(target_path, source_kind);
     fact_for_node(
         file_path,
         language,
@@ -350,4 +363,34 @@ fn route_reference_fact(
         node,
         metadata,
     )
+}
+
+fn href_route_reference_fact(
+    content: &str,
+    file_path: &str,
+    target_path: &str,
+    value_start: usize,
+    value_end: usize,
+) -> Option<StructuralFact> {
+    let span = NormalizedSpan::from_content_range(content, value_start, value_end)?;
+    Some(fact_for_span(
+        file_path,
+        "razor",
+        RAZOR_ROUTE_REFERENCE_PATTERN_ID,
+        "route_reference",
+        "attribute_value",
+        span,
+        route_reference_metadata(target_path, "href"),
+    ))
+}
+
+fn route_reference_metadata(
+    target_path: &str,
+    source_kind: &str,
+) -> std::collections::HashMap<String, serde_json::Value> {
+    let mut metadata = base_metadata("frontend_navigation", "blazor");
+    insert_string(&mut metadata, "target_path", target_path);
+    insert_string(&mut metadata, "source_kind", source_kind);
+    insert_string(&mut metadata, "route_source", "string_literal");
+    metadata
 }

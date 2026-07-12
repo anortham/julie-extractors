@@ -3,12 +3,13 @@ use std::path::Path;
 use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
-use super::helpers::{base_metadata, fact_for_node, insert_string, node_text};
+use super::helpers::{base_metadata, fact_for_node, fact_for_span, insert_string, node_text};
 use super::{
     BLAZOR_COMPONENT_REFERENCE_PATTERN_ID, RAZOR_CODE_BLOCK_PATTERN_ID,
     RAZOR_PAGE_DIRECTIVE_PATTERN_ID, RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
 };
 use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
+use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -177,12 +178,15 @@ fn blazor_component_reference_fact(
         Value::Array(component_generic_arguments(node, content)),
     );
 
-    Some(fact_for_node(
+    let tag_start = node.start_byte() + 1;
+    let span = NormalizedSpan::from_content_range(content, tag_start, tag_start + tag.len())?;
+    Some(fact_for_span(
         file_path,
         "razor",
         BLAZOR_COMPONENT_REFERENCE_PATTERN_ID,
         "component_reference",
-        node,
+        "tag_name",
+        span,
         metadata,
     ))
 }

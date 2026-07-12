@@ -250,6 +250,54 @@ fn razor_internal_href_emits_one_raw_route_reference() {
 }
 
 #[test]
+fn razor_href_scanning_accepts_internal_unquoted_values_after_unquoted_attributes() {
+    let source = r##"<nav>
+    <a class=button href=/orders/internal>Orders</a>
+    <a class=button href=https://example.com/orders>External</a>
+    <a class=button href=#details>Details</a>
+    <a class=button href=@OrderUrl>Dynamic</a>
+</nav>"##;
+
+    let results = extract(source);
+    let facts = facts_with_pattern(&results, "razor.route_reference.v1");
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata_str(facts[0], "target_path"),
+        Some("/orders/internal")
+    );
+    assert_eq!(
+        &source[facts[0].start_byte as usize..facts[0].end_byte as usize],
+        "/orders/internal"
+    );
+}
+
+#[test]
+fn razor_href_route_fact_span_is_the_deeply_nested_non_self_closing_value() {
+    let source = r#"<main>
+    <section>
+        <article>
+            <div>
+                <a class="nav" href="/orders/deep">Orders <span>now</span></a>
+            </div>
+        </article>
+    </section>
+</main>"#;
+
+    let results = extract(source);
+    let facts = facts_with_pattern(&results, "razor.route_reference.v1");
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    let fact = facts[0];
+    assert_eq!(
+        &source[fact.start_byte as usize..fact.end_byte as usize],
+        "/orders/deep"
+    );
+    assert_eq!((fact.start_line, fact.start_column), (5, 37));
+    assert_eq!((fact.end_line, fact.end_column), (5, 49));
+}
+
+#[test]
 fn razor_navigation_skips_dynamic_arguments_and_unproven_receivers() {
     let source = r#"@inject NavigationManager Navigation
 

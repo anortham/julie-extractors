@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::ops::Range;
 
@@ -343,7 +344,11 @@ fn containing_range(ranges: &[Range<usize>], position: usize) -> Option<&Range<u
         .find(|range| range.start <= position && position < range.end)
 }
 
-fn content_for_ranges(content: &str, ranges: &[Range<usize>]) -> String {
+fn content_for_ranges<'a>(content: &'a str, ranges: &[Range<usize>]) -> Cow<'a, str> {
+    if matches!(ranges, [range] if range.start == 0 && range.end == content.len()) {
+        return Cow::Borrowed(content);
+    }
+
     let mut masked = String::with_capacity(content.len());
     for (start, ch) in content.char_indices() {
         let end = start + ch.len_utf8();
@@ -357,7 +362,7 @@ fn content_for_ranges(content: &str, ranges: &[Range<usize>]) -> String {
             masked.extend(std::iter::repeat_n(' ', ch.len_utf8()));
         }
     }
-    masked
+    Cow::Owned(masked)
 }
 
 fn parse_csharp_url_literal(content: &str, start: usize) -> Option<(String, usize)> {
@@ -388,4 +393,18 @@ fn parse_csharp_raw_string_literal(content: &str, start: usize) -> Option<(Strin
         cursor += 1;
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::content_for_ranges;
+
+    #[test]
+    fn full_file_range_reuses_the_input_buffer() {
+        let content = "using System.Net.Http;\nclient.GetAsync(\"/api/users\");";
+        let range = 0..content.len();
+        let masked = content_for_ranges(content, std::slice::from_ref(&range));
+
+        assert_eq!(masked.as_ptr(), content.as_ptr());
+    }
 }

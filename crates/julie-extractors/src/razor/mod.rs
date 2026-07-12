@@ -33,7 +33,11 @@ pub(crate) fn component_tag_name(element: &str) -> Option<&str> {
 }
 
 fn is_component_tag_name(tag: &str) -> bool {
-    let mut characters = tag.chars();
+    tag.split('.').all(is_pascal_case_component_segment)
+}
+
+fn is_pascal_case_component_segment(segment: &str) -> bool {
+    let mut characters = segment.chars();
     characters
         .next()
         .is_some_and(|first| first.is_ascii_uppercase())

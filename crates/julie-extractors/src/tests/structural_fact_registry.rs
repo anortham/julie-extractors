@@ -273,6 +273,26 @@ fn structural_fact_patterns_json_matches_checked_in_contract() {
 }
 
 #[test]
+fn blazor_generic_arguments_contract_describes_advisory_syntax_evidence() {
+    let component_reference = crate::base::structural_fact_pattern_specs()
+        .iter()
+        .find(|spec| spec.pattern_id == "blazor.component_reference.v1")
+        .expect("Blazor component-reference registry entry");
+    let generic_arguments = component_reference
+        .metadata_keys
+        .iter()
+        .find(|key| key.key == "generic_arguments")
+        .expect("generic_arguments metadata contract");
+
+    assert!(generic_arguments.description.contains("candidate evidence"));
+    assert!(
+        generic_arguments
+            .description
+            .contains("not resolved generic semantics")
+    );
+}
+
+#[test]
 fn markdown_contract_pattern_tables_list_web_markup_pattern_rows() {
     let root = contract_workspace_root();
     let docs = [

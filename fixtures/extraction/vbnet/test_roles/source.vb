@@ -19,6 +19,8 @@ Public Class ManagedTestRoles
     End Sub
     <Test> Public Sub NUnitCase()
     End Sub
+    <TestCase(1)> Public Sub NUnitParameterizedCase(value As Integer)
+    End Sub
     Public Sub Fact()
     End Sub
 End Class

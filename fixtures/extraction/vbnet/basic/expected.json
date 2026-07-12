@@ -505,6 +505,7 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/vbnet/basic/source.vb:Fixture:1:0",
       "metadata": {
+        "test_container": true,
         "vb_visibility": "public"
       },
       "annotations": [],

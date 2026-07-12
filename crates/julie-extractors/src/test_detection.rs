@@ -162,11 +162,7 @@ fn detect_java_kotlin(annotation_keys: &[String]) -> bool {
 }
 
 fn detect_csharp(annotation_keys: &[String]) -> bool {
-    let test_attrs = [
-        "test",
-        "testmethod",
-        "fact",
-        "theory",
+    let lifecycle_attrs = [
         "setup",
         "teardown",
         "onetimesetup",
@@ -176,9 +172,16 @@ fn detect_csharp(annotation_keys: &[String]) -> bool {
         "classinitialize",
         "classcleanup",
     ];
-    annotation_keys
-        .iter()
-        .any(|a| test_attrs.contains(&a.as_str()))
+    annotation_keys.iter().any(|annotation| {
+        is_dotnet_test_case_annotation(annotation) || lifecycle_attrs.contains(&annotation.as_str())
+    })
+}
+
+fn is_dotnet_test_case_annotation(annotation: &str) -> bool {
+    matches!(
+        annotation,
+        "test" | "testcase" | "testmethod" | "fact" | "theory"
+    )
 }
 
 pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
@@ -186,12 +189,10 @@ pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
         .iter()
         .filter(|symbol| symbol.kind == SymbolKind::Method)
         .filter(|symbol| {
-            symbol.annotations.iter().any(|annotation| {
-                matches!(
-                    annotation.annotation_key.as_str(),
-                    "fact" | "theory" | "test"
-                )
-            })
+            symbol
+                .annotations
+                .iter()
+                .any(|annotation| is_dotnet_test_case_annotation(&annotation.annotation_key))
         })
         .filter_map(|symbol| symbol.parent_id.clone())
         .collect();

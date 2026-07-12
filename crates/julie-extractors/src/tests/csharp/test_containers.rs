@@ -35,6 +35,8 @@ public class NUnitFixture { [SetUp] public void Before() {} [TearDown] public vo
 public class MsTestFixture {}
 public class XunitByMembers { [Fact] public void FactCase() {} [Theory] public void TheoryCase() {} }
 public class NUnitByMembers { [Test] public void TestCase() {} }
+public class NUnitCasesByMembers { [TestCase(1)] public void ParameterizedCase(int value) {} }
+public class OuterWithNested { public class NestedWithCase { [TestCase(1)] public void NestedCase(int value) {} } }
 "#,
     );
 
@@ -43,13 +45,24 @@ public class NUnitByMembers { [Test] public void TestCase() {} }
         "MsTestFixture",
         "XunitByMembers",
         "NUnitByMembers",
+        "NUnitCasesByMembers",
+        "NestedWithCase",
     ] {
         assert!(
             role(&symbols, name, "test_container"),
             "{name} must be a test container"
         );
     }
-    for name in ["Before", "After", "FactCase", "TheoryCase", "TestCase"] {
+    assert!(!role(&symbols, "OuterWithNested", "test_container"));
+    for name in [
+        "Before",
+        "After",
+        "FactCase",
+        "TheoryCase",
+        "TestCase",
+        "ParameterizedCase",
+        "NestedCase",
+    ] {
         assert!(
             role(&symbols, name, "is_test"),
             "{name} must retain method test classification"

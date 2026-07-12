@@ -16,6 +16,7 @@ public sealed class ManagedTestRoles
     [Fact] public void XunitCase() {}
     [Theory] public void XunitTheory() {}
     [Test] public void NUnitCase() {}
+    [TestCase(1)] public void NUnitParameterizedCase(int value) {}
     public void Fact() {}
 }
 

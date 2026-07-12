@@ -719,7 +719,7 @@
         "value_type": "string_array"
       },
       {
-        "description": "Generic component arguments as name/value objects, in source order.",
+        "description": "Static T+Uppercase attribute candidate evidence as name/value objects, in source order; naming-convention syntax only, not resolved generic semantics.",
         "key": "generic_arguments",
         "presence": "always",
         "value_type": "object_array"

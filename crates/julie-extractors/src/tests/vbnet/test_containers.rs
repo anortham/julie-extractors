@@ -49,6 +49,16 @@ Public Class NUnitByMembers
     <Test> Public Sub TestCase()
     End Sub
 End Class
+Public Class NUnitCasesByMembers
+    <TestCase(1)> Public Sub ParameterizedCase(value As Integer)
+    End Sub
+End Class
+Public Class OuterWithNested
+    Public Class NestedWithCase
+        <TestCase(1)> Public Sub NestedCase(value As Integer)
+        End Sub
+    End Class
+End Class
 "#,
     );
 
@@ -57,13 +67,24 @@ End Class
         "MsTestFixture",
         "XunitByMembers",
         "NUnitByMembers",
+        "NUnitCasesByMembers",
+        "NestedWithCase",
     ] {
         assert!(
             role(&symbols, name, "test_container"),
             "{name} must be a test container"
         );
     }
-    for name in ["Before", "After", "FactCase", "TheoryCase", "TestCase"] {
+    assert!(!role(&symbols, "OuterWithNested", "test_container"));
+    for name in [
+        "Before",
+        "After",
+        "FactCase",
+        "TheoryCase",
+        "TestCase",
+        "ParameterizedCase",
+        "NestedCase",
+    ] {
         assert!(
             role(&symbols, name, "is_test"),
             "{name} must retain method test classification"
