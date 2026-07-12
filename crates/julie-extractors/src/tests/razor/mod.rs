@@ -61,6 +61,8 @@ fn fact_annotation_marks_embedded_csharp_method_as_test() {
 #[cfg(test)]
 mod annotations;
 #[cfg(test)]
+mod component_reference;
+#[cfg(test)]
 mod cross_file_pending;
 #[cfg(test)]
 mod relationships;

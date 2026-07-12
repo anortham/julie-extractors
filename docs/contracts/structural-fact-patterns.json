@@ -677,6 +677,58 @@
     "query_family": "script_header"
   },
   {
+    "description": "A PascalCase Blazor component tag reference in a Razor component.",
+    "languages": [
+      "razor"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Referenced PascalCase component tag.",
+        "key": "tag",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Razor component filename stem containing the reference.",
+        "key": "containing_component",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Locally declared @namespace and @using values, in source order.",
+        "key": "namespace_context",
+        "presence": "always",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Generic component arguments as name/value objects, in source order.",
+        "key": "generic_arguments",
+        "presence": "always",
+        "value_type": "object_array"
+      }
+    ],
+    "pattern_id": "blazor.component_reference.v1",
+    "query_family": "component_reference"
+  },
+  {
     "description": "A C `#define` object-like or function-like macro.",
     "languages": [
       "c"

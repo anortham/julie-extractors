@@ -107,10 +107,12 @@ impl RazorExtractor {
     }
 
     fn is_razor_component_file(&self) -> bool {
-        Path::new(&self.base.file_path)
-            .extension()
-            .and_then(|extension| extension.to_str())
-            == Some("razor")
+        let path = Path::new(&self.base.file_path);
+        path.extension().and_then(|extension| extension.to_str()) == Some("razor")
+            && !matches!(
+                path.file_stem().and_then(|stem| stem.to_str()),
+                Some("_Imports" | "_ViewImports")
+            )
     }
 
     fn component_name_from_file_path(&self) -> Option<String> {

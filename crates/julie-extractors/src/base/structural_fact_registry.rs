@@ -3409,6 +3409,36 @@ const SPECS: &[StructuralFactPatternSpec] = &[
         ],
     },
     StructuralFactPatternSpec {
+        pattern_id: "blazor.component_reference.v1",
+        languages: &["razor"],
+        query_family: "component_reference",
+        description: "A PascalCase Blazor component tag reference in a Razor component.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            K_FRAMEWORK,
+            key("tag", STR, ALWAYS, "Referenced PascalCase component tag."),
+            key(
+                "containing_component",
+                STR,
+                ALWAYS,
+                "Razor component filename stem containing the reference.",
+            ),
+            key(
+                "namespace_context",
+                ARR,
+                ALWAYS,
+                "Locally declared @namespace and @using values, in source order.",
+            ),
+            key(
+                "generic_arguments",
+                OBJARR,
+                ALWAYS,
+                "Generic component arguments as name/value objects, in source order.",
+            ),
+        ],
+    },
+    StructuralFactPatternSpec {
         pattern_id: "razor.page_directive.v1",
         languages: &["razor"],
         query_family: "component_routing",

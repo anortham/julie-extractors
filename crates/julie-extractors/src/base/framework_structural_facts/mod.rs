@@ -82,6 +82,7 @@ pub(super) const RAZOR_PAGE_DIRECTIVE_PATTERN_ID: &str = "razor.page_directive.v
 pub(super) const RAZOR_ROUTE_REFERENCE_PATTERN_ID: &str = "razor.route_reference.v1";
 pub(super) const RAZOR_CODE_BLOCK_PATTERN_ID: &str = "razor.code_block.v1";
 pub(super) const RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID: &str = "razor.template_expression.v1";
+pub(super) const BLAZOR_COMPONENT_REFERENCE_PATTERN_ID: &str = "blazor.component_reference.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const CSHARP_FRAMEWORK_PATTERN_IDS: &[&str] = &[
@@ -167,6 +168,7 @@ const RUST_PATTERN_IDS: &[&str] = &[
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const RAZOR_FRAMEWORK_PATTERN_IDS: &[&str] = &[
     ALPINE_DIRECTIVE_PATTERN_ID,
+    BLAZOR_COMPONENT_REFERENCE_PATTERN_ID,
     HTMX_ATTRIBUTE_PATTERN_ID,
     RAZOR_CODE_BLOCK_PATTERN_ID,
     RAZOR_PAGE_DIRECTIVE_PATTERN_ID,

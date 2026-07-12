@@ -1,10 +1,12 @@
+use std::path::Path;
+
 use serde_json::{Number, Value};
 use tree_sitter::{Node, Tree};
 
 use super::helpers::{base_metadata, fact_for_node, insert_string, node_text};
 use super::{
-    RAZOR_CODE_BLOCK_PATTERN_ID, RAZOR_PAGE_DIRECTIVE_PATTERN_ID,
-    RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
+    BLAZOR_COMPONENT_REFERENCE_PATTERN_ID, RAZOR_CODE_BLOCK_PATTERN_ID,
+    RAZOR_PAGE_DIRECTIVE_PATTERN_ID, RAZOR_TEMPLATE_EXPRESSION_PATTERN_ID,
 };
 use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::types::StructuralFact;
@@ -16,14 +18,49 @@ pub(super) fn collect_razor_structural_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut facts = Vec::new();
-    collect_razor_node(tree.root_node(), file_path, content, &mut facts, 0);
+    let component_context = RazorComponentContext::from_file(tree, file_path, content);
+    collect_razor_node(
+        tree.root_node(),
+        file_path,
+        content,
+        component_context.as_ref(),
+        &mut facts,
+        0,
+    );
     facts
+}
+
+struct RazorComponentContext {
+    containing_component: String,
+    namespace_context: Vec<String>,
+}
+
+impl RazorComponentContext {
+    fn from_file(tree: &Tree, file_path: &str, content: &str) -> Option<Self> {
+        let path = Path::new(file_path);
+        if path.extension().and_then(|extension| extension.to_str()) != Some("razor") {
+            return None;
+        }
+        let containing_component = path.file_stem()?.to_str()?;
+        if matches!(containing_component, "_Imports" | "_ViewImports") {
+            return None;
+        }
+
+        let mut namespace_context = Vec::new();
+        collect_local_namespace_context(tree.root_node(), content, &mut namespace_context, 0);
+
+        Some(Self {
+            containing_component: containing_component.to_string(),
+            namespace_context,
+        })
+    }
 }
 
 fn collect_razor_node(
     node: Node<'_>,
     file_path: &str,
     content: &str,
+    component_context: Option<&RazorComponentContext>,
     facts: &mut Vec<StructuralFact>,
     depth: u32,
 ) {
@@ -47,6 +84,14 @@ fn collect_razor_node(
                 facts.push(fact);
             }
         }
+        "element" => {
+            if let Some(context) = component_context
+                && let Some(fact) =
+                    blazor_component_reference_fact(file_path, content, node, context)
+            {
+                facts.push(fact);
+            }
+        }
         _ => {}
     }
 
@@ -55,8 +100,147 @@ fn collect_razor_node(
     };
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_razor_node(child, file_path, content, facts, child_depth);
+        collect_razor_node(
+            child,
+            file_path,
+            content,
+            component_context,
+            facts,
+            child_depth,
+        );
     }
+}
+
+fn collect_local_namespace_context(
+    node: Node<'_>,
+    content: &str,
+    context: &mut Vec<String>,
+    depth: u32,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let directive = match node.kind() {
+        "razor_namespace_directive" => Some("@namespace"),
+        "razor_using_directive" => Some("@using"),
+        _ => None,
+    };
+    if let Some(directive) = directive
+        && let Some(value) = node_text(content, node)
+            .and_then(|text| text.trim().strip_prefix(directive))
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        && !context.iter().any(|existing| existing == value)
+    {
+        context.push(value.to_string());
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_local_namespace_context(child, content, context, child_depth);
+    }
+}
+
+fn blazor_component_reference_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+    context: &RazorComponentContext,
+) -> Option<StructuralFact> {
+    let element = node_text(content, node)?;
+    let tag = opening_tag_name(element)?;
+    if !tag.chars().next().is_some_and(char::is_uppercase) {
+        return None;
+    }
+
+    let mut metadata = base_metadata("component_reference", "blazor");
+    insert_string(&mut metadata, "tag", tag);
+    insert_string(
+        &mut metadata,
+        "containing_component",
+        &context.containing_component,
+    );
+    metadata.insert(
+        "namespace_context".to_string(),
+        Value::Array(
+            context
+                .namespace_context
+                .iter()
+                .cloned()
+                .map(Value::String)
+                .collect(),
+        ),
+    );
+    metadata.insert(
+        "generic_arguments".to_string(),
+        Value::Array(component_generic_arguments(node, content)),
+    );
+
+    Some(fact_for_node(
+        file_path,
+        "razor",
+        BLAZOR_COMPONENT_REFERENCE_PATTERN_ID,
+        "component_reference",
+        node,
+        metadata,
+    ))
+}
+
+fn opening_tag_name(element: &str) -> Option<&str> {
+    let remainder = element.strip_prefix('<')?;
+    let end = remainder
+        .find(|character: char| character.is_whitespace() || matches!(character, '/' | '>'))
+        .unwrap_or(remainder.len());
+    let tag = &remainder[..end];
+    (!tag.is_empty()).then_some(tag)
+}
+
+fn component_generic_arguments(node: Node<'_>, content: &str) -> Vec<Value> {
+    let mut arguments = Vec::new();
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() != "component_attribute" {
+            continue;
+        }
+        let Some(attribute) = node_text(content, child) else {
+            continue;
+        };
+        let Some((name, value)) = component_attribute_parts(attribute) else {
+            continue;
+        };
+        if !name
+            .strip_prefix('T')
+            .and_then(|rest| rest.chars().next())
+            .is_some_and(char::is_uppercase)
+        {
+            continue;
+        }
+
+        let mut fields = serde_json::Map::new();
+        fields.insert("name".to_string(), Value::String(name.to_string()));
+        fields.insert("value".to_string(), Value::String(value.to_string()));
+        arguments.push(Value::Object(fields));
+    }
+    arguments
+}
+
+fn component_attribute_parts(attribute: &str) -> Option<(&str, &str)> {
+    let (name, value) = attribute.split_once('=')?;
+    let name = name.trim();
+    let value = value.trim();
+    let value = value
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .or_else(|| {
+            value
+                .strip_prefix('\'')
+                .and_then(|value| value.strip_suffix('\''))
+        })?;
+    Some((name, value))
 }
 
 fn razor_page_directive_fact(
