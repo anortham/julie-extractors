@@ -49,7 +49,7 @@
 |---|---|---|---|---|
 | Task 1: Corpus spike | None - serial | Create: `~/source/tree-sitter-razor/test/corpus/blazor-attributes/*`, `docs/plans/2026-07-11-blazor-corpus-classification.md` | Yes | Everything downstream is scoped by the classification. |
 | Task 2: Attribute-value expressions (grammar) | None - serial | Modify: `~/source/tree-sitter-razor/grammar.js`, generated parser, corpus tests | Yes | Depends on Task 1 corpus; grammar edits conflict file-level with Task 3. |
-| Task 3: Directive-attribute modifiers + rendermode/typeparam (grammar) | None - serial | Modify: `~/source/tree-sitter-razor/grammar.js`, generated parser, corpus tests | Yes | Same grammar.js as Task 2. |
+| Task 3: Directive modifiers + rendermode/typeparam/render fragments (grammar) | None - serial | Modify: `~/source/tree-sitter-razor/grammar.js`, generated parser, corpus tests | Yes | Same grammar.js as Task 2. |
 | Task 4: Pin bump + semantic gate | None - serial | Modify: `crates/julie-extractors/Cargo.toml:55`; Create: `crates/julie-extractors/src/tests/razor/semantic_gate.rs`, `fixtures/extraction/razor/attribute-expressions/*` | Yes | Needs the committed grammar rev from Tasks 2–3. |
 | Task 5: razor.route_reference.v1 | None - serial | Create: `crates/julie-extractors/src/base/framework_structural_facts/blazor_navigation.rs`; Modify: `crates/julie-extractors/src/base/framework_structural_facts/mod.rs`, `crates/julie-extractors/src/base/structural_fact_registry.rs`, `docs/contracts/structural-fact-patterns.json`; Test: `crates/julie-extractors/src/tests/razor/structural_facts.rs` plus csharp route-reference coverage | Yes | Owns shared framework dispatch and registry before Task 6. |
 | Task 6: blazor.component_reference.v1 | None - serial | Modify: `crates/julie-extractors/src/razor/mod.rs`, `crates/julie-extractors/src/base/framework_structural_facts/razor.rs`, `crates/julie-extractors/src/base/framework_structural_facts/mod.rs`, `crates/julie-extractors/src/base/structural_fact_registry.rs`, `docs/contracts/structural-fact-patterns.json`; Test: new `crates/julie-extractors/src/tests/razor/component_reference.rs` | Yes | Follows Task 5 because both update framework dispatch and registry contracts. |
@@ -109,15 +109,15 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 
 **Interfaces:**
 - Consumes: Task 1 corpus.
-- Produces: grammar rev parsing `@on{event}:{modifier}` (e.g. `@onsubmit:preventDefault`), `@bind-{Prop}:{event|format|get|set|after}`, open-set `@rendermode` arguments, constrained `@typeparam T where T : ...`.
+- Produces: grammar rev parsing `@on{event}:{modifier}` (e.g. `@onsubmit:preventDefault`), `@bind-{Prop}:{event|format|get|set|after}`, open-set `@rendermode` arguments, constrained `@typeparam T where T : ...`, and Razor template values in embedded-C# switch arms.
 
 **What to build:** Modifier suffix parsing on directive attributes; widen the render-mode rule from its closed keyword list; typeparam constraint clause; close Task 1 case O6 by allowing Razor template literals as expression values inside embedded-C# switch-expression arms.
 
 **Acceptance criteria:**
-- [ ] Corpus files for modifiers/rendermode/typeparam pass with named nodes
-- [ ] Task 1 case O6 parses render-fragment literals in switch-expression arms without ERROR or opaque consumption
-- [ ] Existing grammar corpus stays green
-- [ ] Grammar changes committed at a concrete rev for Task 4 to pin; tag/push happens only after explicit approval
+- [x] Corpus files for modifiers/rendermode/typeparam pass with named nodes (`d24d075`)
+- [x] Task 1 case O6 parses render-fragment literals in switch-expression arms without ERROR or opaque consumption
+- [x] Existing grammar corpus stays green (110/110)
+- [x] Grammar changes committed at `d24d075afe5b18eae56c4386046ed5e6e3902795` for Task 4 to pin; tag/push remains approval-gated
 
 ### Task 4: Pin bump and the semantic acceptance gate
 
