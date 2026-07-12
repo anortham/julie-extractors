@@ -2,8 +2,8 @@
 
 ## Result
 
-- Grammar pin updated from `cf7b0e56f5ba9469c70f85d617c52e35eaffa153` to `d24d075afe5b18eae56c4386046ed5e6e3902795` in `Cargo.toml` and `Cargo.lock`.
-- Added four caller-facing fixtures covering implicit expressions, explicit expressions, directive modifiers, custom render modes, generic component types, constrained type parameters, and render fragments.
+- Grammar pin updated from `cf7b0e56f5ba9469c70f85d617c52e35eaffa153` through `d24d075afe5b18eae56c4386046ed5e6e3902795` to `99354a050c5a5190c04b9b07bf4f66d4eae0a6ba` in `Cargo.toml` and `Cargo.lock`.
+- Added five caller-facing fixtures covering implicit expressions, explicit expressions, directive modifiers, custom and explicit render modes, generic component types, constrained type parameters, and render fragments.
 - Added a public `extract_canonical` gate requiring zero parse diagnostics plus expected symbols and identifier kinds for every fixture.
 - Added mirrored C# and Razor handling for conditional member binding so `value?.Property` emits `MemberAccess` and `value?.Method()` emits `Call`.
 
@@ -31,6 +31,11 @@
 | Extractor package ceiling remains green | `cargo test --offline -p julie-extractors` | `d24d075` after extractor fix | GREEN: 2,830 passed, 0 failed, 7 ignored; doc tests 1 passed | 2026-07-12 |
 | Created qualified type is asserted through the public gate | `cargo test --offline -p julie-extractors explicit_expressions_are_clean_and_semantically_visible -- --nocapture` | `d24d075` follow-up | Coverage lock passed immediately; existing extraction already emitted `Search` as `TypeUsage`; no production change required; 1 passed, 0 failed | 2026-07-12 |
 | Explicit render-mode construction is parse-clean and semantically visible | `cargo test --offline -p julie-extractors explicit_render_mode_is_clean_and_semantically_visible -- --nocapture` | `d24d075` follow-up | Coverage lock passed immediately; existing extraction already emitted `InteractiveServerRenderMode` as `TypeUsage`; no production change required; 1 passed, 0 failed | 2026-07-12 |
+| Live Terraform re-extraction measures remaining grammar debt | Lead-owned release build and forced scan | `d24d075` | Razor diagnostics reduced from 235 to 3; all three were parenthesized inline member expressions in `SerFormPage.razor` | 2026-07-12 |
+| Parenthesized inline member-expression grammar class is closed | Grammar corpus verification | `99354a0` | Grammar follow-up closes the three identical live-scan errors; final full Terraform rescan remains lead-owned | 2026-07-12 |
+| Semantic acceptance gate remains green after the live-gap repin | `cargo test --offline -p julie-extractors semantic_gate` | `99354a0` | GREEN: 5 passed, 0 failed | 2026-07-12 |
+| Razor regression scope remains green after the live-gap repin | `cargo test --offline -p julie-extractors razor` | `99354a0` | GREEN: 69 passed, 0 failed | 2026-07-12 |
+| Extractor package ceiling remains green after the live-gap repin | `cargo test --offline -p julie-extractors` | `99354a0` | GREEN: 2,831 passed, 0 failed, 7 ignored; doc tests 1 passed | 2026-07-12 |
 
 ## Plan-mismatch adjudication
 
@@ -53,4 +58,4 @@ The build form is documented in release evidence; the scan contract is documente
 
 ## Unpublished grammar dependency
 
-`d24d075afe5b18eae56c4386046ed5e6e3902795` is not pushed to `https://github.com/anortham/tree-sitter-razor`. This worker seeded Cargo's local git cache from `/Users/murphy/source/tree-sitter-razor` and ran dependency-based verification with `--offline`. A clean or fresh environment cannot resolve the manifest pin until push approval is granted and the grammar commit is published. This worker did not push.
+`99354a050c5a5190c04b9b07bf4f66d4eae0a6ba` is not pushed to `https://github.com/anortham/tree-sitter-razor`. This worker seeded Cargo's local git cache from `/Users/murphy/source/tree-sitter-razor` and ran dependency-based verification with `--offline`. A clean or fresh environment cannot resolve the manifest pin until push approval is granted and the grammar commit is published. This worker did not push.
