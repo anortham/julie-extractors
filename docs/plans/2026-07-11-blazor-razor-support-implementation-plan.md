@@ -182,10 +182,10 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 **What to build:** Emit one fact per component tag occurrence using only syntax and symbols observable in the current file. Fix component identity so infrastructure files stop producing synthetic components. Preserve local namespace/import context as resolution input without reading sibling files or guessing that an unresolved tag is external.
 
 **Acceptance criteria:**
-- [ ] Cross-file fixture: `PageA.razor` using `<SharedWidget />` emits a fact naming the containing component and referenced tag without claiming workspace resolution
-- [ ] `_Imports.razor` no longer yields a component symbol; `App.razor` still does
-- [ ] FluentUI tags emit reference facts with local namespace/import context and no extractor-owned `external` classification
-- [ ] Registry conformance passes for razor and the exported contract JSON is synchronized
+- [x] Cross-file fixture: `PageA.razor` using `<SharedWidget />` emits a fact naming the containing component and referenced tag without claiming workspace resolution (`5ff3e67`, `3cc6953`)
+- [x] `_Imports.razor` no longer yields a component symbol; `App.razor` still does
+- [x] FluentUI tags emit reference facts with local namespace/import context and no extractor-owned `external` classification
+- [x] Registry conformance passes for razor and the exported contract JSON is synchronized
 
 ### Task 7: `http.client_request.v1` from razor `@code`
 
