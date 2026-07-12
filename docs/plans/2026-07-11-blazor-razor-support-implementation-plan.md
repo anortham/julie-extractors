@@ -211,8 +211,10 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 ### Task 8: test_container detection closure (csharp/vbnet/razor)
 
 **Files:**
-- Modify: `crates/julie-extractors/src/test_detection.rs:86-163` (`detect_csharp`)
-- Test: golden test-detection fixtures for the three languages
+- Modify: `crates/julie-extractors/src/test_detection.rs` (shared parsed-symbol container postpass)
+- Modify: C#, VB.NET, and Razor extractor entry points; preserve VB.NET type annotations
+- Test: focused extractor tests and golden test-detection fixtures for the three languages
+- Modify: `fixtures/extraction/capabilities.json` for the closed container rows and VB.NET class-annotation evidence
 
 **Interfaces:**
 - Produces: `test_container` classification for xUnit/NUnit/MSTest test classes (`[TestFixture]`, `[TestClass]`, classes containing `[Fact]`/`[Theory]`/`[Test]` members).
@@ -220,9 +222,9 @@ Tasks 1–9 run as `serial-worker-commit`. Tasks 5–7 must serialize because ea
 **Contract inputs:** the existing closure plan `docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md` — execute its csharp/vbnet/razor scope here; do not duplicate its other languages.
 
 **Acceptance criteria:**
-- [ ] NUnit `[TestFixture]` class and attribute-less class with `[Test]` members classify as containers
-- [ ] The open `test_detection → test_container` capability gap rows for csharp/vbnet/razor close in the capability snapshot
-- [ ] Lifecycle members (`[SetUp]`, `[TearDown]`) unaffected
+- [x] NUnit `[TestFixture]` class and attribute-less class with `[Test]` members classify as containers (`cf17743`)
+- [x] The open `test_detection → test_container` capability gap rows for csharp/vbnet/razor close in the capability snapshot
+- [x] Lifecycle members (`[SetUp]`, `[TearDown]`) unaffected; the separate `test_lifecycle` capability gaps remain open
 
 ### Task 9: Synthetic fixtures, certification, release
 
