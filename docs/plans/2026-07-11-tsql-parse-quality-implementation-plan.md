@@ -203,6 +203,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - Use isolated checkout: `/Users/murphy/.config/razorback/worktrees/tree-sitter-sql/tsql-parse-quality` from `jamie8johnson/tree-sitter-sql@b3db1ee85908a0c0e425bc59ddf04c6ad107eecf`
 - Create: `test/corpus/tsql_identifiers_and_batches.txt`
 - Existing generated files must remain reproducible: `src/parser.c`, `src/grammar.json`, `src/node-types.json`
+- Preserve `src/tree_sitter/array.h` from `45013b1f4c575bf6b4ead72730504cf7b6535ccb`; that file was manually vendored after generation, and CLI 0.26.3 rewrites it to an older bundled header. The downgrade is not a grammar output and must not be committed.
 
 **julie-extractors files:** none. Task 4 integrates the final remotely resolvable grammar commit after grammar closure; Task 2 must leave the extractor task branch free of local-only dependency changes.
 
