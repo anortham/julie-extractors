@@ -97,19 +97,19 @@
       "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 23,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 455,
+      "end_byte": 506,
       "body_span": {
         "start_line": 12,
         "start_column": 6,
-        "end_line": 17,
-        "end_column": 50,
+        "end_line": 19,
+        "end_column": 43,
         "start_byte": 266,
-        "end_byte": 404
+        "end_byte": 449
       },
-      "body_hash": "7336dc8e53528f217eff7130d07f5197",
+      "body_hash": "70ad5f76c19dc5897f5e92d251d263b3",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
@@ -263,7 +263,19 @@
       "content_type": null
     }
   ],
-  "relationships": [],
+  "relationships": [
+    {
+      "from_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "to_key": "unresolved:method:Field",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "line_number": 19,
+      "confidence": "0.900",
+      "metadata": {
+        "method": "Field"
+      }
+    }
+  ],
   "pending_relationships": [],
   "structured_pending_relationships": [],
   "identifiers": [
@@ -311,6 +323,22 @@
       "end_column": 42,
       "start_byte": 34,
       "end_byte": 48,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:Field:call:19:24",
+      "name": "Field",
+      "kind": "call",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 19,
+      "start_column": 24,
+      "end_line": 19,
+      "end_column": 29,
+      "start_byte": 430,
+      "end_byte": 435,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -412,6 +440,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:condition:variable_ref:19:10",
+      "name": "condition",
+      "kind": "variable_ref",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 19,
+      "start_column": 10,
+      "end_line": 19,
+      "end_column": 19,
+      "start_byte": 416,
+      "end_byte": 425,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:dynamic:type_usage:17:8",
       "name": "dynamic",
       "kind": "type_usage",
@@ -455,6 +499,22 @@
       "end_column": 36,
       "start_byte": 291,
       "end_byte": 296,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:value:variable_ref:19:35",
+      "name": "value",
+      "kind": "variable_ref",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 19,
+      "start_column": 35,
+      "end_line": 19,
+      "end_column": 40,
+      "start_byte": 441,
+      "end_byte": 446,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -546,12 +606,12 @@
   "parse_diagnostics": [
     {
       "kind": "Missing",
-      "start_line": 19,
+      "start_line": 21,
       "start_column": 18,
-      "end_line": 19,
+      "end_line": 21,
       "end_column": 18,
-      "start_byte": 424,
-      "end_byte": 424
+      "start_byte": 475,
+      "end_byte": 475
     }
   ],
   "structural_facts": [
@@ -562,12 +622,12 @@
       "language": "razor",
       "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
-      "start_line": 20,
+      "start_line": 22,
       "start_column": 1,
-      "end_line": 20,
+      "end_line": 22,
       "end_column": 19,
-      "start_byte": 433,
-      "end_byte": 451,
+      "start_byte": 484,
+      "end_byte": 502,
       "confidence": "1.000",
       "metadata": {
         "containing_component": "source",
@@ -691,6 +751,28 @@
         "pattern_version": 1,
         "query_family": "component_template"
       }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "capture_name": "template_expression",
+      "node_kind": "razor_implicit_expression",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "start_line": 19,
+      "start_column": 23,
+      "end_line": 19,
+      "end_column": 41,
+      "start_byte": 429,
+      "end_byte": 447,
+      "confidence": "1.000",
+      "metadata": {
+        "expression": "Field(\"x\", value)",
+        "framework": "razor",
+        "implicit": true,
+        "pattern_version": 1,
+        "query_family": "component_template"
+      }
     }
   ],
   "complexity_metrics": [
@@ -700,24 +782,41 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
-      "covered_lines": 21,
-      "covered_bytes": 455,
+      "covered_lines": 23,
+      "covered_bytes": 506,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 23,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 455,
+      "end_byte": 506,
       "metadata": {
         "metric_version": 1
       }
     }
   ],
-  "literals": [],
+  "literals": [
+    {
+      "literal_text": "x",
+      "kind": "other",
+      "carrier": "Field",
+      "arg_position": 0,
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 19,
+      "start_column": 30,
+      "end_line": 19,
+      "end_column": 33,
+      "start_byte": 436,
+      "end_byte": 439,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "embedded",
@@ -750,6 +849,19 @@
         "embedded_language": "csharp",
         "host_node_kind": "razor_block"
       }
+    },
+    {
+      "kind": "string_literal",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "start_line": 19,
+      "start_column": 30,
+      "end_line": 19,
+      "end_column": 33,
+      "start_byte": 436,
+      "end_byte": 439,
+      "metadata": null
     }
   ],
   "type_argument_usages": [

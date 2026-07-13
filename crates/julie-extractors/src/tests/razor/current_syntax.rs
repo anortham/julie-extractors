@@ -29,6 +29,10 @@ fn current_razor_syntax_valid_cases_have_no_parse_diagnostics() {
             "nested block",
             "<div>@{ var value = 1; }<span>@value</span></div>",
         ),
+        (
+            "nested conditional field",
+            "<div>@if (condition) { @Field(\"x\", value) }</div>",
+        ),
         ("bare page", "@page\n<h1>Page</h1>"),
         (
             "template",

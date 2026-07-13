@@ -48,6 +48,14 @@
         "expression": "value",
         "implicit": true
       }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "node_kind": "razor_implicit_expression",
+      "metadata": {
+        "expression": "Field(\"x\", value)",
+        "implicit": true
+      }
     }
   ],
   "parse_diagnostic_count": 1
