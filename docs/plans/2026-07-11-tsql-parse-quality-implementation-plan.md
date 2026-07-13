@@ -271,6 +271,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 **Objective:** turn clean parse trees into useful, capability-backed artifact rows.
 
 **Files:**
+- Modify: `crates/julie-extractors/src/sql/mod.rs` (expose the helper module within the crate so the base structural-fact collector can use the same normalizer)
 - Modify: `crates/julie-extractors/src/sql/helpers.rs` (add one shared bracket/double-quote/backtick identifier normalizer; unescape `]]`)
 - Modify: `crates/julie-extractors/src/sql/schemas.rs`
 - Modify: `crates/julie-extractors/src/sql/constraints.rs`
