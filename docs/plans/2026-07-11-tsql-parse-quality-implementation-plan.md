@@ -272,12 +272,15 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 **Objective:** turn clean parse trees into useful, capability-backed artifact rows.
 
 **Files:**
-- Modify: `crates/julie-extractors/src/sql/mod.rs` (expose the helper module within the crate so the base structural-fact collector can use the same normalizer)
+- Modify: `crates/julie-extractors/src/sql/mod.rs` (expose the helper module within the crate so the base structural-fact collector can use the same normalizer; normalize parser-backed literal-carrier column names)
 - Modify: `crates/julie-extractors/src/sql/helpers.rs` (add one shared bracket/double-quote/backtick identifier normalizer; unescape `]]`)
 - Modify: `crates/julie-extractors/src/sql/schemas.rs`
 - Modify: `crates/julie-extractors/src/sql/constraints.rs`
 - Modify: `crates/julie-extractors/src/sql/relationships.rs`
+- Modify: `crates/julie-extractors/src/sql/schema_relationships.rs`
 - Modify: `crates/julie-extractors/src/sql/identifiers.rs`
+- Modify: `crates/julie-extractors/src/sql/routines.rs`
+- Modify: `crates/julie-extractors/src/sql/views.rs`
 - Modify: `crates/julie-extractors/src/base/sql_structural_facts.rs`
 - Modify: `crates/julie-extractors/src/base/structural_fact_registry.rs`
 - Modify: `crates/julie-extractors/src/tests/sql/structural_facts.rs`
@@ -287,6 +290,9 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 **Locked semantic behavior:**
 - `[edr].[EdrForms]` yields normalized object name `EdrForms` and retains schema `edr` in metadata where that fact already exposes object qualification; it must never name the table `edr` or `[edr]`.
 - Bracketed columns/constraints normalize similarly; source spans still cover the original bracketed text.
+- Every parser-backed artifact-facing SQL name in the files above uses the one shared helper. Existing error-recovery regex paths remain unchanged unless a failing fixture proves they need normalization.
+- Multipart consumers select the grammar's `name` field before normalization; relationship metadata that retains qualification normalizes each path segment.
+- `create_trigger` keeps its existing symbol signature and selects the target table from the `object_reference` after `ON`; it must never reuse the trigger declaration object as `target_table`.
 - `sql.merge_statement.v1`: `query_family="mutation_structure"`, `capture_name="merge"`, node kind `merge_statement`; required metadata `target_table` (normalized string), `source_kind` (`values|query|table`), `has_when_matched` (bool), `has_when_not_matched` (bool); optional `source_table` only for a static table source.
 - No facts for GO/SET/IF/BEGIN/DECLARE/THROW.
 
