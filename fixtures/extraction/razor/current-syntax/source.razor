@@ -1,0 +1,20 @@
+@page
+@addTagHelper My.TagHelpers.EmailTagHelper, My.Assembly
+
+<!DOCTYPE html>
+<html>
+<head><base href=/CoolApp/></head>
+<body>
+<BlazorSample.AdminComponents.Pages.ProductDetail />
+<input disabled>
+<p>Tom &amp; Jerry &#x1F63A;</p>
+<input class='form-control'>
+<div>@{ var value = 1; }<span>@value</span></div>
+<p>@@ @(DateTime.Now).</p>
+</body>
+</html>
+
+@{ Func<dynamic, object> t = @<p>@item.Name</p>; }
+
+<div class="broken></div>
+<RecoveredComponent />

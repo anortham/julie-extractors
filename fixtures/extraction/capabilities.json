@@ -4951,6 +4951,11 @@
           "name": "rendermode",
           "source": "fixtures/extraction/razor/rendermode/InteractiveDashboard.razor",
           "expected": "fixtures/extraction/razor/rendermode/expected.json"
+        },
+        {
+          "name": "current_syntax",
+          "source": "fixtures/extraction/razor/current-syntax/source.razor",
+          "expected": "fixtures/extraction/razor/current-syntax/expected.json"
         }
       ],
       "target_capabilities": {

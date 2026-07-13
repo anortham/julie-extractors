@@ -109,6 +109,8 @@ mod component_reference;
 #[cfg(test)]
 mod cross_file_pending;
 #[cfg(test)]
+mod current_syntax;
+#[cfg(test)]
 mod relationships;
 
 #[test]

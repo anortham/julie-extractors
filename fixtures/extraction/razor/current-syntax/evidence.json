@@ -1,0 +1,54 @@
+{
+  "symbols": [
+    {
+      "name": "value",
+      "kind": "variable",
+      "signature": "var value = 1"
+    },
+    {
+      "name": "DateTime",
+      "kind": "variable",
+      "signature": "@@(DateTime.Now)"
+    }
+  ],
+  "structural_facts": [
+    {
+      "pattern_id": "blazor.component_reference.v1",
+      "node_kind": "tag_name",
+      "metadata": {
+        "tag": "BlazorSample.AdminComponents.Pages.ProductDetail"
+      }
+    },
+    {
+      "pattern_id": "blazor.component_reference.v1",
+      "node_kind": "tag_name",
+      "metadata": {
+        "tag": "RecoveredComponent"
+      }
+    },
+    {
+      "pattern_id": "razor.route_reference.v1",
+      "node_kind": "attribute_value",
+      "metadata": {
+        "target_path": "/CoolApp/"
+      }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "node_kind": "razor_explicit_expression",
+      "metadata": {
+        "expression": "(DateTime.Now)",
+        "implicit": false
+      }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "node_kind": "razor_implicit_expression",
+      "metadata": {
+        "expression": "value",
+        "implicit": true
+      }
+    }
+  ],
+  "parse_diagnostic_count": 1
+}

@@ -201,10 +201,10 @@ Expected: PASS with empty diagnostics for every valid case, bounded recovery for
 Use `serial-worker-commit`; record both the grammar SHA and Julie commit SHA.
 
 **Acceptance criteria:**
-- [ ] Cargo manifest and lockfile resolve the exact verified grammar commit.
-- [ ] Official-current valid cases have zero parse diagnostics.
-- [ ] Malformed input preserves following structural evidence without being mislabeled clean.
-- [ ] Golden fixture output reflects real extractor behavior, not hand-authored aspirations.
+- [x] Cargo manifest and lockfile resolve the exact verified grammar commit.
+- [x] Official-current valid cases have zero parse diagnostics.
+- [x] Malformed input preserves following structural evidence without being mislabeled clean.
+- [x] Golden fixture output reflects real extractor behavior, not hand-authored aspirations.
 
 ### Task 3: Tighten existing facts and golden contracts
 
