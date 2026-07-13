@@ -247,6 +247,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 
 **Files (grammar repo only):**
 - Modify: `grammar.js`
+- Modify: `bindings/rust/lib.rs` (correct the inherited doctest to use the package's actual `tree_sitter_sequel_tsql` crate name; runtime API stays unchanged)
 - Create: `test/corpus/tsql_control_flow.txt`
 - Create: `test/corpus/tsql_merge.txt`
 - Regenerate: `src/parser.c`, `src/grammar.json`, `src/node-types.json`
@@ -266,9 +267,9 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - `throw_statement` with error number, message, and state.
 - `merge_statement` supporting `USING (VALUES ...) AS alias(columns)`, ON expression, and WHEN NOT MATCHED THEN INSERT ... VALUES ... for the corpus shape. Route only this new T-SQL form through the named node; preserve the existing standard `MERGE INTO ...` alternative and its corpus S-expression byte-for-byte.
 
-**Steps:** red grammar test per statement family; minimal grammar implementation; malformed negative control; regenerate/test; run the complete grammar corpus; commit the final grammar. Then request the single explicit approval to create `anortham/tree-sitter-sql` and push that verified commit. After it is remotely resolvable, pin its full SHA in Julie Extractors, run Task 1, existing SQL tests/goldens/certification, and the live scan. Do not commit or retain a local path while waiting for approval.
+**Steps:** red grammar test per statement family; minimal grammar implementation; malformed negative control; regenerate/test; run the complete grammar corpus and full grammar-repository Rust test, including the corrected binding doctest; commit the final grammar. Then request the single explicit approval to create `anortham/tree-sitter-sql` and push that verified commit. After it is remotely resolvable, pin its full SHA in Julie Extractors, run Task 1, existing SQL tests/goldens/certification, and the live scan. Do not commit or retain a local path while waiting for approval.
 
-**Acceptance:** all six live files report zero error/missing nodes at the parser level; grammar node names are stable enough for Task 5; malformed controls remain diagnostic; existing SQL goldens are byte-stable; Cargo resolves the exact full commit from `https://github.com/anortham/tree-sitter-sql`.
+**Acceptance:** all six live files report zero error/missing nodes at the parser level; grammar node names are stable enough for Task 5; malformed controls remain diagnostic; complete grammar corpus and Rust tests pass; existing SQL goldens are byte-stable; Cargo resolves the exact full commit from `https://github.com/anortham/tree-sitter-sql`.
 
 ### Task 5: Normalize extracted T-SQL names and add `sql.merge_statement.v1`
 
