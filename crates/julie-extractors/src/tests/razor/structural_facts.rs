@@ -50,6 +50,26 @@ fn metadata_bool_field(parameter: &Value, key: &str) -> Option<bool> {
 }
 
 #[test]
+fn explicit_razor_expression_emits_template_expression_fact() {
+    let results = extract("<p>@(1 + 2)</p>");
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "{:#?}",
+        results.parse_diagnostics
+    );
+    assert!(
+        facts_with_pattern(&results, "razor.template_expression.v1")
+            .iter()
+            .any(|fact| {
+                fact.metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("expression"))
+                    .is_some()
+            })
+    );
+}
+
+#[test]
 fn razor_emits_page_code_block_and_template_expression_facts() {
     let source = r#"@page "/worker"
 

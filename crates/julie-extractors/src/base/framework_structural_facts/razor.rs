@@ -11,6 +11,7 @@ use super::{
 use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::razor::is_razor_expression_node_kind;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 pub(super) fn collect_razor_structural_facts(
@@ -80,7 +81,7 @@ fn collect_razor_node(
                 facts.push(fact);
             }
         }
-        "razor_expression" | "razor_implicit_expression" => {
+        kind if is_razor_expression_node_kind(kind) => {
             if let Some(fact) = razor_template_expression_fact(file_path, content, node) {
                 facts.push(fact);
             }

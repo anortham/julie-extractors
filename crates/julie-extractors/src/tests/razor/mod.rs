@@ -19,6 +19,32 @@ fn extract_symbols(code: &str) -> Vec<Symbol> {
     extract_symbols_for_file("test.razor", code)
 }
 
+#[test]
+fn explicit_razor_expression_emits_existing_symbol() {
+    let symbols = extract_symbols("<p>@(1 + 2)</p>");
+    let expression = symbols
+        .iter()
+        .find(|symbol| {
+            symbol.kind == SymbolKind::Variable
+                && symbol
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("type"))
+                    .and_then(serde_json::Value::as_str)
+                    == Some("razor-expression")
+        })
+        .unwrap_or_else(|| panic!("expected existing Razor expression symbol, got {symbols:#?}"));
+
+    assert_eq!(
+        expression
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("expression"))
+            .and_then(serde_json::Value::as_str),
+        Some("@(1 + 2)")
+    );
+}
+
 fn extract_relationships(code: &str, symbols: &[Symbol]) -> Vec<Relationship> {
     let workspace_root = PathBuf::from("/tmp/test");
     let tree = init_parser(code, "razor");
@@ -793,7 +819,9 @@ mod razor_extractor_tests {
                 .contains("private bool IsEditing")
         );
 
-        let edit_model = symbols.iter().find(|s| s.name == "EditModel");
+        let edit_model = symbols
+            .iter()
+            .find(|s| s.name == "EditModel" && s.kind == SymbolKind::Property);
         assert!(edit_model.is_some());
         assert!(
             edit_model
@@ -1580,7 +1608,9 @@ mod razor_extractor_tests {
         assert!(handle_invalid_submit.is_some());
 
         // Private fields
-        let is_submitting = symbols.iter().find(|s| s.name == "IsSubmitting");
+        let is_submitting = symbols
+            .iter()
+            .find(|s| s.name == "IsSubmitting" && s.kind == SymbolKind::Property);
         assert!(is_submitting.is_some());
         assert!(
             is_submitting

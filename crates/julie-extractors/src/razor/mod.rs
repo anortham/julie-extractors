@@ -32,6 +32,13 @@ pub(crate) fn component_tag_name(element: &str) -> Option<&str> {
     is_component_tag_name(tag).then_some(tag)
 }
 
+pub(crate) fn is_razor_expression_node_kind(kind: &str) -> bool {
+    matches!(
+        kind,
+        "razor_explicit_expression" | "razor_implicit_expression"
+    )
+}
+
 fn is_component_tag_name(tag: &str) -> bool {
     tag.split('.').all(is_pascal_case_component_segment)
 }
@@ -205,7 +212,7 @@ impl RazorExtractor {
                 // Don't visit children since we already extracted them
                 return;
             }
-            "razor_expression" | "razor_implicit_expression" => {
+            kind if is_razor_expression_node_kind(kind) => {
                 // Skip expressions that are method invocations (@RenderBody(),
                 // @Html.Raw(...), @await RenderSectionAsync(...)) — those are usages.
                 if !self.contains_invocation(node) {
