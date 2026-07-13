@@ -226,6 +226,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - Regenerate: `src/parser.c`, `src/grammar.json`, `src/node-types.json`
 
 **Required grammar shapes:**
+- Bracket-quoted identifiers with SQL Server's escaped closing bracket (`]]`) remain one named `identifier`, so Task 5 can normalize them without source recovery.
 - `IDENTITY` and `IDENTITY(seed, increment)` as a named column modifier with integer children.
 - `nvarchar(max)` and `varbinary(max)` as parameterized type nodes; numeric lengths continue to parse.
 - Computed columns: `name AS expression [PERSISTED]` as `column_definition`, not an opaque/error span.
