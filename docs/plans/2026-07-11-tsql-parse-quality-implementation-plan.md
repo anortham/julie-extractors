@@ -128,6 +128,8 @@ npx --yes --package=tree-sitter-cli@0.26.3 -- tree-sitter test
 cargo xtask test golden
 cargo xtask test capability
 UPDATE_CONTRACT_JSON=1 cargo test -p julie-extractors structural_fact_registry
+cargo test -p julie-extractors --features test-capability-matrix structural_fact_registry
+cargo test -p julie-extractors test_public_contract_version_marks_current_fact_families -- --nocapture
 node scripts/language-data-quality-report.mjs --strict
 ```
 
@@ -141,8 +143,9 @@ cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings
 cargo xtask test default
 cargo xtask test contract
 cargo xtask test certification
+cargo test -p julie-extractors tests::test_tiers::test_tier_convention_keeps_slow_gates_out_of_default_suite -- --exact --nocapture
 node scripts/language-data-quality-report.mjs --strict
-cargo build -p julie-extract-cli --bin julie-extract
+cargo build --locked -p julie-extract-cli --bin julie-extract
 ```
 
 Then run the live Terraform scan from the implementation branch and require this query to return no rows:
@@ -252,7 +255,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - Modify: `crates/julie-extractors/Cargo.toml` to a Git dependency on `https://github.com/anortham/tree-sitter-sql` pinned by the full verified revision and aliased so Rust call sites continue to use `tree_sitter_sequel::LANGUAGE`.
 - Modify: `Cargo.lock` and prove the exact remote source/revision with `cargo tree` plus lockfile inspection.
 - Modify: `crates/julie-extractors/src/language_spec/specs.rs` parser inventory label to `tree-sitter-sequel-tsql`.
-- Modify: `fixtures/extraction/capabilities.json` SQL `parser_crate` only; fixture registration waits for Task 6.
+- Modify: `fixtures/extraction/capabilities.json` SQL `parser_crate` and `dependency_status` (`git_pinned`) only; fixture registration waits for Task 6.
 - Update exact parser-inventory expectations found by `cargo xtask test certification`; do not weaken them.
 
 **Required named nodes:**
@@ -281,6 +284,8 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - Modify: `crates/julie-extractors/src/sql/identifiers.rs`
 - Modify: `crates/julie-extractors/src/sql/routines.rs`
 - Modify: `crates/julie-extractors/src/sql/views.rs`
+- Modify: `crates/julie-extractors/src/lib.rs` (append the downstream-visible `.sql-tsql-facts-v1` extraction-contract marker; numeric artifact contract versions remain unchanged)
+- Modify: `crates/julie-extractors/src/tests/api_surface.rs` (require the new marker)
 - Modify: `crates/julie-extractors/src/base/sql_structural_facts.rs`
 - Modify: `crates/julie-extractors/src/base/structural_fact_registry.rs`
 - Modify: `crates/julie-extractors/src/tests/sql/structural_facts.rs`
@@ -296,7 +301,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - `sql.merge_statement.v1`: `query_family="mutation_structure"`, `capture_name="merge"`, node kind `merge_statement`; required metadata `target_table` (normalized string), `source_kind` (`values|query|table`), `has_when_matched` (bool), `has_when_not_matched` (bool); optional `source_table` only for a static table source.
 - No facts for GO/SET/IF/BEGIN/DECLARE/THROW.
 
-**Steps:** write failing extractor tests first; add shared normalization and update every listed SQL consumer; add MERGE collector/registry spec; regenerate contract JSON; run focused tests, registry sync, existing SQL golden, and negative controls.
+**Steps:** write failing extractor tests first; add shared normalization and update every listed SQL consumer; add the contract marker and API-surface assertion with the first emitted-shape change; add MERGE collector/registry spec; regenerate contract JSON; run focused tests, registry sync, feature-gated registry/emission parity, existing SQL golden, and negative controls.
 
 **Acceptance:** T-SQL fixtures produce correct normalized symbols, identifiers, relationships, DDL facts, and one MERGE fact; existing unquoted SQL output is byte-stable; registry JSON is synchronized.
 
@@ -315,12 +320,12 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 2. Register both SQL fixtures.
 3. Add `sql.merge_statement.v1` to supported SQL structural facts.
 4. Edit the existing `sql.advanced_dml_and_procedure_structure` open gap so MERGE is no longer listed; keep INSERT/DELETE, routines, windows, and remaining vendor-specific DDL as named closure work with the same planned follow-up.
-5. Run golden, capability, registry, strict quality, default/contract/certification, fmt, and clippy gates.
+5. Run golden, capability, registry, feature-gated registry/emission parity, API-surface, strict quality, slow-tier convention, default/contract/certification, fmt, and clippy gates.
 6. Build the CLI and replay the Terraform scan. Preserve the SQLite artifact + JSON report until review; report the exact implementation commit and counts.
 7. Verify SQL=0 and Razor=0 using the query above and verify malformed focused fixtures still emit diagnostics.
 8. Commit: `test(sql): certify T-SQL parse-quality closure`.
 
-**Acceptance:** two registered goldens; capability row accurately reflects MERGE support and remaining debt; `silent_cells=0`; `quality_bar_debts=0`; live corpus SQL/Razor query returns no rows; 418/388/30/0 corpus posture preserved unless source changed with documented delta.
+**Acceptance:** two registered goldens; capability row accurately reports `tree-sitter-sequel-tsql`, `git_pinned`, MERGE support, and remaining debt; the public extraction-contract marker and API-surface guard are synchronized; `silent_cells=0`; `quality_bar_debts=0`; retained `languages --json` exposes the parser/capability/registry contract; live corpus SQL/Razor query returns no rows; 418/388/30/0 corpus posture preserved unless source changed with documented delta.
 
 ## Non-Goals
 
