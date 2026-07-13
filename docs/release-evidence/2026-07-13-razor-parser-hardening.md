@@ -2,12 +2,12 @@
 
 ## Certification identity
 
-- julie-extractors commit tested: `8b9a860b379a60fab1ff2c034cc6f01a05998395`
-- tree-sitter-razor commit: `e38a509720eb54652d7079380acaa62064a2c66a`
+- julie-extractors commit tested: `37d6941909ba4d31f5979533002019e5bf19212c`
+- tree-sitter-razor commit: `fba8571f06c06aa5acca01e3d762f5a5e78dc50f`
 - Parser ABI: `15`
-- Parser certification document commit: `faa4da507851d942840f623f1ef4971ca212026d`
+- Parser certification document commit: `9fdcfd755d5537e8285166c25c34d1617bdf0826`
 - Terraform commit: `821e6b1a268cb392b1abb5080243a299db2a9bc9`
-- Documentation-corpus replay commit: `b463e4cd217d12b383d351da0a82d92e05230ab7`
+- Documentation-corpus replay commit: `37d6941909ba4d31f5979533002019e5bf19212c`
 - This is implementation evidence only; no release, tag, publication, or version
   decision is claimed.
 
@@ -29,14 +29,13 @@ The profile contains 85 Razor inputs. All were processed with zero failed files,
 and the immediate rescan reported `no_change`. Named inputs for `DisplayName`,
 `BasePath`, `NavLink RelativeToCurrentUri`, `EnvironmentBoundary`, MathML, and
 asynchronous form validation each produced zero diagnostics. The exact isolated
-documentation snippets produced 29 diagnostics in total: five are the preview
+documentation snippets produced 14 diagnostics in total: five are the preview
 `Virtualize` and `QuickGrid` examples containing literal documentation ellipses
-(`...`). Nine more come from stable placeholder or pseudocode fragments. The
-remaining 15 are parser limitations in valid stable examples: one diagnostic
-for the mixed component attribute `Set by @(panelData.Title)` and 14 for the
-complete Razor-template/`RenderFragment` example. The profile records these
-limitations; it does not relabel them as clean-parser evidence. The complete
-Terraform corpus below is the zero-diagnostic hard gate.
+(`...`), and nine come from stable placeholder or pseudocode fragments. The
+valid mixed component-attribute and complete Razor-template/`RenderFragment`
+examples that previously exposed parser limitations now produce zero
+diagnostics. No valid documentation example has an unexpected diagnostic. The
+complete Terraform corpus below remains the zero-diagnostic hard gate.
 
 ### Rebuild and replay the documentation profile
 
@@ -181,7 +180,8 @@ LEFT JOIN parse_diagnostics d
 WHERE f.path IN (
   'preview-blazor-01.razor', 'preview-base-path-markup.razor',
   'preview-blazor-02.razor', 'preview-blazor-08.razor',
-  'preview-mathml-markup.razor', 'preview-blazor-09.razor')
+  'preview-mathml-markup.razor', 'preview-blazor-09.razor',
+  'stable-components-12.razor', 'stable-components-19.razor')
 GROUP BY f.path ORDER BY f.path;
 SELECT CASE WHEN f.path LIKE 'preview-%' THEN 'preview' ELSE 'stable' END channel,
        COUNT(*) diagnostics
@@ -195,9 +195,10 @@ SELECT COUNT(*) AS razor_files FROM files WHERE language='razor';
 SELECT COUNT(*) AS razor_diagnostics FROM parse_diagnostics WHERE language='razor';"
 ```
 
-Expected results are zero diagnostics for all six named files, five preview and
-24 stable diagnostics, SQLite integrity `ok`, 85 Razor files, and 29 total Razor
-diagnostics. The per-file diagnostic counts are:
+Expected results are zero diagnostics for all eight named or formerly failing
+valid files, five preview and nine stable diagnostics, SQLite integrity `ok`,
+85 Razor files, and 14 total Razor diagnostics. Every remaining row is an
+explicit placeholder or pseudocode input:
 
 | File | Diagnostics | Classification |
 |---|---:|---|
@@ -206,9 +207,7 @@ diagnostics. The per-file diagnostic counts are:
 | `preview-blazor-05.razor` | 2 | Literal `...` placeholders |
 | `stable-components-10.razor` | 1 | `await ...` placeholder |
 | `stable-components-11.razor` | 1 | `await ...` placeholder |
-| `stable-components-12.razor` | 1 | Valid mixed component attribute; parser limitation |
 | `stable-components-18.razor` | 1 | Razor-template pseudocode placeholder |
-| `stable-components-19.razor` | 14 | Valid Razor-template expression bodies; parser limitation |
 | `stable-syntax-21.razor` | 1 | Collection `...` placeholder |
 | `stable-syntax-34.razor` | 2 | Function-body `...` placeholder |
 | `stable-syntax-40.razor` | 2 | `<...>` pseudocode placeholder |
@@ -238,13 +237,13 @@ The release-binary dogfood scan then produced:
 - Immediate rescan: status `no_change`; 388 indexed files unchanged, including
   all 28 Razor files; zero changed, deleted, or failed.
 - SQLite: integrity `ok`, schema 4, extract contract 3, 88,182,784 bytes.
-- JSONL: schema 3, 103,079 valid records, 94,211,552 bytes.
+- JSONL: schema 3, 103,079 valid records, 94,211,934 bytes.
 - Reports: scan `ok`, rescan `no_change`, info `ok`, export `ok`; no errors or
   warnings.
 - Parser inventory: `tree-sitter-razor` 0.1.1 from exact git source
-  `e38a509720eb54652d7079380acaa62064a2c66a`.
-- Report-only timing: scan 2,925 ms, rescan 81 ms, info 19 ms, export 556 ms,
-  2,596.74 rows/s.
+  `fba8571f06c06aa5acca01e3d762f5a5e78dc50f`.
+- Report-only timing: scan 1,747 ms, rescan 75 ms, info 16 ms, export 545 ms,
+  4,347.68 rows/s.
 
 Artifacts are under `target/dogfood/terraform-razor-hardening/`:
 

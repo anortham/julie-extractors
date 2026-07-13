@@ -158,8 +158,8 @@ The direct-composition path is still viable, but the 24 RED cases confirm the ar
 
 The start-of-work diagnostic ledger above remains the historical baseline. The
 release CLI built at julie-extractors commit
-`8b9a860b379a60fab1ff2c034cc6f01a05998395`, pinned to certified parser commit
-`e38a509720eb54652d7079380acaa62064a2c66a`, reprocessed the live Terraform
+`37d6941909ba4d31f5979533002019e5bf19212c`, pinned to certified parser commit
+`fba8571f06c06aa5acca01e3d762f5a5e78dc50f`, reprocessed the live Terraform
 corpus at `821e6b1a268cb392b1abb5080243a299db2a9bc9` with these results:
 
 - 28/28 Razor files processed, zero failed files, and zero Razor diagnostics.
