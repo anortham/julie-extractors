@@ -261,7 +261,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - Predicates must admit `OBJECT_ID(...) IS [NOT] NULL`, `SCHEMA_ID(...) IS NULL`, `COL_LENGTH(...) IS NULL`, and `[NOT] EXISTS (SELECT ...)`.
 - `declare_statement` with T-SQL `@parameter`, type, and optional initializer.
 - `throw_statement` with error number, message, and state.
-- `merge_statement` supporting `USING (VALUES ...) AS alias(columns)`, ON expression, and WHEN NOT MATCHED THEN INSERT ... VALUES ... for the corpus shape.
+- `merge_statement` supporting `USING (VALUES ...) AS alias(columns)`, ON expression, and WHEN NOT MATCHED THEN INSERT ... VALUES ... for the corpus shape. Route only this new T-SQL form through the named node; preserve the existing standard `MERGE INTO ...` alternative and its corpus S-expression byte-for-byte.
 
 **Steps:** red grammar test per statement family; minimal grammar implementation; malformed negative control; regenerate/test; run the complete grammar corpus; commit the final grammar. Then request the single explicit approval to create `anortham/tree-sitter-sql` and push that verified commit. After it is remotely resolvable, pin its full SHA in Julie Extractors, run Task 1, existing SQL tests/goldens/certification, and the live scan. Do not commit or retain a local path while waiting for approval.
 
