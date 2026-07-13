@@ -275,10 +275,14 @@ fn razor_href_scanning_accepts_internal_unquoted_values_after_unquoted_attribute
     <a class=button href=/orders/internal>Orders</a>
     <a class=button href=https://example.com/orders>External</a>
     <a class=button href=#details>Details</a>
-    <a class=button href=@OrderUrl>Dynamic</a>
 </nav>"##;
 
     let results = extract(source);
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "expected clean Razor parse: {:#?}",
+        results.parse_diagnostics
+    );
     let facts = facts_with_pattern(&results, "razor.route_reference.v1");
 
     assert_eq!(facts.len(), 1, "{facts:#?}");
@@ -289,6 +293,35 @@ fn razor_href_scanning_accepts_internal_unquoted_values_after_unquoted_attribute
     assert_eq!(
         &source[facts[0].start_byte as usize..facts[0].end_byte as usize],
         "/orders/internal"
+    );
+}
+
+#[test]
+fn razor_unquoted_dynamic_href_does_not_emit_route_reference() {
+    let results = extract("<a class=button href=@OrderUrl>Dynamic</a>");
+
+    assert!(facts_with_pattern(&results, "razor.route_reference.v1").is_empty());
+}
+
+#[test]
+fn razor_malformed_attribute_recovers_following_route_fact() {
+    let source = "<div class=\"broken></div>\n<a href=/orders/recovered>Recovered</a>";
+    let results = extract(source);
+
+    assert!(
+        !results.parse_diagnostics.is_empty(),
+        "malformed input must not be labeled clean"
+    );
+    let facts = facts_with_pattern(&results, "razor.route_reference.v1");
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata_str(facts[0], "target_path"),
+        Some("/orders/recovered")
+    );
+    assert_eq!(metadata_str(facts[0], "source_kind"), Some("href"));
+    assert_eq!(
+        &source[facts[0].start_byte as usize..facts[0].end_byte as usize],
+        "/orders/recovered"
     );
 }
 

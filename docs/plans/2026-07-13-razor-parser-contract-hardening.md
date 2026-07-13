@@ -261,9 +261,9 @@ Expected: PASS; existing structural-fact IDs and shapes remain stable.
 Use `serial-worker-commit`; record the semantic/golden SHA before corpus certification starts.
 
 **Acceptance criteria:**
-- [ ] Fully qualified tags and unquoted attributes require clean parses.
-- [ ] Existing facts retain IDs and metadata shapes.
-- [ ] No new fact family or workspace-global inference is added.
+- [x] Fully qualified tags and unquoted attributes require clean parses.
+- [x] Existing facts retain IDs and metadata shapes.
+- [x] No new fact family or workspace-global inference is added.
 
 ### Task 4: Certify real corpora and document the result
 

@@ -71,13 +71,14 @@ fn fully_qualified_pascal_case_component_tags_emit_raw_syntax_evidence() {
         </Microsoft.AspNetCore.Components.Routing.NavLink>
     </section>
 </main>
-<Microsoft.AspNetCore.components.Routing.NavLink />
-<Microsoft.AspNetCore.Components.My-NavLink />
-<Microsoft.AspNetCore.Components.My_NavLink />
-<Microsoft..AspNetCore.Components.NavLink />
 "#;
 
     let results = extract("Pages/Qualified.razor", source);
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "expected clean Razor parse: {:#?}",
+        results.parse_diagnostics
+    );
     let facts = component_facts(&results);
 
     assert_eq!(facts.len(), 1, "{facts:#?}");
@@ -96,6 +97,20 @@ fn fully_qualified_pascal_case_component_tags_emit_raw_syntax_evidence() {
 }
 
 #[test]
+fn invalid_fully_qualified_component_tags_do_not_emit_references() {
+    let results = extract(
+        "Pages/InvalidQualified.razor",
+        r#"<Microsoft.AspNetCore.components.Routing.NavLink />
+<Microsoft.AspNetCore.Components.My-NavLink />
+<Microsoft.AspNetCore.Components.My_NavLink />
+<Microsoft..AspNetCore.Components.NavLink />
+"#,
+    );
+
+    assert!(component_facts(&results).is_empty());
+}
+
+#[test]
 fn fluent_component_facts_keep_local_context_and_generic_arguments() {
     let results = extract(
         "Pages/Orders.razor",
@@ -106,6 +121,11 @@ fn fluent_component_facts_keep_local_context_and_generic_arguments() {
 <FluentButton>Save</FluentButton>
 <FluentDataGrid TGridItem="OrderRow" Items="@orders" />
 "#,
+    );
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "expected clean Razor parse: {:#?}",
+        results.parse_diagnostics
     );
 
     let facts = component_facts(&results);

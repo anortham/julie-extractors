@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use serde_json::Value;
+
 use crate::base::{IdentifierKind, SymbolKind};
 
 fn extract(file_path: &str, source: &str) -> crate::ExtractionResults {
@@ -20,6 +22,10 @@ fn facts<'a>(
 
 fn metadata_str<'a>(fact: &'a crate::base::StructuralFact, key: &str) -> Option<&'a str> {
     fact.metadata.as_ref()?.get(key)?.as_str()
+}
+
+fn metadata<'a>(fact: &'a crate::base::StructuralFact, key: &str) -> Option<&'a Value> {
+    fact.metadata.as_ref()?.get(key)
 }
 
 #[test]
@@ -151,6 +157,13 @@ fn constrained_typeparam_fixture_preserves_constraint_and_generic_reference() {
     let component = facts(&results, "blazor.component_reference.v1");
     assert_eq!(component.len(), 1);
     assert_eq!(metadata_str(component[0], "tag"), Some("DataGrid"));
+    assert_eq!(
+        metadata(component[0], "generic_arguments").and_then(Value::as_array),
+        Some(&vec![serde_json::json!({
+            "name": "TGridItem",
+            "value": "TItem"
+        })])
+    );
 }
 
 #[test]
