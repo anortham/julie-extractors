@@ -90,6 +90,77 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:Fragment:23:8",
+      "name": "Fragment",
+      "kind": "method",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 23,
+      "start_column": 8,
+      "end_line": 23,
+      "end_column": 65,
+      "start_byte": 519,
+      "end_byte": 576,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 42,
+        "end_line": 23,
+        "end_column": 64,
+        "start_byte": 553,
+        "end_byte": 575
+      },
+      "body_hash": "b211efabad772902cc6dd80ce9aa06c6",
+      "signature": "private RenderFragment Fragment()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {
+        "attributes": "",
+        "modifiers": "private",
+        "parameters": "()",
+        "returnType": "RenderFragment",
+        "type": "method"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:panelData:21:30",
+      "name": "panelData",
+      "kind": "variable",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 21,
+      "start_column": 30,
+      "end_line": 21,
+      "end_column": 48,
+      "start_byte": 487,
+      "end_byte": 505,
+      "body_span": {
+        "start_line": 21,
+        "start_column": 31,
+        "end_line": 21,
+        "end_column": 48,
+        "start_byte": 488,
+        "end_byte": 505
+      },
+      "body_hash": "fd386ac313ca03b4a530a0f371bd1810",
+      "signature": "@@(panelData.Title)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "expression": "@(panelData.Title)",
+        "type": "razor-expression"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "name": "source",
       "kind": "class",
@@ -97,19 +168,19 @@
       "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 23,
+      "end_line": 27,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 506,
+      "end_byte": 629,
       "body_span": {
         "start_line": 12,
         "start_column": 6,
-        "end_line": 19,
-        "end_column": 43,
+        "end_line": 23,
+        "end_column": 67,
         "start_byte": 266,
-        "end_byte": 449
+        "end_byte": 578
       },
-      "body_hash": "70ad5f76c19dc5897f5e92d251d263b3",
+      "body_hash": "1e74e9b1df21fb53dd180ddf606750bf",
       "signature": "component source",
       "doc_comment": null,
       "visibility": "Public",
@@ -440,6 +511,22 @@
       "confidence": "1.000"
     },
     {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:Title:member_access:21:42",
+      "name": "Title",
+      "kind": "member_access",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 21,
+      "start_column": 42,
+      "end_line": 21,
+      "end_column": 47,
+      "start_byte": 499,
+      "end_byte": 504,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
       "key": "fixtures/extraction/razor/current-syntax/source.razor:condition:variable_ref:19:10",
       "name": "condition",
       "kind": "variable_ref",
@@ -483,6 +570,22 @@
       "end_column": 38,
       "start_byte": 388,
       "end_byte": 392,
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/razor/current-syntax/source.razor:panelData:variable_ref:21:32",
+      "name": "panelData",
+      "kind": "variable_ref",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "start_line": 21,
+      "start_column": 32,
+      "end_line": 21,
+      "end_column": 41,
+      "start_byte": 489,
+      "end_byte": 498,
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "target_key": null,
       "confidence": "1.000"
@@ -549,6 +652,24 @@
       "metadata": null
     },
     {
+      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:Fragment:23:8",
+      "resolved_type": "RenderFragment",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:panelData:21:30",
+      "resolved_type": "unknown",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "razor",
+      "metadata": null
+    },
+    {
       "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
       "resolved_type": "unknown",
       "generic_params": null,
@@ -606,12 +727,12 @@
   "parse_diagnostics": [
     {
       "kind": "Missing",
-      "start_line": 21,
+      "start_line": 25,
       "start_column": 18,
-      "end_line": 21,
+      "end_line": 25,
       "end_column": 18,
-      "start_byte": 475,
-      "end_byte": 475
+      "start_byte": 598,
+      "end_byte": 598
     }
   ],
   "structural_facts": [
@@ -622,12 +743,36 @@
       "language": "razor",
       "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
       "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
-      "start_line": 22,
+      "start_line": 21,
       "start_column": 1,
-      "end_line": 22,
+      "end_line": 21,
+      "end_column": 15,
+      "start_byte": 458,
+      "end_byte": 472,
+      "confidence": "1.000",
+      "metadata": {
+        "containing_component": "source",
+        "framework": "blazor",
+        "generic_arguments": [],
+        "namespace_context": [],
+        "pattern_version": 1,
+        "query_family": "component_reference",
+        "tag": "ParameterChild"
+      }
+    },
+    {
+      "pattern_id": "blazor.component_reference.v1",
+      "capture_name": "component_reference",
+      "node_kind": "tag_name",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "start_line": 26,
+      "start_column": 1,
+      "end_line": 26,
       "end_column": 19,
-      "start_byte": 484,
-      "end_byte": 502,
+      "start_byte": 607,
+      "end_byte": 625,
       "confidence": "1.000",
       "metadata": {
         "containing_component": "source",
@@ -661,6 +806,27 @@
         "pattern_version": 1,
         "query_family": "component_reference",
         "tag": "BlazorSample.AdminComponents.Pages.ProductDetail"
+      }
+    },
+    {
+      "pattern_id": "razor.code_block.v1",
+      "capture_name": "code_block",
+      "node_kind": "razor_block",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 23,
+      "end_column": 67,
+      "start_byte": 511,
+      "end_byte": 578,
+      "confidence": "1.000",
+      "metadata": {
+        "block_type": "code",
+        "framework": "razor",
+        "pattern_version": 1,
+        "query_family": "component_code"
       }
     },
     {
@@ -702,6 +868,28 @@
       "confidence": "1.000",
       "metadata": {
         "expression": "(DateTime.Now)",
+        "framework": "razor",
+        "implicit": false,
+        "pattern_version": 1,
+        "query_family": "component_template"
+      }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "capture_name": "template_expression",
+      "node_kind": "razor_explicit_expression",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "containing_key": "fixtures/extraction/razor/current-syntax/source.razor:source:1:0",
+      "start_line": 21,
+      "start_column": 30,
+      "end_line": 21,
+      "end_column": 48,
+      "start_byte": 487,
+      "end_byte": 505,
+      "confidence": "1.000",
+      "metadata": {
+        "expression": "(panelData.Title)",
         "framework": "razor",
         "implicit": false,
         "pattern_version": 1,
@@ -782,18 +970,40 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "razor",
       "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
-      "covered_lines": 23,
-      "covered_bytes": 506,
+      "covered_lines": 27,
+      "covered_bytes": 629,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 23,
+      "end_line": 27,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 506,
+      "end_byte": 629,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/razor/current-syntax/source.razor:Fragment:23:8",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "covered_lines": 1,
+      "covered_bytes": 22,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 23,
+      "start_column": 42,
+      "end_line": 23,
+      "end_column": 64,
+      "start_byte": 553,
+      "end_byte": 575,
       "metadata": {
         "metric_version": 1
       }
@@ -846,6 +1056,23 @@
       "start_byte": 354,
       "end_byte": 404,
       "metadata": {
+        "embedded_language": "csharp",
+        "host_node_kind": "razor_block"
+      }
+    },
+    {
+      "kind": "embedded",
+      "language": "razor",
+      "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
+      "containing_key": null,
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 23,
+      "end_column": 67,
+      "start_byte": 511,
+      "end_byte": 578,
+      "metadata": {
+        "block_type": "code",
         "embedded_language": "csharp",
         "host_node_kind": "razor_block"
       }

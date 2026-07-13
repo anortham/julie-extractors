@@ -18,5 +18,9 @@
 
 <div>@if (condition) { @Field("x", value) }</div>
 
+<ParameterChild Title="Set by @(panelData.Title)" />
+
+@code { private RenderFragment Fragment() => @<text>Hello</text>; }
+
 <div class="broken></div>
 <RecoveredComponent />

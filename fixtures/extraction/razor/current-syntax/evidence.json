@@ -9,6 +9,11 @@
       "name": "DateTime",
       "kind": "variable",
       "signature": "@@(DateTime.Now)"
+    },
+    {
+      "name": "Fragment",
+      "kind": "method",
+      "signature": "private RenderFragment Fragment()"
     }
   ],
   "structural_facts": [
@@ -27,6 +32,13 @@
       }
     },
     {
+      "pattern_id": "blazor.component_reference.v1",
+      "node_kind": "tag_name",
+      "metadata": {
+        "tag": "ParameterChild"
+      }
+    },
+    {
       "pattern_id": "razor.route_reference.v1",
       "node_kind": "attribute_value",
       "metadata": {
@@ -38,6 +50,14 @@
       "node_kind": "razor_explicit_expression",
       "metadata": {
         "expression": "(DateTime.Now)",
+        "implicit": false
+      }
+    },
+    {
+      "pattern_id": "razor.template_expression.v1",
+      "node_kind": "razor_explicit_expression",
+      "metadata": {
+        "expression": "(panelData.Title)",
         "implicit": false
       }
     },

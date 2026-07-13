@@ -33,6 +33,14 @@ fn current_razor_syntax_valid_cases_have_no_parse_diagnostics() {
             "nested conditional field",
             "<div>@if (condition) { @Field(\"x\", value) }</div>",
         ),
+        (
+            "arrow render fragment",
+            r#"@code { private RenderFragment Fragment() => @<text>Hello</text>; }"#,
+        ),
+        (
+            "explicit component attribute",
+            r#"<ParameterChild Title="Set by @(panelData.Title)" />"#,
+        ),
         ("bare page", "@page\n<h1>Page</h1>"),
         (
             "template",
