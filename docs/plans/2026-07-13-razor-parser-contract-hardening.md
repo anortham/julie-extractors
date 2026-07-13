@@ -316,10 +316,10 @@ Expected: `silent_cells=0` and `quality_bar_debts=0`.
 Use `serial-worker-commit`; record commands, SHAs, counts, outputs, and the certification SHA without release claims.
 
 **Acceptance criteria:**
-- [ ] Stable and preview documentation inputs are labeled precisely.
-- [ ] Live Terraform counts are measured, not copied from prior evidence.
-- [ ] Strict quality debt remains zero.
-- [ ] No slow corpus leaks into the default tier.
+- [x] Stable and preview documentation inputs are labeled precisely.
+- [x] Live Terraform counts are measured, not copied from prior evidence.
+- [x] Strict quality debt remains zero.
+- [x] No slow corpus leaks into the default tier.
 
 ### Task 5: Run branch gates and prepare the release handoff
 

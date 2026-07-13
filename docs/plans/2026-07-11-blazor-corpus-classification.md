@@ -153,3 +153,25 @@ Terraform contains M1 but none of M2-M4, O2-O5, or E10. The added cases come fro
 - **O6 is assigned to Task 3:** render-fragment literals inside C# switch expressions account for 6 rows and must close there to meet the zero-diagnostics gate.
 
 The direct-composition path is still viable, but the 24 RED cases confirm the architecture risk remains high until Tasks 2-3 are green.
+
+## 2026-07-13 certification closeout
+
+The start-of-work diagnostic ledger above remains the historical baseline. The
+release CLI built at julie-extractors commit
+`8b9a860b379a60fab1ff2c034cc6f01a05998395`, pinned to certified parser commit
+`e38a509720eb54652d7079380acaa62064a2c66a`, reprocessed the live Terraform
+corpus at `821e6b1a268cb392b1abb5080243a299db2a9bc9` with these results:
+
+- 28/28 Razor files processed, zero failed files, and zero Razor diagnostics.
+- The immediate rescan reported `no_change` with all 28 Razor files unchanged.
+- SQLite integrity, JSON reports, and all 103,079 JSONL records validated.
+- `cargo xtask test certification`, `cargo xtask test real-world-smoke`, and the
+  strict language-quality report passed; `silent_cells=0` and
+  `quality_bar_debts=0`.
+
+The earlier `69/69` value was the Razor language-test count, not the number of
+Terraform files. The earlier release-binary corpus measurement was 28 Razor
+files, and the current tracked corpus is also 28, so there is no file-count
+drift. Reproducible commands, stable and preview documentation inputs, exact
+artifact counts, and SHA evidence are recorded in
+`docs/release-evidence/2026-07-13-razor-parser-hardening.md`.
