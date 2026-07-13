@@ -232,7 +232,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - Table-level named composite PK/FK constraints with bracketed multipart references.
 - Preserve clean parsing of `rowversion` and ordinary ALTER/INDEX/FK statements.
 
-**Steps:** add one failing grammar corpus case per shape; run test red; implement the minimal rule; regenerate; run full grammar corpus green after each shape. After pin bump, run Task 1 and the live scan.
+**Steps:** add one failing grammar corpus case per shape; run test red; implement the minimal rule; regenerate; run full grammar corpus green after each shape. Use the standalone grammar probe against `db/baseline.sql` and require no DDL/type/constraint diagnostics. Task 4 owns the final remote pin, Task 1 green run, and full live scan after all grammar classes close.
 
 **Acceptance:** `db/baseline.sql` has no DDL/type/constraint diagnostics; malformed IDENTITY and computed-column controls remain diagnostic; existing dialect corpus remains green.
 
