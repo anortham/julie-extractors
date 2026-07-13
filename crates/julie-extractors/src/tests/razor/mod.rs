@@ -21,8 +21,19 @@ fn extract_symbols(code: &str) -> Vec<Symbol> {
 
 #[test]
 fn explicit_razor_expression_emits_existing_symbol() {
-    let symbols = extract_symbols("<p>@(1 + 2)</p>");
-    let expression = symbols
+    let results = crate::pipeline::extract_canonical(
+        "test.razor",
+        "<p>@(1 + 2)</p>",
+        std::path::Path::new("/tmp/test"),
+    )
+    .expect("canonical Razor extraction should succeed");
+    assert!(
+        results.parse_diagnostics.is_empty(),
+        "{:#?}",
+        results.parse_diagnostics
+    );
+    let expression = results
+        .symbols
         .iter()
         .find(|symbol| {
             symbol.kind == SymbolKind::Variable
@@ -33,7 +44,12 @@ fn explicit_razor_expression_emits_existing_symbol() {
                     .and_then(serde_json::Value::as_str)
                     == Some("razor-expression")
         })
-        .unwrap_or_else(|| panic!("expected existing Razor expression symbol, got {symbols:#?}"));
+        .unwrap_or_else(|| {
+            panic!(
+                "expected existing Razor expression symbol, got {:#?}",
+                results.symbols
+            )
+        });
 
     assert_eq!(
         expression
