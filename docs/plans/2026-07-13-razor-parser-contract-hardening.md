@@ -361,10 +361,10 @@ Use `serial-worker-commit`; record the final Julie SHA and verification ledger.
 
 Report release readiness and the smallest remaining user decision: whether to push and publish a specific version. Do not choose a version, push, tag, or publish in this plan run.
 
-**Verification ledger — 2026-07-13T21:00:39Z:**
+**Verification ledger — 2026-07-13T21:39:38Z:**
 
-- Tested Julie Extractors HEAD: `4c68aa86c77025a9e6412dd447843e873aa3fef2`.
-- Certified parser content: `e38a509720eb54652d7079380acaa62064a2c66a`; certification document: `faa4da507851d942840f623f1ef4971ca212026d`; parser ABI: `15`.
+- Final tested Julie Extractors HEAD: `480e0a6d50d20dc0175aca82e6b87d269d3ace81`; the implementation and replay fixtures were tested at `37d6941909ba4d31f5979533002019e5bf19212c`, followed only by final evidence-document corrections.
+- Final certified parser content after review remediation: `fba8571f06c06aa5acca01e3d762f5a5e78dc50f`; certification document: `9fdcfd755d5537e8285166c25c34d1617bdf0826`; parser ABI: `15`.
 - `cargo xtask test changed crates/julie-extractors/Cargo.toml crates/julie-extractors/src/razor/mod.rs crates/julie-extractors/src/base/framework_structural_facts/razor.rs fixtures/extraction/razor`: PASS.
 - `cargo xtask test default`: PASS; extractor `2872` passed and `7` ignored, with artifact and CLI suites green.
 - `cargo xtask test language razor`: PASS, `97/97`.
@@ -373,10 +373,10 @@ Report release readiness and the smallest remaining user decision: whether to pu
 - `cargo xtask test contract`: PASS, including downstream path-dependency, SQLite schema/report, JSONL, CLI, path-policy, and operations contracts.
 - `cargo xtask test certification`: PASS, `42/42` across capability, pending-shape, and parser-upgrade gates.
 - `node scripts/language-data-quality-report.mjs --strict`: PASS; `silent_cells=0`, `quality_bar_debts=0`.
-- Task 4 dogfood evidence remains valid because `4c68aa8` differs from the tested implementation commit `8b9a860` only by evidence documentation: Terraform Razor `28/28`, zero failed parses, zero Razor diagnostics, valid SQLite/JSONL/reports, immediate rescan `no_change`.
+- Task 4 evidence was read back from the final artifacts: Terraform commit `821e6b1a268cb392b1abb5080243a299db2a9bc9`, Razor `28/28`, zero failed parses, zero Razor diagnostics, SQLite integrity `ok`, `103079` valid JSONL records, and immediate rescan `no_change`. The replayable documentation corpus contains `85` inputs with `14` classified placeholder/pseudocode diagnostics and no unexpected diagnostic on a valid example.
 - `cargo deny check`: PASS; advisories, bans, licenses, and sources are green, with existing duplicate and wildcard warnings only.
 - `cargo xtask release package-list`: PASS.
-- Cargo resolves `tree-sitter-razor` to `e38a5097`; generated parser inventory reports language version/ABI `15` and only the public `razor_explicit_expression` and `razor_implicit_expression` expression nodes.
+- Cargo resolves `tree-sitter-razor` to `fba8571f`; generated parser inventory reports language version/ABI `15` and only the public `razor_explicit_expression` and `razor_implicit_expression` expression nodes.
 - No artifact implementation or contract documentation changed from `0d734ae`; the contract gate reconfirmed SQLite schema v4, JSONL v3, report, CLI, and operations compatibility.
 - All Julie Extractors and tree-sitter-razor worktrees were inventoried by path, branch, HEAD, and status. Unrelated primary untracked plans, parser index files, and the pre-existing dirty `/private/tmp/razor-base` state remain untouched.
 - No version was chosen and no push, tag, publish, or release action was executed.
