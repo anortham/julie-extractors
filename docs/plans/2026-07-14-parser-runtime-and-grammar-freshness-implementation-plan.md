@@ -175,14 +175,14 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 **Approach:** Add failing diagnostic/extraction tests and the canonical fixture before changing the dependency. Cover extension declarations, null-conditional assignment, unbound generic `nameof`, field-backed properties, simple-lambda parameter modifiers, partial constructors/events, user-defined compound assignment, shebang, and all supported `#:` directives. Pin the owned fork by exact `rev`, allow that exact remote in dependency policy, and update only C#-local matchers proven incompatible by the tests. Generate the expected golden from the canonical extractor, inspect it row by row, and register only evidence-backed capability changes. Keep malformed C# and directive controls diagnostic.
 
 **Acceptance:**
-- [ ] The published `0.23.5` parser is observed failing the valid C# 14/file-app case before the pin changes.
-- [ ] Cargo metadata and lockfile resolve C# from `https://github.com/anortham/tree-sitter-c-sharp` at exactly `C_SHARP_FORK_COMMIT`.
-- [ ] The complete valid fixture has zero `error` and `missing` diagnostics.
-- [ ] Each official feature produces the expected existing symbol, relationship, identifier, type, literal, or structural rows where semantically applicable.
-- [ ] Malformed C# and file-app controls emit diagnostics.
-- [ ] Existing C# goldens and public artifact shapes remain stable.
-- [ ] Focused tests, `cargo xtask test language csharp`, golden, capability, and release dependency-policy tests pass.
-- [ ] The worker commits and reports path, branch, commit, and dirty state.
+- [x] The published `0.23.5` parser is observed failing the valid C# 14/file-app case before the pin changes.
+- [x] Cargo metadata and lockfile resolve C# from `https://github.com/anortham/tree-sitter-c-sharp` at exactly `C_SHARP_FORK_COMMIT`.
+- [x] The complete valid fixture has zero `error` and `missing` diagnostics.
+- [x] Each official feature produces the expected existing symbol, relationship, identifier, type, literal, or structural rows where semantically applicable.
+- [x] Malformed C# and file-app controls emit diagnostics.
+- [x] Existing C# goldens and public artifact shapes remain stable.
+- [x] Focused tests, `cargo xtask test language csharp`, golden, capability, and release dependency-policy tests pass.
+- [x] The worker commits and reports path, branch, commit, and dirty state.
 
 ### Task 4: Migrate Swift to 0.7.3
 
