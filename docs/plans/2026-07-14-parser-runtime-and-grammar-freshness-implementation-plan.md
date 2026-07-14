@@ -33,6 +33,7 @@
 - Microsoft documents C# 14 for .NET 10 and the `#:include`, `#:package`, `#:project`, `#:property`, and `#:sdk` file-app directives plus shebang handling.
 - `tree-sitter-swift 0.7.3` supersedes the locked `0.7.2`; `tree-sitter-r 1.3.0` supersedes the locked `1.2.0`.
 - The pinned Razor grammar is one documentation-only commit behind its fork head; PowerShell is three folds/tests-only commits behind; QML is eleven packaging/reference-only commits behind; Visual Basic and SQL match their fork heads. These pins do not change in this plan.
+- The integration base fails `dependency_policy_allows_pinned_git_parser_sources` and the Cargo-deny source check because `deny.toml` omits `https://github.com/anortham/tree-sitter-sql`; Task 1 repairs this inherited T-SQL policy gap before establishing its new runtime RED.
 
 ## File and Interface Map
 
@@ -44,7 +45,7 @@
 - `scripts/grammar-freshness-report.mjs`: networked maintenance CLI and pure comparison/rendering functions.
 - `scripts/grammar-freshness-report.test.mjs`: network-free report contract tests.
 - `docs/architecture/grammar-dependency-policy.md`: runtime, generation, registry, Git-pin, ownership, and freshness policy.
-- `/Users/murphy/source/tree-sitter-c-sharp`: owned fork checkout containing source grammar, corpus cases, generated parser artifacts, and bindings.
+- `/Users/murphy/source/tree-sitter-c-sharp`: does not exist yet; Task 2 creates it by cloning upstream `tree-sitter/tree-sitter-c-sharp` and checking out `af29416d729b7a6603101b513604392d8f675e3b`.
 
 ## Verification Strategy
 
@@ -72,7 +73,7 @@
 
 | Task | Parallel batch | File ownership | Serialization required | Dependency reason |
 |---|---|---|---|---|
-| Task 1: Lock the runtime and dependency policy | Batch A | `crates/julie-extractors/Cargo.toml`, `Cargo.lock`, `xtask/tests/release_contract.rs`, `docs/architecture/grammar-dependency-policy.md` | No | None - safe parallel batch; Task 2 uses a separate repository and Git index. |
+| Task 1: Lock the runtime and dependency policy | Batch A | `crates/julie-extractors/Cargo.toml`, `Cargo.lock`, `deny.toml`, `xtask/tests/release_contract.rs`, `docs/architecture/grammar-dependency-policy.md` | No | None - safe parallel batch; Task 2 uses a separate repository and Git index. |
 | Task 2: Create and push the owned C# grammar fork | Batch A | `/Users/murphy/source/tree-sitter-c-sharp/**` and the remote `anortham/tree-sitter-c-sharp` fork | No | None - safe parallel batch; Task 1 uses only the Julie worktree. |
 | Task 3: Integrate C# 14 extraction evidence | None - serial | `crates/julie-extractors/Cargo.toml`, `Cargo.lock`, `deny.toml`, `xtask/tests/release_contract.rs`, `crates/julie-extractors/src/csharp/**`, `crates/julie-extractors/src/tests/csharp/**`, `fixtures/extraction/csharp/csharp14/**`, `fixtures/extraction/capabilities.json` | Yes | Requires the exact pushed Task 2 parser commit and the Task 1 runtime/policy baseline. |
 | Task 4: Migrate Swift to 0.7.3 | None - serial | `crates/julie-extractors/Cargo.toml`, `Cargo.lock`, `crates/julie-extractors/src/swift/**`, `crates/julie-extractors/src/tests/swift/**`, `fixtures/extraction/swift/current_syntax/**`, `fixtures/extraction/capabilities.json` | Yes | Serializes shared manifest, lockfile, capability registry, and golden review after C#. |
@@ -87,6 +88,7 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 **Files:**
 - Modify: `crates/julie-extractors/Cargo.toml`
 - Modify: `Cargo.lock`
+- Modify: `deny.toml`
 - Modify: `xtask/tests/release_contract.rs`
 - Create: `docs/architecture/grammar-dependency-policy.md`
 
@@ -96,16 +98,17 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 
 **Contract inputs:** Tree-sitter runtime/CLI `0.26.11`; existing exact Git pins; no historical generated-parser record is rewritten.
 
-**File ownership:** `crates/julie-extractors/Cargo.toml`, `Cargo.lock`, `xtask/tests/release_contract.rs`, `docs/architecture/grammar-dependency-policy.md`
+**File ownership:** `crates/julie-extractors/Cargo.toml`, `Cargo.lock`, `deny.toml`, `xtask/tests/release_contract.rs`, `docs/architecture/grammar-dependency-policy.md`
 
 **Serialization required:** No
 
 **Dependency reason:** None - safe parallel batch; Task 2 uses a separate repository and Git index.
 
-**Approach:** First strengthen release-contract tests so the current `0.26.8` declaration/`0.26.9` lock and any non-exact Git parser source fail. Then declare `tree-sitter = "=0.26.11"`, resolve the lockfile deliberately, and document registry-vs-Git selection, owned-fork requirements, generation version, audit cadence, semantic-evidence requirements, and the boundary between drift detection and support claims. Do not update any grammar in this task.
+**Approach:** First reproduce and repair the inherited SQL `allow-git` failure by adding `https://github.com/anortham/tree-sitter-sql` to `deny.toml`. Then strengthen release-contract tests so the current `0.26.8` declaration/`0.26.9` lock and any non-exact Git parser source fail. Declare `tree-sitter = "=0.26.11"`, resolve the lockfile deliberately, and document registry-vs-Git selection, owned-fork requirements, generation version, audit cadence, semantic-evidence requirements, and the boundary between drift detection and support claims. Do not update any grammar in this task.
 
 **Acceptance:**
 - [ ] The release contract is observed failing on the old runtime declaration or lock.
+- [ ] The inherited SQL `allow-git` failure is recorded separately and repaired before the runtime RED is established.
 - [ ] Manifest and lockfile resolve exactly one `tree-sitter 0.26.11` runtime.
 - [ ] Every Git parser dependency has an exact `rev`, an allowed remote source, and a matching locked commit.
 - [ ] The architecture policy records Tree-sitter CLI `0.26.11` as the future generation floor and preserves historical records.
@@ -132,7 +135,7 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 
 **Dependency reason:** None - safe parallel batch; Task 1 uses only the Julie worktree.
 
-**Approach:** Audit the upstream repository, worktrees, remotes, default branch, generated-file commands, and dirty state. Create an isolated fork worktree from the exact upstream commit. Add corpus cases first and record that upstream emits errors for valid file-app lines. Introduce one narrow named node for complete file-app directive lines, regenerate with CLI `0.26.11`, and review every generated node-shape change. Add malformed controls that continue to produce `ERROR` or `MISSING`. Create the owned GitHub fork if absent, commit, push the accepted commit to the fork's default branch, and verify the remote object before reporting it. Do not open an upstream pull request.
+**Approach:** Clone upstream `tree-sitter/tree-sitter-c-sharp` to `/Users/murphy/source/tree-sitter-c-sharp` because the path does not exist yet, check out the exact upstream base commit, then audit remotes, default branch, generated-file commands, and dirty state. Create an isolated fork worktree from the exact upstream commit. Add corpus cases first and record that upstream emits errors for valid file-app lines. Introduce one narrow named node for complete file-app directive lines, regenerate with CLI `0.26.11`, and review every generated node-shape change. Add malformed controls that continue to produce `ERROR` or `MISSING`. Create the owned GitHub fork if absent, commit, push the accepted commit to the fork's default branch, and verify the remote object before reporting it. Do not open an upstream pull request.
 
 **Acceptance:**
 - [ ] Upstream failure evidence is recorded before the grammar change.
