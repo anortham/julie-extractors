@@ -272,8 +272,23 @@ HAVING COUNT(ae.id) > 0;
             .and_then(|symbol| symbol.signature.as_deref())
             .expect("score signature");
 
-        assert!(signature.starts_with("CREATE FUNCTION score("));
-        assert_eq!(signature.matches("CREATE").count(), 1);
+        assert_eq!(
+            signature,
+            "CREATE FUNCTION score(value BIGINT) RETURNS DECIMAL(10,2)"
+        );
+    }
+
+    #[test]
+    fn clean_routine_signature_without_argument_list_preserves_legacy_shape() {
+        let symbols =
+            extract_symbols("CREATE PROCEDURE refresh_cache AS BEGIN SELECT COALESCE($1, 0); END;");
+        let signature = symbols
+            .iter()
+            .find(|symbol| symbol.name == "refresh_cache")
+            .and_then(|symbol| symbol.signature.as_deref())
+            .expect("refresh_cache signature");
+
+        assert_eq!(signature, "CREATE PROCEDURE refresh_cache()");
     }
 
     #[test]

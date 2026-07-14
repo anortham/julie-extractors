@@ -100,32 +100,13 @@ pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> 
     }?;
     let name = base.get_node_text(&name_node);
 
-    // Extract parameter list
-    let mut params: Vec<String> = Vec::new();
-    base.traverse_tree(node, &mut |child_node| {
-        if child_node.kind() == "parameter_declaration" || child_node.kind() == "parameter" {
-            let param_name_node = base
-                .find_child_by_type(child_node, "identifier")
-                .or_else(|| base.find_child_by_type(child_node, "parameter_name"));
-            let type_node = base
-                .find_child_by_type(child_node, "data_type")
-                .or_else(|| base.find_child_by_type(child_node, "type_name"));
-
-            if let Some(param_name_node) = param_name_node {
-                let param_name = base.get_node_text(&param_name_node);
-                let param_type = if let Some(type_node) = type_node {
-                    base.get_node_text(&type_node)
-                } else {
-                    String::new()
-                };
-                params.push(if !param_type.is_empty() {
-                    format!("{}: {}", param_name, param_type)
-                } else {
-                    param_name
-                });
-            }
-        }
-    });
+    let params = match direct_routine_arguments(base, node) {
+        Some(arguments) => arguments
+            .into_iter()
+            .map(|argument| base.get_node_text(&argument).trim().to_string())
+            .collect(),
+        None => legacy_routine_parameters(base, node),
+    };
 
     let is_function = node.kind().contains("function");
     let keyword = if is_function { "FUNCTION" } else { "PROCEDURE" };
@@ -178,20 +159,50 @@ pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> 
     ))
 }
 
+fn direct_routine_arguments<'tree>(
+    base: &BaseExtractor,
+    routine_node: &Node<'tree>,
+) -> Option<Vec<Node<'tree>>> {
+    base.find_child_by_type(routine_node, "function_arguments")
+        .map(|arguments| base.find_children_by_type(&arguments, "function_argument"))
+}
+
+fn legacy_routine_parameters(base: &BaseExtractor, routine_node: &Node) -> Vec<String> {
+    let mut parameters = Vec::new();
+    base.traverse_tree(routine_node, &mut |child_node| {
+        if child_node.kind() != "parameter_declaration" && child_node.kind() != "parameter" {
+            return;
+        }
+
+        let name_node = base
+            .find_child_by_type(child_node, "identifier")
+            .or_else(|| base.find_child_by_type(child_node, "parameter_name"));
+        let type_node = base
+            .find_child_by_type(child_node, "data_type")
+            .or_else(|| base.find_child_by_type(child_node, "type_name"));
+
+        if let Some(name_node) = name_node {
+            let name = base.get_node_text(&name_node);
+            let parameter_type = type_node
+                .map(|node| base.get_node_text(&node))
+                .unwrap_or_default();
+            parameters.push(if parameter_type.is_empty() {
+                name
+            } else {
+                format!("{}: {}", name, parameter_type)
+            });
+        }
+    });
+    parameters
+}
+
 pub(super) fn extract_parameters_from_routine_node(
     base: &mut BaseExtractor,
     function_node: Node,
     symbols: &mut Vec<Symbol>,
     parent_id: &str,
 ) {
-    let Some(arguments) = base.find_child_by_type(&function_node, "function_arguments") else {
-        return;
-    };
-    let mut cursor = arguments.walk();
-    for argument in arguments
-        .named_children(&mut cursor)
-        .filter(|child| child.kind() == "function_argument")
-    {
+    for argument in direct_routine_arguments(base, &function_node).unwrap_or_default() {
         let Some(name_node) = base.find_child_by_type(&argument, "identifier") else {
             continue;
         };
