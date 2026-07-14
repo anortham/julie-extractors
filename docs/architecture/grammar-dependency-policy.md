@@ -32,6 +32,18 @@ unchanged external Git parser may remain on another approved remote when its
 ownership, exact commit, and review rationale are recorded. Depending directly
 on an unreleased upstream branch is not accepted.
 
+### Current Owned Grammar Forks
+
+| Dependency | Owned remote | Project-maintained behavior |
+| --- | --- | --- |
+| `tree-sitter-c-sharp` | [`anortham/tree-sitter-c-sharp`](https://github.com/anortham/tree-sitter-c-sharp) | C# 14 and .NET file-based application syntax not available in the published crate. |
+| `tree-sitter-sequel-tsql` | [`anortham/tree-sitter-sql`](https://github.com/anortham/tree-sitter-sql) | Certified T-SQL identifier, DDL, batch, trigger, routine, and `MERGE` syntax. |
+| `tree-sitter-razor` | [`anortham/tree-sitter-razor`](https://github.com/anortham/tree-sitter-razor) | Parser fixes required by the certified Razor and Blazor fixtures. |
+
+`crates/julie-extractors/Cargo.toml` and `Cargo.lock` are authoritative for the
+current full commit IDs. Update this inventory when ownership changes or an
+owned fork returns to a suitable published upstream release.
+
 ## Generation Records
 
 New generated parser changes record the grammar source commit, the exact

@@ -18,6 +18,11 @@
 
 ## Parser Dependency Changes
 
+Julie Extractors currently maintains owned grammar forks for C#, SQL, and
+Razor. Review the
+[grammar dependency policy and current fork inventory](architecture/grammar-dependency-policy.md)
+before changing any parser source or pin.
+
 The changed-path gate adds the full certification tier when these paths change:
 
 - `Cargo.lock`

@@ -12,6 +12,11 @@ format. The primary integration surface is the `julie-extract` CLI, so tools
 written in C#, Python, Go, JavaScript, Rust, or any other language can consume
 extraction results by spawning a binary and reading a durable artifact.
 
+Julie Extractors currently maintains owned Tree-sitter grammar forks for C#,
+SQL, and Razor. The
+[grammar dependency policy and current fork inventory](docs/architecture/grammar-dependency-policy.md)
+records why each fork exists and how its exact remote commit is controlled.
+
 ## Current Release
 
 - Current release: `v2.14.0`

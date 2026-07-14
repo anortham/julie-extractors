@@ -150,6 +150,10 @@ fn release_package_list_is_exact_and_ordered() {
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
+                path_template: "docs/architecture/grammar-dependency-policy.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
                 path_template: "docs/testing-strategy.md",
             },
             ReleasePackageItem {
@@ -175,6 +179,7 @@ fn release_package_list_renders_as_a_stable_xtask_manifest() {
     assert!(rendered.contains("doc\tdocs/contracts/extracted-data-v1.md\n"));
     assert!(rendered.contains("doc\tdocs/contracts/extracted-data-v2.md\n"));
     assert!(rendered.contains("doc\tdocs/contracts/extracted-data-v3.md\n"));
+    assert!(rendered.contains("doc\tdocs/architecture/grammar-dependency-policy.md\n"));
     assert!(rendered.contains("doc\tdocs/release.md\n"));
     assert!(rendered.contains("release_note\tdocs/release-notes/v{version}.md\n"));
 }
