@@ -4,6 +4,7 @@
 mod complexity;
 mod cross_file_pending;
 mod cross_file_relationships;
+mod current_syntax;
 mod identifiers;
 mod literals;
 mod structural_facts;

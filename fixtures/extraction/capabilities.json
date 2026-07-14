@@ -3209,6 +3209,11 @@
           "expected": "fixtures/extraction/swift/basic/expected.json"
         },
         {
+          "name": "current_syntax",
+          "source": "fixtures/extraction/swift/current_syntax/source.swift",
+          "expected": "fixtures/extraction/swift/current_syntax/expected.json"
+        },
+        {
           "name": "cross_file",
           "source": "fixtures/extraction/swift/cross_file/source.swift",
           "expected": "fixtures/extraction/swift/cross_file/expected.json"
