@@ -138,13 +138,13 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 **Approach:** Clone upstream `tree-sitter/tree-sitter-c-sharp` to `/Users/murphy/source/tree-sitter-c-sharp` because the path does not exist yet, check out the exact upstream base commit, then audit remotes, default branch, generated-file commands, and dirty state. Create an isolated fork worktree from the exact upstream commit. Add corpus cases first and record that upstream emits errors for valid file-app lines. Introduce one narrow named node for complete file-app directive lines, regenerate with CLI `0.26.11`, and review every generated node-shape change. Add malformed controls that continue to produce `ERROR` or `MISSING`. Create the owned GitHub fork if absent, commit, push the accepted commit to the fork's default branch, and verify the remote object before reporting it. Do not open an upstream pull request.
 
 **Acceptance:**
-- [ ] Upstream failure evidence is recorded before the grammar change.
-- [ ] Corpus coverage includes shebang and every supported `#:` directive, including values with spaces, quoted paths/packages, and CRLF boundaries.
-- [ ] Malformed directive/preprocessor controls remain diagnostic.
-- [ ] Grammar generation uses CLI `0.26.11`; generated sources match `grammar.js`.
-- [ ] Full grammar corpus, highlight/query checks present in the repo, Rust tests/doctests, and available binding tests pass.
-- [ ] `anortham/tree-sitter-c-sharp` contains the accepted commit on its remote default branch.
-- [ ] The worker reports `C_SHARP_FORK_COMMIT`, upstream base, commands/results, path, branch, commit, remotes, and dirty state.
+- [x] Upstream failure evidence is recorded before the grammar change.
+- [x] Corpus coverage includes shebang and every supported `#:` directive, including values with spaces, quoted paths/packages, and CRLF boundaries.
+- [x] Malformed directive/preprocessor controls remain diagnostic.
+- [x] Grammar generation uses CLI `0.26.11`; generated sources match `grammar.js`.
+- [x] Full grammar corpus, highlight/query checks present in the repo, Rust tests/doctests, and available binding tests pass.
+- [x] `anortham/tree-sitter-c-sharp` contains the accepted commit on its remote default branch.
+- [x] The worker reports `C_SHARP_FORK_COMMIT`, upstream base, commands/results, path, branch, commit, remotes, and dirty state.
 
 ### Task 3: Integrate C# 14 and file-app extraction evidence
 
