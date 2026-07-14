@@ -186,7 +186,16 @@ fn count_column_definitions(node: Node<'_>) -> usize {
 
 fn count_table_constraints(node: Node<'_>) -> usize {
     find_child(node, "column_definitions")
-        .map(|definitions| count_direct_children(definitions, "constraint"))
+        .map(|definitions| {
+            let direct = count_direct_children(definitions, "constraint");
+            let mut cursor = definitions.walk();
+            direct
+                + definitions
+                    .children(&mut cursor)
+                    .filter(|child| child.kind() == "constraints")
+                    .map(|constraints| count_direct_children(constraints, "constraint"))
+                    .sum::<usize>()
+        })
         .unwrap_or(0)
 }
 

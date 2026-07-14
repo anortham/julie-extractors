@@ -1025,7 +1025,7 @@
       "confidence": "1.000",
       "metadata": {
         "column_count": 2,
-        "constraint_count": 0,
+        "constraint_count": 2,
         "pattern_version": 1,
         "query_family": "schema_structure",
         "table_name": "jobs"

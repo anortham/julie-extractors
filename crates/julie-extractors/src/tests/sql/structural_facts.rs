@@ -392,6 +392,40 @@ CREATE TRIGGER [edr].[TR_Items]
 }
 
 #[test]
+fn sql_tsql_table_facts_count_wrapped_table_constraints() {
+    let results = extract(
+        r#"
+CREATE TABLE [app].[Items] (
+    [Id] INT NOT NULL,
+    CONSTRAINT [PK_Items] PRIMARY KEY ([Id])
+);
+
+CREATE TABLE [dbo].[Links] (
+    [ParentId] INT NOT NULL,
+    [ChildId] INT NOT NULL,
+    CONSTRAINT [PK_Links] PRIMARY KEY ([ParentId], [ChildId]),
+    CONSTRAINT [FK_Links_Parent] FOREIGN KEY ([ParentId]) REFERENCES [app].[Items] ([Id])
+);
+"#,
+    );
+
+    let tables = facts_with_pattern(&results, "sql.table_definition.v1");
+    let items = tables
+        .iter()
+        .copied()
+        .find(|fact| metadata_str(fact, "table_name") == Some("Items"))
+        .expect("Items table fact");
+    let links = tables
+        .iter()
+        .copied()
+        .find(|fact| metadata_str(fact, "table_name") == Some("Links"))
+        .expect("Links table fact");
+
+    assert_eq!(metadata_u64(items, "constraint_count"), Some(1));
+    assert_eq!(metadata_u64(links, "constraint_count"), Some(2));
+}
+
+#[test]
 fn sql_tsql_merge_emits_registered_values_source_fact() {
     let results = extract(
         r#"MERGE [dbo].[Seed] AS t

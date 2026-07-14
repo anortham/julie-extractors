@@ -169,6 +169,7 @@ CREATE TABLE analytics_events (
 CREATE TABLE [edr].[Items] (
     [Id] INT,
     [Label] NVARCHAR(100) DEFAULT 'new',
+    [Payload] VARBINARY(max) NULL,
     [Status] NVARCHAR(100) CHECK ([Status] <> 'blocked'),
     CONSTRAINT [PK_Items] PRIMARY KEY ([Id])
 );
@@ -204,6 +205,7 @@ CREATE PROCEDURE [edr].[RefreshItems] AS BEGIN SELECT 1; END;
             "Items",
             "Id",
             "Label",
+            "Payload",
             "Status",
             "PK_Items",
             "ItemView",
@@ -232,7 +234,21 @@ CREATE PROCEDURE [edr].[RefreshItems] AS BEGIN SELECT 1; END;
             .find(|symbol| symbol.name == "Items")
             .and_then(|symbol| symbol.signature.as_deref())
             .expect("normalized table signature");
-        assert_eq!(table_signature, "CREATE TABLE Items (3 columns)");
+        assert_eq!(table_signature, "CREATE TABLE Items (4 columns)");
+
+        for (name, expected_signature) in [
+            ("Label", "NVARCHAR(100) DEFAULT 'new'"),
+            ("Payload", "VARBINARY(max)"),
+            ("Status", "NVARCHAR(100) CHECK"),
+        ] {
+            let symbol = results
+                .symbols
+                .iter()
+                .find(|symbol| symbol.name == name)
+                .unwrap_or_else(|| panic!("normalized {name} symbol"));
+            assert_eq!(symbol.signature.as_deref(), Some(expected_signature));
+            assert_eq!(symbol.body_span, None, "type size is not a field body");
+        }
 
         let procedure_signature = results
             .symbols
