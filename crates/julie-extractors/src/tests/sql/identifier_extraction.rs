@@ -286,4 +286,42 @@ END
             );
         }
     }
+
+    #[test]
+    fn test_bracketed_sql_identifiers_are_normalized_with_original_spans() {
+        let sql_code = "SELECT [u].[DisplayName] FROM [users] AS [u] WHERE [u].[Id] > 0;";
+        let mut parser = init_parser();
+        let tree = parser.parse(sql_code, None).unwrap();
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = SqlExtractor::new(
+            "sql".to_string(),
+            "test.sql".to_string(),
+            sql_code.to_string(),
+            &workspace_root,
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+
+        let display_name = identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == "DisplayName" && identifier.kind == IdentifierKind::MemberAccess
+            })
+            .expect("normalized bracketed member access");
+        assert_eq!(
+            &sql_code[display_name.start_byte as usize..display_name.end_byte as usize],
+            "[DisplayName]"
+        );
+
+        let id = identifiers
+            .iter()
+            .find(|identifier| {
+                identifier.name == "Id" && identifier.kind == IdentifierKind::MemberAccess
+            })
+            .expect("normalized bracketed where member access");
+        assert_eq!(
+            &sql_code[id.start_byte as usize..id.end_byte as usize],
+            "[Id]"
+        );
+    }
 }

@@ -77,6 +77,7 @@ pub mod complexity;
 pub mod control_flow; // if/else, loops, vectorized operations
 pub mod cross_file_pending; // Cross-file structured pending shape (Phase 4a)
 pub mod cross_file_relationships; // Cross-file relationship resolution (pending relationships)
+mod current_syntax;
 pub mod data_structures; // data.frame, tibble, vector, list, matrix
 #[cfg(feature = "test-real-world")]
 pub mod file_integration_bug; // BUG HUNT: Reproduction test for file extraction failure

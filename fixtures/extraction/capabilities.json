@@ -2532,7 +2532,7 @@
       "extensions": [
         "cs"
       ],
-      "dependency_status": "current",
+      "dependency_status": "git_pinned",
       "capabilities": {
         "symbols": true,
         "relationships": true,
@@ -2550,6 +2550,11 @@
           "name": "basic",
           "source": "fixtures/extraction/csharp/basic/source.cs",
           "expected": "fixtures/extraction/csharp/basic/expected.json"
+        },
+        {
+          "name": "csharp14",
+          "source": "fixtures/extraction/csharp/csharp14/source.cs",
+          "expected": "fixtures/extraction/csharp/csharp14/expected.json"
         },
         {
           "name": "cross_file",
@@ -3202,6 +3207,11 @@
           "name": "basic",
           "source": "fixtures/extraction/swift/basic/source.swift",
           "expected": "fixtures/extraction/swift/basic/expected.json"
+        },
+        {
+          "name": "current_syntax",
+          "source": "fixtures/extraction/swift/current_syntax/source.swift",
+          "expected": "fixtures/extraction/swift/current_syntax/expected.json"
         },
         {
           "name": "cross_file",
@@ -4303,6 +4313,11 @@
           "expected": "fixtures/extraction/r/cross_file/expected.json"
         },
         {
+          "name": "current_syntax",
+          "source": "fixtures/extraction/r/current_syntax/source.R",
+          "expected": "fixtures/extraction/r/current_syntax/expected.json"
+        },
+        {
           "name": "test_roles",
           "source": "fixtures/extraction/r/test_roles/test_source.r",
           "expected": "fixtures/extraction/r/test_roles/expected.json"
@@ -5089,11 +5104,11 @@
     },
     {
       "language": "sql",
-      "parser_crate": "tree-sitter-sequel",
+      "parser_crate": "tree-sitter-sequel-tsql",
       "extensions": [
         "sql"
       ],
-      "dependency_status": "current",
+      "dependency_status": "git_pinned",
       "capabilities": {
         "symbols": true,
         "relationships": true,
@@ -5111,6 +5126,16 @@
           "name": "cross_file",
           "source": "fixtures/extraction/sql/cross_file/source.sql",
           "expected": "fixtures/extraction/sql/cross_file/expected.json"
+        },
+        {
+          "name": "tsql_ddl",
+          "source": "fixtures/extraction/sql/tsql_ddl/source.sql",
+          "expected": "fixtures/extraction/sql/tsql_ddl/expected.json"
+        },
+        {
+          "name": "tsql_batch_control",
+          "source": "fixtures/extraction/sql/tsql_batch_control/source.sql",
+          "expected": "fixtures/extraction/sql/tsql_batch_control/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5166,6 +5191,7 @@
             "sql.foreign_key.v1",
             "sql.index_definition.v1",
             "sql.join.v1",
+            "sql.merge_statement.v1",
             "sql.select_query.v1",
             "sql.table_definition.v1",
             "sql.transaction.v1",
@@ -5177,8 +5203,8 @@
           "open_gaps": [
             {
               "kind": "sql.advanced_dml_and_procedure_structure",
-              "reason": "The SQL structural collector emits core DDL, SELECT, JOIN, CTE, trigger, transaction, and update facts, but does not yet emit first-class facts for INSERT/DELETE/MERGE statements, stored procedures/functions, window definitions, or vendor-specific DDL variants. Treating those constructs as fully supported would overstate the fixture-backed SQL surface.",
-              "required_closure": "add parser-backed structural facts and golden fixtures for INSERT/DELETE/MERGE, procedure/function definitions, window clauses, and at least one vendor-specific DDL variant before removing this gap",
+              "reason": "The SQL structural collector emits core DDL, SELECT, JOIN, CTE, trigger, transaction, update, and MERGE facts, but does not yet emit first-class facts for INSERT/DELETE statements, stored procedures/functions, window definitions, or vendor-specific DDL variants. Treating those constructs as fully supported would overstate the fixture-backed SQL surface.",
+              "required_closure": "add parser-backed structural facts and golden fixtures for INSERT/DELETE, procedure/function definitions, window clauses, and at least one vendor-specific DDL variant before removing this gap",
               "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: SQL advanced structural facts"
             }
           ]

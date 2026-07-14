@@ -1,6 +1,7 @@
 //! Relationships for SQL schema objects such as views and triggers.
 
 use crate::base::{BaseExtractor, Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::sql::helpers::normalize_sql_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use serde_json::Value;
@@ -197,7 +198,7 @@ fn object_reference_name(base: &BaseExtractor, object_reference: Node) -> Option
         .child_by_field_name("name")
         .or_else(|| first_child_by_kind(object_reference, "identifier"))?;
 
-    Some(base.get_node_text(&name_node))
+    Some(normalize_sql_identifier(&base.get_node_text(&name_node)))
 }
 
 fn symbol_for_sql_object<'a>(

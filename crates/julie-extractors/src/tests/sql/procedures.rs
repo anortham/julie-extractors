@@ -260,4 +260,57 @@ HAVING COUNT(ae.id) > 0;
         let user_score = symbols.iter().find(|s| s.name == "user_score");
         assert!(user_score.is_some());
     }
+
+    #[test]
+    fn clean_routine_signature_has_one_create_prefix() {
+        let symbols = extract_symbols(
+            "CREATE FUNCTION score(value BIGINT) RETURNS DECIMAL(10,2) RETURN value;",
+        );
+        let signature = symbols
+            .iter()
+            .find(|symbol| symbol.name == "score")
+            .and_then(|symbol| symbol.signature.as_deref())
+            .expect("score signature");
+
+        assert_eq!(
+            signature,
+            "CREATE FUNCTION score(value BIGINT) RETURNS DECIMAL(10,2)"
+        );
+    }
+
+    #[test]
+    fn clean_routine_signature_without_argument_list_preserves_legacy_shape() {
+        let symbols =
+            extract_symbols("CREATE PROCEDURE refresh_cache AS BEGIN SELECT COALESCE($1, 0); END;");
+        let signature = symbols
+            .iter()
+            .find(|symbol| symbol.name == "refresh_cache")
+            .and_then(|symbol| symbol.signature.as_deref())
+            .expect("refresh_cache signature");
+
+        assert_eq!(signature, "CREATE PROCEDURE refresh_cache()");
+    }
+
+    #[test]
+    fn clean_routine_parameters_exclude_nested_call_arguments_and_duplicates() {
+        let symbols = extract_symbols(
+            r#"CREATE PROCEDURE process_user(IN p_user_id BIGINT)
+BEGIN
+    SELECT COALESCE(p_user_id, 0);
+END;"#,
+        );
+        let parameters = symbols
+            .iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Variable)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            parameters
+                .iter()
+                .filter(|symbol| symbol.name == "p_user_id")
+                .count(),
+            1
+        );
+        assert!(parameters.iter().all(|symbol| symbol.name != "COALESCE"));
+    }
 }

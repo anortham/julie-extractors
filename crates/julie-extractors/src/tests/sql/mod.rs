@@ -51,6 +51,7 @@ pub mod dml;
 pub mod doc_comments;
 pub mod identifier_extraction;
 pub mod indexes;
+pub mod parse_quality;
 pub mod procedures;
 pub mod relationships;
 pub mod schema;

@@ -6,6 +6,7 @@
 //! - ALTER TABLE ADD CONSTRAINT statements
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::sql::helpers::normalize_sql_identifier;
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -81,8 +82,10 @@ pub(super) fn extract_column_constraints(base: &BaseExtractor, column_node: &Nod
             "keyword_unique" | "unique_constraint" | "unique" => {
                 constraints.push("UNIQUE".to_string());
             }
-            "check_constraint" => {
-                constraints.push("CHECK".to_string());
+            "check_constraint" | "keyword_check" => {
+                if !constraints.iter().any(|constraint| constraint == "CHECK") {
+                    constraints.push("CHECK".to_string());
+                }
             }
             "keyword_default" => {
                 // Find the default value (reference logic)
@@ -125,11 +128,12 @@ pub(super) fn extract_table_columns(
             .or_else(|| base.find_child_by_type(&node, "column_name"));
 
         if let Some(name_node) = column_name_node {
-            let column_name = base.get_node_text(&name_node);
+            let column_name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
             // Find SQL data type nodes (port comprehensive type search)
-            let data_type_node = base
-                .find_child_by_type(&node, "data_type")
+            let data_type_node = node
+                .child_by_field_name("type")
+                .or_else(|| base.find_child_by_type(&node, "data_type"))
                 .or_else(|| base.find_child_by_type(&node, "type_name"))
                 .or_else(|| base.find_child_by_type(&node, "bigint"))
                 .or_else(|| base.find_child_by_type(&node, "varchar"))
@@ -170,10 +174,21 @@ pub(super) fn extract_table_columns(
             };
 
             // Columns are fields within the table (strategy)
-            let column_symbol = base.create_symbol(&node, column_name, SymbolKind::Field, options);
+            let mut column_symbol =
+                base.create_symbol(&node, column_name, SymbolKind::Field, options);
+            if data_type_node.is_some_and(is_parameterized_type_node) {
+                column_symbol.body_span = None;
+                column_symbol.body_hash = None;
+            }
             symbols.push(column_symbol);
         }
     }
+}
+
+fn is_parameterized_type_node(node: Node<'_>) -> bool {
+    ["size", "precision", "scale"]
+        .into_iter()
+        .any(|field| node.child_by_field_name(field).is_some())
 }
 
 /// Extract table constraints from CREATE TABLE statement
@@ -198,7 +213,7 @@ pub(super) fn extract_table_constraints(
         let named_constraint = base.find_child_by_type(&node, "identifier");
 
         if let Some(name_node) = named_constraint {
-            constraint_name = base.get_node_text(&name_node);
+            constraint_name = normalize_sql_identifier(&base.get_node_text(&name_node));
         }
 
         // Determine constraint type (reference logic)

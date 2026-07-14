@@ -18,7 +18,7 @@ mod body_spans;
 pub(crate) mod complexity_metrics;
 mod constraints;
 mod error_handling;
-mod helpers;
+pub(crate) mod helpers;
 mod identifiers;
 mod relationships;
 mod routines;
@@ -128,7 +128,9 @@ impl SqlExtractor {
                 .find_child_by_type(&column_def, "identifier")
                 .or_else(|| self.base.find_child_by_type(&column_def, "column_name"));
             if let Some(name_node) = name_node {
-                return Some(self.base.get_node_text(&name_node));
+                return Some(helpers::normalize_sql_identifier(
+                    &self.base.get_node_text(&name_node),
+                ));
             }
         }
         if let Some(parent) = node.parent() {
@@ -390,7 +392,13 @@ impl SqlExtractor {
                         );
                     }
                 }
-                "create_function" | "create_function_statement" => {
+                "create_procedure" | "create_function" | "create_function_statement" => {
+                    routines::extract_parameters_from_routine_node(
+                        &mut self.base,
+                        node,
+                        symbols,
+                        &symbol.id,
+                    );
                     routines::extract_declare_variables(&mut self.base, node, symbols, &symbol.id);
                 }
                 _ => {}

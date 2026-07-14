@@ -244,7 +244,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
     spec(
         "sql",
         &["sql"],
-        "tree-sitter-sequel",
+        "tree-sitter-sequel-tsql",
         FULL_CAPABILITIES,
         parser_sql,
         SQL_DOCS,
