@@ -229,6 +229,7 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 - Modify only when a failing migration test proves it: `crates/julie-extractors/src/r/**`
 - Create: `fixtures/extraction/r/current_syntax/source.R`
 - Create: `fixtures/extraction/r/current_syntax/expected.json`
+- Create: `fixtures/extraction/r/current_syntax/.gitattributes`
 - Modify: `fixtures/extraction/capabilities.json`
 
 **Interfaces:**
@@ -243,16 +244,16 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 
 **Dependency reason:** Serializes shared manifest, lockfile, capability registry, and golden review after Swift.
 
-**Approach:** Add failing parser/extraction tests against 1.2.0, bump only R to `=1.3.0`, inspect the new raw-string and token nodes, and adapt R-local extractors only where canonical facts would be lost or reclassified. Generate and review the registered golden and keep malformed controls diagnostic.
+**Approach:** Add failing parser/extraction tests against 1.2.0, bump only R to `=1.3.0`, inspect the new raw-string and token nodes, and adapt R-local extractors only where canonical facts would be lost or reclassified. Preserve the CRLF fixture bytes with a fixture-local `source.R -text -eol` attribute because the repository-wide `*.R text eol=lf` rule otherwise normalizes the committed evidence. Generate and review the registered golden and keep malformed controls diagnostic.
 
 **Acceptance:**
-- [ ] At least one targeted syntax or node-shape case is observed failing under 1.2.0.
-- [ ] Cargo resolves exactly `tree-sitter-r 1.3.0`.
-- [ ] The valid fixture has zero `error` and `missing` diagnostics and useful stable extraction.
-- [ ] Malformed current-syntax controls remain diagnostic.
-- [ ] Existing R goldens and artifact shapes remain stable.
-- [ ] Focused tests, `cargo xtask test language r`, golden, and capability tiers pass.
-- [ ] The worker commits and reports path, branch, commit, and dirty state.
+- [x] At least one targeted syntax or node-shape case is observed failing under 1.2.0.
+- [x] Cargo resolves exactly `tree-sitter-r 1.3.0`.
+- [x] The valid fixture has zero `error` and `missing` diagnostics and useful stable extraction.
+- [x] Malformed current-syntax controls remain diagnostic.
+- [x] Existing R goldens and artifact shapes remain stable.
+- [x] Focused tests, `cargo xtask test language r`, golden, and capability tiers pass.
+- [x] The worker commits and reports path, branch, commit, and dirty state.
 
 ### Task 6: Add a deterministic grammar freshness report
 
