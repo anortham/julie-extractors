@@ -280,14 +280,14 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 **Approach:** Export pure parsing, normalization, comparison, ordering, and rendering functions without triggering the CLI on import. Write network-free Node tests first for manifest/lock parsing, prerelease ordering, Git URL normalization, deterministic row ordering, schema output, text output, invalid arguments, and adapter failure mapping. Add thin crates.io and GitHub adapters with explicit timeouts and source-labelled errors. Invoke network work only from the executable entry point. Document the command and audit interpretation. Because the default xtask plan runs only Rust crate tests, change test-tier code only if an enforceable convention is missing; do not add the live report to default, certification, or changed tiers.
 
 **Acceptance:**
-- [ ] Node tests are observed failing before the report implementation.
-- [ ] `node --test scripts/grammar-freshness-report.test.mjs` passes without network access.
-- [ ] Repeated fixture-backed JSON/text renders are byte-for-byte deterministic apart from an explicit audit timestamp, which tests inject.
-- [ ] JSON output has `schema_version: 1` and stable, documented row fields and ordering.
-- [ ] Unsupported flags, crates.io failures, GitHub failures, and malformed metadata return nonzero with the failed source identified.
-- [ ] A live `--format json` run reports exact accepted runtime and grammar resolution and reports unchanged-pin drift separately.
-- [ ] Default tier planning contains no network command and remains within its 90-second budget contract.
-- [ ] The worker commits and reports path, branch, commit, and dirty state.
+- [x] Node tests are observed failing before the report implementation.
+- [x] `node --test scripts/grammar-freshness-report.test.mjs` passes without network access.
+- [x] Repeated fixture-backed JSON/text renders are byte-for-byte deterministic apart from an explicit audit timestamp, which tests inject.
+- [x] JSON output has `schema_version: 1` and stable, documented row fields and ordering.
+- [x] Unsupported flags, crates.io failures, GitHub failures, and malformed metadata return nonzero with the failed source identified.
+- [x] A live `--format json` run reports exact accepted runtime and grammar resolution and reports unchanged-pin drift separately.
+- [x] Default tier planning contains no network command and remains within its 90-second budget contract.
+- [x] The worker commits and reports path, branch, commit, and dirty state.
 
 ### Task 7: Certify the integrated branch
 
