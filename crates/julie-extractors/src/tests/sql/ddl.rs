@@ -3,6 +3,7 @@ use super::{SymbolKind, extract_symbols};
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     #[test]
     fn test_extract_tables_columns_and_constraints() {
@@ -160,5 +161,92 @@ CREATE TABLE analytics_events (
             })
             .collect::<Vec<_>>();
         assert!(indexes.len() >= 3);
+    }
+
+    #[test]
+    fn parser_backed_quoted_sql_names_are_normalized() {
+        let sql_code = r#"
+CREATE TABLE [edr].[Items] (
+    [Id] INT,
+    [Label] NVARCHAR(100) DEFAULT 'new',
+    [Status] NVARCHAR(100) CHECK ([Status] <> 'blocked'),
+    CONSTRAINT [PK_Items] PRIMARY KEY ([Id])
+);
+
+CREATE VIEW [edr].[ItemView] AS
+SELECT [Id] AS [ItemId] FROM [edr].[Items];
+
+CREATE INDEX [IX_Items_Label] ON [edr].[Items] ([Label]);
+
+CREATE TRIGGER [edr].[TR_Items]
+    AFTER INSERT ON [edr].[Items]
+    FOR EACH ROW
+    EXECUTE FUNCTION [edr].[log_item]();
+
+CREATE PROCEDURE [edr].[RefreshItems] AS BEGIN SELECT 1; END;
+"#;
+
+        let results =
+            crate::pipeline::extract_canonical("quoted.sql", sql_code, Path::new("/repo"))
+                .expect("quoted SQL extraction should succeed");
+        assert!(
+            results.parse_diagnostics.is_empty(),
+            "valid quoted SQL must parse cleanly: {:?}",
+            results.parse_diagnostics
+        );
+        let symbol_names = results
+            .symbols
+            .iter()
+            .map(|symbol| symbol.name.as_str())
+            .collect::<Vec<_>>();
+
+        for expected in [
+            "Items",
+            "Id",
+            "Label",
+            "Status",
+            "PK_Items",
+            "ItemView",
+            "ItemId",
+            "IX_Items_Label",
+            "TR_Items",
+            "RefreshItems",
+        ] {
+            assert!(
+                symbol_names.contains(&expected),
+                "expected normalized symbol `{expected}`, got {symbol_names:?}"
+            );
+        }
+        assert!(symbol_names.iter().all(|name| !name.contains('[')));
+
+        let id = results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == "Id")
+            .expect("normalized Id symbol");
+        assert!(sql_code[id.start_byte as usize..id.end_byte as usize].contains("[Id]"));
+
+        let table_signature = results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == "Items")
+            .and_then(|symbol| symbol.signature.as_deref())
+            .expect("normalized table signature");
+        assert_eq!(table_signature, "CREATE TABLE Items (3 columns)");
+
+        let procedure_signature = results
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == "RefreshItems")
+            .and_then(|symbol| symbol.signature.as_deref())
+            .expect("normalized procedure signature");
+        assert_eq!(procedure_signature, "CREATE PROCEDURE RefreshItems()");
+
+        let literal = results
+            .literals
+            .iter()
+            .find(|literal| literal.literal_text == "blocked")
+            .expect("column constraint literal");
+        assert_eq!(literal.carrier.as_deref(), Some("Status"));
     }
 }

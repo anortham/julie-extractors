@@ -98,6 +98,8 @@ The final local grammar passed all 496 corpus cases, the full Rust grammar tests
 
 The full Julie SQL tier then exposed two compatibility regressions that were absent from the minimized goldens: `test_extract_stored_procedures_functions_and_triggers` lost the recovery-path procedure contract, and `sql_callable_symbol_complexity_uses_body_span_with_predicate_evidence` ended at the clean routine node instead of the trailing delimiter. Both failures reproduce unchanged against the unmodified grammar base `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf`, proving they predate the final T-SQL grammar work. Task 4 therefore includes a minimal extractor adapter for the grammar base's clean routine nodes; existing tests remain unchanged.
 
+The final grammar pin also cleanly parses the general-SQL `CREATE VIEW active_workers AS ...` body-span fixture that 0.3.11 routed through recovery. Preserve the truthful clean-path result: do not add `extractedFromError`, keep the trigger in that fixture on its proven recovery path, and populate the existing `bodySpanSource="statement_text"` contract when statement inference validates an already adequate AST-provided view body span without replacing it.
+
 ## Verification Strategy
 
 **Project source of truth:** `AGENTS.md`, this plan, `fixtures/extraction/README.md`, and the repository's `cargo xtask test` tiers.

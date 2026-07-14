@@ -5,7 +5,7 @@
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use crate::sql::body_spans;
-use crate::sql::helpers::{DECLARE_VAR_RE, VAR_DECL_RE};
+use crate::sql::helpers::{DECLARE_VAR_RE, VAR_DECL_RE, normalize_sql_identifier};
 use crate::test_detection::is_test_symbol;
 use regex::Regex;
 use serde_json::Value;
@@ -40,18 +40,18 @@ pub(super) fn extract_stored_procedure(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Port extractStoredProcedure logic for regular nodes (not just ERROR)
-    // Look for function/procedure name - it may be inside an object_reference
     let object_ref_node = base.find_child_by_type(&node, "object_reference");
     let name_node = if let Some(obj_ref) = object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
+        obj_ref
+            .child_by_field_name("name")
+            .or_else(|| base.find_child_by_type(&obj_ref, "identifier"))
     } else {
         base.find_child_by_type(&node, "identifier")
             .or_else(|| base.find_child_by_type(&node, "procedure_name"))
             .or_else(|| base.find_child_by_type(&node, "function_name"))
     }?;
 
-    let name = base.get_node_text(&name_node);
+    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
     let is_function = node.kind().contains("function");
 
     let signature = extract_procedure_signature(base, &node)?;
@@ -89,16 +89,17 @@ pub(super) fn extract_stored_procedure(
 
 /// Extract procedure/function signature with parameters
 pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> Option<String> {
-    // Extract function/procedure name from object_reference if present
     let object_ref_node = base.find_child_by_type(node, "object_reference");
     let name_node = if let Some(obj_ref) = object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
+        obj_ref
+            .child_by_field_name("name")
+            .or_else(|| base.find_child_by_type(&obj_ref, "identifier"))
     } else {
         base.find_child_by_type(node, "identifier")
             .or_else(|| base.find_child_by_type(node, "procedure_name"))
             .or_else(|| base.find_child_by_type(node, "function_name"))
     }?;
-    let name = base.get_node_text(&name_node);
+    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
     let params = match direct_routine_arguments(base, node) {
         Some(arguments) => arguments
@@ -182,7 +183,7 @@ fn legacy_routine_parameters(base: &BaseExtractor, routine_node: &Node) -> Vec<S
             .or_else(|| base.find_child_by_type(child_node, "type_name"));
 
         if let Some(name_node) = name_node {
-            let name = base.get_node_text(&name_node);
+            let name = normalize_sql_identifier(&base.get_node_text(&name_node));
             let parameter_type = type_node
                 .map(|node| base.get_node_text(&node))
                 .unwrap_or_default();
@@ -206,7 +207,7 @@ pub(super) fn extract_parameters_from_routine_node(
         let Some(name_node) = base.find_child_by_type(&argument, "identifier") else {
             continue;
         };
-        let name = base.get_node_text(&name_node);
+        let name = normalize_sql_identifier(&base.get_node_text(&name_node));
         let signature = base.get_node_text(&argument).trim().to_string();
         let mut metadata = HashMap::new();
         metadata.insert("isParameter".to_string(), Value::Bool(true));

@@ -35,3 +35,47 @@ pub(super) static VAR_DECL_RE: LazyLock<Regex> =
 pub(super) static DECLARE_VAR_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"DECLARE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(DECIMAL\([^)]+\)|INT|BIGINT|VARCHAR\([^)]+\)|TEXT|BOOLEAN)").unwrap()
 });
+
+pub(crate) fn normalize_sql_identifier(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if let Some(inner) = trimmed
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+    {
+        return inner.replace("]]", "]");
+    }
+    if let Some(inner) = trimmed
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+    {
+        return inner.to_string();
+    }
+    if let Some(inner) = trimmed
+        .strip_prefix('`')
+        .and_then(|value| value.strip_suffix('`'))
+    {
+        return inner.to_string();
+    }
+    trimmed.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_sql_identifier;
+
+    #[test]
+    fn normalizes_sql_identifier_delimiters() {
+        for (raw, expected) in [
+            ("plain_name", "plain_name"),
+            ("[edr]", "edr"),
+            ("[a]]b]", "a]b"),
+            ("\"quoted\"", "quoted"),
+            ("`quoted`", "quoted"),
+            (" [spaced] ", "spaced"),
+            ("", ""),
+            ("[mismatched", "[mismatched"),
+        ] {
+            assert_eq!(normalize_sql_identifier(raw), expected);
+        }
+    }
+}

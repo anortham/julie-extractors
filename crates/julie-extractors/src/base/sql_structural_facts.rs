@@ -8,6 +8,7 @@ use super::attach_containing_symbols;
 use super::span::NormalizedSpan;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol, stable_location_id};
+use crate::sql::helpers::normalize_sql_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const TABLE_DEFINITION_PATTERN_ID: &str = "sql.table_definition.v1";
@@ -22,6 +23,7 @@ const JOIN_PATTERN_ID: &str = "sql.join.v1";
 const TRANSACTION_PATTERN_ID: &str = "sql.transaction.v1";
 const INDEX_DEFINITION_PATTERN_ID: &str = "sql.index_definition.v1";
 const UPDATE_STATEMENT_PATTERN_ID: &str = "sql.update_statement.v1";
+const MERGE_STATEMENT_PATTERN_ID: &str = "sql.merge_statement.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const SQL_STRUCTURAL_PATTERN_IDS: &[&str] = &[
@@ -31,6 +33,7 @@ const SQL_STRUCTURAL_PATTERN_IDS: &[&str] = &[
     FOREIGN_KEY_PATTERN_ID,
     INDEX_DEFINITION_PATTERN_ID,
     JOIN_PATTERN_ID,
+    MERGE_STATEMENT_PATTERN_ID,
     SELECT_QUERY_PATTERN_ID,
     TABLE_DEFINITION_PATTERN_ID,
     TRANSACTION_PATTERN_ID,
@@ -153,6 +156,11 @@ fn collect_sql_node(
                 facts.push(fact);
             }
         }
+        "merge_statement" => {
+            if let Some(fact) = merge_statement_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
         "ERROR" => {
             if let Some(fact) = trigger_definition_from_error_fact(file_path, content, node) {
                 facts.push(fact);
@@ -257,7 +265,8 @@ fn trigger_definition_fact(
         ],
     )
     .map(|kind| kind.strip_prefix("keyword_").unwrap_or(&kind).to_string());
-    let target_table = find_child(node, "object_reference")
+    let target_table = find_child(node, "keyword_on")
+        .and_then(|keyword| find_descendant_after(node, "object_reference", keyword.end_byte(), 0))
         .and_then(|reference| object_reference_parts(content, reference))
         .map(|(_, table)| table);
 
@@ -318,7 +327,7 @@ fn index_definition_fact(file_path: &str, content: &str, node: Node<'_>) -> Opti
     let index_name = node
         .child_by_field_name("name")
         .or_else(|| find_child(node, "identifier"))
-        .and_then(|name_node| node_text(content, name_node).map(str::to_string))?;
+        .and_then(|name_node| node_text(content, name_node).map(normalize_sql_identifier))?;
     let table_name = find_child(node, "object_reference")
         .and_then(|reference| object_reference_parts(content, reference))
         .map(|(_, table)| table);
@@ -348,7 +357,7 @@ fn column_definition_fact(
     let column_name = node
         .child_by_field_name("name")
         .or_else(|| find_child(node, "identifier"))
-        .and_then(|name_node| node_text(content, name_node).map(str::to_string))?;
+        .and_then(|name_node| node_text(content, name_node).map(normalize_sql_identifier))?;
     let type_name = column_type_name(content, node);
     let table_name = ancestor_of_kind(node, "create_table")
         .and_then(find_object_reference)
@@ -385,7 +394,7 @@ fn constraint_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<Str
     let constraint_name = node
         .child_by_field_name("name")
         .or_else(|| find_child(node, "identifier"))
-        .and_then(|name_node| node_text(content, name_node).map(str::to_string));
+        .and_then(|name_node| node_text(content, name_node).map(normalize_sql_identifier));
     let table_name = ancestor_of_kind(node, "create_table")
         .and_then(find_object_reference)
         .and_then(|reference| object_reference_parts(content, reference))
@@ -590,7 +599,7 @@ fn cte_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<Structural
     let cte_name = node
         .child_by_field_name("argument")
         .or_else(|| find_child(node, "identifier"))
-        .and_then(|name_node| node_text(content, name_node).map(str::to_string))?;
+        .and_then(|name_node| node_text(content, name_node).map(normalize_sql_identifier))?;
     let recursive = query_clause_container(node)
         .and_then(|container| node_text(content, container))
         .is_some_and(|text| text.to_ascii_uppercase().contains("RECURSIVE"));
@@ -668,6 +677,50 @@ fn update_statement_fact(file_path: &str, content: &str, node: Node<'_>) -> Opti
         file_path,
         UPDATE_STATEMENT_PATTERN_ID,
         "update",
+        node,
+        metadata,
+    ))
+}
+
+fn merge_statement_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
+    let target_table = node
+        .child_by_field_name("target")
+        .and_then(|target| object_reference_parts(content, target))
+        .map(|(_, table)| table)?;
+    let source = node.child_by_field_name("source")?;
+    if source.kind() != "merge_values_source" {
+        return None;
+    }
+
+    let mut has_when_matched = false;
+    let mut has_when_not_matched = false;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() != "when_clause" || !has_child_kind(child, "keyword_matched") {
+            continue;
+        }
+        if has_child_kind(child, "keyword_not") {
+            has_when_not_matched = true;
+        } else {
+            has_when_matched = true;
+        }
+    }
+
+    let mut metadata = base_metadata("mutation_structure");
+    insert_string(&mut metadata, "target_table", &target_table);
+    insert_string(&mut metadata, "source_kind", "values");
+    metadata.insert(
+        "has_when_matched".to_string(),
+        Value::Bool(has_when_matched),
+    );
+    metadata.insert(
+        "has_when_not_matched".to_string(),
+        Value::Bool(has_when_not_matched),
+    );
+    Some(fact_for_node(
+        file_path,
+        MERGE_STATEMENT_PATTERN_ID,
+        "merge",
         node,
         metadata,
     ))
@@ -766,7 +819,7 @@ fn collect_ordered_column_names(content: &str, node: Node<'_>) -> Vec<String> {
             && let Some(identifier) = find_child(child, "identifier")
             && let Some(name) = node_text(content, identifier)
         {
-            names.push(name.to_string());
+            names.push(normalize_sql_identifier(name));
         }
     }
     names
@@ -782,7 +835,7 @@ fn referenced_column_names(content: &str, node: Node<'_>) -> Vec<String> {
             "object_reference" if after_reference => {}
             "identifier" if after_reference => {
                 if let Some(name) = node_text(content, child) {
-                    names.push(name.to_string());
+                    names.push(normalize_sql_identifier(name));
                 }
             }
             _ => {}
@@ -796,7 +849,7 @@ fn collect_identifier_names(content: &str, node: Node<'_>) -> Vec<String> {
         return node_text(content, node)
             .map(str::trim)
             .filter(|value| !value.is_empty())
-            .map(|value| value.to_string())
+            .map(normalize_sql_identifier)
             .into_iter()
             .collect();
     }
@@ -809,7 +862,7 @@ fn collect_identifier_names(content: &str, node: Node<'_>) -> Vec<String> {
                 .map(str::trim)
                 .filter(|s| !s.is_empty())
         {
-            names.push(name.to_string());
+            names.push(normalize_sql_identifier(name));
         }
     }
     names
@@ -853,11 +906,11 @@ fn relation_table_name(content: &str, node: Node<'_>) -> Option<String> {
 
 fn object_reference_parts(content: &str, node: Node<'_>) -> Option<(Option<String>, String)> {
     if let Some(schema_node) = node.child_by_field_name("schema") {
-        let schema = node_text(content, schema_node)?.to_string();
+        let schema = normalize_sql_identifier(node_text(content, schema_node)?);
         let name_node = node
             .child_by_field_name("name")
             .or_else(|| find_child(node, "identifier"))?;
-        let name = node_text(content, name_node)?.to_string();
+        let name = normalize_sql_identifier(node_text(content, name_node)?);
         return Some((Some(schema), name));
     }
 
@@ -865,7 +918,7 @@ fn object_reference_parts(content: &str, node: Node<'_>) -> Option<(Option<Strin
     match identifiers.as_slice() {
         [name] => Some((None, name.clone())),
         [schema, name] => Some((Some(schema.clone()), name.clone())),
-        _ => node_text(content, node).map(|text| (None, text.to_string())),
+        _ => node_text(content, node).map(|text| (None, normalize_sql_identifier(text))),
     }
 }
 

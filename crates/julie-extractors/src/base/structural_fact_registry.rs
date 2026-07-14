@@ -2000,6 +2000,46 @@ const SPECS: &[StructuralFactPatternSpec] = &[
             ),
         ],
     },
+    StructuralFactPatternSpec {
+        pattern_id: "sql.merge_statement.v1",
+        languages: &["sql"],
+        query_family: "mutation_structure",
+        description: "A parser-backed T-SQL `MERGE` statement.",
+        metadata_keys: &[
+            K_PATTERN_VERSION,
+            K_QUERY_FAMILY,
+            key(
+                "target_table",
+                STR,
+                ALWAYS,
+                "Normalized target table of the MERGE.",
+            ),
+            key(
+                "source_kind",
+                STR,
+                ALWAYS,
+                "MERGE source shape: values, query, or table.",
+            ),
+            key(
+                "has_when_matched",
+                BOOL,
+                ALWAYS,
+                "Whether the MERGE has a WHEN MATCHED clause.",
+            ),
+            key(
+                "has_when_not_matched",
+                BOOL,
+                ALWAYS,
+                "Whether the MERGE has a WHEN NOT MATCHED clause.",
+            ),
+            key(
+                "source_table",
+                STR,
+                OPT,
+                "Normalized source table when the parser proves a static table source.",
+            ),
+        ],
+    },
     // -----------------------------------------------------------------------
     // Framework collector (base/framework_structural_facts.rs).
     // These facts additionally carry a `framework` base key.

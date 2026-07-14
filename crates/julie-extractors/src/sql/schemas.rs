@@ -11,7 +11,9 @@
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
 use crate::sql::body_spans;
-use crate::sql::helpers::{CREATE_VIEW_RE, INCLUDE_CLAUSE_RE, INDEX_COLUMN_RE};
+use crate::sql::helpers::{
+    CREATE_VIEW_RE, INCLUDE_CLAUSE_RE, INDEX_COLUMN_RE, normalize_sql_identifier,
+};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -63,17 +65,10 @@ pub(super) fn extract_table_definition(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Port exact logic: Look for table name inside object_reference node
-    let object_ref_node = base.find_child_by_type(&node, "object_reference");
-    let table_name_node = if let Some(obj_ref) = object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
-    } else {
-        base.find_child_by_type(&node, "identifier")
-            .or_else(|| base.find_child_by_type(&node, "table_name"))
-    };
-
-    let table_name_node = table_name_node?;
-    let table_name = base.get_node_text(&table_name_node);
+    let table_name_node = declared_object_name_node(base, node)
+        .or_else(|| base.find_child_by_type(&node, "identifier"))
+        .or_else(|| base.find_child_by_type(&node, "table_name"))?;
+    let table_name = normalize_sql_identifier(&base.get_node_text(&table_name_node));
 
     let signature = extract_table_signature(base, node);
 
@@ -94,16 +89,10 @@ pub(super) fn extract_table_definition(
 
 /// Extract table signature showing column count
 pub(super) fn extract_table_signature(base: &mut BaseExtractor, node: Node) -> Option<String> {
-    // Look for table name inside object_reference node (same as extractTableDefinition)
-    let object_ref_node = base.find_child_by_type(&node, "object_reference");
-    let name_node = if let Some(obj_ref) = object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
-    } else {
-        base.find_child_by_type(&node, "identifier")
-            .or_else(|| base.find_child_by_type(&node, "table_name"))
-    }?;
-
-    let table_name = base.get_node_text(&name_node);
+    let name_node = declared_object_name_node(base, node)
+        .or_else(|| base.find_child_by_type(&node, "identifier"))
+        .or_else(|| base.find_child_by_type(&node, "table_name"))?;
+    let table_name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
     // Count columns for a brief signature
     let mut column_count = 0;
@@ -126,11 +115,11 @@ pub(super) fn extract_view(
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
     if node.kind() == "create_view"
-        && let Some(name_node) = base
-            .find_child_by_type(&node, "identifier")
+        && let Some(name_node) = declared_object_name_node(base, node)
+            .or_else(|| base.find_child_by_type(&node, "identifier"))
             .or_else(|| base.find_child_by_type(&node, "view_name"))
     {
-        let name = base.get_node_text(&name_node);
+        let name = normalize_sql_identifier(&base.get_node_text(&name_node));
         let mut metadata = HashMap::new();
         metadata.insert("isView".to_string(), serde_json::Value::Bool(true));
 
@@ -191,7 +180,7 @@ pub(super) fn extract_index(
         .find_child_by_type(&node, "identifier")
         .or_else(|| base.find_child_by_type(&node, "index_name"))?;
 
-    let name = base.get_node_text(&name_node);
+    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
     // Get the full index text for signature
     let node_text = base.get_node_text(&node);
@@ -266,12 +255,10 @@ pub(super) fn extract_trigger(
     node: Node,
     parent_id: Option<&str>,
 ) -> Option<Symbol> {
-    // Port extractTrigger logic
-    let name_node = base
-        .find_child_by_type(&node, "identifier")
+    let name_node = declared_object_name_node(base, node)
+        .or_else(|| base.find_child_by_type(&node, "identifier"))
         .or_else(|| base.find_child_by_type(&node, "trigger_name"))?;
-
-    let name = base.get_node_text(&name_node);
+    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
     let mut metadata = HashMap::new();
     metadata.insert("isTrigger".to_string(), Value::Bool(true));
@@ -335,15 +322,10 @@ pub(super) fn extract_domain(
 ) -> Option<Symbol> {
     // Port extractDomain logic
     // Look for domain name - it may be inside an object_reference
-    let object_ref_node = base.find_child_by_type(&node, "object_reference");
-    let name_node = if let Some(obj_ref) = object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
-    } else {
-        base.find_child_by_type(&node, "identifier")
-            .or_else(|| base.find_child_by_type(&node, "domain_name"))
-    }?;
-
-    let name = base.get_node_text(&name_node);
+    let name_node = declared_object_name_node(base, node)
+        .or_else(|| base.find_child_by_type(&node, "identifier"))
+        .or_else(|| base.find_child_by_type(&node, "domain_name"))?;
+    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
     // Build domain signature with base type and constraints
     let node_text = base.get_node_text(&node);
@@ -382,14 +364,9 @@ pub(super) fn extract_type(
 ) -> Option<Symbol> {
     // Port extractType logic
     // Look for type name in object_reference
-    let object_ref_node = base.find_child_by_type(&node, "object_reference");
-    let name_node = if let Some(obj_ref) = object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
-    } else {
-        base.find_child_by_type(&node, "identifier")
-    }?;
-
-    let name = base.get_node_text(&name_node);
+    let name_node = declared_object_name_node(base, node)
+        .or_else(|| base.find_child_by_type(&node, "identifier"))?;
+    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
     // Check if this is an ENUM type
     let node_text = base.get_node_text(&node);
@@ -447,7 +424,7 @@ pub(super) fn extract_cte(
     // Implementation of extractCte method
     // Extract CTE name from identifier child
     let name_node = base.find_child_by_type(&node, "identifier")?;
-    let name = base.get_node_text(&name_node);
+    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
     // Check if this is a recursive CTE by looking for RECURSIVE keyword in the parent context
     let mut signature = format!("WITH {} AS (...)", name);
@@ -483,15 +460,10 @@ pub(super) fn extract_sequence(
 ) -> Option<Symbol> {
     // Port extractSequence logic
     // Look for sequence name - it may be inside an object_reference
-    let object_ref_node = base.find_child_by_type(&node, "object_reference");
-    let name_node = if let Some(obj_ref) = object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
-    } else {
-        base.find_child_by_type(&node, "identifier")
-            .or_else(|| base.find_child_by_type(&node, "sequence_name"))
-    }?;
-
-    let name = base.get_node_text(&name_node);
+    let name_node = declared_object_name_node(base, node)
+        .or_else(|| base.find_child_by_type(&node, "identifier"))
+        .or_else(|| base.find_child_by_type(&node, "sequence_name"))?;
+    let name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
     // Build sequence signature with options
     let node_text = base.get_node_text(&node);
@@ -546,4 +518,14 @@ pub(super) fn extract_sequence(
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Variable, options))
+}
+
+fn declared_object_name_node<'tree>(
+    base: &BaseExtractor,
+    node: Node<'tree>,
+) -> Option<Node<'tree>> {
+    let object_reference = base.find_child_by_type(&node, "object_reference")?;
+    object_reference
+        .child_by_field_name("name")
+        .or_else(|| base.find_child_by_type(&object_reference, "identifier"))
 }

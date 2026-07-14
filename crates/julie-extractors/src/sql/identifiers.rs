@@ -6,6 +6,7 @@
 //! - Qualified names (schema.table.column)
 
 use crate::base::{IdentifierKind, Symbol};
+use crate::sql::helpers::normalize_sql_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 
@@ -45,13 +46,15 @@ impl SqlExtractor {
                 let name_node = if let Some(obj_ref) =
                     self.base.find_child_by_type(&node, "object_reference")
                 {
-                    self.base.find_child_by_type(&obj_ref, "identifier")
+                    obj_ref
+                        .child_by_field_name("name")
+                        .or_else(|| self.base.find_child_by_type(&obj_ref, "identifier"))
                 } else {
                     self.base.find_child_by_type(&node, "identifier")
                 };
 
                 if let Some(name_node) = name_node {
-                    let name = self.base.get_node_text(&name_node);
+                    let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
                     let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
 
                     self.base.create_identifier(
@@ -67,7 +70,7 @@ impl SqlExtractor {
                 if let Some(next_sibling) = node.next_sibling()
                     && next_sibling.kind() == "function_arguments"
                 {
-                    let name = self.base.get_node_text(&node);
+                    let name = normalize_sql_identifier(&self.base.get_node_text(&node));
                     let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
 
                     self.base.create_identifier(
@@ -82,7 +85,7 @@ impl SqlExtractor {
                 if let Some(parent) = node.parent() {
                     match parent.kind() {
                         "select_expression" | "where_clause" | "having_clause" => {
-                            let name = self.base.get_node_text(&node);
+                            let name = normalize_sql_identifier(&self.base.get_node_text(&node));
                             let containing_symbol_id =
                                 self.find_containing_symbol_id(node, symbol_map);
 
@@ -106,7 +109,7 @@ impl SqlExtractor {
                 }
 
                 if let Some(name_node) = node.child_by_field_name("name") {
-                    let name = self.base.get_node_text(&name_node);
+                    let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
                     let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
 
                     self.base.create_identifier(
@@ -116,7 +119,7 @@ impl SqlExtractor {
                         containing_symbol_id,
                     );
                 } else {
-                    let name = self.base.get_node_text(&node);
+                    let name = normalize_sql_identifier(&self.base.get_node_text(&node));
                     let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
 
                     self.base.create_identifier(
@@ -138,7 +141,7 @@ impl SqlExtractor {
                 }
 
                 if let Some(name_node) = rightmost_identifier {
-                    let name = self.base.get_node_text(&name_node);
+                    let name = normalize_sql_identifier(&self.base.get_node_text(&name_node));
                     let containing_symbol_id = self.find_containing_symbol_id(node, symbol_map);
 
                     self.base.create_identifier(

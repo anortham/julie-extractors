@@ -6,6 +6,7 @@
 //! - ALTER TABLE ADD CONSTRAINT statements
 
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use crate::sql::helpers::normalize_sql_identifier;
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -125,7 +126,7 @@ pub(super) fn extract_table_columns(
             .or_else(|| base.find_child_by_type(&node, "column_name"));
 
         if let Some(name_node) = column_name_node {
-            let column_name = base.get_node_text(&name_node);
+            let column_name = normalize_sql_identifier(&base.get_node_text(&name_node));
 
             // Find SQL data type nodes (port comprehensive type search)
             let data_type_node = base
@@ -198,7 +199,7 @@ pub(super) fn extract_table_constraints(
         let named_constraint = base.find_child_by_type(&node, "identifier");
 
         if let Some(name_node) = named_constraint {
-            constraint_name = base.get_node_text(&name_node);
+            constraint_name = normalize_sql_identifier(&base.get_node_text(&name_node));
         }
 
         // Determine constraint type (reference logic)

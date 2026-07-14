@@ -27,7 +27,7 @@ mod tests {
     }
 
     #[test]
-    fn recovery_view_and_trigger_body_spans_use_statement_text_and_mark_source() {
+    fn parsed_view_and_recovery_trigger_body_spans_mark_source() {
         let sql = r#"
 CREATE VIEW active_workers AS
 SELECT id, name
@@ -51,14 +51,8 @@ END;
             .iter()
             .find(|symbol| symbol.name == "active_workers")
             .expect("active_workers view should be extracted");
-        assert!(
-            metadata_bool(view, "extractedFromError"),
-            "view should remain tagged as recovery extraction"
-        );
-        assert_eq!(
-            metadata_str(view, "bodySpanSource"),
-            Some("recovery_heuristic")
-        );
+        assert!(!metadata_bool(view, "extractedFromError"));
+        assert_eq!(metadata_str(view, "bodySpanSource"), Some("statement_text"));
         let view_body = view.body_span.expect("view should have AS body span");
         assert!(
             view_body.end_byte > view_body.start_byte,

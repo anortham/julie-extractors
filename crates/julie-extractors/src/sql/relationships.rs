@@ -9,6 +9,7 @@ use crate::base::{
     BaseExtractor, Relationship, RelationshipKind, StructuredPendingRelationship, Symbol,
     SymbolKind, UnresolvedTarget,
 };
+use crate::sql::helpers::normalize_sql_identifier;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -100,38 +101,29 @@ pub(super) fn extract_foreign_key_relationship(
     symbols: &[Symbol],
     relationships: &mut Vec<Relationship>,
 ) {
-    // Port extractForeignKeyRelationship logic
-    // Extract foreign key relationships between tables
-    // Look for object_reference after keyword_references
     let references_keyword = base.find_child_by_type(&node, "keyword_references");
     if references_keyword.is_none() {
         return;
     }
 
     let object_ref_node = base.find_child_by_type(&node, "object_reference");
-    let referenced_table_node = if let Some(obj_ref) = object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
+    let (referenced_table, referenced_table_parts) = if let Some(obj_ref) = object_ref_node {
+        let parts = object_reference_parts(base, obj_ref);
+        let Some(name) = parts.last().cloned() else {
+            return;
+        };
+        (name, parts)
     } else {
-        base.find_child_by_type(&node, "table_name")
+        let Some(name_node) = base
+            .find_child_by_type(&node, "table_name")
             .or_else(|| base.find_child_by_type(&node, "identifier"))
+        else {
+            return;
+        };
+        let name = normalize_sql_identifier(&base.get_node_text(&name_node));
+        (name.clone(), vec![name])
     };
-
-    let referenced_table_node = match referenced_table_node {
-        Some(node) => node,
-        None => return,
-    };
-
-    let referenced_table = base.get_node_text(&referenced_table_node);
-
-    // Capture the *full* qualified text (e.g., "other_schema.users") so that
-    // cross-schema references can be split into namespace_path + terminal_name
-    // for structured pending emission below. The unqualified case keeps the
-    // bare identifier shape.
-    let referenced_table_qualified = if let Some(obj_ref) = object_ref_node {
-        base.get_node_text(&obj_ref)
-    } else {
-        referenced_table.clone()
-    };
+    let referenced_table_qualified = referenced_table_parts.join(".");
 
     // Find the source table (parent of this foreign key)
     let mut current_node = node.parent();
@@ -147,21 +139,21 @@ pub(super) fn extract_foreign_key_relationship(
         None => return,
     };
 
-    // Look for table name in object_reference (same pattern as extractTableDefinition)
     let source_object_ref_node = base.find_child_by_type(&current_node, "object_reference");
-    let source_table_node = if let Some(obj_ref) = source_object_ref_node {
-        base.find_child_by_type(&obj_ref, "identifier")
+    let source_table = if let Some(obj_ref) = source_object_ref_node {
+        let Some(name) = object_reference_name(base, obj_ref) else {
+            return;
+        };
+        name
     } else {
-        base.find_child_by_type(&current_node, "identifier")
+        let Some(name_node) = base
+            .find_child_by_type(&current_node, "identifier")
             .or_else(|| base.find_child_by_type(&current_node, "table_name"))
+        else {
+            return;
+        };
+        normalize_sql_identifier(&base.get_node_text(&name_node))
     };
-
-    let source_table_node = match source_table_node {
-        Some(node) => node,
-        None => return,
-    };
-
-    let source_table = base.get_node_text(&source_table_node);
 
     // Find corresponding symbols
     let source_symbol = symbols
@@ -175,7 +167,6 @@ pub(super) fn extract_foreign_key_relationship(
 
     match (source_symbol, target_symbol) {
         (Some(source_symbol), Some(target_symbol)) => {
-            // Both tables in the same file → emit a concrete relationship.
             let mut metadata = HashMap::new();
             metadata.insert(
                 "targetTable".to_string(),
@@ -206,22 +197,15 @@ pub(super) fn extract_foreign_key_relationship(
             });
         }
         (Some(source_symbol), None) => {
-            // Cross-file FK target → emit a structured pending relationship.
-            // Parse the qualified reference into namespace_path + terminal_name
-            // so the resolver can match against external schemas later.
-            let parts: Vec<&str> = referenced_table_qualified.split('.').collect();
-            let (terminal_name, namespace_path) = match parts.as_slice() {
+            let (terminal_name, namespace_path) = match referenced_table_parts.as_slice() {
                 [] => return,
-                [name] => ((*name).to_string(), Vec::new()),
+                [name] => (name.clone(), Vec::new()),
                 _ => (
-                    parts
+                    referenced_table_parts
                         .last()
                         .expect("split produces at least one element")
-                        .to_string(),
-                    parts[..parts.len() - 1]
-                        .iter()
-                        .map(|s| s.to_string())
-                        .collect(),
+                        .clone(),
+                    referenced_table_parts[..referenced_table_parts.len() - 1].to_vec(),
                 ),
             };
             let target = UnresolvedTarget {
@@ -276,11 +260,21 @@ fn table_symbol_from_relation<'a>(
 }
 
 fn object_reference_name(base: &BaseExtractor, object_reference: Node) -> Option<String> {
-    let name_node = object_reference
-        .child_by_field_name("name")
-        .or_else(|| first_child_by_kind(object_reference, "identifier"))?;
+    object_reference_parts(base, object_reference).pop()
+}
 
-    Some(base.get_node_text(&name_node))
+fn object_reference_parts(base: &BaseExtractor, object_reference: Node) -> Vec<String> {
+    let mut parts = ["database", "schema", "name"]
+        .into_iter()
+        .filter_map(|field| object_reference.child_by_field_name(field))
+        .map(|node| normalize_sql_identifier(&base.get_node_text(&node)))
+        .collect::<Vec<_>>();
+    if parts.is_empty()
+        && let Some(identifier) = first_child_by_kind(object_reference, "identifier")
+    {
+        parts.push(normalize_sql_identifier(&base.get_node_text(&identifier)));
+    }
+    parts
 }
 
 fn enclosing_from_node(mut node: Node) -> Option<Node> {

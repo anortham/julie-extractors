@@ -243,6 +243,76 @@ WHERE o.status = 'completed';
         assert_eq!(joined_tables, vec!["order_items", "orders"]);
     }
 
+    #[test]
+    fn bracketed_relationships_resolve_normalized_table_symbols() {
+        let sql_code = r#"
+CREATE TABLE [auth].[Owners] (
+    [Id] INT PRIMARY KEY
+);
+
+CREATE TABLE [edr].[Items] (
+    [Id] INT PRIMARY KEY,
+    [OwnerId] INT,
+    CONSTRAINT [FK_Items_Owners] FOREIGN KEY ([OwnerId])
+        REFERENCES [auth].[Owners] ([Id])
+);
+
+CREATE VIEW [edr].[ItemView] AS
+SELECT [OwnerId] FROM [edr].[Items];
+
+CREATE TRIGGER [edr].[TR_Items]
+    AFTER INSERT ON [edr].[Items]
+    FOR EACH ROW
+    EXECUTE FUNCTION [edr].[log_item]();
+"#;
+        let (symbols, relationships) = extract_symbols_and_relationships(sql_code);
+        let items = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Items" && symbol.kind == SymbolKind::Class)
+            .expect("Items table symbol");
+        let owners = symbols
+            .iter()
+            .find(|symbol| symbol.name == "Owners" && symbol.kind == SymbolKind::Class)
+            .expect("Owners table symbol");
+        let view = symbols
+            .iter()
+            .find(|symbol| symbol.name == "ItemView" && symbol.kind == SymbolKind::Interface)
+            .expect("ItemView symbol");
+        let trigger = symbols
+            .iter()
+            .find(|symbol| symbol.name == "TR_Items" && symbol.kind == SymbolKind::Method)
+            .expect("TR_Items symbol");
+
+        let foreign_key = relationships
+            .iter()
+            .find(|relationship| {
+                relationship
+                    .metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.get("relationshipType"))
+                    .and_then(|value| value.as_str())
+                    == Some("foreign_key")
+            })
+            .expect("normalized foreign-key relationship");
+        assert_eq!(foreign_key.from_symbol_id, items.id);
+        assert_eq!(foreign_key.to_symbol_id, owners.id);
+        assert_eq!(target_table(foreign_key), "Owners");
+
+        let view_source = relationships
+            .iter()
+            .find(|relationship| relationship.from_symbol_id == view.id)
+            .expect("normalized view-source relationship");
+        assert_eq!(view_source.to_symbol_id, items.id);
+        assert_eq!(target_table(view_source), "Items");
+
+        let trigger_target = relationships
+            .iter()
+            .find(|relationship| relationship.from_symbol_id == trigger.id)
+            .expect("normalized trigger-target relationship");
+        assert_eq!(trigger_target.to_symbol_id, items.id);
+        assert_eq!(target_table(trigger_target), "Items");
+    }
+
     fn target_table(relationship: &crate::base::Relationship) -> &str {
         relationship
             .metadata

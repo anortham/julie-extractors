@@ -31,6 +31,7 @@ pub(super) fn finalize_sql_callable_symbol(base: &BaseExtractor, symbol: &mut Sy
                 },
             );
         }
+        Some(_) => set_metadata_str(symbol, "bodySpanSource", "statement_text"),
         None if is_recovery => {
             symbol.body_span = None;
             symbol.body_hash = None;

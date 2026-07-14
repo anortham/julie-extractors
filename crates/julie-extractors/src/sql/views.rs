@@ -13,7 +13,7 @@ use std::sync::LazyLock;
 use tree_sitter::Node;
 
 use super::SqlExtractor;
-use crate::sql::helpers::CREATE_VIEW_RE;
+use crate::sql::helpers::{CREATE_VIEW_RE, normalize_sql_identifier};
 
 static VIEW_FROM_ALIAS_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\bFROM\s+[a-zA-Z_][a-zA-Z0-9_]*\s+[a-zA-Z_]").unwrap());
@@ -46,7 +46,8 @@ impl SqlExtractor {
                         && children[i + 2].kind() == "identifier"
                     {
                         let expr_node = children[i];
-                        let alias_name = self.base.get_node_text(&children[i + 2]);
+                        let alias_name =
+                            normalize_sql_identifier(&self.base.get_node_text(&children[i + 2]));
                         let expr_text = self.base.get_node_text(&expr_node);
 
                         // Determine expression type for better signatures - CRITICAL: Window function handling

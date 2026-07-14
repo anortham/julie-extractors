@@ -95,3 +95,26 @@ fn test_sql_emits_structured_pending_for_cross_file_fk() {
         "local FK audit_events → orders must produce a concrete relationship"
     );
 }
+
+#[test]
+fn bracketed_cross_file_fk_normalizes_each_qualification_segment() {
+    let result = extract_canonical(
+        "quoted.sql",
+        r#"CREATE TABLE [app].[Orders] (
+    [UserId] INT,
+    CONSTRAINT [FK_Orders_Users] FOREIGN KEY ([UserId])
+        REFERENCES [external.db].[Users] ([Id])
+);"#,
+        Path::new("/tmp/test"),
+    )
+    .expect("bracketed cross-file SQL extraction");
+    let pending = result
+        .structured_pending_relationships
+        .iter()
+        .find(|pending| pending.target.terminal_name == "Users")
+        .expect("normalized pending target");
+
+    assert_eq!(pending.target.display_name, "external.db.Users");
+    assert_eq!(pending.target.terminal_name, "Users");
+    assert_eq!(pending.target.namespace_path, vec!["external.db"]);
+}

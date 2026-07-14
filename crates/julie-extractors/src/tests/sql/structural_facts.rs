@@ -339,3 +339,106 @@ select n from nums;
         .expect("cte fact");
     assert_eq!(metadata_bool(cte, "recursive"), Some(true));
 }
+
+#[test]
+fn sql_tsql_ddl_facts_normalize_names_and_select_trigger_target_after_on() {
+    let source = r#"
+CREATE TABLE [edr].[Items] (
+    [Id] INT,
+    CONSTRAINT [PK_Items] PRIMARY KEY ([Id])
+);
+
+CREATE TRIGGER [edr].[TR_Items]
+    AFTER INSERT ON [edr].[Items]
+    FOR EACH ROW
+    EXECUTE FUNCTION [edr].[log_item]();
+"#;
+    let results = extract(source);
+
+    let table = facts_with_pattern(&results, "sql.table_definition.v1")
+        .into_iter()
+        .next()
+        .expect("normalized table fact");
+    assert_eq!(metadata_str(table, "schema_name"), Some("edr"));
+    assert_eq!(metadata_str(table, "table_name"), Some("Items"));
+
+    let column = facts_with_pattern(&results, "sql.column_definition.v1")
+        .into_iter()
+        .next()
+        .expect("normalized column fact");
+    assert_eq!(metadata_str(column, "table_name"), Some("Items"));
+    assert_eq!(metadata_str(column, "column_name"), Some("Id"));
+
+    let constraint = facts_with_pattern(&results, "sql.constraint.v1")
+        .into_iter()
+        .next()
+        .expect("normalized constraint fact");
+    assert_eq!(
+        metadata_str(constraint, "constraint_name"),
+        Some("PK_Items")
+    );
+    assert_eq!(
+        metadata_string_array(constraint, "column_names"),
+        Some(vec!["Id".to_string()])
+    );
+
+    let trigger = facts_with_pattern(&results, "sql.trigger_definition.v1")
+        .into_iter()
+        .next()
+        .expect("normalized trigger fact");
+    assert_eq!(metadata_str(trigger, "schema_name"), Some("edr"));
+    assert_eq!(metadata_str(trigger, "trigger_name"), Some("TR_Items"));
+    assert_eq!(metadata_str(trigger, "target_table"), Some("Items"));
+}
+
+#[test]
+fn sql_tsql_merge_emits_registered_values_source_fact() {
+    let results = extract(
+        r#"MERGE [dbo].[Seed] AS t
+USING (VALUES (N'alpha', N'Reader')) AS s (Area, Role)
+ON t.Area = s.Area AND t.Role = s.Role
+WHEN NOT MATCHED THEN INSERT (Area, Role) VALUES (s.Area, s.Role);"#,
+    );
+    let merge = facts_with_pattern(&results, "sql.merge_statement.v1")
+        .into_iter()
+        .next()
+        .expect("T-SQL MERGE fact");
+
+    assert_eq!(merge.capture_name, "merge");
+    assert_eq!(merge.node_kind, "merge_statement");
+    assert_eq!(
+        metadata_str(merge, "query_family"),
+        Some("mutation_structure")
+    );
+    assert_eq!(metadata_str(merge, "target_table"), Some("Seed"));
+    assert_eq!(metadata_str(merge, "source_kind"), Some("values"));
+    assert_eq!(metadata_bool(merge, "has_when_matched"), Some(false));
+    assert_eq!(metadata_bool(merge, "has_when_not_matched"), Some(true));
+    assert!(
+        merge
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("source_table"))
+            .is_none()
+    );
+}
+
+#[test]
+fn sql_tsql_control_flow_emits_no_structural_facts() {
+    let results = extract(include_str!(
+        "../../../../../fixtures/extraction/sql/tsql_batch_control/source.sql"
+    ));
+
+    assert!(results.parse_diagnostics.is_empty());
+    assert!(results.structural_facts.iter().all(|fact| {
+        !matches!(
+            fact.node_kind.as_str(),
+            "go_statement"
+                | "set_statement"
+                | "if_statement"
+                | "begin_end_block"
+                | "declare_statement"
+                | "throw_statement"
+        )
+    }));
+}
