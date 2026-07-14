@@ -310,23 +310,23 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 **Approach:** Re-read the original request, design, this plan, and accepted diffs. Run format and static analysis first, then focused/language/golden/capability/contract/certification/default tiers, strict quality, report tests/live report, fresh CLI build, exact Cargo resolution, and the Terraform valid/malformed replay. Use the fresh CLI binary for corpus evidence. If a gate fails, identify the root cause, fix it with a new focused red/green test, re-run the invalidated scopes, and continue. Request an inline code review after the branch gate, verify findings against live code, fix accepted findings, and repeat invalidated gates. Record final worktree state for every related Julie and grammar worktree.
 
 **Acceptance:**
-- [ ] `cargo fmt --all -- --check` passes.
-- [ ] `cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings` passes.
-- [ ] Focused C#, Swift, and R parser/extractor tests pass.
-- [ ] `cargo xtask test language csharp`, `cargo xtask test language swift`, and `cargo xtask test language r` pass.
-- [ ] `cargo xtask test golden`, `capability`, `contract`, `certification`, and `default` pass.
-- [ ] `cargo deny --all-features check` passes.
-- [ ] `node scripts/language-data-quality-report.mjs --strict` reports `silent_cells=0` and `quality_bar_debts=0`.
-- [ ] `node --test scripts/grammar-freshness-report.test.mjs` and a live `node scripts/grammar-freshness-report.mjs --format json` pass.
-- [ ] A fresh `julie-extract` build is used for the Terraform replay at `821e6b1a268cb392b1abb5080243a299db2a9bc9`.
-- [ ] All six valid Terraform SQL files emit zero SQL `error` and `missing` diagnostics.
-- [ ] Valid Terraform Razor files emit zero Razor `error` and `missing` diagnostics.
-- [ ] Malformed T-SQL negative controls still emit diagnostics.
-- [ ] `cargo metadata --locked` and `cargo tree --locked` prove runtime `0.26.11`, Swift `0.7.3`, R `1.3.0`, and exact remote `C_SHARP_FORK_COMMIT` resolution without local paths.
-- [ ] The C# parser commit exists on `anortham/tree-sitter-c-sharp`'s remote default branch.
-- [ ] Review has no unresolved findings and all invalidated verification has been repeated.
-- [ ] The Julie worktree is clean and release-ready; all related Julie and grammar worktrees have reported path, branch, commit, and dirty state.
-- [ ] Julie remains unpushed, untagged, unpublished, unversioned, and unreleased pending explicit approval.
+- [x] `cargo fmt --all -- --check` passes.
+- [x] `cargo clippy --workspace --all-targets --all-features --no-deps -- -D warnings` passes.
+- [x] Focused C#, Swift, and R parser/extractor tests pass.
+- [x] `cargo xtask test language csharp`, `cargo xtask test language swift`, and `cargo xtask test language r` pass.
+- [x] `cargo xtask test golden`, `capability`, `contract`, `certification`, and `default` pass.
+- [x] `cargo deny --all-features check` passes.
+- [x] `node scripts/language-data-quality-report.mjs --strict` reports `silent_cells=0` and `quality_bar_debts=0`.
+- [x] `node --test scripts/grammar-freshness-report.test.mjs` and a live `node scripts/grammar-freshness-report.mjs --format json` pass.
+- [x] A fresh `julie-extract` build is used for the Terraform replay at `821e6b1a268cb392b1abb5080243a299db2a9bc9`.
+- [x] All six valid Terraform SQL files emit zero SQL `error` and `missing` diagnostics.
+- [x] Valid Terraform Razor files emit zero Razor `error` and `missing` diagnostics.
+- [x] Malformed T-SQL negative controls still emit diagnostics.
+- [x] `cargo metadata --locked` and `cargo tree --locked` prove runtime `0.26.11`, Swift `0.7.3`, R `1.3.0`, and exact remote `C_SHARP_FORK_COMMIT` resolution without local paths.
+- [x] The C# parser commit exists on `anortham/tree-sitter-c-sharp`'s remote default branch.
+- [x] Review has no unresolved findings and all invalidated verification has been repeated.
+- [x] The Julie worktree is clean and release-ready; all related Julie and grammar worktrees have reported path, branch, commit, and dirty state.
+- [x] Julie remains unpushed, untagged, unpublished, unversioned, and unreleased pending explicit approval.
 
 ## Final Handoff
 
