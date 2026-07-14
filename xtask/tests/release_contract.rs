@@ -488,6 +488,68 @@ fn dependency_policy_allows_pinned_git_parser_sources() {
     }
 }
 
+#[test]
+fn dependency_policy_locks_tree_sitter_runtime_and_git_parser_commits() {
+    let root = repo_root();
+    let cargo_toml = std::fs::read_to_string(root.join("crates/julie-extractors/Cargo.toml"))
+        .expect("extractor Cargo.toml");
+    let cargo_lock = std::fs::read_to_string(root.join("Cargo.lock")).expect("Cargo.lock");
+
+    let runtime_declarations = cargo_toml
+        .lines()
+        .filter(|line| line.trim_start().starts_with("tree-sitter = "))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        runtime_declarations,
+        ["tree-sitter = \"=0.26.11\""],
+        "Tree-sitter runtime must be declared exactly once at =0.26.11"
+    );
+
+    let runtime_packages = cargo_lock
+        .split("[[package]]")
+        .filter(|package| package.lines().any(|line| line == "name = \"tree-sitter\""))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        runtime_packages.len(),
+        1,
+        "Cargo.lock must resolve exactly one tree-sitter runtime package"
+    );
+    assert!(
+        runtime_packages[0]
+            .lines()
+            .any(|line| line == "version = \"0.26.11\""),
+        "Cargo.lock tree-sitter runtime must resolve to 0.26.11"
+    );
+
+    for line in cargo_toml
+        .lines()
+        .filter(|line| line.contains("tree-sitter") && line.contains("git = "))
+    {
+        let url = inline_manifest_value(line, "git")
+            .unwrap_or_else(|| panic!("Git parser dependency must declare git: {line}"));
+        let revision = inline_manifest_value(line, "rev")
+            .unwrap_or_else(|| panic!("Git parser dependency must use an exact rev: {line}"));
+        assert!(
+            revision.len() == 40
+                && revision
+                    .chars()
+                    .all(|character| character.is_ascii_hexdigit()
+                        && !character.is_ascii_uppercase()),
+            "Git parser dependency rev must be a lowercase 40-character commit: {line}"
+        );
+        assert!(
+            cargo_lock.contains(&format!("source = \"git+{url}?rev={revision}#{revision}\"")),
+            "Cargo.lock must resolve {url} at declared rev {revision}"
+        );
+    }
+}
+
+fn inline_manifest_value<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    let marker = format!("{key} = \"");
+    let (_, value) = line.split_once(&marker)?;
+    value.split_once('"').map(|(value, _)| value)
+}
+
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()

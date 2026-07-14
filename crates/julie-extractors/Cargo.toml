@@ -26,7 +26,7 @@ test-real-world = []
 
 [dependencies]
 # Tree-sitter parser inventory is audited in docs/TREE_SITTER_UPGRADES.md.
-tree-sitter = "0.26.8"
+tree-sitter = "=0.26.11"
 tree-sitter-bash = "0.25.1"
 tree-sitter-c = "0.24.2"
 tree-sitter-cpp = "0.23.4"
