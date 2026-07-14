@@ -137,6 +137,41 @@ fn csharp14_and_file_app_fixture_parses_cleanly_with_canonical_rows() {
 }
 
 #[test]
+fn all_csharp14_compound_assignment_operators_emit_symbols() {
+    let results = extract(
+        r#"
+class C
+{
+    public int Value;
+
+    public void operator +=(int x) => Value += x;
+    public void operator -=(int x) => Value -= x;
+    public void operator *=(int x) => Value *= x;
+    public void operator /=(int x) => Value /= x;
+    public void operator %=(int x) => Value %= x;
+    public void operator ^=(int x) => Value ^= x;
+    public void operator |=(int x) => Value |= x;
+    public void operator &=(int x) => Value &= x;
+    public void operator <<=(int x) => Value <<= x;
+    public void operator >>=(int x) => Value >>= x;
+    public void operator >>>=(int x) => Value >>>= x;
+}
+"#,
+    );
+
+    assert!(results.parse_diagnostics.is_empty());
+    for operator in [
+        "+=", "-=", "*=", "/=", "%=", "^=", "|=", "&=", "<<=", ">>=", ">>>=",
+    ] {
+        assert_symbol(
+            &results,
+            &format!("operator {operator}"),
+            SymbolKind::Method,
+        );
+    }
+}
+
+#[test]
 fn malformed_csharp14_extension_declaration_remains_diagnostic() {
     assert_diagnostic(
         "malformed extension declaration",
