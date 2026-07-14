@@ -107,13 +107,13 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 **Approach:** First reproduce and repair the inherited SQL `allow-git` failure by adding `https://github.com/anortham/tree-sitter-sql` to `deny.toml`. Then strengthen release-contract tests so the current `0.26.8` declaration/`0.26.9` lock and any non-exact Git parser source fail. Declare `tree-sitter = "=0.26.11"`, resolve the lockfile deliberately, and document registry-vs-Git selection, owned-fork requirements, generation version, audit cadence, semantic-evidence requirements, and the boundary between drift detection and support claims. Do not update any grammar in this task.
 
 **Acceptance:**
-- [ ] The release contract is observed failing on the old runtime declaration or lock.
-- [ ] The inherited SQL `allow-git` failure is recorded separately and repaired before the runtime RED is established.
-- [ ] Manifest and lockfile resolve exactly one `tree-sitter 0.26.11` runtime.
-- [ ] Every Git parser dependency has an exact `rev`, an allowed remote source, and a matching locked commit.
-- [ ] The architecture policy records Tree-sitter CLI `0.26.11` as the future generation floor and preserves historical records.
-- [ ] Focused release-contract tests, `cargo tree --locked`, and `cargo deny --all-features check` pass.
-- [ ] The worker commits the verified Julie-owned files and reports path, branch, commit, and dirty state.
+- [x] The release contract is observed failing on the old runtime declaration or lock.
+- [x] The inherited SQL `allow-git` failure is recorded separately and repaired before the runtime RED is established.
+- [x] Manifest and lockfile resolve exactly one `tree-sitter 0.26.11` runtime.
+- [x] Every Git parser dependency has an exact `rev`, an allowed remote source, and a matching locked commit.
+- [x] The architecture policy records Tree-sitter CLI `0.26.11` as the future generation floor and preserves historical records.
+- [x] Focused release-contract tests, `cargo tree --locked`, and `cargo deny --all-features check` pass.
+- [x] The worker commits the verified Julie-owned files and reports path, branch, commit, and dirty state.
 
 ### Task 2: Create and push the owned C# grammar fork
 
