@@ -44,6 +44,7 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = [
     "https://github.com/LuisCarreras/tree-sitter-vb-dotnet",
     "https://github.com/airbus-cert/tree-sitter-powershell",
+    "https://github.com/anortham/tree-sitter-c-sharp",
     "https://github.com/anortham/tree-sitter-razor",
     "https://github.com/anortham/tree-sitter-sql",
     "https://github.com/yuja/tree-sitter-qmljs",

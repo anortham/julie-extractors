@@ -970,8 +970,7 @@ dependencies = [
 [[package]]
 name = "tree-sitter-c-sharp"
 version = "0.23.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1aac67f1ad71de1d6d39708d34811081c26dfa495658de6c14c34200849357c"
+source = "git+https://github.com/anortham/tree-sitter-c-sharp?rev=688cf95ae4c984638557dab73253bd66719bdd5c#688cf95ae4c984638557dab73253bd66719bdd5c"
 dependencies = [
  "cc",
  "tree-sitter-language",

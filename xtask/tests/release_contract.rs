@@ -521,6 +521,16 @@ fn dependency_policy_locks_tree_sitter_runtime_and_git_parser_commits() {
         "Cargo.lock tree-sitter runtime must resolve to 0.26.11"
     );
 
+    let csharp_declaration = cargo_toml
+        .lines()
+        .find(|line| line.trim_start().starts_with("tree-sitter-c-sharp = "))
+        .expect("tree-sitter-c-sharp dependency declaration");
+    assert_eq!(
+        csharp_declaration,
+        "tree-sitter-c-sharp = { git = \"https://github.com/anortham/tree-sitter-c-sharp\", rev = \"688cf95ae4c984638557dab73253bd66719bdd5c\" }",
+        "tree-sitter-c-sharp must resolve from the reviewed fork commit"
+    );
+
     for line in cargo_toml
         .lines()
         .filter(|line| line.contains("tree-sitter") && line.contains("git = "))

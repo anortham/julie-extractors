@@ -2532,7 +2532,7 @@
       "extensions": [
         "cs"
       ],
-      "dependency_status": "current",
+      "dependency_status": "git_pinned",
       "capabilities": {
         "symbols": true,
         "relationships": true,
@@ -2550,6 +2550,11 @@
           "name": "basic",
           "source": "fixtures/extraction/csharp/basic/source.cs",
           "expected": "fixtures/extraction/csharp/basic/expected.json"
+        },
+        {
+          "name": "csharp14",
+          "source": "fixtures/extraction/csharp/csharp14/source.cs",
+          "expected": "fixtures/extraction/csharp/csharp14/expected.json"
         },
         {
           "name": "cross_file",

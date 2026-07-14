@@ -30,7 +30,7 @@ tree-sitter = "=0.26.11"
 tree-sitter-bash = "0.25.1"
 tree-sitter-c = "0.24.2"
 tree-sitter-cpp = "0.23.4"
-tree-sitter-c-sharp = "0.23.5"
+tree-sitter-c-sharp = { git = "https://github.com/anortham/tree-sitter-c-sharp", rev = "688cf95ae4c984638557dab73253bd66719bdd5c" }
 tree-sitter-css = "0.25.0"
 tree-sitter-go = "0.25.0"
 tree-sitter-html = "0.23.2"
