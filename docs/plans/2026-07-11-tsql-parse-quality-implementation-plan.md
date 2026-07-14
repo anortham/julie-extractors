@@ -13,14 +13,14 @@
 - Base Julie Extractors work on current `main` `bfced7be9abd8754d11d5152f2ca84e57dec3f0d`; preserve its `tree-sitter-razor` pin and zero-diagnostic Terraform behavior.
 - Work grammar changes in the isolated `codex/tsql-parse-quality-grammar` worktree rooted at `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf`; do not modify the dirty `feat/tsql-julie-integration` checkout.
 - The final Cargo dependency must resolve from `https://github.com/anortham/tree-sitter-sql` at one full commit SHA; no committed local path, unpushed revision, or floating branch is acceptable.
-- Creating the fork and pushing grammar commits requires explicit user approval. Complete and verify the local grammar first so one final remote commit can be approved and pinned.
+- The user approved the grammar fork push on 2026-07-13. `anortham/tree-sitter-sql` branch `tsql-parse-quality` now resolves to the verified final grammar commit `63ea933e464813d01cab5d7febcb0f77409c247b`; Cargo integration must pin that exact remote revision.
 - Preserve all existing general-SQL node-derived extraction, goldens, capability claims, and artifact contracts.
 - Keep the Terraform scan and full grammar certification outside the default test tier.
 - Do not edit Julie, tree-sitter-razor, Miller, or Eros. Do not push, tag, publish, release, or choose a release version without explicit approval.
 
 ## Architecture Quality
 
-**Affected modules:** external SQL grammar fork; `crates/julie-extractors` parser dependency and language inventory; `src/sql/` symbol/identifier extraction; `src/base/sql_structural_facts.rs`; structural-fact registry; SQL goldens/capability row.
+**Affected modules:** external SQL grammar fork; `crates/julie-extractors` parser dependency and language inventory; `src/sql/` symbol/identifier extraction and routine-complexity compatibility; `src/base/sql_structural_facts.rs`; structural-fact registry; SQL goldens/capability row.
 
 **Caller-facing interface:** unchanged `julie-extract` CLI and SQLite/JSONL contracts. The behavioral change is fewer persisted `parse_diagnostics`, normalized SQL names, and one additive registered structural-fact pattern.
 
@@ -37,12 +37,13 @@
 ## Locked Decisions
 
 1. **Implementation base:** use current `main` `bfced7be9abd8754d11d5152f2ca84e57dec3f0d`. A fresh 2.13.0 CLI build at this commit scans Terraform `821e6b1a268cb392b1abb5080243a299db2a9bc9` with 283 SQL errors, 1 SQL missing diagnostic, zero Razor diagnostics, and 418/388/30/0 scanned/extracted/unsupported/failed files.
-2. **Grammar base:** fork `jamie8johnson/tree-sitter-sql` commit `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf` (crate `tree-sitter-sequel-tsql` 0.4.2), finish all grammar work locally, then create `anortham/tree-sitter-sql`, push the verified final commit after explicit approval, and pin that full remote revision. Do not commit a local path or wait for an upstream release.
+2. **Grammar base:** fork `jamie8johnson/tree-sitter-sql` commit `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf` (crate `tree-sitter-sequel-tsql` 0.4.2). The verified grammar was pushed with approval to `anortham/tree-sitter-sql` branch `tsql-parse-quality` at `63ea933e464813d01cab5d7febcb0f77409c247b`; pin that full remote revision. Do not commit a local path or wait for an upstream release.
 3. **Acceptance target:** all six Terraform `.sql` files must have zero `error` and zero `missing` rows. Partial reduction is an intermediate metric, not completion.
 4. **Diagnostic integrity:** malformed T-SQL must still emit diagnostics. Tests include negative controls; the fix must expand valid grammar, not make `ERROR` nodes invisible. Parameterless `THROW;` is valid only inside `CATCH`, so the malformed control is a two-argument `THROW 50001, N'message';`, not bare `THROW;`.
 5. **Extraction scope:** normalize bracketed object/column names and add `sql.merge_statement.v1`. `GO`, `SET`, `IF`, `BEGIN/END`, `DECLARE`, and `THROW` are grammar-supported but intentionally emit no first-class artifact rows in this issue.
 6. **Capability scope:** register two new SQL golden fixtures and add `sql.merge_statement.v1` to SQL structural-fact support. Keep the existing `sql.advanced_dml_and_procedure_structure` gap open, but remove MERGE from its reason/closure text; INSERT, DELETE, procedures/functions, windows, and other vendor DDL remain named debt.
 7. **Test-tier discipline:** minimized T-SQL fixtures run in focused/golden tiers. The live Terraform scan is a release/affected-change gate only and must not enter the default suite.
+8. **Grammar-base compatibility:** live SQL-tier evidence proved `tree-sitter-sequel-tsql` base `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf` cleanly parses routines that 0.3.11 routed through recovery. Preserve the established artifact contract at the existing SQL extractor seam: procedures remain `Function` symbols with `CREATE PROCEDURE` signatures and parameter symbols, and callable complexity includes the trailing statement delimiter. Do not roll back the selected grammar or rewrite existing tests/goldens.
 
 ## Reproduced Baseline
 
@@ -90,6 +91,12 @@ Observed on 2026-07-13: status `ok`; 418 paths scanned; 388 supported/extracted;
 ### Parser candidate evidence
 
 A fresh build of the old local-only branch `771a2152bf5f27197a43eb1f1b4f5cabcbf0449d` using `tree-sitter-sequel-tsql` 0.4.2 reduced the six files from 284 diagnostics to 53 (49 error + 4 missing), a reduction of 231 rows / 81.3%, while retaining zero Razor rows. Its focused probes were 13 passing / 10 failing and its `sql:basic` golden regressed, so the reduction validates the grammar base but not the old integration. Residuals are exactly the planned Task 3-4 classes: `IDENTITY`, `(MAX)`, computed persisted columns, named inline constraints, `SET`, `IF/BEGIN/END`, initialized `DECLARE`, `THROW`, and `MERGE ... USING (VALUES ...)`.
+
+### Final remote grammar evidence
+
+The final local grammar passed all 496 corpus cases, the full Rust grammar tests and doctest, all six Terraform SQL files with zero parser diagnostics, and malformed controls that remained diagnostic. After explicit approval, commit `63ea933e464813d01cab5d7febcb0f77409c247b` was pushed to `https://github.com/anortham/tree-sitter-sql` on branch `tsql-parse-quality`; `git ls-remote` resolves that branch to the exact commit. This is the only approved grammar revision for the Julie Extractors integration.
+
+The full Julie SQL tier then exposed two compatibility regressions that were absent from the minimized goldens: `test_extract_stored_procedures_functions_and_triggers` lost the recovery-path procedure contract, and `sql_callable_symbol_complexity_uses_body_span_with_predicate_evidence` ended at the clean routine node instead of the trailing delimiter. Both failures reproduce unchanged against the unmodified grammar base `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf`, proving they predate the final T-SQL grammar work. Task 4 therefore includes a minimal extractor adapter for the grammar base's clean routine nodes; existing tests remain unchanged.
 
 ## Verification Strategy
 
@@ -257,6 +264,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - Modify: `Cargo.lock` and prove the exact remote source/revision with `cargo tree` plus lockfile inspection.
 - Modify: `crates/julie-extractors/src/language_spec/specs.rs` parser inventory label to `tree-sitter-sequel-tsql`.
 - Modify: `fixtures/extraction/capabilities.json` SQL `parser_crate` and `dependency_status` (`git_pinned`) only; fixture registration waits for Task 6.
+- Modify: `crates/julie-extractors/src/sql/routines.rs`, `src/sql/mod.rs`, and `src/sql/complexity_metrics.rs`, plus focused coverage in `src/tests/sql/procedures.rs`, only for the proven grammar-base routine compatibility adapter described in locked decision 8.
 - Update exact parser-inventory expectations found by `cargo xtask test certification`; do not weaken them.
 
 **Required named nodes:**
@@ -267,7 +275,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - `throw_statement` with error number, message, and state.
 - `merge_statement` supporting `USING (VALUES ...) AS alias(columns)`, ON expression, and WHEN NOT MATCHED THEN INSERT ... VALUES ... for the corpus shape. Route only this new T-SQL form through the named node; preserve the existing standard `MERGE INTO ...` alternative and its corpus S-expression byte-for-byte.
 
-**Steps:** red grammar test per statement family; minimal grammar implementation; malformed negative control; regenerate/test; run the complete grammar corpus and full grammar-repository Rust test, including the corrected binding doctest; commit the final grammar. Then request the single explicit approval to create `anortham/tree-sitter-sql` and push that verified commit. After it is remotely resolvable, pin its full SHA in Julie Extractors, run Task 1, existing SQL tests/goldens/certification, and the live scan. Do not commit or retain a local path while waiting for approval.
+**Steps:** red grammar test per statement family; minimal grammar implementation; malformed negative control; regenerate/test; run the complete grammar corpus and full grammar-repository Rust test, including the corrected binding doctest; commit the final grammar. Approval was granted and the verified commit was pushed to `anortham/tree-sitter-sql` branch `tsql-parse-quality`. Pin its remotely resolvable full SHA in Julie Extractors, run Task 1, existing SQL tests/goldens/certification, and the live scan. Do not commit or retain a local path.
 
 **Acceptance:** all six live files report zero error/missing nodes at the parser level; grammar node names are stable enough for Task 5; malformed controls remain diagnostic; complete grammar corpus and Rust tests pass; existing SQL goldens are byte-stable; Cargo resolves the exact full commit from `https://github.com/anortham/tree-sitter-sql`.
 
@@ -337,7 +345,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 - No first-class facts for GO, SET, IF, blocks, DECLARE, or THROW in this issue.
 - No closure claim for INSERT/DELETE/routines/windows/general vendor DDL.
 - No MCP, daemon, search, watcher, dashboard, or editing behavior.
-- No release, push, or upstream publication unless Murphy separately requests it; local fork commits/pins are implementation prerequisites, not a release authorization.
+- The approved grammar-fork push is complete. No further push, release, or upstream publication is authorized; the remote pin is an implementation prerequisite, not release authorization.
 
 ## Implementation Handoff Body
 
@@ -345,4 +353,4 @@ Use this body for the child implementation card:
 
 > **Assignee:** lead agent with fresh Razorback implementer subagents per task
 >
-> Implement `docs/plans/2026-07-11-tsql-parse-quality-implementation-plan.md` exactly from `main@bfced7be9abd8754d11d5152f2ca84e57dec3f0d`. Work grammar-first in the isolated owned-fork candidate derived from `jamie8johnson/tree-sitter-sql@b3db1ee85908a0c0e425bc59ddf04c6ad107eecf`, follow Tasks 1-6 in order with TDD, and do not commit a local dependency path. Request explicit approval only when the final verified grammar commit is ready to create/push to `anortham/tree-sitter-sql`; then pin that exact remote revision. Do not suppress diagnostics or edit Razor code. Required final evidence: focused SQL tests, full grammar corpus, goldens/capability/registry, strict quality report at 0/0, default/contract/certification gates, and a fresh Terraform scan whose `parse_diagnostics` query returns no SQL or Razor rows while file counts remain 418 scanned / 388 extracted / 30 unsupported / 0 failed unless the corpus changed and the delta is documented.
+> Implement `docs/plans/2026-07-11-tsql-parse-quality-implementation-plan.md` exactly from `main@bfced7be9abd8754d11d5152f2ca84e57dec3f0d`. Work grammar-first in the isolated owned-fork candidate derived from `jamie8johnson/tree-sitter-sql@b3db1ee85908a0c0e425bc59ddf04c6ad107eecf`, follow Tasks 1-6 in order with TDD, and do not commit a local dependency path. The approved remote grammar is `anortham/tree-sitter-sql@63ea933e464813d01cab5d7febcb0f77409c247b` on branch `tsql-parse-quality`; pin that exact revision. Do not suppress diagnostics or edit Razor code. Required final evidence: focused SQL tests, full grammar corpus, goldens/capability/registry, strict quality report at 0/0, default/contract/certification gates, and a fresh Terraform scan whose `parse_diagnostics` query returns no SQL or Razor rows while file counts remain 418 scanned / 388 extracted / 30 unsupported / 0 failed unless the corpus changed and the delta is documented.

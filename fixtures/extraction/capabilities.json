@@ -5089,11 +5089,11 @@
     },
     {
       "language": "sql",
-      "parser_crate": "tree-sitter-sequel",
+      "parser_crate": "tree-sitter-sequel-tsql",
       "extensions": [
         "sql"
       ],
-      "dependency_status": "current",
+      "dependency_status": "git_pinned",
       "capabilities": {
         "symbols": true,
         "relationships": true,

@@ -62,17 +62,11 @@ pub(super) fn extract_stored_procedure(
 
     let doc_comment = base.find_doc_comment(&node);
 
-    let symbol_kind = if is_function {
-        SymbolKind::Function
-    } else {
-        SymbolKind::Method
-    };
-
     if is_test_symbol(
         "sql",
         &name,
         &base.file_path,
-        &symbol_kind,
+        &SymbolKind::Function,
         &[],
         doc_comment.as_deref(),
     ) {
@@ -88,7 +82,7 @@ pub(super) fn extract_stored_procedure(
         annotations: Vec::new(),
     };
 
-    let mut symbol = base.create_symbol(&node, name, symbol_kind, options);
+    let mut symbol = base.create_symbol(&node, name, SymbolKind::Function, options);
     body_spans::finalize_sql_callable_symbol(base, &mut symbol);
     Some(symbol)
 }
@@ -175,13 +169,46 @@ pub(super) fn extract_procedure_signature(base: &BaseExtractor, node: &Node) -> 
     }
 
     Some(format!(
-        "{} {}({}){}{}",
+        "CREATE {} {}({}){}{}",
         keyword,
         name,
         params.join(", "),
         return_clause,
         language_clause
     ))
+}
+
+pub(super) fn extract_parameters_from_routine_node(
+    base: &mut BaseExtractor,
+    function_node: Node,
+    symbols: &mut Vec<Symbol>,
+    parent_id: &str,
+) {
+    let Some(arguments) = base.find_child_by_type(&function_node, "function_arguments") else {
+        return;
+    };
+    let mut cursor = arguments.walk();
+    for argument in arguments
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "function_argument")
+    {
+        let Some(name_node) = base.find_child_by_type(&argument, "identifier") else {
+            continue;
+        };
+        let name = base.get_node_text(&name_node);
+        let signature = base.get_node_text(&argument).trim().to_string();
+        let mut metadata = HashMap::new();
+        metadata.insert("isParameter".to_string(), Value::Bool(true));
+        let options = SymbolOptions {
+            signature: Some(signature),
+            visibility: Some(crate::base::Visibility::Public),
+            parent_id: Some(parent_id.to_string()),
+            doc_comment: None,
+            metadata: Some(metadata),
+            annotations: Vec::new(),
+        };
+        symbols.push(base.create_symbol(&argument, name, SymbolKind::Variable, options));
+    }
 }
 
 /// Extract declared variables from function/procedure body

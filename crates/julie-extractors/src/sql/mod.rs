@@ -390,7 +390,13 @@ impl SqlExtractor {
                         );
                     }
                 }
-                "create_function" | "create_function_statement" => {
+                "create_procedure" | "create_function" | "create_function_statement" => {
+                    routines::extract_parameters_from_routine_node(
+                        &mut self.base,
+                        node,
+                        symbols,
+                        &symbol.id,
+                    );
                     routines::extract_declare_variables(&mut self.base, node, symbols, &symbol.id);
                 }
                 _ => {}

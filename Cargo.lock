@@ -503,7 +503,7 @@ dependencies = [
  "tree-sitter-ruby",
  "tree-sitter-rust",
  "tree-sitter-scala",
- "tree-sitter-sequel",
+ "tree-sitter-sequel-tsql",
  "tree-sitter-swift",
  "tree-sitter-toml-ng",
  "tree-sitter-typescript",
@@ -1211,10 +1211,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "tree-sitter-sequel"
-version = "0.3.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d198ad3c319c02e43c21efa1ec796b837afcb96ffaef1a40c1978fbdcec7d17"
+name = "tree-sitter-sequel-tsql"
+version = "0.4.2"
+source = "git+https://github.com/anortham/tree-sitter-sql?rev=63ea933e464813d01cab5d7febcb0f77409c247b#63ea933e464813d01cab5d7febcb0f77409c247b"
 dependencies = [
  "cc",
  "tree-sitter-language",

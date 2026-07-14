@@ -56,7 +56,7 @@ tree-sitter-razor = { git = "https://github.com/anortham/tree-sitter-razor", rev
 tree-sitter-powershell = { git = "https://github.com/airbus-cert/tree-sitter-powershell", rev = "d398441825243b00e317e87e1829b9d6a3e54ce0" }
 
 tree-sitter-dart = "0.2.0"
-tree-sitter-sequel = "0.3.11"
+tree-sitter-sequel = { package = "tree-sitter-sequel-tsql", git = "https://github.com/anortham/tree-sitter-sql", rev = "63ea933e464813d01cab5d7febcb0f77409c247b" }
 tree-sitter-zig = "1.1.2"
 
 # Documentation and configuration languages

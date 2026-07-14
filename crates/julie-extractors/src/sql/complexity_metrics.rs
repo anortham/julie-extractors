@@ -253,7 +253,12 @@ fn routine_body_span_from_node(node: Node<'_>, source: &str) -> Option<Normalize
             | "create_procedure"
             | "create_function_statement"
     ) {
-        return Some(NormalizedSpan::from_node(&node));
+        let end_byte = if source.as_bytes().get(node.end_byte()) == Some(&b';') {
+            node.end_byte() + 1
+        } else {
+            node.end_byte()
+        };
+        return NormalizedSpan::from_content_range(source, node.start_byte(), end_byte);
     }
 
     if node.kind() != "ERROR" {
