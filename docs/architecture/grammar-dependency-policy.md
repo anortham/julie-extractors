@@ -56,9 +56,38 @@ even when focused dependency-policy checks pass.
 Audit parser sources before each release, before every runtime or grammar
 change, and at least monthly during active development. Compare registry
 versions and Git default heads with `Cargo.toml` and `Cargo.lock`, review every
-reported drift row, and record why a dependency is updated or retained. Task 6
-of the parser-runtime and grammar-freshness plan replaces the manual comparison
-with `node scripts/grammar-freshness-report.mjs`.
+reported drift row, and record why a dependency is updated or retained. Run:
+
+```bash
+node scripts/grammar-freshness-report.mjs
+node scripts/grammar-freshness-report.mjs --format json
+```
+
+The command reads the extractor manifest and workspace lockfile, queries
+crates.io for the latest non-yanked stable registry releases, and queries each
+GitHub repository for its current default-branch head. Each request has a
+10-second timeout and identifies its source on failure. Set `GITHUB_TOKEN` or
+`GH_TOKEN` when an authenticated GitHub API allowance is needed.
+
+JSON output uses `schema_version: 1`. `audit` records `generated_at`,
+`manifest_path`, and `lock_path`. `runtime` records the dependency name, Cargo
+package name, declared requirement, locked version, latest stable version, and
+status. `registry_grammars` uses the same row fields. `git_grammars` records the
+dependency and package names, declared remote and normalized GitHub repository,
+pinned and locked commits, remote default branch and head, and status. Rows are
+ordered by Cargo dependency name. `current` means the lock matches the latest
+stable registry version or remote default head; `drift` means it does not.
+
+The report command is a networked maintenance check. Its network-free contract
+tests run with:
+
+```bash
+node --test scripts/grammar-freshness-report.test.mjs
+```
+
+Do not add the live report to the default, changed, contract, or certification
+test tiers. Those tiers must remain deterministic and must not depend on a
+registry, forge, credentials, rate limits, or network availability.
 
 The freshness report detects version and commit drift only. It does not change
 dependencies, validate parser semantics, or establish a support claim. Support
