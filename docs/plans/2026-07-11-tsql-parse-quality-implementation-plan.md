@@ -14,7 +14,7 @@
 - Work grammar changes in the isolated `codex/tsql-parse-quality-grammar` worktree rooted at `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf`; do not modify the dirty `feat/tsql-julie-integration` checkout.
 - The final Cargo dependency must resolve from `https://github.com/anortham/tree-sitter-sql` at one full commit SHA; no committed local path, unpushed revision, or floating branch is acceptable.
 - The user approved the grammar fork push on 2026-07-13. `anortham/tree-sitter-sql` branch `tsql-parse-quality` now resolves to the verified final grammar commit `63ea933e464813d01cab5d7febcb0f77409c247b`; Cargo integration must pin that exact remote revision.
-- Preserve all existing general-SQL node-derived extraction, goldens, capability claims, and artifact contracts.
+- Preserve all existing general-SQL node-derived extraction, goldens, capability claims, and artifact contracts except the one evidence-proven `sql:basic` migration recorded below: `active_workers` moves from recovery metadata to clean-parser `bodySpanSource="statement_text"`. The checked-in baseline contains no view diagnostic for that row, so `parse_diagnostics` remains unchanged; no other general-SQL artifact row may change.
 - Keep the Terraform scan and full grammar certification outside the default test tier.
 - Do not edit Julie, tree-sitter-razor, Miller, or Eros. Do not push, tag, publish, release, or choose a release version without explicit approval.
 
@@ -43,7 +43,7 @@
 5. **Extraction scope:** normalize bracketed object/column names and add `sql.merge_statement.v1`. `GO`, `SET`, `IF`, `BEGIN/END`, `DECLARE`, and `THROW` are grammar-supported but intentionally emit no first-class artifact rows in this issue.
 6. **Capability scope:** register two new SQL golden fixtures and add `sql.merge_statement.v1` to SQL structural-fact support. Keep the existing `sql.advanced_dml_and_procedure_structure` gap open, but remove MERGE from its reason/closure text; INSERT, DELETE, procedures/functions, windows, and other vendor DDL remain named debt.
 7. **Test-tier discipline:** minimized T-SQL fixtures run in focused/golden tiers. The live Terraform scan is a release/affected-change gate only and must not enter the default suite.
-8. **Grammar-base compatibility:** live SQL-tier evidence proved `tree-sitter-sequel-tsql` base `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf` cleanly parses routines that 0.3.11 routed through recovery. Preserve the established artifact contract at the existing SQL extractor seam: procedures remain `Function` symbols with `CREATE PROCEDURE` signatures and parameter symbols, signatures prefer direct declared `function_argument` text while preserving the legacy `parameter_declaration`/`parameter` fallback when that list is absent, and callable complexity includes the trailing statement delimiter. Do not roll back the selected grammar or rewrite existing tests/goldens.
+8. **Grammar-base compatibility:** live SQL-tier evidence proved `tree-sitter-sequel-tsql` base `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf` cleanly parses routines that 0.3.11 routed through recovery. Preserve the established artifact contract at the existing SQL extractor seam: procedures remain `Function` symbols with `CREATE PROCEDURE` signatures and parameter symbols, signatures prefer direct declared `function_argument` text while preserving the legacy `parameter_declaration`/`parameter` fallback when that list is absent, and callable complexity includes the trailing statement delimiter. Do not roll back the selected grammar or rewrite existing tests/goldens beyond the reviewed `active_workers` clean-parse migration recorded below.
 
 ## Reproduced Baseline
 
@@ -98,7 +98,7 @@ The final local grammar passed all 496 corpus cases, the full Rust grammar tests
 
 The full Julie SQL tier then exposed two compatibility regressions that were absent from the minimized goldens: `test_extract_stored_procedures_functions_and_triggers` lost the recovery-path procedure contract, and `sql_callable_symbol_complexity_uses_body_span_with_predicate_evidence` ended at the clean routine node instead of the trailing delimiter. Both failures reproduce unchanged against the unmodified grammar base `b3db1ee85908a0c0e425bc59ddf04c6ad107eecf`, proving they predate the final T-SQL grammar work. Task 4 therefore includes a minimal extractor adapter for the grammar base's clean routine nodes; existing tests remain unchanged.
 
-The final grammar pin also cleanly parses the general-SQL `CREATE VIEW active_workers AS ...` body-span fixture that 0.3.11 routed through recovery. Preserve the truthful clean-path result: do not add `extractedFromError`, keep the trigger in that fixture on its proven recovery path, and populate the existing `bodySpanSource="statement_text"` contract when statement inference validates an already adequate AST-provided view body span without replacing it.
+The final grammar pin also cleanly parses the general-SQL `CREATE VIEW active_workers AS ...` body-span fixture that 0.3.11 routed through recovery. Preserve the truthful clean-path result: do not add `extractedFromError`, keep the trigger in that fixture on its proven recovery path, and populate the existing `bodySpanSource="statement_text"` contract when statement inference validates an already adequate AST-provided view body span without replacing it. The checked-in `sql:basic` baseline already contains only the three trigger diagnostics, so this migration changes no `parse_diagnostics` row.
 
 ## Verification Strategy
 
@@ -279,7 +279,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 
 **Steps:** red grammar test per statement family; minimal grammar implementation; malformed negative control; regenerate/test; run the complete grammar corpus and full grammar-repository Rust test, including the corrected binding doctest; commit the final grammar. Approval was granted and the verified commit was pushed to `anortham/tree-sitter-sql` branch `tsql-parse-quality`. Pin its remotely resolvable full SHA in Julie Extractors, run Task 1, existing SQL tests/goldens/certification, and the live scan. Do not commit or retain a local path.
 
-**Acceptance:** all six live files report zero error/missing nodes at the parser level; grammar node names are stable enough for Task 5; malformed controls remain diagnostic; complete grammar corpus and Rust tests pass; existing SQL goldens are byte-stable; Cargo resolves the exact full commit from `https://github.com/anortham/tree-sitter-sql`.
+**Acceptance:** all six live files report zero error/missing nodes at the parser level; grammar node names are stable enough for Task 5; malformed controls remain diagnostic; complete grammar corpus and Rust tests pass; existing SQL goldens are byte-stable except the reviewed `active_workers` recovery-to-clean migration; Cargo resolves the exact full commit from `https://github.com/anortham/tree-sitter-sql`.
 
 ### Task 5: Normalize extracted T-SQL names and add `sql.merge_statement.v1`
 
@@ -314,7 +314,7 @@ Tasks 3 and 4 are conceptually independent but both own `grammar.js`; use separa
 
 **Steps:** write failing extractor tests first; add shared normalization and update every listed SQL consumer; add the contract marker and API-surface assertion with the first emitted-shape change; add MERGE collector/registry spec; regenerate contract JSON; run focused tests, registry sync, feature-gated registry/emission parity, existing SQL golden, and negative controls.
 
-**Acceptance:** T-SQL fixtures produce correct normalized symbols, identifiers, relationships, DDL facts, and one MERGE fact; existing unquoted SQL output is byte-stable; registry JSON is synchronized.
+**Acceptance:** T-SQL fixtures produce correct normalized symbols, identifiers, relationships, DDL facts, and one MERGE fact; existing unquoted SQL output is byte-stable except the reviewed `active_workers` recovery-to-clean migration, and no other `sql:basic` or `sql:cross_file` artifact changes; registry JSON is synchronized.
 
 ### Task 6: Register goldens, update capability evidence, and run final gates
 
