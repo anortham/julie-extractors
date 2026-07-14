@@ -211,13 +211,13 @@ Task 1 and Task 2 use `serial-worker-commit` in their separate repositories. Tas
 **Approach:** Freeze current 0.7.2 behavior with failing parser/extraction tests, bump only Swift to `=0.7.3`, inspect upstream node inventory changes, and adapt language-local extraction only for proven node-shape migrations. Generate and manually review the registered golden; do not accept unrelated row drift. Include malformed controls for the new constructs.
 
 **Acceptance:**
-- [ ] At least one targeted current-syntax case is observed failing or producing an extraction gap under 0.7.2.
-- [ ] Cargo resolves exactly `tree-sitter-swift 0.7.3`.
-- [ ] The valid fixture has zero `error` and `missing` diagnostics and useful stable extraction.
-- [ ] Malformed current-syntax controls remain diagnostic.
-- [ ] Existing Swift goldens and artifact shapes remain stable.
-- [ ] Focused tests, `cargo xtask test language swift`, golden, and capability tiers pass.
-- [ ] The worker commits and reports path, branch, commit, and dirty state.
+- [x] At least one targeted current-syntax case is observed failing or producing an extraction gap under 0.7.2.
+- [x] Cargo resolves exactly `tree-sitter-swift 0.7.3`.
+- [x] The valid fixture has zero `error` and `missing` diagnostics and useful stable extraction.
+- [x] Malformed current-syntax controls remain diagnostic.
+- [x] Existing Swift goldens and artifact shapes remain stable.
+- [x] Focused tests, `cargo xtask test language swift`, golden, and capability tiers pass.
+- [x] The worker commits and reports path, branch, commit, and dirty state.
 
 ### Task 5: Migrate R to 1.3.0
 
