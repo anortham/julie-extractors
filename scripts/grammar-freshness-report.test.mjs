@@ -108,9 +108,11 @@ test("orders semantic versions correctly and selects the latest non-yanked stabl
       { num: "1.0.9", yanked: false },
       { num: "1.1.0-beta.1", yanked: false },
       { num: "1.0.10", yanked: false },
+      { num: "1.0.11+build-1", yanked: false },
+      { num: "1.0.12-rc.1+build-2", yanked: false },
       { num: "2.0.0", yanked: true },
     ]),
-    "1.0.10",
+    "1.0.11+build-1",
   )
 })
 

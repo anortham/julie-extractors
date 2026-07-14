@@ -234,7 +234,11 @@ export function latestStableVersion(versions) {
   return versions
     .filter((version) => !version.yanked)
     .map((version) => version.num)
-    .filter((version) => typeof version === "string" && !version.includes("-"))
+    .filter(
+      (version) =>
+        typeof version === "string" &&
+        parseSemanticVersion(version).prerelease.length === 0,
+    )
     .sort(compareSemanticVersions)
     .at(-1)
 }
