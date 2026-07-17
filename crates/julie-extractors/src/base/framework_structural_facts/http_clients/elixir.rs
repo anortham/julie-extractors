@@ -21,7 +21,7 @@
 
 use tree_sitter::{Node, Tree};
 
-use super::super::helpers::node_text;
+use super::super::helpers::{child_of_kind, node_text};
 use super::super::static_arg::{StaticArgLang, static_route_arg};
 use super::client_fact;
 use crate::base::types::StructuralFact;
@@ -136,10 +136,4 @@ fn first_positional_arg(arguments: Node) -> Option<Node> {
     arguments
         .named_children(&mut cursor)
         .find(|child| child.kind() != "keywords")
-}
-
-fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
 }

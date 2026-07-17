@@ -32,9 +32,9 @@ part of this contract.
     "db_path": "/tmp/code.sqlite",
     "root_path": "/repo",
     "artifact_id": "01hz...",
-    "schema_version": 3,
+    "schema_version": 4,
     "extract_contract_version": 3,
-    "sqlite_schema_version": 3,
+    "sqlite_schema_version": 4,
     "jsonl_schema_version": null,
     "hash_algorithm": "blake3",
     "parser_inventory_fingerprint": "sha256:...",
@@ -239,7 +239,7 @@ Resolution). Those commands report it under the top-level `languages` key:
   at the end of the pass. `tier` is an integer 1–4 for `resolved` rows and
   `null` for non-resolved outcomes (`ambiguous`, `missing`, `no_context`).
 
-`counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v3
+`counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v4
 row domains. Commands must emit every key with `0` when that row kind is not
 written or not present.
 
@@ -341,8 +341,8 @@ Stable report codes:
 - `schema_incompatible`: artifact is newer or otherwise incompatible.
 - `contract_incompatible`: extraction contract version is incompatible.
 - `db_open_failed`: SQLite artifact could not be opened.
-- `db_write_failed`: SQLite transaction failed.
-- `lock_timeout`: another writer held the artifact lock too long.
+- `db_write_failed`: SQLite transaction failed. Concurrent-writer contention
+  surfaces here rather than as a distinct lock-timeout code.
 - `unsupported_format`: requested export or output format is unsupported.
 - `unsupported_file`: file is ignored or unsupported.
 - `read_failed`: source file could not be read.
@@ -353,6 +353,9 @@ Stable report codes:
 
 Warnings use the same shape and may use warning-only codes such as
 `metadata_missing`, `capability_gap`, or `slow_file_skipped`.
+`slow_file_skipped` is emitted by `scan` for otherwise-supported source files
+that exceed the extractor's oversized-file limit and are excluded from
+extraction.
 
 ## Command Report Requirements
 

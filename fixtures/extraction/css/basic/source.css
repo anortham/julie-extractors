@@ -26,3 +26,29 @@
         opacity: 1;
     }
 }
+
+@charset "UTF-8";
+@namespace url(http://www.w3.org/1999/xhtml);
+
+@supports (display: grid) {
+    .grid {
+        display: grid;
+    }
+}
+
+@container (min-width: 20rem) {
+    .card {
+        color: navy;
+    }
+}
+
+@font-face {
+    font-family: "Worker";
+    src: url("/fonts/worker.woff2");
+}
+
+@layer utilities {
+    .m-0 {
+        margin: 0;
+    }
+}

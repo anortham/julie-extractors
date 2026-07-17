@@ -152,3 +152,80 @@ a[href*=","] {
         Some("selector_list")
     );
 }
+
+#[test]
+fn css_emits_additional_at_rule_structural_facts() {
+    let source = r#"
+@charset "UTF-8";
+@namespace url(http://www.w3.org/1999/xhtml);
+@supports (display: grid) {
+  .grid { display: grid; }
+}
+@container (min-width: 20rem) {
+  .card { color: red; }
+}
+@font-face {
+  font-family: "Worker";
+  src: url("/fonts/worker.woff2");
+}
+@layer utilities {
+  .m-0 { margin: 0; }
+}
+"#;
+    let results = extract(source);
+
+    let charset = facts_with_pattern(&results, "css.charset.v1")
+        .into_iter()
+        .next()
+        .expect("expected charset fact");
+    assert_eq!(metadata_str(charset, "encoding"), Some("\"UTF-8\""));
+
+    let namespace = facts_with_pattern(&results, "css.namespace.v1")
+        .into_iter()
+        .next()
+        .expect("expected namespace fact");
+    assert_eq!(
+        metadata_str(namespace, "namespace"),
+        Some("url(http://www.w3.org/1999/xhtml)")
+    );
+
+    let supports = facts_with_pattern(&results, "css.supports.v1")
+        .into_iter()
+        .next()
+        .expect("expected supports fact");
+    assert_eq!(metadata_str(supports, "condition"), Some("(display: grid)"));
+
+    let container = facts_with_pattern(&results, "css.container.v1")
+        .into_iter()
+        .next()
+        .expect("expected container fact");
+    assert_eq!(
+        metadata_str(container, "condition"),
+        Some("(min-width: 20rem)")
+    );
+
+    let font_face = facts_with_pattern(&results, "css.font_face.v1")
+        .into_iter()
+        .next()
+        .expect("expected font-face fact");
+    assert_eq!(metadata_str(font_face, "at_rule"), Some("@font-face"));
+
+    let layer = facts_with_pattern(&results, "css.layer.v1")
+        .into_iter()
+        .next()
+        .expect("expected layer fact");
+    assert_eq!(metadata_str(layer, "layer_name"), Some("utilities"));
+}
+
+#[test]
+fn css_statement_form_layer_drops_trailing_semicolon() {
+    let source = r#"
+@layer reset;
+"#;
+    let results = extract(source);
+    let layer = facts_with_pattern(&results, "css.layer.v1")
+        .into_iter()
+        .next()
+        .expect("expected layer fact");
+    assert_eq!(metadata_str(layer, "layer_name"), Some("reset"));
+}

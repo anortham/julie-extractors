@@ -73,6 +73,7 @@ impl KotlinExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         self.visit_node(tree.root_node(), &mut symbols, None, 0);
+        crate::test_detection::mark_java_test_containers(&mut symbols);
         symbols
     }
 

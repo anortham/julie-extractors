@@ -316,8 +316,8 @@ class UserController {
 
 #[test]
 fn laravel_symfony_route_attributes_stay_silent() {
-    // PHP `#[Route]` attributes are a Symfony idiom (future symfony.route.v1),
-    // not Laravel — documented open_gap, emits nothing here.
+    // PHP `#[Route]` attributes are a Symfony idiom (`symfony.route.v1`),
+    // not Laravel — the Laravel facade lane must stay silent.
     let source = r#"<?php
 use Symfony\Component\Routing\Annotation\Route;
 

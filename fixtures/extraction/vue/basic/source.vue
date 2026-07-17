@@ -52,7 +52,42 @@ defineExpose({ format, evaluate });
 </script>
 
 <style scoped>
+@charset "UTF-8";
+@namespace url(http://www.w3.org/1999/xhtml);
+
+:root {
+  --accent: #0f766e;
+}
+
 .worker {
   color: #0f766e;
+}
+
+@media (min-width: 40rem) {
+  .worker {
+    display: block;
+  }
+}
+
+@keyframes spin {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@supports (display: grid) {
+  .worker { display: grid; }
+}
+
+@container (min-width: 20rem) {
+  .worker { padding: 1rem; }
+}
+
+@font-face {
+  font-family: "Worker";
+  src: url("/worker.woff2");
+}
+
+@layer utilities {
+  .m-0 { margin: 0; }
 }
 </style>

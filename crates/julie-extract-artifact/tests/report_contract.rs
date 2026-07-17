@@ -114,7 +114,6 @@ fn every_v3_error_code_has_stable_serialized_spelling() {
             json!("contract_incompatible"),
             json!("db_open_failed"),
             json!("db_write_failed"),
-            json!("lock_timeout"),
             json!("unsupported_format"),
             json!("unsupported_file"),
             json!("read_failed"),
@@ -141,6 +140,11 @@ fn every_v3_error_code_has_stable_serialized_spelling() {
     assert_eq!(value["code"], "root_mismatch");
     assert_eq!(value["details"]["expected_root"], "/old");
     assert_eq!(value["recoverable"], false);
+}
+
+#[test]
+fn lock_timeout_is_not_a_report_code() {
+    assert!(serde_json::from_str::<ReportCode>("\"lock_timeout\"").is_err());
 }
 
 #[test]

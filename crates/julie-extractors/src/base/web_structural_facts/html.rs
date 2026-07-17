@@ -1,13 +1,19 @@
 use std::collections::HashMap;
 
 use serde_json::{Number, Value};
-use tree_sitter::{Node, Tree};
+use tree_sitter::{Node, Parser, Tree};
 
-use super::fact_builders::{base_metadata, fact_for_node, insert_string, node_text};
+use super::css::collect_css_structural_facts_with_host;
+use super::fact_builders::{
+    base_metadata, child_by_kind, fact_for_node, fact_for_node_with_identity, insert_string,
+    node_text,
+};
 use super::{
-    HTML_FORM_CONTROL_PATTERN_ID, HTML_FORM_PATTERN_ID, HTML_LINK_PATTERN_ID,
+    HTML_AREA_LINK_PATTERN_ID, HTML_DATA_ATTRIBUTE_PATTERN_ID, HTML_FORM_CONTROL_PATTERN_ID,
+    HTML_FORM_PATTERN_ID, HTML_LANDMARK_PATTERN_ID, HTML_LINK_PATTERN_ID, HTML_MEDIA_PATTERN_ID,
     HTML_SCRIPT_PATTERN_ID,
 };
+use crate::base::embedded_span::EmbeddedSpanOffset;
 use crate::base::types::StructuralFact;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
@@ -88,13 +94,31 @@ fn collect_html_node(
                 facts.push(fact);
             }
         }
+        "style_element" => {
+            facts.extend(html_style_css_facts(file_path, content, node));
+        }
         "element" => {
             if let Some(tag_name) = html_tag_name(content, node) {
                 let attributes = html_element_attributes(content, node);
+                let mut form_context = None;
                 match tag_name.as_str() {
                     "a" => {
                         if let Some(fact) =
                             html_link_fact(file_path, content, node, &tag_name, &attributes)
+                        {
+                            facts.push(fact);
+                        }
+                    }
+                    "area" => {
+                        if let Some(fact) =
+                            html_area_link_fact(file_path, content, node, &tag_name, &attributes)
+                        {
+                            facts.push(fact);
+                        }
+                    }
+                    "img" | "source" | "audio" | "video" | "track" => {
+                        if let Some(fact) =
+                            html_media_fact(file_path, content, node, &tag_name, &attributes)
                         {
                             facts.push(fact);
                         }
@@ -107,7 +131,6 @@ fn collect_html_node(
                         }
                     }
                     "form" => {
-                        let context = html_form_context(&attributes);
                         let control_count = count_html_form_controls(node, content);
                         if let Some(fact) = html_form_fact(
                             file_path,
@@ -119,23 +142,7 @@ fn collect_html_node(
                         ) {
                             facts.push(fact);
                         }
-                        form_stack.push(context);
-                        if let Some(child_depth) = child_tree_depth(depth) {
-                            let mut cursor = node.walk();
-                            for child in node.children(&mut cursor) {
-                                collect_html_node(
-                                    child,
-                                    file_path,
-                                    content,
-                                    forms_by_id,
-                                    form_stack,
-                                    facts,
-                                    child_depth,
-                                );
-                            }
-                        }
-                        form_stack.pop();
-                        return;
+                        form_context = Some(html_form_context(&attributes));
                     }
                     "input" | "button" | "select" | "textarea" => {
                         let owner = html_form_control_owner(&attributes, form_stack, forms_by_id);
@@ -151,6 +158,39 @@ fn collect_html_node(
                         }
                     }
                     _ => {}
+                }
+
+                if let Some(fact) =
+                    html_landmark_fact_for_element(file_path, content, node, &tag_name, &attributes)
+                {
+                    facts.push(fact);
+                }
+                facts.extend(html_data_attribute_facts(
+                    file_path,
+                    content,
+                    node,
+                    &tag_name,
+                    &attributes,
+                ));
+
+                if let Some(context) = form_context {
+                    form_stack.push(context);
+                    if let Some(child_depth) = child_tree_depth(depth) {
+                        let mut cursor = node.walk();
+                        for child in node.children(&mut cursor) {
+                            collect_html_node(
+                                child,
+                                file_path,
+                                content,
+                                forms_by_id,
+                                form_stack,
+                                facts,
+                                child_depth,
+                            );
+                        }
+                    }
+                    form_stack.pop();
+                    return;
                 }
             }
         }
@@ -172,6 +212,24 @@ fn collect_html_node(
             child_depth,
         );
     }
+}
+
+fn html_has_landmark_role(attributes: &std::collections::HashMap<String, String>) -> bool {
+    attributes.get("role").is_some_and(|roles| {
+        roles.split_ascii_whitespace().any(|role| {
+            matches!(
+                role.to_ascii_lowercase().as_str(),
+                "banner"
+                    | "complementary"
+                    | "contentinfo"
+                    | "form"
+                    | "main"
+                    | "navigation"
+                    | "region"
+                    | "search"
+            )
+        })
+    })
 }
 
 fn html_link_fact(
@@ -197,6 +255,155 @@ fn html_link_fact(
         node,
         metadata,
     ))
+}
+
+fn html_area_link_fact(
+    file_path: &str,
+    _content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let href = attributes.get("href")?;
+    let mut metadata = base_metadata("document_navigation");
+    insert_string(&mut metadata, "tag_name", tag_name);
+    insert_string(&mut metadata, "href", href);
+    insert_optional_string(&mut metadata, "alt", attributes.get("alt"));
+    insert_optional_string(&mut metadata, "shape", attributes.get("shape"));
+    insert_optional_string(&mut metadata, "coords", attributes.get("coords"));
+    insert_optional_string(&mut metadata, "id", attributes.get("id"));
+
+    Some(fact_for_node(
+        file_path,
+        "html",
+        HTML_AREA_LINK_PATTERN_ID,
+        "area_link",
+        node,
+        metadata,
+    ))
+}
+
+fn html_media_fact(
+    file_path: &str,
+    _content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let src = attributes.get("src")?;
+    let mut metadata = base_metadata("document_assets");
+    insert_string(&mut metadata, "tag_name", tag_name);
+    insert_string(&mut metadata, "src", src);
+    insert_optional_string(&mut metadata, "type", attributes.get("type"));
+    insert_optional_string(&mut metadata, "alt", attributes.get("alt"));
+    insert_optional_string(&mut metadata, "id", attributes.get("id"));
+
+    Some(fact_for_node(
+        file_path,
+        "html",
+        HTML_MEDIA_PATTERN_ID,
+        "media",
+        node,
+        metadata,
+    ))
+}
+
+fn html_landmark_fact_for_element(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Option<StructuralFact> {
+    let is_native_landmark = matches!(tag_name, "header" | "nav" | "main" | "aside" | "footer");
+    (is_native_landmark || html_has_landmark_role(attributes))
+        .then(|| html_landmark_fact(file_path, content, node, tag_name, attributes))
+}
+
+fn html_style_css_facts(file_path: &str, content: &str, node: Node<'_>) -> Vec<StructuralFact> {
+    let Some(raw_text) = child_by_kind(node, "raw_text") else {
+        return Vec::new();
+    };
+    let start = raw_text.start_byte();
+    let end = raw_text.end_byte();
+    if start >= end || end > content.len() {
+        return Vec::new();
+    }
+    let style_content = &content[start..end];
+
+    let mut parser = Parser::new();
+    if parser
+        .set_language(&tree_sitter_css::LANGUAGE.into())
+        .is_err()
+    {
+        return Vec::new();
+    }
+    let Some(tree) = parser.parse(style_content, None) else {
+        return Vec::new();
+    };
+    let Some(offset) = EmbeddedSpanOffset::from_host_byte(content, start) else {
+        return Vec::new();
+    };
+    collect_css_structural_facts_with_host(&tree, file_path, style_content, "html", Some(offset))
+}
+
+fn html_landmark_fact(
+    file_path: &str,
+    _content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> StructuralFact {
+    let mut metadata = base_metadata("document_landmarks");
+    insert_string(&mut metadata, "tag_name", tag_name);
+    insert_optional_string(&mut metadata, "role", attributes.get("role"));
+    insert_optional_string(&mut metadata, "id", attributes.get("id"));
+    insert_optional_string(&mut metadata, "aria_label", attributes.get("aria-label"));
+
+    fact_for_node(
+        file_path,
+        "html",
+        HTML_LANDMARK_PATTERN_ID,
+        "landmark",
+        node,
+        metadata,
+    )
+}
+
+fn html_data_attribute_facts(
+    file_path: &str,
+    _content: &str,
+    node: Node<'_>,
+    tag_name: &str,
+    attributes: &std::collections::HashMap<String, String>,
+) -> Vec<StructuralFact> {
+    let mut names = attributes
+        .keys()
+        .filter(|name| name.starts_with("data-"))
+        // Keep htmx (`data-hx-*`) and Alpine (`data-x-*` reserved / x-* primary) out of this
+        // generic surface so they do not collide with framework facts.
+        .filter(|name| !name.starts_with("data-hx-") && !name.starts_with("data-x-"))
+        .collect::<Vec<_>>();
+    names.sort_unstable();
+
+    names
+        .into_iter()
+        .map(|attribute_name| {
+            let mut metadata = base_metadata("document_attributes");
+            insert_string(&mut metadata, "tag_name", tag_name);
+            insert_string(&mut metadata, "attribute_name", attribute_name);
+            insert_string(&mut metadata, "value", &attributes[attribute_name]);
+            fact_for_node_with_identity(
+                file_path,
+                "html",
+                HTML_DATA_ATTRIBUTE_PATTERN_ID,
+                "data_attribute",
+                attribute_name,
+                node,
+                metadata,
+            )
+        })
+        .collect()
 }
 
 fn html_script_fact(

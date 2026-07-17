@@ -1,4 +1,5 @@
 {
+  "$schema": "https:\/\/json-schema.org\/draft\/2020-12\/schema",
   "$defs": {
     "Address": {
       "type": "object",
@@ -8,7 +9,7 @@
     }
   },
   "properties": {
-    "billing": { "$ref": "#/$defs/Address" },
+    "billing": { "$ref": "#\/$defs\/Addr\u0065ss" },
     "shipping": { "$ref": "external.json#/$defs/Address" }
   }
 }

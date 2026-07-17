@@ -36,7 +36,9 @@ use crate::capability_snapshot::{
     artifact_capability_snapshot, current_capability_fingerprints, flags, kind_coverage_json,
     structural_fact_patterns_json,
 };
-use crate::discovery::{DiscoveryPolicy, FileSelection, canonicalize_ignore_files};
+use crate::discovery::{
+    DiscoveryPolicy, FileSelection, UnsupportedReason, canonicalize_ignore_files,
+};
 use crate::extraction::{
     ExtractFileError, SourceSnapshot, extract_artifact_file, extract_artifact_file_from_snapshot,
     failed_artifact_file, read_source_snapshot, unchanged_artifact_file,
@@ -49,7 +51,8 @@ use crate::reports::{
     CommandOutcome, PathErrorInput, ReportBuilder, ReportStream, artifact_input, base_report,
     diagnostic, discovery_error_diagnostic, display_path, extract_error_diagnostic,
     extract_error_outcome, outcome, path_error_outcome, path_error_outcome_with_paths,
-    spool_error_outcome, write_error_outcome, write_error_outcome_with_profile, write_outcome,
+    slow_file_skipped_diagnostic, spool_error_outcome, write_error_outcome,
+    write_error_outcome_with_profile, write_outcome,
 };
 
 const SCAN_REPORT_FILE_ROW_LIMIT: usize = 20;
@@ -151,6 +154,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     let preserved_missing_paths = discovered
         .errors
         .iter()
+        .chain(discovered.slow_file_skips.iter())
         .map(|error| error.root_relative_path.clone())
         .collect::<Vec<_>>();
     record_profile_phase(
@@ -342,6 +346,12 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     report
                         .errors
                         .extend(extracted.errors.iter().map(extract_error_diagnostic));
+                    report.warnings.extend(
+                        discovered
+                            .slow_file_skips
+                            .iter()
+                            .map(slow_file_skipped_diagnostic),
+                    );
                     let exit_code = if has_errors { 1 } else { 0 };
                     outcome(report, exit_code, args.json, ReportStream::Stdout)
                 }
@@ -502,6 +512,11 @@ fn update(args: UpdateArgs) -> CommandOutcome {
 
     let language = match discovery.select_file(&target) {
         FileSelection::Supported { language } => language,
+        FileSelection::Unsupported {
+            reason: UnsupportedReason::Oversized,
+        } => {
+            return skip_oversized_update(&db, &root, target, args.json);
+        }
         FileSelection::Unsupported { .. } => {
             return cleanup_unsupported_update(&db, &root, target, existing_artifact, args.json);
         }
@@ -1362,6 +1377,41 @@ fn create_scan_spool() -> Result<ArtifactFileSpool, ArtifactSpoolError> {
         std::process::id()
     ));
     ArtifactFileSpool::create(path)
+}
+
+/// Handle `update` on an otherwise-supported source file that exceeds
+/// [`crate::limits::MAX_SOURCE_FILE_BYTES`]. The file is skipped exactly as a
+/// full scan skips it: a typed `slow_file_skipped` warning is emitted and the
+/// file's existing artifact rows are left untouched. Deleting rows is reserved
+/// for genuinely unsupported or ignored files, so this path never opens a writer.
+fn skip_oversized_update(
+    db: &Path,
+    root: &Path,
+    target: FileTarget,
+    json_report: bool,
+) -> CommandOutcome {
+    let input = artifact_input(
+        db,
+        Some(root),
+        Some(&target.absolute_path),
+        Some(&target.root_relative_path),
+    );
+    let mut report = base_report(
+        ReportStatus::NoChange,
+        ReportOperation::Update,
+        ReportMode::SingleFile,
+        input,
+    )
+    .with_warning(diagnostic(
+        ReportCode::SlowFileSkipped,
+        crate::limits::slow_file_skip_message(),
+        Some(display_path(&target.absolute_path)),
+        Some(target.root_relative_path),
+        true,
+        json!({}),
+    ));
+    report.counts.files_scanned = 1;
+    outcome(report, 0, json_report, ReportStream::Stdout)
 }
 
 fn cleanup_unsupported_update(

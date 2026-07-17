@@ -2293,6 +2293,7 @@ class Options internal constructor(val value: String) {
 }
 mod cross_file_relationships;
 mod identifiers;
+mod junit_test_detection;
 mod literals;
 mod structural_facts;
 mod test_detection; // Miller bridge Wave-3: Kotest/Spek call-style adapter

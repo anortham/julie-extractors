@@ -6,6 +6,7 @@ mod go_http;
 mod helpers;
 mod http_clients;
 mod kotlin_spring;
+mod ktor;
 mod laravel;
 mod markup;
 mod nestjs;
@@ -17,6 +18,7 @@ mod razor;
 mod scan;
 mod spring;
 mod static_arg;
+mod symfony;
 
 use tree_sitter::Tree;
 
@@ -29,6 +31,7 @@ use self::http_clients::{
     collect_backend_http_client_requests, collect_razor_http_client_requests,
 };
 use self::kotlin_spring::collect_kotlin_spring_routes;
+use self::ktor::collect_ktor_routes;
 use self::laravel::collect_laravel_routes;
 use self::markup::{
     collect_jsx_htmx_attributes, collect_markup_framework_attributes,
@@ -41,6 +44,7 @@ use self::python_web::collect_python_web_facts;
 use self::rails::collect_rails_routes;
 use self::razor::collect_razor_structural_facts;
 use self::spring::collect_spring_request_mappings;
+use self::symfony::collect_symfony_routes;
 use super::attach_containing_symbols;
 use super::structural_facts::sort_structural_facts;
 use super::types::{StructuralFact, Symbol};
@@ -74,6 +78,8 @@ pub(super) const RAILS_MOUNT_PATTERN_ID: &str = "rails.mount.v1";
 pub(super) const LARAVEL_ROUTE_PATTERN_ID: &str = "laravel.route.v1";
 pub(super) const LARAVEL_RESOURCE_ROUTE_PATTERN_ID: &str = "laravel.resource_route.v1";
 pub(super) const LARAVEL_ROUTE_PREFIX_PATTERN_ID: &str = "laravel.route_prefix.v1";
+pub(super) const SYMFONY_ROUTE_PATTERN_ID: &str = "symfony.route.v1";
+pub(super) const KTOR_ROUTE_PATTERN_ID: &str = "ktor.route.v1";
 pub(super) const PHOENIX_ROUTE_PATTERN_ID: &str = "phoenix.route.v1";
 pub(super) const PHOENIX_RESOURCE_ROUTE_PATTERN_ID: &str = "phoenix.resource_route.v1";
 pub(super) const PHOENIX_FORWARD_PATTERN_ID: &str = "phoenix.forward.v1";
@@ -147,6 +153,13 @@ const LARAVEL_PATTERN_IDS: &[&str] = &[
     LARAVEL_ROUTE_PATTERN_ID,
     LARAVEL_RESOURCE_ROUTE_PATTERN_ID,
     LARAVEL_ROUTE_PREFIX_PATTERN_ID,
+    SYMFONY_ROUTE_PATTERN_ID,
+    HTTP_CLIENT_REQUEST_PATTERN_ID,
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
+const KOTLIN_PATTERN_IDS: &[&str] = &[
+    SPRING_REQUEST_MAPPING_PATTERN_ID,
+    KTOR_ROUTE_PATTERN_ID,
     HTTP_CLIENT_REQUEST_PATTERN_ID,
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -255,6 +268,7 @@ pub fn collect_framework_structural_facts(
         }
         "kotlin" => {
             let mut kotlin_facts = collect_kotlin_spring_routes(language, tree, file_path, content);
+            kotlin_facts.extend(collect_ktor_routes(language, tree, file_path, content));
             kotlin_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
@@ -276,6 +290,7 @@ pub fn collect_framework_structural_facts(
         }
         "php" => {
             let mut php_facts = collect_laravel_routes(language, tree, file_path, content);
+            php_facts.extend(collect_symfony_routes(language, tree, file_path, content));
             php_facts.extend(collect_backend_http_client_requests(
                 language, tree, file_path, content,
             ));
@@ -325,10 +340,11 @@ pub(crate) fn framework_structural_fact_pattern_ids_for_language(
             NESTJS_ROUTE_PATTERN_ID,
         ],
         "python" => PYTHON_WEB_PATTERN_IDS,
-        "java" | "kotlin" => &[
+        "java" => &[
             SPRING_REQUEST_MAPPING_PATTERN_ID,
             HTTP_CLIENT_REQUEST_PATTERN_ID,
         ],
+        "kotlin" => KOTLIN_PATTERN_IDS,
         "go" => GO_HTTP_PATTERN_IDS,
         "ruby" => RAILS_PATTERN_IDS,
         "php" => LARAVEL_PATTERN_IDS,

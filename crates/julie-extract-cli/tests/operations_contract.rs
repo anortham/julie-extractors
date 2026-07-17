@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::process::{Command, Output};
 
+use julie_extract_cli::limits::MAX_SOURCE_FILE_BYTES;
 use rusqlite::{Connection, OptionalExtension};
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -973,6 +974,7 @@ fn update_ignored_file_records_update_revision_with_unsupported_change() {
     assert_eq!(report["status"], "unsupported");
     assert_eq!(report["operation"], "update");
     assert_eq!(report["counts"]["files_deleted"], 1);
+    assert_eq!(report["warnings"][0]["code"], "unsupported_file");
     assert_eq!(
         latest_revision_operation_and_change(&db),
         Some(("update".to_string(), "unsupported".to_string()))
@@ -1439,6 +1441,105 @@ fn scan_treats_supported_extensions_case_insensitively() {
     assert_eq!(report["counts"]["files_unsupported"], 0);
     assert_eq!(file_language_for_path(&db, "src/A.TS"), "typescript");
     assert!(symbols_for_path(&db, "src/A.TS").contains(&"alpha".to_string()));
+}
+
+#[test]
+fn scan_reports_slow_file_skipped_warning_for_oversized_source_file() {
+    let oversized_contents = "x".repeat(MAX_SOURCE_FILE_BYTES + 1);
+    let fixture = FixtureRoot::with_file("src/huge.rs", &oversized_contents);
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["counts"]["files_unsupported"], 1);
+    assert_eq!(report["warnings"][0]["code"], "slow_file_skipped");
+    assert_eq!(report["warnings"][0]["root_relative_path"], "src/huge.rs");
+}
+
+#[test]
+fn scan_preserves_existing_rows_when_source_file_becomes_oversized() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    let before = symbols_for_path(&db, "src/a.rs");
+    assert!(!before.is_empty());
+
+    std::fs::write(
+        fixture.path("src/a.rs"),
+        "x".repeat(MAX_SOURCE_FILE_BYTES + 1),
+    )
+    .unwrap();
+
+    let output = scan(fixture.root_str(), &db);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["warnings"][0]["code"], "slow_file_skipped");
+    assert_eq!(report["warnings"][0]["root_relative_path"], "src/a.rs");
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), before);
+}
+
+#[test]
+fn update_oversized_supported_file_preserves_rows_and_reports_slow_file_skipped() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    let before = symbols_for_path(&db, "src/a.rs");
+    assert!(!before.is_empty());
+
+    std::fs::write(
+        fixture.path("src/a.rs"),
+        "x".repeat(MAX_SOURCE_FILE_BYTES + 1),
+    )
+    .unwrap();
+
+    let output = update(fixture.root_str(), &db, "src/a.rs");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["operation"], "update");
+    assert_eq!(report["status"], "no_change");
+    assert_eq!(report["counts"]["files_deleted"], 0);
+    assert_eq!(report["warnings"][0]["code"], "slow_file_skipped");
+    assert_eq!(report["warnings"][0]["root_relative_path"], "src/a.rs");
+
+    let diagnostic_codes = report["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .chain(report["errors"].as_array().unwrap())
+        .map(|entry| entry["code"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert!(!diagnostic_codes.contains(&"unsupported_file"));
+
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), before);
+    assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
 }
 
 #[test]

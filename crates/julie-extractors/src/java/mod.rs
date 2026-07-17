@@ -77,6 +77,7 @@ impl JavaExtractor {
     pub fn extract_symbols(&mut self, tree: &Tree) -> Vec<Symbol> {
         let mut symbols = Vec::new();
         self.walk_tree(tree.root_node(), &mut symbols, None, 0);
+        crate::test_detection::mark_java_test_containers(&mut symbols);
         symbols
     }
 

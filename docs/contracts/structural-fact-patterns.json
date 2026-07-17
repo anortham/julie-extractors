@@ -773,9 +773,71 @@
     "query_family": "preprocessor"
   },
   {
+    "description": "A CSS `@charset` rule.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared charset encoding text (including quotes when present in source).",
+        "key": "encoding",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.charset.v1",
+    "query_family": "stylesheet_structure"
+  },
+  {
+    "description": "A CSS `@container` query.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `@container` prelude/condition text, when present.",
+        "key": "condition",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.container.v1",
+    "query_family": "responsive_design"
+  },
+  {
     "description": "A CSS custom property declaration (`--name`).",
     "languages": [
-      "css"
+      "css",
+      "vue",
+      "html"
     ],
     "metadata_keys": [
       {
@@ -801,9 +863,41 @@
     "query_family": "stylesheet_structure"
   },
   {
+    "description": "A CSS `@font-face` rule.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The at-rule keyword (\"@font-face\").",
+        "key": "at_rule",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.font_face.v1",
+    "query_family": "stylesheet_structure"
+  },
+  {
     "description": "A CSS `@keyframes` animation.",
     "languages": [
-      "css"
+      "css",
+      "vue",
+      "html"
     ],
     "metadata_keys": [
       {
@@ -829,9 +923,41 @@
     "query_family": "animation"
   },
   {
+    "description": "A CSS `@layer` rule.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `@layer` name prelude, when present.",
+        "key": "layer_name",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.layer.v1",
+    "query_family": "stylesheet_structure"
+  },
+  {
     "description": "A CSS `@media` query.",
     "languages": [
-      "css"
+      "css",
+      "vue",
+      "html"
     ],
     "metadata_keys": [
       {
@@ -857,9 +983,41 @@
     "query_family": "responsive_design"
   },
   {
+    "description": "A CSS `@namespace` rule.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `@namespace` prelude text (prefix and/or URL).",
+        "key": "namespace",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.namespace.v1",
+    "query_family": "stylesheet_structure"
+  },
+  {
     "description": "A CSS selector rule set.",
     "languages": [
-      "css"
+      "css",
+      "vue",
+      "html"
     ],
     "metadata_keys": [
       {
@@ -895,6 +1053,36 @@
     ],
     "pattern_id": "css.selector_rule.v1",
     "query_family": "stylesheet_structure"
+  },
+  {
+    "description": "A CSS `@supports` feature query.",
+    "languages": [
+      "css",
+      "vue",
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The `@supports` prelude/condition text, when present.",
+        "key": "condition",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "css.supports.v1",
+    "query_family": "feature_query"
   },
   {
     "description": "A Dart annotation use.",
@@ -2076,6 +2264,104 @@
     "query_family": "framework"
   },
   {
+    "description": "An HTML image-map area link (`<area href>`).",
+    "languages": [
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "The element tag name (\"area\").",
+        "key": "tag_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Link target from the href attribute.",
+        "key": "href",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Area alt text, when present.",
+        "key": "alt",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Area shape attribute, when present.",
+        "key": "shape",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Area coords attribute, when present.",
+        "key": "coords",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Element id attribute, when present.",
+        "key": "id",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "html.area_link.v1",
+    "query_family": "document_navigation"
+  },
+  {
+    "description": "A generic HTML `data-*` attribute (excluding htmx/Alpine reserved prefixes).",
+    "languages": [
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning element tag name.",
+        "key": "tag_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Full data-* attribute name.",
+        "key": "attribute_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Attribute value text.",
+        "key": "value",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "html.data_attribute.v1",
+    "query_family": "document_attributes"
+  },
+  {
     "description": "An HTML `<form>` element.",
     "languages": [
       "html"
@@ -2282,6 +2568,52 @@
     "query_family": "document_forms"
   },
   {
+    "description": "An HTML landmark element or element with a landmark role.",
+    "languages": [
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Landmark tag name (header/nav/main/aside/footer or role-bearing element).",
+        "key": "tag_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "ARIA role attribute, when present.",
+        "key": "role",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Element id attribute, when present.",
+        "key": "id",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "aria-label attribute, when present.",
+        "key": "aria_label",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "html.landmark.v1",
+    "query_family": "document_landmarks"
+  },
+  {
     "description": "An HTML anchor (`<a href>`) link.",
     "languages": [
       "html"
@@ -2332,6 +2664,58 @@
     ],
     "pattern_id": "html.link.v1",
     "query_family": "document_navigation"
+  },
+  {
+    "description": "An HTML media reference (`<img>`, `<source>`, audio/video/track with src).",
+    "languages": [
+      "html"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Media element tag name (img/source/audio/video/track).",
+        "key": "tag_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Media source URL from the src attribute.",
+        "key": "src",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "MIME type attribute, when present.",
+        "key": "type",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Alt text for images, when present.",
+        "key": "alt",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Element id attribute, when present.",
+        "key": "id",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "html.media.v1",
+    "query_family": "document_assets"
   },
   {
     "description": "An HTML `<script>` element.",
@@ -2797,6 +3181,74 @@
     "query_family": "data_structure"
   },
   {
+    "description": "A JSON Schema `$ref` reference.",
+    "languages": [
+      "json"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Target of the `$ref` property.",
+        "key": "ref",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Dotted/indexed JSON path to the property's parent.",
+        "key": "path",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "json.ref.v1",
+    "query_family": "schema_structure"
+  },
+  {
+    "description": "A JSON Schema `$schema` declaration.",
+    "languages": [
+      "json"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "URI/value of the `$schema` property.",
+        "key": "schema_uri",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Dotted/indexed JSON path to the property's parent.",
+        "key": "path",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "json.schema.v1",
+    "query_family": "schema_structure"
+  },
+  {
     "description": "A JSX `await` expression.",
     "languages": [
       "jsx"
@@ -2895,6 +3347,76 @@
     ],
     "pattern_id": "kotlin.suspend_modifier.v1",
     "query_family": "async"
+  },
+  {
+    "description": "A static Ktor verb call lexically contained in a routing{}/route{} lambda (restricted gate).",
+    "languages": [
+      "kotlin"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"call_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route path from the verb call's first argument.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Enclosing route(\"/prefix\") scopes joined with the route template when a static prefix applies.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and Ktor {param} segments preserved as :param.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Uppercase HTTP method attested from the bare verb identifier.",
+        "key": "verb",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested (\"attested\").",
+        "key": "verb_source",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "ktor.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A Laravel Route::resource/apiResource declaration.",
@@ -5936,6 +6458,40 @@
     "query_family": "query_structure"
   },
   {
+    "description": "A SQL `DELETE` statement.",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Target table of the DELETE when resolvable.",
+        "key": "table_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the DELETE has a WHERE clause.",
+        "key": "has_where",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "sql.delete_statement.v1",
+    "query_family": "mutation_structure"
+  },
+  {
     "description": "A SQL foreign-key constraint.",
     "languages": [
       "sql"
@@ -5988,6 +6544,40 @@
     "query_family": "schema_structure"
   },
   {
+    "description": "A SQL function definition (`CREATE FUNCTION`).",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized function name.",
+        "key": "routine_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Number of declared function parameters.",
+        "key": "parameter_count",
+        "presence": "always",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "sql.function_definition.v1",
+    "query_family": "schema_structure"
+  },
+  {
     "description": "A SQL `CREATE INDEX` definition.",
     "languages": [
       "sql"
@@ -6026,6 +6616,46 @@
     ],
     "pattern_id": "sql.index_definition.v1",
     "query_family": "schema_structure"
+  },
+  {
+    "description": "A SQL `INSERT` statement.",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Target table of the INSERT when resolvable.",
+        "key": "table_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the INSERT uses a VALUES clause.",
+        "key": "has_values",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "Whether the INSERT sources rows from a SELECT.",
+        "key": "has_select",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "sql.insert_statement.v1",
+    "query_family": "mutation_structure"
   },
   {
     "description": "A SQL join clause.",
@@ -6118,6 +6748,40 @@
     ],
     "pattern_id": "sql.merge_statement.v1",
     "query_family": "mutation_structure"
+  },
+  {
+    "description": "A SQL stored procedure definition (`CREATE PROCEDURE`).",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized procedure name.",
+        "key": "routine_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Number of declared procedure parameters.",
+        "key": "parameter_count",
+        "presence": "always",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "sql.procedure_definition.v1",
+    "query_family": "schema_structure"
   },
   {
     "description": "A SQL `SELECT` query.",
@@ -6378,6 +7042,58 @@
     "query_family": "schema_structure"
   },
   {
+    "description": "A SQL window clause or window function (`WINDOW` / `OVER`).",
+    "languages": [
+      "sql"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Window shape: \"window_clause\" or \"window_function\".",
+        "key": "window_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Named window identifier for WINDOW clauses.",
+        "key": "window_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Window function name for OVER expressions.",
+        "key": "function_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the window specification includes PARTITION BY.",
+        "key": "has_partition_by",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "Whether the window specification includes ORDER BY.",
+        "key": "has_order_by",
+        "presence": "always",
+        "value_type": "bool"
+      }
+    ],
+    "pattern_id": "sql.window_definition.v1",
+    "query_family": "query_structure"
+  },
+  {
     "description": "A Swift `actor` declaration.",
     "languages": [
       "swift"
@@ -6454,6 +7170,88 @@
     ],
     "pattern_id": "swift.await_expression.v1",
     "query_family": "async"
+  },
+  {
+    "description": "A static Symfony #[Route] attribute on a controller class or method.",
+    "languages": [
+      "php"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning framework or HTTP-client label for the fact.",
+        "key": "framework",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Routing style (\"annotation_routing\").",
+        "key": "api_style",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "class_route/http_method/request_mapping shape.",
+        "key": "attribute_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw static route template.",
+        "key": "route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Cross-family join key with a leading slash and Symfony {param} segments preserved as :param.",
+        "key": "normalized_route_template",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Route parameter names discovered in the normalized template.",
+        "key": "dynamic_segments",
+        "presence": "optional",
+        "value_type": "string_array"
+      },
+      {
+        "description": "Nearest class-level #[Route] template.",
+        "key": "class_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Class and method templates joined.",
+        "key": "effective_route_template",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Uppercase HTTP method when methods= restricts the route; omitted when any method is accepted.",
+        "key": "verb",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "How the verb was attested.",
+        "key": "verb_source",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "symfony.route.v1",
+    "query_family": "framework"
   },
   {
     "description": "A TOML `[[array table]]` element.",

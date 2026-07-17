@@ -68,6 +68,24 @@ public class OuterWithNested { public class NestedWithCase { [TestCase(1)] publi
             "{name} must retain method test classification"
         );
     }
+    for name in ["Before", "After"] {
+        assert!(
+            role(&symbols, name, "test_lifecycle"),
+            "{name} must be classified as test_lifecycle"
+        );
+    }
+    for name in [
+        "FactCase",
+        "TheoryCase",
+        "TestCase",
+        "ParameterizedCase",
+        "NestedCase",
+    ] {
+        assert!(
+            !role(&symbols, name, "test_lifecycle"),
+            "{name} must not be classified as test_lifecycle"
+        );
+    }
 }
 
 #[test]

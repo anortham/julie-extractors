@@ -13,4 +13,5 @@
 //! references no sibling CLI module via `crate::`), so exporting it here compiles
 //! identically to its use inside the binary and adds no new coupling.
 
+pub mod limits;
 pub mod resolution;

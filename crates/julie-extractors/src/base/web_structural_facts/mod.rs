@@ -34,10 +34,20 @@ const CSS_SELECTOR_RULE_PATTERN_ID: &str = "css.selector_rule.v1";
 const CSS_CUSTOM_PROPERTY_PATTERN_ID: &str = "css.custom_property.v1";
 const CSS_MEDIA_QUERY_PATTERN_ID: &str = "css.media_query.v1";
 const CSS_KEYFRAMES_PATTERN_ID: &str = "css.keyframes.v1";
+const CSS_SUPPORTS_PATTERN_ID: &str = "css.supports.v1";
+const CSS_CONTAINER_PATTERN_ID: &str = "css.container.v1";
+const CSS_FONT_FACE_PATTERN_ID: &str = "css.font_face.v1";
+const CSS_LAYER_PATTERN_ID: &str = "css.layer.v1";
+const CSS_CHARSET_PATTERN_ID: &str = "css.charset.v1";
+const CSS_NAMESPACE_PATTERN_ID: &str = "css.namespace.v1";
 const HTML_LINK_PATTERN_ID: &str = "html.link.v1";
 const HTML_SCRIPT_PATTERN_ID: &str = "html.script.v1";
 const HTML_FORM_PATTERN_ID: &str = "html.form.v1";
 const HTML_FORM_CONTROL_PATTERN_ID: &str = "html.form_control.v1";
+const HTML_AREA_LINK_PATTERN_ID: &str = "html.area_link.v1";
+const HTML_MEDIA_PATTERN_ID: &str = "html.media.v1";
+const HTML_LANDMARK_PATTERN_ID: &str = "html.landmark.v1";
+const HTML_DATA_ATTRIBUTE_PATTERN_ID: &str = "html.data_attribute.v1";
 const VUE_SFC_SECTION_PATTERN_ID: &str = "vue.sfc_section.v1";
 const VUE_TEMPLATE_DIRECTIVE_PATTERN_ID: &str = "vue.template_directive.v1";
 const VUE_ROUTE_REFERENCE_PATTERN_ID: &str = "vue.route_reference.v1";
@@ -54,22 +64,32 @@ const HTTP_CLIENT_REQUEST_PATTERN_ID: &str = "http.client_request.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const CSS_WEB_PATTERN_IDS: &[&str] = &[
+    CSS_CHARSET_PATTERN_ID,
+    CSS_CONTAINER_PATTERN_ID,
     CSS_CUSTOM_PROPERTY_PATTERN_ID,
+    CSS_FONT_FACE_PATTERN_ID,
     CSS_KEYFRAMES_PATTERN_ID,
+    CSS_LAYER_PATTERN_ID,
     CSS_MEDIA_QUERY_PATTERN_ID,
+    CSS_NAMESPACE_PATTERN_ID,
     CSS_SELECTOR_RULE_PATTERN_ID,
+    CSS_SUPPORTS_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const HTML_WEB_PATTERN_IDS: &[&str] = &[
+    HTML_AREA_LINK_PATTERN_ID,
+    HTML_DATA_ATTRIBUTE_PATTERN_ID,
     HTML_FORM_CONTROL_PATTERN_ID,
     HTML_FORM_PATTERN_ID,
+    HTML_LANDMARK_PATTERN_ID,
     HTML_LINK_PATTERN_ID,
+    HTML_MEDIA_PATTERN_ID,
     HTML_SCRIPT_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
-const VUE_WEB_PATTERN_IDS: &[&str] = &[
+const VUE_SPECIFIC_WEB_PATTERN_IDS: &[&str] = &[
     HTTP_CLIENT_REQUEST_PATTERN_ID,
     NUXT_FILE_ROUTE_PATTERN_ID,
     NUXT_ROUTE_REFERENCE_PATTERN_ID,
@@ -157,17 +177,23 @@ pub fn collect_web_structural_facts(
 }
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
-pub(crate) fn web_structural_fact_pattern_ids_for_language(
-    language: &str,
-) -> &'static [&'static str] {
+pub(crate) fn web_structural_fact_pattern_ids_for_language(language: &str) -> Vec<&'static str> {
     match language {
-        "css" => CSS_WEB_PATTERN_IDS,
-        "html" => HTML_WEB_PATTERN_IDS,
-        "vue" => VUE_WEB_PATTERN_IDS,
-        "javascript" => JS_FRAMEWORK_WEB_PATTERN_IDS,
-        "jsx" | "tsx" => JSX_TSX_FRAMEWORK_WEB_PATTERN_IDS,
-        "typescript" => TS_FRAMEWORK_WEB_PATTERN_IDS,
-        _ => &[],
+        "css" => CSS_WEB_PATTERN_IDS.to_vec(),
+        "html" => HTML_WEB_PATTERN_IDS
+            .iter()
+            .chain(CSS_WEB_PATTERN_IDS)
+            .copied()
+            .collect(),
+        "vue" => CSS_WEB_PATTERN_IDS
+            .iter()
+            .chain(VUE_SPECIFIC_WEB_PATTERN_IDS)
+            .copied()
+            .collect(),
+        "javascript" => JS_FRAMEWORK_WEB_PATTERN_IDS.to_vec(),
+        "jsx" | "tsx" => JSX_TSX_FRAMEWORK_WEB_PATTERN_IDS.to_vec(),
+        "typescript" => TS_FRAMEWORK_WEB_PATTERN_IDS.to_vec(),
+        _ => Vec::new(),
     }
 }
 

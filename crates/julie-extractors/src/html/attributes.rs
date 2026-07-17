@@ -60,15 +60,20 @@ impl AttributeHandler {
             }
         }
 
-        // Add other interesting attributes with limit
         let max_attrs = if tag_name == "img" { 12 } else { 8 };
-        for (name, value) in attributes {
-            if !priority_attrs.contains(name)
-                && Self::is_interesting_attribute(name)
-                && important.len() < max_attrs
-            {
-                important.push((name.clone(), value.clone()));
+        let mut other_attrs = attributes
+            .iter()
+            .filter(|(name, _)| {
+                !priority_attrs.contains(name) && Self::is_interesting_attribute(name)
+            })
+            .collect::<Vec<_>>();
+        other_attrs.sort_unstable_by_key(|(name, _)| *name);
+
+        for (name, value) in other_attrs {
+            if important.len() >= max_attrs {
+                break;
             }
+            important.push((name.clone(), value.clone()));
         }
 
         important

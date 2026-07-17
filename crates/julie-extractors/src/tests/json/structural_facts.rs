@@ -111,3 +111,62 @@ fn json_array_elements_have_unique_indexed_paths() {
         .collect::<BTreeSet<_>>();
     assert_eq!(id_paths, BTreeSet::from(["$.workers[0]", "$.workers[1]"]));
 }
+
+#[test]
+fn json_emits_schema_and_ref_structural_facts() {
+    let source = r##"{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "billing": { "$ref": "#/$defs/Address" },
+    "shipping": { "$ref": "external.json#/$defs/Address" }
+  }
+}"##;
+    let results = extract(source);
+
+    let schema = facts_with_pattern(&results, "json.schema.v1")
+        .into_iter()
+        .next()
+        .expect("expected $schema fact");
+    assert_eq!(
+        metadata_str(schema, "schema_uri"),
+        Some("https://json-schema.org/draft/2020-12/schema")
+    );
+    assert_eq!(metadata_str(schema, "path"), Some("$"));
+    assert_eq!(
+        metadata_str(schema, "query_family"),
+        Some("schema_structure")
+    );
+
+    let refs = facts_with_pattern(&results, "json.ref.v1");
+    assert_eq!(refs.len(), 2);
+    assert!(
+        refs.iter()
+            .any(|fact| metadata_str(fact, "ref") == Some("#/$defs/Address"))
+    );
+    assert!(refs.iter().any(|fact| {
+        metadata_str(fact, "ref") == Some("external.json#/$defs/Address")
+            && metadata_str(fact, "path") == Some("$.properties.shipping")
+    }));
+    assert!(
+        refs.iter()
+            .all(|fact| metadata_str(fact, "query_family") == Some("schema_structure"))
+    );
+}
+
+#[test]
+fn json_schema_and_ref_values_are_decoded() {
+    let source = r##"{
+  "$schema": "https:\/\/json-schema.org\/draft\/2020-12\/schema",
+  "$ref": "#\/definitions\/caf\u00e9"
+}"##;
+    let results = extract(source);
+
+    let schema = facts_with_pattern(&results, "json.schema.v1");
+    assert_eq!(
+        metadata_str(schema[0], "schema_uri"),
+        Some("https://json-schema.org/draft/2020-12/schema")
+    );
+
+    let refs = facts_with_pattern(&results, "json.ref.v1");
+    assert_eq!(metadata_str(refs[0], "ref"), Some("#/definitions/café"));
+}

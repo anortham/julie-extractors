@@ -539,6 +539,28 @@
   "parse_diagnostics": [],
   "structural_facts": [
     {
+      "pattern_id": "html.data_attribute.v1",
+      "capture_name": "data_attribute",
+      "node_kind": "element",
+      "language": "html",
+      "file_path": "fixtures/extraction/html/basic/source.html",
+      "containing_key": "fixtures/extraction/html/basic/source.html:button:11:6",
+      "start_line": 11,
+      "start_column": 6,
+      "end_line": 11,
+      "end_column": 44,
+      "start_byte": 202,
+      "end_byte": 240,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute_name": "data-action",
+        "pattern_version": 1,
+        "query_family": "document_attributes",
+        "tag_name": "button",
+        "value": "run"
+      }
+    },
+    {
       "pattern_id": "html.form_control.v1",
       "capture_name": "form_control",
       "node_kind": "element",

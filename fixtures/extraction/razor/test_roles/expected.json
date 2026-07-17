@@ -31,6 +31,7 @@
         "modifiers": "public",
         "parameters": "()",
         "returnType": "void",
+        "test_lifecycle": true,
         "type": "method"
       },
       "annotations": [
@@ -75,6 +76,7 @@
         "modifiers": "public",
         "parameters": "()",
         "returnType": "void",
+        "test_lifecycle": true,
         "type": "method"
       },
       "annotations": [

@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use serde_json::Value;
-use tree_sitter::Tree;
+use tree_sitter::{Parser, Tree};
 
+use super::css::collect_css_structural_facts_with_host;
 use super::fact_builders::{base_metadata, fact_for_span, insert_string};
 use super::js_object_scan::{
     ScriptSyntaxMask, find_enclosing_object_range, find_js_array_initializer_range_in,
@@ -21,6 +22,7 @@ use super::{
     NUXT_ROUTE_REFERENCE_PATTERN_ID, VUE_ROUTE_DEFINITION_PATTERN_ID,
     VUE_ROUTE_REFERENCE_PATTERN_ID, VUE_SFC_SECTION_PATTERN_ID, VUE_TEMPLATE_DIRECTIVE_PATTERN_ID,
 };
+use crate::base::embedded_span::EmbeddedSpanOffset;
 use crate::base::markup_scan::{
     MarkupAttribute, find_tag_end, scan_markup_attributes, scan_tag_attributes,
     split_argument_and_modifiers,
@@ -88,10 +90,37 @@ pub(super) fn collect_vue_structural_facts(
             facts.extend(collect_vue_route_definitions(
                 "vue", tree, file_path, content, &section,
             ));
+        } else if section.section_type == "style" {
+            facts.extend(collect_vue_style_css_facts(file_path, content, &section));
         }
     }
 
     facts
+}
+
+fn collect_vue_style_css_facts(
+    file_path: &str,
+    content: &str,
+    section: &VueSectionSpan,
+) -> Vec<StructuralFact> {
+    if section.content_start >= section.content_end || section.content_end > content.len() {
+        return Vec::new();
+    }
+    let style_content = &content[section.content_start..section.content_end];
+    let mut parser = Parser::new();
+    if parser
+        .set_language(&tree_sitter_css::LANGUAGE.into())
+        .is_err()
+    {
+        return Vec::new();
+    }
+    let Some(tree) = parser.parse(style_content, None) else {
+        return Vec::new();
+    };
+    let Some(offset) = EmbeddedSpanOffset::from_host_byte(content, section.content_start) else {
+        return Vec::new();
+    };
+    collect_css_structural_facts_with_host(&tree, file_path, style_content, "vue", Some(offset))
 }
 
 fn vue_section_fact(file_path: &str, section: &VueSectionSpan) -> StructuralFact {
@@ -626,6 +655,16 @@ fn parse_vue_directive(attribute_name: &str) -> Option<VueDirective> {
         let (argument, modifiers) = split_argument_and_modifiers(rest);
         return Some(VueDirective {
             name: "v-bind",
+            argument,
+            modifiers,
+            shorthand: true,
+        });
+    }
+
+    if let Some(rest) = attribute_name.strip_prefix('#') {
+        let (argument, modifiers) = split_argument_and_modifiers(rest);
+        return Some(VueDirective {
+            name: "v-slot",
             argument,
             modifiers,
             shorthand: true,

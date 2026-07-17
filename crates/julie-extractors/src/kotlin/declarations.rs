@@ -5,7 +5,7 @@
 
 use super::helpers;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use serde_json::Value;
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -106,16 +106,15 @@ pub(super) fn extract_function(
     // Extract KDoc comment
     let doc_comment = base.find_doc_comment(node);
 
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "kotlin",
         &name,
         &base.file_path,
         &symbol_kind,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     Some(base.create_symbol(
         node,
@@ -186,16 +185,15 @@ pub(super) fn extract_secondary_constructor(
         ),
     ]);
 
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "kotlin",
         class_name,
         &base.file_path,
         &SymbolKind::Constructor,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     Some(base.create_symbol(
         node,

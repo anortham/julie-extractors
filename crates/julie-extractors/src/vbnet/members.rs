@@ -3,7 +3,7 @@ use crate::base::{
     AnnotationMarker, BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility,
     normalize_annotations,
 };
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
@@ -43,16 +43,15 @@ pub fn extract_method(
         .collect::<Vec<_>>();
 
     let mut metadata = helpers::vb_visibility_metadata(&modifiers, "public");
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "vbnet",
         &name,
         &base.file_path,
         &SymbolKind::Method,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     let options = SymbolOptions {
         signature: Some(signature),

@@ -51,8 +51,8 @@
 use tree_sitter::{Node, Tree};
 
 use super::helpers::{
-    base_metadata, fact_for_span, insert_string, is_comment_or_string_node, node_text,
-    smallest_node_covering_range,
+    base_metadata, child_of_kind, fact_for_span, insert_string, is_comment_or_string_node,
+    node_text, smallest_node_covering_range,
 };
 use super::scan::{RouteFactSpec, route_fact};
 use super::static_arg::{StaticArgLang, static_route_arg};
@@ -753,11 +753,4 @@ fn call_arguments(call: Node) -> Vec<Node> {
     };
     let mut cursor = arguments.walk();
     arguments.named_children(&mut cursor).collect()
-}
-
-/// The first child of `node` whose kind is `kind`.
-fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
 }

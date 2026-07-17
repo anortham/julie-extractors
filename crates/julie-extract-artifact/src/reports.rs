@@ -334,7 +334,6 @@ pub enum ReportCode {
     ContractIncompatible,
     DbOpenFailed,
     DbWriteFailed,
-    LockTimeout,
     UnsupportedFormat,
     UnsupportedFile,
     ReadFailed,
@@ -353,7 +352,7 @@ pub enum ReportCode {
 }
 
 impl ReportCode {
-    pub const ERROR_CODES: [Self; 18] = [
+    pub const ERROR_CODES: [Self; 17] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -364,7 +363,6 @@ impl ReportCode {
         Self::ContractIncompatible,
         Self::DbOpenFailed,
         Self::DbWriteFailed,
-        Self::LockTimeout,
         Self::UnsupportedFormat,
         Self::UnsupportedFile,
         Self::ReadFailed,

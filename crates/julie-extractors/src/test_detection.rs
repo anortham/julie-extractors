@@ -5,7 +5,7 @@
 //! and doc comment. No tree-sitter, no file I/O.
 
 use crate::base::{Symbol, SymbolKind};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 /// Callable symbol kinds — only these can be actual test functions/methods.
 fn is_callable(kind: &SymbolKind) -> bool {
@@ -110,6 +110,10 @@ fn detect_rust(annotation_keys: &[String]) -> bool {
         .any(|a| a == "test" || a == "tokio::test" || a == "rstest")
 }
 
+fn is_python_test_lifecycle_name(name: &str) -> bool {
+    matches!(name, "setUp" | "tearDown" | "setUpClass" | "tearDownClass")
+}
+
 fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {
     // Annotation-key-based: pytest.* or unittest.* (path-independent)
     if annotation_keys
@@ -119,7 +123,7 @@ fn detect_python(name: &str, file_path: &str, annotation_keys: &[String]) -> boo
         return true;
     }
     // unittest lifecycle methods (setUp/tearDown and class-level variants)
-    if matches!(name, "setUp" | "tearDown" | "setUpClass" | "tearDownClass") {
+    if is_python_test_lifecycle_name(name) {
         return true;
     }
     // Name-based: test_ prefix, but only in test paths. Source APIs like
@@ -142,38 +146,48 @@ fn detect_scala(name: &str, file_path: &str, annotation_keys: &[String]) -> bool
     name.starts_with("test")
 }
 
+fn is_java_test_case_annotation(annotation: &str) -> bool {
+    matches!(annotation, "test" | "parameterizedtest" | "repeatedtest")
+}
+
+fn is_java_test_lifecycle_annotation(annotation: &str) -> bool {
+    matches!(
+        annotation,
+        "beforeeach"
+            | "aftereach"
+            | "beforeall"
+            | "afterall"
+            | "before"
+            | "after"
+            | "beforeclass"
+            | "afterclass"
+    )
+}
+
 fn detect_java_kotlin(annotation_keys: &[String]) -> bool {
-    let test_annotations = [
-        "test",
-        "parameterizedtest",
-        "repeatedtest",
-        "beforeeach",
-        "aftereach",
-        "beforeall",
-        "afterall",
-        "before",
-        "after",
-        "beforeclass",
-        "afterclass",
-    ];
-    annotation_keys
-        .iter()
-        .any(|a| test_annotations.contains(&a.as_str()))
+    annotation_keys.iter().any(|annotation| {
+        is_java_test_case_annotation(annotation) || is_java_test_lifecycle_annotation(annotation)
+    })
+}
+
+fn is_dotnet_test_lifecycle_annotation(annotation: &str) -> bool {
+    matches!(
+        annotation,
+        "setup"
+            | "teardown"
+            | "onetimesetup"
+            | "onetimeteardown"
+            | "testinitialize"
+            | "testcleanup"
+            | "classinitialize"
+            | "classcleanup"
+    )
 }
 
 fn detect_csharp(annotation_keys: &[String]) -> bool {
-    let lifecycle_attrs = [
-        "setup",
-        "teardown",
-        "onetimesetup",
-        "onetimeteardown",
-        "testinitialize",
-        "testcleanup",
-        "classinitialize",
-        "classcleanup",
-    ];
     annotation_keys.iter().any(|annotation| {
-        is_dotnet_test_case_annotation(annotation) || lifecycle_attrs.contains(&annotation.as_str())
+        is_dotnet_test_case_annotation(annotation)
+            || is_dotnet_test_lifecycle_annotation(annotation)
     })
 }
 
@@ -182,6 +196,76 @@ fn is_dotnet_test_case_annotation(annotation: &str) -> bool {
         annotation,
         "test" | "testcase" | "testmethod" | "fact" | "theory"
     )
+}
+
+fn is_test_lifecycle(language: &str, name: &str, annotation_keys: &[String]) -> bool {
+    match language {
+        "java" | "kotlin" => annotation_keys
+            .iter()
+            .any(|annotation| is_java_test_lifecycle_annotation(annotation)),
+        "csharp" | "vbnet" | "razor" => annotation_keys
+            .iter()
+            .any(|annotation| is_dotnet_test_lifecycle_annotation(annotation)),
+        "python" => is_python_test_lifecycle_name(name),
+        _ => false,
+    }
+}
+
+/// Set `is_test` and, when applicable, `test_lifecycle` on callable metadata.
+pub(crate) fn apply_callable_test_metadata(
+    language: &str,
+    name: &str,
+    file_path: &str,
+    kind: &SymbolKind,
+    annotation_keys: &[String],
+    doc_comment: Option<&str>,
+    metadata: &mut HashMap<String, serde_json::Value>,
+) {
+    if !is_test_symbol(
+        language,
+        name,
+        file_path,
+        kind,
+        annotation_keys,
+        doc_comment,
+    ) {
+        return;
+    }
+    metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
+    if is_test_lifecycle(language, name, annotation_keys) {
+        metadata.insert("test_lifecycle".to_string(), serde_json::Value::Bool(true));
+    }
+}
+
+fn mark_class_test_container(symbol: &mut Symbol) {
+    symbol
+        .metadata
+        .get_or_insert_with(Default::default)
+        .insert("test_container".to_string(), serde_json::Value::Bool(true));
+}
+
+fn metadata_string_list_contains(symbol: &Symbol, key: &str, needle: &str) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_array())
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value.as_str())
+                .any(|name| name == needle || name.ends_with(&format!(".{needle}")))
+        })
+        .unwrap_or(false)
+}
+
+fn metadata_flag(symbol: &Symbol, key: &str) -> bool {
+    symbol
+        .metadata
+        .as_ref()
+        .and_then(|metadata| metadata.get(key))
+        .and_then(|value| value.as_bool())
+        == Some(true)
 }
 
 pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
@@ -208,10 +292,95 @@ pub(crate) fn mark_dotnet_test_containers(symbols: &mut [Symbol]) {
             )
         });
         if has_container_attribute || containers_with_test_members.contains(&symbol.id) {
+            mark_class_test_container(symbol);
+        }
+    }
+}
+
+pub(crate) fn mark_java_test_containers(symbols: &mut [Symbol]) {
+    let containers_with_test_members: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Method)
+        .filter(|symbol| {
             symbol
-                .metadata
-                .get_or_insert_with(Default::default)
-                .insert("test_container".to_string(), serde_json::Value::Bool(true));
+                .annotations
+                .iter()
+                .any(|annotation| is_java_test_case_annotation(&annotation.annotation_key))
+        })
+        .filter_map(|symbol| symbol.parent_id.clone())
+        .collect();
+
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| symbol.kind == SymbolKind::Class)
+    {
+        let has_nested_attribute = symbol
+            .annotations
+            .iter()
+            .any(|annotation| annotation.annotation_key == "nested");
+        let extends_testcase = metadata_string_list_contains(symbol, "base_types", "TestCase");
+        if has_nested_attribute
+            || extends_testcase
+            || containers_with_test_members.contains(&symbol.id)
+        {
+            mark_class_test_container(symbol);
+        }
+    }
+
+    mark_ancestor_test_containers(symbols);
+}
+
+/// Mark every `Class` ancestor of an already-marked test-container class.
+///
+/// JUnit executes an outer class whose only test content is a `@Nested` inner
+/// class, so the enclosing class is itself a test container even without direct
+/// test members.
+fn mark_ancestor_test_containers(symbols: &mut [Symbol]) {
+    let index_by_id: HashMap<&str, usize> = symbols
+        .iter()
+        .enumerate()
+        .map(|(index, symbol)| (symbol.id.as_str(), index))
+        .collect();
+
+    let mut ancestors_to_mark: HashSet<usize> = HashSet::new();
+    for symbol in symbols.iter().filter(|symbol| {
+        symbol.kind == SymbolKind::Class && metadata_flag(symbol, "test_container")
+    }) {
+        let mut parent = symbol.parent_id.as_deref();
+        while let Some(parent_id) = parent {
+            let Some(&index) = index_by_id.get(parent_id) else {
+                break;
+            };
+            let ancestor = &symbols[index];
+            if ancestor.kind == SymbolKind::Class {
+                ancestors_to_mark.insert(index);
+            }
+            parent = ancestor.parent_id.as_deref();
+        }
+    }
+
+    for index in ancestors_to_mark {
+        mark_class_test_container(&mut symbols[index]);
+    }
+}
+
+pub(crate) fn mark_python_test_containers(symbols: &mut [Symbol]) {
+    let containers_with_test_members: HashSet<String> = symbols
+        .iter()
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Method | SymbolKind::Function))
+        .filter(|symbol| {
+            metadata_flag(symbol, "is_test") && !metadata_flag(symbol, "test_lifecycle")
+        })
+        .filter_map(|symbol| symbol.parent_id.clone())
+        .collect();
+
+    for symbol in symbols
+        .iter_mut()
+        .filter(|symbol| symbol.kind == SymbolKind::Class)
+    {
+        let extends_testcase = metadata_string_list_contains(symbol, "superclasses", "TestCase");
+        if extends_testcase || containers_with_test_members.contains(&symbol.id) {
+            mark_class_test_container(symbol);
         }
     }
 }

@@ -33,6 +33,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: Run certification tier
         run: cargo xtask test certification
 
@@ -46,6 +48,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
 
       - name: Run real-world smoke tier
         run: cargo xtask test real-world-smoke
@@ -61,6 +65,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - uses: Swatinem/rust-cache@v2
+
       - name: Run real-world release tier
         run: cargo xtask test real-world-release
 
@@ -74,6 +80,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
 
       - name: Run dogfood gate
         run: cargo xtask dogfood repo --root . --out-dir target/dogfood/julie-extractors
@@ -93,6 +101,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ inputs.target }}
+
+      - uses: Swatinem/rust-cache@v2
 
       - name: Validate package target
         shell: bash

@@ -27,6 +27,7 @@
       "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitFixture:2:0",
       "metadata": {
         "is_test": true,
+        "test_lifecycle": true,
         "vb_visibility": "public"
       },
       "annotations": [
@@ -67,6 +68,7 @@
       "parent_key": "fixtures/extraction/vbnet/test_roles/source.vb:NUnitFixture:2:0",
       "metadata": {
         "is_test": true,
+        "test_lifecycle": true,
         "vb_visibility": "public"
       },
       "annotations": [

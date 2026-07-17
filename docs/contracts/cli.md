@@ -13,7 +13,7 @@ Contract version:
 
 - CLI contract: `1`
 - Extraction contract: `3`
-- SQLite schema: `3`
+- SQLite schema: `4`
 - JSONL schema: `3`
 
 These values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
@@ -124,7 +124,8 @@ invalid `--ignore-file` is a hard CLI error.
 
 Scans the root, extracts supported changed files, deletes artifact rows for
 source files that disappeared, and records a new revision only when the artifact
-changes.
+changes. A supported source file larger than 1 MiB is skipped with a
+`slow_file_skipped` warning; its existing rows are preserved rather than deleted.
 
 `scan --force` rebuilds the artifact contents in one SQLite transaction. It is
 the explicit path for a moved root or full re-extraction.
@@ -147,6 +148,9 @@ Outcomes:
 
 - changed supported file: replaces that file's artifact rows.
 - unchanged supported file: returns `no_change`.
+- oversized supported file (larger than 1 MiB): skipped with a `slow_file_skipped`
+  warning and returns `no_change`. Existing rows for the file are preserved, not
+  deleted — this mirrors `scan`, which also skips the file and keeps its rows.
 - unsupported or ignored file: deletes stale rows for that path and returns
   `unsupported`.
 - missing file: returns `failed` with `file_not_found`; callers should use

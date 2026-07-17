@@ -102,6 +102,12 @@ mod golden_corpus {
             ));
             return;
         };
+        if !spec.languages.contains(&fact.language.as_str()) {
+            violations.insert(format!(
+                "pattern `{pattern_id}` is emitted for language `{}` (fixture {fixture}) but the registry declares {:?}",
+                fact.language, spec.languages
+            ));
+        }
 
         let declared: BTreeMap<&str, MetadataValueType> = spec
             .metadata_keys
@@ -234,6 +240,55 @@ fn contract_workspace_root() -> std::path::PathBuf {
         .to_path_buf()
 }
 
+#[test]
+fn vue_embedded_css_emissions_are_registered_for_vue() {
+    let source = r#"<style>
+@charset "UTF-8";
+@namespace url(http://www.w3.org/1999/xhtml);
+:root { --accent: #0f766e; }
+@media (min-width: 40rem) { .wide { display: block; } }
+@keyframes spin { from { opacity: 0; } to { opacity: 1; } }
+@supports (display: grid) { .grid { display: grid; } }
+@container (min-width: 20rem) { .card { color: red; } }
+@font-face { font-family: "Worker"; src: url("/worker.woff2"); }
+@layer utilities { .m-0 { margin: 0; } }
+</style>
+"#;
+    let results =
+        crate::pipeline::extract_canonical("source.vue", source, std::path::Path::new("/repo"))
+            .expect("canonical Vue extraction should succeed");
+    let emitted = results
+        .structural_facts
+        .iter()
+        .filter(|fact| fact.pattern_id.starts_with("css."))
+        .map(|fact| fact.pattern_id.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    let expected = std::collections::BTreeSet::from([
+        "css.charset.v1",
+        "css.container.v1",
+        "css.custom_property.v1",
+        "css.font_face.v1",
+        "css.keyframes.v1",
+        "css.layer.v1",
+        "css.media_query.v1",
+        "css.namespace.v1",
+        "css.selector_rule.v1",
+        "css.supports.v1",
+    ]);
+    assert_eq!(emitted, expected);
+
+    let registered = crate::base::structural_fact_pattern_specs()
+        .iter()
+        .filter(|spec| spec.languages.contains(&"vue"))
+        .map(|spec| spec.pattern_id)
+        .collect::<std::collections::BTreeSet<_>>();
+    let missing = emitted.difference(&registered).copied().collect::<Vec<_>>();
+    assert!(
+        missing.is_empty(),
+        "Vue embedded CSS patterns missing from the registry: {missing:?}"
+    );
+}
+
 /// The checked-in JSON contract must byte-match the registry serializer that
 /// produces it (the same function Task 4 embeds in `languages --json`).
 #[test]
@@ -293,48 +348,223 @@ fn blazor_generic_arguments_contract_describes_advisory_syntax_evidence() {
 }
 
 #[test]
+fn structural_fact_pattern_specs_preserve_framework_markup_order() {
+    let pattern_ids: Vec<&str> = crate::base::structural_fact_pattern_specs()
+        .iter()
+        .map(|spec| spec.pattern_id)
+        .collect();
+    let htmx_index = pattern_ids
+        .iter()
+        .position(|pattern_id| *pattern_id == "htmx.attribute.v1")
+        .expect("htmx pattern must be registered");
+
+    assert_eq!(
+        &pattern_ids[htmx_index..htmx_index + 4],
+        [
+            "htmx.attribute.v1",
+            "alpine.directive.v1",
+            "blazor.component_reference.v1",
+            "razor.page_directive.v1",
+        ]
+    );
+}
+
+/// Line ceilings that genuinely constrain regrowth of the split registry.
+///
+/// `FAMILY_CEILING` is the post-split maximum family file (`data.rs`, ~600
+/// lines) plus small headroom, which is stricter than the plan's 800 target; a
+/// family that grows past it must split further. `MOD_CEILING` is the plan's
+/// mod-file target: module files carry only declarations, types, helpers, and
+/// serializers — never a SPECS table.
+const REGISTRY_FAMILY_CEILING: usize = 700;
+const REGISTRY_MOD_CEILING: usize = 400;
+
+fn registry_rs_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir)
+        .unwrap_or_else(|err| panic!("failed to read {}: {err}", dir.display()))
+    {
+        let path = entry.expect("dir entry").path();
+        if path.is_dir() {
+            registry_rs_files(path.as_path(), out);
+        } else if path.extension().is_some_and(|ext| ext == "rs") {
+            out.push(path);
+        }
+    }
+}
+
+#[test]
+fn structural_fact_registry_is_split_into_family_modules() {
+    let root =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/base/structural_fact_registry");
+    assert!(
+        root.join("mod.rs").is_file(),
+        "expected directory module at {}",
+        root.display()
+    );
+    assert!(
+        !std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src/base/structural_fact_registry.rs")
+            .exists(),
+        "monolithic structural_fact_registry.rs must not return"
+    );
+
+    let mut files = Vec::new();
+    registry_rs_files(&root, &mut files);
+
+    let mut spec_families = 0usize;
+    for path in &files {
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .expect("utf-8 file name");
+        let source = std::fs::read_to_string(path)
+            .unwrap_or_else(|err| panic!("failed to read {}: {err}", path.display()));
+        let lines = source.lines().count();
+
+        match name {
+            "mod.rs" => {
+                assert!(
+                    !source.contains("pub(super) const SPECS"),
+                    "{} is a module file; SPECS tables belong in family modules",
+                    path.display()
+                );
+                assert!(
+                    lines <= REGISTRY_MOD_CEILING,
+                    "{} has {lines} lines; module files must stay <= {REGISTRY_MOD_CEILING}",
+                    path.display()
+                );
+            }
+            "tests.rs" => {
+                assert!(
+                    lines <= REGISTRY_FAMILY_CEILING,
+                    "{} has {lines} lines; keep it <= {REGISTRY_FAMILY_CEILING}",
+                    path.display()
+                );
+            }
+            _ => {
+                assert!(
+                    source.contains("pub(super) const SPECS"),
+                    "{} must declare pub(super) const SPECS",
+                    path.display()
+                );
+                assert!(
+                    lines <= REGISTRY_FAMILY_CEILING,
+                    "{} has {lines} lines; family SPECS modules must stay <= {REGISTRY_FAMILY_CEILING} (split further if needed)",
+                    path.display()
+                );
+                spec_families += 1;
+            }
+        }
+    }
+
+    assert!(
+        spec_families >= 6,
+        "expected the registry to remain split across family modules, found {spec_families}"
+    );
+}
+
+/// Backtick tokens inside a cell, e.g. `` `css`, `vue` `` -> {css, vue}.
+fn backtick_tokens(cell: &str) -> std::collections::BTreeSet<String> {
+    let mut tokens = std::collections::BTreeSet::new();
+    let mut i = 0;
+    while let Some(open) = cell[i..].find('`') {
+        let start = i + open + 1;
+        let Some(rel_close) = cell[start..].find('`') else {
+            break;
+        };
+        let end = start + rel_close;
+        tokens.insert(cell[start..end].to_string());
+        i = end + 1;
+    }
+    tokens
+}
+
+/// Map every `| `pattern` | `langs` | …` row in a contract doc to its declared
+/// language set (first column -> second column).
+fn doc_pattern_language_rows(
+    content: &str,
+) -> std::collections::BTreeMap<String, std::collections::BTreeSet<String>> {
+    let mut rows = std::collections::BTreeMap::new();
+    for line in content.lines() {
+        if !line.starts_with("| `") {
+            continue;
+        }
+        let cells: Vec<&str> = line.trim().trim_matches('|').split('|').collect();
+        if cells.len() < 2 {
+            continue;
+        }
+        let ids = backtick_tokens(cells[0]);
+        if ids.len() != 1 {
+            continue;
+        }
+        let pattern_id = ids.into_iter().next().unwrap();
+        rows.entry(pattern_id)
+            .or_insert_with(|| backtick_tokens(cells[1]));
+    }
+    rows
+}
+
+/// The live contract docs (JSONL v3 + SQLite schema v4) must carry a row for
+/// every web-markup structural-fact pattern the registry declares, with a
+/// matching language set. The css/html/vue expectation is DERIVED from the
+/// registry so new patterns in those families are guarded automatically; the
+/// three documented Razor markup rows are pinned explicitly.
+///
+/// (`sqlite-schema-v3.md` is frozen-historical — `docs/contracts/cli.md`
+/// declares schema 4 — so it is intentionally no longer gated here.)
+#[test]
 fn markdown_contract_pattern_tables_list_web_markup_pattern_rows() {
     let root = contract_workspace_root();
     let docs = [
         root.join("docs/contracts/jsonl-v3.md"),
-        root.join("docs/contracts/sqlite-schema-v3.md"),
+        root.join("docs/contracts/sqlite-schema-v4.md"),
     ];
 
-    let expected = [
+    const RAZOR_MARKUP: &[&str] = &[
         "razor.page_directive.v1",
         "razor.code_block.v1",
         "razor.template_expression.v1",
-        "css.selector_rule.v1",
-        "css.custom_property.v1",
-        "css.media_query.v1",
-        "css.keyframes.v1",
-        "html.link.v1",
-        "html.script.v1",
-        "html.form.v1",
-        "html.form_control.v1",
-        "vue.sfc_section.v1",
-        "vue.template_directive.v1",
     ];
+
+    let specs = crate::base::structural_fact_pattern_specs();
+    let expected: Vec<(&str, std::collections::BTreeSet<String>)> = specs
+        .iter()
+        .filter(|spec| {
+            spec.pattern_id.starts_with("css.")
+                || spec.pattern_id.starts_with("html.")
+                || spec.pattern_id.starts_with("vue.")
+                || RAZOR_MARKUP.contains(&spec.pattern_id)
+        })
+        .map(|spec| {
+            (
+                spec.pattern_id,
+                spec.languages.iter().map(|l| l.to_string()).collect(),
+            )
+        })
+        .collect();
+    assert!(
+        expected.len() > RAZOR_MARKUP.len(),
+        "expected web-markup patterns to be derived from the registry"
+    );
 
     for doc in docs {
         let content = std::fs::read_to_string(&doc)
             .unwrap_or_else(|err| panic!("failed to read {}: {err}", doc.display()));
-        let table_rows = content
-            .lines()
-            .filter(|line| line.starts_with("| `"))
-            .collect::<Vec<_>>()
-            .join("\n");
-        let missing = expected
-            .iter()
-            .filter(|pattern_id| !table_rows.contains(&format!("`{pattern_id}`")))
-            .copied()
-            .collect::<Vec<_>>();
+        let rows = doc_pattern_language_rows(&content);
 
-        assert!(
-            missing.is_empty(),
-            "{} structural-fact pattern table is missing registered pattern row(s): {}",
-            doc.display(),
-            missing.join(", ")
-        );
+        for (pattern_id, registry_langs) in &expected {
+            let Some(doc_langs) = rows.get(*pattern_id) else {
+                panic!(
+                    "{} structural-fact pattern table is missing the registered pattern row `{pattern_id}`",
+                    doc.display()
+                );
+            };
+            assert_eq!(
+                doc_langs,
+                registry_langs,
+                "{} row for `{pattern_id}` lists languages {doc_langs:?} but the registry declares {registry_langs:?}",
+                doc.display()
+            );
+        }
     }
 }

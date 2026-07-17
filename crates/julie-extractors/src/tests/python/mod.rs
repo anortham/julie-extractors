@@ -13,6 +13,7 @@ pub mod imports;
 pub mod literals;
 pub mod relationships;
 pub mod signatures;
+pub mod test_detection;
 pub mod type_arguments;
 pub mod types;
 

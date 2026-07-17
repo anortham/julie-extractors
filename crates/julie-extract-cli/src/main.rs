@@ -4,6 +4,7 @@ mod capability_snapshot;
 mod commands;
 mod discovery;
 mod extraction;
+mod limits;
 mod paths;
 mod reports;
 mod resolution;

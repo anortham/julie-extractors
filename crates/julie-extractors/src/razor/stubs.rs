@@ -1,6 +1,6 @@
 /// Stub implementations for declaration-like C# symbol extraction (fields, local functions, variables)
 use crate::base::{Symbol, SymbolKind, SymbolOptions};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -142,13 +142,39 @@ impl super::RazorExtractor {
         ));
 
         // Test detection uses normalized annotation keys supplied by later extraction tasks.
-        let is_test = is_test_symbol(
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "type".to_string(),
+            serde_json::Value::String("local-function".to_string()),
+        );
+        metadata.insert(
+            "modifiers".to_string(),
+            serde_json::Value::String(modifiers.join(", ")),
+        );
+        if let Some(params) = &parameters {
+            metadata.insert(
+                "parameters".to_string(),
+                serde_json::Value::String(params.clone()),
+            );
+        }
+        if let Some(ret_type) = return_type {
+            metadata.insert(
+                "returnType".to_string(),
+                serde_json::Value::String(ret_type),
+            );
+        }
+        metadata.insert(
+            "attributes".to_string(),
+            serde_json::Value::String(attributes.join(", ")),
+        );
+        apply_callable_test_metadata(
             "razor",
             &name,
             &self.base.file_path,
             &SymbolKind::Method,
             &[],
             None,
+            &mut metadata,
         );
 
         Some(self.base.create_symbol(
@@ -159,37 +185,7 @@ impl super::RazorExtractor {
                 signature: Some(signature_parts.join(" ")),
                 visibility: Some(self.determine_visibility(&modifiers)),
                 parent_id: parent_id.map(|s| s.to_string()),
-                metadata: Some({
-                    let mut metadata = HashMap::new();
-                    metadata.insert(
-                        "type".to_string(),
-                        serde_json::Value::String("local-function".to_string()),
-                    );
-                    metadata.insert(
-                        "modifiers".to_string(),
-                        serde_json::Value::String(modifiers.join(", ")),
-                    );
-                    if let Some(params) = &parameters {
-                        metadata.insert(
-                            "parameters".to_string(),
-                            serde_json::Value::String(params.clone()),
-                        );
-                    }
-                    if let Some(ret_type) = return_type {
-                        metadata.insert(
-                            "returnType".to_string(),
-                            serde_json::Value::String(ret_type),
-                        );
-                    }
-                    metadata.insert(
-                        "attributes".to_string(),
-                        serde_json::Value::String(attributes.join(", ")),
-                    );
-                    if is_test {
-                        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-                    }
-                    metadata
-                }),
+                metadata: Some(metadata),
                 doc_comment: None,
                 annotations: Vec::new(),
             },

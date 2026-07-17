@@ -775,6 +775,8 @@ Supported patterns are advertised in
 | `laravel.route.v1` | `php` | `route` | parser-covered `Route` facade call span | `framework` | A static Laravel `Route` facade route (`api_style="call_routing"`). Import-gated on `Route::`; AST-driven. `Route::get/post/put/patch/delete/options` set an upper-cased `verb`; `Route::any` omits the verb; `Route::match([verbs], ...)` emits one fact per static verb. `{param}`/`{param?}` normalize to `:param`. Same-file `Route::prefix`/`group` prefixes join into `route_group_prefix`/`effective_route_template`; a non-literal prefix or path stays silent (M2). `controller_action` is captured from a `[Ctrl::class, 'm']` or `'Ctrl@m'` handler when statically resolvable. Metadata payload keys: see the JSON contract linked below. |
 | `laravel.resource_route.v1` | `php` | `resource_route` | parser-covered `Route::resource`/`apiResource` call span | `framework` | A Laravel `Route::resource` (`resource_kind="resource"`) or `Route::apiResource` (`resource_kind="api_resource"`) declaration with a static URI literal and, when present, the controller class. |
 | `laravel.route_prefix.v1` | `php` | `route_prefix` | parser-covered `Route::prefix`/`group` prefix site | `framework` | A static same-file Laravel group prefix (`Route::prefix('x')->group(...)` or `Route::group(['prefix'=>'x'], ...)`) emitted at its own site with `mount_path` (raw literal) and `normalized_mount_path` (including enclosing group scope). Cross-file `RouteServiceProvider` prefixes are out of scope. |
+| `symfony.route.v1` | `php` | `request_mapping` | class or method declaration carrying a static `#[Route]` attribute | `framework` | A Symfony `#[Route]` attribute route (`api_style="annotation_routing"`). Import-gated on `Symfony\Component\Routing\`. Class-level `#[Route]` emits `attribute_kind="class_route"` and joins into method `class_route_template`/`effective_route_template`. Method-level routes with `methods=` emit `attribute_kind="http_method"` (one fact per verb); without `methods=` emit `attribute_kind="request_mapping"` with verb omitted. Static-literal path guarding only (M2). Distinct from `laravel.route.v1`. |
+| `ktor.route.v1` | `kotlin` | `route` | parser-covered bare verb call span inside `routing{}`/`route{}` | `framework` | A Ktor server verb call under the restricted lexical gate (design §4.6): bare `get`/`post`/`put`/`patch`/`delete`/`head`/`options` identifier, trailing lambda, static `string_literal` first arg (Braces), lexically inside `routing{}`/`route{}`. Gated on a server-side import (`io.ktor.server.*`, or Ktor 1.x `io.ktor.routing.*`/`io.ktor.application.*`); client-only `io.ktor.client.*` files stay silent. Enclosing `route("/prefix")` scopes join with the verb path into `effective_route_template` (accumulating when nested); the raw literal stays in `route_template`. `client.get`/`map.get` stay silent. |
 | `phoenix.route.v1` | `elixir` | `route` | parser-covered router verb-macro call span | `framework` | A static Phoenix router verb-macro route (`api_style="dsl_routing"`). Import-gated on a `Phoenix.Router`/`:router` module; AST-driven. `get/post/put/patch/delete/head/options "/path", Ctrl, :action` set an upper-cased `verb`, the controller module `alias` (`controller`), and action atom (`action`). Phoenix `:id` segments are already normalized `:param`. Same-file `scope "/api" do ... end` prefixes join into `route_group_prefix`/`effective_route_template` (accumulating when nested); an interpolated/`~r`/concatenated/`@attr` path stays silent (M2). Metadata payload keys: see the JSON contract linked below. |
 | `phoenix.resource_route.v1` | `elixir` | `resource_route` | parser-covered `resources` macro call span | `framework` | A Phoenix `resources "/x", Ctrl` RESTful resource declaration with a static path literal (`resource_path`/`normalized_resource_path`), the controller `alias` when present, and the enclosing same-file `route_group_prefix`. |
 | `phoenix.forward.v1` | `elixir` | `forward` | parser-covered `forward` macro call span | `framework` | A static same-file Phoenix `forward "/lit", Plug` prefix registration emitted at its own site with `mount_path` (raw literal), `normalized_mount_path` (including enclosing scope), and `mount_target` (the forwarded plug alias). Cross-file scope prefixes are out of scope. |
@@ -788,11 +790,21 @@ Supported patterns are advertised in
 | `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` | `component_routing` | A Razor `@page` directive with route-template metadata. |
 | `razor.code_block.v1` | `razor` | `code_block` | `razor_block` | `component_code` | A Razor `@code` or `@functions` block. |
 | `razor.template_expression.v1` | `razor` | `template_expression` | `razor_implicit_expression`, `razor_explicit_expression` | `component_template` | A Razor template expression such as `@name` or `@(expr)`. |
-| `css.selector_rule.v1` | `css` | `rule_set` | `rule_set` | `stylesheet_structure` | A CSS selector rule set with selector kind and declaration-count metadata. |
-| `css.custom_property.v1` | `css` | `custom_property` | `property_name` | `stylesheet_structure` | A CSS custom property declaration. |
-| `css.media_query.v1` | `css` | `media_query` | `media_statement` | `responsive_design` | A CSS `@media` query. |
-| `css.keyframes.v1` | `css` | `keyframes` | `keyframes_statement` | `animation` | A CSS `@keyframes` animation. |
+| `css.selector_rule.v1` | `css`, `vue`, `html` | `rule_set` | `rule_set` | `stylesheet_structure` | A CSS selector rule set with selector kind and declaration-count metadata. |
+| `css.custom_property.v1` | `css`, `vue`, `html` | `custom_property` | `property_name` | `stylesheet_structure` | A CSS custom property declaration. |
+| `css.media_query.v1` | `css`, `vue`, `html` | `media_query` | `media_statement` | `responsive_design` | A CSS `@media` query. |
+| `css.keyframes.v1` | `css`, `vue`, `html` | `keyframes` | `keyframes_statement` | `animation` | A CSS `@keyframes` animation. |
+| `css.supports.v1` | `css`, `vue`, `html` | `supports` | `supports_statement` | `feature_query` | A CSS `@supports` feature query. |
+| `css.container.v1` | `css`, `vue`, `html` | `container` | `at_rule` | `responsive_design` | A CSS `@container` query. |
+| `css.font_face.v1` | `css`, `vue`, `html` | `font_face` | `at_rule` | `stylesheet_structure` | A CSS `@font-face` rule. |
+| `css.layer.v1` | `css`, `vue`, `html` | `layer` | `at_rule` | `stylesheet_structure` | A CSS `@layer` rule. |
+| `css.charset.v1` | `css`, `vue`, `html` | `charset` | `charset_statement` | `stylesheet_structure` | A CSS `@charset` rule. |
+| `css.namespace.v1` | `css`, `vue`, `html` | `namespace` | `namespace_statement` | `stylesheet_structure` | A CSS `@namespace` rule. |
 | `html.link.v1` | `html` | `link` | `element` | `document_navigation` | An HTML anchor link with an `href` target. |
+| `html.area_link.v1` | `html` | `area_link` | `element` | `document_navigation` | An HTML image-map area link (`<area href>`). |
+| `html.media.v1` | `html` | `media` | `element` | `document_assets` | An HTML media reference (`img`/`source`/audio/video/track with `src`). |
+| `html.landmark.v1` | `html` | `landmark` | `element` | `document_landmarks` | An HTML landmark element or element with a landmark role. |
+| `html.data_attribute.v1` | `html` | `data_attribute` | `element` | `document_attributes` | A generic HTML `data-*` attribute (excluding htmx/Alpine reserved prefixes). |
 | `html.script.v1` | `html` | `script` | `script_element` | `document_assets` | An HTML script element with inline/external metadata. |
 | `html.form.v1` | `html` | `form` | `element` | `document_forms` | An HTML form with action, method, and control-count metadata. |
 | `html.form_control.v1` | `html` | `form_control` | `element` | `document_forms` | An HTML form control and its resolved owner-form metadata when available. |
@@ -808,7 +820,7 @@ Supported patterns are advertised in
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `framework` | An exported HTTP-verb handler (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`HEAD`/`OPTIONS`) in an App Router `route.{js,ts}` file. One fact per exported verb. Route paths are derived with the same segment walk as `nextjs.file_route.v1`. Metadata payload keys: see the JSON contract linked below. |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `framework` | A Nitro server route under `server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). One fact per file; `verb`/`verb_source` are present only when the filename carries a method suffix (`users.get.ts`). Emission requires a `defineEventHandler`/`eventHandler` identifier or a method suffix; a wrapped custom handler with neither is a documented residual miss. `server/middleware`, `server/plugins`, and `server/utils` are excluded. Claims the `server/**` space `nuxt.file_route.v1` excludes. Metadata payload keys: see the JSON contract linked below. |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir`, `rust` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Kotlin covers the Ktor client (`client="ktor"`, import-gated on `io.ktor.client`, `receiver.verb(...)` calls only). PHP covers Guzzle (`client="guzzle"`, import-gated on `GuzzleHttp`, `$client->verb('url')`) and the Laravel `Http` facade (`client="laravel_http"`, import-gated on `Facades\Http`, `Http::verb('url')` including chained calls). Elixir covers Req (`client="req"`, import-gated on `Req.`, `Req.verb("url")` including bang variants). Rust covers reqwest (`client="reqwest"`, import-gated on `reqwest`, scoped `reqwest::get("url")` plus the builder `client.get("url")` form whose URL must be url-like to avoid `HashMap::get("key")` collisions). Metadata payload keys: see the JSON contract linked below. |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `razor`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir`, `rust` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Kotlin covers the Ktor client (`client="ktor"`, import-gated on `io.ktor.client`, `receiver.verb(...)` calls only). PHP covers Guzzle (`client="guzzle"`, import-gated on `GuzzleHttp`, `$client->verb('url')`) and the Laravel `Http` facade (`client="laravel_http"`, import-gated on `Facades\Http`, `Http::verb('url')` including chained calls). Elixir covers Req (`client="req"`, import-gated on `Req.`, `Req.verb("url")` including bang variants). Rust covers reqwest (`client="reqwest"`, import-gated on `reqwest`, scoped `reqwest::get("url")` plus the builder `client.get("url")` form whose URL must be url-like to avoid `HashMap::get("key")` collisions). Metadata payload keys: see the JSON contract linked below. |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Raw `route_template`, `route_prefix`, and
@@ -856,9 +868,14 @@ come from an AST-driven collector import-gated on the `Route::` facade; same-fil
 `Route::prefix`/`group` prefixes are lexical-containment (joined into
 `route_group_prefix`/`effective_route_template` and emitted as a
 `laravel.route_prefix.v1` fact at the prefix site, poisoned by a non-literal
-prefix). `#[Route]` attributes (Symfony) and cross-file `RouteServiceProvider`
-prefixes are out of scope, so `route_template` is not guaranteed to be the
-absolute public path when such a prefix applies. Phoenix routes come from an
+prefix). Symfony `#[Route]` attributes emit the separate `symfony.route.v1`
+pattern (not Laravel). Cross-file `RouteServiceProvider` prefixes remain out of
+scope, so Laravel `route_template` is not guaranteed to be the absolute public
+path when such a prefix applies. Ktor server routes emit `ktor.route.v1` under
+a restricted lexical gate inside `routing{}`/`route{}`: the raw literal stays in
+`route_template`, and enclosing static `route("/prefix")` scopes join into
+`effective_route_template`.
+Phoenix routes come from an
 AST-driven collector import-gated on a `Phoenix.Router`/`:router` module: the
 bare verb macros emit `phoenix.route.v1`, `resources` emits
 `phoenix.resource_route.v1`, and `forward` emits a `phoenix.forward.v1` prefix
@@ -948,7 +965,7 @@ with its JSON value type and presence rule — is published as a machine-readabl
 contract at
 [`structural-fact-patterns.json`](./structural-fact-patterns.json). That file is
 generated from the in-process pattern registry
-(`crates/julie-extractors/src/base/structural_fact_registry.rs`); treat it as the
+(`crates/julie-extractors/src/base/structural_fact_registry/`); treat it as the
 source of truth for structural-fact metadata payloads. Regenerate the checked-in
 file after an intentional registry change with:
 

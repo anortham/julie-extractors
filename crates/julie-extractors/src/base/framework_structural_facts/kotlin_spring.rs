@@ -25,8 +25,8 @@ use tree_sitter::{Node, Tree};
 
 use super::SPRING_REQUEST_MAPPING_PATTERN_ID;
 use super::helpers::{
-    base_metadata, fact_for_span, insert_string, insert_string_array, is_comment_or_string_node,
-    node_text, smallest_node_covering_range,
+    base_metadata, child_of_kind, fact_for_span, insert_string, insert_string_array,
+    is_comment_or_string_node, node_text, smallest_node_covering_range,
 };
 use super::static_arg::{StaticArgLang, static_route_arg};
 use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
@@ -519,12 +519,6 @@ fn split_value_argument<'t>(
         let value = children.iter().find(|child| child.is_named()).copied();
         (None, value)
     }
-}
-
-fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .find(|child| child.kind() == kind)
 }
 
 /// The handler-binding span: `[fun … end]` with the leading `modifiers`

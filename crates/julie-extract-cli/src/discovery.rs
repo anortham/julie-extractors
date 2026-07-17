@@ -5,6 +5,7 @@ use ignore::Match;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use julie_extractors::detect_language_from_extension;
 
+use crate::limits::{MAX_SOURCE_FILE_BYTES, slow_file_skip_message};
 use crate::paths::{FileTarget, PathPolicyError, canonicalize_ignore_file};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,6 +19,11 @@ pub enum UnsupportedReason {
     Ignored,
     HardExcluded,
     UnsupportedExtension,
+    /// Otherwise-supported file exceeded [`MAX_SOURCE_FILE_BYTES`] and was
+    /// skipped. Distinct from [`Self::HardExcluded`] so callers can surface a
+    /// typed `slow_file_skipped` warning instead of counting the file as a
+    /// silent unsupported.
+    Oversized,
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +49,10 @@ pub struct DiscoverySummary {
     pub supported_files: Vec<FileTarget>,
     pub unsupported_files: usize,
     pub errors: Vec<DiscoveryError>,
+    /// Otherwise-supported files skipped for exceeding [`MAX_SOURCE_FILE_BYTES`],
+    /// surfaced by callers as `slow_file_skipped` warnings rather than folded
+    /// silently into `unsupported_files`.
+    pub slow_file_skips: Vec<DiscoveryError>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -123,7 +133,7 @@ impl DiscoveryPolicy {
             Some(language) => {
                 if is_oversized_source_file(&target.absolute_path) {
                     return FileSelection::Unsupported {
-                        reason: UnsupportedReason::HardExcluded,
+                        reason: UnsupportedReason::Oversized,
                     };
                 }
                 FileSelection::Supported {
@@ -141,6 +151,7 @@ impl DiscoveryPolicy {
             supported_files: Vec::new(),
             unsupported_files: 0,
             errors: self.warnings.clone(),
+            slow_file_skips: Vec::new(),
         };
         self.discover_dir(&self.root, &mut summary);
         summary
@@ -214,7 +225,16 @@ impl DiscoveryPolicy {
             };
             match self.select_file(&target) {
                 FileSelection::Supported { .. } => summary.supported_files.push(target),
-                FileSelection::Unsupported { .. } => summary.unsupported_files += 1,
+                FileSelection::Unsupported { reason } => {
+                    summary.unsupported_files += 1;
+                    if reason == UnsupportedReason::Oversized {
+                        summary.slow_file_skips.push(DiscoveryError {
+                            path: target.absolute_path.display().to_string(),
+                            root_relative_path: target.root_relative_path.clone(),
+                            message: slow_file_skip_message(),
+                        });
+                    }
+                }
             }
         }
     }
@@ -471,8 +491,6 @@ const HARD_EXCLUDE_SUFFIXES: &[&str] = &[
     ".generated.d.ts",
 ];
 
-const MAX_SOURCE_FILE_BYTES: usize = 1024 * 1024;
-
 fn is_oversized_source_file(path: &Path) -> bool {
     path.metadata()
         .map(|metadata| metadata.len() > MAX_SOURCE_FILE_BYTES as u64)
@@ -502,7 +520,7 @@ mod tests {
     }
 
     #[test]
-    fn oversized_javascript_is_hard_excluded() {
+    fn oversized_javascript_is_skipped_as_slow_file() {
         let fixture = DiscoveryFixture::new();
         let oversized = fixture.write(
             "assets/viewer-runtime.js",
@@ -513,9 +531,27 @@ mod tests {
         assert_eq!(
             selection,
             FileSelection::Unsupported {
-                reason: UnsupportedReason::HardExcluded
+                reason: UnsupportedReason::Oversized
             }
         );
+    }
+
+    #[test]
+    fn discover_records_slow_file_skip_for_oversized_source_file() {
+        let fixture = DiscoveryFixture::new();
+        let oversized = fixture.write("src/huge.rs", &"x".repeat(MAX_SOURCE_FILE_BYTES + 1));
+        let summary = fixture.policy().discover();
+
+        assert!(
+            summary
+                .slow_file_skips
+                .iter()
+                .any(|skip| skip.root_relative_path == oversized.root_relative_path),
+            "expected a slow_file_skips entry for {}, got: {:?}",
+            oversized.root_relative_path,
+            summary.slow_file_skips
+        );
+        assert_eq!(summary.unsupported_files, 1);
     }
 
     #[test]

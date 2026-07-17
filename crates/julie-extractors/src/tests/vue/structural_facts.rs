@@ -547,3 +547,56 @@ const router = createRouter({
         Some("../views/DashboardView.vue")
     );
 }
+
+#[test]
+fn vue_emits_style_css_facts_and_slot_shorthand_directive() {
+    let source = r#"<template>
+  <panel>
+    <template #header>Title</template>
+    <slot />
+  </panel>
+</template>
+
+<script setup>
+const ready = true;
+</script>
+
+<style scoped>
+.active {
+  color: #0f766e;
+}
+@media (min-width: 40rem) {
+  .active { display: block; }
+}
+</style>
+"#;
+    let results = extract(source);
+
+    let slot = facts_with_pattern(&results, "vue.template_directive.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "directive") == Some("v-slot"))
+        .expect("expected v-slot shorthand fact");
+    assert_eq!(metadata_str(slot, "attribute_name"), Some("#header"));
+    assert_eq!(metadata_str(slot, "argument"), Some("header"));
+    assert_eq!(metadata_bool(slot, "shorthand"), Some(true));
+
+    let selectors = facts_with_pattern(&results, "css.selector_rule.v1");
+    assert!(
+        selectors
+            .iter()
+            .any(|fact| metadata_str(fact, "selector") == Some(".active")),
+        "expected CSS selector facts from Vue <style>: {selectors:#?}"
+    );
+    assert!(
+        selectors.iter().all(|fact| fact.language == "vue"),
+        "embedded CSS facts should keep host language vue"
+    );
+
+    let media = facts_with_pattern(&results, "css.media_query.v1");
+    assert!(
+        media
+            .iter()
+            .any(|fact| metadata_str(fact, "query") == Some("(min-width: 40rem)")),
+        "expected CSS media fact from Vue <style>: {media:#?}"
+    );
+}

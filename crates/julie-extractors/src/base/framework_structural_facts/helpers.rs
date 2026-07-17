@@ -31,6 +31,12 @@ pub(super) fn node_text<'a>(content: &'a str, node: Node<'_>) -> Option<&'a str>
     content.get(node.start_byte()..node.end_byte())
 }
 
+pub(super) fn child_of_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
+    let mut cursor = node.walk();
+    node.children(&mut cursor)
+        .find(|child| child.kind() == kind)
+}
+
 pub(super) fn fact_for_span(
     file_path: &str,
     language: &str,

@@ -76,6 +76,17 @@ pub(crate) fn discovery_error_diagnostic(error: &DiscoveryError) -> ReportDiagno
     )
 }
 
+pub(crate) fn slow_file_skipped_diagnostic(error: &DiscoveryError) -> ReportDiagnostic {
+    diagnostic(
+        ReportCode::SlowFileSkipped,
+        error.message.clone(),
+        Some(error.path.clone()),
+        Some(error.root_relative_path.clone()),
+        true,
+        json!({}),
+    )
+}
+
 pub(crate) fn write_error_outcome(
     error: ArtifactWriteError,
     operation: ReportOperation,

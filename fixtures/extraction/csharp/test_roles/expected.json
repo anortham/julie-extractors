@@ -26,7 +26,8 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitFixture:1:0",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_lifecycle": true
       },
       "annotations": [
         {
@@ -65,7 +66,8 @@
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitFixture:1:0",
       "metadata": {
-        "is_test": true
+        "is_test": true,
+        "test_lifecycle": true
       },
       "annotations": [
         {

@@ -21,6 +21,8 @@ const MARKDOWN_TABLE_PATTERN_ID: &str = "markdown.table.v1";
 const JSON_OBJECT_PATTERN_ID: &str = "json.object.v1";
 const JSON_ARRAY_PATTERN_ID: &str = "json.array.v1";
 const JSON_PROPERTY_PATTERN_ID: &str = "json.property.v1";
+const JSON_SCHEMA_PATTERN_ID: &str = "json.schema.v1";
+const JSON_REF_PATTERN_ID: &str = "json.ref.v1";
 
 // TOML
 const TOML_TABLE_PATTERN_ID: &str = "toml.table.v1";
@@ -60,6 +62,8 @@ const JSON_DATA_PATTERN_IDS: &[&str] = &[
     JSON_ARRAY_PATTERN_ID,
     JSON_OBJECT_PATTERN_ID,
     JSON_PROPERTY_PATTERN_ID,
+    JSON_REF_PATTERN_ID,
+    JSON_SCHEMA_PATTERN_ID,
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
@@ -697,6 +701,9 @@ fn collect_json_node(
             if let Some(fact) = json_property_fact(file_path, content, node, path, depth) {
                 facts.push(fact);
             }
+            if let Some(fact) = json_schema_or_ref_fact(file_path, content, node, path) {
+                facts.push(fact);
+            }
         }
         _ => {}
     }
@@ -780,6 +787,42 @@ fn json_property_fact(
         "json",
         JSON_PROPERTY_PATTERN_ID,
         "property",
+        node,
+        metadata,
+    ))
+}
+
+fn json_schema_or_ref_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+    path: &[String],
+) -> Option<StructuralFact> {
+    let key = json_pair_key(content, node)?;
+    let value_node = json_pair_value(node)?;
+    if value_node.kind() != "string" {
+        return None;
+    }
+    let value = serde_json::from_str::<String>(node_text(content, value_node)?.trim()).ok()?;
+    if value.is_empty() {
+        return None;
+    }
+
+    let (pattern_id, capture_name, value_key) = match key.as_str() {
+        "$schema" => (JSON_SCHEMA_PATTERN_ID, "schema", "schema_uri"),
+        "$ref" => (JSON_REF_PATTERN_ID, "ref", "ref"),
+        _ => return None,
+    };
+
+    let mut metadata = base_metadata("schema_structure");
+    insert_string(&mut metadata, value_key, &value);
+    insert_string(&mut metadata, "path", &json_path(path));
+
+    Some(fact_for_node(
+        file_path,
+        "json",
+        pattern_id,
+        capture_name,
         node,
         metadata,
     ))

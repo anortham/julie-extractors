@@ -52,12 +52,22 @@ fn annotation_keys(symbol: &crate::base::Symbol) -> Vec<String> {
 }
 
 fn is_test(symbol: &crate::base::Symbol) -> bool {
+    role(symbol, "is_test")
+}
+
+fn role(symbol: &crate::base::Symbol, key: &str) -> bool {
     symbol
         .metadata
         .as_ref()
-        .and_then(|m| m.get("is_test"))
+        .and_then(|m| m.get(key))
         .and_then(|v| v.as_bool())
         .unwrap_or(false)
+}
+
+fn named<'a>(syms: &'a [crate::base::Symbol], name: &str) -> &'a crate::base::Symbol {
+    syms.iter()
+        .find(|s| s.name == name)
+        .unwrap_or_else(|| panic!("expected symbol {name}, got {syms:?}"))
 }
 
 #[test]
@@ -154,4 +164,93 @@ class CalculatorTest {
         annotation_keys(method)
     );
     assert!(is_test(method), "@Test method must be flagged is_test");
+}
+
+#[test]
+fn junit5_lifecycle_methods_emit_test_lifecycle() {
+    let code = r#"
+class LifecycleTest {
+    @BeforeEach
+    void setUp() {}
+
+    @AfterEach
+    void tearDown() {}
+
+    @Test
+    void caseOne() {}
+
+    void helper() {}
+}
+"#;
+    let syms = symbols(code, "src/test/java/LifecycleTest.java");
+    let setup = named(&syms, "setUp");
+    let teardown = named(&syms, "tearDown");
+    let case = named(&syms, "caseOne");
+    let helper = named(&syms, "helper");
+
+    assert!(role(setup, "is_test"));
+    assert!(role(setup, "test_lifecycle"));
+    assert!(role(teardown, "is_test"));
+    assert!(role(teardown, "test_lifecycle"));
+    assert!(role(case, "is_test"));
+    assert!(!role(case, "test_lifecycle"));
+    assert!(!role(helper, "is_test"));
+    assert!(!role(helper, "test_lifecycle"));
+}
+
+#[test]
+fn junit_test_members_and_testcase_base_mark_classes_as_containers() {
+    let code = r#"
+import junit.framework.TestCase;
+
+class ManagedTestRoles {
+    @Test
+    void junitCase() {}
+}
+
+class CalcTest extends TestCase {
+    public void testAdd() {}
+}
+
+@Nested
+class WhenEmpty {
+    @Test
+    void isEmpty() {}
+}
+
+class OrdinaryHelper {
+    void helper() {}
+}
+
+class MisleadingBase extends NotATestCase {
+    void helper() {}
+}
+"#;
+    let syms = symbols(code, "src/test/java/ManagedTestRoles.java");
+    assert!(role(named(&syms, "ManagedTestRoles"), "test_container"));
+    assert!(role(named(&syms, "CalcTest"), "test_container"));
+    assert!(role(named(&syms, "WhenEmpty"), "test_container"));
+    assert!(!role(named(&syms, "OrdinaryHelper"), "test_container"));
+    assert!(!role(named(&syms, "MisleadingBase"), "test_container"));
+}
+
+#[test]
+fn outer_class_with_only_nested_test_class_is_marked_container() {
+    let code = r#"
+class OuterSuite {
+    @Nested
+    class WhenEmpty {
+        @Test
+        void isEmpty() {}
+    }
+}
+
+class PlainHelper {
+    void helper() {}
+}
+"#;
+    let syms = symbols(code, "src/test/java/OuterSuite.java");
+    assert!(role(named(&syms, "WhenEmpty"), "test_container"));
+    assert!(role(named(&syms, "OuterSuite"), "test_container"));
+    assert!(!role(named(&syms, "PlainHelper"), "test_container"));
 }

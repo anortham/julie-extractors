@@ -293,6 +293,19 @@ function expectedDomainsFor(language) {
     : CODE_LANGUAGE_EXPECTATIONS;
 }
 
+function countOpenGaps(rowsByLanguage) {
+  const byDomain = Object.fromEntries(DOMAINS.map((domain) => [domain, 0]));
+  let total = 0;
+  for (const { row } of rowsByLanguage) {
+    for (const domain of DOMAINS) {
+      const n = coverageState(row, domain).openGaps.length;
+      byDomain[domain] += n;
+      total += n;
+    }
+  }
+  return { total, byDomain };
+}
+
 function analyze() {
   const byDomain = Object.fromEntries(OBSERVED_DOMAINS.map((domain) => [domain, []]));
   const rowsByLanguage = [];
@@ -327,7 +340,13 @@ function analyze() {
     }
   }
 
-  return { byDomain, qualityDebts, rowsByLanguage, silentCells };
+  return {
+    byDomain,
+    qualityDebts,
+    rowsByLanguage,
+    silentCells,
+    openGapBacklog: countOpenGaps(rowsByLanguage),
+  };
 }
 
 function validateDomainApplicability(byDomain) {
@@ -478,12 +497,32 @@ function printApplicabilityView(views) {
   }
 }
 
-function printReport({ byDomain, qualityDebts, rowsByLanguage, silentCells }) {
+function printReport({
+  byDomain,
+  qualityDebts,
+  rowsByLanguage,
+  silentCells,
+  openGapBacklog,
+}) {
   console.log("# Language Data Quality Scorecard");
   console.log("");
   console.log(`languages: ${capabilities.languages.length}`);
   console.log(`silent_cells: ${silentCells.length}`);
   console.log(`quality_bar_debts: ${qualityDebts.length}`);
+  // open_gap_backlog is informational: classified open_gaps satisfy silent_cells,
+  // so this metric tracks remaining product debt separately from gate health.
+  console.log(`open_gap_backlog: ${openGapBacklog.total}`);
+  console.log("");
+  console.log("## Open Gap Backlog By Domain");
+  for (const domain of DOMAINS) {
+    const n = openGapBacklog.byDomain[domain] ?? 0;
+    if (n > 0) {
+      console.log(`${domain.padEnd(24)} ${n}`);
+    }
+  }
+  if (openGapBacklog.total === 0) {
+    console.log("none");
+  }
   console.log("");
   console.log("## Fixture-Proven Domain Counts");
   for (const domain of OBSERVED_DOMAINS) {
@@ -493,6 +532,17 @@ function printReport({ byDomain, qualityDebts, rowsByLanguage, silentCells }) {
       } ${byDomain[domain].join(", ")}`,
     );
   }
+  console.log("");
+  console.log("## Observed Domains Outside kind_coverage");
+  console.log(
+    "types, type_argument_usages, and pending_relationships are fixture-counted",
+  );
+  console.log(
+    "via OBSERVED_DOMAINS + DOMAIN_APPLICABILITY in this script. They are not",
+  );
+  console.log(
+    "kind_coverage cells in capabilities.json (see docs/decisions/2026-07-17-capability-ledger-policy.md).",
+  );
   console.log("");
   printApplicabilityView(applicabilityView(byDomain));
   console.log("## Silent Cells");

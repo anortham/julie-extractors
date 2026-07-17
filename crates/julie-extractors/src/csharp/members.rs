@@ -2,7 +2,7 @@
 
 use super::helpers;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use std::collections::HashMap;
 use tree_sitter::Node;
 
@@ -70,16 +70,15 @@ pub fn extract_method(
     let doc_comment = base.find_doc_comment(&node);
 
     let mut metadata = HashMap::new();
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "csharp",
         &name,
         &base.file_path,
         &SymbolKind::Method,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     let options = SymbolOptions {
         signature: Some(signature),
@@ -131,16 +130,15 @@ pub fn extract_constructor(
     let doc_comment = base.find_doc_comment(&node);
 
     let mut metadata = HashMap::new();
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "csharp",
         &name,
         &base.file_path,
         &SymbolKind::Constructor,
         &annotation_keys,
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     let options = SymbolOptions {
         signature: Some(signature),
@@ -182,16 +180,15 @@ pub fn extract_destructor(
     let doc_comment = base.find_doc_comment(&node);
 
     let mut metadata = HashMap::new();
-    if is_test_symbol(
+    apply_callable_test_metadata(
         "csharp",
         &name,
         &base.file_path,
         &SymbolKind::Method,
         &[],
         doc_comment.as_deref(),
-    ) {
-        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-    }
+        &mut metadata,
+    );
 
     let annotations = helpers::extract_annotations(base, &node);
     let options = SymbolOptions {

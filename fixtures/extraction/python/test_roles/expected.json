@@ -8,19 +8,19 @@
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
       "start_line": 12,
       "start_column": 0,
-      "end_line": 20,
+      "end_line": 23,
       "end_column": 25,
       "start_byte": 104,
-      "end_byte": 339,
+      "end_byte": 387,
       "body_span": {
         "start_line": 13,
         "start_column": 4,
-        "end_line": 20,
+        "end_line": 23,
         "end_column": 25,
         "start_byte": 149,
-        "end_byte": 339
+        "end_byte": 387
       },
-      "body_hash": "6041c02c60e771993109c0df8d502ed5",
+      "body_hash": "c5daa887c01a89901982ae3e3e4edac2",
       "signature": "class ArithmeticTest extends unittest.TestCase",
       "doc_comment": null,
       "visibility": "Public",
@@ -30,7 +30,43 @@
         "isEnum": false,
         "superclasses": [
           "unittest.TestCase"
-        ]
+        ],
+        "test_container": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/test_roles/test_source.py:OrdinaryHelper:26:0",
+      "name": "OrdinaryHelper",
+      "kind": "class",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "start_line": 26,
+      "start_column": 0,
+      "end_line": 28,
+      "end_column": 16,
+      "start_byte": 390,
+      "end_byte": 450,
+      "body_span": {
+        "start_line": 27,
+        "start_column": 4,
+        "end_line": 28,
+        "end_column": 16,
+        "start_byte": 416,
+        "end_byte": 450
+      },
+      "body_hash": "7757ae8334204ffbf8e2fc99f5cf0257",
+      "signature": "class OrdinaryHelper",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "decorators": [],
+        "isEnum": false,
+        "superclasses": []
       },
       "annotations": [],
       "semantic_group": null,
@@ -73,24 +109,59 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/python/test_roles/test_source.py:production_helper:19:4",
+      "key": "fixtures/extraction/python/test_roles/test_source.py:helper:27:4",
+      "name": "helper",
+      "kind": "method",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "start_line": 27,
+      "start_column": 4,
+      "end_line": 28,
+      "end_column": 16,
+      "start_byte": 416,
+      "end_byte": 450,
+      "body_span": {
+        "start_line": 28,
+        "start_column": 8,
+        "end_line": 28,
+        "end_column": 16,
+        "start_byte": 442,
+        "end_byte": 450
+      },
+      "body_hash": "b0c5f2490e3673c97c10a7e3335d6cf4",
+      "signature": "def helper(self)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/test_roles/test_source.py:OrdinaryHelper:26:0",
+      "metadata": {
+        "decorators": [],
+        "isAsync": false,
+        "returnType": ""
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/test_roles/test_source.py:production_helper:22:4",
       "name": "production_helper",
       "kind": "method",
       "language": "python",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-      "start_line": 19,
+      "start_line": 22,
       "start_column": 4,
-      "end_line": 20,
+      "end_line": 23,
       "end_column": 25,
-      "start_byte": 285,
-      "end_byte": 339,
+      "start_byte": 333,
+      "end_byte": 387,
       "body_span": {
-        "start_line": 20,
+        "start_line": 23,
         "start_column": 8,
-        "end_line": 20,
+        "end_line": 23,
         "end_column": 25,
-        "start_byte": 322,
-        "end_byte": 339
+        "start_byte": 370,
+        "end_byte": 387
       },
       "body_hash": "0eee875fffd274e6068213f13ca8ffad",
       "signature": "def production_helper(self)",
@@ -136,7 +207,45 @@
         "decorators": [],
         "isAsync": false,
         "is_test": true,
-        "returnType": ""
+        "returnType": "",
+        "test_lifecycle": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/python/test_roles/test_source.py:tearDown:16:4",
+      "name": "tearDown",
+      "kind": "method",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "start_line": 16,
+      "start_column": 4,
+      "end_line": 17,
+      "end_column": 22,
+      "start_byte": 210,
+      "end_byte": 252,
+      "body_span": {
+        "start_line": 17,
+        "start_column": 8,
+        "end_line": 17,
+        "end_column": 22,
+        "start_byte": 238,
+        "end_byte": 252
+      },
+      "body_hash": "93241cc181db45eb81cea61de3f89620",
+      "signature": "def tearDown(self)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:12:0",
+      "metadata": {
+        "decorators": [],
+        "isAsync": false,
+        "is_test": true,
+        "returnType": "",
+        "test_lifecycle": true
       },
       "annotations": [],
       "semantic_group": null,
@@ -180,24 +289,24 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:16:4",
+      "key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4",
       "name": "test_unittest_case",
       "kind": "method",
       "language": "python",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-      "start_line": 16,
+      "start_line": 19,
       "start_column": 4,
-      "end_line": 17,
+      "end_line": 20,
       "end_column": 39,
-      "start_byte": 210,
-      "end_byte": 279,
+      "start_byte": 258,
+      "end_byte": 327,
       "body_span": {
-        "start_line": 17,
+        "start_line": 20,
         "start_column": 8,
-        "end_line": 17,
+        "end_line": 20,
         "end_column": 39,
-        "start_byte": 248,
-        "end_byte": 279
+        "start_byte": 296,
+        "end_byte": 327
       },
       "body_hash": "50cbe53f713fc53b3698bfda2d5a55b9",
       "signature": "def test_unittest_case(self)",
@@ -249,6 +358,32 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/python/test_roles/test_source.py:total:17:8",
+      "name": "total",
+      "kind": "property",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "start_line": 17,
+      "start_column": 8,
+      "end_line": 17,
+      "end_column": 22,
+      "start_byte": 238,
+      "end_byte": 252,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "total = 0",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/python/test_roles/test_source.py:ArithmeticTest:12:0",
+      "metadata": {
+        "hasTypeAnnotation": false
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/python/test_roles/test_source.py:unittest:1:0",
       "name": "unittest",
       "kind": "import",
@@ -286,22 +421,22 @@
   ],
   "pending_relationships": [
     {
-      "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:16:4",
+      "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4",
       "callee_name": "self.assertEqual",
       "kind": "calls",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-      "line_number": 17,
+      "line_number": 20,
       "confidence": "0.700"
     }
   ],
   "structured_pending_relationships": [
     {
       "pending": {
-        "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:16:4",
+        "from_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4",
         "callee_name": "self.assertEqual",
         "kind": "calls",
         "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-        "line_number": 17,
+        "line_number": 20,
         "confidence": "0.700"
       },
       "target": {
@@ -311,7 +446,7 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:16:4"
+      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4"
     }
   ],
   "identifiers": [
@@ -332,18 +467,18 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/python/test_roles/test_source.py:assertEqual:call:17:13",
+      "key": "fixtures/extraction/python/test_roles/test_source.py:assertEqual:call:20:13",
       "name": "assertEqual",
       "kind": "call",
       "language": "python",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-      "start_line": 17,
+      "start_line": 20,
       "start_column": 13,
-      "end_line": 17,
+      "end_line": 20,
       "end_column": 24,
-      "start_byte": 253,
-      "end_byte": 264,
-      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:16:4",
+      "start_byte": 301,
+      "end_byte": 312,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -380,34 +515,50 @@
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:17:30",
+      "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:17:13",
       "name": "total",
       "kind": "member_access",
       "language": "python",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
       "start_line": 17,
-      "start_column": 30,
+      "start_column": 13,
       "end_line": 17,
-      "end_column": 35,
-      "start_byte": 270,
-      "end_byte": 275,
-      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:16:4",
+      "end_column": 18,
+      "start_byte": 243,
+      "end_byte": 248,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:tearDown:16:4",
       "target_key": null,
       "confidence": "1.000"
     },
     {
-      "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:20:20",
+      "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:20:30",
       "name": "total",
       "kind": "member_access",
       "language": "python",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
       "start_line": 20,
-      "start_column": 20,
+      "start_column": 30,
       "end_line": 20,
+      "end_column": 35,
+      "start_byte": 318,
+      "end_byte": 323,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/python/test_roles/test_source.py:total:member_access:23:20",
+      "name": "total",
+      "kind": "member_access",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "start_line": 23,
+      "start_column": 20,
+      "end_line": 23,
       "end_column": 25,
-      "start_byte": 334,
-      "end_byte": 339,
-      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:production_helper:19:4",
+      "start_byte": 382,
+      "end_byte": 387,
+      "containing_key": "fixtures/extraction/python/test_roles/test_source.py:production_helper:22:4",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -438,18 +589,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
-      "covered_lines": 21,
-      "covered_bytes": 340,
+      "covered_lines": 29,
+      "covered_bytes": 451,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 29,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 340,
+      "end_byte": 451,
       "metadata": {
         "metric_version": 1
       }
@@ -478,7 +629,29 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/python/test_roles/test_source.py:production_helper:19:4",
+      "symbol_key": "fixtures/extraction/python/test_roles/test_source.py:helper:27:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "covered_lines": 1,
+      "covered_bytes": 8,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 28,
+      "start_column": 8,
+      "end_line": 28,
+      "end_column": 16,
+      "start_byte": 442,
+      "end_byte": 450,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/python/test_roles/test_source.py:production_helper:22:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
@@ -488,12 +661,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
-      "start_line": 20,
+      "start_line": 23,
       "start_column": 8,
-      "end_line": 20,
+      "end_line": 23,
       "end_column": 25,
-      "start_byte": 322,
-      "end_byte": 339,
+      "start_byte": 370,
+      "end_byte": 387,
       "metadata": {
         "metric_version": 1
       }
@@ -522,6 +695,28 @@
     },
     {
       "scope": "symbol",
+      "symbol_key": "fixtures/extraction/python/test_roles/test_source.py:tearDown:16:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "python",
+      "file_path": "fixtures/extraction/python/test_roles/test_source.py",
+      "covered_lines": 1,
+      "covered_bytes": 14,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 1,
+      "start_line": 17,
+      "start_column": 8,
+      "end_line": 17,
+      "end_column": 22,
+      "start_byte": 238,
+      "end_byte": 252,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
       "symbol_key": "fixtures/extraction/python/test_roles/test_source.py:test_pytest_case:4:0",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
@@ -544,7 +739,7 @@
     },
     {
       "scope": "symbol",
-      "symbol_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:16:4",
+      "symbol_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4",
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "python",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
@@ -554,12 +749,12 @@
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
-      "start_line": 17,
+      "start_line": 20,
       "start_column": 8,
-      "end_line": 17,
+      "end_line": 20,
       "end_column": 39,
-      "start_byte": 248,
-      "end_byte": 279,
+      "start_byte": 296,
+      "end_byte": 327,
       "metadata": {
         "metric_version": 1
       }

@@ -20,10 +20,10 @@
 //! stack (contained routes then emit `route_template` only). Each static prefix
 //! also emits a `laravel.route_prefix.v1` mount-family fact at its own call site.
 //!
-//! Out of scope (documented `open_gaps`): PHP `#[Route]` attributes (a Symfony
-//! idiom, future `symfony.route.v1`) and cross-file `RouteServiceProvider`
-//! group prefixes — the routes' `route_template` is therefore NOT guaranteed to
-//! be the absolute public path when an out-of-file prefix applies.
+//! Out of scope here: PHP `#[Route]` attributes (a Symfony idiom handled by
+//! `symfony.route.v1`) and cross-file `RouteServiceProvider` group prefixes —
+//! the routes' `route_template` is therefore NOT guaranteed to be the absolute
+//! public path when an out-of-file prefix applies.
 
 use tree_sitter::{Node, Tree};
 

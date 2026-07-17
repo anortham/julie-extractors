@@ -1,9 +1,9 @@
 ---
 id: parser-runtime-and-grammar-freshness
 title: Parser runtime and grammar freshness
-status: active
+status: completed
 created: 2026-07-14T11:02:13.140Z
-updated: 2026-07-14T11:02:13.140Z
+updated: 2026-07-17T20:47:11.354Z
 tags:
   - julie-extractors
   - tree-sitter

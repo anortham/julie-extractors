@@ -136,7 +136,7 @@
               "kind": "actix.resource_route_guard_forms",
               "reason": "actix `web::resource(\"/x\").route(web::get().to(h))` and guard-based route forms register routes without a `web::scope` prefix chain, so they are not covered by actix.scope_route.v1 (which anchors on scope prefixes) and stay silent.",
               "required_closure": "add a `web::resource`/route-guard collector emitting a resource route fact with the resource path and method-router verb, fixture-backed",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (actix idioms) — future actix.resource_route.v1"
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (actix idioms) \u2014 future actix.resource_route.v1"
             },
             {
               "kind": "axum.param_flavor_under_report",
@@ -146,7 +146,7 @@
             },
             {
               "kind": "rust.http_client.deferred",
-              "reason": "Only reqwest ships in v2.8.0, and its builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) — a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss). The scoped `reqwest::get(\"url\")` free function always emits. hyper (low-level request-builder + body future) and ureq (blocking `ureq::get(\"url\").call()`) each need their own detection shape and fixture.",
+              "reason": "Only reqwest ships in v2.8.0, and its builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) \u2014 a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss). The scoped `reqwest::get(\"url\")` free function always emits. hyper (low-level request-builder + body future) and ureq (blocking `ureq::get(\"url\").call()`) each need their own detection shape and fixture.",
               "required_closure": "add per-library client collectors emitting http.client_request.v1 for hyper and ureq (each fixture-backed); optionally extend reqwest builder detection to struct-field/typed receivers if in-file type resolution becomes available",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             },
@@ -1760,21 +1760,28 @@
         "structural_facts": {
           "supported": [
             "alpine.directive.v1",
+            "css.charset.v1",
+            "css.container.v1",
+            "css.custom_property.v1",
+            "css.font_face.v1",
+            "css.keyframes.v1",
+            "css.layer.v1",
+            "css.media_query.v1",
+            "css.namespace.v1",
+            "css.selector_rule.v1",
+            "css.supports.v1",
+            "html.area_link.v1",
+            "html.data_attribute.v1",
             "html.form.v1",
             "html.form_control.v1",
+            "html.landmark.v1",
             "html.link.v1",
+            "html.media.v1",
             "html.script.v1",
             "htmx.attribute.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "html_semantic_link_and_media_details",
-              "reason": "HTML structural facts cover scripts, stylesheets/links, forms, controls, htmx, and Alpine directives, but do not yet emit first-class facts for `<area href>`, generic `data-*` attributes, semantic landmarks, or media references such as `<img src>`.",
-              "required_closure": "add fixture-backed HTML facts for area links, generic data attributes, semantic landmark elements, and media source references without confusing them with htmx/alpine facts",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: HTML semantic/link/media facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
@@ -1887,7 +1894,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "CSS @import directives resolve at extraction time and current relationship extraction emits direct edges. CSS has no forward-reference construct that would benefit from pending relationships.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "css_pending_relationships_intra_document_only",
@@ -1898,7 +1905,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "CSS has no static type system. Custom property values are runtime strings; there is no type metadata to extract.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/css/basic/expected.json",
@@ -1945,20 +1952,19 @@
         },
         "structural_facts": {
           "supported": [
+            "css.charset.v1",
+            "css.container.v1",
             "css.custom_property.v1",
+            "css.font_face.v1",
             "css.keyframes.v1",
+            "css.layer.v1",
             "css.media_query.v1",
-            "css.selector_rule.v1"
+            "css.namespace.v1",
+            "css.selector_rule.v1",
+            "css.supports.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "css_additional_at_rules",
-              "reason": "CSS structural facts cover selector rules, media queries, keyframes, and custom properties, but do not yet emit first-class facts for `@supports`, `@container`, `@font-face`, `@layer`, `@charset`, or `@namespace` rules.",
-              "required_closure": "add parser-backed facts and fixtures for the missing CSS at-rules with stable metadata for condition/name/source fields",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: CSS at-rule facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [],
@@ -2122,6 +2128,16 @@
         },
         "structural_facts": {
           "supported": [
+            "css.charset.v1",
+            "css.container.v1",
+            "css.custom_property.v1",
+            "css.font_face.v1",
+            "css.keyframes.v1",
+            "css.layer.v1",
+            "css.media_query.v1",
+            "css.namespace.v1",
+            "css.selector_rule.v1",
+            "css.supports.v1",
             "htmx.attribute.v1",
             "http.client_request.v1",
             "nuxt.file_route.v1",
@@ -2132,14 +2148,7 @@
             "vue.template_directive.v1"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "vue_style_and_slot_shorthand_structural_facts",
-              "reason": "Vue structural facts cover SFC sections, template directives, route definitions/references, Nuxt references, HTTP clients, and htmx attributes, but embedded `<style>` CSS is not scanned into CSS structural facts and `#` v-slot shorthand does not emit a directive fact.",
-              "required_closure": "scan Vue style sections with the CSS collector and add template fixtures for `#slot` shorthand before claiming those Vue constructs as supported",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: Vue style and slot shorthand facts"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [
@@ -2344,23 +2353,12 @@
         },
         "test_detection": {
           "supported": [
-            "test_case"
+            "test_case",
+            "test_container",
+            "test_lifecycle"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_container",
-              "reason": "The registered python:test_roles golden emits pytest- and unittest-style test functions and methods, while its ArithmeticTest unittest.TestCase class carries no test_container metadata because Python test detection is applied only to callable symbols.",
-              "required_closure": "determine language-native applicability for unittest.TestCase and pytest class containers, add supported classification with a nearby ordinary-class negative, then update the registered python:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "The registered python:test_roles golden emits unittest setUp with is_test=true but no test_lifecycle metadata; the named-declaration detector currently records only the generic is_test marker.",
-              "required_closure": "determine language-native applicability for unittest setUp, tearDown, setUpClass, and tearDownClass, classify supported hooks as lifecycle roles with ordinary-method negatives, then update the registered python:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -2506,23 +2504,12 @@
         },
         "test_detection": {
           "supported": [
-            "test_case"
+            "test_case",
+            "test_container",
+            "test_lifecycle"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_container",
-              "reason": "The registered java:test_roles golden emits JUnit and TestNG annotated method cases, while its ManagedTestRoles class carries no test_container metadata; Java extraction applies test detection to callables and has no framework-suite container classifier.",
-              "required_closure": "confirm language-native applicability for JUnit and TestNG test containers, add type-level framework base-class or annotation classification that emits test_container=true with negative controls, and update the registered java:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            },
-            {
-              "kind": "test_lifecycle",
-              "reason": "The Java annotation detector recognizes JUnit lifecycle keys such as beforeEach and afterEach, but callable extraction only writes is_test and never test_lifecycle; the registered java:test_roles golden therefore contains method cases but no lifecycle role.",
-              "required_closure": "confirm language-native applicability for JUnit and TestNG lifecycle annotations, map supported setup and teardown annotations to is_test=true plus test_lifecycle=true with negative controls, and update the registered java:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -2688,17 +2675,11 @@
         "test_detection": {
           "supported": [
             "test_case",
-            "test_container"
+            "test_container",
+            "test_lifecycle"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_lifecycle",
-              "reason": "The shared C# annotation detector recognizes NUnit and MSTest setup and teardown keys, but member extraction only writes is_test and never test_lifecycle; the registered csharp:test_roles golden therefore contains cases but no lifecycle role.",
-              "required_closure": "confirm language-native applicability for xUnit, NUnit, and MSTest lifecycle forms, map each supported setup and teardown form to is_test=true plus test_lifecycle=true with negative controls, and update the registered csharp:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -2838,17 +2819,11 @@
         "test_detection": {
           "supported": [
             "test_case",
-            "test_container"
+            "test_container",
+            "test_lifecycle"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_lifecycle",
-              "reason": "VB.NET uses the shared C# annotation detector for setup and teardown keys, but member extraction only writes is_test and never test_lifecycle; the registered vbnet:test_roles golden therefore contains cases but no lifecycle role.",
-              "required_closure": "confirm language-native applicability for xUnit, NUnit, and MSTest VB.NET lifecycle forms, map each supported setup and teardown annotation to is_test=true plus test_lifecycle=true with negative controls, and update the registered vbnet:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -2882,6 +2857,11 @@
           "name": "laravel_routes",
           "source": "fixtures/extraction/php/laravel_routes/source.php",
           "expected": "fixtures/extraction/php/laravel_routes/expected.json"
+        },
+        {
+          "name": "symfony_routes",
+          "source": "fixtures/extraction/php/symfony_routes/source.php",
+          "expected": "fixtures/extraction/php/symfony_routes/expected.json"
         },
         {
           "name": "http_client",
@@ -2960,16 +2940,11 @@
             "php.match_expression.v1",
             "php.namespace_definition.v1",
             "php.namespace_use_declaration.v1",
-            "php.trait_use_declaration.v1"
+            "php.trait_use_declaration.v1",
+            "symfony.route.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
-            {
-              "kind": "symfony.route.v1",
-              "reason": "PHP `#[Route('/x')]` attributes are a Symfony routing idiom, not Laravel; the Laravel lane detects only the Route facade DSL, so attribute-declared routes emit nothing.",
-              "required_closure": "add a Symfony attribute-route collector emitting symfony.route.v1 from #[Route] attributes on controller methods/classes, with static-literal path guarding",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2 (PHP #[Route] attributes deferral)"
-            },
             {
               "kind": "php.http_client.deferred",
               "reason": "Only Guzzle (receiver->verb(url)) and the Laravel Http facade ship in v2.8.0; Symfony HttpClient (fluent request builder), the curl_* function family, and Guzzle's request('GET', url) two-argument form each need their own detection shape and fixture.",
@@ -3372,6 +3347,11 @@
           "expected": "fixtures/extraction/kotlin/spring_routes/expected.json"
         },
         {
+          "name": "ktor_routes",
+          "source": "fixtures/extraction/kotlin/ktor_routes/source.kt",
+          "expected": "fixtures/extraction/kotlin/ktor_routes/expected.json"
+        },
+        {
           "name": "http_client",
           "source": "fixtures/extraction/kotlin/http_client/source.kt",
           "expected": "fixtures/extraction/kotlin/http_client/expected.json"
@@ -3380,6 +3360,11 @@
           "name": "test_roles",
           "source": "fixtures/extraction/kotlin/test_roles/source.kt",
           "expected": "fixtures/extraction/kotlin/test_roles/expected.json"
+        },
+        {
+          "name": "junit_tests",
+          "source": "fixtures/extraction/kotlin/junit_tests/source.kt",
+          "expected": "fixtures/extraction/kotlin/junit_tests/expected.json"
         }
       ],
       "target_capabilities": {
@@ -3439,16 +3424,11 @@
             "kotlin.property_delegate.v1",
             "kotlin.annotation.v1",
             "spring.request_mapping.v1",
-            "http.client_request.v1"
+            "http.client_request.v1",
+            "ktor.route.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
-            {
-              "kind": "ktor.route.v1",
-              "reason": "Ktor server routing (the routing{} / route{} DSL) is a full seventh framework lane (collector, pattern id, registry spec, fixtures, contract docs); a safe restricted lexical gate is designed but out of v2.8.0 release scope.",
-              "required_closure": "add a Ktor route collector emitting ktor.route.v1 for verb calls lexically contained in a routing{}/route{} lambda with a static string_literal first arg (Braces flavor), per design section 4.6",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 4.6 (Ktor restricted gate)"
-            },
             {
               "kind": "kotlin.functional_routing",
               "reason": "The RouterFunction / coRouter functional DSL nests routes via nest()/path() closures that are not single-assignment same-file; annotation routing is the shipped Kotlin+Spring claim.",
@@ -3908,7 +3888,7 @@
           "open_gaps": [
             {
               "kind": "phoenix.non_route_macros",
-              "reason": "The Phoenix lane emits route/resource/forward facts only; the `pipe_through`, `live` (LiveView), `socket`, and `channel` router macros carry no request→handler HTTP boundary path literal in the same shape, so they emit nothing.",
+              "reason": "The Phoenix lane emits route/resource/forward facts only; the `pipe_through`, `live` (LiveView), `socket`, and `channel` router macros carry no request\u2192handler HTTP boundary path literal in the same shape, so they emit nothing.",
               "required_closure": "add collectors for the LiveView (`live`) and socket/channel surfaces if a live-route or websocket boundary lane is opened; `pipe_through` references a pipeline, not a route, and stays evidence-only",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a (Phoenix non-route macro exclusions)"
             },
@@ -4020,7 +4000,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "Lua is a dynamically typed language with no static type annotations in core syntax. Luau-style annotations are out of scope for the base Lua extractor.",
-          "required_closure": "Out of scope — Lua is dynamic. Luau-style type annotations would be a separate language target.",
+          "required_closure": "Out of scope \u2014 Lua is dynamic. Luau-style type annotations would be a separate language target.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/lua/basic/expected.json",
@@ -4335,7 +4315,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "R is a dynamically typed language with no static type system. roxygen @param type tags are documentation-only and not currently extracted as TypeInfo.",
-          "required_closure": "N/A — domain limitation. Future work could harvest roxygen type annotations into TypeInfo.",
+          "required_closure": "N/A \u2014 domain limitation. Future work could harvest roxygen type annotations into TypeInfo.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/r/basic/expected.json",
@@ -4984,8 +4964,8 @@
         {
           "capability": "pending_relationships",
           "status": "exception",
-          "reason": "Razor cross-file references resolve through the embedded C# pipeline, not Razor’s own pending path. Locked by razor_pending_relationships_handled_by_csharp_embed test (Phase 4b.razor).",
-          "required_closure": "N/A — domain classification. Locking test in crates/julie-extractors/src/tests/razor/cross_file_pending.rs enforces no-pending classification.",
+          "reason": "Razor cross-file references resolve through the embedded C# pipeline, not Razor\u2019s own pending path. Locked by razor_pending_relationships_handled_by_csharp_embed test (Phase 4b.razor).",
+          "required_closure": "N/A \u2014 domain classification. Locking test in crates/julie-extractors/src/tests/razor/cross_file_pending.rs enforces no-pending classification.",
           "evidence": {
             "kind": "test",
             "value": "razor_pending_relationships_handled_by_csharp_embed",
@@ -5088,17 +5068,11 @@
         "test_detection": {
           "supported": [
             "test_case",
-            "test_container"
+            "test_container",
+            "test_lifecycle"
           ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "test_lifecycle",
-              "reason": "Razor's embedded C# method flow now passes normalized annotations into the shared detector, but it only writes is_test and has no lifecycle-role promotion; the registered razor:test_roles golden therefore contains a Fact case but no lifecycle role.",
-              "required_closure": "confirm language-native applicability for NUnit and MSTest lifecycle annotations inside Razor embedded C# blocks, map supported setup and teardown forms to is_test=true plus test_lifecycle=true with negative controls, and update the registered razor:test_roles golden",
-              "planned_closure_task": "docs/plans/2026-07-09-test-detection-golden-closure-implementation-plan.md"
-            }
-          ]
+          "open_gaps": []
         }
       }
     },
@@ -5136,6 +5110,11 @@
           "name": "tsql_batch_control",
           "source": "fixtures/extraction/sql/tsql_batch_control/source.sql",
           "expected": "fixtures/extraction/sql/tsql_batch_control/expected.json"
+        },
+        {
+          "name": "advanced_dml",
+          "source": "fixtures/extraction/sql/advanced_dml/source.sql",
+          "expected": "fixtures/extraction/sql/advanced_dml/expected.json"
         }
       ],
       "target_capabilities": {
@@ -5188,24 +5167,29 @@
             "sql.column_definition.v1",
             "sql.constraint.v1",
             "sql.cte.v1",
+            "sql.delete_statement.v1",
             "sql.foreign_key.v1",
+            "sql.function_definition.v1",
             "sql.index_definition.v1",
+            "sql.insert_statement.v1",
             "sql.join.v1",
             "sql.merge_statement.v1",
+            "sql.procedure_definition.v1",
             "sql.select_query.v1",
             "sql.table_definition.v1",
             "sql.transaction.v1",
             "sql.trigger_definition.v1",
             "sql.update_statement.v1",
-            "sql.view_definition.v1"
+            "sql.view_definition.v1",
+            "sql.window_definition.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "sql.advanced_dml_and_procedure_structure",
-              "reason": "The SQL structural collector emits core DDL, SELECT, JOIN, CTE, trigger, transaction, update, and MERGE facts, but does not yet emit first-class facts for INSERT/DELETE statements, stored procedures/functions, window definitions, or vendor-specific DDL variants. Treating those constructs as fully supported would overstate the fixture-backed SQL surface.",
-              "required_closure": "add parser-backed structural facts and golden fixtures for INSERT/DELETE, procedure/function definitions, window clauses, and at least one vendor-specific DDL variant before removing this gap",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: SQL advanced structural facts"
+              "kind": "sql.vendor_specific_ddl_variants",
+              "reason": "Fixture-backed SQL structural facts now cover INSERT/DELETE, CREATE PROCEDURE/FUNCTION, and WINDOW/OVER definitions alongside the existing DDL/DML surface, but vendor-specific DDL dialects (for example ALTER TABLE ADD CONSTRAINT variants beyond the current T-SQL fixture set, or engine-private CREATE syntax) are still not claimed as first-class pattern coverage.",
+              "required_closure": "add parser-backed structural facts and golden fixtures for at least one additional vendor-specific DDL family before removing this gap",
+              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: SQL vendor DDL facts"
             }
           ]
         },
@@ -5314,7 +5298,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "Regex backreferences are within-pattern only; there is no cross-file forward-reference construct in regex syntax.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "regex_pending_relationships_within_pattern_only",
@@ -5472,7 +5456,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "Markdown links and footnote references are within-document. Cross-file links are URL/path strings, not symbol references.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "markdown_pending_relationships_intra_document_only",
@@ -5483,7 +5467,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "Markdown is a presentation format with no static type system.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/markdown/basic/expected.json",
@@ -5494,7 +5478,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "Markdown headings, links, and frontmatter are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A — domain limitation. Add a new symbol/relationship kind before treating markdown text as identifiers.",
+          "required_closure": "N/A \u2014 domain limitation. Add a new symbol/relationship kind before treating markdown text as identifiers.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/markdown/basic/expected.json",
@@ -5674,7 +5658,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "JSON has no static type system. JSON Schema type keywords are runtime hints, not extracted as TypeInfo. Domain limitation, not a gap.",
-          "required_closure": "N/A — domain limitation. JSON Schema type extraction would require a schema-aware extractor mode outside the tree-sitter scope.",
+          "required_closure": "N/A \u2014 domain limitation. JSON Schema type extraction would require a schema-aware extractor mode outside the tree-sitter scope.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/json/basic/expected.json",
@@ -5685,7 +5669,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "JSON object keys are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A — domain limitation. JSON Schema-aware identifier output would require a separate schema mode.",
+          "required_closure": "N/A \u2014 domain limitation. JSON Schema-aware identifier output would require a separate schema mode.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/json/basic/expected.json",
@@ -5732,15 +5716,17 @@
           "supported": [
             "json.array.v1",
             "json.object.v1",
-            "json.property.v1"
+            "json.property.v1",
+            "json.ref.v1",
+            "json.schema.v1"
           ],
           "not_applicable": [],
           "open_gaps": [
             {
-              "kind": "json_schema_and_reference_semantics",
-              "reason": "JSON structural facts cover objects, arrays, properties, depth, and unique indexed paths, but `$schema` and `$ref` are still generic properties rather than schema/reference facts or relationship-like metadata. JSON5 unquoted keys are also outside the JSON grammar-backed collector.",
-              "required_closure": "add fixture-backed `$schema` and `$ref` facts or relationships, and decide whether JSON5 is a separate language/grammar before claiming unquoted-key support",
-              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: JSON schema/reference facts"
+              "kind": "json5_unquoted_keys",
+              "reason": "JSON Schema `$schema`/`$ref` now emit first-class structural facts, but JSON5 unquoted keys remain outside the grammar-backed JSON collector (tree-sitter-json accepts standard JSON/JSONC only).",
+              "required_closure": "introduce a separate JSON5 grammar/language lane or explicitly mark JSON5 as out of scope before claiming unquoted-key support",
+              "planned_closure_task": "docs/plans/2026-07-04-glm-review-findings-remediation.md Task 7 follow-up: JSON5 decision"
             }
           ]
         },
@@ -5856,7 +5842,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "TOML has no cross-document construct that requires deferred resolution. All references in TOML are file-local (Cargo deps, pyproject tool tables). Domain limitation, not a gap.",
-          "required_closure": "N/A — domain limitation. TOML resolution is always intra-file.",
+          "required_closure": "N/A \u2014 domain limitation. TOML resolution is always intra-file.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -5867,7 +5853,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "TOML has no static type system. Value types (string/int/array) are format-level, not extracted as TypeInfo. Domain limitation, not a gap.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -5878,7 +5864,7 @@
           "capability": "identifiers",
           "status": "exception",
           "reason": "TOML tables and keys are modeled as symbols and relationships; the extractor emits no code identifiers.",
-          "required_closure": "N/A — domain limitation. TOML key references remain symbol/relationship data.",
+          "required_closure": "N/A \u2014 domain limitation. TOML key references remain symbol/relationship data.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/toml/basic/expected.json",
@@ -6041,7 +6027,7 @@
           "capability": "pending_relationships",
           "status": "exception",
           "reason": "YAML anchors/aliases are within-document. YAML has no cross-document forward-reference construct.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "test",
             "value": "yaml_pending_relationships_intra_document_only",
@@ -6052,7 +6038,7 @@
           "capability": "types",
           "status": "exception",
           "reason": "YAML has no static type system. Tag types (!!str, !!int) are format-level, not extracted as TypeInfo.",
-          "required_closure": "N/A — domain limitation.",
+          "required_closure": "N/A \u2014 domain limitation.",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/yaml/basic/expected.json",

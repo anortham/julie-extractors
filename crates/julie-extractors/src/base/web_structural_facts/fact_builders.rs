@@ -25,6 +25,37 @@ pub(super) fn fact_for_node(
     )
 }
 
+/// Like [`fact_for_node`], but folds an extra discriminator into the hashed
+/// identity so several facts sharing one node/pattern/capture/span (e.g. every
+/// `data-*` attribute on the same element) receive distinct, deterministic ids
+/// instead of colliding and being dropped by the writer's id-dedup.
+pub(super) fn fact_for_node_with_identity(
+    file_path: &str,
+    language: &str,
+    pattern_id: &str,
+    capture_name: &str,
+    identity_discriminator: &str,
+    node: Node<'_>,
+    metadata: HashMap<String, Value>,
+) -> StructuralFact {
+    let span = NormalizedSpan::from_node(&node);
+    let mut fact = fact_for_span(
+        file_path,
+        language,
+        pattern_id,
+        capture_name,
+        node.kind(),
+        span,
+        metadata,
+    );
+    fact.id = stable_location_id(
+        file_path,
+        &format!("{pattern_id}:{capture_name}:{identity_discriminator}"),
+        span,
+    );
+    fact
+}
+
 pub(super) fn fact_for_span(
     file_path: &str,
     language: &str,

@@ -538,7 +538,7 @@ per-pattern metadata payload — every key each `pattern_id` can carry, with its
 JSON value type and presence rule — is published as a machine-readable contract
 at [`structural-fact-patterns.json`](./structural-fact-patterns.json), generated
 from the in-process pattern registry
-(`crates/julie-extractors/src/base/structural_fact_registry.rs`). Treat that file
+(`crates/julie-extractors/src/base/structural_fact_registry/`). Treat that file
 as the source of truth for structural-fact metadata payloads. Regenerate the
 checked-in file after an intentional registry change with:
 
@@ -585,6 +585,8 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `laravel.route.v1` | `php` | `route` | parser-covered `Route` facade call span |
 | `laravel.resource_route.v1` | `php` | `resource_route` | parser-covered `Route::resource`/`apiResource` call span |
 | `laravel.route_prefix.v1` | `php` | `route_prefix` | parser-covered `Route::prefix`/`group` prefix site |
+| `symfony.route.v1` | `php` | `request_mapping` | class or method declaration carrying a static `#[Route]` attribute |
+| `ktor.route.v1` | `kotlin` | `route` | parser-covered bare verb call span inside `routing{}`/`route{}` |
 | `phoenix.route.v1` | `elixir` | `route` | parser-covered router verb-macro call span |
 | `phoenix.resource_route.v1` | `elixir` | `resource_route` | parser-covered `resources` macro call span |
 | `phoenix.forward.v1` | `elixir` | `forward` | parser-covered `forward` macro call span |
@@ -598,11 +600,21 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `razor.page_directive.v1` | `razor` | `page_directive` | `razor_page_directive` |
 | `razor.code_block.v1` | `razor` | `code_block` | `razor_block` |
 | `razor.template_expression.v1` | `razor` | `template_expression` | `razor_implicit_expression`, `razor_explicit_expression` |
-| `css.selector_rule.v1` | `css` | `rule_set` | `rule_set` |
-| `css.custom_property.v1` | `css` | `custom_property` | `property_name` |
-| `css.media_query.v1` | `css` | `media_query` | `media_statement` |
-| `css.keyframes.v1` | `css` | `keyframes` | `keyframes_statement` |
+| `css.selector_rule.v1` | `css`, `vue`, `html` | `rule_set` | `rule_set` |
+| `css.custom_property.v1` | `css`, `vue`, `html` | `custom_property` | `property_name` |
+| `css.media_query.v1` | `css`, `vue`, `html` | `media_query` | `media_statement` |
+| `css.keyframes.v1` | `css`, `vue`, `html` | `keyframes` | `keyframes_statement` |
+| `css.supports.v1` | `css`, `vue`, `html` | `supports` | `supports_statement` |
+| `css.container.v1` | `css`, `vue`, `html` | `container` | `at_rule` |
+| `css.font_face.v1` | `css`, `vue`, `html` | `font_face` | `at_rule` |
+| `css.layer.v1` | `css`, `vue`, `html` | `layer` | `at_rule` |
+| `css.charset.v1` | `css`, `vue`, `html` | `charset` | `charset_statement` |
+| `css.namespace.v1` | `css`, `vue`, `html` | `namespace` | `namespace_statement` |
 | `html.link.v1` | `html` | `link` | `element` |
+| `html.area_link.v1` | `html` | `area_link` | `element` |
+| `html.media.v1` | `html` | `media` | `element` |
+| `html.landmark.v1` | `html` | `landmark` | `element` |
+| `html.data_attribute.v1` | `html` | `data_attribute` | `element` |
 | `html.script.v1` | `html` | `script` | `script_element` |
 | `html.form.v1` | `html` | `form` | `element` |
 | `html.form_control.v1` | `html` | `form_control` | `element` |
@@ -618,7 +630,7 @@ Every fact carries the base keys `pattern_version` (integer, currently `1`) and
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir`, `rust` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `razor`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir`, `rust` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Minimal API route calls compute it from
@@ -697,9 +709,15 @@ routes and emit a `laravel.route_prefix.v1` fact (`mount_path`/
 `normalized_mount_path`) at the prefix site; a non-literal prefix poisons the
 group so contained routes emit `route_template` only. Interpolated,
 concatenated, `self::CONST`, and variable route arguments stay silent (M2).
-`#[Route]` attributes (Symfony) and cross-file `RouteServiceProvider` prefixes
-are out of scope, so `route_template` is not guaranteed to be the absolute
-public path when such a prefix applies.
+Symfony `#[Route]` attributes emit the separate `symfony.route.v1` pattern.
+Cross-file `RouteServiceProvider` prefixes remain out of scope, so Laravel
+`route_template` is not guaranteed to be the absolute public path when such a
+prefix applies. Ktor server routes emit `ktor.route.v1` under a restricted
+lexical gate inside `routing{}`/`route{}`, gated on a server-side import
+(`io.ktor.server.*`, or Ktor 1.x `io.ktor.routing.*`/`io.ktor.application.*`) so
+client-only `io.ktor.client.*` files stay silent; enclosing `route("/prefix")`
+scopes join with the verb path into `effective_route_template` (accumulating when
+nested), while the raw literal stays in `route_template`.
 
 Phoenix routes come from an AST-driven collector import-gated on a
 `Phoenix.Router`/`:router` router module: the bare verb macros

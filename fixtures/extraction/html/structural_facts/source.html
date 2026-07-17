@@ -1,11 +1,40 @@
-<div id="list"
-    hx-get="/todos"
-    hx-post="/todos"
-    data-hx-delete="/todos/1"
-    hx-target="#list"
-    x-data="{ open: false }">
-    <button @click.prevent="open = !open" :class="{ active: open }">Toggle</button>
-    <form action="/todos" method="post" id="todo-form" name="todoForm" enctype="application/x-www-form-urlencoded">
-        <input type="text" name="title" required>
-    </form>
-</div>
+<header role="banner" id="top">
+    <nav aria-label="Primary">
+        <a href="/home">Home</a>
+    </nav>
+</header>
+<main>
+    <img src="/logo.png" alt="Logo" id="logo">
+    <video controls>
+        <source src="/clip.mp4" type="video/mp4">
+    </video>
+    <map name="sites">
+        <area href="/workers" shape="rect" coords="0,0,10,10" alt="Workers">
+    </map>
+    <div id="list"
+        hx-get="/todos"
+        hx-post="/todos"
+        data-hx-delete="/todos/1"
+        hx-target="#list"
+        data-testid="panel"
+        x-data="{ open: false }">
+        <button @click.prevent="open = !open" :class="{ active: open }">Toggle</button>
+        <form action="/todos" method="post" id="todo-form" name="todoForm" enctype="application/x-www-form-urlencoded">
+            <input type="text" name="title" required>
+        </form>
+    </div>
+</main>
+<aside></aside>
+<footer></footer>
+<style>
+@charset "UTF-8";
+@namespace url(http://www.w3.org/1999/xhtml);
+:root { --accent: #0f766e; }
+.btn { color: var(--accent); }
+@media (min-width: 40rem) { .wide { display: block; } }
+@keyframes spin { from { opacity: 0; } to { opacity: 1; } }
+@supports (display: grid) { .grid { display: grid; } }
+@container (min-width: 20rem) { .card { color: red; } }
+@font-face { font-family: "Worker"; src: url("/worker.woff2"); }
+@layer utilities { .m-0 { margin: 0; } }
+</style>

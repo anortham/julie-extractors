@@ -254,7 +254,8 @@ cargo xtask performance writer-current-schema --out-dir target/performance/write
 
 ## Guardrails
 
-- Add a default-suite wall-clock budget before implementation work grows.
+- Enforce the default-suite wall-clock budget (90s, `xtask/src/test_tiers.rs`)
+  as implementation work grows.
 - Add a tiny-fixture writer budget before the SQLite writer lands.
 - Add convention tests that fail if slow tests enter default.
 - Add contract tests that fail when required schema indexes are missing.

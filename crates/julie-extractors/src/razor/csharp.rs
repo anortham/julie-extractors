@@ -1,6 +1,6 @@
 /// C# symbol extraction within Razor code blocks
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility, normalize_annotations};
-use crate::test_detection::is_test_symbol;
+use crate::test_detection::apply_callable_test_metadata;
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use std::collections::HashMap;
 use tree_sitter::Node;
@@ -286,13 +286,39 @@ impl super::RazorExtractor {
             .collect::<Vec<_>>();
 
         // Test detection consumes the same normalized annotation keys persisted on the symbol.
-        let is_test = is_test_symbol(
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "type".to_string(),
+            serde_json::Value::String("method".to_string()),
+        );
+        metadata.insert(
+            "modifiers".to_string(),
+            serde_json::Value::String(modifiers.join(", ")),
+        );
+        if let Some(params) = &parameters {
+            metadata.insert(
+                "parameters".to_string(),
+                serde_json::Value::String(params.clone()),
+            );
+        }
+        if let Some(ret_type) = return_type {
+            metadata.insert(
+                "returnType".to_string(),
+                serde_json::Value::String(ret_type),
+            );
+        }
+        metadata.insert(
+            "attributes".to_string(),
+            serde_json::Value::String(attributes.join(", ")),
+        );
+        apply_callable_test_metadata(
             "razor",
             &name,
             &self.base.file_path,
             &SymbolKind::Method,
             &annotation_keys,
             doc_comment.as_deref(),
+            &mut metadata,
         );
 
         Some(self.base.create_symbol(
@@ -303,37 +329,7 @@ impl super::RazorExtractor {
                 signature: Some(signature_parts.join(" ")),
                 visibility: Some(self.determine_visibility(&modifiers)),
                 parent_id: parent_id.map(|s| s.to_string()),
-                metadata: Some({
-                    let mut metadata = HashMap::new();
-                    metadata.insert(
-                        "type".to_string(),
-                        serde_json::Value::String("method".to_string()),
-                    );
-                    metadata.insert(
-                        "modifiers".to_string(),
-                        serde_json::Value::String(modifiers.join(", ")),
-                    );
-                    if let Some(params) = &parameters {
-                        metadata.insert(
-                            "parameters".to_string(),
-                            serde_json::Value::String(params.clone()),
-                        );
-                    }
-                    if let Some(ret_type) = return_type {
-                        metadata.insert(
-                            "returnType".to_string(),
-                            serde_json::Value::String(ret_type),
-                        );
-                    }
-                    metadata.insert(
-                        "attributes".to_string(),
-                        serde_json::Value::String(attributes.join(", ")),
-                    );
-                    if is_test {
-                        metadata.insert("is_test".to_string(), serde_json::Value::Bool(true));
-                    }
-                    metadata
-                }),
+                metadata: Some(metadata),
                 doc_comment,
                 annotations,
             },

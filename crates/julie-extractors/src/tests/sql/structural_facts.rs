@@ -476,3 +476,70 @@ fn sql_tsql_control_flow_emits_no_structural_facts() {
         )
     }));
 }
+
+#[test]
+fn sql_emits_insert_delete_procedure_function_and_window_facts() {
+    let source = r#"
+INSERT INTO workers (id, name) VALUES (1, 'a');
+DELETE FROM workers WHERE id = 1;
+CREATE FUNCTION add_one(x INT) RETURNS INT LANGUAGE sql AS $$ SELECT x + 1 $$;
+CREATE PROCEDURE do_work() BEGIN SELECT 1; END;
+SELECT id, ROW_NUMBER() OVER (PARTITION BY name ORDER BY id) AS rn FROM workers;
+SELECT id FROM workers WINDOW w AS (PARTITION BY name ORDER BY id);
+"#;
+    let results = extract(source);
+
+    let insert = facts_with_pattern(&results, "sql.insert_statement.v1")
+        .into_iter()
+        .next()
+        .expect("expected insert fact");
+    assert_eq!(metadata_str(insert, "table_name"), Some("workers"));
+    assert_eq!(
+        metadata_str(insert, "query_family"),
+        Some("mutation_structure")
+    );
+
+    let delete = facts_with_pattern(&results, "sql.delete_statement.v1")
+        .into_iter()
+        .next()
+        .expect("expected delete fact");
+    assert_eq!(metadata_str(delete, "table_name"), Some("workers"));
+    assert_eq!(metadata_bool(delete, "has_where"), Some(true));
+    assert_eq!(
+        metadata_str(delete, "query_family"),
+        Some("mutation_structure")
+    );
+
+    let function = facts_with_pattern(&results, "sql.function_definition.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "routine_name") == Some("add_one"))
+        .expect("expected function fact");
+    assert_eq!(
+        metadata_str(function, "query_family"),
+        Some("schema_structure")
+    );
+
+    let procedure = facts_with_pattern(&results, "sql.procedure_definition.v1")
+        .into_iter()
+        .find(|fact| metadata_str(fact, "routine_name") == Some("do_work"))
+        .expect("expected procedure fact");
+    assert_eq!(
+        metadata_str(procedure, "query_family"),
+        Some("schema_structure")
+    );
+
+    let windows = facts_with_pattern(&results, "sql.window_definition.v1");
+    assert!(
+        windows
+            .iter()
+            .any(|fact| metadata_str(fact, "window_kind") == Some("window_function")),
+        "expected OVER window_function fact: {windows:#?}"
+    );
+    assert!(
+        windows.iter().any(|fact| {
+            metadata_str(fact, "window_kind") == Some("window_clause")
+                && metadata_str(fact, "window_name") == Some("w")
+        }),
+        "expected named WINDOW clause fact: {windows:#?}"
+    );
+}

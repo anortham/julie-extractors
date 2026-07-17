@@ -24,22 +24,32 @@ const TRANSACTION_PATTERN_ID: &str = "sql.transaction.v1";
 const INDEX_DEFINITION_PATTERN_ID: &str = "sql.index_definition.v1";
 const UPDATE_STATEMENT_PATTERN_ID: &str = "sql.update_statement.v1";
 const MERGE_STATEMENT_PATTERN_ID: &str = "sql.merge_statement.v1";
+const INSERT_STATEMENT_PATTERN_ID: &str = "sql.insert_statement.v1";
+const DELETE_STATEMENT_PATTERN_ID: &str = "sql.delete_statement.v1";
+const PROCEDURE_DEFINITION_PATTERN_ID: &str = "sql.procedure_definition.v1";
+const FUNCTION_DEFINITION_PATTERN_ID: &str = "sql.function_definition.v1";
+const WINDOW_DEFINITION_PATTERN_ID: &str = "sql.window_definition.v1";
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
 const SQL_STRUCTURAL_PATTERN_IDS: &[&str] = &[
     COLUMN_DEFINITION_PATTERN_ID,
     CONSTRAINT_PATTERN_ID,
     CTE_PATTERN_ID,
+    DELETE_STATEMENT_PATTERN_ID,
     FOREIGN_KEY_PATTERN_ID,
+    FUNCTION_DEFINITION_PATTERN_ID,
     INDEX_DEFINITION_PATTERN_ID,
+    INSERT_STATEMENT_PATTERN_ID,
     JOIN_PATTERN_ID,
     MERGE_STATEMENT_PATTERN_ID,
+    PROCEDURE_DEFINITION_PATTERN_ID,
     SELECT_QUERY_PATTERN_ID,
     TABLE_DEFINITION_PATTERN_ID,
     TRANSACTION_PATTERN_ID,
     TRIGGER_DEFINITION_PATTERN_ID,
     UPDATE_STATEMENT_PATTERN_ID,
     VIEW_DEFINITION_PATTERN_ID,
+    WINDOW_DEFINITION_PATTERN_ID,
 ];
 
 static ERROR_TRIGGER_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
@@ -153,6 +163,31 @@ fn collect_sql_node(
         }
         "update" => {
             if let Some(fact) = update_statement_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "insert" => {
+            if let Some(fact) = insert_statement_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "delete" => {
+            if let Some(fact) = delete_statement_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "create_procedure" => {
+            if let Some(fact) = procedure_definition_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "create_function" | "create_function_statement" => {
+            if let Some(fact) = function_definition_fact(file_path, content, node) {
+                facts.push(fact);
+            }
+        }
+        "window_clause" | "window_function" => {
+            if let Some(fact) = window_definition_fact(file_path, content, node) {
                 facts.push(fact);
             }
         }
@@ -691,6 +726,210 @@ fn update_statement_fact(file_path: &str, content: &str, node: Node<'_>) -> Opti
     ))
 }
 
+fn insert_statement_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
+    let table_name = node
+        .child_by_field_name("name")
+        .or_else(|| find_child(node, "object_reference"))
+        .or_else(|| find_child(node, "relation"))
+        .and_then(|relation| relation_table_name(content, relation));
+    let mut metadata = base_metadata("mutation_structure");
+    if let Some(table) = table_name {
+        insert_string(&mut metadata, "table_name", &table);
+    }
+    metadata.insert(
+        "has_values".to_string(),
+        Value::Bool(has_child_kind(node, "keyword_values")),
+    );
+    metadata.insert(
+        "has_select".to_string(),
+        Value::Bool(has_child_kind(node, "select")),
+    );
+    Some(fact_for_node(
+        file_path,
+        INSERT_STATEMENT_PATTERN_ID,
+        "insert",
+        node,
+        metadata,
+    ))
+}
+
+fn delete_statement_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
+    // Grammar places FROM/WHERE as siblings under `statement`, not under `delete`.
+    let statement = node
+        .parent()
+        .filter(|parent| parent.kind() == "statement")
+        .unwrap_or(node);
+    let table_name = find_child(statement, "from")
+        .and_then(|from| {
+            find_child(from, "object_reference")
+                .or_else(|| find_child(from, "relation"))
+                .and_then(|relation| relation_table_name(content, relation))
+        })
+        .or_else(|| {
+            find_child(statement, "object_reference")
+                .and_then(|relation| relation_table_name(content, relation))
+        });
+    let mut metadata = base_metadata("mutation_structure");
+    if let Some(table) = table_name {
+        insert_string(&mut metadata, "table_name", &table);
+    }
+    metadata.insert(
+        "has_where".to_string(),
+        Value::Bool(
+            find_child(statement, "from")
+                .map(|from| has_child_kind(from, "where"))
+                .unwrap_or_else(|| has_child_kind(statement, "where")),
+        ),
+    );
+    Some(fact_for_node(
+        file_path,
+        DELETE_STATEMENT_PATTERN_ID,
+        "delete",
+        statement,
+        metadata,
+    ))
+}
+
+fn procedure_definition_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let (_, routine_name) = object_reference_parts(content, find_object_reference(node)?)?;
+    let mut metadata = base_metadata("schema_structure");
+    insert_string(&mut metadata, "routine_name", &routine_name);
+    metadata.insert(
+        "parameter_count".to_string(),
+        Value::Number(Number::from(count_routine_parameters(content, node))),
+    );
+    Some(fact_for_node(
+        file_path,
+        PROCEDURE_DEFINITION_PATTERN_ID,
+        "create_procedure",
+        node,
+        metadata,
+    ))
+}
+
+fn function_definition_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let (_, routine_name) = object_reference_parts(content, find_object_reference(node)?)?;
+    let mut metadata = base_metadata("schema_structure");
+    insert_string(&mut metadata, "routine_name", &routine_name);
+    metadata.insert(
+        "parameter_count".to_string(),
+        Value::Number(Number::from(count_routine_parameters(content, node))),
+    );
+    Some(fact_for_node(
+        file_path,
+        FUNCTION_DEFINITION_PATTERN_ID,
+        "create_function",
+        node,
+        metadata,
+    ))
+}
+
+/// Count `@`-prefixed T-SQL routine parameters.
+///
+/// The vendored SQL grammar does not wrap parenless procedure parameters
+/// (`CREATE PROCEDURE p @Id INT AS ...`) in `function_argument` nodes — they
+/// surface as `ERROR` siblings — so structural counting misses them. Counting
+/// the parameter sigils in the header region (before the body, and before a
+/// function's `RETURNS` clause so a table-valued `RETURNS @r TABLE` return
+/// variable is not miscounted) is robust across both parenthesized and bare
+/// parameter lists.
+fn count_routine_parameters(content: &str, node: Node<'_>) -> usize {
+    let body_start = find_child(node, "function_body").map(|child| child.start_byte());
+    let returns_start = find_child(node, "keyword_returns").map(|child| child.start_byte());
+    let region_end = [body_start, returns_start]
+        .into_iter()
+        .flatten()
+        .min()
+        .unwrap_or_else(|| node.end_byte());
+    let start = node.start_byte().min(content.len());
+    let end = region_end.min(content.len()).max(start);
+    count_parameter_sigils(&content[start..end])
+}
+
+fn count_parameter_sigils(region: &str) -> usize {
+    let bytes = region.as_bytes();
+    (0..bytes.len())
+        .filter(|&index| {
+            bytes[index] == b'@'
+                && bytes
+                    .get(index + 1)
+                    .is_some_and(|next| next.is_ascii_alphanumeric() || *next == b'_')
+                && match index.checked_sub(1) {
+                    None => true,
+                    Some(prev) => {
+                        bytes[prev].is_ascii_whitespace()
+                            || bytes[prev] == b'('
+                            || bytes[prev] == b','
+                    }
+                }
+        })
+        .count()
+}
+
+fn window_definition_fact(
+    file_path: &str,
+    content: &str,
+    node: Node<'_>,
+) -> Option<StructuralFact> {
+    let mut metadata = base_metadata("query_structure");
+    match node.kind() {
+        "window_clause" => {
+            insert_string(&mut metadata, "window_kind", "window_clause");
+            if let Some(name) = find_child(node, "identifier")
+                .and_then(|identifier| node_text(content, identifier))
+                .map(str::trim)
+                .filter(|name| !name.is_empty())
+                .map(normalize_sql_identifier)
+            {
+                insert_string(&mut metadata, "window_name", &name);
+            }
+        }
+        "window_function" => {
+            insert_string(&mut metadata, "window_kind", "window_function");
+            if let Some(name) = find_child(node, "invocation")
+                .and_then(|invocation| find_child(invocation, "object_reference"))
+                .or_else(|| find_child(node, "identifier"))
+                .and_then(|name_node| {
+                    if name_node.kind() == "object_reference" {
+                        object_reference_parts(content, name_node).map(|(_, table)| table)
+                    } else {
+                        node_text(content, name_node)
+                            .map(str::trim)
+                            .filter(|value| !value.is_empty())
+                            .map(normalize_sql_identifier)
+                    }
+                })
+            {
+                insert_string(&mut metadata, "function_name", &name);
+            }
+        }
+        _ => return None,
+    }
+    metadata.insert(
+        "has_partition_by".to_string(),
+        Value::Bool(has_child_kind(node, "partition_by")),
+    );
+    metadata.insert(
+        "has_order_by".to_string(),
+        Value::Bool(has_child_kind(node, "order_by")),
+    );
+    Some(fact_for_node(
+        file_path,
+        WINDOW_DEFINITION_PATTERN_ID,
+        "window",
+        node,
+        metadata,
+    ))
+}
+
 fn merge_statement_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<StructuralFact> {
     let target_table = node
         .child_by_field_name("target")
@@ -1177,4 +1416,63 @@ fn base_metadata(query_family: &str) -> HashMap<String, Value> {
 
 fn insert_string(metadata: &mut HashMap<String, Value>, key: &str, value: &str) {
     metadata.insert(key.to_string(), Value::String(value.to_string()));
+}
+
+#[cfg(test)]
+mod parameter_count_tests {
+    use super::*;
+    use tree_sitter::Parser;
+
+    fn parameter_count(source: &str, routine_name: &str) -> u64 {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_sequel::LANGUAGE.into())
+            .expect("load SQL grammar");
+        let tree = parser.parse(source, None).expect("parse SQL");
+        let facts = collect_sql_structural_facts("sql", &tree, "x.sql", source, &[]);
+        facts
+            .into_iter()
+            .filter_map(|fact| fact.metadata)
+            .find(|metadata| {
+                metadata.get("routine_name").and_then(Value::as_str) == Some(routine_name)
+            })
+            .and_then(|metadata| metadata.get("parameter_count").and_then(Value::as_u64))
+            .unwrap_or_else(|| panic!("no parameter_count for {routine_name}"))
+    }
+
+    #[test]
+    fn parenless_procedure_one_parameter_counts_one() {
+        let source = "CREATE PROCEDURE dbo.MarkWorker\n    @Id INT\nAS\nBEGIN\n    SELECT 1;\nEND;";
+        assert_eq!(parameter_count(source, "MarkWorker"), 1);
+    }
+
+    #[test]
+    fn parenthesized_procedure_two_parameters_counts_two() {
+        let source = "CREATE PROCEDURE dbo.TwoParams (@Id INT, @Name NVARCHAR(50))\nAS\nBEGIN\n    SELECT 1;\nEND;";
+        assert_eq!(parameter_count(source, "TwoParams"), 2);
+    }
+
+    #[test]
+    fn parenthesized_procedure_one_parameter_counts_one() {
+        let source = "CREATE PROCEDURE dbo.OneParen (@Id INT)\nAS\nBEGIN\n    SELECT 1;\nEND;";
+        assert_eq!(parameter_count(source, "OneParen"), 1);
+    }
+
+    #[test]
+    fn parenless_procedure_no_parameters_counts_zero() {
+        let source = "CREATE PROCEDURE dbo.NoParams\nAS\nBEGIN\n    SELECT 1;\nEND;";
+        assert_eq!(parameter_count(source, "NoParams"), 0);
+    }
+
+    #[test]
+    fn function_one_parameter_counts_one() {
+        let source = "CREATE FUNCTION dbo.WorkerLabel(@Id INT)\nRETURNS NVARCHAR(100)\nAS\nBEGIN\n    RETURN N'worker';\nEND;";
+        assert_eq!(parameter_count(source, "WorkerLabel"), 1);
+    }
+
+    #[test]
+    fn function_two_parameters_counts_two() {
+        let source = "CREATE FUNCTION dbo.TwoArg(@Id INT, @N NVARCHAR(50))\nRETURNS INT\nAS\nBEGIN\n    RETURN 1;\nEND;";
+        assert_eq!(parameter_count(source, "TwoArg"), 2);
+    }
 }
