@@ -51,6 +51,11 @@
           "expected": "fixtures/extraction/rust/http_client/expected.json"
         },
         {
+          "name": "http_client_deferred",
+          "source": "fixtures/extraction/rust/http_client_deferred/source.rs",
+          "expected": "fixtures/extraction/rust/http_client_deferred/expected.json"
+        },
+        {
           "name": "test_roles",
           "source": "fixtures/extraction/rust/test_roles/source.rs",
           "expected": "fixtures/extraction/rust/test_roles/expected.json"
@@ -143,12 +148,6 @@
               "reason": "axum route params are recorded as brace captures (`{id}`, axum 0.8). axum 0.7 used `:id`; the extractor cannot know the crate version and does not version-sniff (design section 11), so a 0.7 `:id` template passes through to a correct normalized_route_template join key but its `:id` segment is not recorded in dynamic_segments.",
               "required_closure": "no closure without version detection, which is explicitly out of scope; a 0.7 `:id` template still joins correctly, only dynamic_segments under-reports its params",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2a / section 11 (axum 0.7 param honest under-report)"
-            },
-            {
-              "kind": "rust.http_client.deferred",
-              "reason": "Only reqwest ships in v2.8.0, and its builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) \u2014 a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss). The scoped `reqwest::get(\"url\")` free function always emits. hyper (low-level request-builder + body future) and ureq (blocking `ureq::get(\"url\").call()`) each need their own detection shape and fixture.",
-              "required_closure": "add per-library client collectors emitting http.client_request.v1 for hyper and ureq (each fixture-backed); optionally extend reqwest builder detection to struct-field/typed receivers if in-file type resolution becomes available",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             },
             {
               "kind": "axum.cross_file_nest_join",

@@ -1,0 +1,2036 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherBuilder:34:0",
+      "name": "OtherBuilder",
+      "kind": "struct",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 34,
+      "start_column": 0,
+      "end_line": 34,
+      "end_column": 20,
+      "start_byte": 1033,
+      "end_byte": 1053,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "struct OtherBuilder",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherRequest:27:0",
+      "name": "OtherRequest",
+      "kind": "struct",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 27,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 20,
+      "start_byte": 927,
+      "end_byte": 947,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "struct OtherRequest",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:39:4",
+      "name": "body",
+      "kind": "method",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 39,
+      "start_column": 4,
+      "end_line": 41,
+      "end_column": 5,
+      "start_byte": 1133,
+      "end_byte": 1182,
+      "body_span": {
+        "start_line": 39,
+        "start_column": 33,
+        "end_line": 41,
+        "end_column": 5,
+        "start_byte": 1162,
+        "end_byte": 1182
+      },
+      "body_hash": "58062317b6ee18ef7a8f1d69374211cc",
+      "signature": "fn body(self, _: ()) -> Self",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherBuilder:34:0",
+      "metadata": {
+        "impl_parent_id_resolved": true,
+        "impl_type_name": "OtherBuilder"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:29:4",
+      "name": "builder",
+      "kind": "method",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 29,
+      "start_column": 4,
+      "end_line": 31,
+      "end_column": 5,
+      "start_byte": 972,
+      "end_byte": 1029,
+      "body_span": {
+        "start_line": 29,
+        "start_column": 33,
+        "end_line": 31,
+        "end_column": 5,
+        "start_byte": 1001,
+        "end_byte": 1029
+      },
+      "body_hash": "e0e738751348a91a925990b65a7e2819",
+      "signature": "fn builder() -> OtherBuilder",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherRequest:27:0",
+      "metadata": {
+        "impl_parent_id_resolved": true,
+        "impl_type_name": "OtherRequest"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0",
+      "name": "hyper",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 29,
+      "start_byte": 122,
+      "end_byte": 151,
+      "body_span": {
+        "start_line": 3,
+        "start_column": 11,
+        "end_line": 3,
+        "end_column": 28,
+        "start_byte": 133,
+        "end_byte": 150
+      },
+      "body_hash": "a9eeb55c3428d09e8a40cc749ee20ed5",
+      "signature": "use hyper::{Method, Request};",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "name": "load",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 15,
+      "end_column": 1,
+      "start_byte": 229,
+      "end_byte": 543,
+      "body_span": {
+        "start_line": 7,
+        "start_column": 14,
+        "end_line": 15,
+        "end_column": 1,
+        "start_byte": 243,
+        "end_byte": 543
+      },
+      "body_hash": "6c48381c279e924e67646f6584355a12",
+      "signature": "pub fn load()",
+      "doc_comment": "Static hyper and ureq requests emit `http.client_request.v1`.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "name": "silent",
+      "kind": "function",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 18,
+      "start_column": 0,
+      "end_line": 25,
+      "end_column": 1,
+      "start_byte": 617,
+      "end_byte": 925,
+      "body_span": {
+        "start_line": 18,
+        "start_column": 69,
+        "end_line": 25,
+        "end_column": 1,
+        "start_byte": 686,
+        "end_byte": 925
+      },
+      "body_hash": "c14bb35c167bbe4442c9d91472f8d13a",
+      "signature": "pub fn silent(url: &str, map: std::collections::HashMap<&str, &str>)",
+      "doc_comment": "Dynamic URLs, map lookups, and non-hyper builders stay silent (M2).",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:4:0",
+      "name": "ureq",
+      "kind": "import",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 9,
+      "start_byte": 152,
+      "end_byte": 161,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "use ureq;",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:36:4",
+      "name": "uri",
+      "kind": "method",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 36,
+      "start_column": 4,
+      "end_line": 38,
+      "end_column": 5,
+      "start_byte": 1078,
+      "end_byte": 1128,
+      "body_span": {
+        "start_line": 36,
+        "start_column": 34,
+        "end_line": 38,
+        "end_column": 5,
+        "start_byte": 1108,
+        "end_byte": 1128
+      },
+      "body_hash": "58062317b6ee18ef7a8f1d69374211cc",
+      "signature": "fn uri(self, _: &str) -> Self",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherBuilder:34:0",
+      "metadata": {
+        "impl_parent_id_resolved": true,
+        "impl_type_name": "OtherBuilder"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0",
+      "callee_name": "hyper",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 3,
+      "confidence": "1.000"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "body",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "body",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "builder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "builder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "call",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "call",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "delete",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 14,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 13,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "method",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "uri",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 12,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "callee_name": "uri",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 8,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "body",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "body",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 22,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "builder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "builder",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 22,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "call",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 20,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 20,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "get",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 21,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "uri",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 19,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "callee_name": "uri",
+      "kind": "calls",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 22,
+      "confidence": "0.700"
+    },
+    {
+      "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:4:0",
+      "callee_name": "ureq",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "line_number": 4,
+      "confidence": "1.000"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0",
+        "callee_name": "hyper",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 3,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "hyper",
+        "terminal_name": "hyper",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "use hyper::{Method, Request};"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "body",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "hyper::Request::builder().uri(\"/health\").body",
+        "terminal_name": "body",
+        "receiver": "hyper::Request::builder().uri(\"/health\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "body",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Request::builder()\n        .method(Method::POST)\n        .uri(\"https://api.example.com/items\").body",
+        "terminal_name": "body",
+        "receiver": "Request::builder()\n        .method(Method::POST)\n        .uri(\"https://api.example.com/items\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "builder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "hyper::Request::builder",
+        "terminal_name": "builder",
+        "receiver": null,
+        "namespace_path": [
+          "hyper",
+          "Request"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "builder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Request::builder",
+        "terminal_name": "builder",
+        "receiver": null,
+        "namespace_path": [
+          "Request"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "call",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ureq::get(\"https://api.example.com/users\").call",
+        "terminal_name": "call",
+        "receiver": "ureq::get(\"https://api.example.com/users\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "call",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ureq::delete(\"/users/1\").call",
+        "terminal_name": "call",
+        "receiver": "ureq::delete(\"/users/1\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "delete",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 14,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ureq::delete",
+        "terminal_name": "delete",
+        "receiver": null,
+        "namespace_path": [
+          "ureq"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 13,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ureq::get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [
+          "ureq"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "method",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Request::builder().method",
+        "terminal_name": "method",
+        "receiver": "Request::builder()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "uri",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 12,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "hyper::Request::builder().uri",
+        "terminal_name": "uri",
+        "receiver": "hyper::Request::builder()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+        "callee_name": "uri",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 8,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Request::builder()\n        .method(Method::POST).uri",
+        "terminal_name": "uri",
+        "receiver": "Request::builder()\n        .method(Method::POST)",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "body",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Request::builder().uri(url).body",
+        "terminal_name": "body",
+        "receiver": "Request::builder().uri(url)",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "body",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 22,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "OtherRequest::builder()\n        .uri(\"https://not-hyper.example\").body",
+        "terminal_name": "body",
+        "receiver": "OtherRequest::builder()\n        .uri(\"https://not-hyper.example\")",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "builder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Request::builder",
+        "terminal_name": "builder",
+        "receiver": null,
+        "namespace_path": [
+          "Request"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "builder",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 22,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "OtherRequest::builder",
+        "terminal_name": "builder",
+        "receiver": null,
+        "namespace_path": [
+          "OtherRequest"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "call",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 20,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ureq::get(url).call",
+        "terminal_name": "call",
+        "receiver": "ureq::get(url)",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 20,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "ureq::get",
+        "terminal_name": "get",
+        "receiver": null,
+        "namespace_path": [
+          "ureq"
+        ],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "get",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 21,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "map.get",
+        "terminal_name": "get",
+        "receiver": "map",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "uri",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 19,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "Request::builder().uri",
+        "terminal_name": "uri",
+        "receiver": "Request::builder()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+        "callee_name": "uri",
+        "kind": "calls",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 22,
+        "confidence": "0.700"
+      },
+      "target": {
+        "display_name": "OtherRequest::builder().uri",
+        "terminal_name": "uri",
+        "receiver": "OtherRequest::builder()",
+        "namespace_path": [],
+        "import_context": null
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+    },
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:4:0",
+        "callee_name": "ureq",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+        "line_number": 4,
+        "confidence": "1.000"
+      },
+      "target": {
+        "display_name": "ureq",
+        "terminal_name": "ureq",
+        "receiver": null,
+        "namespace_path": [],
+        "import_context": "use ureq;"
+      },
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:4:0"
+    }
+  ],
+  "identifiers": [
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:HashMap:type_usage:18:48",
+      "name": "HashMap",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 18,
+      "start_column": 48,
+      "end_line": 18,
+      "end_column": 55,
+      "start_byte": 665,
+      "end_byte": 672,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:HashMap:type_usage:18:48",
+      "name": "HashMap",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 18,
+      "start_column": 48,
+      "end_line": 18,
+      "end_column": 55,
+      "start_byte": 665,
+      "end_byte": 672,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Method:variable_ref:9:16",
+      "name": "Method",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 9,
+      "start_column": 16,
+      "end_line": 9,
+      "end_column": 22,
+      "start_byte": 292,
+      "end_byte": 298,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherBuilder:type_usage:29:20",
+      "name": "OtherBuilder",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 29,
+      "start_column": 20,
+      "end_line": 29,
+      "end_column": 32,
+      "start_byte": 988,
+      "end_byte": 1000,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:29:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherBuilder:type_usage:35:5",
+      "name": "OtherBuilder",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 35,
+      "start_column": 5,
+      "end_line": 35,
+      "end_column": 17,
+      "start_byte": 1059,
+      "end_byte": 1071,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherBuilder:variable_ref:30:8",
+      "name": "OtherBuilder",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 30,
+      "start_column": 8,
+      "end_line": 30,
+      "end_column": 20,
+      "start_byte": 1011,
+      "end_byte": 1023,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:29:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherRequest:type_usage:28:5",
+      "name": "OtherRequest",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 28,
+      "start_column": 5,
+      "end_line": 28,
+      "end_column": 17,
+      "start_byte": 953,
+      "end_byte": 965,
+      "containing_key": null,
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:OtherRequest:variable_ref:22:12",
+      "name": "OtherRequest",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 22,
+      "start_column": 12,
+      "end_line": 22,
+      "end_column": 24,
+      "start_byte": 839,
+      "end_byte": 851,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:POST:type_usage:9:24",
+      "name": "POST",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 9,
+      "start_column": 24,
+      "end_line": 9,
+      "end_column": 28,
+      "start_byte": 300,
+      "end_byte": 304,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Request:variable_ref:19:12",
+      "name": "Request",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 19,
+      "start_column": 12,
+      "end_line": 19,
+      "end_column": 19,
+      "start_byte": 700,
+      "end_byte": 707,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Request:variable_ref:8:12",
+      "name": "Request",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 8,
+      "end_column": 19,
+      "start_byte": 257,
+      "end_byte": 264,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Self:type_usage:36:29",
+      "name": "Self",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 36,
+      "start_column": 29,
+      "end_line": 36,
+      "end_column": 33,
+      "start_byte": 1103,
+      "end_byte": 1107,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:36:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:Self:type_usage:39:28",
+      "name": "Self",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 39,
+      "start_column": 28,
+      "end_line": 39,
+      "end_column": 32,
+      "start_byte": 1157,
+      "end_byte": 1161,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:39:4",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:call:11:9",
+      "name": "body",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 11,
+      "start_column": 9,
+      "end_line": 11,
+      "end_column": 13,
+      "start_byte": 361,
+      "end_byte": 365,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:call:12:53",
+      "name": "body",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 12,
+      "start_column": 53,
+      "end_line": 12,
+      "end_column": 57,
+      "start_byte": 424,
+      "end_byte": 428,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:call:19:40",
+      "name": "body",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 19,
+      "start_column": 40,
+      "end_line": 19,
+      "end_column": 44,
+      "start_byte": 728,
+      "end_byte": 732,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:call:24:9",
+      "name": "body",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 24,
+      "start_column": 9,
+      "end_line": 24,
+      "end_column": 13,
+      "start_byte": 914,
+      "end_byte": 918,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:call:12:28",
+      "name": "builder",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 12,
+      "start_column": 28,
+      "end_line": 12,
+      "end_column": 35,
+      "start_byte": 399,
+      "end_byte": 406,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:call:19:21",
+      "name": "builder",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 19,
+      "start_column": 21,
+      "end_line": 19,
+      "end_column": 28,
+      "start_byte": 709,
+      "end_byte": 716,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:call:22:26",
+      "name": "builder",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 22,
+      "start_column": 26,
+      "end_line": 22,
+      "end_column": 33,
+      "start_byte": 853,
+      "end_byte": 860,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:call:8:21",
+      "name": "builder",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 8,
+      "start_column": 21,
+      "end_line": 8,
+      "end_column": 28,
+      "start_byte": 266,
+      "end_byte": 273,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:call:call:13:55",
+      "name": "call",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 13,
+      "start_column": 55,
+      "end_line": 13,
+      "end_column": 59,
+      "start_byte": 489,
+      "end_byte": 493,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:call:call:14:37",
+      "name": "call",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 14,
+      "start_column": 37,
+      "end_line": 14,
+      "end_column": 41,
+      "start_byte": 534,
+      "end_byte": 538,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:call:call:20:27",
+      "name": "call",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 20,
+      "start_column": 27,
+      "end_line": 20,
+      "end_column": 31,
+      "start_byte": 765,
+      "end_byte": 769,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:collections:type_usage:18:35",
+      "name": "collections",
+      "kind": "type_usage",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 18,
+      "start_column": 35,
+      "end_line": 18,
+      "end_column": 46,
+      "start_byte": 652,
+      "end_byte": 663,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:delete:call:14:18",
+      "name": "delete",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 14,
+      "start_column": 18,
+      "end_line": 14,
+      "end_column": 24,
+      "start_byte": 515,
+      "end_byte": 521,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:get:call:13:18",
+      "name": "get",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 13,
+      "start_column": 18,
+      "end_line": 13,
+      "end_column": 21,
+      "start_byte": 452,
+      "end_byte": 455,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:get:call:20:18",
+      "name": "get",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 20,
+      "start_column": 18,
+      "end_line": 20,
+      "end_column": 21,
+      "start_byte": 756,
+      "end_byte": 759,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:get:call:21:16",
+      "name": "get",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 21,
+      "start_column": 16,
+      "end_line": 21,
+      "end_column": 19,
+      "start_byte": 789,
+      "end_byte": 792,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:variable_ref:12:12",
+      "name": "hyper",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 12,
+      "start_column": 12,
+      "end_line": 12,
+      "end_column": 17,
+      "start_byte": 383,
+      "end_byte": 388,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:map:variable_ref:21:12",
+      "name": "map",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 21,
+      "start_column": 12,
+      "end_line": 21,
+      "end_column": 15,
+      "start_byte": 785,
+      "end_byte": 788,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:method:call:9:9",
+      "name": "method",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 9,
+      "start_column": 9,
+      "end_line": 9,
+      "end_column": 15,
+      "start_byte": 285,
+      "end_byte": 291,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:variable_ref:13:12",
+      "name": "ureq",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 13,
+      "start_column": 12,
+      "end_line": 13,
+      "end_column": 16,
+      "start_byte": 446,
+      "end_byte": 450,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:variable_ref:14:12",
+      "name": "ureq",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 14,
+      "start_column": 12,
+      "end_line": 14,
+      "end_column": 16,
+      "start_byte": 509,
+      "end_byte": 513,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:variable_ref:20:12",
+      "name": "ureq",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 20,
+      "start_column": 12,
+      "end_line": 20,
+      "end_column": 16,
+      "start_byte": 750,
+      "end_byte": 754,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:call:10:9",
+      "name": "uri",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 10,
+      "start_column": 9,
+      "end_line": 10,
+      "end_column": 12,
+      "start_byte": 315,
+      "end_byte": 318,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:call:12:38",
+      "name": "uri",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 12,
+      "start_column": 38,
+      "end_line": 12,
+      "end_column": 41,
+      "start_byte": 409,
+      "end_byte": 412,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:call:19:31",
+      "name": "uri",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 19,
+      "start_column": 31,
+      "end_line": 19,
+      "end_column": 34,
+      "start_byte": 719,
+      "end_byte": 722,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:call:23:9",
+      "name": "uri",
+      "kind": "call",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 23,
+      "start_column": 9,
+      "end_line": 23,
+      "end_column": 12,
+      "start_byte": 872,
+      "end_byte": 875,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:url:variable_ref:19:35",
+      "name": "url",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 19,
+      "start_column": 35,
+      "end_line": 19,
+      "end_column": 38,
+      "start_byte": 723,
+      "end_byte": 726,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    },
+    {
+      "key": "fixtures/extraction/rust/http_client_deferred/source.rs:url:variable_ref:20:22",
+      "name": "url",
+      "kind": "variable_ref",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 20,
+      "start_column": 22,
+      "end_line": 20,
+      "end_column": 25,
+      "start_byte": 760,
+      "end_byte": 763,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "target_key": null,
+      "confidence": "1.000"
+    }
+  ],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:39:4",
+      "resolved_type": "Self",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:29:4",
+      "resolved_type": "OtherBuilder",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:36:4",
+      "resolved_type": "Self",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "rust",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 12,
+      "start_column": 12,
+      "end_line": 12,
+      "end_column": 61,
+      "start_byte": 383,
+      "end_byte": 432,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "hyper",
+        "framework": "hyper",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/health",
+        "url_kind": "path",
+        "verb": "GET",
+        "verb_source": "default"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 13,
+      "start_column": 12,
+      "end_line": 13,
+      "end_column": 54,
+      "start_byte": 446,
+      "end_byte": 488,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "ureq",
+        "framework": "ureq",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/users",
+        "url_kind": "absolute",
+        "verb": "GET",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 14,
+      "start_column": 12,
+      "end_line": 14,
+      "end_column": 36,
+      "start_byte": 509,
+      "end_byte": 533,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "ureq",
+        "framework": "ureq",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "/users/1",
+        "url_kind": "path",
+        "verb": "DELETE",
+        "verb_source": "attested"
+      }
+    },
+    {
+      "pattern_id": "http.client_request.v1",
+      "capture_name": "client_request",
+      "node_kind": "call_expression",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 8,
+      "start_column": 12,
+      "end_line": 11,
+      "end_column": 17,
+      "start_byte": 257,
+      "end_byte": 369,
+      "confidence": "1.000",
+      "metadata": {
+        "client": "hyper",
+        "framework": "hyper",
+        "pattern_version": 1,
+        "query_family": "web.http_client",
+        "target_path": "https://api.example.com/items",
+        "url_kind": "absolute",
+        "verb": "POST",
+        "verb_source": "attested"
+      }
+    }
+  ],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "covered_lines": 43,
+      "covered_bytes": 1185,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 43,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 1185,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:body:39:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 20,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 39,
+      "start_column": 33,
+      "end_line": 41,
+      "end_column": 5,
+      "start_byte": 1162,
+      "end_byte": 1182,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:builder:29:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 28,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 29,
+      "start_column": 33,
+      "end_line": 31,
+      "end_column": 5,
+      "start_byte": 1001,
+      "end_byte": 1029,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "covered_lines": 9,
+      "covered_bytes": 300,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 0,
+      "start_line": 7,
+      "start_column": 14,
+      "end_line": 15,
+      "end_column": 1,
+      "start_byte": 243,
+      "end_byte": 543,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "covered_lines": 8,
+      "covered_bytes": 239,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 18,
+      "start_column": 69,
+      "end_line": 25,
+      "end_column": 1,
+      "start_byte": 686,
+      "end_byte": 925,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/rust/http_client_deferred/source.rs:uri:36:4",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "covered_lines": 3,
+      "covered_bytes": 20,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": 2,
+      "start_line": 36,
+      "start_column": 34,
+      "end_line": 38,
+      "end_column": 5,
+      "start_byte": 1108,
+      "end_byte": 1128,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "/health",
+      "kind": "other",
+      "carrier": "hyper::Request::builder().uri",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 12,
+      "start_column": 42,
+      "end_line": 12,
+      "end_column": 51,
+      "start_byte": 413,
+      "end_byte": 422,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "/users/1",
+      "kind": "other",
+      "carrier": "ureq.delete",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 14,
+      "start_column": 25,
+      "end_line": 14,
+      "end_column": 35,
+      "start_byte": 522,
+      "end_byte": 532,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/items",
+      "kind": "other",
+      "carrier": "Request::builder()\n        .method(Method::POST).uri",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 10,
+      "start_column": 13,
+      "end_line": 10,
+      "end_column": 44,
+      "start_byte": 319,
+      "end_byte": 350,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://api.example.com/users",
+      "kind": "other",
+      "carrier": "ureq.get",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 13,
+      "start_column": 22,
+      "end_line": 13,
+      "end_column": 53,
+      "start_byte": 456,
+      "end_byte": 487,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://not-a-request.example",
+      "kind": "other",
+      "carrier": "map.get",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 21,
+      "start_column": 20,
+      "end_line": 21,
+      "end_column": 51,
+      "start_byte": 793,
+      "end_byte": 824,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "confidence": "1.000"
+    },
+    {
+      "literal_text": "https://not-hyper.example",
+      "kind": "other",
+      "carrier": "OtherRequest::builder().uri",
+      "arg_position": 0,
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "start_line": 23,
+      "start_column": 13,
+      "end_line": 23,
+      "end_column": 40,
+      "start_byte": 876,
+      "end_byte": 903,
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "confidence": "1.000"
+    }
+  ],
+  "source_regions": [
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 74,
+      "start_byte": 0,
+      "end_byte": 74,
+      "metadata": null
+    },
+    {
+      "kind": "comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": null,
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 46,
+      "start_byte": 75,
+      "end_byte": 121,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 0,
+      "start_byte": 163,
+      "end_byte": 229,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 18,
+      "end_column": 0,
+      "start_byte": 545,
+      "end_byte": 617,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 10,
+      "start_column": 13,
+      "end_line": 10,
+      "end_column": 44,
+      "start_byte": 319,
+      "end_byte": 350,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 12,
+      "start_column": 42,
+      "end_line": 12,
+      "end_column": 51,
+      "start_byte": 413,
+      "end_byte": 422,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 13,
+      "start_column": 22,
+      "end_line": 13,
+      "end_column": 53,
+      "start_byte": 456,
+      "end_byte": 487,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "start_line": 14,
+      "start_column": 25,
+      "end_line": 14,
+      "end_column": 35,
+      "start_byte": 522,
+      "end_byte": 532,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "start_line": 21,
+      "start_column": 20,
+      "end_line": 21,
+      "end_column": 51,
+      "start_byte": 793,
+      "end_byte": 824,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "containing_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "start_line": 23,
+      "start_column": 13,
+      "end_line": 23,
+      "end_column": 40,
+      "start_byte": 876,
+      "end_byte": 903,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": [
+    {
+      "identifier_key": "fixtures/extraction/rust/http_client_deferred/source.rs:HashMap:type_usage:18:48",
+      "language": "rust",
+      "file_path": "fixtures/extraction/rust/http_client_deferred/source.rs",
+      "arguments": [
+        {
+          "ordinal": 0,
+          "type_name": "&str",
+          "children": []
+        },
+        {
+          "ordinal": 1,
+          "type_name": "&str",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

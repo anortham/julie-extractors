@@ -1,32 +1,13 @@
-//! Rust HTTP client-request facts (`http.client_request.v1`) for the reqwest
-//! client.
+//! Rust HTTP client-request facts (`http.client_request.v1`) for reqwest, hyper,
+//! and ureq.
 //!
-//! reqwest is the dominant Rust HTTP client and has two clean grammar shapes the
-//! shipped Go/Java collectors already prove:
+//! - reqwest: scoped `reqwest::get("…")` and proven-receiver builder verbs
+//! - hyper: import-gated `Request::builder()` / `hyper::Request::builder()` chains
+//!   with a static `.uri(...)` and optional static `.method(...)`
+//! - ureq: scoped `ureq::<verb>(static_url)` free functions
 //!
-//! - the scoped convenience free function `reqwest::get("https://…")` — a
-//!   `call_expression` whose function is a `scoped_identifier` (`reqwest` `::`
-//!   `get`); and
-//! - the builder verb `client.get("https://…")` /
-//!   `reqwest::Client::new().get("…")` — a `receiver.verb("url")` call, the same
-//!   `field_expression`-callee shape the Ktor and Go collectors detect.
-//!
-//! Silence (design §4.4, M2): only a lone static string literal URL (via the
-//! shared Rust static guard) produces a fact; `format!(...)`, concatenated, and
-//! variable URLs emit nothing. The `reqwest` import gate keeps the match from
-//! firing outside a reqwest file.
-//!
-//! Collision guard: Rust's `HashMap::get(&str)` shares the bare `x.get("k")`
-//! shape. For the receiver form only, the URL must be *url-like* (absolute
-//! `scheme://…` or a `/`-rooted path) so a map lookup `map.get("key")` (a
-//! `relative` literal) stays silent. reqwest requests in practice use absolute or
-//! `/`-rooted URLs, so this trims false positives at negligible recall cost (M2 —
-//! a false positive is worse than a miss). The scoped `reqwest::get(...)` form is
-//! unambiguous and needs no such guard.
-//!
-//! Deferred as documented `open_gaps` (each an unlike-any-shipped detection shape
-//! plus its own fixture): hyper (low-level, request-builder + body-future) and
-//! ureq (blocking `ureq::get("url").call()`).
+//! Silence (design §4.4, M2): only lone static string literal URLs produce a fact;
+//! dynamic URLs/methods, unproven receivers, and unrelated builders stay silent.
 
 use std::collections::{HashMap, HashSet};
 
@@ -38,12 +19,14 @@ use super::client_fact;
 use crate::base::http_boundary::classify_url;
 use crate::base::types::StructuralFact;
 
-/// Import gate: a reqwest request goes through the `reqwest` crate, so a file
-/// that never names it issues no reqwest requests. Precision comes from the exact
-/// `reqwest`-scoped / verb match below; this is the fast bail.
-const IMPORT_NEEDLE: &str = "reqwest";
+struct RustClientRequest<'a> {
+    client: &'static str,
+    target_path: &'a str,
+    verb: &'static str,
+    verb_source: &'static str,
+}
 
-/// The reqwest request verb methods this collector recognises.
+/// The reqwest/ureq request verb methods this collector recognises.
 fn verb_for_method(method: &str) -> Option<&'static str> {
     match method {
         "get" => Some("GET"),
@@ -52,6 +35,20 @@ fn verb_for_method(method: &str) -> Option<&'static str> {
         "patch" => Some("PATCH"),
         "delete" => Some("DELETE"),
         "head" => Some("HEAD"),
+        "options" => Some("OPTIONS"),
+        _ => None,
+    }
+}
+
+fn http_verb_name(name: &str) -> Option<&'static str> {
+    match name {
+        "GET" | "Get" | "get" => Some("GET"),
+        "POST" | "Post" | "post" => Some("POST"),
+        "PUT" | "Put" | "put" => Some("PUT"),
+        "PATCH" | "Patch" | "patch" => Some("PATCH"),
+        "DELETE" | "Delete" | "delete" => Some("DELETE"),
+        "HEAD" | "Head" | "head" => Some("HEAD"),
+        "OPTIONS" | "Options" | "options" => Some("OPTIONS"),
         _ => None,
     }
 }
@@ -62,17 +59,26 @@ pub(super) fn collect_rust_http_client_requests(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    if !content.contains(IMPORT_NEEDLE) {
+    let has_reqwest = content.contains("reqwest");
+    let has_hyper = content.contains("hyper");
+    let has_ureq = content.contains("ureq");
+    if !has_reqwest && !has_hyper && !has_ureq {
         return Vec::new();
     }
-    // Same-file proof of which local variables hold a reqwest `Client`, so the
-    // ambiguous builder-verb shape (`x.get("/path")`) only emits on a proven
-    // client receiver (design §4.4, M2).
-    let clients = collect_reqwest_clients(tree.root_node(), content);
+
+    let clients = if has_reqwest {
+        collect_reqwest_clients(tree.root_node(), content)
+    } else {
+        HashSet::new()
+    };
+
     let mut facts = Vec::new();
     walk(
         tree.root_node(),
         &clients,
+        has_reqwest,
+        has_hyper,
+        has_ureq,
         language,
         tree,
         file_path,
@@ -85,6 +91,9 @@ pub(super) fn collect_rust_http_client_requests(
 fn walk(
     node: Node,
     clients: &HashSet<String>,
+    has_reqwest: bool,
+    has_hyper: bool,
+    has_ureq: bool,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -92,31 +101,68 @@ fn walk(
     facts: &mut Vec<StructuralFact>,
 ) {
     if node.kind() == "call_expression"
-        && let Some(fact) = client_request_fact(node, clients, language, tree, file_path, content)
+        && let Some(req) =
+            classify_rust_client_request(node, clients, has_reqwest, has_hyper, has_ureq, content)
+        && let Some(fact) = client_fact(
+            language,
+            tree,
+            file_path,
+            content,
+            node.start_byte(),
+            node.end_byte(),
+            req.client,
+            req.target_path,
+            req.verb,
+            req.verb_source,
+            None,
+        )
     {
         facts.push(fact);
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, clients, language, tree, file_path, content, facts);
+        walk(
+            child,
+            clients,
+            has_reqwest,
+            has_hyper,
+            has_ureq,
+            language,
+            tree,
+            file_path,
+            content,
+            facts,
+        );
     }
 }
 
-/// Build a `http.client_request.v1` fact for a reqwest verb call, or `None` when
-/// the call is not a recognised reqwest verb call with a static URL.
-fn client_request_fact(
-    call: Node,
+fn classify_rust_client_request<'a>(
+    call: Node<'_>,
+    reqwest_clients: &HashSet<String>,
+    has_reqwest: bool,
+    has_hyper: bool,
+    has_ureq: bool,
+    content: &'a str,
+) -> Option<RustClientRequest<'a>> {
+    if has_reqwest && let Some(req) = reqwest_request(call, reqwest_clients, content) {
+        return Some(req);
+    }
+    if has_hyper && let Some(req) = hyper_builder_request(call, content) {
+        return Some(req);
+    }
+    if has_ureq && let Some(req) = ureq_request(call, content) {
+        return Some(req);
+    }
+    None
+}
+
+fn reqwest_request<'a>(
+    call: Node<'_>,
     clients: &HashSet<String>,
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
-) -> Option<StructuralFact> {
+    content: &'a str,
+) -> Option<RustClientRequest<'a>> {
     let function = call.child_by_field_name("function")?;
     let (verb, require_url_like) = match function.kind() {
-        // `reqwest::get("url")` — scoped convenience free function. The path must
-        // end in the `reqwest` alias so `Foo::get(...)` on another type is not a
-        // request.
         "scoped_identifier" => {
             if !scoped_path_is_reqwest(function, content) {
                 return None;
@@ -124,12 +170,6 @@ fn client_request_fact(
             let method = node_text(content, function.child_by_field_name("name")?)?;
             (verb_for_method(method)?, false)
         }
-        // `client.get("url")` / `reqwest::Client::new().get("url")` — builder
-        // verb. The bare `x.get("k")` shape collides with `HashMap::get`,
-        // `store.get`, etc., so the PRIMARY gate is proving the receiver is a
-        // reqwest client (inline ctor chain, a same-file variable assigned from
-        // one, or a `reqwest::Client` typed parameter). The url-like guard below
-        // stays on as a secondary filter (design §4.4, M2).
         "field_expression" => {
             let method = node_text(content, function.child_by_field_name("field")?)?;
             let verb = verb_for_method(method)?;
@@ -148,34 +188,181 @@ fn client_request_fact(
         return None;
     }
 
-    client_fact(
-        language,
-        tree,
-        file_path,
-        content,
-        call.start_byte(),
-        call.end_byte(),
-        "reqwest",
+    Some(RustClientRequest {
+        client: "reqwest",
         target_path,
         verb,
-        "attested",
-        None,
-    )
+        verb_source: "attested",
+    })
+}
+
+/// Hyper `Request::builder()` / `hyper::Request::builder()` chain with static URI.
+/// Emits once per chain by anchoring on the outermost call (not nested as a
+/// receiver of another builder call).
+fn hyper_builder_request<'a>(call: Node<'_>, content: &'a str) -> Option<RustClientRequest<'a>> {
+    if !is_builder_chain_terminal(call) {
+        return None;
+    }
+
+    let mut target_path: Option<&'a str> = None;
+    let mut verb: &'static str = "GET";
+    let mut verb_source: &'static str = "default";
+    let mut method_dynamic = false;
+
+    let mut node = call;
+    loop {
+        let Some(function) = node.child_by_field_name("function") else {
+            return None;
+        };
+        match function.kind() {
+            "field_expression" => {
+                let field = node_text(content, function.child_by_field_name("field")?)?;
+                match field {
+                    "uri" => {
+                        let arg = first_positional_arg(node)?;
+                        let Some(path) = static_route_arg(arg, content, StaticArgLang::Rust) else {
+                            return None;
+                        };
+                        target_path = Some(path);
+                    }
+                    "method" => match parse_hyper_method_arg(node, content) {
+                        Some(v) => {
+                            verb = v;
+                            verb_source = "attested";
+                        }
+                        None => method_dynamic = true,
+                    },
+                    _ => {}
+                }
+                let Some(receiver) = function.child_by_field_name("value") else {
+                    return None;
+                };
+                if receiver.kind() != "call_expression" {
+                    return None;
+                }
+                node = receiver;
+            }
+            "scoped_identifier" if scoped_is_hyper_request_builder(function, content) => {
+                if method_dynamic {
+                    return None;
+                }
+                let target_path = target_path?;
+                return Some(RustClientRequest {
+                    client: "hyper",
+                    target_path,
+                    verb,
+                    verb_source,
+                });
+            }
+            _ => return None,
+        }
+    }
+}
+
+fn ureq_request<'a>(call: Node<'_>, content: &'a str) -> Option<RustClientRequest<'a>> {
+    let function = call.child_by_field_name("function")?;
+    if function.kind() != "scoped_identifier" || !scoped_path_is_name(function, content, "ureq") {
+        return None;
+    }
+    let method = node_text(content, function.child_by_field_name("name")?)?;
+    let verb = verb_for_method(method)?;
+    let target_path = static_route_arg(first_positional_arg(call)?, content, StaticArgLang::Rust)?;
+    Some(RustClientRequest {
+        client: "ureq",
+        target_path,
+        verb,
+        verb_source: "attested",
+    })
+}
+
+/// True when `call` is not the receiver of another call in a fluent chain.
+fn is_builder_chain_terminal(call: Node<'_>) -> bool {
+    let Some(parent) = call.parent() else {
+        return true;
+    };
+    if parent.kind() != "field_expression" {
+        return true;
+    }
+    let Some(grand) = parent.parent() else {
+        return true;
+    };
+    if grand.kind() != "call_expression" {
+        return true;
+    }
+    // Nested: outer.call where function.value == this call
+    grand.child_by_field_name("function") != Some(parent)
+        || parent.child_by_field_name("value") != Some(call)
+}
+
+fn scoped_is_hyper_request_builder(scoped: Node<'_>, content: &str) -> bool {
+    let ctor = scoped
+        .child_by_field_name("name")
+        .and_then(|name| node_text(content, name));
+    if ctor != Some("builder") {
+        return false;
+    }
+    let Some(path) = scoped.child_by_field_name("path") else {
+        return false;
+    };
+    match path.kind() {
+        // Bare `Request::builder` — only with a hyper import signal.
+        "identifier" => {
+            node_text(content, path) == Some("Request") && content.contains("use hyper")
+        }
+        // `hyper::Request::builder` → path name is `Request`, path's path is `hyper`.
+        "scoped_identifier" => {
+            path.child_by_field_name("name")
+                .and_then(|name| node_text(content, name))
+                == Some("Request")
+                && path
+                    .child_by_field_name("path")
+                    .and_then(|inner| match inner.kind() {
+                        "identifier" => node_text(content, inner),
+                        "scoped_identifier" => inner
+                            .child_by_field_name("name")
+                            .and_then(|name| node_text(content, name)),
+                        _ => None,
+                    })
+                    == Some("hyper")
+        }
+        _ => false,
+    }
+}
+
+fn parse_hyper_method_arg(method_call: Node<'_>, content: &str) -> Option<&'static str> {
+    let arg = first_positional_arg(method_call)?;
+    if let Some(literal) = static_route_arg(arg, content, StaticArgLang::Rust) {
+        return http_verb_name(literal);
+    }
+    match arg.kind() {
+        "scoped_identifier" => {
+            let name = node_text(content, arg.child_by_field_name("name")?)?;
+            http_verb_name(name)
+        }
+        "identifier" => {
+            let name = node_text(content, arg)?;
+            http_verb_name(name)
+        }
+        _ => None,
+    }
 }
 
 /// Whether a `scoped_identifier`'s path is (or ends in) the `reqwest` crate
 /// alias: `reqwest::get` (path is `identifier "reqwest"`).
 fn scoped_path_is_reqwest(scoped: Node, content: &str) -> bool {
+    scoped_path_is_name(scoped, content, "reqwest")
+}
+
+fn scoped_path_is_name(scoped: Node, content: &str, expected: &str) -> bool {
     let Some(path) = scoped.child_by_field_name("path") else {
         return false;
     };
     match path.kind() {
-        "identifier" => node_text(content, path) == Some("reqwest"),
-        // `some::reqwest::get` — path ends in `reqwest`.
+        "identifier" => node_text(content, path) == Some(expected),
         "scoped_identifier" => {
             path.child_by_field_name("name")
                 .and_then(|name| node_text(content, name))
-                == Some("reqwest")
+                == Some(expected)
         }
         _ => false,
     }

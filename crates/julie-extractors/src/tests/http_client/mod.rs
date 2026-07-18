@@ -1512,3 +1512,68 @@ async fn load(shared: &reqwest::Client) {
         "exactly the four proven requests: {facts:#?}"
     );
 }
+
+#[test]
+fn rust_hyper_and_ureq_emit_static_client_requests() {
+    let source = r#"
+use hyper::{Method, Request};
+use ureq;
+
+fn load() {
+    let _ = Request::builder()
+        .method(Method::POST)
+        .uri("https://api.example.com/items")
+        .body(());
+    let _ = hyper::Request::builder()
+        .uri("/health")
+        .body(());
+    let _ = ureq::get("https://api.example.com/users").call();
+    let _ = ureq::delete("/users/1").call();
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 4, "{facts:#?}");
+
+    let tuples: Vec<_> = facts
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "client").unwrap(),
+                metadata_str(fact, "target_path").unwrap(),
+                metadata_str(fact, "verb").unwrap(),
+                metadata_str(fact, "verb_source").unwrap(),
+            )
+        })
+        .collect();
+    assert!(tuples.contains(&(
+        "hyper",
+        "https://api.example.com/items",
+        "POST",
+        "attested"
+    )));
+    assert!(tuples.contains(&("hyper", "/health", "GET", "default")));
+    assert!(tuples.contains(&(
+        "ureq",
+        "https://api.example.com/users",
+        "GET",
+        "attested"
+    )));
+    assert!(tuples.contains(&("ureq", "/users/1", "DELETE", "attested")));
+}
+
+#[test]
+fn rust_deferred_clients_keep_ambiguous_or_dynamic_shapes_silent() {
+    let source = r#"
+use hyper::Request;
+use ureq;
+
+fn load(url: &str, map: std::collections::HashMap<&str, &str>) {
+    let _ = Request::builder().uri(url).body(());
+    let _ = ureq::get(url).call();
+    let _ = map.get("https://not-a-request.example");
+    let _ = OtherRequest::builder().uri("https://not-hyper.example").body(());
+}
+"#;
+    assert!(client_requests(&extract("src/client.rs", source)).is_empty());
+}
