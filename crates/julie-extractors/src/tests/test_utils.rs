@@ -82,7 +82,7 @@ pub fn init_parser(code: &str, language: &str) -> Tree {
         }
         "dart" => {
             parser
-                .set_language(&harper_tree_sitter_dart::LANGUAGE.into())
+                .set_language(&tree_sitter_dart::LANGUAGE.into())
                 .expect("Error loading Dart grammar");
         }
         "java" => {
@@ -96,8 +96,9 @@ pub fn init_parser(code: &str, language: &str) -> Tree {
                 .expect("Error loading Ruby grammar");
         }
         "php" => {
-            // TODO: Fix tree-sitter-php integration - crate doesn't expose expected API
-            panic!("PHP parser not yet integrated - need to investigate tree-sitter-php crate API");
+            parser
+                .set_language(&tree_sitter_php::LANGUAGE_PHP.into())
+                .expect("Error loading PHP grammar");
         }
         "qml" => {
             parser
@@ -139,4 +140,16 @@ pub fn init_parser(code: &str, language: &str) -> Tree {
     }
 
     parser.parse(code, None).expect("Failed to parse code")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::init_parser;
+
+    #[test]
+    fn php_parser_uses_language_php() {
+        let tree = init_parser("<?php function load(): void {}", "php");
+        assert_eq!(tree.root_node().kind(), "program");
+        assert!(!tree.root_node().has_error());
+    }
 }
