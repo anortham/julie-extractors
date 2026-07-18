@@ -1485,19 +1485,72 @@ end
 }
 
 #[test]
-fn elixir_non_req_clients_stay_silent() {
-    // Only Req ships in v2.8.0; HTTPoison/Tesla/Finch/:httpc are deferred
-    // open_gaps — a qualified call on another module alias stays silent.
+fn elixir_deferred_clients_emit_static_requests() {
     let source = r#"defmodule MyApp.Client do
-  def load do
-    HTTPoison.get("https://api.example.com/users")
-    Tesla.get("/items")
+  def load(client) do
+    Tesla.get!("https://api.example.com/tesla")
+    Tesla.post(client, "/tesla/items", "body")
+    HTTPoison.get("/httpoison/users")
+    HTTPoison.request!(:delete, "/httpoison/1", "", [], [])
+    Finch.build(:get, "https://api.example.com/finch")
+    :httpc.request("https://api.example.com/httpc")
+    :httpc.request(:post, {'/httpc/items', []}, [], [])
   end
 end
 "#;
     let results = extract("lib/my_app/client.ex", source);
     let facts = client_requests(&results);
-    assert!(facts.is_empty(), "expected silence, got {facts:#?}");
+    assert_eq!(facts.len(), 7, "{facts:#?}");
+    let tuples: Vec<_> = facts
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "client").unwrap(),
+                metadata_str(fact, "target_path").unwrap(),
+                metadata_str(fact, "verb").unwrap(),
+                metadata_str(fact, "verb_source").unwrap(),
+            )
+        })
+        .collect();
+    assert!(tuples.contains(&(
+        "tesla",
+        "https://api.example.com/tesla",
+        "GET",
+        "attested"
+    )));
+    assert!(tuples.contains(&("tesla", "/tesla/items", "POST", "attested")));
+    assert!(tuples.contains(&("httpoison", "/httpoison/users", "GET", "attested")));
+    assert!(tuples.contains(&("httpoison", "/httpoison/1", "DELETE", "attested")));
+    assert!(tuples.contains(&(
+        "finch",
+        "https://api.example.com/finch",
+        "GET",
+        "attested"
+    )));
+    assert!(tuples.contains(&(
+        "httpc",
+        "https://api.example.com/httpc",
+        "GET",
+        "default"
+    )));
+    assert!(tuples.contains(&("httpc", "/httpc/items", "POST", "attested")));
+}
+
+#[test]
+fn elixir_deferred_clients_keep_ambiguous_shapes_silent() {
+    let source = r#"defmodule MyApp.Client do
+  def load(id) do
+    Tesla.get("/users/#{id}")
+    HTTPoison.get(endpoint)
+    Finch.request(req, MyFinch)
+    Finch.build(method, "/x")
+    :httpc.request(url)
+    OtherClient.get("/nope")
+    get "/phoenix"
+  end
+end
+"#;
+    assert!(client_requests(&extract("lib/my_app/client.ex", source)).is_empty());
 }
 
 #[test]

@@ -1,23 +1,7 @@
-//! Elixir HTTP client-request facts (`http.client_request.v1`) for the Req
-//! client.
+//! Elixir HTTP client-request facts (`http.client_request.v1`) for Req, Tesla,
+//! HTTPoison, Finch, and OTP `:httpc`.
 //!
-//! Req is the modern dominant Elixir HTTP client and has the cleanest grammar
-//! shape: `Req.get("https://…")` parses as a `call` whose `target` is a `dot`
-//! (`Req` `.` `get`) and whose first positional argument is the URL string — the
-//! same qualified-`Module.verb("url")` shape the shipped Go/Java client
-//! collectors detect. Bang variants (`Req.get!("…")`) are the same shape with a
-//! trailing `!` on the verb identifier.
-//!
-//! Silence (design §4.4, M2): only a lone static string literal URL (via the
-//! shared Elixir static guard) produces a fact; interpolated / concatenated /
-//! `~r` / variable URLs, and the keyword-list form (`Req.get(url: "…")`, which
-//! carries no positional string arg0), emit nothing. The `Req.` import gate keeps
-//! the match from firing outside a Req file.
-//!
-//! Deferred as documented `open_gaps` (each an unlike-any-shipped detection shape
-//! plus its own fixture): Tesla (`Tesla.get(client, "url")` two-arg + middleware
-//! base URLs), HTTPoison (`HTTPoison.get("url")`), Finch (`Finch.build(:get,
-//! "url")`), and `:httpc` (Erlang stdlib).
+//! Silence (design §4.4, M2): only static string/charlist URLs produce a fact.
 
 use tree_sitter::{Node, Tree};
 
@@ -26,24 +10,29 @@ use super::super::static_arg::{StaticArgLang, static_route_arg};
 use super::client_fact;
 use crate::base::types::StructuralFact;
 
-/// Import gate: a Req request goes through the `Req` module (`Req.get(...)`), so a
-/// file with no `Req.` reference issues no Req requests. Precision comes from the
-/// exact `Req` alias match on the call target below; this is the fast bail.
-const IMPORT_NEEDLE: &str = "Req.";
+struct ElixirClientRequest<'a> {
+    client: &'static str,
+    target_path: &'a str,
+    verb: &'static str,
+    verb_source: &'static str,
+}
 
-/// The Req request verb functions this collector recognises as a
-/// `Req.verb("url")` call (bang variants share the same verb).
 fn verb_for_method(method: &str) -> Option<&'static str> {
     match method.strip_suffix('!').unwrap_or(method) {
-        "get" => Some("GET"),
-        "post" => Some("POST"),
-        "put" => Some("PUT"),
-        "patch" => Some("PATCH"),
-        "delete" => Some("DELETE"),
-        "head" => Some("HEAD"),
-        "options" => Some("OPTIONS"),
+        "get" | "GET" => Some("GET"),
+        "post" | "POST" => Some("POST"),
+        "put" | "PUT" => Some("PUT"),
+        "patch" | "PATCH" => Some("PATCH"),
+        "delete" | "DELETE" => Some("DELETE"),
+        "head" | "HEAD" => Some("HEAD"),
+        "options" | "OPTIONS" => Some("OPTIONS"),
         _ => None,
     }
+}
+
+fn atom_verb(atom: &str) -> Option<&'static str> {
+    let name = atom.strip_prefix(':').unwrap_or(atom);
+    verb_for_method(name)
 }
 
 pub(super) fn collect_elixir_http_client_requests(
@@ -52,7 +41,12 @@ pub(super) fn collect_elixir_http_client_requests(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    if !content.contains(IMPORT_NEEDLE) {
+    let req = content.contains("Req.");
+    let tesla = content.contains("Tesla.");
+    let httpoison = content.contains("HTTPoison.");
+    let finch = content.contains("Finch.");
+    let httpc = content.contains(":httpc.");
+    if !req && !tesla && !httpoison && !finch && !httpc {
         return Vec::new();
     }
     let mut facts = Vec::new();
@@ -76,7 +70,20 @@ fn walk(
     facts: &mut Vec<StructuralFact>,
 ) {
     if node.kind() == "call"
-        && let Some(fact) = client_request_fact(node, language, tree, file_path, content)
+        && let Some(req) = classify_call(node, content)
+        && let Some(fact) = client_fact(
+            language,
+            tree,
+            file_path,
+            content,
+            node.start_byte(),
+            node.end_byte(),
+            req.client,
+            req.target_path,
+            req.verb,
+            req.verb_source,
+            None,
+        )
     {
         facts.push(fact);
     }
@@ -86,54 +93,199 @@ fn walk(
     }
 }
 
-/// Build a `http.client_request.v1` fact for a `Req.verb("url")` call, or `None`
-/// when the call is not a recognised Req verb call with a static URL.
-fn client_request_fact(
-    call: Node,
-    language: &str,
-    tree: &Tree,
-    file_path: &str,
-    content: &str,
-) -> Option<StructuralFact> {
-    // Only a `dot` target whose left is the bare `Req` alias — a bare
-    // `identifier` callee (`get "/x"`) is the server-side Phoenix routing DSL,
-    // and any other module alias is a different client.
+fn classify_call<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientRequest<'a>> {
+    if let Some(r) = module_client_request(call, content) {
+        return Some(r);
+    }
+    httpc_request(call, content)
+}
+
+fn module_client_request<'a>(
+    call: Node<'_>,
+    content: &'a str,
+) -> Option<ElixirClientRequest<'a>> {
     let target = call.child_by_field_name("target")?;
     if target.kind() != "dot" {
         return None;
     }
     let module = target.child_by_field_name("left")?;
-    if module.kind() != "alias" || node_text(content, module)? != "Req" {
+    if module.kind() != "alias" {
         return None;
     }
+    let module_name = node_text(content, module)?;
     let method = node_text(content, target.child_by_field_name("right")?)?;
-    let verb = verb_for_method(method)?;
-
     let arguments = child_of_kind(call, "arguments")?;
-    let url_argument = first_positional_arg(arguments)?;
-    let target_path = static_route_arg(url_argument, content, StaticArgLang::Elixir)?;
 
-    client_fact(
-        language,
-        tree,
-        file_path,
-        content,
-        call.start_byte(),
-        call.end_byte(),
-        "req",
-        target_path,
-        verb,
-        "attested",
-        None,
-    )
+    match module_name {
+        "Req" => {
+            let verb = verb_for_method(method)?;
+            let url_argument = first_positional_arg(arguments)?;
+            let target_path = static_route_arg(url_argument, content, StaticArgLang::Elixir)?;
+            Some(ElixirClientRequest {
+                client: "req",
+                target_path,
+                verb,
+                verb_source: "attested",
+            })
+        }
+        "Tesla" => tesla_request(method, arguments, content),
+        "HTTPoison" => httpoison_request(method, arguments, content),
+        "Finch" => finch_request(method, arguments, content),
+        _ => None,
+    }
 }
 
-/// The first positional argument value of an `arguments` node — its first named
-/// child, skipping a leading `keywords` list (the `Req.get(url: "…")` form has
-/// no positional string arg0 and stays silent).
+fn tesla_request<'a>(
+    method: &str,
+    arguments: Node<'_>,
+    content: &'a str,
+) -> Option<ElixirClientRequest<'a>> {
+    let verb = verb_for_method(method)?;
+    // Tesla.get(url) or Tesla.get!(url) — URL first
+    // Tesla.get(client, url, ...) — URL second when first is not a static string
+    let arg0 = first_positional_arg(arguments)?;
+    if let Some(path) = static_route_arg(arg0, content, StaticArgLang::Elixir) {
+        return Some(ElixirClientRequest {
+            client: "tesla",
+            target_path: path,
+            verb,
+            verb_source: "attested",
+        });
+    }
+    let arg1 = nth_positional_arg(arguments, 1)?;
+    let path = static_route_arg(arg1, content, StaticArgLang::Elixir)?;
+    Some(ElixirClientRequest {
+        client: "tesla",
+        target_path: path,
+        verb,
+        verb_source: "attested",
+    })
+}
+
+fn httpoison_request<'a>(
+    method: &str,
+    arguments: Node<'_>,
+    content: &'a str,
+) -> Option<ElixirClientRequest<'a>> {
+    let bare = method.strip_suffix('!').unwrap_or(method);
+    if bare == "request" {
+        let method_arg = first_positional_arg(arguments)?;
+        let verb = atom_from_node(method_arg, content).and_then(atom_verb)?;
+        let url_arg = nth_positional_arg(arguments, 1)?;
+        let target_path = static_route_arg(url_arg, content, StaticArgLang::Elixir)?;
+        return Some(ElixirClientRequest {
+            client: "httpoison",
+            target_path,
+            verb,
+            verb_source: "attested",
+        });
+    }
+    let verb = verb_for_method(method)?;
+    let url_arg = first_positional_arg(arguments)?;
+    let target_path = static_route_arg(url_arg, content, StaticArgLang::Elixir)?;
+    Some(ElixirClientRequest {
+        client: "httpoison",
+        target_path,
+        verb,
+        verb_source: "attested",
+    })
+}
+
+fn finch_request<'a>(
+    method: &str,
+    arguments: Node<'_>,
+    content: &'a str,
+) -> Option<ElixirClientRequest<'a>> {
+    if method != "build" {
+        return None;
+    }
+    let method_arg = first_positional_arg(arguments)?;
+    let verb = atom_from_node(method_arg, content).and_then(atom_verb)?;
+    let url_arg = nth_positional_arg(arguments, 1)?;
+    let target_path = static_route_arg(url_arg, content, StaticArgLang::Elixir)?;
+    Some(ElixirClientRequest {
+        client: "finch",
+        target_path,
+        verb,
+        verb_source: "attested",
+    })
+}
+
+fn httpc_request<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientRequest<'a>> {
+    let target = call.child_by_field_name("target")?;
+    // :httpc.request(...) — target is a dot with left atom :httpc
+    if target.kind() != "dot" {
+        return None;
+    }
+    let left = target.child_by_field_name("left")?;
+    let right = target.child_by_field_name("right")?;
+    let left_text = node_text(content, left)?;
+    let right_text = node_text(content, right)?;
+    if left_text != ":httpc" && left_text != "httpc" {
+        // tree-sitter may parse atom as :httpc
+        if !(left.kind() == "atom" && left_text.trim_start_matches(':') == "httpc") {
+            return None;
+        }
+    }
+    if right_text != "request" {
+        return None;
+    }
+    let arguments = child_of_kind(call, "arguments")?;
+    let arg0 = first_positional_arg(arguments)?;
+    // :httpc.request(url) GET default
+    if let Some(path) = static_route_arg(arg0, content, StaticArgLang::Elixir) {
+        return Some(ElixirClientRequest {
+            client: "httpc",
+            target_path: path,
+            verb: "GET",
+            verb_source: "default",
+        });
+    }
+    // :httpc.request(method, {url, headers}, ...)
+    let verb = atom_from_node(arg0, content).and_then(atom_verb)?;
+    let tuple = nth_positional_arg(arguments, 1)?;
+    if tuple.kind() != "tuple" {
+        return None;
+    }
+    let url = first_tuple_element(tuple)?;
+    let target_path = static_route_arg(url, content, StaticArgLang::Elixir)?;
+    Some(ElixirClientRequest {
+        client: "httpc",
+        target_path,
+        verb,
+        verb_source: "attested",
+    })
+}
+
+fn atom_from_node<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
+    let text = node_text(content, node)?;
+    if node.kind() == "atom" || text.starts_with(':') {
+        return Some(text);
+    }
+    // sometimes bare identifier used? no
+    None
+}
+
+fn first_tuple_element(tuple: Node) -> Option<Node> {
+    let mut cursor = tuple.walk();
+    tuple.named_children(&mut cursor).next()
+}
+
 fn first_positional_arg(arguments: Node) -> Option<Node> {
+    nth_positional_arg(arguments, 0)
+}
+
+fn nth_positional_arg(arguments: Node, index: usize) -> Option<Node> {
     let mut cursor = arguments.walk();
-    arguments
-        .named_children(&mut cursor)
-        .find(|child| child.kind() != "keywords")
+    let mut i = 0;
+    for child in arguments.named_children(&mut cursor) {
+        if child.kind() == "keywords" {
+            continue;
+        }
+        if i == index {
+            return Some(child);
+        }
+        i += 1;
+    }
+    None
 }
