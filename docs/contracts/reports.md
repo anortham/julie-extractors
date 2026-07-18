@@ -184,7 +184,7 @@ Fields:
   checked-in `docs/contracts/structural-fact-patterns.json` contract, so
   consumers can validate structural-fact metadata payloads at runtime without
   vendoring the repo file. See that file and
-  `crates/julie-extractors/src/base/structural_fact_registry.rs` for the object
+  `crates/julie-extractors/src/base/structural_fact_registry/` for the object
   shape and key catalog (source of truth). This is additive:
   `report_schema_version` stays `3`.
 

@@ -820,7 +820,9 @@ Supported patterns are advertised in
 | `nextjs.file_route.v1` | `javascript`, `jsx`, `typescript`, `tsx` | `file_route` | `file` | `frontend_navigation` | A Next.js App Router or Pages Router page route derived from the file path. |
 | `nextjs.route_handler.v1` | `javascript`, `typescript` | `route_handler` | `export_statement` | `framework` | An exported HTTP-verb handler (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`HEAD`/`OPTIONS`) in an App Router `route.{js,ts}` file. One fact per exported verb. Route paths are derived with the same segment walk as `nextjs.file_route.v1`. Metadata payload keys: see the JSON contract linked below. |
 | `nuxt.server_route.v1` | `javascript`, `typescript` | `server_route` | `file` | `framework` | A Nitro server route under `server/api/**` (route prefixed `/api`) or `server/routes/**` (no prefix). One fact per file; `verb`/`verb_source` are present only when the filename carries a method suffix (`users.get.ts`). Emission requires a `defineEventHandler`/`eventHandler` identifier or a method suffix; a wrapped custom handler with neither is a documented residual miss. `server/middleware`, `server/plugins`, and `server/utils` are excluded. Claims the `server/**` space `nuxt.file_route.v1` excludes. Metadata payload keys: see the JSON contract linked below. |
-| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `razor`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir`, `rust` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Kotlin covers the Ktor client (`client="ktor"`, import-gated on `io.ktor.client`, `receiver.verb(...)` calls only). PHP covers Guzzle (`client="guzzle"`, import-gated on `GuzzleHttp`, `$client->verb('url')`) and the Laravel `Http` facade (`client="laravel_http"`, import-gated on `Facades\Http`, `Http::verb('url')` including chained calls). Elixir covers Req (`client="req"`, import-gated on `Req.`, `Req.verb("url")` including bang variants). Rust covers reqwest (`client="reqwest"`, import-gated on `reqwest`, scoped `reqwest::get("url")` plus the builder `client.get("url")` form whose URL must be url-like to avoid `HashMap::get("key")` collisions). Metadata payload keys: see the JSON contract linked below. |
+| `http.client_request.v1` | `javascript`, `jsx`, `typescript`, `tsx`, `vue`, `python`, `csharp`, `razor`, `go`, `java`, `kotlin`, `php`, `ruby`, `elixir`, `rust` | `client_request` | parser-covered call span (Java builder chains anchor the enclosing statement) | `web.http_client` | A supported outbound HTTP client call whose URL argument is a static string literal. Kotlin covers Ktor (`client="ktor"`), OkHttp builders (`client="okhttp"`), Retrofit annotations (`client="retrofit"`), Spring WebClient (`client="spring_webclient"`), and RestTemplate (`client="spring_resttemplate"`), each import-gated. PHP covers Guzzle verb and `request`/`requestAsync` forms (`client="guzzle"`), Laravel `Http` (`client="laravel_http"`), Symfony HttpClient (`client="symfony_http_client"`), and cURL (`client="curl"`). Elixir covers Req (`client="req"`), Tesla (`client="tesla"`), HTTPoison (`client="httpoison"`), Finch.build (`client="finch"`), and OTP `:httpc` (`client="httpc"`). Rust covers reqwest (`client="reqwest"`), hyper builders (`client="hyper"`), and ureq (`client="ureq"`). Metadata payload keys: see the JSON contract linked below. |
+| `blazor.component_reference.v1` | `razor` | `component_reference` | parser-covered Razor tag-name span | `component_reference` | A Blazor/Razor component tag reference captured from a Razor markup element name. |
+| `razor.route_reference.v1` | `csharp`, `razor` | `route_reference` | parser-covered call/attribute-value span | `frontend_navigation` | A static Razor/Blazor route reference from a NavigationManager call or route attribute value. |
 
 ASP.NET route facts emit `normalized_route_template` as the server-side
 cross-family join key. Raw `route_template`, `route_prefix`, and
@@ -906,13 +908,10 @@ Backend-language client collectors emit the same `http.client_request.v1`
 metadata shape for static string URL arguments: Python module-qualified
 `requests`/`httpx` calls, C# `HttpClient` method calls and
 `HttpRequestMessage`, Go `net/http` package calls, Java `HttpRequest` builder
-chains, PHP Guzzle (`$client->verb('url')`, `client="guzzle"`) and the Laravel
-`Http` facade (`Http::verb('url')`, `client="laravel_http"`), Ruby
+chains, PHP Guzzle/Laravel/Symfony/cURL families, Ruby
 `Net::HTTP` calls with literal `URI(...)`/`URI.parse(...)` arguments, Elixir
-Req (`Req.verb("url")` and bang variants, `client="req"`), and Rust reqwest
-(scoped `reqwest::get("url")` plus the builder `client.get("url")` form,
-`client="reqwest"`; the builder URL must be url-like to avoid
-`HashMap::get("key")` collisions). Java builder-chain facts span the enclosing statement (the URL and
+Req/Tesla/HTTPoison/Finch/`:httpc` families, and Rust reqwest/hyper/ureq
+families (static URLs only; import- and shape-gated per collector). Java builder-chain facts span the enclosing statement (the URL and
 verb are resolved statement-locally), so their `node_kind` is the statement
 node rather than a call node. Instance/session clients and dynamic URL
 expressions stay silent.

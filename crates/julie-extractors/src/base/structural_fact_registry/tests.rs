@@ -246,3 +246,22 @@ fn registry_pattern_ids_match_emitted_union_per_language() {
 
     assert!(errors.is_empty(), "{}", errors.join("\n"));
 }
+
+#[test]
+fn current_sqlite_contract_lists_every_registered_frontend_pattern() {
+    let contract_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../docs/contracts/sqlite-schema-v4.md");
+    let contract = std::fs::read_to_string(&contract_path)
+        .unwrap_or_else(|error| panic!("failed to read {}: {error}", contract_path.display()));
+
+    for pattern_id in [
+        "blazor.component_reference.v1",
+        "razor.route_reference.v1",
+    ] {
+        assert!(
+            contract.contains(pattern_id),
+            "{pattern_id} must be documented in {}",
+            contract_path.display()
+        );
+    }
+}
