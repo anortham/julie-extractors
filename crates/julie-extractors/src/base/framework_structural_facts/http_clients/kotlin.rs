@@ -106,20 +106,23 @@ fn walk(
         if okhttp && let Some(fact) = okhttp_request(node, language, tree, file_path, content) {
             facts.push(fact);
         }
-        if webclient && let Some(fact) = spring_webclient_request(node, language, tree, file_path, content)
+        if webclient
+            && let Some(fact) = spring_webclient_request(node, language, tree, file_path, content)
         {
             facts.push(fact);
         }
         if resttemplate
-            && let Some(fact) = spring_resttemplate_request(node, language, tree, file_path, content)
+            && let Some(fact) =
+                spring_resttemplate_request(node, language, tree, file_path, content)
         {
             facts.push(fact);
         }
     }
-    if retrofit && node.kind() == "annotation" {
-        if let Some(fact) = retrofit_annotation(node, language, tree, file_path, content) {
-            facts.push(fact);
-        }
+    if retrofit
+        && node.kind() == "annotation"
+        && let Some(fact) = retrofit_annotation(node, language, tree, file_path, content)
+    {
+        facts.push(fact);
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
@@ -209,9 +212,9 @@ fn okhttp_request(
                 if let Some(args) = child_of_kind(*c, "value_arguments")
                     && let Some(arg) = first_named_argument_value(args)
                 {
-                    match static_route_arg(arg, content, StaticArgLang::Kotlin) {
-                        Some(p) => target_path = Some(p),
-                        None => return None,
+                    {
+                        let p = static_route_arg(arg, content, StaticArgLang::Kotlin)?;
+                        target_path = Some(p)
                     }
                 }
             }
@@ -225,19 +228,15 @@ fn okhttp_request(
                 if let Some(args) = child_of_kind(*c, "value_arguments")
                     && let Some(arg) = first_named_argument_value(args)
                 {
-                    match static_route_arg(arg, content, StaticArgLang::Kotlin) {
-                        Some(lit) => {
-                            verb = verb_for_method(lit)?;
-                            verb_source = "attested";
-                        }
-                        None => return None,
+                    {
+                        let lit = static_route_arg(arg, content, StaticArgLang::Kotlin)?;
+                        verb = verb_for_method(lit)?;
+                        verb_source = "attested";
                     }
                 }
             }
-            "Builder" => {
-                if navigation_roots_at_request(function, content) {
-                    saw_request_builder = true;
-                }
+            "Builder" if navigation_roots_at_request(function, content) => {
+                saw_request_builder = true;
             }
             _ => {}
         }
@@ -334,17 +333,16 @@ fn is_chain_terminal(call: Node) -> bool {
     let Some(parent) = call.parent() else {
         return true;
     };
-    if parent.kind() == "navigation_expression" {
-        if let Some(grand) = parent.parent() {
-            if grand.kind() == "call_expression" {
-                let is_receiver = first_child(parent) == Some(call)
-                    && grand
-                        .child_by_field_name("function")
-                        .or_else(|| first_child(grand))
-                        == Some(parent);
-                return !is_receiver;
-            }
-        }
+    if parent.kind() == "navigation_expression"
+        && let Some(grand) = parent.parent()
+        && grand.kind() == "call_expression"
+    {
+        let is_receiver = first_child(parent) == Some(call)
+            && grand
+                .child_by_field_name("function")
+                .or_else(|| first_child(grand))
+                == Some(parent);
+        return !is_receiver;
     }
     true
 }

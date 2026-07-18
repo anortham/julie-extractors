@@ -88,6 +88,7 @@ pub(super) fn collect_rust_http_client_requests(
     facts
 }
 
+#[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
     clients: &HashSet<String>,
@@ -211,18 +212,14 @@ fn hyper_builder_request<'a>(call: Node<'_>, content: &'a str) -> Option<RustCli
 
     let mut node = call;
     loop {
-        let Some(function) = node.child_by_field_name("function") else {
-            return None;
-        };
+        let function = node.child_by_field_name("function")?;
         match function.kind() {
             "field_expression" => {
                 let field = node_text(content, function.child_by_field_name("field")?)?;
                 match field {
                     "uri" => {
                         let arg = first_positional_arg(node)?;
-                        let Some(path) = static_route_arg(arg, content, StaticArgLang::Rust) else {
-                            return None;
-                        };
+                        let path = static_route_arg(arg, content, StaticArgLang::Rust)?;
                         target_path = Some(path);
                     }
                     "method" => match parse_hyper_method_arg(node, content) {
@@ -234,9 +231,7 @@ fn hyper_builder_request<'a>(call: Node<'_>, content: &'a str) -> Option<RustCli
                     },
                     _ => {}
                 }
-                let Some(receiver) = function.child_by_field_name("value") else {
-                    return None;
-                };
+                let receiver = function.child_by_field_name("value")?;
                 if receiver.kind() != "call_expression" {
                     return None;
                 }

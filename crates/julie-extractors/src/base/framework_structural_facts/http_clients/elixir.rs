@@ -100,10 +100,7 @@ fn classify_call<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientReq
     httpc_request(call, content)
 }
 
-fn module_client_request<'a>(
-    call: Node<'_>,
-    content: &'a str,
-) -> Option<ElixirClientRequest<'a>> {
+fn module_client_request<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientRequest<'a>> {
     let target = call.child_by_field_name("target")?;
     if target.kind() != "dot" {
         return None;

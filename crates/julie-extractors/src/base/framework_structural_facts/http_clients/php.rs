@@ -54,8 +54,8 @@ pub(super) fn collect_php_http_client_requests(
 ) -> Vec<StructuralFact> {
     let guzzle = content.contains(GUZZLE_NEEDLE);
     let http_facade = content.contains(HTTP_FACADE_NEEDLE);
-    let symfony = content.contains(SYMFONY_INTERFACE_NEEDLE)
-        || content.contains(SYMFONY_CLIENT_NEEDLE);
+    let symfony =
+        content.contains(SYMFONY_INTERFACE_NEEDLE) || content.contains(SYMFONY_CLIENT_NEEDLE);
     let curl = content.contains("curl_init") || content.contains("curl_setopt");
     if !guzzle && !http_facade && !symfony && !curl {
         return Vec::new();
@@ -100,9 +100,16 @@ fn walk(
     if matches!(
         node.kind(),
         "scoped_call_expression" | "member_call_expression"
-    ) && let Some(fact) =
-        client_request_fact(node, guzzle, http_facade, symfony, language, tree, file_path, content)
-    {
+    ) && let Some(fact) = client_request_fact(
+        node,
+        guzzle,
+        http_facade,
+        symfony,
+        language,
+        tree,
+        file_path,
+        content,
+    ) {
         facts.push(fact);
     }
     let mut cursor = node.walk();
@@ -416,14 +423,12 @@ fn gather_curl(
             if let (Some(left), Some(right)) = (
                 node.child_by_field_name("left"),
                 node.child_by_field_name("right"),
-            ) {
-                if left.kind() == "variable_name"
-                    && let Some(name) = node_text(content, left)
-                    && is_curl_init_call(right, content)
-                {
-                    let handle = curl_handle_from_init(right, content);
-                    handles.insert(name.to_string(), handle);
-                }
+            ) && left.kind() == "variable_name"
+                && let Some(name) = node_text(content, left)
+                && is_curl_init_call(right, content)
+            {
+                let handle = curl_handle_from_init(right, content);
+                handles.insert(name.to_string(), handle);
             }
         }
         "function_call_expression" => {
@@ -550,10 +555,7 @@ fn constant_name<'a>(node: Node<'a>, content: &'a str) -> Option<&'a str> {
 }
 
 fn is_php_truthy_literal(node: Node, content: &str) -> bool {
-    match node_text(content, node) {
-        Some("true") | Some("1") => true,
-        _ => false,
-    }
+    matches!(node_text(content, node), Some("true") | Some("1"))
 }
 
 fn nth_positional_arg_value(arguments: Node, index: usize) -> Option<Node> {

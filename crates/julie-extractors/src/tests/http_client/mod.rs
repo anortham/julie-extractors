@@ -1196,12 +1196,7 @@ fun load(web: WebClient, rest: RestTemplate, body: okhttp3.RequestBody) {
             )
         })
         .collect();
-    assert!(tuples.contains(&(
-        "okhttp",
-        "https://api.example.com/health",
-        "GET",
-        "default"
-    )));
+    assert!(tuples.contains(&("okhttp", "https://api.example.com/health", "GET", "default")));
     assert!(tuples.contains(&("okhttp", "/items", "POST", "attested")));
     assert!(tuples.contains(&("retrofit", "/users", "GET", "attested")));
     assert!(tuples.contains(&("retrofit", "/items", "POST", "attested")));
@@ -1212,18 +1207,8 @@ fun load(web: WebClient, rest: RestTemplate, body: okhttp3.RequestBody) {
         "DELETE",
         "attested"
     )));
-    assert!(tuples.contains(&(
-        "spring_resttemplate",
-        "/legacy/users",
-        "GET",
-        "attested"
-    )));
-    assert!(tuples.contains(&(
-        "spring_resttemplate",
-        "/legacy/items",
-        "POST",
-        "attested"
-    )));
+    assert!(tuples.contains(&("spring_resttemplate", "/legacy/users", "GET", "attested")));
+    assert!(tuples.contains(&("spring_resttemplate", "/legacy/items", "POST", "attested")));
 }
 
 #[test]
@@ -1401,12 +1386,7 @@ function load(HttpClientInterface $symfony, Client $guzzle) {
     )));
     assert!(tuples.contains(&("guzzle", "/users", "GET", "attested")));
     assert!(tuples.contains(&("guzzle", "/items", "POST", "attested")));
-    assert!(tuples.contains(&(
-        "curl",
-        "https://api.example.com/health",
-        "GET",
-        "default"
-    )));
+    assert!(tuples.contains(&("curl", "https://api.example.com/health", "GET", "default")));
     assert!(tuples.contains(&("curl", "/curl/items", "DELETE", "attested")));
 }
 
@@ -1512,27 +1492,12 @@ end
             )
         })
         .collect();
-    assert!(tuples.contains(&(
-        "tesla",
-        "https://api.example.com/tesla",
-        "GET",
-        "attested"
-    )));
+    assert!(tuples.contains(&("tesla", "https://api.example.com/tesla", "GET", "attested")));
     assert!(tuples.contains(&("tesla", "/tesla/items", "POST", "attested")));
     assert!(tuples.contains(&("httpoison", "/httpoison/users", "GET", "attested")));
     assert!(tuples.contains(&("httpoison", "/httpoison/1", "DELETE", "attested")));
-    assert!(tuples.contains(&(
-        "finch",
-        "https://api.example.com/finch",
-        "GET",
-        "attested"
-    )));
-    assert!(tuples.contains(&(
-        "httpc",
-        "https://api.example.com/httpc",
-        "GET",
-        "default"
-    )));
+    assert!(tuples.contains(&("finch", "https://api.example.com/finch", "GET", "attested")));
+    assert!(tuples.contains(&("httpc", "https://api.example.com/httpc", "GET", "default")));
     assert!(tuples.contains(&("httpc", "/httpc/items", "POST", "attested")));
 }
 
@@ -1753,19 +1718,9 @@ fn load() {
             )
         })
         .collect();
-    assert!(tuples.contains(&(
-        "hyper",
-        "https://api.example.com/items",
-        "POST",
-        "attested"
-    )));
+    assert!(tuples.contains(&("hyper", "https://api.example.com/items", "POST", "attested")));
     assert!(tuples.contains(&("hyper", "/health", "GET", "default")));
-    assert!(tuples.contains(&(
-        "ureq",
-        "https://api.example.com/users",
-        "GET",
-        "attested"
-    )));
+    assert!(tuples.contains(&("ureq", "https://api.example.com/users", "GET", "attested")));
     assert!(tuples.contains(&("ureq", "/users/1", "DELETE", "attested")));
 }
 

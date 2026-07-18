@@ -254,10 +254,7 @@ fn current_sqlite_contract_lists_every_registered_frontend_pattern() {
     let contract = std::fs::read_to_string(&contract_path)
         .unwrap_or_else(|error| panic!("failed to read {}: {error}", contract_path.display()));
 
-    for pattern_id in [
-        "blazor.component_reference.v1",
-        "razor.route_reference.v1",
-    ] {
+    for pattern_id in ["blazor.component_reference.v1", "razor.route_reference.v1"] {
         assert!(
             contract.contains(pattern_id),
             "{pattern_id} must be documented in {}",
