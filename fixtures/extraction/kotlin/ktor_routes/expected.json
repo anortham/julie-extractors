@@ -1082,56 +1082,6 @@
   "parse_diagnostics": [],
   "structural_facts": [
     {
-      "pattern_id": "http.client_request.v1",
-      "capture_name": "client_request",
-      "node_kind": "call_expression",
-      "language": "kotlin",
-      "file_path": "fixtures/extraction/kotlin/ktor_routes/source.kt",
-      "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
-      "start_line": 40,
-      "start_column": 4,
-      "end_line": 40,
-      "end_column": 28,
-      "start_byte": 1013,
-      "end_byte": 1037,
-      "confidence": "1.000",
-      "metadata": {
-        "client": "ktor",
-        "framework": "ktor",
-        "pattern_version": 1,
-        "query_family": "web.http_client",
-        "target_path": "/elsewhere",
-        "url_kind": "path",
-        "verb": "GET",
-        "verb_source": "attested"
-      }
-    },
-    {
-      "pattern_id": "http.client_request.v1",
-      "capture_name": "client_request",
-      "node_kind": "call_expression",
-      "language": "kotlin",
-      "file_path": "fixtures/extraction/kotlin/ktor_routes/source.kt",
-      "containing_key": "fixtures/extraction/kotlin/ktor_routes/source.kt:module:6:0",
-      "start_line": 41,
-      "start_column": 4,
-      "end_line": 41,
-      "end_column": 27,
-      "start_byte": 1042,
-      "end_byte": 1065,
-      "confidence": "1.000",
-      "metadata": {
-        "client": "ktor",
-        "framework": "ktor",
-        "pattern_version": 1,
-        "query_family": "web.http_client",
-        "target_path": "/not-a-route",
-        "url_kind": "path",
-        "verb": "GET",
-        "verb_source": "attested"
-      }
-    },
-    {
       "pattern_id": "ktor.route.v1",
       "capture_name": "route",
       "node_kind": "call_expression",
