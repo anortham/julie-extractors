@@ -60,6 +60,8 @@ pub(super) fn collect_rust_http_client_requests(
     content: &str,
 ) -> Vec<StructuralFact> {
     let has_reqwest = content.contains("reqwest");
+    // Coarse presence gate (may match comments/strings); bare `Request::builder`
+    // additionally requires a parser-backed `use hyper...` import below.
     let has_hyper = content.contains("hyper");
     let has_ureq = content.contains("ureq");
     if !has_reqwest && !has_hyper && !has_ureq {
@@ -71,6 +73,7 @@ pub(super) fn collect_rust_http_client_requests(
     } else {
         HashSet::new()
     };
+    let has_hyper_import = has_hyper && has_rust_use_crate(tree.root_node(), content, "hyper");
 
     let mut facts = Vec::new();
     walk(
@@ -78,6 +81,7 @@ pub(super) fn collect_rust_http_client_requests(
         &clients,
         has_reqwest,
         has_hyper,
+        has_hyper_import,
         has_ureq,
         language,
         tree,
@@ -94,6 +98,7 @@ fn walk(
     clients: &HashSet<String>,
     has_reqwest: bool,
     has_hyper: bool,
+    has_hyper_import: bool,
     has_ureq: bool,
     language: &str,
     tree: &Tree,
@@ -102,8 +107,15 @@ fn walk(
     facts: &mut Vec<StructuralFact>,
 ) {
     if node.kind() == "call_expression"
-        && let Some(req) =
-            classify_rust_client_request(node, clients, has_reqwest, has_hyper, has_ureq, content)
+        && let Some(req) = classify_rust_client_request(
+            node,
+            clients,
+            has_reqwest,
+            has_hyper,
+            has_hyper_import,
+            has_ureq,
+            content,
+        )
         && let Some(fact) = client_fact(
             language,
             tree,
@@ -127,6 +139,7 @@ fn walk(
             clients,
             has_reqwest,
             has_hyper,
+            has_hyper_import,
             has_ureq,
             language,
             tree,
@@ -142,13 +155,14 @@ fn classify_rust_client_request<'a>(
     reqwest_clients: &HashSet<String>,
     has_reqwest: bool,
     has_hyper: bool,
+    has_hyper_import: bool,
     has_ureq: bool,
     content: &'a str,
 ) -> Option<RustClientRequest<'a>> {
     if has_reqwest && let Some(req) = reqwest_request(call, reqwest_clients, content) {
         return Some(req);
     }
-    if has_hyper && let Some(req) = hyper_builder_request(call, content) {
+    if has_hyper && let Some(req) = hyper_builder_request(call, content, has_hyper_import) {
         return Some(req);
     }
     if has_ureq && let Some(req) = ureq_request(call, content) {
@@ -200,7 +214,11 @@ fn reqwest_request<'a>(
 /// Hyper `Request::builder()` / `hyper::Request::builder()` chain with static URI.
 /// Emits once per chain by anchoring on the outermost call (not nested as a
 /// receiver of another builder call).
-fn hyper_builder_request<'a>(call: Node<'_>, content: &'a str) -> Option<RustClientRequest<'a>> {
+fn hyper_builder_request<'a>(
+    call: Node<'_>,
+    content: &'a str,
+    has_hyper_import: bool,
+) -> Option<RustClientRequest<'a>> {
     if !is_builder_chain_terminal(call) {
         return None;
     }
@@ -237,7 +255,9 @@ fn hyper_builder_request<'a>(call: Node<'_>, content: &'a str) -> Option<RustCli
                 }
                 node = receiver;
             }
-            "scoped_identifier" if scoped_is_hyper_request_builder(function, content) => {
+            "scoped_identifier"
+                if scoped_is_hyper_request_builder(function, content, has_hyper_import) =>
+            {
                 if method_dynamic {
                     return None;
                 }
@@ -289,7 +309,11 @@ fn is_builder_chain_terminal(call: Node<'_>) -> bool {
         || parent.child_by_field_name("value") != Some(call)
 }
 
-fn scoped_is_hyper_request_builder(scoped: Node<'_>, content: &str) -> bool {
+fn scoped_is_hyper_request_builder(
+    scoped: Node<'_>,
+    content: &str,
+    has_hyper_import: bool,
+) -> bool {
     let ctor = scoped
         .child_by_field_name("name")
         .and_then(|name| node_text(content, name));
@@ -300,10 +324,8 @@ fn scoped_is_hyper_request_builder(scoped: Node<'_>, content: &str) -> bool {
         return false;
     };
     match path.kind() {
-        // Bare `Request::builder` — only with a hyper import signal.
-        "identifier" => {
-            node_text(content, path) == Some("Request") && content.contains("use hyper")
-        }
+        // Bare `Request::builder` — only with a parser-backed `use hyper...`.
+        "identifier" => node_text(content, path) == Some("Request") && has_hyper_import,
         // `hyper::Request::builder` → path name is `Request`, path's path is `hyper`.
         "scoped_identifier" => {
             path.child_by_field_name("name")
@@ -322,6 +344,30 @@ fn scoped_is_hyper_request_builder(scoped: Node<'_>, content: &str) -> bool {
         }
         _ => false,
     }
+}
+
+/// True when a real `use_declaration` AST node imports `crate_name` (or a path
+/// under it). Comments and string literals never produce `use_declaration` nodes.
+fn has_rust_use_crate(node: Node, content: &str, crate_name: &str) -> bool {
+    if node.kind() == "use_declaration"
+        && let Some(text) = node_text(content, node)
+    {
+        let rest = text.trim_start().trim_start_matches("use").trim_start();
+        if rest == crate_name
+            || rest.starts_with(&format!("{crate_name}::"))
+            || rest.starts_with(&format!("{crate_name};"))
+            || rest.starts_with(&format!("{crate_name} "))
+        {
+            return true;
+        }
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if has_rust_use_crate(child, content, crate_name) {
+            return true;
+        }
+    }
+    false
 }
 
 fn parse_hyper_method_arg(method_call: Node<'_>, content: &str) -> Option<&'static str> {

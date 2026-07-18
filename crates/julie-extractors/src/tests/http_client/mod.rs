@@ -1739,3 +1739,72 @@ fn load(url: &str, map: std::collections::HashMap<&str, &str>) {
 "#;
     assert!(client_requests(&extract("src/client.rs", source)).is_empty());
 }
+
+#[test]
+fn rust_hyper_comment_use_does_not_gate_bare_request_builder() {
+    // Comment-only `use hyper` must not prove bare `Request::builder()`.
+    let source = r#"
+// use hyper::Request;
+fn load() {
+    let _ = Request::builder().uri("/not-hyper").body(());
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "comment-only hyper import must not emit hyper facts: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_spring_webclient_unrelated_fluent_receiver_stays_silent() {
+    // WebClient import alone must not attribute unrelated fluent chains.
+    let source = r#"
+import org.springframework.web.reactive.function.client.WebClient
+
+fun routes(router: Router) {
+    router.get().uri("/server-route")
+}
+"#;
+    let results = extract("src/Routes.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "unrelated fluent receiver must not emit spring_webclient: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_spring_resttemplate_unrelated_receiver_stays_silent() {
+    let source = r#"
+import org.springframework.web.client.RestTemplate
+
+fun load(other: OtherClient) {
+    other.getForObject("/not-rest", String::class.java)
+}
+"#;
+    let results = extract("src/Client.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "unrelated RestTemplate-shaped receiver must stay silent: {facts:#?}"
+    );
+}
+
+#[test]
+fn php_guzzle_comment_use_does_not_gate_variable_request() {
+    // Comment-only Guzzle import must not attribute arbitrary ->request(...).
+    let source = r#"<?php
+// use GuzzleHttp\Client;
+function load($other) {
+    $other->request('GET', '/not-guzzle');
+}
+"#;
+    let results = extract("src/Client.php", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "comment-only Guzzle import must not emit guzzle facts: {facts:#?}"
+    );
+}

@@ -428,7 +428,7 @@ fn spring_webclient_request(
     file_path: &str,
     content: &str,
 ) -> Option<StructuralFact> {
-    // Emit on .uri(static) when chain has receiver.<verb>().uri(...)
+    // Emit on .uri(static) when chain has proven_webclient.<verb>().uri(...)
     let function = call
         .child_by_field_name("function")
         .or_else(|| first_child(call))?;
@@ -455,7 +455,10 @@ fn spring_webclient_request(
     }
     let method = last_identifier_text(recv_fn, content)?;
     let verb = verb_for_method(method)?;
-    // optional: require web receiver root is identifier (typed param) — import gate is enough
+    let root = first_child(recv_fn)?;
+    if !spring_client_receiver_proven(root, call, content, "WebClient") {
+        return None;
+    }
     client_fact(
         language,
         tree,
@@ -485,6 +488,10 @@ fn spring_resttemplate_request(
         return None;
     }
     let method = last_identifier_text(function, content)?;
+    let root = first_child(function)?;
+    if !spring_client_receiver_proven(root, call, content, "RestTemplate") {
+        return None;
+    }
     let args = child_of_kind(call, "value_arguments")?;
     if method == "exchange" {
         let url_arg = first_named_argument_value(args)?;
@@ -521,6 +528,110 @@ fn spring_resttemplate_request(
         "attested",
         None,
     )
+}
+
+/// Receiver is a typed parameter/property of `type_name`, or a direct
+/// `TypeName.create()` / `TypeName.builder()` constructor call. Unrelated
+/// fluent roots stay silent even when the Spring import is present.
+fn spring_client_receiver_proven(
+    receiver: Node,
+    from: Node,
+    content: &str,
+    type_name: &str,
+) -> bool {
+    match receiver.kind() {
+        "simple_identifier" | "identifier" => {
+            let Some(name) = node_text(content, receiver) else {
+                return false;
+            };
+            ident_is_kotlin_typed_param(name, from, content, type_name)
+        }
+        "call_expression" => {
+            let Some(function) = receiver
+                .child_by_field_name("function")
+                .or_else(|| first_child(receiver))
+            else {
+                return false;
+            };
+            if function.kind() != "navigation_expression" {
+                return false;
+            }
+            let Some(ctor) = last_identifier_text(function, content) else {
+                return false;
+            };
+            if ctor != "create" && ctor != "builder" {
+                return false;
+            }
+            let Some(root) = first_child(function) else {
+                return false;
+            };
+            last_identifier_text(root, content) == Some(type_name)
+                || node_text(content, root).is_some_and(|t| t.ends_with(type_name))
+        }
+        "navigation_expression" => {
+            // Fully qualified TypeName without call — not a receiver value.
+            false
+        }
+        _ => false,
+    }
+}
+
+fn ident_is_kotlin_typed_param(name: &str, from: Node, content: &str, type_name: &str) -> bool {
+    let mut cursor = Some(from);
+    while let Some(node) = cursor {
+        if matches!(
+            node.kind(),
+            "function_declaration" | "class_body" | "primary_constructor" | "class_declaration"
+        ) && function_or_class_has_typed_param(node, name, content, type_name)
+        {
+            return true;
+        }
+        cursor = node.parent();
+    }
+    false
+}
+
+fn function_or_class_has_typed_param(
+    scope: Node,
+    name: &str,
+    content: &str,
+    type_name: &str,
+) -> bool {
+    let mut stack = vec![scope];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "parameter"
+            && let Some(param_text) = node_text(content, node)
+        {
+            // Conservative: parameter text looks like `name: TypeName` (optionally
+            // with annotations/defaults). Avoid matching substring type names alone.
+            let trimmed = param_text.trim_start();
+            if (trimmed == name
+                || trimmed.starts_with(&format!("{name}:"))
+                || trimmed.starts_with(&format!("{name} :")))
+                && (param_text.contains(&format!(": {type_name}"))
+                    || param_text.contains(&format!(":{type_name}"))
+                    || param_text.contains(&format!(": {type_name}?"))
+                    || param_text.contains(&format!(":{type_name}?")))
+            {
+                return true;
+            }
+        }
+        // Stop descending into nested function bodies from a class scope, but
+        // still scan the immediate function_declaration parameter list.
+        if node != scope
+            && matches!(
+                node.kind(),
+                "function_body" | "class_body" | "lambda_literal"
+            )
+        {
+            continue;
+        }
+        let mut child_cursor = node.walk();
+        for child in node.children(&mut child_cursor) {
+            stack.push(child);
+        }
+    }
+    false
 }
 
 fn http_method_enum(node: Node, content: &str) -> Option<&'static str> {

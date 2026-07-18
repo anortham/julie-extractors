@@ -52,17 +52,21 @@ pub(super) fn collect_php_http_client_requests(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    let guzzle = content.contains(GUZZLE_NEEDLE);
-    let http_facade = content.contains(HTTP_FACADE_NEEDLE);
-    let symfony =
-        content.contains(SYMFONY_INTERFACE_NEEDLE) || content.contains(SYMFONY_CLIENT_NEEDLE);
+    let root = tree.root_node();
+    // Parser-backed use/import gates — comments never create namespace_use_declaration.
+    let guzzle = has_php_use_containing(root, content, GUZZLE_NEEDLE);
+    let http_facade = has_php_use_containing(root, content, HTTP_FACADE_NEEDLE)
+        || has_php_use_containing(root, content, "Illuminate\\Support\\Facades\\Http");
+    let symfony = has_php_use_containing(root, content, SYMFONY_INTERFACE_NEEDLE)
+        || has_php_use_containing(root, content, SYMFONY_CLIENT_NEEDLE);
+    // cURL is call-name based (not an import); AST recognition still requires real calls.
     let curl = content.contains("curl_init") || content.contains("curl_setopt");
     if !guzzle && !http_facade && !symfony && !curl {
         return Vec::new();
     }
     let mut facts = Vec::new();
     walk(
-        tree.root_node(),
+        root,
         guzzle,
         http_facade,
         symfony,
@@ -73,16 +77,29 @@ pub(super) fn collect_php_http_client_requests(
         &mut facts,
     );
     if curl {
-        collect_curl_facts(
-            tree.root_node(),
-            language,
-            tree,
-            file_path,
-            content,
-            &mut facts,
-        );
+        collect_curl_facts(root, language, tree, file_path, content, &mut facts);
     }
     facts
+}
+
+/// True when a real `namespace_use_declaration` AST node imports a path that
+/// contains `needle` (FQN fragment). Comments/strings never produce use nodes.
+fn has_php_use_containing(node: Node, content: &str, needle: &str) -> bool {
+    if node.kind() == "namespace_use_declaration"
+        && let Some(text) = node_text(content, node)
+    {
+        let normalized = text.replace("\\\\", "\\");
+        if normalized.contains(needle) {
+            return true;
+        }
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if has_php_use_containing(child, content, needle) {
+            return true;
+        }
+    }
+    false
 }
 
 #[allow(clippy::too_many_arguments)]
