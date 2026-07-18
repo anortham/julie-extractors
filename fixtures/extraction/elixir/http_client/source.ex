@@ -13,9 +13,8 @@ defmodule MyApp.ApiClient do
     Req.get!("/health")
   end
 
-  # Dynamic URLs and deferred clients (HTTPoison/Tesla/Finch/:httpc) are silent.
+  # Dynamic URLs stay silent (M2).
   def dynamic(id) do
     Req.get("/users/#{id}")
-    HTTPoison.get("https://api.example.com/legacy")
   end
 end

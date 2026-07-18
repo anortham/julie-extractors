@@ -8,19 +8,19 @@
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 20,
       "end_column": 3,
       "start_byte": 0,
-      "end_byte": 446,
+      "end_byte": 348,
       "body_span": {
         "start_line": 1,
         "start_column": 26,
-        "end_line": 21,
+        "end_line": 20,
         "end_column": 3,
         "start_byte": 26,
-        "end_byte": 446
+        "end_byte": 348
       },
-      "body_hash": "c233367601f215ecbad9c7e59739b68a",
+      "body_hash": "276eae1e43fd83d18fb158df87d4d477",
       "signature": "defmodule MyApp.ApiClient",
       "doc_comment": "@moduledoc \"Thin Req HTTP client wrapper.\"",
       "visibility": "Public",
@@ -76,19 +76,19 @@
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
       "start_line": 17,
       "start_column": 2,
-      "end_line": 20,
+      "end_line": 19,
       "end_column": 5,
-      "start_byte": 338,
-      "end_byte": 442,
+      "start_byte": 292,
+      "end_byte": 344,
       "body_span": {
         "start_line": 17,
         "start_column": 18,
-        "end_line": 20,
+        "end_line": 19,
         "end_column": 5,
-        "start_byte": 354,
-        "end_byte": 442
+        "start_byte": 308,
+        "end_byte": 344
       },
-      "body_hash": "3fc78efe6dbee618476d1d2325d47aa8",
+      "body_hash": "e93cda13a4f1c3f2feb337ecee99ca98",
       "signature": "def dynamic(id)",
       "doc_comment": null,
       "visibility": "Public",
@@ -193,14 +193,6 @@
     },
     {
       "from_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
-      "callee_name": "HTTPoison.get",
-      "kind": "calls",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "line_number": 19,
-      "confidence": "0.700"
-    },
-    {
-      "from_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "callee_name": "Req.get",
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
@@ -244,26 +236,6 @@
         "import_context": null
       },
       "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2"
-    },
-    {
-      "pending": {
-        "from_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
-        "callee_name": "HTTPoison.get",
-        "kind": "calls",
-        "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-        "line_number": 19,
-        "confidence": "0.700"
-      },
-      "target": {
-        "display_name": "HTTPoison.get",
-        "terminal_name": "get",
-        "receiver": null,
-        "namespace_path": [
-          "HTTPoison"
-        ],
-        "import_context": null
-      },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2"
     },
     {
       "pending": {
@@ -328,38 +300,6 @@
   ],
   "identifiers": [
     {
-      "key": "fixtures/extraction/elixir/http_client/source.ex:HTTPoison:type_usage:19:4",
-      "name": "HTTPoison",
-      "kind": "type_usage",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "start_line": 19,
-      "start_column": 4,
-      "end_line": 19,
-      "end_column": 13,
-      "start_byte": 389,
-      "end_byte": 398,
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/http_client/source.ex:HTTPoison:type_usage:19:4",
-      "name": "HTTPoison",
-      "kind": "type_usage",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "start_line": 19,
-      "start_column": 4,
-      "end_line": 19,
-      "end_column": 13,
-      "start_byte": 389,
-      "end_byte": 398,
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
       "key": "fixtures/extraction/elixir/http_client/source.ex:Req:type_usage:13:4",
       "name": "Req",
       "kind": "type_usage",
@@ -401,8 +341,8 @@
       "start_column": 4,
       "end_line": 18,
       "end_column": 7,
-      "start_byte": 361,
-      "end_byte": 364,
+      "start_byte": 315,
+      "end_byte": 318,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "target_key": null,
       "confidence": "1.000"
@@ -417,8 +357,8 @@
       "start_column": 4,
       "end_line": 18,
       "end_column": 7,
-      "start_byte": 361,
-      "end_byte": 364,
+      "start_byte": 315,
+      "end_byte": 318,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "target_key": null,
       "confidence": "1.000"
@@ -513,8 +453,8 @@
       "start_column": 6,
       "end_line": 17,
       "end_column": 13,
-      "start_byte": 342,
-      "end_byte": 349,
+      "start_byte": 296,
+      "end_byte": 303,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "target_key": null,
       "confidence": "1.000"
@@ -545,24 +485,8 @@
       "start_column": 8,
       "end_line": 18,
       "end_column": 11,
-      "start_byte": 365,
-      "end_byte": 368,
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/elixir/http_client/source.ex:get:member_access:19:14",
-      "name": "get",
-      "kind": "member_access",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "start_line": 19,
-      "start_column": 14,
-      "end_line": 19,
-      "end_column": 17,
-      "start_byte": 399,
-      "end_byte": 402,
+      "start_byte": 319,
+      "end_byte": 322,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "target_key": null,
       "confidence": "1.000"
@@ -593,8 +517,8 @@
       "start_column": 22,
       "end_line": 18,
       "end_column": 24,
-      "start_byte": 379,
-      "end_byte": 381,
+      "start_byte": 333,
+      "end_byte": 335,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "target_key": null,
       "confidence": "1.000"
@@ -644,10 +568,10 @@
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.ApiClient:1:0",
       "start_line": 1,
       "start_column": 0,
-      "end_line": 21,
+      "end_line": 20,
       "end_column": 3,
       "start_byte": 0,
-      "end_byte": 446,
+      "end_byte": 348,
       "confidence": "1.000",
       "metadata": {
         "module_name": "MyApp.ApiClient",
@@ -758,18 +682,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "covered_lines": 22,
-      "covered_bytes": 447,
+      "covered_lines": 21,
+      "covered_bytes": 349,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": null,
       "start_line": 1,
       "start_column": 0,
-      "end_line": 22,
+      "end_line": 21,
       "end_column": 0,
       "start_byte": 0,
-      "end_byte": 447,
+      "end_byte": 349,
       "metadata": {
         "metric_version": 1
       }
@@ -802,18 +726,18 @@
       "algorithm_id": "julie-ast-complexity-v1",
       "language": "elixir",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "covered_lines": 4,
-      "covered_bytes": 88,
+      "covered_lines": 3,
+      "covered_bytes": 36,
       "decision_count": 0,
       "loop_count": 0,
       "max_nesting_depth": 0,
       "parameter_count": 1,
       "start_line": 17,
       "start_column": 18,
-      "end_line": 20,
+      "end_line": 19,
       "end_column": 5,
-      "start_byte": 354,
-      "end_byte": 442,
+      "start_byte": 308,
+      "end_byte": 344,
       "metadata": {
         "metric_version": 1
       }
@@ -907,8 +831,8 @@
       "start_column": 12,
       "end_line": 18,
       "end_column": 26,
-      "start_byte": 369,
-      "end_byte": 383,
+      "start_byte": 323,
+      "end_byte": 337,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "confidence": "1.000"
     },
@@ -926,22 +850,6 @@
       "start_byte": 42,
       "end_byte": 73,
       "containing_key": "fixtures/extraction/elixir/http_client/source.ex:MyApp.ApiClient:1:0",
-      "confidence": "1.000"
-    },
-    {
-      "literal_text": "https://api.example.com/legacy",
-      "kind": "other",
-      "carrier": "HTTPoison.get",
-      "arg_position": 0,
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "start_line": 19,
-      "start_column": 18,
-      "end_line": 19,
-      "end_column": 50,
-      "start_byte": 403,
-      "end_byte": 435,
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
       "confidence": "1.000"
     },
     {
@@ -970,9 +878,9 @@
       "start_line": 16,
       "start_column": 2,
       "end_line": 16,
-      "end_column": 80,
+      "end_column": 34,
       "start_byte": 257,
-      "end_byte": 335,
+      "end_byte": 289,
       "metadata": null
     },
     {
@@ -1010,21 +918,8 @@
       "start_column": 12,
       "end_line": 18,
       "end_column": 26,
-      "start_byte": 369,
-      "end_byte": 383,
-      "metadata": null
-    },
-    {
-      "kind": "string_literal",
-      "language": "elixir",
-      "file_path": "fixtures/extraction/elixir/http_client/source.ex",
-      "containing_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
-      "start_line": 19,
-      "start_column": 18,
-      "end_line": 19,
-      "end_column": 50,
-      "start_byte": 403,
-      "end_byte": 435,
+      "start_byte": 323,
+      "end_byte": 337,
       "metadata": null
     },
     {
