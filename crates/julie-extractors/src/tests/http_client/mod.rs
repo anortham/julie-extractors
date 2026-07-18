@@ -1793,6 +1793,29 @@ fun load(other: OtherClient) {
 }
 
 #[test]
+fn kotlin_spring_sibling_method_typed_params_do_not_prove_receiver() {
+    // Sibling method params must never prove the receiver of a call in another method.
+    let source = r#"
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.client.RestTemplate
+
+class Controller {
+    fun configured(web: WebClient, rest: RestTemplate) {}
+    fun routes(web: OtherWeb, rest: OtherRest) {
+        web.get().uri("/not-webclient")
+        rest.getForObject("/not-resttemplate", String::class.java)
+    }
+}
+"#;
+    let results = extract("src/Controller.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "sibling-method WebClient/RestTemplate params must not prove receivers: {facts:#?}"
+    );
+}
+
+#[test]
 fn php_guzzle_comment_use_does_not_gate_variable_request() {
     // Comment-only Guzzle import must not attribute arbitrary ->request(...).
     let source = r#"<?php

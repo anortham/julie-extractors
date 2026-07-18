@@ -597,6 +597,12 @@ fn function_or_class_has_typed_param(
     content: &str,
     type_name: &str,
 ) -> bool {
+    // Class-level scopes may prove primary-constructor / class-parameter
+    // bindings, but never sibling or nested method parameters.
+    let class_scope = matches!(
+        scope.kind(),
+        "class_body" | "class_declaration" | "primary_constructor"
+    );
     let mut stack = vec![scope];
     while let Some(node) = stack.pop() {
         if node.kind() == "parameter"
@@ -616,14 +622,17 @@ fn function_or_class_has_typed_param(
                 return true;
             }
         }
-        // Stop descending into nested function bodies from a class scope, but
-        // still scan the immediate function_declaration parameter list.
+        // Stop descending into nested function bodies / nested class bodies.
         if node != scope
             && matches!(
                 node.kind(),
                 "function_body" | "class_body" | "lambda_literal"
             )
         {
+            continue;
+        }
+        // From a class scope, do not scan method parameter lists at all.
+        if class_scope && node != scope && node.kind() == "function_declaration" {
             continue;
         }
         let mut child_cursor = node.walk();

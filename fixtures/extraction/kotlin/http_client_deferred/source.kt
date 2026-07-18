@@ -2,7 +2,6 @@
 // Backs closure of kotlin.http_client.deferred.
 
 import okhttp3.Request
-import okhttp3.RequestBody
 import retrofit2.http.GET
 import retrofit2.http.POST
 import org.springframework.web.reactive.function.client.WebClient
@@ -16,7 +15,7 @@ interface DeferredApi {
     suspend fun create(): Unit
 }
 
-fun deferredClients(web: WebClient, rest: RestTemplate, body: RequestBody) {
+fun deferredClients(web: WebClient, rest: RestTemplate, body: okhttp3.RequestBody, url: String) {
     Request.Builder().url("https://api.example.com/health").build()
     Request.Builder().url("/items").post(body).build()
     web.get().uri("/web/users").retrieve()
@@ -25,7 +24,7 @@ fun deferredClients(web: WebClient, rest: RestTemplate, body: RequestBody) {
     rest.postForObject("/legacy/items", body, String::class.java)
 
     // Silent dynamics.
-    Request.Builder().url(dynamic).build()
-    web.get().uri(dynamic).retrieve()
-    rest.getForObject(dynamic, String::class.java)
+    Request.Builder().url(url).build()
+    web.get().uri(url).retrieve()
+    rest.getForObject(url, String::class.java)
 }
