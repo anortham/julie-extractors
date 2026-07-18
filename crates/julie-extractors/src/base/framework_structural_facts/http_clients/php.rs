@@ -20,16 +20,14 @@ const SYMFONY_INTERFACE_NEEDLE: &str = "Symfony\\Contracts\\HttpClient\\HttpClie
 const SYMFONY_CLIENT_NEEDLE: &str = "Symfony\\Component\\HttpClient\\HttpClient";
 
 fn verb_for_method(method: &str) -> Option<&'static str> {
-    match method {
-        "get" | "GET" => Some("GET"),
-        "post" | "POST" => Some("POST"),
-        "put" | "PUT" => Some("PUT"),
-        "patch" | "PATCH" => Some("PATCH"),
-        "delete" | "DELETE" => Some("DELETE"),
-        "head" | "HEAD" => Some("HEAD"),
-        "options" | "OPTIONS" => Some("OPTIONS"),
-        _ => None,
-    }
+    super::verb_for_token(method)
+}
+
+#[derive(Default)]
+struct ImportGates {
+    guzzle: bool,
+    http_facade: bool,
+    symfony: bool,
 }
 
 enum ClientRoot {
@@ -53,61 +51,46 @@ pub(super) fn collect_php_http_client_requests(
     content: &str,
 ) -> Vec<StructuralFact> {
     let root = tree.root_node();
-    // Parser-backed use/import gates — comments never create namespace_use_declaration.
-    let guzzle = has_php_use_containing(root, content, GUZZLE_NEEDLE);
-    let http_facade = has_php_use_containing(root, content, HTTP_FACADE_NEEDLE)
-        || has_php_use_containing(root, content, "Illuminate\\Support\\Facades\\Http");
-    let symfony = has_php_use_containing(root, content, SYMFONY_INTERFACE_NEEDLE)
-        || has_php_use_containing(root, content, SYMFONY_CLIENT_NEEDLE);
+    let mut gates = ImportGates::default();
+    collect_import_gates(root, content, &mut gates);
     // cURL is call-name based (not an import); AST recognition still requires real calls.
     let curl = content.contains("curl_init") || content.contains("curl_setopt");
-    if !guzzle && !http_facade && !symfony && !curl {
+    if !gates.guzzle && !gates.http_facade && !gates.symfony && !curl {
         return Vec::new();
     }
     let mut facts = Vec::new();
-    walk(
-        root,
-        guzzle,
-        http_facade,
-        symfony,
-        language,
-        tree,
-        file_path,
-        content,
-        &mut facts,
-    );
+    walk(root, &gates, language, tree, file_path, content, &mut facts);
     if curl {
         collect_curl_facts(root, language, tree, file_path, content, &mut facts);
     }
     facts
 }
 
-/// True when a real `namespace_use_declaration` AST node imports a path that
-/// contains `needle` (FQN fragment). Comments/strings never produce use nodes.
-fn has_php_use_containing(node: Node, content: &str, needle: &str) -> bool {
-    if node.kind() == "namespace_use_declaration"
+/// Parser-backed client gates: `namespace_use_declaration` imports and
+/// `qualified_name` FQN references (`new \GuzzleHttp\Client()`). Comments and
+/// strings produce neither node kind.
+fn collect_import_gates(node: Node, content: &str, gates: &mut ImportGates) {
+    if matches!(node.kind(), "namespace_use_declaration" | "qualified_name")
         && let Some(text) = node_text(content, node)
     {
         let normalized = text.replace("\\\\", "\\");
-        if normalized.contains(needle) {
-            return true;
-        }
+        gates.guzzle |= normalized.contains(GUZZLE_NEEDLE);
+        gates.http_facade |= normalized.contains(HTTP_FACADE_NEEDLE);
+        gates.symfony |= normalized.contains(SYMFONY_INTERFACE_NEEDLE)
+            || normalized.contains(SYMFONY_CLIENT_NEEDLE);
+    }
+    if gates.guzzle && gates.http_facade && gates.symfony {
+        return;
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if has_php_use_containing(child, content, needle) {
-            return true;
-        }
+        collect_import_gates(child, content, gates);
     }
-    false
 }
 
-#[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
-    guzzle: bool,
-    http_facade: bool,
-    symfony: bool,
+    gates: &ImportGates,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -117,40 +100,19 @@ fn walk(
     if matches!(
         node.kind(),
         "scoped_call_expression" | "member_call_expression"
-    ) && let Some(fact) = client_request_fact(
-        node,
-        guzzle,
-        http_facade,
-        symfony,
-        language,
-        tree,
-        file_path,
-        content,
-    ) {
+    ) && let Some(fact) = client_request_fact(node, gates, language, tree, file_path, content)
+    {
         facts.push(fact);
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(
-            child,
-            guzzle,
-            http_facade,
-            symfony,
-            language,
-            tree,
-            file_path,
-            content,
-            facts,
-        );
+        walk(child, gates, language, tree, file_path, content, facts);
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn client_request_fact(
     call: Node,
-    guzzle: bool,
-    http_facade: bool,
-    symfony: bool,
+    gates: &ImportGates,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -161,7 +123,7 @@ fn client_request_fact(
 
     // Symfony request(method, url) — check before Guzzle request so typed
     // HttpClientInterface params are not mis-attributed to Guzzle.
-    if symfony && method == "request" && symfony_receiver_ok(call, content) {
+    if gates.symfony && method == "request" && symfony_receiver_ok(call, content) {
         let verb_arg = nth_positional_arg_value(arguments, 0)?;
         let verb_lit = static_route_arg(verb_arg, content, StaticArgLang::Php)?;
         let verb = verb_for_method(verb_lit)?;
@@ -183,9 +145,10 @@ fn client_request_fact(
     }
 
     // Guzzle request/requestAsync(method, url)
-    if guzzle && matches!(method, "request" | "requestAsync") {
-        if !matches!(client_root(call, content)?, ClientRoot::Variable(_)) {
-            return None;
+    if gates.guzzle && matches!(method, "request" | "requestAsync") {
+        match client_root(call, content)? {
+            ClientRoot::Variable(name) if ident_is_guzzle_client(&name, call, content) => {}
+            _ => return None,
         }
         let verb_arg = nth_positional_arg_value(arguments, 0)?;
         let verb_lit = static_route_arg(verb_arg, content, StaticArgLang::Php)?;
@@ -210,8 +173,12 @@ fn client_request_fact(
     // Verb methods: Guzzle / Laravel Http
     let verb = verb_for_method(method)?;
     let client = match client_root(call, content)? {
-        ClientRoot::Facade(name) if http_facade && name == "Http" => "laravel_http",
-        ClientRoot::Variable(_) if guzzle => "guzzle",
+        ClientRoot::Facade(name) if gates.http_facade && name == "Http" => "laravel_http",
+        ClientRoot::Variable(name)
+            if gates.guzzle && ident_is_guzzle_client(&name, call, content) =>
+        {
+            "guzzle"
+        }
         ClientRoot::CreateChain => return None,
         _ => return None,
     };
@@ -248,7 +215,7 @@ fn variable_from_http_client_create(name: &str, from: Node, content: &str) -> bo
         return false;
     };
     let mut found = false;
-    walk_assignments(function, content, &mut |var, value| {
+    walk_assignments(function, content, from.start_byte(), &mut |var, value| {
         if var == name && is_http_client_create(value, content) {
             found = true;
         }
@@ -267,40 +234,123 @@ fn is_http_client_create(node: Node, content: &str) -> bool {
         return false;
     };
     node_text(content, name) == Some("create")
-        && node_text(content, scope)
-            .map(|s| s.ends_with("HttpClient") || s == "HttpClient")
-            .unwrap_or(false)
+        && node_text(content, scope).is_some_and(scope_names_symfony_http_client)
 }
 
+/// The scope's LAST namespace segment must be exactly `HttpClient`:
+/// `AcmeHttpClient::create()` never proves a Symfony receiver.
+fn scope_names_symfony_http_client(scope: &str) -> bool {
+    let base = scope.trim_start_matches('\\');
+    base.rsplit('\\').next().unwrap_or(base) == "HttpClient"
+}
+
+/// The receiver is a parameter of the enclosing function whose DECLARED type is
+/// `HttpClientInterface` / `HttpClient` (optionally nullable or namespace
+/// qualified). Body text mentioning HttpClient never proves a receiver (M2).
 fn ident_is_symfony_typed_param(name: &str, from: Node, content: &str) -> bool {
     let Some(function) = enclosing_function(from) else {
         return false;
     };
+    let Some(params) = function.child_by_field_name("parameters") else {
+        return false;
+    };
     let bare = name.trim_start_matches('$');
-    // Walk the whole function signature region for a typed parameter whose
-    // variable matches and whose type text mentions HttpClient*.
-    let mut stack = vec![function];
-    while let Some(node) = stack.pop() {
-        if node.kind() == "variable_name"
-            && let Some(var) = node_text(content, node)
-        {
-            let var_bare = var.trim_start_matches('$');
-            if var_bare == bare {
-                // Walk siblings / ancestors for a nearby type node in the same parameter.
-                if let Some(param) = node.parent() {
-                    let text = node_text(content, param).unwrap_or("");
-                    if text.contains("HttpClientInterface") || text.contains("HttpClient") {
-                        return true;
-                    }
-                }
-            }
+    let mut cursor = params.walk();
+    params.named_children(&mut cursor).any(|param| {
+        param
+            .child_by_field_name("name")
+            .and_then(|n| node_text(content, n))
+            .is_some_and(|var| var.trim_start_matches('$') == bare)
+            && param
+                .child_by_field_name("type")
+                .is_some_and(|ty| type_names_symfony_client(ty, content))
+    })
+}
+
+fn type_names_symfony_client(ty: Node, content: &str) -> bool {
+    node_text(content, ty).is_some_and(|text| {
+        let base = text.trim_start_matches('?');
+        let last = base.rsplit('\\').next().unwrap_or(base);
+        last == "HttpClientInterface" || last == "HttpClient"
+    })
+}
+
+/// The receiver is a proven Guzzle client: a `Client`/`ClientInterface`-typed
+/// parameter, or a variable assigned from `new Client()` / `new
+/// \GuzzleHttp\Client()` in the enclosing scope. Any other variable receiver
+/// stays silent (M2) even when the Guzzle gate is open.
+fn ident_is_guzzle_client(name: &str, from: Node, content: &str) -> bool {
+    ident_is_guzzle_typed_param(name, from, content)
+        || variable_from_guzzle_new(name, from, content)
+}
+
+fn ident_is_guzzle_typed_param(name: &str, from: Node, content: &str) -> bool {
+    let Some(function) = enclosing_function(from) else {
+        return false;
+    };
+    let Some(params) = function.child_by_field_name("parameters") else {
+        return false;
+    };
+    let bare = name.trim_start_matches('$');
+    let mut cursor = params.walk();
+    params.named_children(&mut cursor).any(|param| {
+        param
+            .child_by_field_name("name")
+            .and_then(|n| node_text(content, n))
+            .is_some_and(|var| var.trim_start_matches('$') == bare)
+            && param
+                .child_by_field_name("type")
+                .is_some_and(|ty| type_names_guzzle_client(ty, content))
+    })
+}
+
+fn type_names_guzzle_client(ty: Node, content: &str) -> bool {
+    node_text(content, ty).is_some_and(|text| {
+        let base = text.trim_start_matches('?').trim_start_matches('\\');
+        let last = base.rsplit('\\').next().unwrap_or(base);
+        last == "Client" || last == "ClientInterface"
+    })
+}
+
+fn variable_from_guzzle_new(name: &str, from: Node, content: &str) -> bool {
+    let scope = enclosing_function(from).unwrap_or_else(|| {
+        let mut node = from;
+        while let Some(parent) = node.parent() {
+            node = parent;
         }
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            stack.push(child);
+        node
+    });
+    let mut found = false;
+    walk_assignments(scope, content, from.start_byte(), &mut |var, value| {
+        if var == name && is_guzzle_client_new(value, content) {
+            found = true;
         }
+    });
+    found
+}
+
+/// `new Client()` (import-gated bare name) or the exact `new
+/// \GuzzleHttp\Client()` FQN — a foreign `new \Aws\Client()` never proves.
+fn is_guzzle_client_new(node: Node, content: &str) -> bool {
+    if node.kind() != "object_creation_expression" {
+        return false;
     }
-    false
+    let mut cursor = node.walk();
+    let Some(class) = node
+        .named_children(&mut cursor)
+        .find(|child| matches!(child.kind(), "name" | "qualified_name"))
+    else {
+        return false;
+    };
+    let Some(text) = node_text(content, class) else {
+        return false;
+    };
+    let normalized = text.replace("\\\\", "\\");
+    let base = normalized.trim_start_matches('\\');
+    match class.kind() {
+        "name" => base == "Client",
+        _ => base == "GuzzleHttp\\Client",
+    }
 }
 
 fn enclosing_function(from: Node) -> Option<Node> {
@@ -317,8 +367,12 @@ fn enclosing_function(from: Node) -> Option<Node> {
     None
 }
 
-fn walk_assignments(node: Node, content: &str, f: &mut dyn FnMut(&str, Node)) {
+/// Visit assignments in the current scope that COMPLETE before byte `limit`
+/// (the call being proven): later assignments and nested-closure assignments
+/// never prove a receiver.
+fn walk_assignments(node: Node, content: &str, limit: usize, f: &mut dyn FnMut(&str, Node)) {
     if node.kind() == "assignment_expression"
+        && node.end_byte() <= limit
         && let Some(left) = node.child_by_field_name("left")
         && left.kind() == "variable_name"
         && let Some(name) = node_text(content, left)
@@ -328,7 +382,13 @@ fn walk_assignments(node: Node, content: &str, f: &mut dyn FnMut(&str, Node)) {
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk_assignments(child, content, f);
+        if matches!(
+            child.kind(),
+            "function_definition" | "method_declaration" | "anonymous_function"
+        ) {
+            continue;
+        }
+        walk_assignments(child, content, limit, f);
     }
 }
 
@@ -336,7 +396,7 @@ fn client_root(call: Node, content: &str) -> Option<ClientRoot> {
     let mut receiver = match call.kind() {
         "scoped_call_expression" => {
             let scope = node_text(content, call.child_by_field_name("scope")?)?;
-            if scope.ends_with("HttpClient")
+            if scope_names_symfony_http_client(scope)
                 && node_text(content, call.child_by_field_name("name")?) == Some("create")
             {
                 return Some(ClientRoot::CreateChain);
@@ -352,7 +412,7 @@ fn client_root(call: Node, content: &str) -> Option<ClientRoot> {
             "scoped_call_expression" => {
                 let scope = node_text(content, receiver.child_by_field_name("scope")?)?;
                 let name = node_text(content, receiver.child_by_field_name("name")?)?;
-                if scope.ends_with("HttpClient") && name == "create" {
+                if scope_names_symfony_http_client(scope) && name == "create" {
                     return Some(ClientRoot::CreateChain);
                 }
                 return Some(ClientRoot::Facade(scope.to_string()));
@@ -370,6 +430,9 @@ fn client_root(call: Node, content: &str) -> Option<ClientRoot> {
     }
 }
 
+/// Emit curl facts per scope: the top-level script body and each
+/// function/method/closure body, tracked independently (cross-scope handles
+/// stay silent).
 fn collect_curl_facts(
     root: Node,
     language: &str,
@@ -378,15 +441,14 @@ fn collect_curl_facts(
     content: &str,
     facts: &mut Vec<StructuralFact>,
 ) {
-    // Per-function single-assignment tracking only.
+    collect_curl_in_scope(root, language, tree, file_path, content, facts);
     let mut stack = vec![root];
     while let Some(node) = stack.pop() {
         if matches!(
             node.kind(),
             "function_definition" | "method_declaration" | "anonymous_function"
         ) {
-            collect_curl_in_function(node, language, tree, file_path, content, facts);
-            continue;
+            collect_curl_in_scope(node, language, tree, file_path, content, facts);
         }
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
@@ -395,8 +457,8 @@ fn collect_curl_facts(
     }
 }
 
-fn collect_curl_in_function(
-    function: Node,
+fn collect_curl_in_scope(
+    scope: Node,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -405,7 +467,7 @@ fn collect_curl_in_function(
 ) {
     let mut handles: HashMap<String, CurlHandle> = HashMap::new();
     let mut anonymous: Vec<CurlHandle> = Vec::new();
-    gather_curl(function, content, &mut handles, &mut anonymous);
+    gather_curl(scope, content, &mut handles, &mut anonymous);
 
     for handle in handles.into_values().chain(anonymous) {
         let Some(target_path) = handle.target_path.as_deref() else {
@@ -445,13 +507,13 @@ fn gather_curl(
                 && is_curl_init_call(right, content)
             {
                 let handle = curl_handle_from_init(right, content);
-                handles.insert(name.to_string(), handle);
+                if let Some(previous) = handles.insert(name.to_string(), handle) {
+                    anonymous.push(previous);
+                }
             }
         }
         "function_call_expression" => {
             if is_curl_init_call(node, content) {
-                // Only anonymous if not the right-hand side of an assignment
-                // (assignment path handles named). Parent check:
                 let assigned = node
                     .parent()
                     .is_some_and(|p| p.kind() == "assignment_expression");
@@ -466,6 +528,12 @@ fn gather_curl(
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
+        if matches!(
+            child.kind(),
+            "function_definition" | "method_declaration" | "anonymous_function"
+        ) {
+            continue;
+        }
         gather_curl(child, content, handles, anonymous);
     }
 }
@@ -493,8 +561,6 @@ fn curl_handle_from_init(init: Node, content: &str) -> CurlHandle {
         && let Some(path) = static_route_arg(url_arg, content, StaticArgLang::Php)
     {
         handle.target_path = Some(path.to_string());
-        handle.url_start = init.start_byte();
-        handle.url_end = init.end_byte();
     }
     handle
 }
@@ -538,12 +604,15 @@ fn apply_curl_setopt(call: Node, content: &str, handles: &mut HashMap<String, Cu
             let Some(verb_arg) = nth_positional_arg_value(arguments, 2) else {
                 return;
             };
-            let Some(verb_lit) = static_route_arg(verb_arg, content, StaticArgLang::Php) else {
-                return;
-            };
-            if let Some(verb) = verb_for_method(verb_lit) {
-                handle.verb = verb;
-                handle.verb_source = "attested";
+            // A dynamic or unrecognized method would emit a wrong default-GET
+            // verb — silence the handle instead (M2).
+            match static_route_arg(verb_arg, content, StaticArgLang::Php).and_then(verb_for_method)
+            {
+                Some(verb) => {
+                    handle.verb = verb;
+                    handle.verb_source = "attested";
+                }
+                None => handle.target_path = None,
             }
         }
         "CURLOPT_POST" => {

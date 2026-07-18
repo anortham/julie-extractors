@@ -154,6 +154,12 @@
               "reason": "A `.nest(\"/api\", sub_router)` mounts a sub-router whose routes are defined in another function/file, so the nest prefix cannot flow into those routes' effective_route_template in-file; axum.nest.v1 records the mount at its own site with mount_path/mount_target only.",
               "required_closure": "resolve nest prefix to sub-router routes, which is Miller's cross-file join responsibility per decision 0004; the extractor emits axum.nest.v1 and guesses no join",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
+            },
+            {
+              "kind": "rust.http_client.instance_receiver",
+              "reason": "The reqwest builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) — a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss).",
+              "required_closure": "extend reqwest builder detection to struct-field/typed receivers if in-file type resolution becomes available; scoped `reqwest::get(\"url\")` and proven-receiver forms already emit",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
           ]
         },
@@ -2954,6 +2960,12 @@
               "reason": "A RouteServiceProvider `/api` group prefix is applied cross-file (in the provider, not the routes file), so it cannot flow into a route's effective_route_template in-file; route_template is therefore not guaranteed to be the absolute public path when such a prefix applies.",
               "required_closure": "resolve RouteServiceProvider group prefixes cross-file, which is Miller's join responsibility per decision 0004; the extractor emits laravel.route_prefix.v1 only for same-file prefixes",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file RouteServiceProvider prefix)"
+            },
+            {
+              "kind": "php.http_client.instance_receiver",
+              "reason": "Guzzle and Symfony variable receivers are proven only via a typed parameter (`Client`/`ClientInterface`/`HttpClientInterface`/`HttpClient`) or a same-scope `new \\GuzzleHttp\\Client()` / `HttpClient::create()` assignment — a property (`$this->client->get(...)`) or cross-file/DI-provided receiver is syntactically identical to a non-HTTP call and stays silent by M2 (a false client edge is worse than a miss). Cross-function curl handles also stay silent.",
+              "required_closure": "extend receiver proofs to promoted-property/class-property receivers if in-file type resolution becomes available; typed-param and same-scope construction forms already emit",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
           ]
         },
@@ -3437,6 +3449,12 @@
               "reason": "The RouterFunction / coRouter functional DSL nests routes via nest()/path() closures that are not single-assignment same-file; annotation routing is the shipped Kotlin+Spring claim.",
               "required_closure": "add a lexical-containment collector for coRouter/RouterFunction nesting once a same-file nesting model is designed",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2 (Kotlin RouterFunction/coRouter deferral)"
+            },
+            {
+              "kind": "kotlin.http_client.instance_receiver",
+              "reason": "Ktor/WebClient/RestTemplate receivers are proven only via a typed function or primary-constructor parameter, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local — class-property, DI-provided, or cross-file receivers are syntactically identical to non-HTTP fluent calls and stay silent by M2. Retrofit `@HTTP(method = ...)` annotations also stay silent (no static verb element support).",
+              "required_closure": "extend receiver proofs to class-property/field receivers if in-file type resolution becomes available; add `@HTTP` static-element parsing if demanded",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
           ]
         },
@@ -3899,6 +3917,18 @@
               "reason": "A `scope` prefix declared in another router module (or via a forwarded plug's own router) is applied cross-file, so it cannot flow into a route's effective_route_template in-file; route_template is therefore not guaranteed to be the absolute public path when such a prefix applies.",
               "required_closure": "resolve cross-file scope/forward prefixes, which is Miller's join responsibility per decision 0004; the extractor emits phoenix.forward.v1 only for same-file forwards",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2c (cross-file prefix registration)"
+            },
+            {
+              "kind": "elixir.http_client.tesla_middleware_base_url",
+              "reason": "Tesla client middleware base URLs (`Tesla.client([{Tesla.Middleware.BaseUrl, \"https://api\"}])`) are declared apart from the request call, so `Tesla.get(client, \"/path\")` emits only the static path argument — the middleware base URL is not joined into target_path in-file.",
+              "required_closure": "join same-file Tesla middleware base URLs into request facts if a same-file client-binding model is designed; static URL arguments already emit",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
+            },
+            {
+              "kind": "elixir.http_client.alias_resolution",
+              "reason": "Module receivers are matched by literal alias name (`Req.`, `Tesla.`, ...), not resolved through `alias` declarations: `alias MyApp.Fake, as: Req` makes a non-HTTP `Req.get(...)` emit, and `alias Req, as: R` makes real `R.get(...)` calls stay silent.",
+              "required_closure": "resolve `alias ... , as:` declarations to canonical module names before matching, if in-file alias resolution is added to the Elixir lane",
+              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
           ]
         },

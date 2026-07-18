@@ -18,16 +18,7 @@ struct ElixirClientRequest<'a> {
 }
 
 fn verb_for_method(method: &str) -> Option<&'static str> {
-    match method.strip_suffix('!').unwrap_or(method) {
-        "get" | "GET" => Some("GET"),
-        "post" | "POST" => Some("POST"),
-        "put" | "PUT" => Some("PUT"),
-        "patch" | "PATCH" => Some("PATCH"),
-        "delete" | "DELETE" => Some("DELETE"),
-        "head" | "HEAD" => Some("HEAD"),
-        "options" | "OPTIONS" => Some("OPTIONS"),
-        _ => None,
-    }
+    super::verb_for_token(method.strip_suffix('!').unwrap_or(method))
 }
 
 fn atom_verb(atom: &str) -> Option<&'static str> {
@@ -210,21 +201,17 @@ fn finch_request<'a>(
 
 fn httpc_request<'a>(call: Node<'_>, content: &'a str) -> Option<ElixirClientRequest<'a>> {
     let target = call.child_by_field_name("target")?;
-    // :httpc.request(...) — target is a dot with left atom :httpc
     if target.kind() != "dot" {
         return None;
     }
     let left = target.child_by_field_name("left")?;
     let right = target.child_by_field_name("right")?;
-    let left_text = node_text(content, left)?;
-    let right_text = node_text(content, right)?;
-    if left_text != ":httpc" && left_text != "httpc" {
-        // tree-sitter may parse atom as :httpc
-        if !(left.kind() == "atom" && left_text.trim_start_matches(':') == "httpc") {
-            return None;
-        }
+    // Only the `:httpc` atom receiver counts; a variable named `httpc` is not
+    // the OTP client (M2).
+    if left.kind() != "atom" || node_text(content, left)? != ":httpc" {
+        return None;
     }
-    if right_text != "request" {
+    if node_text(content, right)? != "request" {
         return None;
     }
     let arguments = child_of_kind(call, "arguments")?;
@@ -259,7 +246,6 @@ fn atom_from_node<'a>(node: Node<'_>, content: &'a str) -> Option<&'a str> {
     if node.kind() == "atom" || text.starts_with(':') {
         return Some(text);
     }
-    // sometimes bare identifier used? no
     None
 }
 

@@ -1742,7 +1742,6 @@ fn load(url: &str, map: std::collections::HashMap<&str, &str>) {
 
 #[test]
 fn rust_hyper_comment_use_does_not_gate_bare_request_builder() {
-    // Comment-only `use hyper` must not prove bare `Request::builder()`.
     let source = r#"
 // use hyper::Request;
 fn load() {
@@ -1759,7 +1758,6 @@ fn load() {
 
 #[test]
 fn kotlin_spring_webclient_unrelated_fluent_receiver_stays_silent() {
-    // WebClient import alone must not attribute unrelated fluent chains.
     let source = r#"
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -1794,7 +1792,6 @@ fun load(other: OtherClient) {
 
 #[test]
 fn kotlin_spring_sibling_method_typed_params_do_not_prove_receiver() {
-    // Sibling method params must never prove the receiver of a call in another method.
     let source = r#"
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.client.RestTemplate
@@ -1817,7 +1814,6 @@ class Controller {
 
 #[test]
 fn php_guzzle_comment_use_does_not_gate_variable_request() {
-    // Comment-only Guzzle import must not attribute arbitrary ->request(...).
     let source = r#"<?php
 // use GuzzleHttp\Client;
 function load($other) {
@@ -1830,4 +1826,572 @@ function load($other) {
         facts.is_empty(),
         "comment-only Guzzle import must not emit guzzle facts: {facts:#?}"
     );
+}
+
+#[test]
+fn kotlin_ktor_uppercase_dsl_call_stays_silent() {
+    let source = r#"
+import io.ktor.client.HttpClient
+
+fun schedule(queue: JobQueue) {
+    queue.DELETE("/jobs/1")
+}
+"#;
+    let results = extract("src/Scheduler.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "uppercase DSL call must not emit a ktor fact: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_spring_prefixed_param_type_does_not_prove_receiver() {
+    let source = r#"
+import org.springframework.web.client.RestTemplate
+import org.springframework.web.reactive.function.client.WebClient
+
+fun evict(registry: RestTemplateRegistry, client: WebClientFactory) {
+    registry.delete("/cache/users")
+    client.get().uri("/x")
+}
+"#;
+    let results = extract("src/Evict.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "prefixed param types must not prove Spring receivers: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_spring_typed_param_receiver_still_emits() {
+    let source = r#"
+import org.springframework.web.client.RestTemplate
+
+fun load(rest: RestTemplate) {
+    rest.getForObject("/users/1", String::class.java)
+}
+"#;
+    let results = extract("src/Load.kt", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("spring_resttemplate"));
+    assert_eq!(metadata_str(fact, "target_path"), Some("/users/1"));
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+}
+
+#[test]
+fn kotlin_okhttp_unrelated_request_named_chain_stays_silent() {
+    let source = r#"
+import okhttp3.Request
+
+fun sign() {
+    val req = getRequestSigner().Builder().url("/internal/sign").build()
+}
+"#;
+    let results = extract("src/Signer.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "non-okhttp builder chain must not emit an okhttp fact: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_retrofit_qualified_annotation_resolves_verb() {
+    let source = r#"
+interface UserApi {
+    @retrofit2.http.GET("/users")
+    suspend fun users(): List<String>
+}
+"#;
+    let results = extract("src/UserApi.kt", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("retrofit"));
+    assert_eq!(metadata_str(fact, "target_path"), Some("/users"));
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+}
+
+#[test]
+fn php_symfony_factory_assignment_does_not_prove_receiver() {
+    let source = r#"<?php
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+function load() {
+    $client = HttpClientFactory::make();
+    $client->request('GET', '/orders');
+}
+"#;
+    let results = extract("src/Load.php", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "factory assignment text must not prove a Symfony receiver: {facts:#?}"
+    );
+}
+
+#[test]
+fn php_symfony_interpolated_string_does_not_prove_untyped_receiver() {
+    let source = r#"<?php
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+function fetchStatus(HttpClientInterface $http, $soap) {
+    $note = "uses HttpClientInterface via $soap";
+    $soap->request('GET', '/soap-endpoint');
+}
+"#;
+    let results = extract("src/Status.php", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "string interpolation must not prove an untyped receiver: {facts:#?}"
+    );
+}
+
+#[test]
+fn php_symfony_typed_param_receiver_still_emits() {
+    let source = r#"<?php
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+function fetchOrders(HttpClientInterface $client) {
+    $client->request('GET', '/orders');
+}
+"#;
+    let results = extract("src/Orders.php", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("symfony_http_client"));
+    assert_eq!(metadata_str(fact, "target_path"), Some("/orders"));
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+}
+
+#[test]
+fn php_guzzle_fqn_only_reference_gates_client_requests() {
+    let source = r#"<?php
+function load() {
+    $client = new \GuzzleHttp\Client();
+    $client->get('https://api.example.com/users');
+}
+"#;
+    let results = extract("src/Load.php", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("guzzle"));
+    assert_eq!(
+        metadata_str(fact, "target_path"),
+        Some("https://api.example.com/users")
+    );
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+}
+
+#[test]
+fn php_top_level_curl_statements_emit_facts() {
+    let source = r#"<?php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, 'https://api.example.com/x');
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+curl_exec($ch);
+"#;
+    let results = extract("src/script.php", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("curl"));
+    assert_eq!(
+        metadata_str(fact, "target_path"),
+        Some("https://api.example.com/x")
+    );
+    assert_eq!(metadata_str(fact, "verb"), Some("DELETE"));
+}
+
+#[test]
+fn php_curl_handle_reuse_emits_both_requests() {
+    let source = r#"<?php
+function pair() {
+    $ch = curl_init('https://api.example.com/a');
+    curl_exec($ch);
+    curl_close($ch);
+    $ch = curl_init('https://api.example.com/b');
+    curl_exec($ch);
+}
+"#;
+    let results = extract("src/Pair.php", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    let paths: Vec<_> = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "target_path"))
+        .collect();
+    assert!(paths.contains(&"https://api.example.com/a"));
+    assert!(paths.contains(&"https://api.example.com/b"));
+}
+
+#[test]
+fn elixir_local_variable_named_httpc_stays_silent() {
+    let source = r#"
+defmodule Machine do
+  def fetch do
+    Req.get("https://api.example.com/real")
+  end
+
+  def start_machine(httpc) do
+    httpc.request("start")
+  end
+end
+"#;
+    let results = extract("lib/machine.ex", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_str(facts[0], "client"), Some("req"));
+}
+
+#[test]
+fn kotlin_spring_suffixed_ctor_type_does_not_prove_receiver() {
+    let source = r#"
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.client.RestTemplate
+
+fun load() {
+    AcmeWebClient.create().get().uri("/acme/users").retrieve()
+    LegacyRestTemplate.builder().getForObject("/legacy/x", String::class.java)
+}
+"#;
+    let results = extract("src/Acme.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "suffixed ctor type names must not prove Spring receivers: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_spring_constructor_injected_client_emits() {
+    let source = r#"
+import org.springframework.web.reactive.function.client.WebClient
+
+class Api(private val web: WebClient) {
+    fun users() {
+        web.get().uri("/ctor/users").retrieve()
+    }
+}
+"#;
+    let results = extract("src/Api.kt", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("spring_webclient"));
+    assert_eq!(metadata_str(fact, "target_path"), Some("/ctor/users"));
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+}
+
+#[test]
+fn kotlin_okhttp_dotted_request_builder_on_foreign_object_stays_silent() {
+    let source = r#"
+import okhttp3.Request
+
+fun sign() {
+    val req = sdk.Request.Builder().url("/sdk-dotted").build()
+}
+"#;
+    let results = extract("src/Sdk.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "foreign dotted Request.Builder must not emit okhttp facts: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_okhttp_qualified_request_builder_still_emits() {
+    let source = r#"
+import okhttp3.Request
+
+fun fetch() {
+    val req = okhttp3.Request.Builder().url("https://api.example.com/items").build()
+}
+"#;
+    let results = extract("src/Fetch.kt", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("okhttp"));
+    assert_eq!(
+        metadata_str(fact, "target_path"),
+        Some("https://api.example.com/items")
+    );
+}
+
+#[test]
+fn kotlin_ktor_unproven_receiver_stays_silent() {
+    let source = r#"
+import io.ktor.client.HttpClient
+
+fun authHeader(headers: Headers): String? {
+    return headers.get("Authorization")
+}
+"#;
+    let results = extract("src/Auth.kt", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "unproven receiver must not emit ktor facts: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_ktor_local_http_client_assignment_proves_receiver() {
+    let source = r#"
+import io.ktor.client.HttpClient
+
+suspend fun ping() {
+    val client = HttpClient(CIO)
+    client.get("https://api.example.com/ping")
+}
+"#;
+    let results = extract("src/Ping.kt", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("ktor"));
+    assert_eq!(
+        metadata_str(fact, "target_path"),
+        Some("https://api.example.com/ping")
+    );
+}
+
+#[test]
+fn rust_bare_client_ctor_without_reqwest_use_stays_silent() {
+    let source = r#"
+// migrated off reqwest to the AWS SDK
+use aws_sdk_s3::Client;
+
+async fn fetch() {
+    let client = Client::new();
+    let _ = client.get("https://api.example.com/bucket/key");
+}
+"#;
+    let results = extract("src/s3.rs", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "bare Client ctor without a reqwest use must not emit reqwest facts: {facts:#?}"
+    );
+}
+
+#[test]
+fn rust_bare_client_ctor_with_reqwest_use_still_emits() {
+    let source = r#"
+use reqwest::Client;
+
+async fn fetch() {
+    let client = Client::new();
+    let _ = client.get("https://api.example.com/users");
+}
+"#;
+    let results = extract("src/client.rs", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("reqwest"));
+    assert_eq!(
+        metadata_str(fact, "target_path"),
+        Some("https://api.example.com/users")
+    );
+}
+
+#[test]
+fn php_symfony_suffixed_factory_class_does_not_prove_receiver() {
+    let source = r#"<?php
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+function load() {
+    AcmeHttpClient::create()->request('GET', 'https://api.example.com/acme');
+    $c = MyHttpClient::create();
+    $c->request('POST', 'https://api.example.com/b');
+}
+"#;
+    let results = extract("src/Acme.php", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "suffixed factory class names must not prove Symfony receivers: {facts:#?}"
+    );
+}
+
+#[test]
+fn php_guzzle_unproven_variable_receiver_stays_silent() {
+    let source = r#"<?php
+use GuzzleHttp\Client;
+
+function load(Client $client, $repository, $queue) {
+    $client->get('https://api.example.com/real');
+    $repository->get('users.cache.key');
+    $repository->request('GET', '/not-http');
+    $queue->DELETE('/jobs/1');
+}
+"#;
+    let results = extract("src/Load.php", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata_str(facts[0], "target_path"),
+        Some("https://api.example.com/real")
+    );
+}
+
+#[test]
+fn rust_foreign_scoped_client_ctor_stays_silent() {
+    let source = r#"
+// reqwest was removed from this module
+async fn fetch() {
+    let client = aws::Client::new();
+    let _ = client.get("https://api.example.com/bucket");
+}
+"#;
+    let results = extract("src/aws.rs", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "foreign scoped Client ctor must not emit reqwest facts: {facts:#?}"
+    );
+}
+
+#[test]
+fn rust_foreign_scoped_client_param_stays_silent() {
+    let source = r#"
+// reqwest was removed from this module
+async fn fetch(client: &aws::Client) {
+    let _ = client.get("https://api.example.com/bucket");
+}
+"#;
+    let results = extract("src/aws.rs", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "foreign scoped Client param must not emit reqwest facts: {facts:#?}"
+    );
+}
+
+#[test]
+fn rust_reqwest_use_without_client_does_not_prove_bare_client() {
+    let source = r#"
+use reqwest::StatusCode;
+use aws_sdk_s3::Client;
+
+async fn fetch() {
+    let client = Client::new();
+    let _ = client.get("https://api.example.com/bucket");
+}
+"#;
+    let results = extract("src/s3.rs", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "a non-Client reqwest use must not prove a bare foreign Client: {facts:#?}"
+    );
+}
+
+#[test]
+fn kotlin_spring_local_client_assignment_proves_receiver() {
+    let source = r#"
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.client.RestTemplate
+
+fun load() {
+    val web = WebClient.create("https://api.example.com")
+    web.get().uri("/local/users").retrieve()
+    val rest = RestTemplate()
+    rest.getForObject("/local/items", String::class.java)
+}
+"#;
+    let results = extract("src/Local.kt", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 2, "{facts:#?}");
+    let paths: Vec<_> = facts
+        .iter()
+        .filter_map(|fact| metadata_str(fact, "target_path"))
+        .collect();
+    assert!(paths.contains(&"/local/users"));
+    assert!(paths.contains(&"/local/items"));
+}
+
+#[test]
+fn php_foreign_fqn_client_new_does_not_prove_guzzle() {
+    let source = r#"<?php
+use GuzzleHttp\Client;
+
+function load() {
+    $c = new \Aws\Client();
+    $c->get('https://api.example.com/bucket');
+}
+"#;
+    let results = extract("src/Aws.php", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "a foreign FQN Client ctor must not prove a Guzzle receiver: {facts:#?}"
+    );
+}
+
+#[test]
+fn php_assignment_after_call_does_not_prove_receiver() {
+    let source = r#"<?php
+use GuzzleHttp\Client;
+
+function load($c) {
+    $c->request('GET', 'https://api.example.com/before');
+    $c = new Client();
+    $c->request('GET', 'https://api.example.com/after');
+}
+"#;
+    let results = extract("src/Order.php", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(
+        metadata_str(facts[0], "target_path"),
+        Some("https://api.example.com/after")
+    );
+}
+
+#[test]
+fn php_closure_scoped_assignment_does_not_prove_outer_receiver() {
+    let source = r#"<?php
+use GuzzleHttp\Client;
+
+function load($c) {
+    $make = function () {
+        $c = new Client();
+        return $c;
+    };
+    $c->get('https://api.example.com/outer');
+}
+"#;
+    let results = extract("src/Closure.php", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "a closure-local assignment must not prove the outer receiver: {facts:#?}"
+    );
+}
+
+#[test]
+fn php_curl_dynamic_custom_request_stays_silent() {
+    let source = r#"<?php
+function send($method) {
+    $ch = curl_init('https://api.example.com/x');
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_exec($ch);
+}
+"#;
+    let results = extract("src/Send.php", source);
+    let facts = client_requests(&results);
+    assert!(
+        facts.is_empty(),
+        "a dynamic CUSTOMREQUEST verb must silence the handle: {facts:#?}"
+    );
+}
+
+#[test]
+fn rust_pub_use_hyper_proves_import_gate() {
+    let source = r#"
+pub use hyper::Request;
+
+fn health() {
+    let _ = Request::builder().uri("/health").body(());
+}
+"#;
+    let results = extract("src/facade.rs", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("hyper"));
+    assert_eq!(metadata_str(fact, "target_path"), Some("/health"));
+    assert_eq!(metadata_str(fact, "verb"), Some("GET"));
+    assert_eq!(metadata_str(fact, "verb_source"), Some("default"));
 }

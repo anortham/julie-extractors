@@ -15,7 +15,9 @@ use tree_sitter::{Node, Tree};
 
 use super::super::helpers::node_text;
 use super::super::static_arg::{StaticArgLang, static_route_arg};
-use super::client_fact;
+use super::{
+    client_fact, verb_for_lower_method as verb_for_method, verb_for_token as http_verb_name,
+};
 use crate::base::http_boundary::classify_url;
 use crate::base::types::StructuralFact;
 
@@ -24,33 +26,6 @@ struct RustClientRequest<'a> {
     target_path: &'a str,
     verb: &'static str,
     verb_source: &'static str,
-}
-
-/// The reqwest/ureq request verb methods this collector recognises.
-fn verb_for_method(method: &str) -> Option<&'static str> {
-    match method {
-        "get" => Some("GET"),
-        "post" => Some("POST"),
-        "put" => Some("PUT"),
-        "patch" => Some("PATCH"),
-        "delete" => Some("DELETE"),
-        "head" => Some("HEAD"),
-        "options" => Some("OPTIONS"),
-        _ => None,
-    }
-}
-
-fn http_verb_name(name: &str) -> Option<&'static str> {
-    match name {
-        "GET" | "Get" | "get" => Some("GET"),
-        "POST" | "Post" | "post" => Some("POST"),
-        "PUT" | "Put" | "put" => Some("PUT"),
-        "PATCH" | "Patch" | "patch" => Some("PATCH"),
-        "DELETE" | "Delete" | "delete" => Some("DELETE"),
-        "HEAD" | "Head" | "head" => Some("HEAD"),
-        "OPTIONS" | "Options" | "options" => Some("OPTIONS"),
-        _ => None,
-    }
 }
 
 pub(super) fn collect_rust_http_client_requests(
@@ -68,21 +43,26 @@ pub(super) fn collect_rust_http_client_requests(
         return Vec::new();
     }
 
+    let has_reqwest_use = has_reqwest && has_rust_use_reqwest_client(tree.root_node(), content);
     let clients = if has_reqwest {
-        collect_reqwest_clients(tree.root_node(), content)
+        collect_reqwest_clients(tree.root_node(), content, has_reqwest_use)
     } else {
         HashSet::new()
     };
     let has_hyper_import = has_hyper && has_rust_use_crate(tree.root_node(), content, "hyper");
+    let gates = RustGates {
+        clients,
+        has_reqwest,
+        has_reqwest_use,
+        has_hyper,
+        has_hyper_import,
+        has_ureq,
+    };
 
     let mut facts = Vec::new();
     walk(
         tree.root_node(),
-        &clients,
-        has_reqwest,
-        has_hyper,
-        has_hyper_import,
-        has_ureq,
+        &gates,
         language,
         tree,
         file_path,
@@ -92,14 +72,18 @@ pub(super) fn collect_rust_http_client_requests(
     facts
 }
 
-#[allow(clippy::too_many_arguments)]
-fn walk(
-    node: Node,
-    clients: &HashSet<String>,
+struct RustGates {
+    clients: HashSet<String>,
     has_reqwest: bool,
+    has_reqwest_use: bool,
     has_hyper: bool,
     has_hyper_import: bool,
     has_ureq: bool,
+}
+
+fn walk(
+    node: Node,
+    gates: &RustGates,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -107,15 +91,7 @@ fn walk(
     facts: &mut Vec<StructuralFact>,
 ) {
     if node.kind() == "call_expression"
-        && let Some(req) = classify_rust_client_request(
-            node,
-            clients,
-            has_reqwest,
-            has_hyper,
-            has_hyper_import,
-            has_ureq,
-            content,
-        )
+        && let Some(req) = classify_rust_client_request(node, gates, content)
         && let Some(fact) = client_fact(
             language,
             tree,
@@ -134,38 +110,28 @@ fn walk(
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(
-            child,
-            clients,
-            has_reqwest,
-            has_hyper,
-            has_hyper_import,
-            has_ureq,
-            language,
-            tree,
-            file_path,
-            content,
-            facts,
-        );
+        walk(child, gates, language, tree, file_path, content, facts);
     }
 }
 
 fn classify_rust_client_request<'a>(
     call: Node<'_>,
-    reqwest_clients: &HashSet<String>,
-    has_reqwest: bool,
-    has_hyper: bool,
-    has_hyper_import: bool,
-    has_ureq: bool,
+    gates: &RustGates,
     content: &'a str,
 ) -> Option<RustClientRequest<'a>> {
-    if has_reqwest && let Some(req) = reqwest_request(call, reqwest_clients, content) {
+    if gates.has_reqwest
+        && let Some(req) = reqwest_request(call, gates, content)
+    {
         return Some(req);
     }
-    if has_hyper && let Some(req) = hyper_builder_request(call, content, has_hyper_import) {
+    if gates.has_hyper
+        && let Some(req) = hyper_builder_request(call, content, gates.has_hyper_import)
+    {
         return Some(req);
     }
-    if has_ureq && let Some(req) = ureq_request(call, content) {
+    if gates.has_ureq
+        && let Some(req) = ureq_request(call, content)
+    {
         return Some(req);
     }
     None
@@ -173,7 +139,7 @@ fn classify_rust_client_request<'a>(
 
 fn reqwest_request<'a>(
     call: Node<'_>,
-    clients: &HashSet<String>,
+    gates: &RustGates,
     content: &'a str,
 ) -> Option<RustClientRequest<'a>> {
     let function = call.child_by_field_name("function")?;
@@ -189,7 +155,7 @@ fn reqwest_request<'a>(
             let method = node_text(content, function.child_by_field_name("field")?)?;
             let verb = verb_for_method(method)?;
             let receiver = function.child_by_field_name("value")?;
-            if !receiver_is_proven_reqwest(receiver, content, clients, call) {
+            if !receiver_is_proven_reqwest(receiver, content, gates, call) {
                 return None;
             }
             (verb, true)
@@ -347,15 +313,16 @@ fn scoped_is_hyper_request_builder(
 }
 
 /// True when a real `use_declaration` AST node imports `crate_name` (or a path
-/// under it). Comments and string literals never produce `use_declaration` nodes.
+/// under it). Comments and string literals never produce `use_declaration`
+/// nodes. The `argument` field skips any visibility modifier (`pub use ...`).
 fn has_rust_use_crate(node: Node, content: &str, crate_name: &str) -> bool {
     if node.kind() == "use_declaration"
-        && let Some(text) = node_text(content, node)
+        && let Some(argument) = node.child_by_field_name("argument")
+        && let Some(text) = node_text(content, argument)
     {
-        let rest = text.trim_start().trim_start_matches("use").trim_start();
+        let rest = text.trim_start();
         if rest == crate_name
             || rest.starts_with(&format!("{crate_name}::"))
-            || rest.starts_with(&format!("{crate_name};"))
             || rest.starts_with(&format!("{crate_name} "))
         {
             return true;
@@ -444,13 +411,14 @@ enum ReqwestRoot {
 fn receiver_is_proven_reqwest(
     receiver: Node,
     content: &str,
-    clients: &HashSet<String>,
+    gates: &RustGates,
     call: Node,
 ) -> bool {
-    match reqwest_value_root(receiver, content) {
+    match reqwest_value_root(receiver, content, gates.has_reqwest_use) {
         ReqwestRoot::ClientCtor => true,
         ReqwestRoot::Ident(name) => {
-            clients.contains(&name) || ident_is_reqwest_typed_param(&name, call, content)
+            gates.clients.contains(&name)
+                || ident_is_reqwest_typed_param(&name, call, content, gates.has_reqwest_use)
         }
         ReqwestRoot::Other => false,
     }
@@ -462,9 +430,9 @@ fn receiver_is_proven_reqwest(
 /// client). A name with any conflicting non-reqwest assignment is left out
 /// (unproven → silence). Mirrors the axum single-assignment receiver trace, but
 /// proof-to-emit rather than proof-to-suppress.
-fn collect_reqwest_clients(root: Node, content: &str) -> HashSet<String> {
+fn collect_reqwest_clients(root: Node, content: &str, has_reqwest_use: bool) -> HashSet<String> {
     let mut assignments: HashMap<String, Vec<ReqwestRoot>> = HashMap::new();
-    collect_reqwest_assignments(root, content, &mut assignments);
+    collect_reqwest_assignments(root, content, &mut assignments, has_reqwest_use);
 
     // Fixpoint: a name is client-ish if any assignment roots at a client ctor or
     // aliases another (already client-ish) name.
@@ -506,6 +474,7 @@ fn collect_reqwest_assignments(
     node: Node,
     content: &str,
     assignments: &mut HashMap<String, Vec<ReqwestRoot>>,
+    has_reqwest_use: bool,
 ) {
     if node.kind() == "let_declaration"
         && let (Some(pattern), Some(value)) = (
@@ -518,7 +487,7 @@ fn collect_reqwest_assignments(
         assignments
             .entry(name.to_string())
             .or_default()
-            .push(reqwest_value_root(value, content));
+            .push(reqwest_value_root(value, content, has_reqwest_use));
     }
     if node.kind() == "assignment_expression"
         && let (Some(left), Some(right)) = (
@@ -531,18 +500,18 @@ fn collect_reqwest_assignments(
         assignments
             .entry(name.to_string())
             .or_default()
-            .push(reqwest_value_root(right, content));
+            .push(reqwest_value_root(right, content, has_reqwest_use));
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_reqwest_assignments(child, content, assignments);
+        collect_reqwest_assignments(child, content, assignments, has_reqwest_use);
     }
 }
 
 /// Classify the root of a value expression by unwinding method-call chains down
 /// to the base: a reqwest `Client` constructor → `ClientCtor`, a bare identifier
 /// → `Ident`, anything else → `Other`. Mirrors the axum `value_root` shape.
-fn reqwest_value_root(node: Node, content: &str) -> ReqwestRoot {
+fn reqwest_value_root(node: Node, content: &str, has_reqwest_use: bool) -> ReqwestRoot {
     let mut node = node;
     loop {
         match node.kind() {
@@ -559,7 +528,9 @@ fn reqwest_value_root(node: Node, content: &str) -> ReqwestRoot {
                         node = value;
                     }
                     // `reqwest::Client::new()` / `Client::builder()` base.
-                    "scoped_identifier" if scoped_is_reqwest_client_ctor(function, content) => {
+                    "scoped_identifier"
+                        if scoped_is_reqwest_client_ctor(function, content, has_reqwest_use) =>
+                    {
                         return ReqwestRoot::ClientCtor;
                     }
                     _ => return ReqwestRoot::Other,
@@ -586,7 +557,7 @@ fn reqwest_value_root(node: Node, content: &str) -> ReqwestRoot {
 /// Whether a `scoped_identifier` is a reqwest `Client` constructor —
 /// `reqwest::Client::new` / `reqwest::Client::builder`, or the import-gated bare
 /// `Client::new` / `Client::builder` (`use reqwest::Client;`).
-fn scoped_is_reqwest_client_ctor(scoped: Node, content: &str) -> bool {
+fn scoped_is_reqwest_client_ctor(scoped: Node, content: &str, has_reqwest_use: bool) -> bool {
     let ctor = scoped
         .child_by_field_name("name")
         .and_then(|name| node_text(content, name));
@@ -597,13 +568,17 @@ fn scoped_is_reqwest_client_ctor(scoped: Node, content: &str) -> bool {
         return false;
     };
     match path.kind() {
-        // Bare `Client::new` — the `use reqwest::Client;` idiom (import-gated).
-        "identifier" => node_text(content, path) == Some("Client"),
-        // `reqwest::Client::new` → path is `reqwest::Client` (name `Client`).
+        // Bare `Client::new` — only with a parser-backed `use reqwest...Client`.
+        "identifier" => node_text(content, path) == Some("Client") && has_reqwest_use,
+        // `reqwest::Client::new` → path `reqwest::Client`: the qualifier must
+        // be the reqwest crate, or `aws::Client::new()` would prove.
         "scoped_identifier" => {
             path.child_by_field_name("name")
                 .and_then(|name| node_text(content, name))
                 == Some("Client")
+                && path
+                    .child_by_field_name("path")
+                    .is_some_and(|inner| path_terminal_is(inner, content, "reqwest"))
         }
         _ => false,
     }
@@ -612,11 +587,16 @@ fn scoped_is_reqwest_client_ctor(scoped: Node, content: &str) -> bool {
 /// Whether `name` is a parameter of the enclosing `fn` typed as a reqwest
 /// `Client` (`reqwest::Client`, `&reqwest::Client`, or the import-gated bare
 /// `Client`) — the common injected-shared-client idiom.
-fn ident_is_reqwest_typed_param(name: &str, from: Node, content: &str) -> bool {
+fn ident_is_reqwest_typed_param(
+    name: &str,
+    from: Node,
+    content: &str,
+    has_reqwest_use: bool,
+) -> bool {
     let mut cursor = Some(from);
     while let Some(node) = cursor {
         if node.kind() == "function_item" {
-            return function_param_is_reqwest_client(node, name, content);
+            return function_param_is_reqwest_client(node, name, content, has_reqwest_use);
         }
         cursor = node.parent();
     }
@@ -625,7 +605,12 @@ fn ident_is_reqwest_typed_param(name: &str, from: Node, content: &str) -> bool {
 
 /// Whether the `function_item`'s parameter list binds `name` to a reqwest
 /// `Client` type.
-fn function_param_is_reqwest_client(function_item: Node, name: &str, content: &str) -> bool {
+fn function_param_is_reqwest_client(
+    function_item: Node,
+    name: &str,
+    content: &str,
+    has_reqwest_use: bool,
+) -> bool {
     let Some(params) = function_item.child_by_field_name("parameters") else {
         return false;
     };
@@ -638,13 +623,14 @@ fn function_param_is_reqwest_client(function_item: Node, name: &str, content: &s
                 == Some(name)
             && param
                 .child_by_field_name("type")
-                .is_some_and(|ty| type_is_reqwest_client(ty, content))
+                .is_some_and(|ty| type_is_reqwest_client(ty, content, has_reqwest_use))
     })
 }
 
 /// Whether a parameter type node names the reqwest `Client`, unwrapping a leading
-/// `&`/`&mut` reference. Bare `Client` counts (import-gated).
-fn type_is_reqwest_client(ty: Node, content: &str) -> bool {
+/// `&`/`&mut` reference. Bare `Client` counts only with a `use reqwest...Client`
+/// import; qualified forms must be rooted at the `reqwest` crate.
+fn type_is_reqwest_client(ty: Node, content: &str, has_reqwest_use: bool) -> bool {
     let ty = if ty.kind() == "reference_type" {
         match ty.child_by_field_name("type") {
             Some(inner) => inner,
@@ -654,12 +640,51 @@ fn type_is_reqwest_client(ty: Node, content: &str) -> bool {
         ty
     };
     match ty.kind() {
-        "type_identifier" => node_text(content, ty) == Some("Client"),
+        "type_identifier" => node_text(content, ty) == Some("Client") && has_reqwest_use,
         "scoped_type_identifier" => {
             ty.child_by_field_name("name")
                 .and_then(|name| node_text(content, name))
                 == Some("Client")
+                && ty
+                    .child_by_field_name("path")
+                    .is_some_and(|path| path_terminal_is(path, content, "reqwest"))
         }
         _ => false,
     }
+}
+
+/// The terminal segment of a scoped path (`reqwest` in `reqwest::Client`,
+/// `crate::reqwest`, ...).
+fn path_terminal_is(path: Node, content: &str, expected: &str) -> bool {
+    match path.kind() {
+        "identifier" => node_text(content, path) == Some(expected),
+        "scoped_identifier" | "scoped_type_identifier" => {
+            path.child_by_field_name("name")
+                .and_then(|name| node_text(content, name))
+                == Some(expected)
+        }
+        _ => false,
+    }
+}
+
+/// A real `use` declaration that brings reqwest's `Client` into scope
+/// (`use reqwest::Client;`, `use reqwest::{Client, ...};`,
+/// `use reqwest::blocking::Client;`).
+fn has_rust_use_reqwest_client(node: Node, content: &str) -> bool {
+    if node.kind() == "use_declaration"
+        && let Some(argument) = node.child_by_field_name("argument")
+        && let Some(text) = node_text(content, argument)
+    {
+        let rest = text.trim_start();
+        if rest.starts_with("reqwest::") && rest.contains("Client") {
+            return true;
+        }
+    }
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if has_rust_use_reqwest_client(child, content) {
+            return true;
+        }
+    }
+    false
 }

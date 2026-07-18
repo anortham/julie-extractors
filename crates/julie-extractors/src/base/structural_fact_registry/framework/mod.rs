@@ -13,6 +13,11 @@ mod php;
 mod python;
 mod rust;
 
+#[cfg(test)]
+pub(super) fn frontend_specs() -> &'static [StructuralFactPatternSpec] {
+    frontend::SPECS
+}
+
 pub(super) fn specs() -> Vec<StructuralFactPatternSpec> {
     [
         aspnet_node::SPECS,

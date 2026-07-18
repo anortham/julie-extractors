@@ -97,6 +97,36 @@ fn is_code_or_functions_block(node: Node<'_>, content: &str) -> bool {
     at_text == Some("@") && matches!(directive_text, Some("code" | "functions"))
 }
 
+/// Lowercase fluent request methods (`client.get(...)`): exact-case only, so
+/// uppercase DSL calls (`queue.DELETE(...)`) never read as HTTP verbs.
+fn verb_for_lower_method(method: &str) -> Option<&'static str> {
+    match method {
+        "get" => Some("GET"),
+        "post" => Some("POST"),
+        "put" => Some("PUT"),
+        "patch" => Some("PATCH"),
+        "delete" => Some("DELETE"),
+        "head" => Some("HEAD"),
+        "options" => Some("OPTIONS"),
+        _ => None,
+    }
+}
+
+/// Case-tolerant verb tokens from attested literals and enum names
+/// (`"DELETE"`, `Method::Get`, `"patch"`).
+fn verb_for_token(token: &str) -> Option<&'static str> {
+    match token {
+        "GET" | "Get" | "get" => Some("GET"),
+        "POST" | "Post" | "post" => Some("POST"),
+        "PUT" | "Put" | "put" => Some("PUT"),
+        "PATCH" | "Patch" | "patch" => Some("PATCH"),
+        "DELETE" | "Delete" | "delete" => Some("DELETE"),
+        "HEAD" | "Head" | "head" => Some("HEAD"),
+        "OPTIONS" | "Options" | "options" => Some("OPTIONS"),
+        _ => None,
+    }
+}
+
 /// Shared `http.client_request.v1` fact builder for the five backend-language
 /// client collectors. The span covers the detected call; the anchoring node is
 /// the smallest parser node covering that span.

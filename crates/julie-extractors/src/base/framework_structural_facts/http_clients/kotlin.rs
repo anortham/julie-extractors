@@ -7,7 +7,7 @@ use tree_sitter::{Node, Tree};
 
 use super::super::helpers::{child_of_kind, node_text};
 use super::super::static_arg::{StaticArgLang, static_route_arg};
-use super::client_fact;
+use super::{client_fact, verb_for_lower_method, verb_for_token};
 use crate::base::types::StructuralFact;
 
 const KTOR_NEEDLE: &str = "io.ktor.client";
@@ -15,19 +15,6 @@ const OKHTTP_NEEDLE: &str = "okhttp3.Request";
 const RETROFIT_NEEDLE: &str = "retrofit2.http.";
 const WEBCLIENT_NEEDLE: &str = "org.springframework.web.reactive.function.client.WebClient";
 const RESTTEMPLATE_NEEDLE: &str = "org.springframework.web.client.RestTemplate";
-
-fn verb_for_method(method: &str) -> Option<&'static str> {
-    match method {
-        "get" | "GET" => Some("GET"),
-        "post" | "POST" => Some("POST"),
-        "put" | "PUT" => Some("PUT"),
-        "patch" | "PATCH" => Some("PATCH"),
-        "delete" | "DELETE" => Some("DELETE"),
-        "head" | "HEAD" => Some("HEAD"),
-        "options" | "OPTIONS" => Some("OPTIONS"),
-        _ => None,
-    }
-}
 
 fn resttemplate_verb(method: &str) -> Option<&'static str> {
     match method {
@@ -54,28 +41,34 @@ fn retrofit_verb(name: &str) -> Option<&'static str> {
     }
 }
 
+struct KotlinGates {
+    ktor: bool,
+    okhttp: bool,
+    retrofit: bool,
+    webclient: bool,
+    resttemplate: bool,
+}
+
 pub(super) fn collect_kotlin_http_client_requests(
     language: &str,
     tree: &Tree,
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    let ktor = content.contains(KTOR_NEEDLE);
-    let okhttp = content.contains(OKHTTP_NEEDLE) || content.contains("okhttp3.Request.Builder");
-    let retrofit = content.contains(RETROFIT_NEEDLE);
-    let webclient = content.contains(WEBCLIENT_NEEDLE);
-    let resttemplate = content.contains(RESTTEMPLATE_NEEDLE);
-    if !ktor && !okhttp && !retrofit && !webclient && !resttemplate {
+    let gates = KotlinGates {
+        ktor: content.contains(KTOR_NEEDLE),
+        okhttp: content.contains(OKHTTP_NEEDLE),
+        retrofit: content.contains(RETROFIT_NEEDLE),
+        webclient: content.contains(WEBCLIENT_NEEDLE),
+        resttemplate: content.contains(RESTTEMPLATE_NEEDLE),
+    };
+    if !gates.ktor && !gates.okhttp && !gates.retrofit && !gates.webclient && !gates.resttemplate {
         return Vec::new();
     }
     let mut facts = Vec::new();
     walk(
         tree.root_node(),
-        ktor,
-        okhttp,
-        retrofit,
-        webclient,
-        resttemplate,
+        &gates,
         language,
         tree,
         file_path,
@@ -85,14 +78,9 @@ pub(super) fn collect_kotlin_http_client_requests(
     facts
 }
 
-#[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
-    ktor: bool,
-    okhttp: bool,
-    retrofit: bool,
-    webclient: bool,
-    resttemplate: bool,
+    gates: &KotlinGates,
     language: &str,
     tree: &Tree,
     file_path: &str,
@@ -100,25 +88,29 @@ fn walk(
     facts: &mut Vec<StructuralFact>,
 ) {
     if node.kind() == "call_expression" {
-        if ktor && let Some(fact) = ktor_request(node, language, tree, file_path, content) {
+        if gates.ktor
+            && let Some(fact) = ktor_request(node, language, tree, file_path, content)
+        {
             facts.push(fact);
         }
-        if okhttp && let Some(fact) = okhttp_request(node, language, tree, file_path, content) {
+        if gates.okhttp
+            && let Some(fact) = okhttp_request(node, language, tree, file_path, content)
+        {
             facts.push(fact);
         }
-        if webclient
+        if gates.webclient
             && let Some(fact) = spring_webclient_request(node, language, tree, file_path, content)
         {
             facts.push(fact);
         }
-        if resttemplate
+        if gates.resttemplate
             && let Some(fact) =
                 spring_resttemplate_request(node, language, tree, file_path, content)
         {
             facts.push(fact);
         }
     }
-    if retrofit
+    if gates.retrofit
         && node.kind() == "annotation"
         && let Some(fact) = retrofit_annotation(node, language, tree, file_path, content)
     {
@@ -126,19 +118,7 @@ fn walk(
     }
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(
-            child,
-            ktor,
-            okhttp,
-            retrofit,
-            webclient,
-            resttemplate,
-            language,
-            tree,
-            file_path,
-            content,
-            facts,
-        );
+        walk(child, gates, language, tree, file_path, content, facts);
     }
 }
 
@@ -156,7 +136,10 @@ fn ktor_request(
         return None;
     }
     let method = last_identifier_text(callee, content)?;
-    let verb = verb_for_method(method)?;
+    let verb = verb_for_lower_method(method)?;
+    if !ktor_receiver_proven(callee, call, tree.root_node(), content) {
+        return None;
+    }
     let value_arguments = child_of_kind(call, "value_arguments")?;
     let url_argument = first_named_argument_value(value_arguments)?;
     let target_path = static_route_arg(url_argument, content, StaticArgLang::Kotlin)?;
@@ -173,6 +156,76 @@ fn ktor_request(
         "attested",
         None,
     )
+}
+
+/// Receiver must be a proven Ktor `HttpClient`: an `HttpClient`-typed
+/// function/class parameter, a same-file local consistently assigned from an
+/// `HttpClient(...)` constructor, or an inline `HttpClient(...)` call. Any
+/// other `.get("literal")` receiver (headers, maps, caches) stays silent (M2).
+fn ktor_receiver_proven(callee: Node, call: Node, root: Node, content: &str) -> bool {
+    let Some(receiver) = first_child(callee) else {
+        return false;
+    };
+    match receiver.kind() {
+        "simple_identifier" | "identifier" => {
+            let Some(name) = node_text(content, receiver) else {
+                return false;
+            };
+            ident_is_kotlin_typed_param(name, call, content, "HttpClient")
+                || local_is_http_client(name, root, content)
+        }
+        "call_expression" => call_roots_at_http_client(receiver, content),
+        _ => false,
+    }
+}
+
+fn call_roots_at_http_client(call: Node, content: &str) -> bool {
+    let Some(function) = call
+        .child_by_field_name("function")
+        .or_else(|| first_child(call))
+    else {
+        return false;
+    };
+    match function.kind() {
+        "simple_identifier" | "identifier" => node_text(content, function) == Some("HttpClient"),
+        "navigation_expression" => last_identifier_text(function, content) == Some("HttpClient"),
+        _ => false,
+    }
+}
+
+fn local_is_http_client(name: &str, root: Node, content: &str) -> bool {
+    let mut proven = false;
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "property_declaration"
+            && property_declared_name(node, content) == Some(name)
+        {
+            if property_initializer_is_http_client(node, content) {
+                proven = true;
+            } else {
+                return false;
+            }
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            stack.push(child);
+        }
+    }
+    proven
+}
+
+fn property_declared_name<'a>(property: Node, content: &'a str) -> Option<&'a str> {
+    let declaration = child_of_kind(property, "variable_declaration")?;
+    let mut cursor = declaration.walk();
+    declaration
+        .children(&mut cursor)
+        .find(|child| matches!(child.kind(), "simple_identifier" | "identifier"))
+        .and_then(|child| node_text(content, child))
+}
+
+fn property_initializer_is_http_client(property: Node, content: &str) -> bool {
+    child_of_kind(property, "call_expression")
+        .is_some_and(|initializer| call_roots_at_http_client(initializer, content))
 }
 
 fn okhttp_request(
@@ -212,14 +265,11 @@ fn okhttp_request(
                 if let Some(args) = child_of_kind(*c, "value_arguments")
                     && let Some(arg) = first_named_argument_value(args)
                 {
-                    {
-                        let p = static_route_arg(arg, content, StaticArgLang::Kotlin)?;
-                        target_path = Some(p)
-                    }
+                    target_path = Some(static_route_arg(arg, content, StaticArgLang::Kotlin)?);
                 }
             }
             "get" | "post" | "put" | "patch" | "delete" | "head" => {
-                if let Some(v) = verb_for_method(method) {
+                if let Some(v) = verb_for_lower_method(method) {
                     verb = v;
                     verb_source = "attested";
                 }
@@ -228,11 +278,9 @@ fn okhttp_request(
                 if let Some(args) = child_of_kind(*c, "value_arguments")
                     && let Some(arg) = first_named_argument_value(args)
                 {
-                    {
-                        let lit = static_route_arg(arg, content, StaticArgLang::Kotlin)?;
-                        verb = verb_for_method(lit)?;
-                        verb_source = "attested";
-                    }
+                    let lit = static_route_arg(arg, content, StaticArgLang::Kotlin)?;
+                    verb = verb_for_token(lit)?;
+                    verb_source = "attested";
                 }
             }
             "Builder" if navigation_roots_at_request(function, content) => {
@@ -296,21 +344,21 @@ fn is_request_builder_call(call: Node, content: &str) -> bool {
         && navigation_roots_at_request(function, content)
 }
 
+/// True only for chains rooted at the exact `Request` identifier
+/// (`Request.Builder`, `okhttp3.Request.Builder`); any other root stays silent.
 fn navigation_roots_at_request(nav: Node, content: &str) -> bool {
-    // Request.Builder or okhttp3.Request.Builder
     let mut node = nav;
     loop {
         if node.kind() == "navigation_expression" {
             if let Some(id) = last_identifier_text(node, content) {
                 if id == "Request" {
-                    return true;
+                    return node_text(content, node) == Some("okhttp3.Request");
                 }
-                if id == "Builder" {
-                    // continue to receiver
-                    if let Some(recv) = first_child(node) {
-                        node = recv;
-                        continue;
-                    }
+                if id == "Builder"
+                    && let Some(recv) = first_child(node)
+                {
+                    node = recv;
+                    continue;
                 }
             }
             if let Some(recv) = first_child(node) {
@@ -320,10 +368,6 @@ fn navigation_roots_at_request(nav: Node, content: &str) -> bool {
         }
         if node.kind() == "simple_identifier" || node.kind() == "identifier" {
             return node_text(content, node) == Some("Request");
-        }
-        // okhttp3.Request as nested navigations
-        if let Some(text) = node_text(content, node) {
-            return text.ends_with("Request") || text.contains("Request");
         }
         return false;
     }
@@ -356,7 +400,6 @@ fn retrofit_annotation(
 ) -> Option<StructuralFact> {
     let name = annotation_name(annotation, content)?;
     let verb = retrofit_verb(name)?;
-    // path from first string arg
     let target_path = annotation_static_path(annotation, content)?;
     client_fact(
         language,
@@ -373,17 +416,19 @@ fn retrofit_annotation(
     )
 }
 
-fn annotation_name<'a>(annotation: Node, content: &'a str) -> Option<&'a str> {
-    // Prefer last identifier in the annotation constructor
-    let mut last = None;
+/// Trailing identifier of the annotation constructor — `GET` for both `@GET`
+/// and `@retrofit2.http.GET` — ignoring argument values.
+fn annotation_name<'a>(annotation: Node<'a>, content: &'a str) -> Option<&'a str> {
+    let mut last: Option<Node> = None;
     let mut stack = vec![annotation];
     while let Some(node) = stack.pop() {
-        if matches!(node.kind(), "simple_identifier" | "identifier") {
-            last = node_text(content, node);
+        if matches!(node.kind(), "simple_identifier" | "identifier")
+            && last.is_none_or(|best| node.start_byte() > best.start_byte())
+        {
+            last = Some(node);
         }
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            // don't walk into argument values for name
             if child.kind() == "value_arguments"
                 || child.kind() == "parenthesized_expression"
                 || child.kind() == "string_literal"
@@ -393,7 +438,7 @@ fn annotation_name<'a>(annotation: Node, content: &'a str) -> Option<&'a str> {
             stack.push(child);
         }
     }
-    last
+    last.and_then(|node| node_text(content, node))
 }
 
 fn annotation_static_path<'a>(annotation: Node, content: &'a str) -> Option<&'a str> {
@@ -403,7 +448,6 @@ fn annotation_static_path<'a>(annotation: Node, content: &'a str) -> Option<&'a 
             if let Some(path) = static_route_arg(node, content, StaticArgLang::Kotlin) {
                 return Some(path);
             }
-            // try children of value_argument
             if node.kind() == "value_argument" {
                 let mut c = node.walk();
                 for child in node.children(&mut c) {
@@ -442,7 +486,6 @@ fn spring_webclient_request(
     let url_arg = first_named_argument_value(args)?;
     let target_path = static_route_arg(url_arg, content, StaticArgLang::Kotlin)?;
 
-    // receiver should be call_expression of .get()/.post()/...
     let receiver = first_child(function)?;
     if receiver.kind() != "call_expression" {
         return None;
@@ -454,7 +497,7 @@ fn spring_webclient_request(
         return None;
     }
     let method = last_identifier_text(recv_fn, content)?;
-    let verb = verb_for_method(method)?;
+    let verb = verb_for_lower_method(method)?;
     let root = first_child(recv_fn)?;
     if !spring_client_receiver_proven(root, call, content, "WebClient") {
         return None;
@@ -545,33 +588,83 @@ fn spring_client_receiver_proven(
                 return false;
             };
             ident_is_kotlin_typed_param(name, from, content, type_name)
+                || spring_local_is_client(name, from, content, type_name)
         }
-        "call_expression" => {
-            let Some(function) = receiver
-                .child_by_field_name("function")
-                .or_else(|| first_child(receiver))
-            else {
-                return false;
-            };
-            if function.kind() != "navigation_expression" {
-                return false;
-            }
-            let Some(ctor) = last_identifier_text(function, content) else {
-                return false;
-            };
-            if ctor != "create" && ctor != "builder" {
-                return false;
-            }
-            let Some(root) = first_child(function) else {
-                return false;
-            };
-            last_identifier_text(root, content) == Some(type_name)
-                || node_text(content, root).is_some_and(|t| t.ends_with(type_name))
-        }
+        "call_expression" => call_is_spring_ctor_chain(receiver, content, type_name),
         "navigation_expression" => {
             // Fully qualified TypeName without call — not a receiver value.
             false
         }
+        _ => false,
+    }
+}
+
+/// `TypeName.create()` / `TypeName.builder()` with the exact type as root.
+/// Anchored exactly: `AcmeWebClient.create()` must not prove a `WebClient`
+/// receiver.
+fn call_is_spring_ctor_chain(call: Node, content: &str, type_name: &str) -> bool {
+    let Some(function) = call
+        .child_by_field_name("function")
+        .or_else(|| first_child(call))
+    else {
+        return false;
+    };
+    if function.kind() != "navigation_expression" {
+        return false;
+    }
+    let Some(ctor) = last_identifier_text(function, content) else {
+        return false;
+    };
+    if ctor != "create" && ctor != "builder" {
+        return false;
+    }
+    let Some(root) = first_child(function) else {
+        return false;
+    };
+    last_identifier_text(root, content) == Some(type_name)
+        || node_text(content, root) == Some(type_name)
+}
+
+/// Same-file local consistently assigned from the exact Spring client
+/// constructor: `val web = WebClient.create(...)` / `val rest = RestTemplate()`.
+fn spring_local_is_client(name: &str, from: Node, content: &str, type_name: &str) -> bool {
+    let mut root = from;
+    while let Some(parent) = root.parent() {
+        root = parent;
+    }
+    let mut proven = false;
+    let mut stack = vec![root];
+    while let Some(node) = stack.pop() {
+        if node.kind() == "property_declaration"
+            && property_declared_name(node, content) == Some(name)
+        {
+            if property_initializer_is_spring_client(node, content, type_name) {
+                proven = true;
+            } else {
+                return false;
+            }
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            stack.push(child);
+        }
+    }
+    proven
+}
+
+fn property_initializer_is_spring_client(property: Node, content: &str, type_name: &str) -> bool {
+    let Some(initializer) = child_of_kind(property, "call_expression") else {
+        return false;
+    };
+    let Some(function) = initializer
+        .child_by_field_name("function")
+        .or_else(|| first_child(initializer))
+    else {
+        return false;
+    };
+    match function.kind() {
+        "simple_identifier" | "identifier" => node_text(content, function) == Some(type_name),
+        "navigation_expression" => call_is_spring_ctor_chain(initializer, content, type_name),
         _ => false,
     }
 }
@@ -605,19 +698,19 @@ fn function_or_class_has_typed_param(
     );
     let mut stack = vec![scope];
     while let Some(node) = stack.pop() {
-        if node.kind() == "parameter"
+        if matches!(node.kind(), "parameter" | "class_parameter")
             && let Some(param_text) = node_text(content, node)
+            && let Some((param_name, param_type)) = param_text.split_once(':')
         {
-            // Conservative: parameter text looks like `name: TypeName` (optionally
-            // with annotations/defaults). Avoid matching substring type names alone.
-            let trimmed = param_text.trim_start();
-            if (trimmed == name
-                || trimmed.starts_with(&format!("{name}:"))
-                || trimmed.starts_with(&format!("{name} :")))
-                && (param_text.contains(&format!(": {type_name}"))
-                    || param_text.contains(&format!(":{type_name}"))
-                    || param_text.contains(&format!(": {type_name}?"))
-                    || param_text.contains(&format!(":{type_name}?")))
+            // Anchor both edges of the declared type: `WebClientFactory` or
+            // `WebClient.Builder` must never prove a `WebClient` receiver.
+            let base: String = param_type
+                .trim_start()
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '.' || *c == '_')
+                .collect();
+            if param_name.split_whitespace().last() == Some(name)
+                && (base == type_name || base.ends_with(&format!(".{type_name}")))
             {
                 return true;
             }
@@ -644,10 +737,9 @@ fn function_or_class_has_typed_param(
 }
 
 fn http_method_enum(node: Node, content: &str) -> Option<&'static str> {
-    // HttpMethod.GET or GET
     let text = node_text(content, node)?;
     let name = text.rsplit('.').next().unwrap_or(text);
-    verb_for_method(name)
+    verb_for_token(name)
 }
 
 fn first_named_argument_value(value_arguments: Node) -> Option<Node> {
