@@ -2363,6 +2363,25 @@ function load($c) {
 }
 
 #[test]
+fn php_curl_configured_handle_emits_without_exec() {
+    let source = r#"<?php
+function buildHandle() {
+    $ch = curl_init('https://api.example.com/deferred');
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+    return $ch;
+}
+"#;
+    let results = extract("src/Build.php", source);
+    let fact = single_request(&results);
+    assert_eq!(metadata_str(fact, "client"), Some("curl"));
+    assert_eq!(
+        metadata_str(fact, "target_path"),
+        Some("https://api.example.com/deferred")
+    );
+    assert_eq!(metadata_str(fact, "verb"), Some("PUT"));
+}
+
+#[test]
 fn php_curl_dynamic_custom_request_stays_silent() {
     let source = r#"<?php
 function send($method) {
