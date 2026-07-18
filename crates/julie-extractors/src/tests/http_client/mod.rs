@@ -1270,6 +1270,68 @@ function load() {
 }
 
 #[test]
+fn php_deferred_clients_emit_static_requests() {
+    let source = r#"<?php
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use GuzzleHttp\Client;
+
+function load(HttpClientInterface $symfony, Client $guzzle) {
+    $symfony->request('PATCH', 'https://api.example.com/items/1');
+    $guzzle->request('GET', '/users');
+    $guzzle->requestAsync('POST', '/items');
+
+    $direct = curl_init('https://api.example.com/health');
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, '/curl/items');
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+}
+"#;
+    let results = extract("src/Client.php", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 5, "{facts:#?}");
+
+    let tuples: Vec<_> = facts
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "client").unwrap(),
+                metadata_str(fact, "target_path").unwrap(),
+                metadata_str(fact, "verb").unwrap(),
+                metadata_str(fact, "verb_source").unwrap(),
+            )
+        })
+        .collect();
+    assert!(tuples.contains(&(
+        "symfony_http_client",
+        "https://api.example.com/items/1",
+        "PATCH",
+        "attested"
+    )));
+    assert!(tuples.contains(&("guzzle", "/users", "GET", "attested")));
+    assert!(tuples.contains(&("guzzle", "/items", "POST", "attested")));
+    assert!(tuples.contains(&(
+        "curl",
+        "https://api.example.com/health",
+        "GET",
+        "default"
+    )));
+    assert!(tuples.contains(&("curl", "/curl/items", "DELETE", "attested")));
+}
+
+#[test]
+fn php_deferred_clients_keep_ambiguous_shapes_silent() {
+    let source = r#"<?php
+function load($client, $url) {
+    $client->request('GET', '/no-type');
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+}
+"#;
+    assert!(client_requests(&extract("src/Client.php", source)).is_empty());
+}
+
+#[test]
 fn elixir_req_client_verb_calls_emit_client_requests() {
     let source = r#"defmodule MyApp.Client do
   def load do

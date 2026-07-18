@@ -2868,6 +2868,11 @@
           "expected": "fixtures/extraction/php/http_client/expected.json"
         },
         {
+          "name": "http_client_deferred",
+          "source": "fixtures/extraction/php/http_client_deferred/source.php",
+          "expected": "fixtures/extraction/php/http_client_deferred/expected.json"
+        },
+        {
           "name": "test_roles",
           "source": "fixtures/extraction/php/test_roles/test_source.php",
           "expected": "fixtures/extraction/php/test_roles/expected.json"
@@ -2944,12 +2949,6 @@
           ],
           "not_applicable": [],
           "open_gaps": [
-            {
-              "kind": "php.http_client.deferred",
-              "reason": "Only Guzzle (receiver->verb(url)) and the Laravel Http facade ship in v2.8.0; Symfony HttpClient (fluent request builder), the curl_* function family, and Guzzle's request('GET', url) two-argument form each need their own detection shape and fixture.",
-              "required_closure": "add per-library client collectors emitting http.client_request.v1 for Symfony HttpClient, curl_*, and Guzzle request(verb, url), each fixture-backed",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
-            },
             {
               "kind": "laravel.route_service_provider_prefix",
               "reason": "A RouteServiceProvider `/api` group prefix is applied cross-file (in the provider, not the routes file), so it cannot flow into a route's effective_route_template in-file; route_template is therefore not guaranteed to be the absolute public path when such a prefix applies.",
