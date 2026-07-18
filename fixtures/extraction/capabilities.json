@@ -3355,6 +3355,11 @@
           "expected": "fixtures/extraction/kotlin/http_client/expected.json"
         },
         {
+          "name": "http_client_deferred",
+          "source": "fixtures/extraction/kotlin/http_client_deferred/source.kt",
+          "expected": "fixtures/extraction/kotlin/http_client_deferred/expected.json"
+        },
+        {
           "name": "test_roles",
           "source": "fixtures/extraction/kotlin/test_roles/source.kt",
           "expected": "fixtures/extraction/kotlin/test_roles/expected.json"
@@ -3432,12 +3437,6 @@
               "reason": "The RouterFunction / coRouter functional DSL nests routes via nest()/path() closures that are not single-assignment same-file; annotation routing is the shipped Kotlin+Spring claim.",
               "required_closure": "add a lexical-containment collector for coRouter/RouterFunction nesting once a same-file nesting model is designed",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2 (Kotlin RouterFunction/coRouter deferral)"
-            },
-            {
-              "kind": "kotlin.http_client.deferred",
-              "reason": "Only the Ktor client (receiver.verb(url) shape) ships in v2.8.0; OkHttp (fluent Request.Builder().url() chain), Retrofit (annotation-based), WebClient, and RestTemplate each need their own detection shape and fixture and are deferred.",
-              "required_closure": "add per-library client collectors emitting http.client_request.v1 for OkHttp/Retrofit/WebClient/RestTemplate, each fixture-backed",
-              "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
           ]
         },

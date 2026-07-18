@@ -1157,6 +1157,98 @@ fun routes() {
 }
 
 #[test]
+fn kotlin_deferred_clients_emit_static_requests() {
+    let source = r#"
+import okhttp3.Request
+import retrofit2.http.GET
+import retrofit2.http.POST
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.client.RestTemplate
+
+interface Api {
+    @GET("/users")
+    suspend fun users(): List<String>
+
+    @POST("/items")
+    suspend fun create(): Unit
+}
+
+fun load(web: WebClient, rest: RestTemplate, body: okhttp3.RequestBody) {
+    Request.Builder().url("https://api.example.com/health").build()
+    Request.Builder().url("/items").post(body).build()
+    web.get().uri("/web/users").retrieve()
+    web.delete().uri("https://api.example.com/web/1").retrieve()
+    rest.getForObject("/legacy/users", String::class.java)
+    rest.postForObject("/legacy/items", body, String::class.java)
+}
+"#;
+    let results = extract("src/Client.kt", source);
+    let facts = client_requests(&results);
+    assert_eq!(facts.len(), 8, "{facts:#?}");
+    let tuples: Vec<_> = facts
+        .iter()
+        .map(|fact| {
+            (
+                metadata_str(fact, "client").unwrap(),
+                metadata_str(fact, "target_path").unwrap(),
+                metadata_str(fact, "verb").unwrap(),
+                metadata_str(fact, "verb_source").unwrap(),
+            )
+        })
+        .collect();
+    assert!(tuples.contains(&(
+        "okhttp",
+        "https://api.example.com/health",
+        "GET",
+        "default"
+    )));
+    assert!(tuples.contains(&("okhttp", "/items", "POST", "attested")));
+    assert!(tuples.contains(&("retrofit", "/users", "GET", "attested")));
+    assert!(tuples.contains(&("retrofit", "/items", "POST", "attested")));
+    assert!(tuples.contains(&("spring_webclient", "/web/users", "GET", "attested")));
+    assert!(tuples.contains(&(
+        "spring_webclient",
+        "https://api.example.com/web/1",
+        "DELETE",
+        "attested"
+    )));
+    assert!(tuples.contains(&(
+        "spring_resttemplate",
+        "/legacy/users",
+        "GET",
+        "attested"
+    )));
+    assert!(tuples.contains(&(
+        "spring_resttemplate",
+        "/legacy/items",
+        "POST",
+        "attested"
+    )));
+}
+
+#[test]
+fn kotlin_deferred_clients_keep_ambiguous_shapes_silent() {
+    let source = r#"
+import okhttp3.Request
+import retrofit2.http.GET
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.client.RestTemplate
+
+interface Api {
+    @GET
+    suspend fun bare(): Unit
+}
+
+fun load(web: WebClient, rest: RestTemplate, url: String) {
+    Request.Builder().url(url).build()
+    web.get().uri(url).retrieve()
+    rest.getForObject(url, String::class.java)
+}
+"#;
+    assert!(client_requests(&extract("src/Client.kt", source)).is_empty());
+}
+
+#[test]
 fn php_guzzle_client_verb_calls_emit_client_requests() {
     let source = r#"<?php
 use GuzzleHttp\Client;
