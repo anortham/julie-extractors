@@ -479,6 +479,10 @@ const HARD_EXCLUDE_DIRS: &[&str] = &[
     "dist",
     "build",
     ".cache",
+    // .NET build artifacts. `bin` is deliberately absent: many ecosystems keep real tracked
+    // source under bin/, and a hard exclude cannot be whitelisted back the way ignore files can.
+    "obj",
+    "TestResults",
 ];
 
 const HARD_EXCLUDE_SUFFIXES: &[&str] = &[
@@ -559,6 +563,37 @@ mod tests {
         let fixture = DiscoveryFixture::new();
         let vendored = fixture.write("vendor/pkg/index.rs", "pub fn vendored() {}\n");
         let selection = fixture.policy().select_file(&vendored);
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::HardExcluded
+            }
+        );
+    }
+
+    #[test]
+    fn dotnet_test_results_directory_is_hard_excluded() {
+        let fixture = DiscoveryFixture::new();
+        let artifact = fixture.write("tests/TestResults/CoverageHelper.cs", "public class C {}\n");
+        let selection = fixture.policy().select_file(&artifact);
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::HardExcluded
+            }
+        );
+    }
+
+    #[test]
+    fn dotnet_obj_directory_is_hard_excluded() {
+        let fixture = DiscoveryFixture::new();
+        let generated = fixture.write(
+            "src/App/obj/Debug/net10.0/App.AssemblyInfo.cs",
+            "[assembly: System.Reflection.AssemblyTitleAttribute(\"App\")]\n",
+        );
+        let selection = fixture.policy().select_file(&generated);
 
         assert_eq!(
             selection,
