@@ -171,7 +171,10 @@ pin file carries the four released asset checksums.
 After that release exists, Miller must:
 
 1. Pin the new `julie-extract` release and platform checksums in `scripts/julie-pins.json`.
-2. Update its supported resolution metadata version from `1` to `2` while leaving SQLite schema `4` and extract contract `3`.
+2. Update its documented and fixture expectation for
+   `reference_resolution_version` from `1` to `2`, while leaving SQLite schema
+   `4` and extract contract `3`. Miller currently surfaces this metadata but
+   does not enforce it through a separate version gate.
 3. Restore and verify all platform binaries.
 4. Add or update source-built and released-binary Scale coverage for variable references, receiver context, relationship occurrence spans, confidence provenance, and the exact resolution report dimensions.
 5. Re-run Miller fast, Scale, Release-build, and package verification before using the new evidence in `trace`, `impact`, `inspect`, or search ranking.
