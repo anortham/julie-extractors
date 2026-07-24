@@ -407,7 +407,11 @@ Stable report codes:
 - `file_outside_root`: accepted file path is outside the requested root.
 - `file_not_found`: `update` target does not exist.
 - `root_mismatch`: artifact is bound to a different root.
-- `schema_migration_required`: artifact is older and `--strict-schema` was set.
+- `schema_migration_required`: artifact schema is older under
+  `--strict-schema`, or single-file `update`/`delete` requires a
+  successful whole-workspace scan because reference evidence is missing, stale,
+  or failed. The diagnostic is recoverable and its `details.action` is
+  `julie-extract scan`.
 - `schema_incompatible`: artifact is newer or otherwise incompatible.
 - `contract_incompatible`: extraction contract version is incompatible.
 - `db_open_failed`: SQLite artifact could not be opened.
@@ -422,10 +426,19 @@ Stable report codes:
 - `internal_error`: unexpected implementation failure.
 
 Warnings use the same shape and may use warning-only codes such as
-`metadata_missing`, `capability_gap`, or `slow_file_skipped`.
+`metadata_missing`, `capability_gap`, `slow_file_skipped`, or
+`resolution_upgraded`.
 `slow_file_skipped` is emitted by `scan` for otherwise-supported source files
 that exceed the extractor's oversized-file limit and are excluded from
 extraction.
+`resolution_upgraded` is emitted when a whole-workspace scan automatically
+re-extracts every supported file to advance the reference-resolution evidence
+contract.
+
+Any `reference_resolution_status = failed` blocks later single-file `update`
+and `delete` operations with `schema_migration_required`, including a failed
+resolver hook during an otherwise routine single-file mutation. Recovery is a
+successful `julie-extract scan` of the whole workspace.
 
 ## Command Report Requirements
 

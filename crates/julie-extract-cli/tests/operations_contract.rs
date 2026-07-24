@@ -169,6 +169,10 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         report["counts"]["totals"]["language_capability_gaps"],
         language_capability_gaps
     );
+    assert_eq!(
+        report["counts"]["totals"]["artifact_metadata"],
+        table_count(&db, "artifact_metadata")
+    );
     assert_eq!(report["counts"]["file_rows_truncated"], false);
     assert_eq!(report["counts"]["file_rows"].as_array().unwrap().len(), 2);
     assert_eq!(report["revision"]["created_revision_id"], 1);
@@ -517,6 +521,142 @@ fn scan_with_no_changes_returns_no_change_without_new_revision() {
 }
 
 #[test]
+fn scan_reextracts_unchanged_files_when_resolution_version_is_stale() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    let expected_files = table_count(&db, "files");
+
+    let connection = Connection::open(&db).unwrap();
+    connection
+        .execute(
+            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["counts"]["files_changed"], expected_files);
+    assert_eq!(report["counts"]["files_unchanged"], 0);
+    assert_ne!(report["revision"]["created_revision_id"], Value::Null);
+    assert!(
+        report["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|warning| warning["code"] == "resolution_upgraded")
+    );
+    assert_eq!(metadata_value(&db, "reference_resolution_version"), "2");
+}
+
+#[test]
+fn scan_upgrades_resolution_metadata_for_an_empty_artifact() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().join("repo");
+    std::fs::create_dir_all(&root).unwrap();
+    let db = temp.path().join("artifact.sqlite");
+    assert_success(scan(path_str(&root), &db));
+
+    let connection = Connection::open(&db).unwrap();
+    connection
+        .execute(
+            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        path_str(&root),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert!(
+        report["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|warning| warning["code"] == "resolution_upgraded")
+    );
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_status"),
+        "complete"
+    );
+    assert_eq!(metadata_value(&db, "reference_resolution_version"), "2");
+}
+
+#[test]
+fn stale_resolution_version_requires_full_scan_before_delete() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+
+    let connection = Connection::open(&db).unwrap();
+    connection
+        .execute(
+            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+
+    let output = delete(fixture.root_str(), &db, "src/b.rs");
+
+    assert_eq!(output.status.code(), Some(3));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "schema_migration_required");
+    assert_eq!(table_count(&db, "files"), 2);
+}
+
+#[test]
+fn failed_resolution_status_requires_full_scan_before_update() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+
+    let connection = Connection::open(&db).unwrap();
+    connection
+        .execute(
+            "UPDATE artifact_metadata SET value = 'failed' WHERE key = 'reference_resolution_status'",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+
+    let output = update(fixture.root_str(), &db, "src/b.rs");
+
+    assert_eq!(output.status.code(), Some(3));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "schema_migration_required");
+    assert_eq!(report["errors"][0]["recoverable"], true);
+    assert_eq!(
+        report["errors"][0]["details"]["action"],
+        "julie-extract scan"
+    );
+}
+
+#[test]
 fn scan_records_revision_when_only_capability_snapshot_changes() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -770,6 +910,111 @@ fn scan_preserves_existing_symbols_when_changed_file_becomes_unreadable() {
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
     assert_eq!(file_status_for_path(&db, "src/a.rs"), "failed_preserved");
     assert_eq!(diagnostics_for_path(&db, "src/a.rs"), vec!["error"]);
+}
+
+#[test]
+fn resolution_upgrade_remains_blocked_when_a_source_file_cannot_be_reextracted() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+
+    let connection = Connection::open(&db).unwrap();
+    connection
+        .execute(
+            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+    std::fs::write(fixture.root.join("src/a.rs"), [0xff, 0xfe, 0xfd]).unwrap();
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(3));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert!(
+        report["errors"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|error| error["code"] == "read_failed")
+    );
+    assert!(
+        report["errors"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|error| error["code"] == "schema_migration_required")
+    );
+    assert_eq!(metadata_value(&db, "reference_resolution_status"), "failed");
+
+    let update_output = update(fixture.root_str(), &db, "src/b.rs");
+    assert_eq!(update_output.status.code(), Some(3));
+    assert_eq!(
+        json_report(&update_output)["errors"][0]["code"],
+        "schema_migration_required"
+    );
+}
+
+#[test]
+fn forced_resolution_upgrade_remains_blocked_when_a_source_file_cannot_be_reextracted() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+
+    let connection = Connection::open(&db).unwrap();
+    connection
+        .execute(
+            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+    std::fs::write(fixture.root.join("src/a.rs"), [0xff, 0xfe, 0xfd]).unwrap();
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(3));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert!(
+        report["errors"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|error| error["code"] == "read_failed")
+    );
+    assert!(
+        report["errors"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|error| error["code"] == "schema_migration_required")
+    );
+    assert_eq!(metadata_value(&db, "reference_resolution_status"), "failed");
+
+    let update_output = update(fixture.root_str(), &db, "src/b.rs");
+    assert_eq!(update_output.status.code(), Some(3));
+    assert_eq!(
+        json_report(&update_output)["errors"][0]["code"],
+        "schema_migration_required"
+    );
 }
 
 #[cfg(unix)]
@@ -1501,6 +1746,58 @@ fn scan_preserves_existing_rows_when_source_file_becomes_oversized() {
 }
 
 #[test]
+fn resolution_upgrade_remains_blocked_when_a_source_file_is_oversized() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    let before = symbols_for_path(&db, "src/a.rs");
+    assert!(!before.is_empty());
+
+    let connection = Connection::open(&db).unwrap();
+    connection
+        .execute(
+            "UPDATE artifact_metadata SET value = '1' WHERE key = 'reference_resolution_version'",
+            [],
+        )
+        .unwrap();
+    drop(connection);
+    std::fs::write(
+        fixture.path("src/a.rs"),
+        "x".repeat(MAX_SOURCE_FILE_BYTES + 1),
+    )
+    .unwrap();
+
+    let output = scan(fixture.root_str(), &db);
+
+    assert_eq!(output.status.code(), Some(3));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert!(
+        report["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|warning| warning["code"] == "slow_file_skipped")
+    );
+    assert!(
+        report["errors"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|error| error["code"] == "schema_migration_required")
+    );
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), before);
+    assert_eq!(metadata_value(&db, "reference_resolution_status"), "failed");
+
+    let update_output = update(fixture.root_str(), &db, "src/b.rs");
+    assert_eq!(update_output.status.code(), Some(3));
+    assert_eq!(
+        json_report(&update_output)["errors"][0]["code"],
+        "schema_migration_required"
+    );
+}
+
+#[test]
 fn update_oversized_supported_file_preserves_rows_and_reports_slow_file_skipped() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
@@ -2039,17 +2336,12 @@ fn two_identical_scans_produce_byte_identical_resolution_tables() {
 }
 
 #[test]
-fn v3_artifact_without_resolution_metadata_backfills_on_update() {
-    // INVARIANT: an artifact with the overlay tables but no resolution metadata (a
-    // v3 artifact upgraded by the additive schema create) triggers a Full resolve
-    // on the next write, even though that write is a single-file delta.
+fn artifact_without_resolution_metadata_requires_full_scan_before_update() {
     let fixture = cross_file_fixture();
     let db = fixture.path("artifact.sqlite");
     assert_success(scan(fixture.root_str(), &db));
     assert_eq!(table_count(&db, "pending_resolutions"), 1);
 
-    // Simulate a v3-shaped artifact: strip the resolution overlay + its metadata,
-    // leaving pending/identifier rows exactly as a pre-resolution artifact would.
     {
         let conn = Connection::open(&db).unwrap();
         conn.execute_batch(
@@ -2062,18 +2354,25 @@ fn v3_artifact_without_resolution_metadata_backfills_on_update() {
     }
     assert_eq!(table_count(&db, "pending_resolutions"), 0);
 
-    // A single-file update (a real content change, so the write is not skipped)
-    // must backfill the whole workspace because the resolution metadata is absent.
     std::fs::write(
         fixture.path("src/b.rs"),
         "// touched\npub fn consume() { produce_widget(); }\n",
     )
     .unwrap();
-    assert_success(update(fixture.root_str(), &db, "src/b.rs"));
+    let update_output = update(fixture.root_str(), &db, "src/b.rs");
+    assert_eq!(update_output.status.code(), Some(3));
+    let update_report = json_report(&update_output);
+    assert_eq!(update_report["status"], "failed");
+    assert_eq!(
+        update_report["errors"][0]["code"],
+        "schema_migration_required"
+    );
+
+    assert_success(scan(fixture.root_str(), &db));
     assert_eq!(
         table_count(&db, "pending_resolutions"),
         1,
-        "an absent resolution status must force a Full backfill on the next write"
+        "a full scan must backfill the resolution overlay"
     );
     assert!(identifier_target(&db, "produce_widget").is_some());
     assert_eq!(

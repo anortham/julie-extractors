@@ -15,7 +15,8 @@ metadata keys. The change is purely additive over v3 — every v3 table and colu
 is unchanged. See [Reference Resolution](#reference-resolution) for the state
 model, tiers, outcome vocabulary, and the consumer detection rule. A binary that
 opens a v3 artifact creates the overlay tables on the additive `create_schema`
-open and backfills resolution on the next write; see
+open. A whole-workspace scan backfills the current extraction and resolution
+evidence; single-file writes remain blocked until that scan succeeds. See
 [`--strict-schema` read preflight](#--strict-schema-read-preflight).
 
 ## Invariants
@@ -79,7 +80,9 @@ may use to decide whether resolution data is present and trustworthy — see
     is disabled outside TypeScript/JavaScript). This is the normal steady state.
   - `failed` — the resolver hook errored; the scan still committed its extraction
     rows, but the overlay for the affected rows is stale. The prior
-    `reference_resolution_last_full_revision` is preserved.
+    `reference_resolution_last_full_revision` is preserved. A failed resolver
+    hook during `scan`, `update`, or `delete` blocks later single-file mutations
+    until a successful whole-workspace scan restores a ready status.
   - **absent** (key not present) — the artifact predates resolution (a v3 artifact
     opened but not yet re-written) or was written before the overlay was
     populated. Consumers must treat absent as "no resolution data", not "no
@@ -559,6 +562,17 @@ Read `reference_resolution_version` to confirm the contract version and
 `reference_resolution_last_full_revision` to detect staleness against the current
 `extraction_revisions` head.
 
+A 2.17-or-newer whole-workspace scan detects a missing or stale resolution
+version and re-extracts every supported file before stamping the current
+version. Single-file `update` and `delete` return
+`schema_migration_required` until that scan completes. The version value records
+the resolution pass and is not proof of upgraded row content if metadata was
+rewritten outside `julie-extract`. An incomplete extraction or failed resolution
+pass records `failed`, returns a non-zero scan result, and keeps single-file
+mutations blocked. This also applies when a routine `update` or `delete`
+records `failed` after its resolver hook errors; recovery is
+`julie-extract scan`.
+
 One caution for dead-code-style consumers that suppress verdicts by unresolved
 same-name references: an unresolved reference recorded under a local alias
 (e.g. TypeScript `import { X as Y }` used as `Y(...)`) carries
@@ -574,11 +588,13 @@ Read commands accept `--strict-schema`. Under it, an artifact whose
 supported version (`4`) is **rejected** at preflight with a
 `schema_migration_required` report code (exit `3`). A v3 artifact therefore does
 **not** transparently upgrade on the read path — resolution backfill happens only
-on the **write** path: opening a v3 artifact for `scan`, `update`, `delete`, or
-`scan --force` creates the overlay tables via the additive `create_schema` and
-runs a full resolution pass to populate them. Without `--strict-schema`, reads of
-an older-but-not-newer artifact are permitted (a newer-than-supported artifact is
-always rejected, strict or not).
+on the **whole-workspace scan** path: `scan` or `scan --force` creates the
+overlay tables via the additive `create_schema`, re-extracts every supported
+file when the resolution version is missing or stale, and runs a full resolution
+pass. Single-file `update` and `delete` return
+`schema_migration_required` until that scan completes. Without
+`--strict-schema`, reads of an older-but-not-newer artifact are permitted (a
+newer-than-supported artifact is always rejected, strict or not).
 
 ## Type Facts
 

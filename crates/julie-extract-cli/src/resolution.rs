@@ -938,6 +938,34 @@ pub fn finalize_resolution_metadata(
     false
 }
 
+/// Mark an empty artifact as fully upgraded when no resolution hook was needed.
+pub fn finalize_empty_resolution_upgrade(conn: &Connection) -> bool {
+    let revision = current_revision(conn).unwrap_or(0);
+    resolution_store::write_resolution_metadata(
+        conn,
+        ResolutionStatus::Complete,
+        RESOLUTION_VERSION,
+        revision,
+    )
+    .is_ok()
+}
+
+/// Keep a failed upgrade unavailable to single-file mutations until a full scan succeeds.
+pub fn finalize_resolution_upgrade_failure(conn: &Connection) -> bool {
+    let last_full_revision = resolution_store::read_resolution_metadata(conn)
+        .ok()
+        .flatten()
+        .map(|metadata| metadata.last_full_revision)
+        .unwrap_or(0);
+    resolution_store::write_resolution_metadata(
+        conn,
+        ResolutionStatus::Failed,
+        RESOLUTION_VERSION,
+        last_full_revision,
+    )
+    .is_ok()
+}
+
 fn run_resolution(
     tx: &Transaction<'_>,
     scope: &ResolutionScopeInput,

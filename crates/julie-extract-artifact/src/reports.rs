@@ -344,6 +344,9 @@ pub enum ReportCode {
     MetadataMissing,
     CapabilityGap,
     SlowFileSkipped,
+    /// A whole-workspace scan re-extracted every supported file to advance the
+    /// durable reference-resolution evidence contract.
+    ResolutionUpgraded,
     /// A resolver hook returned an error. Non-fatal: the scan still commits with
     /// the affected rows left unresolved, and the scan report records the message
     /// (design §"Failure semantics"). Not an `ERROR_CODES` member — it never fails

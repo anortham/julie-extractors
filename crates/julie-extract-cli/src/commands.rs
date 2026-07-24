@@ -122,6 +122,13 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     } else {
         None
     };
+    let mut previous_resolution_version = existing_scan_artifact
+        .as_ref()
+        .and_then(|artifact| artifact.reference_resolution_version);
+    let mut resolution_upgrade_required = existing_scan_artifact.as_ref().is_some_and(|artifact| {
+        artifact.reference_resolution_version != Some(crate::resolution::RESOLUTION_VERSION)
+            || !artifact.reference_resolution_ready
+    });
     let existing_content_hashes = match existing_scan_artifact
         .as_ref()
         .map(|artifact| load_existing_content_hashes(&artifact.connection))
@@ -167,6 +174,10 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     let force_existing_metadata = if args.force && db.exists() {
         match open_artifact(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
             Ok(artifact) if artifact.report.root_path == display_path(&root) => {
+                previous_resolution_version = artifact.reference_resolution_version;
+                resolution_upgrade_required = artifact.reference_resolution_version
+                    != Some(crate::resolution::RESOLUTION_VERSION)
+                    || !artifact.reference_resolution_ready;
                 Some(artifact.write_metadata)
             }
             Ok(_) | Err(_) => None,
@@ -188,7 +199,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         &discovered.supported_files,
         indexed_at,
         existing_content_hashes.as_ref(),
-        args.force,
+        args.force || resolution_upgrade_required,
         args.jobs,
     ) {
         Ok(extracted) => extracted,
@@ -228,7 +239,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
             match writer.write_scan_spooled_preserving_missing_paths_with_resolution(
                 revision_input(
                     WriteOperation::Scan,
-                    Some(if args.force {
+                    Some(if args.force || resolution_upgrade_required {
                         WriteMode::Force
                     } else {
                         WriteMode::Incremental
@@ -252,13 +263,31 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                     );
                     let capability_rows_written = writer.last_capability_rows_written();
                     let connection = writer.connection();
-                    // Persist the durable `reference_resolution_*` metadata before
-                    // reading totals so the scan report reflects it.
-                    crate::resolution::finalize_resolution_metadata(
-                        connection,
-                        &write_result,
-                        resolution_report.as_ref(),
-                    );
+                    let has_source_errors =
+                        !extracted.errors.is_empty() || !discovered.errors.is_empty();
+                    let has_upgrade_source_gaps =
+                        has_source_errors || !discovered.slow_file_skips.is_empty();
+                    let resolution_hook_failed = write_result.resolution.failed.is_some();
+                    let upgrade_has_evidence =
+                        resolution_report.is_some() || table_totals(connection).files == 0;
+                    let upgrade_preconditions_met =
+                        !has_upgrade_source_gaps && !resolution_hook_failed && upgrade_has_evidence;
+                    let metadata_written =
+                        if resolution_upgrade_required && !upgrade_preconditions_met {
+                            crate::resolution::finalize_resolution_upgrade_failure(connection)
+                        } else if resolution_upgrade_required && resolution_report.is_none() {
+                            crate::resolution::finalize_empty_resolution_upgrade(connection)
+                        } else {
+                            crate::resolution::finalize_resolution_metadata(
+                                connection,
+                                &write_result,
+                                resolution_report.as_ref(),
+                            )
+                        };
+                    let upgrade_failed = resolution_upgrade_required
+                        && (!upgrade_preconditions_met || !metadata_written);
+                    let upgrade_completed = resolution_upgrade_required && !upgrade_failed;
+                    let totals = table_totals(connection);
                     let artifact = match artifact_report_from_connection(&db, connection) {
                         Ok(artifact) => artifact,
                         Err(error) => {
@@ -281,13 +310,15 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                             );
                         }
                     };
-                    let has_errors = !extracted.errors.is_empty() || !discovered.errors.is_empty();
-                    let status = if has_errors {
+                    let status = if upgrade_failed {
+                        ReportStatus::Failed
+                    } else if has_source_errors {
                         ReportStatus::Partial
                     } else if write_result.revision_id.is_some()
                         || should_rebuild_db
                         || !db_existed_before_write
                         || capability_rows_written.has_rows()
+                        || upgrade_completed
                     {
                         ReportStatus::Ok
                     } else {
@@ -299,7 +330,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                             latest_revision_id: latest_revision_id(connection),
                             created_revision_id: write_result.revision_id,
                         })
-                        .with_totals(table_totals(connection))
+                        .with_totals(totals)
                         .with_profile(scan_profile(
                             scan_started,
                             &profile_phases,
@@ -321,6 +352,32 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                             None,
                             true,
                             json!({}),
+                        ));
+                    }
+                    if upgrade_completed {
+                        report = report.with_warning(diagnostic(
+                            ReportCode::ResolutionUpgraded,
+                            "reference evidence was upgraded by a full re-extract",
+                            None,
+                            None,
+                            false,
+                            json!({
+                                "previous_reference_resolution_version": previous_resolution_version,
+                                "reference_resolution_version": crate::resolution::RESOLUTION_VERSION,
+                            }),
+                        ));
+                    }
+                    if upgrade_failed {
+                        report = report.with_error(diagnostic(
+                            ReportCode::SchemaMigrationRequired,
+                            "reference evidence upgrade did not complete",
+                            Some(display_path(&db)),
+                            None,
+                            true,
+                            json!({
+                                "required_reference_resolution_version": crate::resolution::RESOLUTION_VERSION,
+                                "action": "julie-extract scan",
+                            }),
                         ));
                     }
                     report.counts.files_scanned =
@@ -352,7 +409,13 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                             .iter()
                             .map(slow_file_skipped_diagnostic),
                     );
-                    let exit_code = if has_errors { 1 } else { 0 };
+                    let exit_code = if upgrade_failed {
+                        3
+                    } else if has_source_errors {
+                        1
+                    } else {
+                        0
+                    };
                     outcome(report, exit_code, args.json, ReportStream::Stdout)
                 }
                 Err(error) => {

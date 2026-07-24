@@ -135,7 +135,7 @@ keys are part of the v3 contract.
   "created_at": "2026-05-31T16:00:00Z",
   "updated_at": "2026-05-31T16:05:00Z",
   "reference_resolution_status": "complete",
-  "reference_resolution_version": 1,
+  "reference_resolution_version": 2,
   "reference_resolution_last_full_revision": 7
 }
 ```
@@ -149,6 +149,16 @@ and trustworthy only when `reference_resolution_status` is `complete` or
 `partial`; on `null` or `"failed"`, treat a `null` `target_symbol_id` as
 "unknown", exactly as before resolution existed. Never gate on
 `sqlite_schema_version`. See `sqlite-schema-v4.md` § Reference Resolution.
+
+Resolution version 2 adds occurrence spans, receiver metadata, confidence
+provenance, and span-derived relationship identities. A 2.17-or-newer
+whole-workspace scan detects a missing or stale resolution version and
+re-extracts every supported file before stamping version 2. Single-file
+`update` and `delete` refuse the stale artifact with
+`schema_migration_required`. An incomplete extraction or failed resolution pass
+leaves the upgrade failed and those mutations blocked. The version stamp records
+the resolution pass; it must not be treated as proof of upgraded row content if
+metadata was rewritten outside `julie-extract`.
 
 ### `file`
 

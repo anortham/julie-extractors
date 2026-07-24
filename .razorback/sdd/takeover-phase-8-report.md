@@ -84,7 +84,12 @@ The committed artifact is `fixtures/extraction/reference-resolution-coverage.jso
 - Identifiers with spans: `2212/2212`
 - Pending relationships with spans: `394/832`
 
-The 438 span-missing rows are explicit pending evidence, not inferred from a nearby identifier and not silently missing direct relationships. The strict report fails on registry drift, stale fixture digests, unmapped canonical kinds, unknown outcomes, silent cells, or invalid counts.
+The 438 span-missing rows are explicit pending evidence, not inferred from a
+nearby identifier and not silently missing direct relationships. The strict
+report fails on registry drift, stale fixture digests, unmapped canonical
+kinds, canonical-kind vocabulary drift, missing summaries, silent cells,
+invalid per-cell counts, invalid pending-kind outcomes, or resolved identifiers
+outside the live method vocabulary.
 
 ## Tests added or strengthened
 
@@ -125,7 +130,7 @@ Passed:
 - `cargo fmt --all -- --check`
 - `cargo +1.96.0 metadata --format-version 1 --no-deps`
 - `cargo +1.96.0 test -p julie-extract-artifact --test resolution_store_contract` — 28 passed
-- `cargo +1.96.0 test -p julie-extract-cli --test operations_contract` — 45 passed
+- `cargo +1.96.0 test -p julie-extract-cli --test operations_contract` — 52 passed
 - `cargo +1.96.0 test -p julie-extract-cli --test resolution_contract` — 16 passed
 - `cargo +1.96.0 test -p julie-extract-cli`
 - `cargo +1.96.0 test -p xtask`
@@ -154,6 +159,13 @@ The Rust 1.96 Clippy component was absent and was installed with `rustup compone
 - That defect was reproduced with `animation-name: fadeIn, fade`, fixed by
   carrying parsed segment offsets, and covered by an exact-column regression.
 - Claude's confirmation pass returned `approve` with zero findings.
+- The v2.17.0 release-preparation review found five additional upgrade and
+  contract defects: forced and oversized-file upgrades could escape the
+  fail-closed gate, first-scan metadata totals were stale, and the CLI and
+  steady-state failure contracts were incomplete. All five were fixed with
+  regression coverage before the final release-candidate review.
+- The fresh final release-candidate review verified all five fixes, reran the
+  affected gates, and returned `approve` with zero findings.
 
 ## Release and Miller handoff
 
@@ -178,6 +190,11 @@ After that release exists, Miller must:
 3. Restore and verify all platform binaries.
 4. Add or update source-built and released-binary Scale coverage for variable references, receiver context, relationship occurrence spans, confidence provenance, and the exact resolution report dimensions.
 5. Re-run Miller fast, Scale, Release-build, and package verification before using the new evidence in `trace`, `impact`, `inspect`, or search ranking.
+
+When Miller moves from 2.16.0 to 2.17.0, its whole-workspace scan automatically
+detects the stale resolution version and re-extracts every supported file before
+stamping version 2. Single-file update and delete operations fail with
+`schema_migration_required` until that scan completes.
 
 ## Remaining boundary
 

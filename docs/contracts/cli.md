@@ -130,6 +130,14 @@ changes. A supported source file larger than 1 MiB is skipped with a
 `scan --force` rebuilds the artifact contents in one SQLite transaction. It is
 the explicit path for a moved root or full re-extraction.
 
+A scan of an artifact with missing, stale, or failed reference-resolution
+metadata re-extracts every supported file before advancing the resolution
+contract. A successful upgrade emits `resolution_upgraded`. If any source file
+cannot be re-extracted, including an oversized file whose existing rows are
+preserved, or if the resolver fails, the scan returns `failed` with
+`schema_migration_required` and exit code `3`. This applies to both incremental
+and `--force` scans.
+
 `--jobs <n>` (alias `-j`) sets the number of parallel extraction workers. `0`
 (the default) auto-detects from available cores. Parallelism only affects the
 file read + parse + map phase; the SQLite write stays single-writer. Output is
@@ -155,11 +163,18 @@ Outcomes:
   `unsupported`.
 - missing file: returns `failed` with `file_not_found`; callers should use
   `delete`.
+- missing, stale, or failed reference-resolution metadata: returns `failed`
+  with `schema_migration_required` and exit code `3`; run
+  `julie-extract scan` for the whole workspace before retrying.
 
 ### `delete`
 
 Deletes rows for exactly one root-relative file path. Missing rows return
 `not_found` with exit code `0`.
+
+Missing, stale, or failed reference-resolution metadata returns `failed` with
+`schema_migration_required` and exit code `3`; run `julie-extract scan` for the
+whole workspace before retrying.
 
 File watcher integrations should model rename as:
 
@@ -234,6 +249,12 @@ scan can still commit useful rows for other files, the failing file is written
 as `failed_preserved`, its previous symbol rows stay intact, and the command
 returns `partial` with exit code `1`. If the failure prevents a useful artifact
 operation from committing, the command returns `failed`.
+
+During a reference-resolution contract upgrade, preserved rows have not been
+re-extracted under the new contract. Any read failure, parse failure, extractor
+failure, or oversized-file skip therefore escalates the scan to `failed` with
+`schema_migration_required` and exit code `3`, leaving single-file mutations
+blocked until a complete whole-workspace scan succeeds.
 
 An intentional empty supported file may still produce zero symbols when the file
 hash changed and extraction completed successfully.

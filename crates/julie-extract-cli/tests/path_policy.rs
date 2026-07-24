@@ -5,7 +5,9 @@ use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
     ArtifactFile, ArtifactSymbol, FileStatus, RevisionInput, WriteMode, WriteOperation,
 };
+use julie_extract_artifact::resolution_store::{ResolutionStatus, write_resolution_metadata};
 use julie_extract_artifact::writer::ArtifactWriter;
+use julie_extract_cli::resolution::RESOLUTION_VERSION;
 use rusqlite::Connection;
 use serde_json::Value;
 use tempfile::TempDir;
@@ -203,7 +205,7 @@ fn root_mismatch_returns_exit_3_unless_scan_force_rebuilds_metadata() {
 }
 
 fn create_artifact(path: &Path, root: &Path) {
-    let _writer = ArtifactWriter::open_path(
+    let writer = ArtifactWriter::open_path(
         path,
         ArtifactMetadata {
             artifact_id: "artifact-path-policy-test".to_string(),
@@ -217,6 +219,13 @@ fn create_artifact(path: &Path, root: &Path) {
         },
     )
     .unwrap();
+    write_resolution_metadata(
+        writer.connection(),
+        ResolutionStatus::Complete,
+        RESOLUTION_VERSION,
+        0,
+    )
+    .unwrap();
 }
 
 fn create_artifact_with_file(path: &Path, root: &Path, relative_path: &str) {
@@ -227,6 +236,13 @@ fn create_artifact_with_file(path: &Path, root: &Path, relative_path: &str) {
             &[file_with_symbol(relative_path)],
         )
         .unwrap();
+    write_resolution_metadata(
+        writer.connection(),
+        ResolutionStatus::Complete,
+        RESOLUTION_VERSION,
+        1,
+    )
+    .unwrap();
 }
 
 fn metadata(root: &Path) -> ArtifactMetadata {
