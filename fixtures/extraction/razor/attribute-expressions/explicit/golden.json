@@ -678,6 +678,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "line_number": 11,
+      "span": {
+        "start_line": 11,
+        "start_column": 51,
+        "end_line": 11,
+        "end_column": 95,
+        "start_byte": 668,
+        "end_byte": 712
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "ContactList.RemoveSelectedItemAsync"
@@ -689,6 +697,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "line_number": 5,
+      "span": {
+        "start_line": 5,
+        "start_column": 35,
+        "end_line": 5,
+        "end_column": 62,
+        "start_byte": 274,
+        "end_byte": 301
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "KeyPress.For"
@@ -700,6 +716,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/attribute-expressions/explicit/source.razor",
       "line_number": 5,
+      "span": {
+        "start_line": 5,
+        "start_column": 35,
+        "end_line": 5,
+        "end_column": 83,
+        "start_byte": 274,
+        "end_byte": 322
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "KeyPress.For(KeyCode.Enter).WithPreventDefault"

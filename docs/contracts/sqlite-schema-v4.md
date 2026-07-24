@@ -84,7 +84,7 @@ may use to decide whether resolution data is present and trustworthy — see
     opened but not yet re-written) or was written before the overlay was
     populated. Consumers must treat absent as "no resolution data", not "no
     references resolved".
-- `reference_resolution_version`: the resolution contract version, currently `1`.
+- `reference_resolution_version`: the resolution contract version, currently `2`.
 - `reference_resolution_last_full_revision`: the `extraction_revisions.revision_id`
   of the last full resolution pass. Preserved across a `failed` write.
 
@@ -506,6 +506,18 @@ target type-like kinds; identifier `member_access` targets Property/Field/Method
 stay `ambiguous`. Partial classes (multiple same-name class symbols) likewise
 stay `ambiguous` at tier 4 and resolve only via tiers 1–3 — coverage loss, never
 wrong edges.
+
+Resolution contract 2 also runs tier 1 directly for identifier `variable_ref`
+rows. It walks the containing scope outward, then the same file's top-level
+values, and never promotes a workspace-global same-name value. Identifier
+`member_access` reads receiver/import context from `identifiers.metadata_json`,
+runs receiver tier 3 when that context is present, and remains excluded from
+tier 4.
+
+All resolved overlays cap confidence at the lower of source extraction
+confidence and tier confidence. Direct relationship evidence is tier `1` with
+method `extraction_direct`; identifier propagation from that evidence uses
+method `tier1_local`.
 
 ### Outcome vocabulary
 

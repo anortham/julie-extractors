@@ -164,6 +164,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/cross_file/source.kt",
       "line_number": 13,
+      "span": {
+        "start_line": 13,
+        "start_column": 15,
+        "end_line": 13,
+        "end_column": 28,
+        "start_byte": 381,
+        "end_byte": 394
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -203,7 +211,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4"
+      "caller_scope_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4",
+      "span": {
+        "start_line": 12,
+        "start_column": 8,
+        "end_line": 12,
+        "end_column": 15,
+        "start_byte": 358,
+        "end_byte": 365
+      }
     },
     {
       "pending": {
@@ -221,7 +237,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4"
+      "caller_scope_key": "fixtures/extraction/kotlin/cross_file/source.kt:entry:11:4",
+      "span": {
+        "start_line": 12,
+        "start_column": 8,
+        "end_line": 12,
+        "end_column": 15,
+        "start_byte": 358,
+        "end_byte": 365
+      }
     }
   ],
   "identifiers": [

@@ -319,6 +319,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/php/test_roles/test_source.php",
       "line_number": 19,
+      "span": {
+        "start_line": 19,
+        "start_column": 4,
+        "end_line": 20,
+        "end_column": 6,
+        "start_byte": 258,
+        "end_byte": 289
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -358,7 +366,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/test_roles/test_source.php:extracts a Pest test case:22:4"
+      "caller_scope_key": "fixtures/extraction/php/test_roles/test_source.php:extracts a Pest test case:22:4",
+      "span": {
+        "start_line": 22,
+        "start_column": 4,
+        "end_line": 23,
+        "end_column": 6,
+        "start_byte": 296,
+        "end_byte": 350
+      }
     },
     {
       "pending": {
@@ -376,7 +392,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/test_roles/test_source.php:php roles:18:0"
+      "caller_scope_key": "fixtures/extraction/php/test_roles/test_source.php:php roles:18:0",
+      "span": {
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 24,
+        "end_column": 2,
+        "start_byte": 218,
+        "end_byte": 354
+      }
     }
   ],
   "identifiers": [

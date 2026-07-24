@@ -101,6 +101,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/r/cross_file/source.R",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 2,
+        "end_line": 15,
+        "end_column": 16,
+        "start_byte": 411,
+        "end_byte": 425
+      },
       "confidence": "1.000",
       "metadata": null
     }
@@ -134,7 +142,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/cross_file/source.R:entry:13:0"
+      "caller_scope_key": "fixtures/extraction/r/cross_file/source.R:entry:13:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 2,
+        "end_line": 14,
+        "end_column": 19,
+        "start_byte": 391,
+        "end_byte": 408
+      }
     }
   ],
   "identifiers": [

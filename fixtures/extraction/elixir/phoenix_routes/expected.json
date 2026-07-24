@@ -86,7 +86,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/phoenix_routes/source.ex:MyAppWeb.Router:1:0"
+      "caller_scope_key": "fixtures/extraction/elixir/phoenix_routes/source.ex:MyAppWeb.Router:1:0",
+      "span": {
+        "start_line": 2,
+        "start_column": 2,
+        "end_line": 2,
+        "end_column": 20,
+        "start_byte": 31,
+        "end_byte": 49
+      }
     }
   ],
   "identifiers": [

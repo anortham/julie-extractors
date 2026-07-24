@@ -437,6 +437,14 @@
       "kind": "uses",
       "file_path": "fixtures/extraction/go/basic/source.go",
       "line_number": 19,
+      "span": {
+        "start_line": 19,
+        "start_column": 0,
+        "end_line": 22,
+        "end_column": 1,
+        "start_byte": 249,
+        "end_byte": 316
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -446,6 +454,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/go/basic/source.go",
       "line_number": 26,
+      "span": {
+        "start_line": 26,
+        "start_column": 1,
+        "end_line": 26,
+        "end_column": 29,
+        "start_byte": 408,
+        "end_byte": 436
+      },
       "confidence": "0.900",
       "metadata": null
     }

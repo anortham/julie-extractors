@@ -118,6 +118,7 @@ fn extract_class_relationships(
                     kind: relationship_kind,
                     file_path: base.file_path.clone(),
                     line_number: (node.start_position().row + 1) as u32,
+                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
                     confidence: 0.95,
                     metadata: None,
                 };
@@ -182,6 +183,7 @@ fn extract_call_relationships(
                             kind: RelationshipKind::Calls,
                             file_path,
                             line_number,
+                            span: Some(crate::base::NormalizedSpan::from_node(&node)),
                             confidence: 0.9,
                             metadata: None,
                         };

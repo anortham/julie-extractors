@@ -125,6 +125,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/go/structural_facts/source.go",
       "line_number": 8,
+      "span": {
+        "start_line": 8,
+        "start_column": 7,
+        "end_line": 8,
+        "end_column": 16,
+        "start_byte": 83,
+        "end_byte": 92
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -134,6 +142,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/go/structural_facts/source.go",
       "line_number": 7,
+      "span": {
+        "start_line": 7,
+        "start_column": 4,
+        "end_line": 7,
+        "end_column": 12,
+        "start_byte": 67,
+        "end_byte": 75
+      },
       "confidence": "0.900",
       "metadata": null
     }

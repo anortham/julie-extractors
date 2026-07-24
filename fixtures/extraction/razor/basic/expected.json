@@ -567,6 +567,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 62,
+      "span": {
+        "start_line": 62,
+        "start_column": 12,
+        "end_line": 62,
+        "end_column": 62,
+        "start_byte": 1275,
+        "end_byte": 1325
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "FetchUrl"
@@ -578,6 +586,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 26,
+      "span": {
+        "start_line": 26,
+        "start_column": 19,
+        "end_line": 26,
+        "end_column": 31,
+        "start_byte": 511,
+        "end_byte": 523
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "value.Trim"
@@ -589,6 +605,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 53,
+      "span": {
+        "start_line": 53,
+        "start_column": 12,
+        "end_line": 53,
+        "end_column": 40,
+        "start_byte": 1085,
+        "end_byte": 1113
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "ObserveRun"
@@ -600,6 +624,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 21,
+      "span": {
+        "start_line": 21,
+        "start_column": 19,
+        "end_line": 21,
+        "end_column": 29,
+        "start_byte": 415,
+        "end_byte": 425
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "Helper"
@@ -611,6 +643,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 20,
+      "span": {
+        "start_line": 20,
+        "start_column": 12,
+        "end_line": 20,
+        "end_column": 25,
+        "start_byte": 381,
+        "end_byte": 394
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "RecordRun"
@@ -622,6 +662,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 3,
+      "span": {
+        "start_line": 3,
+        "start_column": 5,
+        "end_line": 3,
+        "end_column": 18,
+        "start_byte": 22,
+        "end_byte": 35
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "Format"
@@ -633,6 +681,14 @@
       "kind": "uses",
       "file_path": "fixtures/extraction/razor/basic/source.razor",
       "line_number": 6,
+      "span": {
+        "start_line": 6,
+        "start_column": 0,
+        "end_line": 6,
+        "end_column": 29,
+        "start_byte": 74,
+        "end_byte": 103
+      },
       "confidence": "0.900",
       "metadata": {
         "property": "Value",

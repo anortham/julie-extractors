@@ -207,7 +207,7 @@ Resolution). Those commands report it under the top-level `languages` key:
 "languages": {
   "reference_resolution": {
     "status": "complete",
-    "version": 1,
+    "version": 2,
     "last_full_revision": 7,
     "counts": {
       "pending_resolutions": 4618,
@@ -215,9 +215,68 @@ Resolution). Those commands report it under the top-level `languages` key:
     },
     "gated_languages": ["python", "rust"],
     "failed": null,
+    "totals": {
+      "total": 9000,
+      "attempted": 7220,
+      "resolved": 6000,
+      "ambiguous": 20,
+      "missing": 700,
+      "no_context": 280,
+      "unresolved_pending": 500,
+      "unattempted": 1500,
+      "span_present": 8500,
+      "span_missing": 500
+    },
+    "origin_totals": {
+      "identifier": {
+        "total": 7000,
+        "attempted": 5220,
+        "resolved": 4500,
+        "ambiguous": 20,
+        "missing": 700,
+        "no_context": 280,
+        "unresolved_pending": 0,
+        "unattempted": 1500,
+        "span_present": 6600,
+        "span_missing": 400
+      },
+      "pending_relationship": {
+        "total": 1000,
+        "attempted": 1000,
+        "resolved": 500,
+        "ambiguous": 0,
+        "missing": 0,
+        "no_context": 0,
+        "unresolved_pending": 500,
+        "unattempted": 0,
+        "span_present": 900,
+        "span_missing": 100
+      },
+      "relationship": {
+        "total": 1000,
+        "attempted": 1000,
+        "resolved": 1000,
+        "ambiguous": 0,
+        "missing": 0,
+        "no_context": 0,
+        "unresolved_pending": 0,
+        "unattempted": 0,
+        "span_present": 1000,
+        "span_missing": 0
+      }
+    },
     "by_language": [
-      { "language": "rust", "tier": 1, "outcome": "resolved", "count": 8479 },
-      { "language": "rust", "tier": null, "outcome": "ambiguous", "count": 90 }
+      {
+        "language": "rust",
+        "origin": "identifier",
+        "raw_kind": "call",
+        "canonical_kind": "calls",
+        "tier": 1,
+        "method": "tier1_local",
+        "outcome": "resolved",
+        "span_present": true,
+        "count": 8479
+      }
     ]
   }
 }
@@ -235,9 +294,20 @@ Resolution). Those commands report it under the top-level `languages` key:
 - `failed`: `null` on success, or the non-fatal resolver error message. A
   failure also emits a `resolution_failed` warning and durable status `failed`;
   the scan itself still commits.
-- `by_language`: whole-artifact per-language/per-tier/per-outcome counts taken
-  at the end of the pass. `tier` is an integer 1–4 for `resolved` rows and
-  `null` for non-resolved outcomes (`ambiguous`, `missing`, `no_context`).
+- `totals`: whole-artifact evidence-row totals for total/attempted/resolved/
+  ambiguous/missing/`no_context`/unresolved-pending/unattempted rows and span
+  presence. They are not unique source-reference counts: one source occurrence
+  can produce both an identifier row and a pending-relationship row.
+- `origin_totals`: the same totals split by `identifier`, `relationship`, and
+  `pending_relationship`, so consumers can select one evidence domain without
+  double-counting a source occurrence.
+- `attempted`: excludes identifier rows with no resolution attempt and pending
+  `imports`/`references` rows, whose canonical evidence is reported but whose
+  symbol tier chain is intentionally not run.
+- `by_language`: whole-artifact cells grouped by language, evidence origin, raw
+  kind, canonical kind, outcome, tier, method, and span presence. Origins are
+  `identifier`, `relationship`, and `pending_relationship`. Unresolved pending
+  rows and never-attempted identifiers are included in the denominator.
 
 `counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v4
 row domains. Commands must emit every key with `0` when that row kind is not

@@ -350,7 +350,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7"
+      "caller_scope_key": "fixtures/extraction/typescript/http_client_axios/source.ts:loadUsers:7:7",
+      "span": {
+        "start_line": 8,
+        "start_column": 19,
+        "end_line": 8,
+        "end_column": 56,
+        "start_byte": 134,
+        "end_byte": 171
+      }
     }
   ],
   "identifiers": [

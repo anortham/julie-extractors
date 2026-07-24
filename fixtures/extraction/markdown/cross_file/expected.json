@@ -200,6 +200,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/markdown/cross_file/source.md",
       "line_number": 9,
+      "span": {
+        "start_line": 9,
+        "start_column": 17,
+        "end_line": 9,
+        "end_column": 30,
+        "start_byte": 333,
+        "end_byte": 346
+      },
       "confidence": "1.000",
       "metadata": {
         "anchor": "local-heading"

@@ -448,31 +448,70 @@ pub(crate) fn resolution_report_section(
         return None;
     }
     let counts = &write_result.resolution.counts;
-    let (status, version, last_full_revision, gated, by_language) = match report {
-        Some(report) => (
-            report.status.as_str().to_string(),
-            report.version,
-            report.last_full_revision,
-            report
-                .tier2_gated_languages
-                .iter()
-                .cloned()
-                .collect::<Vec<_>>(),
-            report
-                .rows
-                .iter()
-                .map(|row| {
-                    json!({
-                        "language": row.language,
-                        "tier": row.tier,
-                        "outcome": row.outcome,
-                        "count": row.count,
+    let (status, version, last_full_revision, gated, by_language, totals, origin_totals) =
+        match report {
+            Some(report) => (
+                report.status.as_str().to_string(),
+                report.version,
+                report.last_full_revision,
+                report
+                    .tier2_gated_languages
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<_>>(),
+                report
+                    .rows
+                    .iter()
+                    .map(|row| {
+                        json!({
+                            "language": row.language,
+                            "origin": row.origin,
+                            "raw_kind": row.raw_kind,
+                            "canonical_kind": row.canonical_kind,
+                            "tier": row.tier,
+                            "method": row.method,
+                            "outcome": row.outcome,
+                            "span_present": row.span_present,
+                            "count": row.count,
+                        })
                     })
-                })
-                .collect::<Vec<_>>(),
-        ),
-        None => ("failed".to_string(), 0, 0, Vec::new(), Vec::new()),
-    };
+                    .collect::<Vec<_>>(),
+                resolution_totals(&report.rows, None),
+                report
+                    .rows
+                    .iter()
+                    .map(|row| row.origin.as_str())
+                    .collect::<std::collections::BTreeSet<_>>()
+                    .into_iter()
+                    .map(|origin| {
+                        (
+                            origin.to_string(),
+                            resolution_totals(&report.rows, Some(origin)),
+                        )
+                    })
+                    .collect::<serde_json::Map<_, _>>(),
+            ),
+            None => (
+                "failed".to_string(),
+                0,
+                0,
+                Vec::new(),
+                Vec::new(),
+                json!({
+                    "total": 0,
+                    "attempted": 0,
+                    "resolved": 0,
+                    "ambiguous": 0,
+                    "missing": 0,
+                    "no_context": 0,
+                    "unresolved_pending": 0,
+                    "unattempted": 0,
+                    "span_present": 0,
+                    "span_missing": 0,
+                }),
+                serde_json::Map::new(),
+            ),
+        };
     Some(json!({
         "reference_resolution": {
             "status": status,
@@ -482,9 +521,46 @@ pub(crate) fn resolution_report_section(
                 "pending_resolutions": counts.pending_resolutions,
                 "identifier_resolutions": counts.identifier_resolutions,
             },
+            "totals": totals,
+            "origin_totals": origin_totals,
             "gated_languages": gated,
             "failed": failed,
             "by_language": by_language,
         }
     }))
+}
+
+fn resolution_totals(
+    rows: &[julie_extract_artifact::resolution_store::ResolutionReportRow],
+    origin: Option<&str>,
+) -> Value {
+    let matching = |row: &&julie_extract_artifact::resolution_store::ResolutionReportRow| {
+        origin.is_none_or(|expected| row.origin == expected)
+    };
+    let count = |outcome: &str| {
+        rows.iter()
+            .filter(matching)
+            .filter(|row| row.outcome == outcome)
+            .map(|row| row.count)
+            .sum::<i64>()
+    };
+    let total = rows
+        .iter()
+        .filter(matching)
+        .map(|row| row.count)
+        .sum::<i64>();
+    let no_context = count("no_context");
+    let unattempted = count("unattempted");
+    json!({
+        "total": total,
+        "attempted": total - no_context - unattempted,
+        "resolved": count("resolved"),
+        "ambiguous": count("ambiguous"),
+        "missing": count("missing"),
+        "no_context": no_context,
+        "unresolved_pending": count("unresolved_pending"),
+        "unattempted": unattempted,
+        "span_present": rows.iter().filter(matching).filter(|row| row.span_present).map(|row| row.count).sum::<i64>(),
+        "span_missing": rows.iter().filter(matching).filter(|row| !row.span_present).map(|row| row.count).sum::<i64>(),
+    })
 }

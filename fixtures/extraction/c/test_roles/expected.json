@@ -100,7 +100,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0"
+      "caller_scope_key": "fixtures/extraction/c/test_roles/source.c:math.addition:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 1,
+        "end_column": 20,
+        "start_byte": 0,
+        "end_byte": 20
+      }
     }
   ],
   "identifiers": [

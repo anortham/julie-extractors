@@ -115,6 +115,7 @@ fn extract_cargo_relationships(
                 kind: RelationshipKind::Imports,
                 file_path: base.file_path.clone(),
                 line_number: child.start_position().row as u32 + 1,
+                span: Some(crate::base::NormalizedSpan::from_node(&child)),
                 confidence: 1.0,
                 metadata: Some(metadata),
             });
@@ -172,6 +173,7 @@ fn extract_pyproject_relationships(
             kind: RelationshipKind::References,
             file_path: base.file_path.clone(),
             line_number: table.start_position().row as u32 + 1,
+            span: Some(crate::base::NormalizedSpan::from_node(&table)),
             confidence: 1.0,
             metadata: Some(metadata),
         });

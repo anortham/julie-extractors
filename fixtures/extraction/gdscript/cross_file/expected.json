@@ -99,6 +99,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/gdscript/cross_file/source.gd",
       "line_number": 13,
+      "span": {
+        "start_line": 13,
+        "start_column": 11,
+        "end_line": 13,
+        "end_column": 25,
+        "start_byte": 415,
+        "end_byte": 429
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -138,7 +146,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/gdscript/cross_file/source.gd:entry:11:0"
+      "caller_scope_key": "fixtures/extraction/gdscript/cross_file/source.gd:entry:11:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 18,
+        "start_byte": 389,
+        "end_byte": 403
+      }
     },
     {
       "pending": {
@@ -156,7 +172,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0"
+      "caller_scope_key": "fixtures/extraction/gdscript/cross_file/source.gd:source:6:0",
+      "span": {
+        "start_line": 6,
+        "start_column": 9,
+        "end_line": 6,
+        "end_column": 23,
+        "start_byte": 304,
+        "end_byte": 318
+      }
     }
   ],
   "identifiers": [

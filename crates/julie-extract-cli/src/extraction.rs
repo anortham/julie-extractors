@@ -351,9 +351,10 @@ fn map_results(
     let mut type_infos = results.types.values().collect::<Vec<_>>();
     type_infos.sort_by(|left, right| left.symbol_id.cmp(&right.symbol_id));
 
-    let identifiers = dedupe_by_id(map_identifiers(&results, target)?, |identifier| {
-        identifier.identifier_id.as_str()
-    });
+    let identifiers = dedupe_by_id(
+        map_identifiers(&results, target, &snapshot.content)?,
+        |identifier| identifier.identifier_id.as_str(),
+    );
     let relationships = dedupe_by_id(map_relationships(&results, target)?, |relationship| {
         relationship.relationship_id.as_str()
     });
@@ -429,11 +430,70 @@ fn dedupe_by_id<T>(rows: Vec<T>, mut key: impl FnMut(&T) -> &str) -> Vec<T> {
 fn map_identifiers(
     results: &ExtractionResults,
     target: &FileTarget,
+    source: &str,
 ) -> Result<Vec<ArtifactIdentifier>, ExtractFileError> {
     results
         .identifiers
         .iter()
         .map(|identifier| {
+            let mut metadata = serde_json::Map::new();
+            let identifier_kind = identifier.kind.to_string();
+            let source_receiver = (identifier_kind == "member_access")
+                .then(|| receiver_before_identifier(source, identifier.start_byte))
+                .flatten();
+            let pending = results
+                .structured_pending_relationships
+                .iter()
+                .filter(|pending| {
+                    pending.target.terminal_name == identifier.name
+                        && pending_kind_matches_identifier(
+                            &identifier_kind,
+                            &pending.pending.kind.to_string(),
+                        )
+                        && pending.span.is_some_and(|span| {
+                            identifier.start_byte >= span.start_byte
+                                && identifier.end_byte <= span.end_byte
+                        })
+                })
+                .min_by_key(|pending| {
+                    pending
+                        .span
+                        .map(|span| {
+                            (
+                                span.end_byte.saturating_sub(span.start_byte),
+                                span.start_byte,
+                            )
+                        })
+                        .unwrap_or((u32::MAX, u32::MAX))
+                });
+            let pending_receiver = pending.and_then(|pending| pending.target.receiver.as_ref());
+            let context_conflict = source_receiver
+                .as_ref()
+                .zip(pending_receiver)
+                .is_some_and(|(source, extracted)| source != extracted);
+            let receiver = if context_conflict {
+                None
+            } else {
+                source_receiver
+                    .as_ref()
+                    .or(pending_receiver)
+                    .map(String::as_str)
+            };
+            if let Some(receiver) = receiver {
+                metadata.insert(
+                    "receiver".to_string(),
+                    serde_json::Value::String(receiver.to_string()),
+                );
+            }
+            if !context_conflict
+                && let Some(import_context) =
+                    pending.and_then(|pending| pending.target.import_context.as_ref())
+            {
+                metadata.insert(
+                    "import_context".to_string(),
+                    serde_json::Value::String(import_context.clone()),
+                );
+            }
             Ok(ArtifactIdentifier {
                 identifier_id: identifier.id.clone(),
                 name: identifier.name.clone(),
@@ -448,11 +508,52 @@ fn map_identifiers(
                 end_byte: i64::from(identifier.end_byte),
                 confidence: f64::from(identifier.confidence),
                 code_context: identifier.code_context.clone(),
-                metadata_json: None,
+                metadata_json: (!metadata.is_empty())
+                    .then(|| serde_json::Value::Object(metadata).to_string()),
             })
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| serialization_error(target, error))
+}
+
+fn pending_kind_matches_identifier(identifier_kind: &str, pending_kind: &str) -> bool {
+    matches!(
+        (identifier_kind, pending_kind),
+        ("call" | "member_access", "calls" | "instantiates")
+            | ("member_access", "references")
+            | (
+                "type_usage",
+                "extends" | "implements" | "instantiates" | "uses"
+            )
+    )
+}
+
+fn receiver_before_identifier(source: &str, start_byte: u32) -> Option<String> {
+    let bytes = source.as_bytes();
+    let mut cursor = usize::try_from(start_byte).ok()?.min(bytes.len());
+    while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
+        cursor -= 1;
+    }
+    let separator_width =
+        if cursor >= 2 && matches!(&bytes[cursor - 2..cursor], b"::" | b"->" | b"?.") {
+            2
+        } else if cursor >= 1 && bytes[cursor - 1] == b'.' {
+            1
+        } else {
+            return None;
+        };
+    cursor -= separator_width;
+    while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
+        cursor -= 1;
+    }
+    let end = cursor;
+    while cursor > 0
+        && (bytes[cursor - 1].is_ascii_alphanumeric()
+            || matches!(bytes[cursor - 1], b'_' | b'$' | b'@'))
+    {
+        cursor -= 1;
+    }
+    (cursor < end).then(|| source[cursor..end].to_string())
 }
 
 fn map_relationships(
@@ -463,17 +564,38 @@ fn map_relationships(
         .relationships
         .iter()
         .map(|relationship| {
+            let span = relationship.span.as_ref();
             Ok(ArtifactRelationship {
-                relationship_id: relationship.id.clone(),
+                relationship_id: span.map_or_else(
+                    || relationship.id.clone(),
+                    |span| {
+                        stable_id(
+                            "relationship",
+                            [
+                                relationship.from_symbol_id.clone(),
+                                relationship.to_symbol_id.clone(),
+                                relationship.kind.to_string(),
+                                span.start_line.to_string(),
+                                span.start_column.to_string(),
+                                span.end_line.to_string(),
+                                span.end_column.to_string(),
+                                span.start_byte.to_string(),
+                                span.end_byte.to_string(),
+                            ],
+                        )
+                    },
+                ),
                 from_symbol_id: relationship.from_symbol_id.clone(),
                 to_symbol_id: relationship.to_symbol_id.clone(),
                 kind: relationship.kind.to_string(),
-                start_line: Some(i64::from(relationship.line_number)),
-                start_column: None,
-                end_line: None,
-                end_column: None,
-                start_byte: None,
-                end_byte: None,
+                start_line: Some(i64::from(
+                    span.map_or(relationship.line_number, |span| span.start_line),
+                )),
+                start_column: span.map(|span| i64::from(span.start_column)),
+                end_line: span.map(|span| i64::from(span.end_line)),
+                end_column: span.map(|span| i64::from(span.end_column)),
+                start_byte: span.map(|span| i64::from(span.start_byte)),
+                end_byte: span.map(|span| i64::from(span.end_byte)),
                 confidence: f64::from(relationship.confidence),
                 metadata_json: optional_json(&relationship.metadata, target)?,
             })
@@ -956,6 +1078,32 @@ fn failure_parse_diagnostic(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn receiver_context_is_stable_across_common_member_separators() {
+        for (source, start, expected) in [
+            ("service.run()", 8, "service"),
+            ("service :: run()", 11, "service"),
+            ("service->run()", 9, "service"),
+            ("service?.run()", 9, "service"),
+            ("$service->run()", 10, "$service"),
+            ("@service.run()", 9, "@service"),
+        ] {
+            assert_eq!(
+                receiver_before_identifier(source, start),
+                Some(expected.to_string())
+            );
+        }
+        assert_eq!(receiver_before_identifier("run()", 0), None);
+        for (source, start) in [
+            ("foo<Bar>::baz()", 10),
+            ("value - member", 8),
+            ("value > member", 8),
+            ("value ? member", 8),
+        ] {
+            assert_eq!(receiver_before_identifier(source, start), None);
+        }
+    }
     use std::sync::Mutex;
 
     static PANIC_HOOK_LOCK: Mutex<()> = Mutex::new(());

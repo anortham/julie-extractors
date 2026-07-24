@@ -132,7 +132,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/c/structural_facts/source.c:read_value:4:0"
+      "caller_scope_key": "fixtures/extraction/c/structural_facts/source.c:read_value:4:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 11,
+        "end_line": 5,
+        "end_column": 24,
+        "start_byte": 79,
+        "end_byte": 92
+      }
     }
   ],
   "identifiers": [

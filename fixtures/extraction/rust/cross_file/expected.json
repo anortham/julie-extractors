@@ -94,6 +94,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/cross_file/source.rs",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 4,
+        "end_line": 15,
+        "end_column": 18,
+        "start_byte": 461,
+        "end_byte": 475
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -136,7 +144,15 @@
         ],
         "import_context": "use crate::other_module::Function;"
       },
-      "caller_scope_key": "fixtures/extraction/rust/cross_file/source.rs:Function:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/cross_file/source.rs:Function:7:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 7,
+        "end_column": 34,
+        "start_byte": 336,
+        "end_byte": 370
+      }
     },
     {
       "pending": {
@@ -154,7 +170,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/cross_file/source.rs:entry:13:0"
+      "caller_scope_key": "fixtures/extraction/rust/cross_file/source.rs:entry:13:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 12,
+        "end_line": 14,
+        "end_column": 22,
+        "start_byte": 445,
+        "end_byte": 455
+      }
     }
   ],
   "identifiers": [

@@ -126,8 +126,9 @@ fn test_html_css_razor_symbol_names_use_specific_targets() {
 
     let symbols = extract_symbols(razor_code);
     let relationships = extract_relationships(razor_code, &symbols);
-    assert!(
-        relationships.iter().any(|relationship| {
+    let using_relationship = relationships
+        .iter()
+        .find(|relationship| {
             relationship.kind == RelationshipKind::Uses
                 && relationship.to_symbol_id == "namespace:MyApp.Components"
                 && relationship
@@ -136,8 +137,18 @@ fn test_html_css_razor_symbol_names_use_specific_targets() {
                     .and_then(|metadata| metadata.get("namespace"))
                     .and_then(|namespace| namespace.as_str())
                     == Some("MyApp.Components")
-        }),
-        "using directive should target a specific namespace payload, got {relationships:#?}"
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "using directive should target a specific namespace payload, got {relationships:#?}"
+            )
+        });
+    let span = using_relationship
+        .span
+        .expect("using relationship should expose the namespace occurrence");
+    assert_eq!(
+        &razor_code[span.start_byte as usize..span.end_byte as usize],
+        "MyApp.Components"
     );
 }
 

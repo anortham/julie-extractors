@@ -98,6 +98,7 @@ fn extract_class_relationships(
                         kind: RelationshipKind::Uses,
                         file_path: base.file_path.clone(),
                         line_number: node.start_position().row as u32 + 1,
+                        span: Some(crate::base::NormalizedSpan::from_node(node)),
                         confidence: 1.0,
                         metadata: None,
                     });
@@ -218,6 +219,7 @@ fn emit_type_relationship_or_pending(
             kind,
             file_path: base.file_path.clone(),
             line_number: node.start_position().row as u32 + 1,
+            span: Some(crate::base::NormalizedSpan::from_node(node)),
             confidence: 1.0,
             metadata: None,
         });
@@ -349,6 +351,7 @@ fn extract_method_call_relationships(
                 kind: RelationshipKind::Calls,
                 file_path: base.file_path.clone(),
                 line_number: node.start_position().row as u32 + 1,
+                span: Some(crate::base::NormalizedSpan::from_node(node)),
                 confidence: 0.9,
                 metadata: None,
             });

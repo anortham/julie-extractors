@@ -1,5 +1,5 @@
 /// Relationship extraction (component usage, bindings, method calls)
-use crate::base::{Relationship, RelationshipKind, Symbol, SymbolKind};
+use crate::base::{NormalizedSpan, Relationship, RelationshipKind, Symbol, SymbolKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use regex::Regex;
 use std::collections::HashMap;
@@ -139,7 +139,7 @@ impl super::RazorExtractor {
                 .or_else(|| symbols.iter().find(|s| s.name == "@page"))
                 .or_else(|| symbols.first())
             {
-                relationships.push(self.base.create_relationship(
+                let mut relationship = self.base.create_relationship(
                     from_symbol.id.clone(),
                     format!("namespace:{}", namespace_name),
                     RelationshipKind::Uses,
@@ -149,7 +149,7 @@ impl super::RazorExtractor {
                         let mut metadata = HashMap::new();
                         metadata.insert(
                             "namespace".to_string(),
-                            serde_json::Value::String(namespace_name),
+                            serde_json::Value::String(namespace_name.clone()),
                         );
                         metadata.insert(
                             "type".to_string(),
@@ -157,7 +157,13 @@ impl super::RazorExtractor {
                         );
                         metadata
                     }),
-                ));
+                );
+                relationship.span =
+                    unique_content_occurrence_span(&self.base.content, &namespace_name);
+                if let Some(span) = relationship.span {
+                    relationship.line_number = span.start_line;
+                }
+                relationships.push(relationship);
             }
         }
     }
@@ -177,7 +183,8 @@ impl super::RazorExtractor {
             return;
         };
 
-        for line in self.base.content.lines() {
+        for (line_index, line) in self.base.content.lines().enumerate() {
+            let line_number = line_index as u32 + 1;
             let namespace_name = line
                 .trim()
                 .strip_prefix("@using")
@@ -192,7 +199,7 @@ impl super::RazorExtractor {
                     continue;
                 }
 
-                relationships.push(self.base.create_relationship(
+                let mut relationship = self.base.create_relationship(
                     from_symbol.id.clone(),
                     to_symbol_id,
                     RelationshipKind::Uses,
@@ -210,7 +217,17 @@ impl super::RazorExtractor {
                         );
                         metadata
                     }),
-                ));
+                );
+                relationship.span = line.find(namespace_name).and_then(|start_column| {
+                    NormalizedSpan::from_line_match(
+                        &self.base.content,
+                        line_number,
+                        start_column,
+                        namespace_name,
+                    )
+                });
+                relationship.line_number = line_number;
+                relationships.push(relationship);
             }
         }
     }
@@ -326,6 +343,15 @@ impl super::RazorExtractor {
             ));
         }
     }
+}
+
+fn unique_content_occurrence_span(content: &str, needle: &str) -> Option<NormalizedSpan> {
+    let mut matches = content.match_indices(needle);
+    let (start, _) = matches.next()?;
+    if matches.next().is_some() {
+        return None;
+    }
+    NormalizedSpan::from_content_range(content, start, start + needle.len())
 }
 
 fn is_namespace_like(name: &str) -> bool {

@@ -340,7 +340,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 24,
+        "start_byte": 398,
+        "end_byte": 418
+      }
     },
     {
       "pending": {
@@ -358,7 +366,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 74,
+        "start_byte": 398,
+        "end_byte": 468
+      }
     },
     {
       "pending": {
@@ -376,7 +392,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 17,
+        "start_column": 14,
+        "end_line": 17,
+        "end_column": 57,
+        "start_byte": 570,
+        "end_byte": 613
+      }
     },
     {
       "pending": {
@@ -394,7 +418,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 18,
+        "start_column": 10,
+        "end_line": 18,
+        "end_column": 21,
+        "start_byte": 625,
+        "end_byte": 636
+      }
     },
     {
       "pending": {
@@ -412,7 +444,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 25,
+        "start_column": 13,
+        "end_line": 25,
+        "end_column": 24,
+        "start_byte": 886,
+        "end_byte": 897
+      }
     },
     {
       "pending": {
@@ -430,7 +470,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 4,
+        "end_line": 19,
+        "end_column": 48,
+        "start_byte": 642,
+        "end_byte": 686
+      }
     },
     {
       "pending": {
@@ -448,7 +496,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 4,
+        "end_line": 20,
+        "end_column": 53,
+        "start_byte": 692,
+        "end_byte": 741
+      }
     },
     {
       "pending": {
@@ -466,7 +522,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 26,
+        "start_column": 4,
+        "end_line": 26,
+        "end_column": 56,
+        "start_byte": 903,
+        "end_byte": 955
+      }
     },
     {
       "pending": {
@@ -484,7 +548,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 4,
+        "end_line": 14,
+        "end_column": 37,
+        "start_byte": 475,
+        "end_byte": 508
+      }
     },
     {
       "pending": {
@@ -502,7 +574,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 4,
+        "end_line": 23,
+        "end_column": 39,
+        "start_byte": 801,
+        "end_byte": 836
+      }
     },
     {
       "pending": {
@@ -520,7 +600,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 4,
+        "end_line": 24,
+        "end_column": 33,
+        "start_byte": 842,
+        "end_byte": 871
+      }
     },
     {
       "pending": {
@@ -538,7 +626,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 15,
+        "start_column": 4,
+        "end_line": 15,
+        "end_column": 43,
+        "start_byte": 514,
+        "end_byte": 553
+      }
     },
     {
       "pending": {
@@ -556,7 +652,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0"
+      "caller_scope_key": "fixtures/extraction/php/http_client_deferred/source.php:deferredClients:9:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 11,
+        "end_column": 65,
+        "start_byte": 331,
+        "end_byte": 392
+      }
     }
   ],
   "identifiers": [

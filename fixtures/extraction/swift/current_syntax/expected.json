@@ -545,6 +545,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/current_syntax/source.swift",
       "line_number": 21,
+      "span": {
+        "start_line": 21,
+        "start_column": 12,
+        "end_line": 21,
+        "end_column": 21,
+        "start_byte": 301,
+        "end_byte": 310
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -576,7 +584,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0"
+      "caller_scope_key": "fixtures/extraction/swift/current_syntax/source.swift:Registry:27:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 44,
+        "end_line": 28,
+        "end_column": 54,
+        "start_byte": 416,
+        "end_byte": 426
+      }
     }
   ],
   "identifiers": [

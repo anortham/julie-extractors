@@ -386,6 +386,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/ruby/basic/source.rb",
       "line_number": 14,
+      "span": {
+        "start_line": 14,
+        "start_column": 25,
+        "end_line": 14,
+        "end_column": 38,
+        "start_byte": 183,
+        "end_byte": 196
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -449,7 +457,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:Worker:4:0"
+      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:Worker:4:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 2,
+        "end_line": 5,
+        "end_column": 20,
+        "start_byte": 59,
+        "end_byte": 77
+      }
     },
     {
       "pending": {
@@ -467,7 +483,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:Worker:4:0"
+      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:Worker:4:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 2,
+        "end_line": 5,
+        "end_column": 20,
+        "start_byte": 59,
+        "end_byte": 77
+      }
     },
     {
       "pending": {
@@ -485,7 +509,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:helper:2:0"
+      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:helper:2:0",
+      "span": {
+        "start_line": 2,
+        "start_column": 0,
+        "end_line": 2,
+        "end_column": 27,
+        "start_byte": 15,
+        "end_byte": 42
+      }
     },
     {
       "pending": {
@@ -503,7 +535,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:json:1:0"
+      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:json:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 1,
+        "end_column": 14,
+        "start_byte": 0,
+        "end_byte": 14
+      }
     },
     {
       "pending": {
@@ -521,7 +561,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:run:13:2"
+      "caller_scope_key": "fixtures/extraction/ruby/basic/source.rb:run:13:2",
+      "span": {
+        "start_line": 14,
+        "start_column": 4,
+        "end_line": 14,
+        "end_column": 40,
+        "start_byte": 162,
+        "end_byte": 198
+      }
     }
   ],
   "identifiers": [

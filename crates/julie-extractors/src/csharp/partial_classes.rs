@@ -56,6 +56,14 @@ fn partial_class_relationship(from: &Symbol, to: &Symbol, full_name: &str) -> Re
         kind: RelationshipKind::References,
         file_path: from.file_path.clone(),
         line_number: from.start_line,
+        span: Some(crate::base::NormalizedSpan {
+            start_line: from.start_line,
+            start_column: from.start_column,
+            end_line: from.end_line,
+            end_column: from.end_column,
+            start_byte: from.start_byte,
+            end_byte: from.end_byte,
+        }),
         confidence: 1.0,
         metadata: Some(metadata),
     }

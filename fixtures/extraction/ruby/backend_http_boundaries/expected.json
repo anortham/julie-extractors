@@ -140,7 +140,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0"
+      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 2,
+        "end_line": 23,
+        "end_column": 53,
+        "start_byte": 475,
+        "end_byte": 526
+      }
     },
     {
       "pending": {
@@ -158,7 +166,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0"
+      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 2,
+        "end_line": 24,
+        "end_column": 61,
+        "start_byte": 529,
+        "end_byte": 588
+      }
     },
     {
       "pending": {
@@ -176,7 +192,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0"
+      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:call_clients:22:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 22,
+        "end_line": 24,
+        "end_column": 41,
+        "start_byte": 549,
+        "end_byte": 568
+      }
     },
     {
       "pending": {
@@ -194,7 +218,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:http:1:0"
+      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:http:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 1,
+        "end_column": 18,
+        "start_byte": 0,
+        "end_byte": 18
+      }
     },
     {
       "pending": {
@@ -212,7 +244,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:uri:2:0"
+      "caller_scope_key": "fixtures/extraction/ruby/backend_http_boundaries/source.rb:uri:2:0",
+      "span": {
+        "start_line": 2,
+        "start_column": 0,
+        "end_line": 2,
+        "end_column": 13,
+        "start_byte": 19,
+        "end_byte": 32
+      }
     }
   ],
   "identifiers": [

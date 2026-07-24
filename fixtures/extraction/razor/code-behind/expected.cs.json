@@ -191,7 +191,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4"
+      "caller_scope_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Refresh:13:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 8,
+        "end_line": 15,
+        "end_column": 49,
+        "start_byte": 302,
+        "end_byte": 343
+      }
     }
   ],
   "identifiers": [

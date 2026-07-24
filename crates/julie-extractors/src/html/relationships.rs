@@ -37,6 +37,7 @@ impl RelationshipExtractor {
                 kind: RelationshipKind::References,
                 file_path: base.file_path.clone(),
                 line_number: (node.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 1.0,
                 metadata: Some({
                     let mut meta = HashMap::new();
@@ -64,6 +65,7 @@ impl RelationshipExtractor {
                 kind: RelationshipKind::Uses,
                 file_path: base.file_path.clone(),
                 line_number: (node.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 1.0,
                 metadata: Some({
                     let mut meta = HashMap::new();
@@ -91,6 +93,7 @@ impl RelationshipExtractor {
                 kind: RelationshipKind::Calls,
                 file_path: base.file_path.clone(),
                 line_number: (node.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 1.0,
                 metadata: Some({
                     let mut meta = HashMap::new();
@@ -152,6 +155,7 @@ impl RelationshipExtractor {
                 kind: RelationshipKind::Imports,
                 file_path: base.file_path.clone(),
                 line_number: (node.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 1.0,
                 metadata: Some({
                     let mut meta = HashMap::new();

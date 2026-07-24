@@ -126,6 +126,7 @@ fn extract_use_relationship(
             kind: RelationshipKind::Uses,
             file_path: extractor.base.file_path.clone(),
             line_number: (node.start_position().row + 1) as u32,
+            span: Some(crate::base::NormalizedSpan::from_node(node)),
             confidence: 1.0,
             metadata: None,
         });
@@ -174,6 +175,7 @@ fn extract_impl_relationship(
             kind: RelationshipKind::Implements,
             file_path: extractor.base.file_path.clone(),
             line_number: (node.start_position().row + 1) as u32,
+            span: Some(crate::base::NormalizedSpan::from_node(node)),
             confidence: 1.0,
             metadata: None,
         });
@@ -228,6 +230,7 @@ fn extract_behaviour_relationship(
                 kind: RelationshipKind::Implements,
                 file_path: extractor.base.file_path.clone(),
                 line_number: (node.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(node)),
                 confidence: 1.0,
                 metadata: None,
             });
@@ -324,6 +327,7 @@ fn extract_call_relationship(
             kind: RelationshipKind::Calls,
             file_path: extractor.base.file_path.clone(),
             line_number,
+            span: Some(crate::base::NormalizedSpan::from_node(node)),
             confidence: 0.9,
             metadata: None,
         });

@@ -33,7 +33,7 @@ static TYPE_SIGNATURE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\w+)
 /// Dart language extractor that handles Dart-specific constructs including Flutter
 pub struct DartExtractor {
     pub(crate) base: BaseExtractor,
-    same_file_calls: Vec<(String, String, u32)>,
+    same_file_calls: Vec<(String, String, u32, crate::base::NormalizedSpan)>,
     /// Byte offsets of `block` nodes already consumed as Dart 3 modifier class bodies.
     /// Prevents double-visiting when the source_file-level iteration hits the same block.
     consumed_blocks: HashSet<usize>,
@@ -350,7 +350,7 @@ impl DartExtractor {
         self.same_file_calls.clear();
         self.extract_pending_relationships(tree, symbols);
 
-        for (caller_id, callee_id, line_number) in self.same_file_calls.drain(..) {
+        for (caller_id, callee_id, line_number, span) in self.same_file_calls.drain(..) {
             rels.push(crate::base::Relationship {
                 id: format!(
                     "{}_{}_{:?}_{}",
@@ -364,6 +364,7 @@ impl DartExtractor {
                 kind: crate::base::RelationshipKind::Calls,
                 file_path: self.base.file_path.clone(),
                 line_number,
+                span: Some(span),
                 confidence: 0.9,
                 metadata: None,
             });

@@ -233,7 +233,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_addition:10:4"
+      "caller_scope_key": "fixtures/extraction/qml/test_roles/test_source.qml:test_addition:10:4",
+      "span": {
+        "start_line": 11,
+        "start_column": 8,
+        "end_line": 11,
+        "end_column": 25,
+        "start_byte": 154,
+        "end_byte": 171
+      }
     }
   ],
   "identifiers": [

@@ -184,6 +184,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/css/cross_file/source.css",
       "line_number": 21,
+      "span": {
+        "start_line": 21,
+        "start_column": 13,
+        "end_line": 21,
+        "end_column": 22,
+        "start_byte": 494,
+        "end_byte": 503
+      },
       "confidence": "1.000",
       "metadata": {
         "referenceName": "--primary",
@@ -196,6 +204,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/css/cross_file/source.css",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 13,
+        "end_line": 15,
+        "end_column": 22,
+        "start_byte": 412,
+        "end_byte": 421
+      },
       "confidence": "1.000",
       "metadata": {
         "referenceName": "--primary",

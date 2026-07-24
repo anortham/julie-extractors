@@ -599,6 +599,14 @@
       "kind": "implements",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 7,
+      "span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 88,
+        "end_column": 1,
+        "start_byte": 52,
+        "end_byte": 2036
+      },
       "confidence": "1.000",
       "metadata": {
         "interface": "Job"
@@ -610,6 +618,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 85,
+      "span": {
+        "start_line": 85,
+        "start_column": 21,
+        "end_line": 85,
+        "end_column": 53,
+        "start_byte": 1933,
+        "end_byte": 1965
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -619,6 +635,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 86,
+      "span": {
+        "start_line": 86,
+        "start_column": 8,
+        "end_line": 86,
+        "end_column": 60,
+        "start_byte": 1975,
+        "end_byte": 2027
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -628,6 +652,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 67,
+      "span": {
+        "start_line": 67,
+        "start_column": 8,
+        "end_line": 67,
+        "end_column": 58,
+        "start_byte": 1435,
+        "end_byte": 1485
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -637,6 +669,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 25,
+      "span": {
+        "start_line": 25,
+        "start_column": 12,
+        "end_line": 25,
+        "end_column": 25,
+        "start_byte": 430,
+        "end_byte": 443
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -646,6 +686,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 30,
+      "span": {
+        "start_line": 30,
+        "start_column": 36,
+        "end_line": 30,
+        "end_column": 48,
+        "start_byte": 529,
+        "end_byte": 541
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -655,6 +703,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 58,
+      "span": {
+        "start_line": 58,
+        "start_column": 8,
+        "end_line": 58,
+        "end_column": 36,
+        "start_byte": 1176,
+        "end_byte": 1204
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -664,6 +720,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 18,
+      "span": {
+        "start_line": 18,
+        "start_column": 15,
+        "end_line": 18,
+        "end_column": 25,
+        "start_byte": 282,
+        "end_byte": 292
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -673,6 +737,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/basic/source.java",
       "line_number": 17,
+      "span": {
+        "start_line": 17,
+        "start_column": 8,
+        "end_line": 17,
+        "end_column": 21,
+        "start_byte": 252,
+        "end_byte": 265
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -744,7 +816,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4"
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
+      "span": {
+        "start_line": 42,
+        "start_column": 33,
+        "end_line": 42,
+        "end_column": 43,
+        "start_byte": 822,
+        "end_byte": 832
+      }
     },
     {
       "pending": {
@@ -762,7 +842,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4"
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
+      "span": {
+        "start_line": 42,
+        "start_column": 33,
+        "end_line": 42,
+        "end_column": 43,
+        "start_byte": 822,
+        "end_byte": 832
+      }
     },
     {
       "pending": {
@@ -780,7 +868,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4"
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
+      "span": {
+        "start_line": 43,
+        "start_column": 8,
+        "end_line": 43,
+        "end_column": 21,
+        "start_byte": 842,
+        "end_byte": 855
+      }
     },
     {
       "pending": {
@@ -798,7 +894,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4"
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:observeAsync:40:4",
+      "span": {
+        "start_line": 43,
+        "start_column": 8,
+        "end_line": 43,
+        "end_column": 21,
+        "start_byte": 842,
+        "end_byte": 855
+      }
     },
     {
       "pending": {
@@ -816,7 +920,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4"
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
+      "span": {
+        "start_line": 31,
+        "start_column": 12,
+        "end_line": 31,
+        "end_column": 26,
+        "start_byte": 557,
+        "end_byte": 571
+      }
     },
     {
       "pending": {
@@ -834,7 +946,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4"
+      "caller_scope_key": "fixtures/extraction/java/basic/source.java:readConfig:29:4",
+      "span": {
+        "start_line": 31,
+        "start_column": 12,
+        "end_line": 31,
+        "end_column": 26,
+        "start_byte": 557,
+        "end_byte": 571
+      }
     }
   ],
   "identifiers": [

@@ -124,6 +124,56 @@ fn resolved_identifier(db: &Path, name: &str) -> Option<IdentifierResolution> {
     .unwrap()
 }
 
+fn resolved_identifier_of_kind(db: &Path, name: &str, kind: &str) -> Option<IdentifierResolution> {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT r.tier, r.method, r.confidence \
+         FROM identifiers i \
+         JOIN identifier_resolutions r ON i.identifier_id = r.identifier_id \
+         WHERE i.name = ?1 AND i.kind = ?2 AND i.target_symbol_id IS NOT NULL",
+        [name, kind],
+        |row| {
+            Ok(IdentifierResolution {
+                tier: row.get(0)?,
+                method: row.get(1)?,
+                confidence: row.get(2)?,
+            })
+        },
+    )
+    .optional()
+    .unwrap()
+}
+
+fn identifier_receiver(db: &Path, name: &str, kind: &str) -> Option<String> {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT json_extract(metadata_json, '$.receiver') \
+         FROM identifiers WHERE name = ?1 AND kind = ?2",
+        [name, kind],
+        |row| row.get(0),
+    )
+    .optional()
+    .unwrap()
+}
+
+fn identifier_receivers(db: &Path, name: &str, kind: &str) -> Vec<String> {
+    let conn = Connection::open(db).unwrap();
+    let mut statement = conn
+        .prepare(
+            "SELECT json_extract(metadata_json, '$.receiver') \
+             FROM identifiers \
+             WHERE name = ?1 AND kind = ?2 \
+               AND json_extract(metadata_json, '$.receiver') IS NOT NULL \
+             ORDER BY start_byte",
+        )
+        .unwrap();
+    statement
+        .query_map([name, kind], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
 /// Whether the identifier `name` has a non-NULL denormalized target — i.e. it
 /// resolved to exactly one symbol.
 fn identifier_has_target(db: &Path, name: &str) -> bool {
@@ -188,24 +238,21 @@ fn gap_recorded(db: &Path, language: &str, capability: &str) -> bool {
 
 #[test]
 fn tier1_same_file_call_propagates_to_identifier() {
-    // Same-file call -> extraction-time relationship -> propagated at tier 1.
     let (_t, db) = scan_fixture("rust/tier1_same_file");
     let res = resolved_identifier(&db, "alpha").expect("same-file call resolves at tier 1");
     assert_eq!(res.tier, 1, "same-file propagation is tier 1");
     assert_eq!(res.method, "tier1_local");
-    assert_eq!(res.confidence, 0.95);
+    assert!((res.confidence - 0.9).abs() < 0.000_001);
 }
 
 #[test]
 fn tier2_cross_file_import_resolves_typescript() {
-    // Cross-file import -> resolved through the import contract at tier 2.
     let (_t, db) = scan_fixture("typescript/tier2_import");
     let res =
         resolved_identifier(&db, "produceWidget").expect("imported call resolves at tier 2 (ts)");
     assert_eq!(res.tier, 2, "import resolution is tier 2");
     assert_eq!(res.method, "tier2_import");
-    assert_eq!(res.confidence, 0.85);
-    // The tier-2-enabled languages carry no tier2_import gap.
+    assert!((res.confidence - 0.8).abs() < 0.000_001);
     assert!(
         !gap_recorded(&db, "typescript", "reference_resolution.tier2_import"),
         "a tier-2-enabled language must NOT record a tier2_import gap"
@@ -262,13 +309,39 @@ fn tier2_aliased_import_requires_resolved_source_module() {
 
 #[test]
 fn tier3_receiver_typed_resolves_csharp() {
-    // Receiver -> type_fact -> unique type symbol -> member; tier 3.
     let (_t, db) = scan_fixture("csharp/tier3_receiver");
-    let res = resolved_identifier(&db, "Build").expect("receiver-typed call resolves at tier 3");
+    let res =
+        resolved_identifier_of_kind(&db, "Build", "call").expect("receiver-typed call resolves");
     assert_eq!(res.tier, 3, "receiver-typed resolution is tier 3");
     assert_eq!(res.method, "tier3_receiver");
-    // The field's type fact is inferred, so confidence drops to the inferred band.
     assert_eq!(res.confidence, 0.65);
+    assert_eq!(
+        identifier_receiver(&db, "Build", "call").as_deref(),
+        Some("widget")
+    );
+}
+
+#[test]
+fn tier1_same_file_variable_ref_beats_same_name_in_another_file() {
+    let (_t, db) = scan_fixture("javascript/tier1_variable_ref");
+    let res = resolved_identifier_of_kind(&db, "counter", "variable_ref")
+        .expect("same-file variable reference resolves");
+    assert_eq!(res.tier, 1);
+    assert_eq!(res.method, "tier1_local");
+    assert_eq!(res.confidence, 0.95);
+    assert_eq!(
+        identifier_receiver(&db, "value", "member_access").as_deref(),
+        Some("state")
+    );
+}
+
+#[test]
+fn nested_same_name_member_access_keeps_each_source_receiver() {
+    let (_t, db) = scan_fixture("typescript/nested_same_member_receiver");
+    assert_eq!(
+        identifier_receivers(&db, "get", "call"),
+        vec!["outer".to_string(), "inner".to_string()]
+    );
 }
 
 #[test]

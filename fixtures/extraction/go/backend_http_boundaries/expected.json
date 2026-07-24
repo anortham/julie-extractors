@@ -307,7 +307,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 16,
+        "start_column": 1,
+        "end_line": 16,
+        "end_column": 31,
+        "start_byte": 274,
+        "end_byte": 304
+      }
     },
     {
       "pending": {
@@ -325,7 +333,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 22,
+        "start_column": 11,
+        "end_line": 22,
+        "end_column": 31,
+        "start_byte": 499,
+        "end_byte": 519
+      }
     },
     {
       "pending": {
@@ -343,7 +359,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 26,
+        "start_column": 1,
+        "end_line": 26,
+        "end_column": 34,
+        "start_byte": 637,
+        "end_byte": 670
+      }
     },
     {
       "pending": {
@@ -361,7 +385,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 25,
+        "start_column": 1,
+        "end_line": 25,
+        "end_column": 40,
+        "start_byte": 596,
+        "end_byte": 635
+      }
     },
     {
       "pending": {
@@ -379,7 +411,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 31,
+        "start_column": 1,
+        "end_line": 31,
+        "end_column": 28,
+        "start_byte": 747,
+        "end_byte": 774
+      }
     },
     {
       "pending": {
@@ -397,7 +437,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 7,
+        "end_line": 29,
+        "end_column": 21,
+        "start_byte": 696,
+        "end_byte": 710
+      }
     },
     {
       "pending": {
@@ -415,7 +463,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 6,
+        "end_line": 28,
+        "end_column": 16,
+        "start_byte": 678,
+        "end_byte": 688
+      }
     },
     {
       "pending": {
@@ -433,7 +489,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 6,
+        "end_line": 14,
+        "end_column": 19,
+        "start_byte": 235,
+        "end_byte": 248
+      }
     },
     {
       "pending": {
@@ -451,7 +515,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 1,
+        "end_line": 12,
+        "end_column": 45,
+        "start_byte": 183,
+        "end_byte": 227
+      }
     },
     {
       "pending": {
@@ -469,7 +541,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 1,
+        "end_line": 23,
+        "end_column": 33,
+        "start_byte": 521,
+        "end_byte": 553
+      }
     },
     {
       "pending": {
@@ -487,7 +567,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 20,
+        "end_line": 24,
+        "end_column": 39,
+        "start_byte": 574,
+        "end_byte": 593
+      }
     },
     {
       "pending": {
@@ -505,7 +593,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 1,
+        "end_line": 20,
+        "end_column": 23,
+        "start_byte": 426,
+        "end_byte": 448
+      }
     },
     {
       "pending": {
@@ -523,7 +619,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 15,
+        "start_column": 8,
+        "end_line": 15,
+        "end_column": 23,
+        "start_byte": 257,
+        "end_byte": 272
+      }
     },
     {
       "pending": {
@@ -541,7 +645,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 12,
+        "end_line": 24,
+        "end_column": 40,
+        "start_byte": 566,
+        "end_byte": 594
+      }
     },
     {
       "pending": {
@@ -559,7 +671,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 1,
+        "end_line": 21,
+        "end_column": 38,
+        "start_byte": 450,
+        "end_byte": 487
+      }
     },
     {
       "pending": {
@@ -577,7 +697,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0"
+      "caller_scope_key": "fixtures/extraction/go/backend_http_boundaries/source.go:routes:9:0",
+      "span": {
+        "start_line": 30,
+        "start_column": 1,
+        "end_line": 30,
+        "end_column": 34,
+        "start_byte": 712,
+        "end_byte": 745
+      }
     }
   ],
   "identifiers": [

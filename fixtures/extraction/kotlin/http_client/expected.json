@@ -200,7 +200,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 29,
+        "start_byte": 282,
+        "end_byte": 307
+      }
     },
     {
       "pending": {
@@ -218,7 +226,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 29,
+        "start_byte": 391,
+        "end_byte": 416
+      }
     },
     {
       "pending": {
@@ -236,7 +252,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "span": {
+        "start_line": 13,
+        "start_column": 4,
+        "end_line": 13,
+        "end_column": 30,
+        "start_byte": 421,
+        "end_byte": 447
+      }
     },
     {
       "pending": {
@@ -254,7 +278,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 4,
+        "end_line": 7,
+        "end_column": 47,
+        "start_byte": 208,
+        "end_byte": 251
+      }
     },
     {
       "pending": {
@@ -272,7 +304,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client/source.kt:syncUsers:6:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 4,
+        "end_line": 8,
+        "end_column": 25,
+        "start_byte": 256,
+        "end_byte": 277
+      }
     }
   ],
   "identifiers": [

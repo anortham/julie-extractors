@@ -432,6 +432,14 @@
       "kind": "extends",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
       "line_number": 5,
+      "span": {
+        "start_line": 5,
+        "start_column": 0,
+        "end_line": 19,
+        "end_column": 1,
+        "start_byte": 37,
+        "end_byte": 243
+      },
       "confidence": "1.000",
       "metadata": null
     },
@@ -441,6 +449,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
       "line_number": 37,
+      "span": {
+        "start_line": 37,
+        "start_column": 2,
+        "end_line": 37,
+        "end_column": 10,
+        "start_byte": 603,
+        "end_byte": 611
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -450,6 +466,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/dart/basic/source.dart",
       "line_number": 28,
+      "span": {
+        "start_line": 28,
+        "start_column": 2,
+        "end_line": 28,
+        "end_column": 12,
+        "start_byte": 402,
+        "end_byte": 412
+      },
       "confidence": "0.900",
       "metadata": null
     }

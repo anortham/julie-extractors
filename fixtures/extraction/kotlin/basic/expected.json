@@ -679,6 +679,14 @@
       "kind": "implements",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "line_number": 13,
+      "span": {
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 57,
+        "end_column": 1,
+        "start_byte": 159,
+        "end_byte": 1173
+      },
       "confidence": "1.000",
       "metadata": {
         "baseType": "Job"
@@ -690,6 +698,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "line_number": 52,
+      "span": {
+        "start_line": 52,
+        "start_column": 8,
+        "end_line": 52,
+        "end_column": 58,
+        "start_byte": 1068,
+        "end_byte": 1118
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -699,6 +715,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "line_number": 29,
+      "span": {
+        "start_line": 29,
+        "start_column": 15,
+        "end_line": 29,
+        "end_column": 25,
+        "start_byte": 539,
+        "end_byte": 549
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -708,6 +732,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "line_number": 43,
+      "span": {
+        "start_line": 43,
+        "start_column": 8,
+        "end_line": 43,
+        "end_column": 36,
+        "start_byte": 824,
+        "end_byte": 852
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -717,6 +749,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "line_number": 25,
+      "span": {
+        "start_line": 25,
+        "start_column": 15,
+        "end_line": 25,
+        "end_column": 25,
+        "start_byte": 470,
+        "end_byte": 480
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -726,6 +766,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/basic/source.kt",
       "line_number": 24,
+      "span": {
+        "start_line": 24,
+        "start_column": 8,
+        "end_line": 24,
+        "end_column": 21,
+        "start_byte": 441,
+        "end_byte": 454
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -773,7 +821,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0",
+      "span": {
+        "start_line": 32,
+        "start_column": 25,
+        "end_line": 32,
+        "end_column": 35,
+        "start_byte": 582,
+        "end_byte": 592
+      }
     },
     {
       "pending": {
@@ -791,7 +847,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 48,
+        "end_line": 20,
+        "end_column": 59,
+        "start_byte": 352,
+        "end_byte": 363
+      }
     },
     {
       "pending": {
@@ -809,7 +873,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/basic/source.kt:Worker:13:0",
+      "span": {
+        "start_line": 32,
+        "start_column": 18,
+        "end_line": 32,
+        "end_column": 37,
+        "start_byte": 575,
+        "end_byte": 594
+      }
     }
   ],
   "identifiers": [

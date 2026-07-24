@@ -502,6 +502,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/powershell/basic/source.ps1",
       "line_number": 8,
+      "span": {
+        "start_line": 8,
+        "start_column": 11,
+        "end_line": 8,
+        "end_column": 31,
+        "start_byte": 129,
+        "end_byte": 149
+      },
       "confidence": "1.000",
       "metadata": null
     }
@@ -541,7 +549,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/powershell/basic/source.ps1:Get-Filtered:25:0"
+      "caller_scope_key": "fixtures/extraction/powershell/basic/source.ps1:Get-Filtered:25:0",
+      "span": {
+        "start_line": 26,
+        "start_column": 4,
+        "end_line": 26,
+        "end_column": 16,
+        "start_byte": 452,
+        "end_byte": 464
+      }
     },
     {
       "pending": {
@@ -559,7 +575,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/powershell/basic/source.ps1:Get-Filtered:25:0"
+      "caller_scope_key": "fixtures/extraction/powershell/basic/source.ps1:Get-Filtered:25:0",
+      "span": {
+        "start_line": 26,
+        "start_column": 18,
+        "end_line": 26,
+        "end_column": 40,
+        "start_byte": 466,
+        "end_byte": 488
+      }
     }
   ],
   "identifiers": [

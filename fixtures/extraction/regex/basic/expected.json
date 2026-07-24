@@ -181,6 +181,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/regex/basic/source.regex",
       "line_number": 1,
+      "span": {
+        "start_line": 1,
+        "start_column": 31,
+        "end_line": 1,
+        "end_column": 39,
+        "start_byte": 31,
+        "end_byte": 39
+      },
       "confidence": "1.000",
       "metadata": {
         "name": "name",
@@ -193,6 +201,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/regex/basic/source.regex",
       "line_number": 1,
+      "span": {
+        "start_line": 1,
+        "start_column": 46,
+        "end_line": 1,
+        "end_column": 48,
+        "start_byte": 46,
+        "end_byte": 48
+      },
       "confidence": "1.000",
       "metadata": {
         "captureIndex": 3,

@@ -317,6 +317,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
       "line_number": 11,
+      "span": {
+        "start_line": 11,
+        "start_column": 2,
+        "end_line": 12,
+        "end_column": 0,
+        "start_byte": 377,
+        "end_byte": 420
+      },
       "confidence": "1.000",
       "metadata": {
         "href": "./other.css"
@@ -328,6 +336,14 @@
       "kind": "imports",
       "file_path": "fixtures/extraction/html/cross_file/source.html",
       "line_number": 10,
+      "span": {
+        "start_line": 10,
+        "start_column": 2,
+        "end_line": 10,
+        "end_column": 36,
+        "start_byte": 340,
+        "end_byte": 374
+      },
       "confidence": "1.000",
       "metadata": {
         "src": "./other.js"
@@ -369,7 +385,8 @@
         "namespace_path": [],
         "import_context": "html-link-href"
       },
-      "caller_scope_key": "fixtures/extraction/html/cross_file/source.html:link:11:2"
+      "caller_scope_key": "fixtures/extraction/html/cross_file/source.html:link:11:2",
+      "span": null
     },
     {
       "pending": {
@@ -387,7 +404,8 @@
         "namespace_path": [],
         "import_context": "html-script-src"
       },
-      "caller_scope_key": "fixtures/extraction/html/cross_file/source.html:script:10:2"
+      "caller_scope_key": "fixtures/extraction/html/cross_file/source.html:script:10:2",
+      "span": null
     }
   ],
   "identifiers": [

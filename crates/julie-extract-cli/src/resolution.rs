@@ -129,13 +129,15 @@ pub enum ReferenceKind {
     /// and is enabled at tiers 1–3 only (member names collide too heavily for a
     /// global-uniqueness signal to mean anything).
     MemberAccess,
+    VariableRef,
 }
 
 impl ReferenceKind {
     /// Map a pending relationship `kind` string to a resolvable reference kind.
     /// Returns `None` for relationship kinds the workspace chain does not resolve
-    /// (e.g. `imports`, `references`, `contains`) — the caller records those as
-    /// no-context.
+    /// (e.g. `imports`, `references`, `contains`). The pending resolver skips
+    /// those rows and the report classifies supported reference kinds as
+    /// unattempted.
     pub fn from_relationship_kind(kind: &str) -> Option<Self> {
         match kind {
             "calls" => Some(ReferenceKind::Call),
@@ -151,6 +153,7 @@ impl ReferenceKind {
             "call" => Some(ReferenceKind::Call),
             "type_usage" => Some(ReferenceKind::TypeUsage),
             "member_access" => Some(ReferenceKind::MemberAccess),
+            "variable_ref" => Some(ReferenceKind::VariableRef),
             _ => None,
         }
     }
@@ -165,7 +168,7 @@ impl ReferenceKind {
 /// assumptions (a pending row's span is the whole call/expression node, not the
 /// callee identifier — that matters to Task 5's identifier propagation join, not
 /// to this tier logic).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnresolvedEdge {
     /// Pending vs identifier — selects the tier chain.
     pub origin: EdgeOrigin,
@@ -187,6 +190,7 @@ pub struct UnresolvedEdge {
     /// Free-string import context recorded by the extractor. Corroborating
     /// evidence only, never the sole tier-2 key (design §"Resolution tiers").
     pub import_context: Option<String>,
+    pub source_confidence: f64,
 }
 
 impl UnresolvedEdge {
@@ -203,6 +207,7 @@ impl UnresolvedEdge {
             receiver: item.target_receiver.clone(),
             caller_scope_symbol_id: item.caller_scope_symbol_id.clone(),
             import_context: item.target_import_context.clone(),
+            source_confidence: item.confidence,
         })
     }
 
@@ -216,10 +221,10 @@ impl UnresolvedEdge {
             language: item.language.clone(),
             file_id: item.file_id.clone(),
             terminal_name: item.name.clone(),
-            // Identifiers carry no receiver context today (F1 adds it).
-            receiver: None,
+            receiver: item.receiver.clone(),
             caller_scope_symbol_id: item.containing_symbol_id.clone(),
-            import_context: None,
+            import_context: item.import_context.clone(),
+            source_confidence: item.confidence,
         })
     }
 }
@@ -419,6 +424,7 @@ impl WorkspaceCandidateIndex {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Tier {
+    Local,
     Import,
     Receiver,
     Global,
@@ -427,6 +433,7 @@ enum Tier {
 impl Tier {
     fn number(self) -> u8 {
         match self {
+            Tier::Local => 1,
             Tier::Import => 2,
             Tier::Receiver => 3,
             Tier::Global => 4,
@@ -435,6 +442,7 @@ impl Tier {
 
     fn method(self) -> &'static str {
         match self {
+            Tier::Local => METHOD_TIER1,
             Tier::Import => METHOD_TIER2,
             Tier::Receiver => METHOD_TIER3,
             Tier::Global => METHOD_TIER4,
@@ -489,7 +497,7 @@ pub fn resolve_one(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Ti
                 return TierOutcome::Resolved {
                     target_symbol_id: only.symbol_id.clone(),
                     tier: tier.number(),
-                    confidence: only.confidence,
+                    confidence: only.confidence.min(edge.source_confidence),
                     method: tier.method().to_string(),
                 };
             }
@@ -521,7 +529,7 @@ struct TierCandidate {
 
 /// The ordered tier chain for an edge (design §"Resolution tiers" + §"Data flow"
 /// step 4). Pending rows run tiers 2→4 (tier 1 already materialized); identifiers
-/// run a reduced chain with no tier 3.
+/// run only the tiers that their extracted context can support.
 fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
     use EdgeOrigin::*;
     use ReferenceKind::*;
@@ -531,10 +539,14 @@ fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
             vec![Tier::Import, Tier::Receiver, Tier::Global]
         }
         (Pending, MemberAccess) => vec![Tier::Import, Tier::Receiver],
-        // Identifiers: reduced chains, no tier 3. `Instantiates` is not an
-        // identifier kind (never constructed) but is covered for exhaustiveness.
+        (Pending, VariableRef) => vec![],
+        // `Instantiates` is not an identifier kind (never constructed) but is
+        // covered for exhaustiveness.
         (Identifier, Call | TypeUsage) => vec![Tier::Import, Tier::Global],
-        (Identifier, MemberAccess | Instantiates) => vec![],
+        (Identifier, MemberAccess) if edge.receiver.is_some() => vec![Tier::Receiver],
+        (Identifier, MemberAccess) => vec![],
+        (Identifier, VariableRef) => vec![Tier::Local],
+        (Identifier, Instantiates) => vec![],
     }
 }
 
@@ -544,10 +556,45 @@ fn tier_candidates(
     index: &WorkspaceCandidateIndex,
 ) -> Vec<TierCandidate> {
     match tier {
+        Tier::Local => tier1_candidates(edge, index),
         Tier::Import => tier2_candidates(edge, index),
         Tier::Receiver => tier3_candidates(edge, index),
         Tier::Global => tier4_candidates(edge, index),
     }
+}
+
+fn tier1_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
+    let kinds = tier123_compatible_kinds(edge.kind);
+    let mut scope = edge.caller_scope_symbol_id.clone();
+    while let Some(scope_id) = scope {
+        let hits = index
+            .children_named(&scope_id, &edge.terminal_name)
+            .into_iter()
+            .filter(|candidate| {
+                candidate.language == edge.language && kinds.contains(&candidate.kind)
+            })
+            .map(|candidate| TierCandidate {
+                symbol_id: candidate.symbol_id.clone(),
+                confidence: CONFIDENCE_TIER1,
+            })
+            .collect::<Vec<_>>();
+        if !hits.is_empty() {
+            return hits;
+        }
+        scope = index
+            .symbol_by_id(&scope_id)
+            .and_then(|symbol| symbol.parent_symbol_id.clone());
+    }
+
+    index
+        .top_level_named(&edge.file_id, &edge.terminal_name)
+        .into_iter()
+        .filter(|candidate| candidate.language == edge.language && kinds.contains(&candidate.kind))
+        .map(|candidate| TierCandidate {
+            symbol_id: candidate.symbol_id.clone(),
+            confidence: CONFIDENCE_TIER1,
+        })
+        .collect()
 }
 
 /// Tier 2: candidates reachable through an import in the source file. Two keys
@@ -759,6 +806,12 @@ fn tier123_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
         ReferenceKind::MemberAccess => {
             &[SymbolKind::Property, SymbolKind::Field, SymbolKind::Method]
         }
+        ReferenceKind::VariableRef => &[
+            SymbolKind::Variable,
+            SymbolKind::Constant,
+            SymbolKind::Field,
+            SymbolKind::Property,
+        ],
     }
 }
 
@@ -774,7 +827,7 @@ fn tier4_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
             SymbolKind::Constructor,
         ],
         ReferenceKind::TypeUsage => TYPE_LIKE_KINDS,
-        ReferenceKind::MemberAccess => &[],
+        ReferenceKind::MemberAccess | ReferenceKind::VariableRef => &[],
     }
 }
 
@@ -802,12 +855,12 @@ use rusqlite::{Connection, Transaction};
 
 /// Value stamped into `reference_resolution_version` metadata. Bump when the
 /// resolver's observable output contract changes so Miller can gate on it.
-pub const RESOLUTION_VERSION: i64 = 1;
+pub const RESOLUTION_VERSION: i64 = 2;
 
 /// `method` string stamped on an identifier filled from a tier-1 (extraction-time,
 /// same-file) `relationships` row. Tier 1 is materialized at extraction; the
 /// workspace pass only *propagates* it onto the co-located identifier.
-const METHOD_TIER1: &str = "tier1_local";
+pub const METHOD_TIER1: &str = "tier1_local";
 
 /// Per-pass report the hook closure captures (Task 3's return contract: the
 /// writer consumes only [`ResolutionCounts`]; this richer report never travels
@@ -1302,7 +1355,7 @@ fn record_identifier_edge(
         counts.identifier_resolutions += 1;
         return Ok(());
     };
-    if !tier2_enabled(&item.language) {
+    if applicable_tiers(&edge).contains(&Tier::Import) && !tier2_enabled(&item.language) {
         gated.insert(item.language.clone());
     }
     let (outcome, target, tier, confidence, method, candidates) = match resolve_one(&edge, index) {
@@ -1356,7 +1409,7 @@ fn propagate_relationships(
     revision: i64,
     counts: &mut ResolutionCounts,
 ) -> rusqlite::Result<()> {
-    let base = "SELECT to_symbol_id, file_id, kind, start_line, start_byte, end_byte \
+    let base = "SELECT to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence \
                 FROM relationships";
     let rows = match file_filter {
         Some(files) => {
@@ -1377,7 +1430,7 @@ fn propagate_relationships(
                 .collect::<Result<Vec<_>, _>>()?
         }
     };
-    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte) in rows {
+    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence) in rows {
         if ReferenceKind::from_relationship_kind(&kind).is_none() {
             continue;
         }
@@ -1393,7 +1446,7 @@ fn propagate_relationships(
                 Outcome::Resolved,
                 Some(&to_symbol_id),
                 Some(1),
-                Some(CONFIDENCE_TIER1),
+                Some(confidence.min(CONFIDENCE_TIER1)),
                 Some(METHOD_TIER1),
                 None,
                 revision,
@@ -1425,7 +1478,7 @@ fn map_identifier_location(
     ))
 }
 
-type RelationshipRow = (String, String, String, i64, Option<i64>, Option<i64>);
+type RelationshipRow = (String, String, String, i64, Option<i64>, Option<i64>, f64);
 
 fn map_relationship_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RelationshipRow> {
     Ok((
@@ -1435,6 +1488,7 @@ fn map_relationship_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Relationshi
         row.get::<_, Option<i64>>(3)?.unwrap_or(-1),
         row.get(4)?,
         row.get(5)?,
+        row.get(6)?,
     ))
 }
 
@@ -1671,7 +1725,8 @@ fn unresolved_pending_in_files(
         "SELECT pr.pending_relationship_id, pr.from_symbol_id, pr.caller_scope_symbol_id, \
                 pr.file_id, pr.path, f.language, pr.kind, pr.target_display_name, \
                 pr.target_terminal_name, pr.target_receiver, pr.target_namespace_json, \
-                pr.target_import_context, pr.start_line, pr.start_byte, pr.end_byte \
+                pr.target_import_context, pr.start_line, pr.start_byte, pr.end_byte, \
+                pr.confidence \
          FROM pending_relationships pr \
          JOIN files f ON f.file_id = pr.file_id \
          WHERE pr.file_id IN ({}) \
@@ -1698,6 +1753,7 @@ fn unresolved_pending_in_files(
             start_line: row.get(12)?,
             start_byte: row.get(13)?,
             end_byte: row.get(14)?,
+            confidence: row.get(15)?,
         })
     })?;
     rows.collect()
@@ -1741,12 +1797,12 @@ fn covered_identifiers(
 
     let relationships = query_scoped_rows(
         conn,
-        "to_symbol_id, file_id, kind, start_line, start_byte, end_byte",
+        "to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence",
         "relationships",
         files,
         map_relationship_row,
     )?;
-    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte) in relationships {
+    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte, _) in relationships {
         if ReferenceKind::from_relationship_kind(&kind).is_none() {
             continue;
         }
@@ -1986,6 +2042,7 @@ mod tests {
             receiver: None,
             caller_scope_symbol_id: None,
             import_context: None,
+            source_confidence: 1.0,
         }
     }
 
@@ -2531,6 +2588,103 @@ mod tests {
         );
         let edge = ident_edge(ReferenceKind::Call, "rust", "f2", "doWork");
         assert_eq!(resolve_one(&edge, &index), TierOutcome::Missing);
+    }
+
+    #[test]
+    fn identifier_variable_ref_resolves_unique_same_file_value_only() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                child(
+                    "value",
+                    "counter",
+                    SymbolKind::Variable,
+                    "rust",
+                    "src",
+                    "caller",
+                ),
+                sym("other", "counter", SymbolKind::Variable, "rust", "other"),
+            ],
+            vec![],
+            vec![],
+        );
+        let mut edge = ident_edge(ReferenceKind::VariableRef, "rust", "src", "counter");
+        edge.caller_scope_symbol_id = Some("caller".to_string());
+        let (tier, confidence, method, target) = resolved(&resolve_one(&edge, &index));
+        assert_eq!(
+            (tier, confidence, method.as_str(), target.as_str()),
+            (1, 0.95, "tier1_local", "value")
+        );
+    }
+
+    #[test]
+    fn identifier_variable_ref_never_uses_workspace_global_name_only() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![sym(
+                "other",
+                "counter",
+                SymbolKind::Variable,
+                "rust",
+                "other",
+            )],
+            vec![],
+            vec![],
+        );
+        let edge = ident_edge(ReferenceKind::VariableRef, "rust", "src", "counter");
+        assert_eq!(resolve_one(&edge, &index), TierOutcome::Missing);
+    }
+
+    #[test]
+    fn identifier_member_access_with_receiver_uses_tier3_but_not_tier4() {
+        let index = build_receiver_index(false);
+        let mut edge = ident_edge(ReferenceKind::MemberAccess, "rust", "src", "doWork");
+        edge.receiver = Some("svc".to_string());
+        edge.caller_scope_symbol_id = Some("caller".to_string());
+        let (tier, _, method, target) = resolved(&resolve_one(&edge, &index));
+        assert_eq!(
+            (tier, method.as_str(), target.as_str()),
+            (3, "tier3_receiver", "member")
+        );
+
+        let global_only = WorkspaceCandidateIndex::build(
+            vec![sym("member", "doWork", SymbolKind::Method, "rust", "other")],
+            vec![],
+            vec![],
+        );
+        assert_eq!(resolve_one(&edge, &global_only), TierOutcome::Missing);
+    }
+
+    #[test]
+    fn resolution_confidence_never_exceeds_source_confidence() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![sym("target", "Widget", SymbolKind::Class, "rust", "other")],
+            vec![],
+            vec![],
+        );
+        let mut edge = ident_edge(ReferenceKind::TypeUsage, "rust", "src", "Widget");
+        edge.source_confidence = 0.4;
+        let (_, confidence, _, _) = resolved(&resolve_one(&edge, &index));
+        assert_eq!(confidence, 0.4);
+    }
+
+    #[test]
+    fn canonical_reference_kinds_cover_both_evidence_vocabulary_forms() {
+        let canonical = julie_extract_artifact::resolution_store::canonical_reference_kind;
+        assert_eq!(canonical("identifier", "call"), Some("calls"));
+        assert_eq!(canonical("relationship", "calls"), Some("calls"));
+        assert_eq!(canonical("identifier", "type_usage"), Some("uses"));
+        assert_eq!(canonical("identifier", "member_access"), Some("references"));
+        assert_eq!(canonical("identifier", "variable_ref"), Some("references"));
+        for kind in [
+            "calls",
+            "extends",
+            "implements",
+            "imports",
+            "instantiates",
+            "references",
+            "uses",
+        ] {
+            assert_eq!(canonical("relationship", kind), Some(kind));
+        }
     }
 
     // ---- outcome bookkeeping -------------------------------------------

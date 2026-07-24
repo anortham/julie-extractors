@@ -254,6 +254,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 12,
+        "end_line": 15,
+        "end_column": 32,
+        "start_byte": 433,
+        "end_byte": 453
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -263,6 +271,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/php/cross_file/source.php",
       "line_number": 21,
+      "span": {
+        "start_line": 21,
+        "start_column": 24,
+        "end_line": 21,
+        "end_column": 44,
+        "start_byte": 606,
+        "end_byte": 626
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -294,7 +310,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4"
+      "caller_scope_key": "fixtures/extraction/php/cross_file/source.php:entry:13:4",
+      "span": {
+        "start_line": 20,
+        "start_column": 13,
+        "end_line": 20,
+        "end_column": 24,
+        "start_byte": 569,
+        "end_byte": 580
+      }
     }
   ],
   "identifiers": [

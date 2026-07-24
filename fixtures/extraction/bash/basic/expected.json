@@ -523,6 +523,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/bash/basic/source.sh",
       "line_number": 9,
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 15,
+        "start_byte": 101,
+        "end_byte": 112
+      },
       "confidence": "0.950",
       "metadata": null
     }
@@ -554,7 +562,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0"
+      "caller_scope_key": "fixtures/extraction/bash/basic/source.sh:evaluate:12:0",
+      "span": {
+        "start_line": 17,
+        "start_column": 19,
+        "end_line": 17,
+        "end_column": 33,
+        "start_byte": 243,
+        "end_byte": 257
+      }
     }
   ],
   "identifiers": [

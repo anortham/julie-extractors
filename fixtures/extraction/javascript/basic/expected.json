@@ -301,6 +301,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/javascript/basic/source.js",
       "line_number": 8,
+      "span": {
+        "start_line": 8,
+        "start_column": 15,
+        "end_line": 8,
+        "end_column": 30,
+        "start_byte": 112,
+        "end_byte": 127
+      },
       "confidence": "1.000",
       "metadata": null
     }

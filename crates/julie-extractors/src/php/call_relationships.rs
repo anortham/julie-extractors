@@ -134,6 +134,7 @@ fn resolve_call_relationship(
                 kind: RelationshipKind::Calls,
                 file_path,
                 line_number,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 0.9,
                 metadata: None,
             });
@@ -216,6 +217,7 @@ fn resolve_instantiates_relationship(
                 kind: RelationshipKind::Instantiates,
                 file_path,
                 line_number,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 0.9,
                 metadata: None,
             });

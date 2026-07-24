@@ -76,6 +76,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/http_client_deferred/source.ex",
       "line_number": 4,
+      "span": {
+        "start_line": 4,
+        "start_column": 6,
+        "end_line": 4,
+        "end_column": 18,
+        "start_byte": 94,
+        "end_byte": 106
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -181,7 +189,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 10,
+        "start_column": 4,
+        "end_line": 10,
+        "end_column": 51,
+        "start_byte": 362,
+        "end_byte": 409
+      }
     },
     {
       "pending": {
@@ -201,7 +217,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 11,
+        "end_column": 55,
+        "start_byte": 414,
+        "end_byte": 465
+      }
     },
     {
       "pending": {
@@ -221,7 +245,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 54,
+        "start_byte": 307,
+        "end_byte": 357
+      }
     },
     {
       "pending": {
@@ -241,7 +273,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 15,
+        "start_column": 4,
+        "end_line": 15,
+        "end_column": 31,
+        "start_byte": 538,
+        "end_byte": 565
+      }
     },
     {
       "pending": {
@@ -261,7 +301,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 7,
+        "start_column": 4,
+        "end_line": 7,
+        "end_column": 37,
+        "start_byte": 209,
+        "end_byte": 242
+      }
     },
     {
       "pending": {
@@ -281,7 +329,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 8,
+        "start_column": 4,
+        "end_line": 8,
+        "end_column": 59,
+        "start_byte": 247,
+        "end_byte": 302
+      }
     },
     {
       "pending": {
@@ -301,7 +357,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 16,
+        "start_column": 4,
+        "end_line": 16,
+        "end_column": 28,
+        "start_byte": 570,
+        "end_byte": 594
+      }
     },
     {
       "pending": {
@@ -321,7 +385,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 5,
+        "start_column": 4,
+        "end_line": 5,
+        "end_column": 47,
+        "start_byte": 114,
+        "end_byte": 157
+      }
     },
     {
       "pending": {
@@ -341,7 +413,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 14,
+        "start_column": 4,
+        "end_line": 14,
+        "end_column": 29,
+        "start_byte": 508,
+        "end_byte": 533
+      }
     },
     {
       "pending": {
@@ -361,7 +441,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client_deferred/source.ex:load:4:2",
+      "span": {
+        "start_line": 6,
+        "start_column": 4,
+        "end_line": 6,
+        "end_column": 46,
+        "start_byte": 162,
+        "end_byte": 204
+      }
     }
   ],
   "identifiers": [

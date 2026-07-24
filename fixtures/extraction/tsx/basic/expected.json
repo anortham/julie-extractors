@@ -462,6 +462,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/tsx/basic/source.tsx",
       "line_number": 23,
+      "span": {
+        "start_line": 23,
+        "start_column": 13,
+        "end_line": 23,
+        "end_column": 32,
+        "start_byte": 441,
+        "end_byte": 460
+      },
       "confidence": "1.000",
       "metadata": null
     },
@@ -471,6 +479,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/tsx/basic/source.tsx",
       "line_number": 22,
+      "span": {
+        "start_line": 22,
+        "start_column": 49,
+        "end_line": 22,
+        "end_column": 73,
+        "start_byte": 401,
+        "end_byte": 425
+      },
       "confidence": "1.000",
       "metadata": null
     }

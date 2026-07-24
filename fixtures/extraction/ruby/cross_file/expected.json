@@ -202,7 +202,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/cross_file/source.rb:entry:10:2"
+      "caller_scope_key": "fixtures/extraction/ruby/cross_file/source.rb:entry:10:2",
+      "span": {
+        "start_line": 17,
+        "start_column": 4,
+        "end_line": 17,
+        "end_column": 24,
+        "start_byte": 493,
+        "end_byte": 513
+      }
     },
     {
       "pending": {
@@ -220,7 +228,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0"
+      "caller_scope_key": "fixtures/extraction/ruby/cross_file/source.rb:other:7:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 7,
+        "end_column": 15,
+        "start_byte": 351,
+        "end_byte": 366
+      }
     }
   ],
   "identifiers": [

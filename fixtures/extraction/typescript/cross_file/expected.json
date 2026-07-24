@@ -182,6 +182,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/typescript/cross_file/source.ts",
       "line_number": 14,
+      "span": {
+        "start_line": 14,
+        "start_column": 11,
+        "end_line": 14,
+        "end_column": 25,
+        "start_byte": 431,
+        "end_byte": 445
+      },
       "confidence": "1.000",
       "metadata": null
     }
@@ -213,7 +221,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/typescript/cross_file/source.ts:entry:12:7"
+      "caller_scope_key": "fixtures/extraction/typescript/cross_file/source.ts:entry:12:7",
+      "span": {
+        "start_line": 13,
+        "start_column": 14,
+        "end_line": 13,
+        "end_column": 23,
+        "start_byte": 409,
+        "end_byte": 418
+      }
     }
   ],
   "identifiers": [

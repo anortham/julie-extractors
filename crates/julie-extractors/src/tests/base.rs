@@ -246,6 +246,8 @@ fn test_relationship_ids_do_not_collide_for_multiple_calls_on_one_line() {
         first.id, second.id,
         "Same-line calls should preserve distinct relationship IDs"
     );
+    assert_eq!(first.span, Some(NormalizedSpan::from_node(&call_nodes[0])));
+    assert_eq!(second.span, Some(NormalizedSpan::from_node(&call_nodes[1])));
 }
 
 #[test]

@@ -341,6 +341,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/current-syntax/source.razor",
       "line_number": 19,
+      "span": {
+        "start_line": 19,
+        "start_column": 24,
+        "end_line": 19,
+        "end_column": 41,
+        "start_byte": 430,
+        "end_byte": 447
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "Field"

@@ -1886,21 +1886,19 @@ fn cross_file_fixture() -> FixtureRoot {
 
 #[test]
 fn scan_resolves_cross_file_call_and_propagates_to_identifier() {
-    // INVARIANT: a full scan resolves a cross-file call into pending_resolutions
-    // AND fills the co-located identifier's target_symbol_id (span propagation).
     let fixture = cross_file_fixture();
     let db = fixture.path("artifact.sqlite");
     let report = json_report(&scan(fixture.root_str(), &db));
-    // The scan report carries the per-language/per-tier resolution section (rust is
-    // tier-2 gated, so the status is partial and rust is listed as gated).
-    assert_eq!(
-        report["languages"]["reference_resolution"]["status"],
-        "partial"
-    );
-    assert_eq!(
-        report["languages"]["reference_resolution"]["gated_languages"][0],
-        "rust"
-    );
+    let resolution = &report["languages"]["reference_resolution"];
+    assert_eq!(resolution["status"], "partial");
+    assert_eq!(resolution["gated_languages"][0], "rust");
+    let origin_total = resolution["origin_totals"]
+        .as_object()
+        .expect("origin totals must expose each evidence-row domain")
+        .values()
+        .map(|totals| totals["total"].as_i64().unwrap())
+        .sum::<i64>();
+    assert_eq!(resolution["totals"]["total"].as_i64(), Some(origin_total));
 
     assert_eq!(table_count(&db, "pending_resolutions"), 1);
     let target = symbol_id_for(&db, "produce_widget").expect("produce_widget symbol exists");
@@ -1909,12 +1907,11 @@ fn scan_resolves_cross_file_call_and_propagates_to_identifier() {
         Some(target.as_str()),
         "the co-located call identifier must be propagated to the definition"
     );
-    // Durable metadata is maintained; rust is tier-2 gated so status is partial.
     assert_eq!(
         metadata_value(&db, "reference_resolution_status"),
         "partial"
     );
-    assert_eq!(metadata_value(&db, "reference_resolution_version"), "1");
+    assert_eq!(metadata_value(&db, "reference_resolution_version"), "2");
 }
 
 #[test]

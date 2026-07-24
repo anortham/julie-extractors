@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use crate::base::{
-    ExtractionResults, LocalTargetResolution, PendingRelationship, RecordOffset, RelationshipKind,
-    ScopedSymbolIndex, StructuredPendingRelationship, Symbol, SymbolKind, UnresolvedTarget,
+    ExtractionResults, LocalTargetResolution, NormalizedSpan, PendingRelationship, RecordOffset,
+    RelationshipKind, ScopedSymbolIndex, StructuredPendingRelationship, Symbol, SymbolKind,
+    UnresolvedTarget,
 };
 
 fn symbol(
@@ -269,7 +270,7 @@ fn test_structured_pending_relationship_distinguishes_duplicate_terminal_names()
 fn test_structured_pending_relationships_survive_extend_offset_and_rekey() {
     let old_caller_id = "old-caller".to_string();
     let old_scope_id = "old-scope".to_string();
-    let service_render = StructuredPendingRelationship::new(
+    let mut service_render = StructuredPendingRelationship::new(
         old_caller_id.clone(),
         UnresolvedTarget {
             display_name: "service.render".to_string(),
@@ -284,7 +285,15 @@ fn test_structured_pending_relationships_survive_extend_offset_and_rekey() {
         11,
         0.8,
     );
-    let template_render = StructuredPendingRelationship::new(
+    service_render.span = Some(NormalizedSpan {
+        start_line: 11,
+        start_column: 8,
+        end_line: 11,
+        end_column: 14,
+        start_byte: 100,
+        end_byte: 106,
+    });
+    let mut template_render = StructuredPendingRelationship::new(
         old_caller_id.clone(),
         UnresolvedTarget {
             display_name: "template.render".to_string(),
@@ -301,6 +310,14 @@ fn test_structured_pending_relationships_survive_extend_offset_and_rekey() {
         12,
         0.8,
     );
+    template_render.span = Some(NormalizedSpan {
+        start_line: 12,
+        start_column: 8,
+        end_line: 12,
+        end_column: 14,
+        start_byte: 120,
+        end_byte: 126,
+    });
 
     let mut combined = ExtractionResults::empty();
     combined.extend(ExtractionResults {
@@ -384,7 +401,7 @@ fn test_structured_pending_relationships_survive_extend_offset_and_rekey() {
 
     combined.apply_record_offset(RecordOffset {
         line_delta: 4,
-        byte_delta: 0,
+        byte_delta: 40,
     });
 
     assert_eq!(combined.pending_relationships[0].line_number, 15);
@@ -400,6 +417,17 @@ fn test_structured_pending_relationships_survive_extend_offset_and_rekey() {
             .pending
             .line_number,
         16
+    );
+    assert_eq!(
+        combined.structured_pending_relationships[0].span,
+        Some(NormalizedSpan {
+            start_line: 15,
+            start_column: 8,
+            end_line: 15,
+            end_column: 14,
+            start_byte: 140,
+            end_byte: 146,
+        })
     );
 
     combined.rekey_normalized_locations();

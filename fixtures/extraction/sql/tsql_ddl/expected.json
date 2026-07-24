@@ -342,6 +342,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/sql/tsql_ddl/source.sql",
       "line_number": 17,
+      "span": {
+        "start_line": 17,
+        "start_column": 4,
+        "end_line": 17,
+        "end_column": 87,
+        "start_byte": 473,
+        "end_byte": 556
+      },
       "confidence": "1.000",
       "metadata": {
         "isExternal": false,

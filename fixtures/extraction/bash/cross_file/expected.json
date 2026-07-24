@@ -128,6 +128,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/bash/cross_file/source.sh",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 4,
+        "end_line": 15,
+        "end_column": 16,
+        "start_byte": 378,
+        "end_byte": 390
+      },
       "confidence": "0.950",
       "metadata": null
     }
@@ -159,7 +167,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/bash/cross_file/source.sh:entry:13:0"
+      "caller_scope_key": "fixtures/extraction/bash/cross_file/source.sh:entry:13:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 4,
+        "end_line": 14,
+        "end_column": 17,
+        "start_byte": 360,
+        "end_byte": 373
+      }
     }
   ],
   "identifiers": [

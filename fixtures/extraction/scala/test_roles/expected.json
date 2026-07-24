@@ -231,7 +231,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:ManagedTestRoles:1:0"
+      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:ManagedTestRoles:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 14,
+        "end_column": 1,
+        "start_byte": 0,
+        "end_byte": 257
+      }
     },
     {
       "pending": {
@@ -249,7 +257,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2"
+      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "span": {
+        "start_line": 10,
+        "start_column": 4,
+        "end_line": 10,
+        "end_column": 42,
+        "start_byte": 196,
+        "end_byte": 234
+      }
     },
     {
       "pending": {
@@ -267,7 +283,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2"
+      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:callOrdinaryMember:9:2",
+      "span": {
+        "start_line": 10,
+        "start_column": 4,
+        "end_line": 10,
+        "end_column": 42,
+        "start_byte": 196,
+        "end_byte": 234
+      }
     },
     {
       "pending": {
@@ -285,7 +309,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:extracts a Scala test case:3:4"
+      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:extracts a Scala test case:3:4",
+      "span": {
+        "start_line": 3,
+        "start_column": 4,
+        "end_line": 3,
+        "end_column": 36,
+        "start_byte": 76,
+        "end_byte": 108
+      }
     },
     {
       "pending": {
@@ -303,7 +335,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:scala roles:2:2"
+      "caller_scope_key": "fixtures/extraction/scala/test_roles/source.scala:scala roles:2:2",
+      "span": {
+        "start_line": 2,
+        "start_column": 2,
+        "end_line": 2,
+        "end_column": 25,
+        "start_byte": 46,
+        "end_byte": 69
+      }
     }
   ],
   "identifiers": [

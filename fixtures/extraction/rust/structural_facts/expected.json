@@ -63,7 +63,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0"
+      "caller_scope_key": "fixtures/extraction/rust/structural_facts/source.rs:read_flag:1:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 8,
+        "end_line": 3,
+        "end_column": 39,
+        "start_byte": 60,
+        "end_byte": 91
+      }
     }
   ],
   "identifiers": [

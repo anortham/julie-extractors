@@ -274,6 +274,7 @@ fn visit_script_node(
             RelationshipKind::Calls,
             (function_node.start_position().row + start_line_offset + 1) as u32,
             &name,
+            None,
             seen,
             relationships,
         );
@@ -313,6 +314,7 @@ fn collect_template_relationships(
                 collect_template_expression_relationships(
                     base,
                     expression.as_str(),
+                    expression.start(),
                     line_number,
                     component,
                     local_symbols,
@@ -326,6 +328,7 @@ fn collect_template_relationships(
                 collect_template_expression_relationships(
                     base,
                     expression.as_str(),
+                    expression.start(),
                     line_number,
                     component,
                     local_symbols,
@@ -337,20 +340,22 @@ fn collect_template_relationships(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_template_expression_relationships(
     base: &BaseExtractor,
     expression: &str,
+    expression_start_column: usize,
     line_number: u32,
     component: &Symbol,
     local_symbols: &HashMap<String, &Symbol>,
     relationships: &mut Vec<Relationship>,
     seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
 ) {
-    for name in IDENTIFIER_RE
+    for matched in IDENTIFIER_RE
         .find_iter(expression)
-        .map(|matched| matched.as_str())
-        .filter(|name| !is_template_keyword(name))
+        .filter(|matched| !is_template_keyword(matched.as_str()))
     {
+        let name = matched.as_str();
         if let Some(target) = local_symbols.get(name) {
             push_relationship(
                 base,
@@ -359,6 +364,7 @@ fn collect_template_expression_relationships(
                 RelationshipKind::References,
                 line_number,
                 name,
+                Some(expression_start_column + matched.start()),
                 seen,
                 relationships,
             );
@@ -374,6 +380,7 @@ fn push_relationship(
     kind: RelationshipKind,
     line_number: u32,
     reference_name: &str,
+    reference_start_column: Option<usize>,
     seen: &mut HashSet<(String, String, RelationshipKind, u32, String)>,
     relationships: &mut Vec<Relationship>,
 ) {
@@ -404,6 +411,22 @@ fn push_relationship(
         kind,
         file_path: base.file_path.clone(),
         line_number,
+        span: reference_start_column
+            .and_then(|column| {
+                crate::base::NormalizedSpan::from_line_match(
+                    &base.content,
+                    line_number,
+                    column,
+                    reference_name,
+                )
+            })
+            .or_else(|| {
+                crate::base::NormalizedSpan::from_line_occurrence(
+                    &base.content,
+                    line_number,
+                    reference_name,
+                )
+            }),
         confidence: 1.0,
         metadata: Some(metadata),
     });

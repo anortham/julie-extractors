@@ -253,6 +253,7 @@ fn emit_uses_relationship(
                 kind: RelationshipKind::Uses,
                 file_path,
                 line_number,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 0.9,
                 metadata: None,
             });

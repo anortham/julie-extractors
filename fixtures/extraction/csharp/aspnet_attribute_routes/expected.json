@@ -498,7 +498,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Computed:25:4",
+      "span": {
+        "start_line": 26,
+        "start_column": 39,
+        "end_line": 26,
+        "end_column": 43,
+        "start_byte": 634,
+        "end_byte": 638
+      }
     },
     {
       "pending": {
@@ -516,7 +524,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Create:12:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 37,
+        "end_line": 13,
+        "end_column": 41,
+        "start_byte": 269,
+        "end_byte": 273
+      }
     },
     {
       "pending": {
@@ -534,7 +550,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "span": {
+        "start_line": 10,
+        "start_column": 40,
+        "end_line": 10,
+        "end_column": 44,
+        "start_byte": 210,
+        "end_byte": 214
+      }
     },
     {
       "pending": {
@@ -552,7 +576,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:HealthController:30:0",
+      "span": {
+        "start_line": 30,
+        "start_column": 0,
+        "end_line": 37,
+        "end_column": 1,
+        "start_byte": 710,
+        "end_byte": 882
+      }
     },
     {
       "pending": {
@@ -570,7 +602,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Index:33:4",
+      "span": {
+        "start_line": 33,
+        "start_column": 36,
+        "end_line": 33,
+        "end_column": 40,
+        "start_byte": 811,
+        "end_byte": 815
+      }
     },
     {
       "pending": {
@@ -588,7 +628,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Legacy:18:4",
+      "span": {
+        "start_line": 19,
+        "start_column": 37,
+        "end_line": 19,
+        "end_column": 41,
+        "start_byte": 403,
+        "end_byte": 407
+      }
     },
     {
       "pending": {
@@ -606,7 +654,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:List:15:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 35,
+        "end_line": 16,
+        "end_column": 39,
+        "start_byte": 337,
+        "end_byte": 341
+      }
     },
     {
       "pending": {
@@ -624,7 +680,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:22:4",
+      "span": {
+        "start_line": 23,
+        "start_column": 35,
+        "end_line": 23,
+        "end_column": 39,
+        "start_byte": 550,
+        "end_byte": 554
+      }
     },
     {
       "pending": {
@@ -642,7 +706,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
+      "span": {
+        "start_line": 36,
+        "start_column": 35,
+        "end_line": 36,
+        "end_column": 39,
+        "start_byte": 875,
+        "end_byte": 879
+      }
     },
     {
       "pending": {
@@ -660,7 +732,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0"
+      "caller_scope_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 0,
+        "end_line": 27,
+        "end_column": 1,
+        "start_byte": 56,
+        "end_byte": 641
+      }
     }
   ],
   "identifiers": [

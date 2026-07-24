@@ -836,6 +836,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "line_number": 75,
+      "span": {
+        "start_line": 75,
+        "start_column": 4,
+        "end_line": 75,
+        "end_column": 54,
+        "start_byte": 1211,
+        "end_byte": 1261
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -845,6 +853,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "line_number": 64,
+      "span": {
+        "start_line": 64,
+        "start_column": 4,
+        "end_line": 64,
+        "end_column": 33,
+        "start_byte": 979,
+        "end_byte": 1008
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -854,6 +870,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "line_number": 46,
+      "span": {
+        "start_line": 46,
+        "start_column": 15,
+        "end_line": 46,
+        "end_column": 32,
+        "start_byte": 686,
+        "end_byte": 703
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -863,6 +887,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/php/basic/source.php",
       "line_number": 45,
+      "span": {
+        "start_line": 45,
+        "start_column": 8,
+        "end_line": 45,
+        "end_column": 28,
+        "start_byte": 649,
+        "end_byte": 669
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -894,7 +926,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/php/basic/source.php:withMapper:82:0"
+      "caller_scope_key": "fixtures/extraction/php/basic/source.php:withMapper:82:0",
+      "span": {
+        "start_line": 87,
+        "start_column": 11,
+        "end_line": 87,
+        "end_column": 26,
+        "start_byte": 1435,
+        "end_byte": 1450
+      }
     }
   ],
   "identifiers": [

@@ -464,7 +464,15 @@
         "namespace_path": [],
         "import_context": "use hyper::{Method, Request};"
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:hyper:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 3,
+        "end_column": 29,
+        "start_byte": 122,
+        "end_byte": 151
+      }
     },
     {
       "pending": {
@@ -482,7 +490,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 12,
+        "end_line": 12,
+        "end_column": 61,
+        "start_byte": 383,
+        "end_byte": 432
+      }
     },
     {
       "pending": {
@@ -500,7 +516,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 12,
+        "end_line": 11,
+        "end_column": 17,
+        "start_byte": 257,
+        "end_byte": 369
+      }
     },
     {
       "pending": {
@@ -521,7 +545,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 12,
+        "end_line": 12,
+        "end_column": 37,
+        "start_byte": 383,
+        "end_byte": 408
+      }
     },
     {
       "pending": {
@@ -541,7 +573,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 12,
+        "end_line": 8,
+        "end_column": 30,
+        "start_byte": 257,
+        "end_byte": 275
+      }
     },
     {
       "pending": {
@@ -559,7 +599,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 13,
+        "start_column": 12,
+        "end_line": 13,
+        "end_column": 61,
+        "start_byte": 446,
+        "end_byte": 495
+      }
     },
     {
       "pending": {
@@ -577,7 +625,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 12,
+        "end_line": 14,
+        "end_column": 43,
+        "start_byte": 509,
+        "end_byte": 540
+      }
     },
     {
       "pending": {
@@ -597,7 +653,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 12,
+        "end_line": 14,
+        "end_column": 36,
+        "start_byte": 509,
+        "end_byte": 533
+      }
     },
     {
       "pending": {
@@ -617,7 +681,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 13,
+        "start_column": 12,
+        "end_line": 13,
+        "end_column": 54,
+        "start_byte": 446,
+        "end_byte": 488
+      }
     },
     {
       "pending": {
@@ -635,7 +707,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 12,
+        "end_line": 9,
+        "end_column": 29,
+        "start_byte": 257,
+        "end_byte": 305
+      }
     },
     {
       "pending": {
@@ -653,7 +733,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 12,
+        "end_line": 12,
+        "end_column": 52,
+        "start_byte": 383,
+        "end_byte": 423
+      }
     },
     {
       "pending": {
@@ -671,7 +759,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:load:7:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 12,
+        "end_line": 10,
+        "end_column": 45,
+        "start_byte": 257,
+        "end_byte": 351
+      }
     },
     {
       "pending": {
@@ -689,7 +785,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 12,
+        "end_line": 19,
+        "end_column": 48,
+        "start_byte": 700,
+        "end_byte": 736
+      }
     },
     {
       "pending": {
@@ -707,7 +811,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 22,
+        "start_column": 12,
+        "end_line": 24,
+        "end_column": 17,
+        "start_byte": 839,
+        "end_byte": 922
+      }
     },
     {
       "pending": {
@@ -727,7 +839,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 12,
+        "end_line": 19,
+        "end_column": 30,
+        "start_byte": 700,
+        "end_byte": 718
+      }
     },
     {
       "pending": {
@@ -747,7 +867,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 22,
+        "start_column": 12,
+        "end_line": 22,
+        "end_column": 35,
+        "start_byte": 839,
+        "end_byte": 862
+      }
     },
     {
       "pending": {
@@ -765,7 +893,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 12,
+        "end_line": 20,
+        "end_column": 33,
+        "start_byte": 750,
+        "end_byte": 771
+      }
     },
     {
       "pending": {
@@ -785,7 +921,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 12,
+        "end_line": 20,
+        "end_column": 26,
+        "start_byte": 750,
+        "end_byte": 764
+      }
     },
     {
       "pending": {
@@ -803,7 +947,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 12,
+        "end_line": 21,
+        "end_column": 52,
+        "start_byte": 785,
+        "end_byte": 825
+      }
     },
     {
       "pending": {
@@ -821,7 +973,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 12,
+        "end_line": 19,
+        "end_column": 39,
+        "start_byte": 700,
+        "end_byte": 727
+      }
     },
     {
       "pending": {
@@ -839,7 +999,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:silent:18:0",
+      "span": {
+        "start_line": 22,
+        "start_column": 12,
+        "end_line": 23,
+        "end_column": 41,
+        "start_byte": 839,
+        "end_byte": 904
+      }
     },
     {
       "pending": {
@@ -857,7 +1025,15 @@
         "namespace_path": [],
         "import_context": "use ureq;"
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:4:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client_deferred/source.rs:ureq:4:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 0,
+        "end_line": 4,
+        "end_column": 9,
+        "start_byte": 152,
+        "end_byte": 161
+      }
     }
   ],
   "identifiers": [

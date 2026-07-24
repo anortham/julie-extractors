@@ -138,6 +138,7 @@ fn extract_inheritance_relationships(
                 kind: relationship_kind,
                 file_path: file_path.clone(),
                 line_number,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 1.0,
                 metadata: None,
             });
@@ -222,7 +223,12 @@ fn extract_constructor_parameter_relationships(
             {
                 let line_number = param.start_position().row as u32 + 1;
                 let row = param.start_position().row;
-                types.push((type_name, line_number, row));
+                types.push((
+                    type_name,
+                    line_number,
+                    row,
+                    crate::base::NormalizedSpan::from_node(&param),
+                ));
             }
         }
 
@@ -243,7 +249,7 @@ fn extract_constructor_parameter_relationships(
         .map(|r| r.to_symbol_id.clone())
         .collect();
 
-    for (type_name, line_number, row) in param_types {
+    for (type_name, line_number, row, span) in param_types {
         if seen.contains(&type_name) {
             continue; // Already emitted (pending dedup by name)
         }
@@ -263,6 +269,7 @@ fn extract_constructor_parameter_relationships(
                     kind: RelationshipKind::Uses,
                     file_path: file_path.clone(),
                     line_number,
+                    span: Some(span),
                     confidence: 0.9,
                     metadata: None,
                 });
@@ -279,6 +286,7 @@ fn extract_constructor_parameter_relationships(
                     Some(0.8),
                 );
                 pending.pending.line_number = line_number;
+                pending.span = Some(span);
                 extractor.add_structured_pending_relationship(pending);
             }
         }
@@ -345,6 +353,7 @@ fn extract_object_creation_relationships(
             kind: RelationshipKind::Instantiates,
             file_path: extractor.get_base().file_path.clone(),
             line_number: node.start_position().row as u32 + 1,
+            span: Some(crate::base::NormalizedSpan::from_node(&node)),
             confidence: 0.9,
             metadata: None,
         });
@@ -500,6 +509,7 @@ fn handle_call_target(
                 kind: RelationshipKind::Calls,
                 file_path,
                 line_number,
+                span: Some(crate::base::NormalizedSpan::from_node(&call_node)),
                 confidence: 0.9,
                 metadata: None,
             });

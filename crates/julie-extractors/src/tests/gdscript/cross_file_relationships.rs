@@ -498,6 +498,13 @@ func _ready():
         assert_eq!(actor_pending.pending.callee_name, "Actor");
         assert_eq!(actor_pending.target.terminal_name, "Actor");
         assert_eq!(actor_pending.target.receiver, None);
+        let span = actor_pending
+            .span
+            .expect("extends pending relationship should expose the base-class occurrence");
+        assert_eq!(
+            &code[span.start_byte as usize..span.end_byte as usize],
+            "Actor"
+        );
     }
 
     #[test]

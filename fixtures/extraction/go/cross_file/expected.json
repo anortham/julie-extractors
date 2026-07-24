@@ -118,6 +118,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/go/cross_file/source.go",
       "line_number": 16,
+      "span": {
+        "start_line": 16,
+        "start_column": 8,
+        "end_line": 16,
+        "end_column": 22,
+        "start_byte": 382,
+        "end_byte": 396
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -149,7 +157,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/go/cross_file/source.go:entry:14:0"
+      "caller_scope_key": "fixtures/extraction/go/cross_file/source.go:entry:14:0",
+      "span": {
+        "start_line": 15,
+        "start_column": 1,
+        "end_line": 15,
+        "end_column": 13,
+        "start_byte": 361,
+        "end_byte": 373
+      }
     }
   ],
   "identifiers": [

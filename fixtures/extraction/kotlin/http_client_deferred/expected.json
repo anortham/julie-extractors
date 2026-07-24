@@ -477,7 +477,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 4,
+        "end_line": 19,
+        "end_column": 21,
+        "start_byte": 558,
+        "end_byte": 575
+      }
     },
     {
       "pending": {
@@ -495,7 +503,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 4,
+        "end_line": 20,
+        "end_column": 21,
+        "start_byte": 626,
+        "end_byte": 643
+      }
     },
     {
       "pending": {
@@ -513,7 +529,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 27,
+        "start_column": 4,
+        "end_line": 27,
+        "end_column": 21,
+        "start_byte": 939,
+        "end_byte": 956
+      }
     },
     {
       "pending": {
@@ -531,7 +555,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 4,
+        "end_line": 19,
+        "end_column": 67,
+        "start_byte": 558,
+        "end_byte": 621
+      }
     },
     {
       "pending": {
@@ -549,7 +581,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 4,
+        "end_line": 20,
+        "end_column": 54,
+        "start_byte": 626,
+        "end_byte": 676
+      }
     },
     {
       "pending": {
@@ -567,7 +607,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 27,
+        "start_column": 4,
+        "end_line": 27,
+        "end_column": 38,
+        "start_byte": 939,
+        "end_byte": 973
+      }
     },
     {
       "pending": {
@@ -585,7 +633,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 4,
+        "end_line": 20,
+        "end_column": 46,
+        "start_byte": 626,
+        "end_byte": 668
+      }
     },
     {
       "pending": {
@@ -603,7 +659,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 4,
+        "end_line": 23,
+        "end_column": 58,
+        "start_byte": 789,
+        "end_byte": 843
+      }
     },
     {
       "pending": {
@@ -621,7 +685,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 4,
+        "end_line": 29,
+        "end_column": 46,
+        "start_byte": 1012,
+        "end_byte": 1054
+      }
     },
     {
       "pending": {
@@ -639,7 +711,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 24,
+        "start_column": 4,
+        "end_line": 24,
+        "end_column": 65,
+        "start_byte": 848,
+        "end_byte": 909
+      }
     },
     {
       "pending": {
@@ -657,7 +737,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 4,
+        "end_line": 21,
+        "end_column": 42,
+        "start_byte": 681,
+        "end_byte": 719
+      }
     },
     {
       "pending": {
@@ -675,7 +763,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 22,
+        "start_column": 4,
+        "end_line": 22,
+        "end_column": 64,
+        "start_byte": 724,
+        "end_byte": 784
+      }
     },
     {
       "pending": {
@@ -693,7 +789,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 4,
+        "end_line": 28,
+        "end_column": 33,
+        "start_byte": 978,
+        "end_byte": 1007
+      }
     },
     {
       "pending": {
@@ -711,7 +815,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 4,
+        "end_line": 21,
+        "end_column": 31,
+        "start_byte": 681,
+        "end_byte": 708
+      }
     },
     {
       "pending": {
@@ -729,7 +841,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 22,
+        "start_column": 4,
+        "end_line": 22,
+        "end_column": 53,
+        "start_byte": 724,
+        "end_byte": 773
+      }
     },
     {
       "pending": {
@@ -747,7 +867,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 4,
+        "end_line": 28,
+        "end_column": 22,
+        "start_byte": 978,
+        "end_byte": 996
+      }
     },
     {
       "pending": {
@@ -765,7 +893,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 4,
+        "end_line": 19,
+        "end_column": 59,
+        "start_byte": 558,
+        "end_byte": 613
+      }
     },
     {
       "pending": {
@@ -783,7 +919,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 20,
+        "start_column": 4,
+        "end_line": 20,
+        "end_column": 35,
+        "start_byte": 626,
+        "end_byte": 657
+      }
     },
     {
       "pending": {
@@ -801,7 +945,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 27,
+        "start_column": 4,
+        "end_line": 27,
+        "end_column": 30,
+        "start_byte": 939,
+        "end_byte": 965
+      }
     },
     {
       "pending": {
@@ -819,7 +971,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 22,
+        "start_column": 4,
+        "end_line": 22,
+        "end_column": 16,
+        "start_byte": 724,
+        "end_byte": 736
+      }
     },
     {
       "pending": {
@@ -837,7 +997,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 4,
+        "end_line": 21,
+        "end_column": 13,
+        "start_byte": 681,
+        "end_byte": 690
+      }
     },
     {
       "pending": {
@@ -855,7 +1023,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/http_client_deferred/source.kt:deferredClients:18:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 4,
+        "end_line": 28,
+        "end_column": 13,
+        "start_byte": 978,
+        "end_byte": 987
+      }
     }
   ],
   "identifiers": [

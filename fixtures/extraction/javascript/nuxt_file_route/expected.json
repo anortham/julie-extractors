@@ -103,7 +103,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js:render:2:2"
+      "caller_scope_key": "fixtures/extraction/javascript/nuxt_file_route/app/pages/dashboard.js:render:2:2",
+      "span": {
+        "start_line": 3,
+        "start_column": 11,
+        "end_line": 3,
+        "end_column": 33,
+        "start_byte": 57,
+        "end_byte": 79
+      }
     }
   ],
   "identifiers": [

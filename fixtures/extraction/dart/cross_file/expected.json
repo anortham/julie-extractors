@@ -96,6 +96,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/dart/cross_file/source.dart",
       "line_number": 14,
+      "span": {
+        "start_line": 14,
+        "start_column": 9,
+        "end_line": 14,
+        "end_column": 21,
+        "start_byte": 376,
+        "end_byte": 388
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -127,7 +135,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0"
+      "caller_scope_key": "fixtures/extraction/dart/cross_file/source.dart:entry:12:0",
+      "span": {
+        "start_line": 13,
+        "start_column": 10,
+        "end_line": 13,
+        "end_column": 15,
+        "start_byte": 358,
+        "end_byte": 363
+      }
     }
   ],
   "identifiers": [

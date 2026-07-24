@@ -72,8 +72,12 @@ impl super::DartExtractor {
                 && caller.id != called_symbol.id
             {
                 let line = node.start_position().row as u32 + 1;
-                self.same_file_calls
-                    .push((caller.id.clone(), called_symbol.id.clone(), line));
+                self.same_file_calls.push((
+                    caller.id.clone(),
+                    called_symbol.id.clone(),
+                    line,
+                    crate::base::NormalizedSpan::from_node(&node),
+                ));
             }
         } else if let Some(caller) = self.find_containing_function(node, symbol_map) {
             // Cross-file call

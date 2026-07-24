@@ -615,6 +615,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
       "line_number": 19,
+      "span": {
+        "start_line": 19,
+        "start_column": 15,
+        "end_line": 19,
+        "end_column": 25,
+        "start_byte": 224,
+        "end_byte": 234
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -624,6 +632,14 @@
       "kind": "implements",
       "file_path": "fixtures/extraction/csharp/basic/source.cs",
       "line_number": 8,
+      "span": {
+        "start_line": 8,
+        "start_column": 0,
+        "end_line": 30,
+        "end_column": 1,
+        "start_byte": 62,
+        "end_byte": 506
+      },
       "confidence": "1.000",
       "metadata": null
     }
@@ -695,7 +711,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:ComplexityFixture:32:0"
+      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:ComplexityFixture:32:0",
+      "span": {
+        "start_line": 34,
+        "start_column": 4,
+        "end_line": 34,
+        "end_column": 55,
+        "start_byte": 552,
+        "end_byte": 603
+      }
     },
     {
       "pending": {
@@ -713,7 +737,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4"
+      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
+      "span": {
+        "start_line": 71,
+        "start_column": 22,
+        "end_line": 71,
+        "end_column": 53,
+        "start_byte": 1391,
+        "end_byte": 1422
+      }
     },
     {
       "pending": {
@@ -731,7 +763,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4"
+      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
+      "span": {
+        "start_line": 72,
+        "start_column": 19,
+        "end_line": 72,
+        "end_column": 54,
+        "start_byte": 1443,
+        "end_byte": 1478
+      }
     },
     {
       "pending": {
@@ -749,7 +789,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4"
+      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Configure:68:4",
+      "span": {
+        "start_line": 73,
+        "start_column": 20,
+        "end_line": 73,
+        "end_column": 35,
+        "start_byte": 1500,
+        "end_byte": 1515
+      }
     },
     {
       "pending": {
@@ -767,7 +815,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Scaled:81:4"
+      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:Scaled:81:4",
+      "span": {
+        "start_line": 83,
+        "start_column": 15,
+        "end_line": 83,
+        "end_column": 45,
+        "start_byte": 1973,
+        "end_byte": 2003
+      }
     },
     {
       "pending": {
@@ -785,7 +841,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:TraceAttribute:55:0"
+      "caller_scope_key": "fixtures/extraction/csharp/basic/source.cs:TraceAttribute:55:0",
+      "span": {
+        "start_line": 55,
+        "start_column": 0,
+        "end_line": 58,
+        "end_column": 1,
+        "start_byte": 949,
+        "end_byte": 1021
+      }
     }
   ],
   "identifiers": [

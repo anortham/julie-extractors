@@ -60,7 +60,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0"
+      "caller_scope_key": "fixtures/extraction/cpp/structural_facts/source.cpp:readValue:4:0",
+      "span": {
+        "start_line": 5,
+        "start_column": 11,
+        "end_line": 5,
+        "end_column": 24,
+        "start_byte": 74,
+        "end_byte": 87
+      }
     }
   ],
   "identifiers": [

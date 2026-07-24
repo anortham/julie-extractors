@@ -127,6 +127,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/cross_file/Source.cs",
       "line_number": 16,
+      "span": {
+        "start_line": 16,
+        "start_column": 15,
+        "end_line": 16,
+        "end_column": 28,
+        "start_byte": 464,
+        "end_byte": 477
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -158,7 +166,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/cross_file/Source.cs:Entry:13:4"
+      "caller_scope_key": "fixtures/extraction/csharp/cross_file/Source.cs:Entry:13:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 16,
+        "end_line": 15,
+        "end_column": 32,
+        "start_byte": 431,
+        "end_byte": 447
+      }
     }
   ],
   "identifiers": [

@@ -475,6 +475,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/lua/basic/source.lua",
       "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 11,
+        "end_line": 12,
+        "end_column": 28,
+        "start_byte": 200,
+        "end_byte": 217
+      },
       "confidence": "0.900",
       "metadata": null
     }

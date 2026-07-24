@@ -112,6 +112,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/c/cross_file/source.c",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 11,
+        "end_line": 15,
+        "end_column": 25,
+        "start_byte": 438,
+        "end_byte": 452
+      },
       "confidence": "1.000",
       "metadata": null
     },
@@ -121,6 +129,14 @@
       "kind": "imports",
       "file_path": "fixtures/extraction/c/cross_file/source.c",
       "line_number": 7,
+      "span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 8,
+        "end_column": 0,
+        "start_byte": 321,
+        "end_byte": 340
+      },
       "confidence": "1.000",
       "metadata": {
         "includePath": "other.h"
@@ -154,7 +170,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/c/cross_file/source.c:entry:13:0"
+      "caller_scope_key": "fixtures/extraction/c/cross_file/source.c:entry:13:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 4,
+        "end_line": 14,
+        "end_column": 16,
+        "start_byte": 413,
+        "end_byte": 425
+      }
     }
   ],
   "identifiers": [

@@ -176,6 +176,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/kotlin/test_roles/source.kt",
       "line_number": 2,
+      "span": {
+        "start_line": 2,
+        "start_column": 4,
+        "end_line": 3,
+        "end_column": 5,
+        "start_byte": 44,
+        "end_byte": 62
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -223,7 +231,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0"
+      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:ManagedTestRoles:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 9,
+        "end_column": 2,
+        "start_byte": 0,
+        "end_byte": 157
+      }
     },
     {
       "pending": {
@@ -241,7 +257,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8"
+      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:extracts a Kotlin test case:6:8",
+      "span": {
+        "start_line": 6,
+        "start_column": 8,
+        "end_line": 6,
+        "end_column": 41,
+        "start_byte": 103,
+        "end_byte": 136
+      }
     },
     {
       "pending": {
@@ -259,7 +283,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4"
+      "caller_scope_key": "fixtures/extraction/kotlin/test_roles/source.kt:kotlin roles:5:4",
+      "span": {
+        "start_line": 5,
+        "start_column": 4,
+        "end_line": 5,
+        "end_column": 28,
+        "start_byte": 68,
+        "end_byte": 92
+      }
     }
   ],
   "identifiers": [

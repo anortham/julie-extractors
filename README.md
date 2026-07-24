@@ -324,6 +324,7 @@ Public contracts:
 - [SQLite schema v4](docs/contracts/sqlite-schema-v4.md)
 - [JSONL v3](docs/contracts/jsonl-v3.md)
 - [JSON reports](docs/contracts/reports.md)
+- [Reference resolution coverage v1](docs/contracts/reference-resolution-coverage-v1.md)
 - [Test evidence v1](docs/contracts/test-evidence-v1.md)
 
 Language support:

@@ -97,6 +97,7 @@ fn extract_new_expression_relationships(
                     kind: RelationshipKind::Instantiates,
                     file_path: extractor.base().file_path.clone(),
                     line_number: (node.start_position().row + 1) as u32,
+                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
                     confidence: 1.0,
                     metadata: None,
                 });
@@ -191,6 +192,7 @@ fn extract_call_relationships(
                     kind: RelationshipKind::Calls,
                     file_path: extractor.base().file_path.clone(),
                     line_number: (node.start_position().row + 1) as u32,
+                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
                     confidence: 1.0,
                     metadata: None,
                 };
@@ -321,6 +323,7 @@ fn extract_inheritance_relationships(
                     kind,
                     file_path: file_path.clone(),
                     line_number,
+                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
                     confidence: 1.0,
                     metadata: None,
                 });

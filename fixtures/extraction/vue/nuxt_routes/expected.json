@@ -118,7 +118,8 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1"
+      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "span": null
     },
     {
       "pending": {
@@ -136,7 +137,8 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1"
+      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "span": null
     },
     {
       "pending": {
@@ -154,7 +156,8 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1"
+      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "span": null
     },
     {
       "pending": {
@@ -172,7 +175,8 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1"
+      "caller_scope_key": "fixtures/extraction/vue/nuxt_routes/source.vue:Source:1:1",
+      "span": null
     }
   ],
   "identifiers": [],

@@ -521,6 +521,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "line_number": 40,
+      "span": {
+        "start_line": 40,
+        "start_column": 12,
+        "end_line": 40,
+        "end_column": 62,
+        "start_byte": 1136,
+        "end_byte": 1186
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -530,6 +538,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "line_number": 32,
+      "span": {
+        "start_line": 32,
+        "start_column": 12,
+        "end_line": 32,
+        "end_column": 40,
+        "start_byte": 873,
+        "end_byte": 901
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -539,6 +555,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "line_number": 19,
+      "span": {
+        "start_line": 19,
+        "start_column": 19,
+        "end_line": 19,
+        "end_column": 29,
+        "start_byte": 470,
+        "end_byte": 480
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -548,6 +572,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "line_number": 18,
+      "span": {
+        "start_line": 18,
+        "start_column": 12,
+        "end_line": 18,
+        "end_column": 25,
+        "start_byte": 437,
+        "end_byte": 450
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -557,6 +589,14 @@
       "kind": "implements",
       "file_path": "fixtures/extraction/vbnet/basic/source.vb",
       "line_number": 6,
+      "span": {
+        "start_line": 6,
+        "start_column": 4,
+        "end_line": 58,
+        "end_column": 0,
+        "start_byte": 101,
+        "end_byte": 1656
+      },
       "confidence": "1.000",
       "metadata": null
     }
@@ -588,7 +628,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/vbnet/basic/source.vb:Worker:6:4"
+      "caller_scope_key": "fixtures/extraction/vbnet/basic/source.vb:Worker:6:4",
+      "span": {
+        "start_line": 11,
+        "start_column": 8,
+        "end_line": 12,
+        "end_column": 0,
+        "start_byte": 202,
+        "end_byte": 268
+      }
     }
   ],
   "identifiers": [

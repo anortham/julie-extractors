@@ -223,7 +223,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:17:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:CreateTodo:17:0",
+      "span": {
+        "start_line": 17,
+        "start_column": 31,
+        "end_line": 17,
+        "end_column": 43,
+        "start_byte": 459,
+        "end_byte": 471
+      }
     },
     {
       "pending": {
@@ -241,7 +249,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:18:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:DeleteTodo:18:0",
+      "span": {
+        "start_line": 18,
+        "start_column": 37,
+        "end_line": 18,
+        "end_column": 49,
+        "start_byte": 510,
+        "end_byte": 522
+      }
     },
     {
       "pending": {
@@ -259,7 +275,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 14,
+        "end_line": 3,
+        "end_column": 48,
+        "start_byte": 51,
+        "end_byte": 85
+      }
     },
     {
       "pending": {
@@ -277,7 +301,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 0,
+        "end_line": 11,
+        "end_column": 34,
+        "start_byte": 274,
+        "end_byte": 308
+      }
     },
     {
       "pending": {
@@ -295,7 +327,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 0,
+        "end_line": 8,
+        "end_column": 40,
+        "start_byte": 184,
+        "end_byte": 224
+      }
     },
     {
       "pending": {
@@ -313,7 +353,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 0,
+        "end_line": 14,
+        "end_column": 38,
+        "start_byte": 342,
+        "end_byte": 380
+      }
     },
     {
       "pending": {
@@ -331,7 +379,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 43,
+        "start_byte": 382,
+        "end_byte": 425
+      }
     },
     {
       "pending": {
@@ -349,7 +405,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 6,
+        "start_column": 0,
+        "end_line": 6,
+        "end_column": 32,
+        "start_byte": 115,
+        "end_byte": 147
+      }
     },
     {
       "pending": {
@@ -367,7 +431,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 10,
+        "start_column": 12,
+        "end_line": 10,
+        "end_column": 45,
+        "start_byte": 239,
+        "end_byte": 272
+      }
     },
     {
       "pending": {
@@ -385,7 +457,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 7,
+        "end_column": 33,
+        "start_byte": 149,
+        "end_byte": 182
+      }
     },
     {
       "pending": {
@@ -403,7 +483,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/structural_facts/source.cs:fixtures/extraction/csharp/structural_facts/source.cs:1:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 10,
+        "end_line": 4,
+        "end_column": 25,
+        "start_byte": 97,
+        "end_byte": 112
+      }
     }
   ],
   "identifiers": [

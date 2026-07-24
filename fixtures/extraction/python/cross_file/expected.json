@@ -102,6 +102,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/python/cross_file/source.py",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 11,
+        "end_line": 15,
+        "end_column": 25,
+        "start_byte": 381,
+        "end_byte": 395
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -133,7 +141,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/python/cross_file/source.py:entry:13:0"
+      "caller_scope_key": "fixtures/extraction/python/cross_file/source.py:entry:13:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 4,
+        "end_line": 14,
+        "end_column": 9,
+        "start_byte": 364,
+        "end_byte": 369
+      }
     }
   ],
   "identifiers": [

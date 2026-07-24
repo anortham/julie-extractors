@@ -55,6 +55,49 @@ impl NormalizedSpan {
         })
     }
 
+    pub fn from_line_occurrence(content: &str, line_number: u32, needle: &str) -> Option<Self> {
+        if needle.is_empty() || line_number == 0 {
+            return None;
+        }
+        let line_start = content
+            .split_inclusive('\n')
+            .take(line_number.saturating_sub(1) as usize)
+            .map(str::len)
+            .sum::<usize>();
+        let line = content.get(line_start..)?.lines().next()?;
+        let mut matches = line.match_indices(needle);
+        let (column, _) = matches.next()?;
+        if matches.next().is_some() {
+            return None;
+        }
+        Self::from_line_match(content, line_number, column, needle)
+    }
+
+    pub fn from_line_match(
+        content: &str,
+        line_number: u32,
+        start_column: usize,
+        needle: &str,
+    ) -> Option<Self> {
+        if needle.is_empty() || line_number == 0 {
+            return None;
+        }
+        let line_start = content
+            .split_inclusive('\n')
+            .take(line_number.saturating_sub(1) as usize)
+            .map(str::len)
+            .sum::<usize>();
+        let line = content.get(line_start..)?.lines().next()?;
+        if line.get(start_column..start_column + needle.len())? != needle {
+            return None;
+        }
+        Self::from_content_range(
+            content,
+            line_start + start_column,
+            line_start + start_column + needle.len(),
+        )
+    }
+
     pub fn from_content_range_with_line_starts(
         content: &str,
         line_starts: &[usize],
@@ -151,5 +194,36 @@ mod tests {
                 .unwrap();
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn line_occurrence_requires_one_unambiguous_site() {
+        let content = "alpha beta\nbeta beta\n";
+        assert_eq!(
+            NormalizedSpan::from_line_occurrence(content, 1, "beta"),
+            Some(NormalizedSpan {
+                start_line: 1,
+                start_column: 6,
+                end_line: 1,
+                end_column: 10,
+                start_byte: 6,
+                end_byte: 10,
+            })
+        );
+        assert_eq!(
+            NormalizedSpan::from_line_occurrence(content, 2, "beta"),
+            None
+        );
+        assert_eq!(
+            NormalizedSpan::from_line_match(content, 2, 5, "beta"),
+            Some(NormalizedSpan {
+                start_line: 2,
+                start_column: 5,
+                end_line: 2,
+                end_column: 9,
+                start_byte: 16,
+                end_byte: 20,
+            })
+        );
     }
 }

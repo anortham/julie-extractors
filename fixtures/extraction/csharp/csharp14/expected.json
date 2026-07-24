@@ -638,6 +638,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
       "line_number": 36,
+      "span": {
+        "start_line": 36,
+        "start_column": 0,
+        "end_line": 49,
+        "end_column": 1,
+        "start_byte": 862,
+        "end_byte": 1160
+      },
       "confidence": "1.000",
       "metadata": {
         "linkage": "partial_class",
@@ -651,6 +659,14 @@
       "kind": "uses",
       "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
       "line_number": 40,
+      "span": {
+        "start_line": 40,
+        "start_column": 4,
+        "end_line": 40,
+        "end_column": 37,
+        "start_byte": 944,
+        "end_byte": 977
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -660,6 +676,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
       "line_number": 51,
+      "span": {
+        "start_line": 51,
+        "start_column": 0,
+        "end_line": 63,
+        "end_column": 1,
+        "start_byte": 1162,
+        "end_byte": 1373
+      },
       "confidence": "1.000",
       "metadata": {
         "linkage": "partial_class",
@@ -673,6 +697,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/csharp/csharp14/source.cs",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 18,
+        "end_line": 15,
+        "end_column": 35,
+        "start_byte": 336,
+        "end_byte": 353
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -752,7 +784,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:EnumerableExtensions:25:0"
+      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:EnumerableExtensions:25:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 32,
+        "end_line": 29,
+        "end_column": 44,
+        "start_byte": 713,
+        "end_byte": 725
+      }
     },
     {
       "pending": {
@@ -770,7 +810,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:36:0"
+      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:36:0",
+      "span": {
+        "start_line": 45,
+        "start_column": 38,
+        "end_line": 45,
+        "end_column": 78,
+        "start_byte": 1062,
+        "end_byte": 1102
+      }
     },
     {
       "pending": {
@@ -788,7 +836,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:36:0"
+      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:FileAppCustomer:36:0",
+      "span": {
+        "start_line": 45,
+        "start_column": 64,
+        "end_line": 45,
+        "end_column": 77,
+        "start_byte": 1088,
+        "end_byte": 1101
+      }
     },
     {
       "pending": {
@@ -806,7 +862,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8"
+      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:Where:31:8",
+      "span": {
+        "start_line": 32,
+        "start_column": 12,
+        "end_line": 32,
+        "end_column": 47,
+        "start_byte": 816,
+        "end_byte": 851
+      }
     },
     {
       "pending": {
@@ -824,7 +888,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 0,
+        "end_line": 12,
+        "end_column": 33,
+        "start_byte": 244,
+        "end_byte": 277
+      }
     },
     {
       "pending": {
@@ -842,7 +914,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0"
+      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:fixtures/extraction/csharp/csharp14/source.cs:1:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 18,
+        "end_line": 12,
+        "end_column": 32,
+        "start_byte": 262,
+        "end_byte": 276
+      }
     },
     {
       "pending": {
@@ -860,7 +940,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:parse$lambda:17:22"
+      "caller_scope_key": "fixtures/extraction/csharp/csharp14/source.cs:parse$lambda:17:22",
+      "span": {
+        "start_line": 17,
+        "start_column": 44,
+        "end_line": 17,
+        "end_column": 74,
+        "start_byte": 400,
+        "end_byte": 430
+      }
     }
   ],
   "identifiers": [

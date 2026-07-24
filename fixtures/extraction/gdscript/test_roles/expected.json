@@ -161,7 +161,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0"
+      "caller_scope_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_addition:6:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 4,
+        "end_line": 7,
+        "end_column": 23,
+        "start_byte": 73,
+        "end_byte": 92
+      }
     },
     {
       "pending": {
@@ -179,7 +187,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0"
+      "caller_scope_key": "fixtures/extraction/gdscript/test_roles/test_source.gd:test_source:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 8,
+        "end_line": 1,
+        "end_column": 15,
+        "start_byte": 8,
+        "end_byte": 15
+      }
     }
   ],
   "identifiers": [

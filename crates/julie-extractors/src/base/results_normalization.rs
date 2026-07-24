@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use super::kinds::{IdentifierKind, RelationshipKind};
 use super::span::{NormalizedSpan, RecordOffset};
 use super::types::{ExtractionResults, TypeInfo};
 use tracing::warn;
@@ -9,13 +10,29 @@ fn relationship_id(
     to_symbol_id: &str,
     kind: &impl std::fmt::Debug,
     line_number: u32,
+    span: Option<NormalizedSpan>,
     previous_id: &str,
 ) -> String {
     let previous_digest = format!("{:x}", md5::compute(previous_id.as_bytes()));
-    format!(
-        "{}_{}_{:?}_{}_{}",
-        from_symbol_id, to_symbol_id, kind, line_number, previous_digest
-    )
+    match span {
+        Some(span) => format!(
+            "{}_{}_{:?}_{}_{}_{}_{}_{}_{}_{}",
+            from_symbol_id,
+            to_symbol_id,
+            kind,
+            span.start_line,
+            span.start_column,
+            span.end_line,
+            span.end_column,
+            span.start_byte,
+            span.end_byte,
+            previous_digest
+        ),
+        None => format!(
+            "{}_{}_{:?}_{}_{}",
+            from_symbol_id, to_symbol_id, kind, line_number, previous_digest
+        ),
+    }
 }
 
 fn merge_type_info(types: &mut HashMap<String, TypeInfo>, incoming: HashMap<String, TypeInfo>) {
@@ -37,7 +54,75 @@ fn merge_type_info(types: &mut HashMap<String, TypeInfo>, incoming: HashMap<Stri
     }
 }
 
+fn identifier_kind_matches_relationship(
+    identifier_kind: &IdentifierKind,
+    relationship_kind: &RelationshipKind,
+) -> bool {
+    matches!(
+        (identifier_kind, relationship_kind),
+        (IdentifierKind::Call, RelationshipKind::Calls)
+            | (
+                IdentifierKind::TypeUsage,
+                RelationshipKind::Extends
+                    | RelationshipKind::Implements
+                    | RelationshipKind::Uses
+                    | RelationshipKind::Imports
+                    | RelationshipKind::Instantiates
+            )
+            | (IdentifierKind::Call, RelationshipKind::Instantiates)
+            | (
+                IdentifierKind::VariableRef | IdentifierKind::MemberAccess,
+                RelationshipKind::References
+            )
+    )
+}
+
 impl ExtractionResults {
+    pub fn enrich_relationship_spans(&mut self) {
+        let target_names = self
+            .symbols
+            .iter()
+            .map(|symbol| (symbol.id.as_str(), symbol.name.as_str()))
+            .collect::<HashMap<_, _>>();
+        for relationship in &mut self.relationships {
+            if relationship.span.is_some() {
+                continue;
+            }
+            let Some(target_name) = target_names.get(relationship.to_symbol_id.as_str()) else {
+                continue;
+            };
+            let mut matches = self.identifiers.iter().filter(|identifier| {
+                identifier.name == **target_name
+                    && identifier.start_line == relationship.line_number
+                    && identifier_kind_matches_relationship(&identifier.kind, &relationship.kind)
+            });
+            let Some(identifier) = matches.next() else {
+                continue;
+            };
+            if matches.next().is_some() {
+                continue;
+            }
+            let span = NormalizedSpan {
+                start_line: identifier.start_line,
+                start_column: identifier.start_column,
+                end_line: identifier.end_line,
+                end_column: identifier.end_column,
+                start_byte: identifier.start_byte,
+                end_byte: identifier.end_byte,
+            };
+            let previous_id = relationship.id.clone();
+            relationship.span = Some(span);
+            relationship.id = relationship_id(
+                &relationship.from_symbol_id,
+                &relationship.to_symbol_id,
+                &relationship.kind,
+                relationship.line_number,
+                Some(span),
+                &previous_id,
+            );
+        }
+    }
+
     pub fn empty() -> Self {
         Self {
             symbols: Vec::new(),
@@ -155,6 +240,7 @@ impl ExtractionResults {
 
         for relationship in &mut self.relationships {
             relationship.line_number += offset.line_delta;
+            relationship.span = relationship.span.map(|span| span.with_offset(offset));
         }
 
         for pending_relationship in &mut self.pending_relationships {
@@ -163,6 +249,9 @@ impl ExtractionResults {
 
         for pending_relationship in &mut self.structured_pending_relationships {
             pending_relationship.pending.line_number += offset.line_delta;
+            pending_relationship.span = pending_relationship
+                .span
+                .map(|span| span.with_offset(offset));
         }
 
         for diagnostic in &mut self.parse_diagnostics {
@@ -258,6 +347,7 @@ impl ExtractionResults {
                 relationship.to_symbol_id.as_str(),
                 &relationship.kind,
                 relationship.line_number,
+                relationship.span,
                 previous_id.as_str(),
             );
         }
@@ -293,5 +383,75 @@ impl ExtractionResults {
             rekeyed_types.insert(new_symbol_id, type_info);
         }
         self.types = rekeyed_types;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::base::{
+        Identifier, IdentifierKind, Relationship, RelationshipKind, Symbol, SymbolKind,
+    };
+
+    #[test]
+    fn relationship_span_inference_rejects_wrong_identifier_kind() {
+        let mut results = ExtractionResults::empty();
+        results.symbols.push(Symbol {
+            id: "target".to_string(),
+            name: "render".to_string(),
+            kind: SymbolKind::Function,
+            language: "rust".to_string(),
+            file_path: "src/main.rs".to_string(),
+            start_line: 1,
+            start_column: 0,
+            end_line: 1,
+            end_column: 6,
+            start_byte: 0,
+            end_byte: 6,
+            body_span: None,
+            body_hash: None,
+            signature: None,
+            doc_comment: None,
+            visibility: None,
+            parent_id: None,
+            metadata: None,
+            annotations: Vec::new(),
+            semantic_group: None,
+            confidence: None,
+            code_context: None,
+            content_type: None,
+        });
+        results.identifiers.push(Identifier {
+            id: "identifier".to_string(),
+            name: "render".to_string(),
+            kind: IdentifierKind::VariableRef,
+            language: "rust".to_string(),
+            file_path: "src/main.rs".to_string(),
+            start_line: 4,
+            start_column: 8,
+            end_line: 4,
+            end_column: 14,
+            start_byte: 24,
+            end_byte: 30,
+            containing_symbol_id: Some("source".to_string()),
+            target_symbol_id: None,
+            confidence: 1.0,
+            code_context: None,
+        });
+        results.relationships.push(Relationship {
+            id: "relationship".to_string(),
+            from_symbol_id: "source".to_string(),
+            to_symbol_id: "target".to_string(),
+            kind: RelationshipKind::Calls,
+            file_path: "src/main.rs".to_string(),
+            line_number: 4,
+            span: None,
+            confidence: 1.0,
+            metadata: None,
+        });
+
+        results.enrich_relationship_spans();
+
+        assert_eq!(results.relationships[0].span, None);
     }
 }

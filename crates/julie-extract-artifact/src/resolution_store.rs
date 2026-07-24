@@ -106,15 +106,30 @@ impl ResolutionCounts {
     }
 }
 
-/// One aggregated resolution-report row: per language, per tier, per outcome.
-/// `tier` is `None` for identifier outcomes that never reached a tier (ambiguous,
-/// missing, no_context).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolutionReportRow {
     pub language: String,
+    pub origin: String,
+    pub raw_kind: String,
+    pub canonical_kind: String,
     pub tier: Option<u8>,
+    pub method: Option<String>,
     pub outcome: String,
+    pub span_present: bool,
     pub count: i64,
+}
+
+pub fn canonical_reference_kind<'a>(origin: &str, raw_kind: &'a str) -> Option<&'a str> {
+    match (origin, raw_kind) {
+        ("identifier", "call") => Some("calls"),
+        ("identifier", "type_usage") => Some("uses"),
+        ("identifier", "member_access" | "variable_ref") => Some("references"),
+        (
+            "relationship" | "pending_relationship",
+            "calls" | "extends" | "implements" | "imports" | "instantiates" | "references" | "uses",
+        ) => Some(raw_kind),
+        _ => None,
+    }
 }
 
 /// Durable resolution-status metadata, mirrored from the three `reference_resolution_*`
@@ -128,7 +143,7 @@ pub struct ResolutionMetadata {
 
 /// A pending relationship the resolver may act on. `language` is joined from
 /// `files` (pending rows carry no language column of their own).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PendingWorkItem {
     pub pending_relationship_id: String,
     pub from_symbol_id: String,
@@ -145,6 +160,7 @@ pub struct PendingWorkItem {
     pub start_line: i64,
     pub start_byte: Option<i64>,
     pub end_byte: Option<i64>,
+    pub confidence: f64,
 }
 
 /// A pending row plus its current resolution overlay (used by the re-resolution
@@ -159,7 +175,7 @@ pub struct ResolvedPendingWorkItem {
 }
 
 /// An identifier the resolver may act on.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IdentifierWorkItem {
     pub identifier_id: String,
     pub file_id: String,
@@ -172,6 +188,9 @@ pub struct IdentifierWorkItem {
     pub start_byte: i64,
     pub end_byte: i64,
     pub code_context: Option<String>,
+    pub receiver: Option<String>,
+    pub import_context: Option<String>,
+    pub confidence: f64,
 }
 
 /// An identifier plus its current resolution overlay.
@@ -641,11 +660,12 @@ const PENDING_COLUMNS: &str = "pr.pending_relationship_id, pr.from_symbol_id, \
      pr.caller_scope_symbol_id, pr.file_id, pr.path, f.language, pr.kind, \
      pr.target_display_name, pr.target_terminal_name, pr.target_receiver, \
      pr.target_namespace_json, pr.target_import_context, pr.start_line, \
-     pr.start_byte, pr.end_byte";
+     pr.start_byte, pr.end_byte, pr.confidence";
 
 const IDENTIFIER_COLUMNS: &str = "i.identifier_id, i.file_id, i.path, i.language, \
      i.name, i.kind, i.containing_symbol_id, i.start_line, i.start_byte, \
-     i.end_byte, i.code_context";
+     i.end_byte, i.code_context, json_extract(i.metadata_json, '$.receiver'), \
+     json_extract(i.metadata_json, '$.import_context'), i.confidence";
 
 fn map_pending(row: &rusqlite::Row<'_>) -> rusqlite::Result<PendingWorkItem> {
     Ok(PendingWorkItem {
@@ -664,6 +684,7 @@ fn map_pending(row: &rusqlite::Row<'_>) -> rusqlite::Result<PendingWorkItem> {
         start_line: row.get(12)?,
         start_byte: row.get(13)?,
         end_byte: row.get(14)?,
+        confidence: row.get(15)?,
     })
 }
 
@@ -680,6 +701,9 @@ fn map_identifier(row: &rusqlite::Row<'_>) -> rusqlite::Result<IdentifierWorkIte
         start_byte: row.get(8)?,
         end_byte: row.get(9)?,
         code_context: row.get(10)?,
+        receiver: row.get(11)?,
+        import_context: row.get(12)?,
+        confidence: row.get(13)?,
     })
 }
 
@@ -791,10 +815,10 @@ pub fn worklist_resolved_pending_by_names(
             stmt.query_map(params_from_iter(bind), |row| {
                 Ok(ResolvedPendingWorkItem {
                     pending: map_pending(row)?,
-                    target_symbol_id: row.get(15)?,
-                    tier: row.get(16)?,
-                    confidence: row.get(17)?,
-                    method: row.get(18)?,
+                    target_symbol_id: row.get(16)?,
+                    tier: row.get(17)?,
+                    confidence: row.get(18)?,
+                    method: row.get(19)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()
@@ -818,10 +842,10 @@ pub fn worklist_resolved_pending(
     stmt.query_map([], |row| {
         Ok(ResolvedPendingWorkItem {
             pending: map_pending(row)?,
-            target_symbol_id: row.get(15)?,
-            tier: row.get(16)?,
-            confidence: row.get(17)?,
-            method: row.get(18)?,
+            target_symbol_id: row.get(16)?,
+            tier: row.get(17)?,
+            confidence: row.get(18)?,
+            method: row.get(19)?,
         })
     })?
     .collect::<Result<Vec<_>, _>>()
@@ -939,22 +963,22 @@ pub fn worklist_full_identifiers(conn: &Connection) -> rusqlite::Result<Vec<Iden
 fn map_resolved_identifier(
     row: &rusqlite::Row<'_>,
 ) -> rusqlite::Result<ResolvedIdentifierWorkItem> {
-    let outcome_str: String = row.get(15)?;
+    let outcome_str: String = row.get(18)?;
     let outcome = Outcome::parse(&outcome_str).ok_or_else(|| {
         rusqlite::Error::FromSqlConversionFailure(
-            15,
+            18,
             rusqlite::types::Type::Text,
             format!("unknown identifier resolution outcome: {outcome_str}").into(),
         )
     })?;
     Ok(ResolvedIdentifierWorkItem {
         identifier: map_identifier(row)?,
-        target_symbol_id: row.get(11)?,
-        tier: row.get(12)?,
-        confidence: row.get(13)?,
-        method: row.get(14)?,
+        target_symbol_id: row.get(14)?,
+        tier: row.get(15)?,
+        confidence: row.get(16)?,
+        method: row.get(17)?,
         outcome,
-        candidates: row.get(16)?,
+        candidates: row.get(19)?,
     })
 }
 
@@ -962,35 +986,63 @@ fn map_resolved_identifier(
 // Report aggregation
 // ---------------------------------------------------------------------------
 
-/// Aggregate resolution outcomes into per-language, per-tier, per-outcome counts.
-/// Resolved pending rows contribute `outcome='resolved'` with their tier; identifier
-/// overlay rows contribute their recorded outcome (tier NULL for non-resolved).
 pub fn resolution_report(conn: &Connection) -> rusqlite::Result<Vec<ResolutionReportRow>> {
     let mut stmt = conn.prepare(
-        "SELECT language, tier, outcome, SUM(cnt) AS cnt FROM ( \
-             SELECT f.language AS language, p.tier AS tier, 'resolved' AS outcome, \
-                    COUNT(*) AS cnt \
-             FROM pending_resolutions p \
-             JOIN pending_relationships pr ON pr.pending_relationship_id = p.pending_relationship_id \
-             JOIN files f ON f.file_id = pr.file_id \
-             GROUP BY f.language, p.tier \
-             UNION ALL \
-             SELECT i.language AS language, r.tier AS tier, r.outcome AS outcome, \
-                    COUNT(*) AS cnt \
-             FROM identifier_resolutions r \
-             JOIN identifiers i ON i.identifier_id = r.identifier_id \
-             GROUP BY i.language, r.tier, r.outcome \
-           ) GROUP BY language, tier, outcome \
-           ORDER BY language, tier, outcome",
+        "SELECT language, origin, raw_kind, tier, method, outcome, span_present, COUNT(*) \
+         FROM ( \
+           SELECT f.language AS language, 'relationship' AS origin, r.kind AS raw_kind, \
+                  1 AS tier, 'extraction_direct' AS method, 'resolved' AS outcome, \
+                  CASE WHEN r.start_column IS NOT NULL AND r.end_line IS NOT NULL \
+                              AND r.end_column IS NOT NULL AND r.start_byte IS NOT NULL \
+                              AND r.end_byte IS NOT NULL THEN 1 ELSE 0 END AS span_present \
+           FROM relationships r JOIN files f ON f.file_id = r.file_id \
+           WHERE r.kind IN ('calls', 'extends', 'implements', 'imports', \
+                            'instantiates', 'references', 'uses') \
+           UNION ALL \
+           SELECT f.language AS language, 'pending_relationship' AS origin, pr.kind AS raw_kind, \
+                  p.tier AS tier, p.method AS method, \
+                  CASE WHEN p.pending_relationship_id IS NOT NULL THEN 'resolved' \
+                       WHEN pr.kind IN ('imports', 'references') THEN 'unattempted' \
+                       ELSE 'unresolved_pending' END AS outcome, \
+                  CASE WHEN pr.start_column IS NOT NULL AND pr.end_line IS NOT NULL \
+                              AND pr.end_column IS NOT NULL AND pr.start_byte IS NOT NULL \
+                              AND pr.end_byte IS NOT NULL THEN 1 ELSE 0 END AS span_present \
+           FROM pending_relationships pr \
+           JOIN files f ON f.file_id = pr.file_id \
+           LEFT JOIN pending_resolutions p \
+             ON p.pending_relationship_id = pr.pending_relationship_id \
+           WHERE pr.kind IN ('calls', 'extends', 'implements', 'imports', \
+                             'instantiates', 'references', 'uses') \
+           UNION ALL \
+           SELECT i.language AS language, 'identifier' AS origin, i.kind AS raw_kind, \
+                  ir.tier AS tier, ir.method AS method, \
+                  COALESCE(ir.outcome, 'unattempted') AS outcome, \
+                  CASE WHEN i.start_column IS NOT NULL AND i.end_line IS NOT NULL \
+                              AND i.end_column IS NOT NULL AND i.start_byte IS NOT NULL \
+                              AND i.end_byte IS NOT NULL THEN 1 ELSE 0 END AS span_present \
+           FROM identifiers i \
+           LEFT JOIN identifier_resolutions ir ON ir.identifier_id = i.identifier_id \
+         ) \
+         GROUP BY language, origin, raw_kind, tier, method, outcome, span_present \
+         ORDER BY language, origin, raw_kind, tier, method, outcome, span_present",
     )?;
     let rows = stmt
         .query_map([], |row| {
-            let tier: Option<i64> = row.get(1)?;
+            let origin: String = row.get(1)?;
+            let raw_kind: String = row.get(2)?;
+            let tier: Option<i64> = row.get(3)?;
             Ok(ResolutionReportRow {
                 language: row.get(0)?,
+                canonical_kind: canonical_reference_kind(&origin, &raw_kind)
+                    .unwrap_or("unmapped")
+                    .to_string(),
+                origin,
+                raw_kind,
                 tier: tier.map(|t| t as u8),
-                outcome: row.get(2)?,
-                count: row.get(3)?,
+                method: row.get(4)?,
+                outcome: row.get(5)?,
+                span_present: row.get::<_, i64>(6)? != 0,
+                count: row.get(7)?,
             })
         })?
         .collect::<Result<Vec<_>, _>>()?;

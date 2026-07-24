@@ -135,6 +135,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
       "line_number": 20,
+      "span": {
+        "start_line": 20,
+        "start_column": 12,
+        "end_line": 20,
+        "end_column": 17,
+        "start_byte": 460,
+        "end_byte": 465
+      },
       "confidence": "1.000",
       "metadata": {
         "referenceName": "entry"
@@ -146,6 +154,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
       "line_number": 14,
+      "span": {
+        "start_line": 14,
+        "start_column": 4,
+        "end_line": 14,
+        "end_column": 7,
+        "start_byte": 390,
+        "end_byte": 393
+      },
       "confidence": "1.000",
       "metadata": {
         "referenceName": "foo"
@@ -157,6 +173,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/vue/cross_file/source.vue",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 11,
+        "end_line": 15,
+        "end_column": 23,
+        "start_byte": 408,
+        "end_byte": 420
+      },
       "confidence": "1.000",
       "metadata": {
         "referenceName": "local_helper"
@@ -190,7 +214,8 @@
         "namespace_path": [],
         "import_context": "'./other'"
       },
-      "caller_scope_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1"
+      "caller_scope_key": "fixtures/extraction/vue/cross_file/source.vue:Source:1:1",
+      "span": null
     }
   ],
   "identifiers": [

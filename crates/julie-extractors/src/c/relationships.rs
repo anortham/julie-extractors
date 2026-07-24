@@ -247,6 +247,7 @@ fn extract_include_relationships(
         kind: RelationshipKind::Imports,
         file_path: extractor.base.file_path.clone(),
         line_number: (node.start_position().row + 1) as u32,
+        span: Some(crate::base::NormalizedSpan::from_node(&node)),
         confidence: 1.0,
         metadata: Some(HashMap::from([(
             "includePath".to_string(),

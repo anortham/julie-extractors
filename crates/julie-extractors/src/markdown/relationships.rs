@@ -104,6 +104,7 @@ fn push_relationship(
         kind: RelationshipKind::References,
         file_path: base.file_path.clone(),
         line_number,
+        span: crate::base::NormalizedSpan::from_line_occurrence(&base.content, line_number, anchor),
         confidence: 1.0,
         metadata: Some(metadata),
     });

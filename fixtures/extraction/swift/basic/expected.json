@@ -829,6 +829,14 @@
       "kind": "implements",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "line_number": 5,
+      "span": {
+        "start_line": 5,
+        "start_column": 0,
+        "end_line": 14,
+        "end_column": 1,
+        "start_byte": 40,
+        "end_byte": 216
+      },
       "confidence": "1.000",
       "metadata": {
         "baseType": "Job"
@@ -840,6 +848,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "line_number": 58,
+      "span": {
+        "start_line": 58,
+        "start_column": 4,
+        "end_line": 58,
+        "end_column": 54,
+        "start_byte": 1069,
+        "end_byte": 1119
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -849,6 +865,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "line_number": 18,
+      "span": {
+        "start_line": 18,
+        "start_column": 25,
+        "end_line": 18,
+        "end_column": 38,
+        "start_byte": 288,
+        "end_byte": 301
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -858,6 +882,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "line_number": 48,
+      "span": {
+        "start_line": 48,
+        "start_column": 4,
+        "end_line": 48,
+        "end_column": 36,
+        "start_byte": 835,
+        "end_byte": 867
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -867,6 +899,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 15,
+        "end_line": 12,
+        "end_column": 25,
+        "start_byte": 198,
+        "end_byte": 208
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -876,6 +916,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/swift/basic/source.swift",
       "line_number": 11,
+      "span": {
+        "start_line": 11,
+        "start_column": 8,
+        "end_line": 11,
+        "end_column": 21,
+        "start_byte": 169,
+        "end_byte": 182
+      },
       "confidence": "0.900",
       "metadata": null
     }

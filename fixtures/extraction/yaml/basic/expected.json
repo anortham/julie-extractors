@@ -178,6 +178,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/yaml/basic/source.yaml",
       "line_number": 6,
+      "span": {
+        "start_line": 6,
+        "start_column": 6,
+        "end_line": 6,
+        "end_column": 15,
+        "start_byte": 81,
+        "end_byte": 90
+      },
       "confidence": "1.000",
       "metadata": {
         "alias": "defaults"

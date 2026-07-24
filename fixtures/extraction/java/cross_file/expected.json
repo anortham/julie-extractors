@@ -125,6 +125,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/java/cross_file/Source.java",
       "line_number": 14,
+      "span": {
+        "start_line": 14,
+        "start_column": 15,
+        "end_line": 14,
+        "end_column": 28,
+        "start_byte": 464,
+        "end_byte": 477
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -164,7 +172,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4"
+      "caller_scope_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 18,
+        "end_line": 13,
+        "end_column": 29,
+        "start_byte": 436,
+        "end_byte": 447
+      }
     },
     {
       "pending": {
@@ -182,7 +198,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4"
+      "caller_scope_key": "fixtures/extraction/java/cross_file/Source.java:entry:12:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 18,
+        "end_line": 13,
+        "end_column": 29,
+        "start_byte": 436,
+        "end_byte": 447
+      }
     }
   ],
   "identifiers": [

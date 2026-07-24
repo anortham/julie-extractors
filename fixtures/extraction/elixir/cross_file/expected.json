@@ -125,6 +125,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
       "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 9,
+        "end_line": 12,
+        "end_column": 23,
+        "start_byte": 382,
+        "end_byte": 396
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -134,6 +142,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/cross_file/source.ex",
       "line_number": 21,
+      "span": {
+        "start_line": 21,
+        "start_column": 12,
+        "end_line": 21,
+        "end_column": 26,
+        "start_byte": 540,
+        "end_byte": 554
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -183,7 +199,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2"
+      "caller_scope_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "span": {
+        "start_line": 20,
+        "start_column": 4,
+        "end_line": 20,
+        "end_column": 18,
+        "start_byte": 513,
+        "end_byte": 527
+      }
     },
     {
       "pending": {
@@ -201,7 +225,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2"
+      "caller_scope_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "span": {
+        "start_line": 13,
+        "start_column": 8,
+        "end_line": 15,
+        "end_column": 11,
+        "start_byte": 412,
+        "end_byte": 476
+      }
     },
     {
       "pending": {
@@ -219,7 +251,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2"
+      "caller_scope_key": "fixtures/extraction/elixir/cross_file/source.ex:entry:10:2",
+      "span": {
+        "start_line": 12,
+        "start_column": 6,
+        "end_line": 18,
+        "end_column": 9,
+        "start_byte": 379,
+        "end_byte": 507
+      }
     }
   ],
   "identifiers": [

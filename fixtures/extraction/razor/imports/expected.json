@@ -175,7 +175,15 @@
       "to_key": "unresolved:namespace:Microsoft.AspNetCore.Components",
       "kind": "uses",
       "file_path": "fixtures/extraction/razor/imports/_Imports.razor",
-      "line_number": 1,
+      "line_number": 2,
+      "span": {
+        "start_line": 2,
+        "start_column": 7,
+        "end_line": 2,
+        "end_column": 38,
+        "start_byte": 35,
+        "end_byte": 66
+      },
       "confidence": "0.800",
       "metadata": {
         "namespace": "Microsoft.AspNetCore.Components",
@@ -187,7 +195,15 @@
       "to_key": "unresolved:namespace:Sample.Components",
       "kind": "uses",
       "file_path": "fixtures/extraction/razor/imports/_Imports.razor",
-      "line_number": 1,
+      "line_number": 3,
+      "span": {
+        "start_line": 3,
+        "start_column": 7,
+        "end_line": 3,
+        "end_column": 24,
+        "start_byte": 74,
+        "end_byte": 91
+      },
       "confidence": "0.800",
       "metadata": {
         "namespace": "Sample.Components",
@@ -200,6 +216,14 @@
       "kind": "uses",
       "file_path": "fixtures/extraction/razor/imports/_Imports.razor",
       "line_number": 1,
+      "span": {
+        "start_line": 1,
+        "start_column": 7,
+        "end_line": 1,
+        "end_column": 27,
+        "start_byte": 7,
+        "end_byte": 27
+      },
       "confidence": "0.800",
       "metadata": {
         "namespace": "System.Net.Http.Json",

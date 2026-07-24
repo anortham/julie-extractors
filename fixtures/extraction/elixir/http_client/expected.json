@@ -169,6 +169,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
       "line_number": 8,
+      "span": {
+        "start_line": 8,
+        "start_column": 6,
+        "end_line": 8,
+        "end_column": 27,
+        "start_byte": 153,
+        "end_byte": 174
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -178,6 +186,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/elixir/http_client/source.ex",
       "line_number": 17,
+      "span": {
+        "start_line": 17,
+        "start_column": 6,
+        "end_line": 17,
+        "end_column": 17,
+        "start_byte": 296,
+        "end_byte": 307
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -235,7 +251,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:create_user:8:2",
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 22,
+        "start_byte": 182,
+        "end_byte": 200
+      }
     },
     {
       "pending": {
@@ -255,7 +279,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:dynamic:17:2",
+      "span": {
+        "start_line": 18,
+        "start_column": 4,
+        "end_line": 18,
+        "end_column": 27,
+        "start_byte": 315,
+        "end_byte": 338
+      }
     },
     {
       "pending": {
@@ -275,7 +307,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:health:12:2",
+      "span": {
+        "start_line": 13,
+        "start_column": 4,
+        "end_line": 13,
+        "end_column": 23,
+        "start_byte": 228,
+        "end_byte": 247
+      }
     },
     {
       "pending": {
@@ -295,7 +335,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:list_users:4:2"
+      "caller_scope_key": "fixtures/extraction/elixir/http_client/source.ex:list_users:4:2",
+      "span": {
+        "start_line": 5,
+        "start_column": 4,
+        "end_line": 5,
+        "end_column": 44,
+        "start_byte": 99,
+        "end_byte": 139
+      }
     }
   ],
   "identifiers": [

@@ -472,7 +472,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:5:7"
+      "caller_scope_key": "fixtures/extraction/tsx/structural_facts/source.tsx:View:5:7",
+      "span": {
+        "start_line": 6,
+        "start_column": 23,
+        "end_line": 6,
+        "end_column": 29,
+        "start_byte": 233,
+        "end_byte": 239
+      }
     }
   ],
   "identifiers": [

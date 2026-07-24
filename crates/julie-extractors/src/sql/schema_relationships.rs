@@ -359,6 +359,11 @@ fn push_table_relationship_at_line(
         kind: RelationshipKind::References,
         file_path: base.file_path.clone(),
         line_number,
+        span: crate::base::NormalizedSpan::from_content_range(
+            &base.content,
+            relationship_byte,
+            relationship_byte + target_table_name.len(),
+        ),
         confidence: 0.95,
         metadata: Some(metadata),
     });

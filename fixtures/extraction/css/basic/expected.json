@@ -566,6 +566,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/css/basic/source.css",
       "line_number": 11,
+      "span": {
+        "start_line": 11,
+        "start_column": 15,
+        "end_line": 11,
+        "end_column": 23,
+        "start_byte": 126,
+        "end_byte": 134
+      },
       "confidence": "1.000",
       "metadata": {
         "referenceName": "--accent",

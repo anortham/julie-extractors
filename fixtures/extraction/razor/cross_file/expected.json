@@ -206,6 +206,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/cross_file/source.razor",
       "line_number": 17,
+      "span": {
+        "start_line": 17,
+        "start_column": 12,
+        "end_line": 17,
+        "end_column": 25,
+        "start_byte": 493,
+        "end_byte": 506
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "LocalHelper"
@@ -217,6 +225,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/cross_file/source.razor",
       "line_number": 10,
+      "span": {
+        "start_line": 10,
+        "start_column": 4,
+        "end_line": 10,
+        "end_column": 17,
+        "start_byte": 341,
+        "end_byte": 354
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "LocalHelper"
@@ -227,7 +243,15 @@
       "to_key": "unresolved:namespace:OtherProject.Models",
       "kind": "uses",
       "file_path": "fixtures/extraction/razor/cross_file/source.razor",
-      "line_number": 1,
+      "line_number": 7,
+      "span": {
+        "start_line": 7,
+        "start_column": 7,
+        "end_line": 7,
+        "end_column": 26,
+        "start_byte": 294,
+        "end_byte": 313
+      },
       "confidence": "0.800",
       "metadata": {
         "namespace": "OtherProject.Models",

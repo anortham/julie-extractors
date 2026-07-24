@@ -680,19 +680,138 @@ fn resolution_report_aggregates_by_language_tier_outcome() {
     )
     .unwrap();
     tx.commit().unwrap();
+    conn.execute(
+        "INSERT INTO relationships \
+         (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, \
+          start_line, start_column, end_line, end_column, start_byte, end_byte, confidence) \
+         VALUES ('r1', 's_from', 's_target', 'f1', 'src/a.rs', 'calls', \
+                 5, 1, 5, 7, 40, 46, 0.8)",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO relationships \
+         (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, confidence) \
+         VALUES ('r-unmapped', 's_from', 's_target', 'f1', 'src/a.rs', 'joins', 0.8)",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO pending_relationships \
+         (pending_relationship_id, from_symbol_id, file_id, path, kind, \
+          target_display_name, target_terminal_name, target_namespace_json, \
+          start_line, confidence) \
+         VALUES ('p-unmapped', 's_from', 'f1', 'src/a.rs', 'joins', \
+                 'Target', 'Target', '[]', 6, 0.8)",
+        [],
+    )
+    .unwrap();
 
     let rows = resolution_store::resolution_report(&conn).unwrap();
+    assert!(
+        rows.iter().all(|row| row.canonical_kind != "unmapped"),
+        "resolution coverage must exclude non-reference relationship kinds"
+    );
     assert_eq!(
         rows.iter()
-            .filter(|r| r.language == "rust" && r.tier == Some(2) && r.outcome == "resolved")
+            .filter(|r| {
+                r.language == "rust"
+                    && r.origin == "identifier"
+                    && r.raw_kind == "call"
+                    && r.canonical_kind == "calls"
+                    && r.tier == Some(2)
+                    && r.method.as_deref() == Some("tier2")
+                    && r.outcome == "resolved"
+            })
             .count(),
         1,
-        "pending and identifier overlays in the same bucket must collapse to one report row"
+        "identifier resolution provenance must remain a distinct report cell"
     );
     assert!(rows.iter().any(|r| r.language == "rust"
+        && r.origin == "pending_relationship"
         && r.tier == Some(2)
         && r.outcome == "resolved"
-        && r.count == 2));
+        && r.count == 1));
+    assert!(rows.iter().any(|r| r.language == "rust"
+        && r.origin == "relationship"
+        && r.raw_kind == "calls"
+        && r.canonical_kind == "calls"
+        && r.tier == Some(1)
+        && r.method.as_deref() == Some("extraction_direct")
+        && r.outcome == "resolved"
+        && r.span_present
+        && r.count == 1));
+}
+
+#[test]
+fn resolution_report_includes_unresolved_pending_denominator() {
+    let conn = open();
+    seed(&conn);
+    let rows = resolution_store::resolution_report(&conn).unwrap();
+    assert!(rows.iter().any(|row| {
+        row.language == "rust"
+            && row.origin == "pending_relationship"
+            && row.raw_kind == "calls"
+            && row.canonical_kind == "calls"
+            && row.outcome == "unresolved_pending"
+            && row.tier.is_none()
+            && row.method.is_none()
+            && !row.span_present
+            && row.count == 1
+    }));
+}
+
+#[test]
+fn resolution_report_marks_non_resolvable_pending_kinds_unattempted() {
+    let conn = open();
+    seed(&conn);
+    for (id, kind) in [("p-import", "imports"), ("p-reference", "references")] {
+        conn.execute(
+            "INSERT INTO pending_relationships \
+             (pending_relationship_id, from_symbol_id, file_id, path, kind, \
+              target_display_name, target_terminal_name, target_namespace_json, \
+              start_line, confidence) \
+             VALUES (?1, 's_from', 'f1', 'src/a.rs', ?2, 'Target', 'Target', '[]', 6, 0.8)",
+            rusqlite::params![id, kind],
+        )
+        .unwrap();
+    }
+
+    let rows = resolution_store::resolution_report(&conn).unwrap();
+    for raw_kind in ["imports", "references"] {
+        assert!(rows.iter().any(|row| {
+            row.origin == "pending_relationship"
+                && row.raw_kind == raw_kind
+                && row.outcome == "unattempted"
+                && row.count == 1
+        }));
+    }
+}
+
+#[test]
+fn canonical_reference_kind_covers_advertised_seven_kind_vocabulary() {
+    for kind in [
+        "calls",
+        "extends",
+        "implements",
+        "imports",
+        "instantiates",
+        "references",
+        "uses",
+    ] {
+        assert_eq!(
+            resolution_store::canonical_reference_kind("relationship", kind),
+            Some(kind)
+        );
+    }
+    assert_eq!(
+        resolution_store::canonical_reference_kind("identifier", "call"),
+        Some("calls")
+    );
+    assert_eq!(
+        resolution_store::canonical_reference_kind("identifier", "type_usage"),
+        Some("uses")
+    );
 }
 
 // ---------------------------------------------------------------------------

@@ -224,6 +224,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",
       "line_number": 11,
+      "span": {
+        "start_line": 11,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 0,
+        "start_byte": 123,
+        "end_byte": 149
+      },
       "confidence": "1.000",
       "metadata": {
         "toolName": "mypy"
@@ -235,6 +243,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",
       "line_number": 8,
+      "span": {
+        "start_line": 8,
+        "start_column": 0,
+        "end_line": 11,
+        "end_column": 0,
+        "start_byte": 74,
+        "end_byte": 123
+      },
       "confidence": "1.000",
       "metadata": {
         "toolName": "pytest"
@@ -246,6 +262,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/toml/pyproject/pyproject.toml",
       "line_number": 5,
+      "span": {
+        "start_line": 5,
+        "start_column": 0,
+        "end_line": 8,
+        "end_column": 0,
+        "start_byte": 44,
+        "end_byte": 74
+      },
       "confidence": "1.000",
       "metadata": {
         "toolName": "ruff"

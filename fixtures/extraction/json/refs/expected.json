@@ -368,7 +368,8 @@
         ],
         "import_context": "external.json"
       },
-      "caller_scope_key": "fixtures/extraction/json/refs/source.json:shipping:13:4"
+      "caller_scope_key": "fixtures/extraction/json/refs/source.json:shipping:13:4",
+      "span": null
     }
   ],
   "identifiers": [],

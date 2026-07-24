@@ -152,6 +152,7 @@ impl BaseExtractor {
             kind,
             file_path: self.file_path.clone(),
             line_number: (node.start_position().row + 1) as u32, // 1-based standard format
+            span: Some(NormalizedSpan::from_node(node)),
             confidence: confidence.unwrap_or(1.0),
             metadata,
         }

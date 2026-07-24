@@ -435,6 +435,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/axum_routes/source.rs",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 32,
+        "end_line": 15,
+        "end_column": 44,
+        "start_byte": 556,
+        "end_byte": 568
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -650,7 +658,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 24,
+        "end_line": 21,
+        "end_column": 38,
+        "start_byte": 744,
+        "end_byte": 758
+      }
     },
     {
       "pending": {
@@ -668,7 +684,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:add_admin:20:0",
+      "span": {
+        "start_line": 21,
+        "start_column": 4,
+        "end_line": 21,
+        "end_column": 39,
+        "start_byte": 724,
+        "end_byte": 759
+      }
     },
     {
       "pending": {
@@ -686,7 +710,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
+      "span": {
+        "start_line": 44,
+        "start_column": 35,
+        "end_line": 44,
+        "end_column": 44,
+        "start_byte": 1311,
+        "end_byte": 1320
+      }
     },
     {
       "pending": {
@@ -706,7 +738,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
+      "span": {
+        "start_line": 44,
+        "start_column": 4,
+        "end_line": 44,
+        "end_column": 17,
+        "start_byte": 1280,
+        "end_byte": 1293
+      }
     },
     {
       "pending": {
@@ -724,7 +764,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:api_routes:43:0",
+      "span": {
+        "start_line": 44,
+        "start_column": 4,
+        "end_line": 44,
+        "end_column": 45,
+        "start_byte": 1280,
+        "end_byte": 1321
+      }
     },
     {
       "pending": {
@@ -742,7 +790,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 26,
+        "end_line": 14,
+        "end_column": 37,
+        "start_byte": 511,
+        "end_byte": 522
+      }
     },
     {
       "pending": {
@@ -760,7 +816,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 30,
+        "end_line": 12,
+        "end_column": 39,
+        "start_byte": 425,
+        "end_byte": 434
+      }
     },
     {
       "pending": {
@@ -778,7 +842,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 13,
+        "start_column": 25,
+        "end_line": 13,
+        "end_column": 34,
+        "start_byte": 461,
+        "end_byte": 470
+      }
     },
     {
       "pending": {
@@ -796,7 +868,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 15,
+        "end_column": 45,
+        "start_byte": 381,
+        "end_byte": 569
+      }
     },
     {
       "pending": {
@@ -816,7 +896,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 11,
+        "end_column": 17,
+        "start_byte": 381,
+        "end_byte": 394
+      }
     },
     {
       "pending": {
@@ -834,7 +922,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 13,
+        "start_column": 25,
+        "end_line": 13,
+        "end_column": 47,
+        "start_byte": 461,
+        "end_byte": 483
+      }
     },
     {
       "pending": {
@@ -852,7 +948,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 40,
+        "start_byte": 381,
+        "end_byte": 435
+      }
     },
     {
       "pending": {
@@ -870,7 +974,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 13,
+        "end_column": 48,
+        "start_byte": 381,
+        "end_byte": 484
+      }
     },
     {
       "pending": {
@@ -888,7 +1000,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:app:10:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 14,
+        "end_column": 38,
+        "start_byte": 381,
+        "end_byte": 523
+      }
     },
     {
       "pending": {
@@ -906,7 +1026,15 @@
         "namespace_path": [],
         "import_context": "use axum::{\n    routing::{any, get},\n    Router,\n};"
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:axum:3:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:axum:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 6,
+        "end_column": 2,
+        "start_byte": 154,
+        "end_byte": 205
+      }
     },
     {
       "pending": {
@@ -924,7 +1052,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 15,
+        "end_line": 29,
+        "end_column": 42,
+        "start_byte": 975,
+        "end_byte": 1002
+      }
     },
     {
       "pending": {
@@ -942,7 +1078,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 44,
+        "end_line": 29,
+        "end_column": 50,
+        "start_byte": 1004,
+        "end_byte": 1010
+      }
     },
     {
       "pending": {
@@ -960,7 +1104,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 30,
+        "start_column": 42,
+        "end_line": 30,
+        "end_column": 48,
+        "start_byte": 1054,
+        "end_byte": 1060
+      }
     },
     {
       "pending": {
@@ -978,7 +1130,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 31,
+        "start_column": 22,
+        "end_line": 31,
+        "end_column": 28,
+        "start_byte": 1084,
+        "end_byte": 1090
+      }
     },
     {
       "pending": {
@@ -998,7 +1158,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 4,
+        "end_line": 28,
+        "end_column": 17,
+        "start_byte": 946,
+        "end_byte": 959
+      }
     },
     {
       "pending": {
@@ -1016,7 +1184,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 4,
+        "end_line": 29,
+        "end_column": 51,
+        "start_byte": 946,
+        "end_byte": 1011
+      }
     },
     {
       "pending": {
@@ -1034,7 +1210,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 4,
+        "end_line": 30,
+        "end_column": 49,
+        "start_byte": 946,
+        "end_byte": 1061
+      }
     },
     {
       "pending": {
@@ -1052,7 +1236,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 28,
+        "start_column": 4,
+        "end_line": 31,
+        "end_column": 29,
+        "start_byte": 946,
+        "end_byte": 1091
+      }
     },
     {
       "pending": {
@@ -1070,7 +1262,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0"
+      "caller_scope_key": "fixtures/extraction/rust/axum_routes/source.rs:dynamic:26:0",
+      "span": {
+        "start_line": 30,
+        "start_column": 17,
+        "end_line": 30,
+        "end_column": 33,
+        "start_byte": 1029,
+        "end_byte": 1045
+      }
     }
   ],
   "identifiers": [

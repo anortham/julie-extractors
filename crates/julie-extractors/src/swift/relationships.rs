@@ -262,6 +262,7 @@ impl SwiftExtractor {
                 kind: relationship_kind,
                 file_path: self.base.file_path.clone(),
                 line_number: (node.start_position().row + 1) as u32,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 1.0,
                 metadata: Some(metadata),
             });
@@ -409,6 +410,7 @@ impl SwiftExtractor {
                     kind: RelationshipKind::Calls,
                     file_path,
                     line_number,
+                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
                     confidence: 0.9,
                     metadata: None,
                 });

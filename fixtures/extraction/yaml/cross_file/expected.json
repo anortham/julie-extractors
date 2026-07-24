@@ -202,6 +202,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
       "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 8,
+        "end_line": 12,
+        "end_column": 17,
+        "start_byte": 309,
+        "end_byte": 318
+      },
       "confidence": "1.000",
       "metadata": {
         "alias": "defaults"
@@ -213,6 +221,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/yaml/cross_file/source.yaml",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 8,
+        "end_line": 15,
+        "end_column": 17,
+        "start_byte": 352,
+        "end_byte": 361
+      },
       "confidence": "1.000",
       "metadata": {
         "alias": "defaults"

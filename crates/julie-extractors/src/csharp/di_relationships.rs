@@ -138,6 +138,7 @@ pub(crate) fn extract_di_registration_relationships(
                 kind: RelationshipKind::Instantiates,
                 file_path: file_path.clone(),
                 line_number,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 0.9,
                 metadata: None,
             });

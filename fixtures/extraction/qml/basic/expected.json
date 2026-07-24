@@ -453,6 +453,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
       "line_number": 32,
+      "span": {
+        "start_line": 32,
+        "start_column": 8,
+        "end_line": 32,
+        "end_column": 58,
+        "start_byte": 546,
+        "end_byte": 596
+      },
       "confidence": "1.000",
       "metadata": null
     },
@@ -462,6 +470,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
       "line_number": 25,
+      "span": {
+        "start_line": 25,
+        "start_column": 8,
+        "end_line": 25,
+        "end_column": 36,
+        "start_byte": 429,
+        "end_byte": 457
+      },
       "confidence": "1.000",
       "metadata": null
     },
@@ -471,6 +487,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
       "line_number": 21,
+      "span": {
+        "start_line": 21,
+        "start_column": 8,
+        "end_line": 21,
+        "end_column": 27,
+        "start_byte": 365,
+        "end_byte": 384
+      },
       "confidence": "1.000",
       "metadata": null
     },
@@ -480,6 +504,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
       "line_number": 51,
+      "span": {
+        "start_line": 51,
+        "start_column": 14,
+        "end_line": 51,
+        "end_column": 37,
+        "start_byte": 930,
+        "end_byte": 953
+      },
       "confidence": "1.000",
       "metadata": null
     },
@@ -489,6 +521,14 @@
       "kind": "uses",
       "file_path": "fixtures/extraction/qml/basic/source.qml",
       "line_number": 51,
+      "span": {
+        "start_line": 51,
+        "start_column": 26,
+        "end_line": 51,
+        "end_column": 36,
+        "start_byte": 942,
+        "end_byte": 952
+      },
       "confidence": "0.800",
       "metadata": null
     }
@@ -520,7 +560,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/qml/basic/source.qml:format:12:4"
+      "caller_scope_key": "fixtures/extraction/qml/basic/source.qml:format:12:4",
+      "span": {
+        "start_line": 13,
+        "start_column": 15,
+        "end_line": 13,
+        "end_column": 27,
+        "start_byte": 233,
+        "end_byte": 245
+      }
     }
   ],
   "identifiers": [

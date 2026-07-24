@@ -479,7 +479,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 26,
+        "end_line": 15,
+        "end_column": 93,
+        "start_byte": 432,
+        "end_byte": 499
+      }
     },
     {
       "pending": {
@@ -497,7 +505,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 26,
+        "end_line": 15,
+        "end_column": 93,
+        "start_byte": 432,
+        "end_byte": 499
+      }
     },
     {
       "pending": {
@@ -515,7 +531,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 27,
+        "end_line": 16,
+        "end_column": 51,
+        "start_byte": 536,
+        "end_byte": 560
+      }
     },
     {
       "pending": {
@@ -533,7 +557,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 27,
+        "end_line": 16,
+        "end_column": 51,
+        "start_byte": 536,
+        "end_byte": 560
+      }
     },
     {
       "pending": {
@@ -551,7 +583,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 27,
+        "end_line": 16,
+        "end_column": 88,
+        "start_byte": 536,
+        "end_byte": 597
+      }
     },
     {
       "pending": {
@@ -569,7 +609,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 27,
+        "end_line": 16,
+        "end_column": 88,
+        "start_byte": 536,
+        "end_byte": 597
+      }
     },
     {
       "pending": {
@@ -587,7 +635,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 49,
+        "end_line": 15,
+        "end_column": 92,
+        "start_byte": 455,
+        "end_byte": 498
+      }
     },
     {
       "pending": {
@@ -605,7 +661,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 49,
+        "end_line": 15,
+        "end_column": 92,
+        "start_byte": 455,
+        "end_byte": 498
+      }
     },
     {
       "pending": {
@@ -623,7 +687,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 56,
+        "end_line": 16,
+        "end_column": 76,
+        "start_byte": 565,
+        "end_byte": 585
+      }
     },
     {
       "pending": {
@@ -641,7 +713,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 56,
+        "end_line": 16,
+        "end_column": 76,
+        "start_byte": 565,
+        "end_byte": 585
+      }
     },
     {
       "pending": {
@@ -659,7 +739,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 26,
+        "end_line": 15,
+        "end_column": 101,
+        "start_byte": 432,
+        "end_byte": 507
+      }
     },
     {
       "pending": {
@@ -677,7 +765,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 15,
+        "start_column": 26,
+        "end_line": 15,
+        "end_column": 101,
+        "start_byte": 432,
+        "end_byte": 507
+      }
     },
     {
       "pending": {
@@ -695,7 +791,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 27,
+        "end_line": 16,
+        "end_column": 96,
+        "start_byte": 536,
+        "end_byte": 605
+      }
     },
     {
       "pending": {
@@ -713,7 +817,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 27,
+        "end_line": 16,
+        "end_column": 96,
+        "start_byte": 536,
+        "end_byte": 605
+      }
     },
     {
       "pending": {
@@ -731,7 +843,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 27,
+        "end_line": 16,
+        "end_column": 77,
+        "start_byte": 536,
+        "end_byte": 586
+      }
     },
     {
       "pending": {
@@ -749,7 +869,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4"
+      "caller_scope_key": "fixtures/extraction/java/backend_http_boundaries/source.java:callClient:14:4",
+      "span": {
+        "start_line": 16,
+        "start_column": 27,
+        "end_line": 16,
+        "end_column": 77,
+        "start_byte": 536,
+        "end_byte": 586
+      }
     }
   ],
   "identifiers": [

@@ -93,6 +93,7 @@ struct NormalizedRelationship {
     kind: String,
     file_path: String,
     line_number: u32,
+    span: Option<NormalizedBodySpan>,
     confidence: String,
     metadata: Option<Value>,
 }
@@ -112,6 +113,7 @@ struct NormalizedStructuredPendingRelationship {
     pending: NormalizedPendingRelationship,
     target: NormalizedUnresolvedTarget,
     caller_scope_key: Option<String>,
+    span: Option<NormalizedBodySpan>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -520,6 +522,7 @@ fn normalize_relationship(
         kind: relationship.kind.to_string(),
         file_path: relationship.file_path.clone(),
         line_number: relationship.line_number,
+        span: relationship.span.map(normalize_body_span),
         confidence: normalize_confidence(relationship.confidence),
         metadata: relationship.metadata.as_ref().map(sorted_json_map),
     }
@@ -550,6 +553,7 @@ fn normalize_structured_pending(
             .caller_scope_symbol_id
             .as_ref()
             .map(|id| lookup_symbol_key(id, symbol_keys)),
+        span: pending.span.map(normalize_body_span),
     }
 }
 

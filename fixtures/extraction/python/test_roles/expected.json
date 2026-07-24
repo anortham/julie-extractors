@@ -415,6 +415,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/python/test_roles/test_source.py",
       "line_number": 14,
+      "span": {
+        "start_line": 14,
+        "start_column": 21,
+        "end_line": 14,
+        "end_column": 38,
+        "start_byte": 187,
+        "end_byte": 204
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -446,7 +454,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4"
+      "caller_scope_key": "fixtures/extraction/python/test_roles/test_source.py:test_unittest_case:19:4",
+      "span": {
+        "start_line": 20,
+        "start_column": 8,
+        "end_line": 20,
+        "end_column": 39,
+        "start_byte": 296,
+        "end_byte": 327
+      }
     }
   ],
   "identifiers": [

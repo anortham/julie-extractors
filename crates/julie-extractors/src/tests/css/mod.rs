@@ -176,6 +176,33 @@ fn css_relationships_resolve_custom_properties_and_keyframes() {
 }
 
 #[test]
+fn css_keyframes_relationship_span_uses_exact_animation_name_occurrence() {
+    let css = r#".card { animation-name: fadeIn, fade; }
+@keyframes fadeIn {}
+@keyframes fade {}
+"#;
+
+    let (symbols, relationships) = extract_symbols_and_relationships(css);
+    let fade = symbols
+        .iter()
+        .find(|symbol| symbol.name == "@keyframes fade")
+        .expect("fade keyframes should be extracted");
+    let relationship = relationships
+        .iter()
+        .find(|relationship| relationship.to_symbol_id == fade.id)
+        .expect("fade use should emit a relationship");
+    let span = relationship
+        .span
+        .expect("fade relationship should expose its source occurrence");
+
+    assert_eq!(
+        &css[span.start_byte as usize..span.end_byte as usize],
+        "fade"
+    );
+    assert_eq!(span.start_column, 32);
+}
+
+#[test]
 fn css_relationships_do_not_link_animation_shorthand_var_function_name() {
     let css = r#"
 :root {
@@ -235,6 +262,51 @@ fn css_relationships_ignore_animation_name_inside_comments() {
         }),
         "commented animation-name must not create keyframes relationships, got: {:?}",
         relationships
+    );
+}
+
+#[test]
+fn css_relationship_span_skips_same_line_comment_occurrence() {
+    let css = r#":root { --tone: red; }
+.card { /* var(--tone) */ color: var(--tone); }
+"#;
+
+    let (symbols, relationships) = extract_symbols_and_relationships(css);
+    let custom_property = symbols
+        .iter()
+        .find(|symbol| symbol.name == "--tone")
+        .expect("custom property should be extracted");
+    let relationship = relationships
+        .iter()
+        .find(|relationship| relationship.to_symbol_id == custom_property.id)
+        .expect("custom property use should emit a relationship");
+    let span = relationship
+        .span
+        .expect("custom property relationship should expose its source occurrence");
+
+    assert_eq!(
+        &css[span.start_byte as usize..span.end_byte as usize],
+        "--tone"
+    );
+    assert_eq!(span.start_column, 37);
+}
+
+#[test]
+fn css_relationships_keep_overlapping_comment_opener_masked() {
+    let css = r#":root { --tone: red; }
+.card { /*/ var(--tone) */ color: red; }
+"#;
+
+    let (symbols, relationships) = extract_symbols_and_relationships(css);
+    let custom_property = symbols
+        .iter()
+        .find(|symbol| symbol.name == "--tone")
+        .expect("custom property should be extracted");
+
+    assert!(
+        relationships
+            .iter()
+            .all(|relationship| relationship.to_symbol_id != custom_property.id)
     );
 }
 

@@ -428,6 +428,8 @@ pub struct Relationship {
     /// Line number where relationship occurs (1-based standard format)
     #[serde(rename = "lineNumber")]
     pub line_number: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub span: Option<NormalizedSpan>,
     /// Confidence level (0.0 to 1.0)
     pub confidence: f32,
     /// Additional metadata

@@ -369,6 +369,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/sql/basic/source.sql",
       "line_number": 15,
+      "span": {
+        "start_line": 15,
+        "start_column": 5,
+        "end_line": 15,
+        "end_column": 12,
+        "start_byte": 350,
+        "end_byte": 357
+      },
       "confidence": "0.950",
       "metadata": {
         "isExternal": false,
@@ -382,6 +390,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/sql/basic/source.sql",
       "line_number": 9,
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 50,
+        "start_byte": 187,
+        "end_byte": 233
+      },
       "confidence": "1.000",
       "metadata": {
         "isExternal": false,
@@ -396,6 +412,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/sql/basic/source.sql",
       "line_number": 32,
+      "span": {
+        "start_line": 32,
+        "start_column": 16,
+        "end_line": 32,
+        "end_column": 23,
+        "start_byte": 692,
+        "end_byte": 699
+      },
       "confidence": "0.950",
       "metadata": {
         "isExternal": false,

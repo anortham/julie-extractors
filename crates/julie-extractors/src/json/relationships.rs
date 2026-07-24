@@ -199,6 +199,7 @@ fn emit_local_relationship(
         kind: RelationshipKind::References,
         file_path: base.file_path.clone(),
         line_number,
+        span: Some(crate::base::NormalizedSpan::from_node(&value_node)),
         confidence: 1.0,
         metadata: Some(metadata),
     });

@@ -165,6 +165,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/zig/cross_file/source.zig",
       "line_number": 13,
+      "span": {
+        "start_line": 13,
+        "start_column": 16,
+        "end_line": 13,
+        "end_column": 30,
+        "start_byte": 382,
+        "end_byte": 396
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -196,7 +204,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0"
+      "caller_scope_key": "fixtures/extraction/zig/cross_file/source.zig:entry:12:0",
+      "span": {
+        "start_line": 17,
+        "start_column": 8,
+        "end_line": 17,
+        "end_column": 16,
+        "start_byte": 463,
+        "end_byte": 471
+      }
     }
   ],
   "identifiers": [

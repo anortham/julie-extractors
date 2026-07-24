@@ -226,7 +226,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:extracts a testthat BDD case:2:2"
+      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:extracts a testthat BDD case:2:2",
+      "span": {
+        "start_line": 3,
+        "start_column": 4,
+        "end_line": 3,
+        "end_column": 21,
+        "start_byte": 65,
+        "end_byte": 82
+      }
     },
     {
       "pending": {
@@ -244,7 +252,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:extracts a testthat BDD case:2:2"
+      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:extracts a testthat BDD case:2:2",
+      "span": {
+        "start_line": 2,
+        "start_column": 2,
+        "end_line": 4,
+        "end_column": 4,
+        "start_byte": 24,
+        "end_byte": 87
+      }
     },
     {
       "pending": {
@@ -262,7 +278,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:extracts a testthat case:7:0"
+      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:extracts a testthat case:7:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 2,
+        "end_line": 8,
+        "end_column": 24,
+        "start_byte": 134,
+        "end_byte": 156
+      }
     },
     {
       "pending": {
@@ -280,7 +304,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:extracts a testthat case:7:0"
+      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:extracts a testthat case:7:0",
+      "span": {
+        "start_line": 7,
+        "start_column": 0,
+        "end_line": 9,
+        "end_column": 2,
+        "start_byte": 92,
+        "end_byte": 159
+      }
     },
     {
       "pending": {
@@ -298,7 +330,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:r roles:1:0"
+      "caller_scope_key": "fixtures/extraction/r/test_roles/test_source.r:r roles:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 5,
+        "end_column": 2,
+        "start_byte": 0,
+        "end_byte": 90
+      }
     }
   ],
   "identifiers": [

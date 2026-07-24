@@ -191,6 +191,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
       "line_number": 13,
+      "span": {
+        "start_line": 13,
+        "start_column": 8,
+        "end_line": 13,
+        "end_column": 21,
+        "start_byte": 373,
+        "end_byte": 386
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -200,6 +208,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/scala/cross_file/source.scala",
       "line_number": 17,
+      "span": {
+        "start_line": 17,
+        "start_column": 12,
+        "end_line": 17,
+        "end_column": 25,
+        "start_byte": 468,
+        "end_byte": 481
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -239,7 +255,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2"
+      "caller_scope_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "span": {
+        "start_line": 16,
+        "start_column": 4,
+        "end_line": 16,
+        "end_column": 17,
+        "start_byte": 442,
+        "end_byte": 455
+      }
     },
     {
       "pending": {
@@ -257,7 +281,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2"
+      "caller_scope_key": "fixtures/extraction/scala/cross_file/source.scala:entry:11:2",
+      "span": {
+        "start_line": 16,
+        "start_column": 4,
+        "end_line": 16,
+        "end_column": 17,
+        "start_byte": 442,
+        "end_byte": 455
+      }
     }
   ],
   "identifiers": [

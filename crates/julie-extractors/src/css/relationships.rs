@@ -25,27 +25,32 @@ pub(super) fn extract_relationships(base: &BaseExtractor, symbols: &[Symbol]) ->
         let scan_line = strip_css_comments(line, &mut in_block_comment);
 
         for captures in CUSTOM_PROPERTY_USE_RE.captures_iter(&scan_line) {
-            if let Some(name) = captures.get(1).map(|matched| matched.as_str())
-                && let Some(target) = custom_properties.get(name)
-            {
-                push_relationship(
-                    base,
-                    symbols,
-                    target,
-                    line_number,
-                    name,
-                    "custom-property",
-                    &mut seen,
-                    &mut relationships,
-                );
-            }
+            let Some(name_match) = captures.get(1) else {
+                continue;
+            };
+            let name = name_match.as_str();
+            let Some(target) = custom_properties.get(name) else {
+                continue;
+            };
+            push_relationship(
+                base,
+                symbols,
+                target,
+                line_number,
+                name,
+                Some(name_match.start()),
+                "custom-property",
+                &mut seen,
+                &mut relationships,
+            );
         }
 
         for captures in ANIMATION_NAME_DECL_RE.captures_iter(&scan_line) {
-            let Some(value) = captures.get(1).map(|matched| matched.as_str()) else {
+            let Some(value_match) = captures.get(1) else {
                 continue;
             };
-            for name in parse_animation_names(value) {
+            let value = value_match.as_str();
+            for (name, offset) in parse_animation_names(value) {
                 if let Some(target) = keyframes.get(name) {
                     push_relationship(
                         base,
@@ -53,6 +58,7 @@ pub(super) fn extract_relationships(base: &BaseExtractor, symbols: &[Symbol]) ->
                         target,
                         line_number,
                         name,
+                        Some(value_match.start() + offset),
                         "keyframes",
                         &mut seen,
                         &mut relationships,
@@ -86,6 +92,7 @@ fn push_relationship(
     target: &Symbol,
     line_number: u32,
     reference_name: &str,
+    reference_start_column: Option<usize>,
     reference_type: &str,
     seen: &mut HashSet<(String, String, u32, String)>,
     relationships: &mut Vec<Relationship>,
@@ -129,40 +136,65 @@ fn push_relationship(
         kind: RelationshipKind::References,
         file_path: base.file_path.clone(),
         line_number,
+        span: reference_start_column
+            .and_then(|column| {
+                crate::base::NormalizedSpan::from_line_match(
+                    &base.content,
+                    line_number,
+                    column,
+                    reference_name,
+                )
+            })
+            .or_else(|| {
+                crate::base::NormalizedSpan::from_line_occurrence(
+                    &base.content,
+                    line_number,
+                    reference_name,
+                )
+            }),
         confidence: 1.0,
         metadata: Some(metadata),
     });
 }
 
-fn parse_animation_names(value: &str) -> impl Iterator<Item = &str> {
+fn parse_animation_names(value: &str) -> impl Iterator<Item = (&str, usize)> {
     value
         .split(',')
-        .map(str::trim)
-        .filter(|name| CSS_IDENTIFIER_RE.is_match(name))
+        .scan(0usize, |segment_start, segment| {
+            let name = segment.trim();
+            let leading_whitespace = segment.len() - segment.trim_start().len();
+            let offset = *segment_start + leading_whitespace;
+            *segment_start += segment.len() + 1;
+            Some((name, offset))
+        })
+        .filter(|(name, _)| CSS_IDENTIFIER_RE.is_match(name))
 }
 
 fn strip_css_comments(line: &str, in_block_comment: &mut bool) -> String {
-    let mut output = String::with_capacity(line.len());
-    let mut remaining = line;
-
-    loop {
+    let mut output = line.as_bytes().to_vec();
+    let mut cursor = 0;
+    while cursor < line.len() {
         if *in_block_comment {
-            if let Some(end_index) = remaining.find("*/") {
-                remaining = &remaining[end_index + 2..];
+            if let Some(end_offset) = line[cursor..].find("*/") {
+                let end = cursor + end_offset + 2;
+                output[cursor..end].fill(b' ');
+                cursor = end;
                 *in_block_comment = false;
                 continue;
             }
-            return output;
+            output[cursor..].fill(b' ');
+            break;
         }
 
-        if let Some(start_index) = remaining.find("/*") {
-            output.push_str(&remaining[..start_index]);
-            remaining = &remaining[start_index + 2..];
+        if let Some(start_offset) = line[cursor..].find("/*") {
+            cursor += start_offset;
+            let opener_end = cursor + 2;
+            output[cursor..opener_end].fill(b' ');
+            cursor = opener_end;
             *in_block_comment = true;
             continue;
         }
-
-        output.push_str(remaining);
-        return output;
+        break;
     }
+    String::from_utf8(output).expect("replacing comment bytes with spaces preserves UTF-8")
 }

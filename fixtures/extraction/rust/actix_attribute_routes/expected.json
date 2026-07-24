@@ -442,7 +442,15 @@
         "namespace_path": [],
         "import_context": "use actix_web::{delete, get, post, route, web, HttpResponse, Responder};"
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:actix_web:4:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:actix_web:4:0",
+      "span": {
+        "start_line": 4,
+        "start_column": 0,
+        "end_line": 4,
+        "end_column": 72,
+        "start_byte": 181,
+        "end_byte": 253
+      }
     },
     {
       "pending": {
@@ -462,7 +470,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:create:14:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:create:14:0",
+      "span": {
+        "start_line": 15,
+        "start_column": 4,
+        "end_line": 15,
+        "end_column": 27,
+        "start_byte": 561,
+        "end_byte": 584
+      }
     },
     {
       "pending": {
@@ -480,7 +496,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:create:14:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:create:14:0",
+      "span": {
+        "start_line": 15,
+        "start_column": 4,
+        "end_line": 15,
+        "end_column": 36,
+        "start_byte": 561,
+        "end_byte": 593
+      }
     },
     {
       "pending": {
@@ -500,7 +524,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:destroy:22:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:destroy:22:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 4,
+        "end_line": 23,
+        "end_column": 29,
+        "start_byte": 863,
+        "end_byte": 888
+      }
     },
     {
       "pending": {
@@ -518,7 +550,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:destroy:22:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:destroy:22:0",
+      "span": {
+        "start_line": 23,
+        "start_column": 4,
+        "end_line": 23,
+        "end_column": 38,
+        "start_byte": 863,
+        "end_byte": 897
+      }
     },
     {
       "pending": {
@@ -538,7 +578,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:health:37:4"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:health:37:4",
+      "span": {
+        "start_line": 38,
+        "start_column": 8,
+        "end_line": 38,
+        "end_column": 26,
+        "start_byte": 1275,
+        "end_byte": 1293
+      }
     },
     {
       "pending": {
@@ -556,7 +604,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:health:37:4"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:health:37:4",
+      "span": {
+        "start_line": 38,
+        "start_column": 8,
+        "end_line": 38,
+        "end_column": 35,
+        "start_byte": 1275,
+        "end_byte": 1302
+      }
     },
     {
       "pending": {
@@ -576,7 +632,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:list:46:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:list:46:0",
+      "span": {
+        "start_line": 47,
+        "start_column": 4,
+        "end_line": 47,
+        "end_column": 22,
+        "start_byte": 1485,
+        "end_byte": 1503
+      }
     },
     {
       "pending": {
@@ -594,7 +658,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:list:46:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:list:46:0",
+      "span": {
+        "start_line": 47,
+        "start_column": 4,
+        "end_line": 47,
+        "end_column": 31,
+        "start_byte": 1485,
+        "end_byte": 1512
+      }
     },
     {
       "pending": {
@@ -614,7 +686,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 22,
+        "start_byte": 410,
+        "end_byte": 428
+      }
     },
     {
       "pending": {
@@ -632,7 +712,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 28,
+        "end_line": 9,
+        "end_column": 45,
+        "start_byte": 434,
+        "end_byte": 451
+      }
     },
     {
       "pending": {
@@ -650,7 +738,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:show:8:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 4,
+        "end_line": 9,
+        "end_column": 46,
+        "start_byte": 410,
+        "end_byte": 452
+      }
     },
     {
       "pending": {
@@ -670,7 +766,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:thing:28:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:thing:28:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 4,
+        "end_line": 29,
+        "end_column": 22,
+        "start_byte": 1072,
+        "end_byte": 1090
+      }
     },
     {
       "pending": {
@@ -688,7 +792,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:thing:28:0"
+      "caller_scope_key": "fixtures/extraction/rust/actix_attribute_routes/source.rs:thing:28:0",
+      "span": {
+        "start_line": 29,
+        "start_column": 4,
+        "end_line": 29,
+        "end_column": 31,
+        "start_byte": 1072,
+        "end_byte": 1099
+      }
     }
   ],
   "identifiers": [

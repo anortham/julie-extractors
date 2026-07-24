@@ -324,6 +324,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
       "line_number": 17,
+      "span": {
+        "start_line": 17,
+        "start_column": 14,
+        "end_line": 17,
+        "end_column": 72,
+        "start_byte": 408,
+        "end_byte": 466
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "Http.GetFromJsonAsync<WidgetModel>"
@@ -335,6 +343,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
       "line_number": 16,
+      "span": {
+        "start_line": 16,
+        "start_column": 8,
+        "end_line": 16,
+        "end_column": 49,
+        "start_byte": 351,
+        "end_byte": 392
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "Navigation.NavigateTo"
@@ -345,7 +361,15 @@
       "to_key": "unresolved:namespace:Sample.Shared",
       "kind": "uses",
       "file_path": "fixtures/extraction/razor/code-behind/Widget.razor",
-      "line_number": 1,
+      "line_number": 3,
+      "span": {
+        "start_line": 3,
+        "start_column": 7,
+        "end_line": 3,
+        "end_column": 20,
+        "start_byte": 59,
+        "end_byte": 72
+      },
       "confidence": "0.800",
       "metadata": {
         "namespace": "Sample.Shared",

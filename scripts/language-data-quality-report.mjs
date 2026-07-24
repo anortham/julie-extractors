@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { spawnSync } from "node:child_process";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const CAPABILITIES_PATH = path.join(ROOT, "fixtures/extraction/capabilities.json");
@@ -598,4 +599,17 @@ if (
   (result.silentCells.length > 0 || result.qualityDebts.length > 0)
 ) {
   process.exitCode = 1;
+}
+
+if (process.argv.includes("--strict")) {
+  const resolutionCoverage = spawnSync(
+    process.execPath,
+    [path.join(ROOT, "scripts/reference-resolution-coverage-report.mjs"), "--strict"],
+    { encoding: "utf8" },
+  );
+  process.stdout.write(resolutionCoverage.stdout);
+  process.stderr.write(resolutionCoverage.stderr);
+  if (resolutionCoverage.status !== 0) {
+    process.exitCode = 1;
+  }
 }

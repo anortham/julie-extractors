@@ -407,6 +407,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/basic/source.rs",
       "line_number": 37,
+      "span": {
+        "start_line": 37,
+        "start_column": 8,
+        "end_line": 37,
+        "end_column": 59,
+        "start_byte": 778,
+        "end_byte": 829
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -416,6 +424,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/basic/source.rs",
       "line_number": 18,
+      "span": {
+        "start_line": 18,
+        "start_column": 8,
+        "end_line": 18,
+        "end_column": 37,
+        "start_byte": 354,
+        "end_byte": 383
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -425,6 +441,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/basic/source.rs",
       "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 12,
+        "end_line": 12,
+        "end_column": 27,
+        "start_byte": 221,
+        "end_byte": 236
+      },
       "confidence": "0.900",
       "metadata": null
     },
@@ -434,6 +458,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/rust/basic/source.rs",
       "line_number": 11,
+      "span": {
+        "start_line": 11,
+        "start_column": 12,
+        "end_line": 11,
+        "end_column": 31,
+        "start_byte": 188,
+        "end_byte": 207
+      },
       "confidence": "0.900",
       "metadata": null
     }
@@ -476,7 +508,15 @@
         ],
         "import_context": "use std::collections::HashMap;"
       },
-      "caller_scope_key": "fixtures/extraction/rust/basic/source.rs:HashMap:1:0"
+      "caller_scope_key": "fixtures/extraction/rust/basic/source.rs:HashMap:1:0",
+      "span": {
+        "start_line": 1,
+        "start_column": 0,
+        "end_line": 1,
+        "end_column": 30,
+        "start_byte": 0,
+        "end_byte": 30
+      }
     },
     {
       "pending": {
@@ -496,7 +536,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/basic/source.rs:build_index:44:4"
+      "caller_scope_key": "fixtures/extraction/rust/basic/source.rs:build_index:44:4",
+      "span": {
+        "start_line": 45,
+        "start_column": 8,
+        "end_line": 45,
+        "end_column": 22,
+        "start_byte": 959,
+        "end_byte": 973
+      }
     }
   ],
   "identifiers": [

@@ -356,6 +356,14 @@
       "kind": "calls",
       "file_path": "fixtures/extraction/razor/attribute-expressions/implicit/source.razor",
       "line_number": 3,
+      "span": {
+        "start_line": 3,
+        "start_column": 21,
+        "end_line": 3,
+        "end_column": 48,
+        "start_byte": 91,
+        "end_byte": 118
+      },
       "confidence": "0.900",
       "metadata": {
         "method": "StatusColor"

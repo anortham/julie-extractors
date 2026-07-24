@@ -79,6 +79,7 @@ pub(super) fn extract_class_relationships(
                 kind: RelationshipKind::Extends,
                 file_path: extractor.get_base().file_path.clone(),
                 line_number: node.start_position().row as u32 + 1,
+                span: Some(crate::base::NormalizedSpan::from_node(&node)),
                 confidence: 1.0,
                 metadata: Some({
                     let mut metadata = HashMap::new();
@@ -137,6 +138,7 @@ pub(super) fn extract_class_relationships(
                     kind: RelationshipKind::Implements,
                     file_path: extractor.get_base().file_path.clone(),
                     line_number: node.start_position().row as u32 + 1,
+                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
                     confidence: 1.0,
                     metadata: Some({
                         let mut metadata = HashMap::new();
@@ -210,6 +212,7 @@ pub(super) fn extract_interface_relationships(
                     kind: RelationshipKind::Extends,
                     file_path: extractor.get_base().file_path.clone(),
                     line_number: node.start_position().row as u32 + 1,
+                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
                     confidence: 1.0,
                     metadata: Some({
                         let mut metadata = HashMap::new();

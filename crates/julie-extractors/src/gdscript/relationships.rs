@@ -74,11 +74,16 @@ fn extract_metadata_inheritance_relationships(
                 kind: RelationshipKind::Extends,
                 file_path: extractor.base.file_path.clone(),
                 line_number: class_symbol.start_line,
+                span: crate::base::NormalizedSpan::from_line_occurrence(
+                    &extractor.base.content,
+                    class_symbol.start_line,
+                    base_class,
+                ),
                 confidence: 0.95,
                 metadata: None,
             });
         } else {
-            let pending = StructuredPendingRelationship::new(
+            let mut pending = StructuredPendingRelationship::new(
                 class_symbol.id.clone(),
                 UnresolvedTarget::simple(base_class.to_string()),
                 Some(class_symbol.id.clone()),
@@ -86,6 +91,11 @@ fn extract_metadata_inheritance_relationships(
                 extractor.base.file_path.clone(),
                 class_symbol.start_line,
                 0.8,
+            );
+            pending.span = crate::base::NormalizedSpan::from_line_occurrence(
+                &extractor.base.content,
+                class_symbol.start_line,
+                base_class,
             );
             extractor.add_structured_pending_relationship(pending);
         }
@@ -209,6 +219,7 @@ fn extract_call_relationships(
                     kind: RelationshipKind::Calls,
                     file_path,
                     line_number,
+                    span: Some(crate::base::NormalizedSpan::from_node(&node)),
                     confidence: 0.9,
                     metadata: None,
                 };

@@ -197,7 +197,15 @@
         ],
         "import_context": "use reqwest::Client;"
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:Client:3:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:Client:3:0",
+      "span": {
+        "start_line": 3,
+        "start_column": 0,
+        "end_line": 3,
+        "end_column": 20,
+        "start_byte": 149,
+        "end_byte": 169
+      }
     },
     {
       "pending": {
@@ -215,7 +223,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
+      "span": {
+        "start_line": 19,
+        "start_column": 4,
+        "end_line": 19,
+        "end_column": 10,
+        "start_byte": 840,
+        "end_byte": 846
+      }
     },
     {
       "pending": {
@@ -235,7 +251,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
+      "span": {
+        "start_line": 17,
+        "start_column": 4,
+        "end_line": 17,
+        "end_column": 63,
+        "start_byte": 709,
+        "end_byte": 768
+      }
     },
     {
       "pending": {
@@ -255,7 +279,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
+      "span": {
+        "start_line": 18,
+        "start_column": 4,
+        "end_line": 18,
+        "end_column": 50,
+        "start_byte": 781,
+        "end_byte": 827
+      }
     },
     {
       "pending": {
@@ -273,7 +305,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:dynamic:16:0",
+      "span": {
+        "start_line": 18,
+        "start_column": 19,
+        "end_line": 18,
+        "end_column": 42,
+        "start_byte": 796,
+        "end_byte": 819
+      }
     },
     {
       "pending": {
@@ -291,7 +331,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
+      "span": {
+        "start_line": 12,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 10,
+        "start_byte": 556,
+        "end_byte": 562
+      }
     },
     {
       "pending": {
@@ -309,7 +357,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 11,
+        "end_column": 45,
+        "start_byte": 502,
+        "end_byte": 543
+      }
     },
     {
       "pending": {
@@ -329,7 +385,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
+      "span": {
+        "start_line": 8,
+        "start_column": 4,
+        "end_line": 8,
+        "end_column": 49,
+        "start_byte": 355,
+        "end_byte": 400
+      }
     },
     {
       "pending": {
@@ -350,7 +414,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
+      "span": {
+        "start_line": 11,
+        "start_column": 4,
+        "end_line": 11,
+        "end_column": 26,
+        "start_byte": 502,
+        "end_byte": 524
+      }
     },
     {
       "pending": {
@@ -370,7 +442,15 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
+      "span": {
+        "start_line": 9,
+        "start_column": 17,
+        "end_line": 9,
+        "end_column": 30,
+        "start_byte": 426,
+        "end_byte": 439
+      }
     },
     {
       "pending": {
@@ -388,7 +468,15 @@
         "namespace_path": [],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0"
+      "caller_scope_key": "fixtures/extraction/rust/http_client/source.rs:load:7:0",
+      "span": {
+        "start_line": 10,
+        "start_column": 4,
+        "end_line": 10,
+        "end_column": 48,
+        "start_byte": 445,
+        "end_byte": 489
+      }
     }
   ],
   "identifiers": [

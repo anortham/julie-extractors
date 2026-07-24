@@ -184,6 +184,14 @@
       "kind": "references",
       "file_path": "fixtures/extraction/sql/cross_file/source.sql",
       "line_number": 12,
+      "span": {
+        "start_line": 12,
+        "start_column": 4,
+        "end_line": 12,
+        "end_column": 38,
+        "start_byte": 406,
+        "end_byte": 440
+      },
       "confidence": "1.000",
       "metadata": {
         "isExternal": false,
@@ -222,7 +230,8 @@
         ],
         "import_context": null
       },
-      "caller_scope_key": "fixtures/extraction/sql/cross_file/source.sql:orders:5:0"
+      "caller_scope_key": "fixtures/extraction/sql/cross_file/source.sql:orders:5:0",
+      "span": null
     }
   ],
   "identifiers": [],
