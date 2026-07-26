@@ -837,6 +837,7 @@
         "start_byte": 40,
         "end_byte": 216
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "baseType": "Job"
@@ -856,6 +857,7 @@
         "start_byte": 1069,
         "end_byte": 1119
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     },
@@ -873,6 +875,7 @@
         "start_byte": 288,
         "end_byte": 301
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     },
@@ -890,6 +893,7 @@
         "start_byte": 835,
         "end_byte": 867
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     },
@@ -907,6 +911,7 @@
         "start_byte": 198,
         "end_byte": 208
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     },
@@ -924,6 +929,7 @@
         "start_byte": 169,
         "end_byte": 182
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     }

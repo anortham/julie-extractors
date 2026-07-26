@@ -176,6 +176,7 @@
         "start_byte": 179,
         "end_byte": 199
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "Array.Empty<TItem>"

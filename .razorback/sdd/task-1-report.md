@@ -104,6 +104,19 @@
 - HEAD before the review-fix commit: `cc501177efce1ff48e4daf62b14ab0f6ffe8b228`
 - Dirty state: only Task 1 review-fix source/tests, this report, and `.memories/2026-07-26/214321_5f29.md`; no unrelated changes.
 
+## Integrated contract-gate follow-up
+
+- Integrated HEAD: `f1e0c9561f2e0de47b770a672920110724c46de7`, including the marker contract.
+- RED: `cargo +1.96.0 xtask test contract` failed `tests::golden::golden_fixtures_match_canonical_extraction` at `c:basic`.
+- Exact mismatch: expected `helper(...)` and `worker_log(...)` call-expression spans; actual extraction correctly emitted the narrower `helper` and `worker_log` target-token spans. The same approved change affected audited Bash, PowerShell, and Python relationships and pending calls.
+- Root cause: producer exactness changed, but canonical golden expectations were not regenerated. `NormalizedRelationship` also omitted `reference_site_is_exact`, so the golden contract did not directly assert the new typed field.
+- Fix: added `reference_site_is_exact` to `NormalizedRelationship`, mapped it from `Relationship`, and regenerated through `UPDATE_GOLDEN=1 cargo +1.96.0 test -p julie-extractors --features test-golden --lib golden`.
+- Authority update: 101 expected fixture files now explicitly cover 224 relationship rows: 14 audited exact rows and 210 non-exact rows. Existing-value changes are limited to the approved target-token span narrowing; all other fixture changes add the typed boolean.
+- GREEN: `cargo +1.96.0 xtask test contract` passed all contract tiers: golden 3/3, capability matrix 39/39, pending-shape contract 1/1, downstream smoke 1/1, artifact schema 15/15, reports 8/8, JSONL 9/9, CLI contract 10/10, path policy 5/5, and operations 53/53.
+- GREEN: `cargo +1.96.0 xtask test default` passed, including 3,020 extractor tests with 7 ignored, artifact writer 38/38, writer performance 2/2, CLI operations 53/53, and resolution 16/16.
+- GREEN: `cargo +1.96.0 fmt --all -- --check` and `git diff --check`.
+- Final follow-up state before commit: path `/Users/murphy/source/julie-extractors/.worktrees/cross-repo-dogfood-repair`, branch `codex/cross-repo-dogfood-repair`, HEAD `f1e0c9561f2e0de47b770a672920110724c46de7`; dirty only the golden contract repair, this report, and `.memories/2026-07-26/215306_2654.md`.
+
 ## Remaining concerns
 
 - Providers not explicitly migrated to target-token constructors intentionally emit spanless, non-exact sites. Their language/provider gaps remain visible in the capability snapshot instead of being hidden by consumer inference.

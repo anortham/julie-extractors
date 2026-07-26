@@ -948,6 +948,7 @@
         "start_byte": 1304,
         "end_byte": 1316
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "defineExpose"
@@ -967,6 +968,7 @@
         "start_byte": 542,
         "end_byte": 555
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "defineOptions"
@@ -986,6 +988,7 @@
         "start_byte": 685,
         "end_byte": 691
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "format"
@@ -1005,6 +1008,7 @@
         "start_byte": 80,
         "end_byte": 85
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "title"

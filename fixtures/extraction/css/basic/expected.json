@@ -574,6 +574,7 @@
         "start_byte": 126,
         "end_byte": 134
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "--accent",

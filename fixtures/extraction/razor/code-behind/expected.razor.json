@@ -332,6 +332,7 @@
         "start_byte": 408,
         "end_byte": 466
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "Http.GetFromJsonAsync<WidgetModel>"
@@ -351,6 +352,7 @@
         "start_byte": 351,
         "end_byte": 392
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "Navigation.NavigateTo"
@@ -370,6 +372,7 @@
         "start_byte": 59,
         "end_byte": 72
       },
+      "reference_site_is_exact": false,
       "confidence": "0.800",
       "metadata": {
         "namespace": "Sample.Shared",

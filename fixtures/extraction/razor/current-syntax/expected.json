@@ -349,6 +349,7 @@
         "start_byte": 430,
         "end_byte": 447
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "Field"

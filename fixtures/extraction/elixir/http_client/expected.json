@@ -177,6 +177,7 @@
         "start_byte": 153,
         "end_byte": 174
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     },
@@ -194,6 +195,7 @@
         "start_byte": 296,
         "end_byte": 307
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     }

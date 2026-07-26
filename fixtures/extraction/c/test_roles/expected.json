@@ -105,9 +105,9 @@
         "start_line": 1,
         "start_column": 0,
         "end_line": 1,
-        "end_column": 20,
+        "end_column": 4,
         "start_byte": 0,
-        "end_byte": 20
+        "end_byte": 4
       }
     }
   ],

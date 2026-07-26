@@ -110,6 +110,7 @@
         "start_byte": 217,
         "end_byte": 222
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "axios"
@@ -129,6 +130,7 @@
         "start_byte": 29,
         "end_byte": 33
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "referenceName": "load"

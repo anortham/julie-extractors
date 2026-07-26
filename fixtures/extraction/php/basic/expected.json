@@ -844,6 +844,7 @@
         "start_byte": 1211,
         "end_byte": 1261
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     },
@@ -861,6 +862,7 @@
         "start_byte": 979,
         "end_byte": 1008
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     },
@@ -878,6 +880,7 @@
         "start_byte": 686,
         "end_byte": 703
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     },
@@ -895,6 +898,7 @@
         "start_byte": 649,
         "end_byte": 669
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": null
     }

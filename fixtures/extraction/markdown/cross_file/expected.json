@@ -208,6 +208,7 @@
         "start_byte": 333,
         "end_byte": 346
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "anchor": "local-heading"

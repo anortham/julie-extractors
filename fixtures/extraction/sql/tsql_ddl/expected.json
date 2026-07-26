@@ -350,6 +350,7 @@
         "start_byte": 473,
         "end_byte": 556
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "isExternal": false,

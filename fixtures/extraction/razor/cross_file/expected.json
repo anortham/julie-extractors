@@ -214,6 +214,7 @@
         "start_byte": 493,
         "end_byte": 506
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "LocalHelper"
@@ -233,6 +234,7 @@
         "start_byte": 341,
         "end_byte": 354
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "LocalHelper"
@@ -252,6 +254,7 @@
         "start_byte": 294,
         "end_byte": 313
       },
+      "reference_site_is_exact": false,
       "confidence": "0.800",
       "metadata": {
         "namespace": "OtherProject.Models",

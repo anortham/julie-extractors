@@ -686,6 +686,7 @@
         "start_byte": 668,
         "end_byte": 712
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "ContactList.RemoveSelectedItemAsync"
@@ -705,6 +706,7 @@
         "start_byte": 274,
         "end_byte": 301
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "KeyPress.For"
@@ -724,6 +726,7 @@
         "start_byte": 274,
         "end_byte": 322
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "KeyPress.For(KeyCode.Enter).WithPreventDefault"

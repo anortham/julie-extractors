@@ -102,6 +102,7 @@
         "start_byte": 395,
         "end_byte": 407
       },
+      "reference_site_is_exact": true,
       "confidence": "1.000",
       "metadata": null
     }
@@ -138,9 +139,9 @@
         "start_line": 13,
         "start_column": 4,
         "end_line": 13,
-        "end_column": 25,
+        "end_column": 16,
         "start_byte": 369,
-        "end_byte": 390
+        "end_byte": 381
       }
     }
   ],

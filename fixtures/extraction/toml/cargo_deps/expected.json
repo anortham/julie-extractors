@@ -318,6 +318,7 @@
         "start_byte": 178,
         "end_byte": 188
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "dependencyKind": "build-dependencies"
@@ -337,6 +338,7 @@
         "start_byte": 59,
         "end_byte": 72
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "dependencyKind": "dependencies"
@@ -356,6 +358,7 @@
         "start_byte": 73,
         "end_byte": 119
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "dependencyKind": "dependencies"
@@ -375,6 +378,7 @@
         "start_byte": 140,
         "end_byte": 155
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "dependencyKind": "dev-dependencies"

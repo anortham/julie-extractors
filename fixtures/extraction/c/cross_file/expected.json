@@ -116,10 +116,11 @@
         "start_line": 15,
         "start_column": 11,
         "end_line": 15,
-        "end_column": 25,
+        "end_column": 23,
         "start_byte": 438,
-        "end_byte": 452
+        "end_byte": 450
       },
+      "reference_site_is_exact": true,
       "confidence": "1.000",
       "metadata": null
     },
@@ -137,6 +138,7 @@
         "start_byte": 321,
         "end_byte": 340
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "includePath": "other.h"
@@ -175,9 +177,9 @@
         "start_line": 14,
         "start_column": 4,
         "end_line": 14,
-        "end_column": 16,
+        "end_column": 14,
         "start_byte": 413,
-        "end_byte": 425
+        "end_byte": 423
       }
     }
   ],

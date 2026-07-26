@@ -364,6 +364,7 @@
         "start_byte": 91,
         "end_byte": 118
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "StatusColor"

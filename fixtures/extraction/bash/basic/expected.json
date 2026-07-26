@@ -527,10 +527,11 @@
         "start_line": 9,
         "start_column": 4,
         "end_line": 9,
-        "end_column": 15,
+        "end_column": 10,
         "start_byte": 101,
-        "end_byte": 112
+        "end_byte": 107
       },
+      "reference_site_is_exact": true,
       "confidence": "0.950",
       "metadata": null
     }
@@ -567,9 +568,9 @@
         "start_line": 17,
         "start_column": 19,
         "end_line": 17,
-        "end_column": 33,
+        "end_column": 22,
         "start_byte": 243,
-        "end_byte": 257
+        "end_byte": 246
       }
     }
   ],

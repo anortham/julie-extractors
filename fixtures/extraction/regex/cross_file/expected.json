@@ -160,6 +160,7 @@
         "start_byte": 266,
         "end_byte": 274
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "name": "word",
@@ -180,6 +181,7 @@
         "start_byte": 148,
         "end_byte": 150
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "captureIndex": 1,

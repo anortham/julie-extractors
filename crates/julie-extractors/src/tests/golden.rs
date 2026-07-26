@@ -94,6 +94,7 @@ struct NormalizedRelationship {
     file_path: String,
     line_number: u32,
     span: Option<NormalizedBodySpan>,
+    reference_site_is_exact: bool,
     confidence: String,
     metadata: Option<Value>,
 }
@@ -523,6 +524,7 @@ fn normalize_relationship(
         file_path: relationship.file_path.clone(),
         line_number: relationship.line_number,
         span: relationship.span.map(normalize_body_span),
+        reference_site_is_exact: relationship.reference_site_is_exact,
         confidence: normalize_confidence(relationship.confidence),
         metadata: relationship.metadata.as_ref().map(sorted_json_map),
     }

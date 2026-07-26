@@ -218,6 +218,7 @@
         "start_byte": 0,
         "end_byte": 62
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "event": "submit",
@@ -238,6 +239,7 @@
         "start_byte": 63,
         "end_byte": 120
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "property": "Value",
@@ -258,6 +260,7 @@
         "start_byte": 121,
         "end_byte": 187
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "property": "Value",

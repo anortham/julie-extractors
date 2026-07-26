@@ -137,9 +137,9 @@
         "start_line": 5,
         "start_column": 11,
         "end_line": 5,
-        "end_column": 24,
+        "end_column": 17,
         "start_byte": 79,
-        "end_byte": 92
+        "end_byte": 85
       }
     }
   ],

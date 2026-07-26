@@ -575,6 +575,7 @@
         "start_byte": 1275,
         "end_byte": 1325
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "FetchUrl"
@@ -594,6 +595,7 @@
         "start_byte": 511,
         "end_byte": 523
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "value.Trim"
@@ -613,6 +615,7 @@
         "start_byte": 1085,
         "end_byte": 1113
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "ObserveRun"
@@ -632,6 +635,7 @@
         "start_byte": 415,
         "end_byte": 425
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "Helper"
@@ -651,6 +655,7 @@
         "start_byte": 381,
         "end_byte": 394
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "RecordRun"
@@ -670,6 +675,7 @@
         "start_byte": 22,
         "end_byte": 35
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "method": "Format"
@@ -689,6 +695,7 @@
         "start_byte": 74,
         "end_byte": 103
       },
+      "reference_site_is_exact": false,
       "confidence": "0.900",
       "metadata": {
         "property": "Value",

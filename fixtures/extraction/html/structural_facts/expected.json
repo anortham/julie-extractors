@@ -1106,6 +1106,7 @@
         "start_byte": 71,
         "end_byte": 95
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "href": "/home"
@@ -1125,6 +1126,7 @@
         "start_byte": 652,
         "end_byte": 833
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "action": "/todos",
@@ -1145,6 +1147,7 @@
         "start_byte": 128,
         "end_byte": 175
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "src": "/logo.png"
@@ -1164,6 +1167,7 @@
         "start_byte": 200,
         "end_byte": 246
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "src": "/clip.mp4"

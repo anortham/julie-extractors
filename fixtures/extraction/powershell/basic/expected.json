@@ -506,10 +506,11 @@
         "start_line": 8,
         "start_column": 11,
         "end_line": 8,
-        "end_column": 31,
+        "end_column": 24,
         "start_byte": 129,
-        "end_byte": 149
+        "end_byte": 142
       },
+      "reference_site_is_exact": true,
       "confidence": "1.000",
       "metadata": null
     }
@@ -554,9 +555,9 @@
         "start_line": 26,
         "start_column": 4,
         "end_line": 26,
-        "end_column": 16,
+        "end_column": 15,
         "start_byte": 452,
-        "end_byte": 464
+        "end_byte": 463
       }
     },
     {
@@ -580,9 +581,9 @@
         "start_line": 26,
         "start_column": 18,
         "end_line": 26,
-        "end_column": 40,
+        "end_column": 31,
         "start_byte": 466,
-        "end_byte": 488
+        "end_byte": 479
       }
     }
   ],

@@ -212,6 +212,7 @@
         "start_byte": 361,
         "end_byte": 389
       },
+      "reference_site_is_exact": false,
       "confidence": "1.000",
       "metadata": {
         "refKind": "json_schema_ref"
