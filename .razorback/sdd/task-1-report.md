@@ -117,6 +117,27 @@
 - GREEN: `cargo +1.96.0 fmt --all -- --check` and `git diff --check`.
 - Final follow-up state before commit: path `/Users/murphy/source/julie-extractors/.worktrees/cross-repo-dogfood-repair`, branch `codex/cross-repo-dogfood-repair`, HEAD `f1e0c9561f2e0de47b770a672920110724c46de7`; dirty only the golden contract repair, this report, and `.memories/2026-07-26/215306_2654.md`.
 
+## Version-boundary follow-up
+
+- Starting HEAD: `66e1f74a5247a9110ef4b062cdc47575a9572939`.
+- Finding: all three shipped crates still claimed released version `2.17.0` after SQLite schema 5, extract contract 4, and JSONL 4 made the producer incompatible with the published schema-4/contract-3/JSONL-3 release.
+- Architecture quality: no module or runtime behavior impact. This is a release-identity correction across existing manifests, lockfile records, versioned notes, and repository release guards.
+- Miller `workspace list filter=cross-repo-dogfood-repair` identified the Julie task workspace as `2f441104f02d09df8d78551fd259a48dd17571c83f9541a241c0643bac64855b`; refresh confirmed revision 35.
+- Miller `content search query=2.17.0 content_kind=config` returned exactly three live package manifests: `julie-extract-artifact`, `julie-extract-cli`, and `julie-extractors`.
+- Miller all-text/docs evidence separated those live claims from the real `v2.17.0` release notes, release evidence, prior work reports, and `docs/release.md` current-published statement. Historical and published facts remain unchanged.
+- Miller source search for `CARGO_PKG_VERSION` proved the CLI writes package identity into artifact metadata and reports. `inspect preflight_release_from_root` proved release preflight requires exact manifest equality and a versioned `docs/release-notes/v{version}.md` input.
+- RED: `cargo +1.96.0 xtask release preflight --version 2.18.0` rejected `julie-extract-artifact/Cargo.toml` at `2.17.0`.
+- Fix: bumped all three crate manifests and all three lockfile package records to `2.18.0`; added `docs/release-notes/v2.18.0.md`; added it to the release-notes index.
+- Boundary decision: source identity is `2.18.0`; `v2.17.0` remains the current published release until a separate approval-gated release. No alias, version range, tag, push, publication, or release mutation was added.
+- GREEN: `cargo +1.96.0 check --workspace` built all three shipped crates as `2.18.0`.
+- GREEN: `cargo +1.96.0 run -p julie-extract-cli --bin julie-extract -- --version` reported `julie-extract 2.18.0`.
+- GREEN: `cargo +1.96.0 xtask release preflight --version 2.18.0` validated 4 targets and 26 inputs.
+- GREEN: `cargo +1.96.0 test -p xtask --test release_contract` passed 14/14.
+- GREEN: `cargo +1.96.0 xtask test default` passed, including 3,020 extractor tests with 7 ignored, artifact writer 38/38, operations 53/53, and resolution 16/16.
+- GREEN: `cargo +1.96.0 xtask test contract` passed all tiers: golden 3/3, capability matrix 39/39, pending shape 1/1, downstream smoke 1/1, artifact schema 15/15, reports 8/8, JSONL 9/9, CLI contract 10/10, path policy 5/5, and operations 53/53.
+- GREEN: `cargo +1.96.0 fmt --all -- --check` and `git diff --check`.
+- Final pre-commit state: path `/Users/murphy/source/julie-extractors/.worktrees/cross-repo-dogfood-repair`, branch `codex/cross-repo-dogfood-repair`, HEAD `66e1f74a5247a9110ef4b062cdc47575a9572939`; dirty only the version slice, this report, and `.memories/2026-07-26/220704_a625.md`.
+
 ## Remaining concerns
 
 - Providers not explicitly migrated to target-token constructors intentionally emit spanless, non-exact sites. Their language/provider gaps remain visible in the capability snapshot instead of being hidden by consumer inference.
