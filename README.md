@@ -102,7 +102,7 @@ python3 examples/python/sqlite_consumer.py target/example/artifact.sqlite
 | `update` | Re-extract one file in an existing artifact. | `--root`, `--db`, `--file`, repeated `--ignore-file`, `--strict-schema`, `--json` |
 | `delete` | Remove one file and its child rows from an artifact. | `--root`, `--db`, `--file`, `--strict-schema`, `--json` |
 | `info` | Read artifact metadata and totals without mutating the database. | `--db`, `--strict-schema`, `--json` |
-| `export` | Export a SQLite artifact to JSONL v3. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
+| `export` | Export a SQLite artifact to JSONL v4. | `--db`, `--format jsonl`, `--out`, `--strict-schema`, `--json` |
 | `languages` | Emit parser inventory and capability snapshot metadata. | `--json` |
 
 Every command accepts `--json` for a stable machine-readable report. Human output
@@ -320,9 +320,9 @@ Product and architecture:
 Public contracts:
 
 - [CLI contract](docs/contracts/cli.md)
-- [Extracted data v3](docs/contracts/extracted-data-v3.md)
-- [SQLite schema v4](docs/contracts/sqlite-schema-v4.md)
-- [JSONL v3](docs/contracts/jsonl-v3.md)
+- [Extracted data v4](docs/contracts/extracted-data-v4.md)
+- [SQLite schema v5](docs/contracts/sqlite-schema-v5.md)
+- [JSONL v4](docs/contracts/jsonl-v4.md)
 - [JSON reports](docs/contracts/reports.md)
 - [Reference resolution coverage v1](docs/contracts/reference-resolution-coverage-v1.md)
 - [Test evidence v1](docs/contracts/test-evidence-v1.md)

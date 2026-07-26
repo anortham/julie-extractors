@@ -12,6 +12,7 @@ const FILE_ATTRIBUTED_ROW_DOMAINS: &[&str] = &[
     "files",
     "symbols",
     "symbol_annotations",
+    "reference_sites",
     "identifiers",
     "relationships",
     "pending_relationships",
@@ -75,7 +76,13 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         "--json",
     ]);
 
-    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     let report = json_report(&output);
     assert_eq!(report["status"], "ok");
     assert_eq!(report["operation"], "scan");
@@ -93,6 +100,7 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
     let language_capabilities = table_count(&db, "language_capabilities");
     let language_capability_fixtures = table_count(&db, "language_capability_fixtures");
     let language_capability_gaps = table_count(&db, "language_capability_gaps");
+    let reference_sites = table_count(&db, "reference_sites");
     assert!(
         parser_inventory > 0,
         "scan artifacts must persist parser inventory rows"
@@ -109,6 +117,32 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         language_capability_gaps > 0,
         "known capability gaps should be persisted instead of hidden"
     );
+    assert!(
+        reference_sites > 0,
+        "scan must persist canonical reference sites"
+    );
+    let connection = Connection::open(&db).unwrap();
+    let open_reference_resolution_gaps = connection
+        .query_row(
+            "SELECT COUNT(*)
+             FROM language_capability_gaps
+             WHERE capability LIKE 'reference_resolution.%'
+               AND status = 'open'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    let unknown_gap_statuses = connection
+        .query_row(
+            "SELECT COUNT(*)
+             FROM language_capability_gaps
+             WHERE status NOT IN ('open', 'exception')",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    assert_eq!(open_reference_resolution_gaps, 70);
+    assert_eq!(unknown_gap_statuses, 0);
     let rust_kind_coverage = language_kind_coverage(&db, "rust");
     assert_eq!(
         rust_kind_coverage["structural_facts"]["supported"],
@@ -139,6 +173,10 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         report["counts"]["rows_written"]["language_capability_gaps"],
         language_capability_gaps
     );
+    assert_eq!(
+        report["counts"]["rows_written"]["reference_sites"],
+        reference_sites
+    );
     let revision_counts = latest_revision_counts(&db);
     assert_eq!(revision_counts["parser_inventory"], parser_inventory);
     assert_eq!(
@@ -153,6 +191,7 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
         revision_counts["language_capability_gaps"],
         language_capability_gaps
     );
+    assert_eq!(revision_counts["reference_sites"], reference_sites);
     assert_eq!(
         report["counts"]["totals"]["parser_inventory"],
         parser_inventory
@@ -168,6 +207,10 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
     assert_eq!(
         report["counts"]["totals"]["language_capability_gaps"],
         language_capability_gaps
+    );
+    assert_eq!(
+        report["counts"]["totals"]["reference_sites"],
+        reference_sites
     );
     assert_eq!(
         report["counts"]["totals"]["artifact_metadata"],
@@ -1524,7 +1567,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
     assert_eq!(report["status"], "ok");
     assert_eq!(report["operation"], "export");
     assert_eq!(report["mode"], "jsonl");
-    assert_eq!(report["artifact"]["jsonl_schema_version"], 3);
+    assert_eq!(report["artifact"]["jsonl_schema_version"], 4);
     assert_eq!(report["counts"]["rows_written"]["files"], 2);
     assert_eq!(report["counts"]["rows_written"]["symbols"], 3);
     let records = std::fs::read_to_string(&out).unwrap();
@@ -1534,7 +1577,7 @@ fn export_jsonl_emits_valid_jsonl_records_from_scanned_artifact() {
         .collect::<Vec<_>>();
     assert_eq!(parsed[0]["kind"], "artifact");
     assert_eq!(parsed[0]["op"], "snapshot");
-    assert_eq!(parsed[0]["jsonl_schema_version"], 3);
+    assert_eq!(parsed[0]["jsonl_schema_version"], 4);
     assert!(
         parsed
             .iter()
@@ -2809,13 +2852,8 @@ fn pending_rows_for_path(db: &Path, path: &str) -> Vec<PendingSpanRow> {
     .unwrap()
 }
 
-/// Invariant: pending rows emitted through the shared `create_pending_relationship`
-/// helper carry byte-accurate spans (start_column/end_line/end_column/start_byte/
-/// end_byte all NON-NULL) once the emitter had the AST node in hand. Proven live
-/// through the SQLite artifact for C#, TypeScript, and Python — the three languages
-/// the brief names, all of which route their call sites through the shared helper.
 #[test]
-fn scan_populates_pending_relationship_spans_for_multiple_languages() {
+fn scan_only_marks_audited_target_token_paths_as_exact() {
     let fixture = FixtureRoot::with_file(
         "src/caller.py",
         "from other import bar\n\n\ndef entry():\n    return bar()\n",
@@ -2846,11 +2884,19 @@ fn scan_populates_pending_relationship_spans_for_multiple_languages() {
     ]);
     assert_success(output);
 
-    for (path, terminal) in [
-        ("src/caller.py", "bar"),
-        ("src/Source.cs", "OtherClass"),
-        ("src/caller.ts", "Foo"),
-    ] {
+    let exact_rows = pending_rows_for_path(&db, "src/caller.py");
+    let exact = exact_rows
+        .iter()
+        .find(|row| row.terminal_name == "bar")
+        .unwrap();
+    assert!(exact.start_column.is_some());
+    assert!(exact.end_line.is_some());
+    assert!(exact.end_column.is_some());
+    assert!(exact.start_byte.is_some());
+    assert!(exact.end_byte.is_some());
+    assert!(exact.end_byte.unwrap() > exact.start_byte.unwrap());
+
+    for (path, terminal) in [("src/Source.cs", "OtherClass"), ("src/caller.ts", "Foo")] {
         let rows = pending_rows_for_path(&db, path);
         let row = rows
             .iter()
@@ -2858,38 +2904,15 @@ fn scan_populates_pending_relationship_spans_for_multiple_languages() {
             .unwrap_or_else(|| {
                 panic!("expected pending row for {terminal} in {path}; got {rows:#?}")
             });
-        assert!(row.start_line >= 1, "{path}: start_line must be 1-based");
-        assert!(
-            row.start_column.is_some(),
-            "{path}: start_column must be populated, got NULL ({row:?})"
-        );
-        assert!(
-            row.end_line.is_some(),
-            "{path}: end_line must be populated ({row:?})"
-        );
-        assert!(
-            row.end_column.is_some(),
-            "{path}: end_column must be populated ({row:?})"
-        );
-        assert!(
-            row.start_byte.is_some(),
-            "{path}: start_byte must be populated ({row:?})"
-        );
-        assert!(
-            row.end_byte.is_some(),
-            "{path}: end_byte must be populated ({row:?})"
-        );
-        assert!(
-            row.end_byte.unwrap() > row.start_byte.unwrap(),
-            "{path}: end_byte must exceed start_byte ({row:?})"
-        );
+        assert!(row.start_line >= 1);
+        assert_eq!(row.start_column, None, "{path}: {row:?}");
+        assert_eq!(row.end_line, None, "{path}: {row:?}");
+        assert_eq!(row.end_column, None, "{path}: {row:?}");
+        assert_eq!(row.start_byte, None, "{path}: {row:?}");
+        assert_eq!(row.end_byte, None, "{path}: {row:?}");
     }
 }
 
-/// Invariant: two same-name calls on the SAME line produce TWO DISTINCT pending
-/// rows, because the pending_relationship_id now folds in the occurrence's byte
-/// offset. Before this change they deduped to a single row keyed on (name, kind,
-/// line).
 #[test]
 fn scan_emits_distinct_pending_rows_for_same_line_duplicate_calls() {
     let fixture = FixtureRoot::with_file(
@@ -2928,4 +2951,37 @@ fn scan_emits_distinct_pending_rows_for_same_line_duplicate_calls() {
         rows[0].start_byte, rows[1].start_byte,
         "same-line occurrences must have distinct start_byte"
     );
+}
+
+#[test]
+fn scan_canonicalizes_one_attested_token_across_identifier_and_relationship_evidence() {
+    let fixture = FixtureRoot::with_file(
+        "src/main.c",
+        "int target(void) { return 1; }\nint caller(void) { return target(); }\n",
+    );
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    let conn = Connection::open(db).unwrap();
+    let shared_exact_sites = conn
+        .query_row(
+            "SELECT COUNT(*)
+             FROM identifiers i
+             JOIN relationships r ON r.reference_site_id = i.reference_site_id
+             JOIN reference_sites s ON s.reference_site_id = i.reference_site_id
+             WHERE i.name = 'target' AND r.kind = 'calls'
+               AND s.is_exact = 1 AND s.provenance = 'target_token'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+
+    assert_eq!(shared_exact_sites, 1);
 }

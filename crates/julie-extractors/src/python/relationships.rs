@@ -141,13 +141,13 @@ fn extract_call_relationships(
     if let Some(function_node) = node.child_by_field_name("function") {
         let target = extract_target_from_call(extractor.base(), &function_node);
         let called_method_name = target.terminal_name.clone();
+        let target_token_node = function_node
+            .child_by_field_name("attribute")
+            .unwrap_or(function_node);
 
         if !called_method_name.is_empty() {
             // Find the enclosing function/method that contains this call
             if let Some(caller_symbol) = extractor.base().find_containing_symbol(&node, symbols) {
-                let line_number = (node.start_position().row + 1) as u32;
-                let file_path = extractor.base().file_path.clone();
-
                 // Check if we can resolve the callee locally
                 match symbol_index.resolve_call_target(
                     &called_method_name,
@@ -158,11 +158,11 @@ fn extract_call_relationships(
                         // Target is an Import symbol - need cross-file resolution
                         // Don't create relationship pointing to Import (useless for trace_call_path)
                         // Instead, create a PendingRelationship with the callee name
-                        let pending = extractor.base().create_pending_relationship(
+                        let pending = extractor.base().create_pending_relationship_at_target(
                             caller_symbol.id.clone(),
                             target.clone(),
                             RelationshipKind::Calls,
-                            &node,
+                            &target_token_node,
                             Some(caller_symbol.id.clone()),
                             Some(0.8),
                         );
@@ -170,23 +170,14 @@ fn extract_call_relationships(
                     }
                     LocalTargetResolution::Resolved(called_symbol) => {
                         // Target is a local function/method - create resolved Relationship
-                        let relationship = Relationship {
-                            id: format!(
-                                "{}_{}_{:?}_{}",
-                                caller_symbol.id,
-                                called_symbol.id,
-                                RelationshipKind::Calls,
-                                node.start_position().row
-                            ),
-                            from_symbol_id: caller_symbol.id.clone(),
-                            to_symbol_id: called_symbol.id.clone(),
-                            kind: RelationshipKind::Calls,
-                            file_path,
-                            line_number,
-                            span: Some(crate::base::NormalizedSpan::from_node(&node)),
-                            confidence: 0.9,
-                            metadata: None,
-                        };
+                        let relationship = extractor.base().create_relationship_at_target(
+                            caller_symbol.id.clone(),
+                            called_symbol.id.clone(),
+                            RelationshipKind::Calls,
+                            &target_token_node,
+                            Some(0.9),
+                            None,
+                        );
 
                         relationships.push(relationship);
                     }
@@ -195,11 +186,11 @@ fn extract_call_relationships(
                     | LocalTargetResolution::Missing => {
                         // Target not found in local symbols - likely a method on imported type
                         // Create PendingRelationship for cross-file resolution
-                        let pending = extractor.base().create_pending_relationship(
+                        let pending = extractor.base().create_pending_relationship_at_target(
                             caller_symbol.id.clone(),
                             target,
                             RelationshipKind::Calls,
-                            &node,
+                            &target_token_node,
                             Some(caller_symbol.id.clone()),
                             Some(0.7),
                         );

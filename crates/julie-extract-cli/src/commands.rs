@@ -1807,7 +1807,7 @@ mod tests {
     use julie_extract_artifact::model::{
         ArtifactCapabilityFlags, ArtifactLanguageCapabilityFixtureRow,
         ArtifactLanguageCapabilityGapRow, ArtifactLanguageCapabilityRow,
-        ArtifactParserInventoryRow, ArtifactSymbol, FileStatus,
+        ArtifactParserInventoryRow, ArtifactSymbol, CapabilityGapStatus, FileStatus,
     };
     use tempfile::TempDir;
 
@@ -2223,7 +2223,7 @@ mod tests {
             gaps: vec![ArtifactLanguageCapabilityGapRow {
                 gap_id: "rust:types".to_string(),
                 capability: "types".to_string(),
-                status: "open".to_string(),
+                status: CapabilityGapStatus::Open,
                 reason: "test gap".to_string(),
                 required_closure: "task".to_string(),
                 evidence: json!({"source": "test"}),

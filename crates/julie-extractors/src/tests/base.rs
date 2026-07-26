@@ -225,19 +225,25 @@ fn test_relationship_ids_do_not_collide_for_multiple_calls_on_one_line() {
         &workspace_root,
     );
 
-    let first = extractor.create_relationship(
+    let first_target = call_nodes[0]
+        .child_by_field_name("function")
+        .expect("first target token");
+    let second_target = call_nodes[1]
+        .child_by_field_name("function")
+        .expect("second target token");
+    let first = extractor.create_relationship_at_target(
         "caller-id".to_string(),
         "target-id".to_string(),
         RelationshipKind::Calls,
-        &call_nodes[0],
+        &first_target,
         Some(0.9),
         None,
     );
-    let second = extractor.create_relationship(
+    let second = extractor.create_relationship_at_target(
         "caller-id".to_string(),
         "target-id".to_string(),
         RelationshipKind::Calls,
-        &call_nodes[1],
+        &second_target,
         Some(0.9),
         None,
     );
@@ -246,8 +252,87 @@ fn test_relationship_ids_do_not_collide_for_multiple_calls_on_one_line() {
         first.id, second.id,
         "Same-line calls should preserve distinct relationship IDs"
     );
-    assert_eq!(first.span, Some(NormalizedSpan::from_node(&call_nodes[0])));
-    assert_eq!(second.span, Some(NormalizedSpan::from_node(&call_nodes[1])));
+    assert_eq!(first.span, Some(NormalizedSpan::from_node(&first_target)));
+    assert_eq!(second.span, Some(NormalizedSpan::from_node(&second_target)));
+    assert_eq!(
+        first
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("reference_site_provenance"))
+            .and_then(serde_json::Value::as_str),
+        Some("target_token")
+    );
+}
+
+#[test]
+fn broad_relationship_nodes_are_not_attested_as_exact_target_tokens() {
+    let code = "fn caller() { target(); }\nfn target() {}\n";
+    let tree = parse_rust(code);
+    let mut call_nodes = Vec::new();
+    collect_nodes_of_kind(tree.root_node(), "call_expression", &mut call_nodes);
+    let workspace_root = std::path::PathBuf::from("/tmp/test");
+    let extractor = BaseExtractor::new(
+        "rust".to_string(),
+        "src/lib.rs".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+
+    let relationship = extractor.create_relationship(
+        "caller-id".to_string(),
+        "target-id".to_string(),
+        RelationshipKind::Calls,
+        &call_nodes[0],
+        Some(0.9),
+        None,
+    );
+
+    assert!(
+        relationship
+            .metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("reference_site_provenance"))
+            .is_none()
+    );
+}
+
+#[test]
+fn pending_relationship_target_tokens_require_explicit_attestation() {
+    let code = "fn caller() { target(); }\n";
+    let tree = parse_rust(code);
+    let mut call_nodes = Vec::new();
+    collect_nodes_of_kind(tree.root_node(), "call_expression", &mut call_nodes);
+    let target = call_nodes[0]
+        .child_by_field_name("function")
+        .expect("target token");
+    let workspace_root = std::path::PathBuf::from("/tmp/test");
+    let extractor = BaseExtractor::new(
+        "rust".to_string(),
+        "src/lib.rs".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+
+    let broad = extractor.create_pending_relationship(
+        "caller-id".to_string(),
+        UnresolvedTarget::simple("target"),
+        RelationshipKind::Calls,
+        &call_nodes[0],
+        Some("caller-id".to_string()),
+        Some(0.7),
+    );
+    let exact = extractor.create_pending_relationship_at_target(
+        "caller-id".to_string(),
+        UnresolvedTarget::simple("target"),
+        RelationshipKind::Calls,
+        &target,
+        Some("caller-id".to_string()),
+        Some(0.7),
+    );
+
+    assert!(!broad.reference_site_is_exact);
+    assert!(exact.reference_site_is_exact);
+    assert_eq!(exact.span, Some(NormalizedSpan::from_node(&target)));
 }
 
 #[test]

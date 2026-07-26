@@ -12,9 +12,9 @@ and inspect extraction artifacts by spawning this binary only.
 Contract version:
 
 - CLI contract: `1`
-- Extraction contract: `3`
-- SQLite schema: `4`
-- JSONL schema: `3`
+- Extraction contract: `4`
+- SQLite schema: `5`
+- JSONL schema: `4`
 
 These values mirror `EXTRACT_CONTRACT_VERSION` / `SQLITE_SCHEMA_VERSION` in
 `crates/julie-extract-artifact/src/schema.rs` and `JSONL_SCHEMA_VERSION` in

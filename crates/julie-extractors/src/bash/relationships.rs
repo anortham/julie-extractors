@@ -55,11 +55,11 @@ impl super::BashExtractor {
         ) {
             LocalTargetResolution::Resolved(called_symbol) => {
                 if caller_symbol.id != called_symbol.id {
-                    let relationship = self.base.create_relationship(
+                    let relationship = self.base.create_relationship_at_target(
                         caller_symbol.id.clone(),
                         called_symbol.id.clone(),
                         RelationshipKind::Calls,
-                        &node,
+                        &command_name_node,
                         Some(0.95),
                         None,
                     );
@@ -71,11 +71,11 @@ impl super::BashExtractor {
             | LocalTargetResolution::Missing
             | LocalTargetResolution::ReceiverQualified => {
                 if !is_shell_builtin(&command_name) {
-                    let pending = self.base.create_pending_relationship(
+                    let pending = self.base.create_pending_relationship_at_target(
                         caller_symbol.id.clone(),
                         unresolved_target,
                         RelationshipKind::Calls,
-                        &node,
+                        &command_name_node,
                         Some(caller_symbol.id.clone()),
                         Some(0.8),
                     );

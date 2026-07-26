@@ -4,12 +4,15 @@ use julie_extract_artifact::metadata::{
     ArtifactMetadata, REQUIRED_METADATA_KEYS, initialize_metadata, read_metadata,
 };
 use julie_extract_artifact::reports::SQLITE_ROW_DOMAINS;
-use julie_extract_artifact::schema::{SQLITE_SCHEMA_VERSION, create_schema};
+use julie_extract_artifact::schema::{
+    EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_schema,
+};
 use julie_extract_artifact::writer::ArtifactWriter;
 use rusqlite::Connection;
+use sha2::{Digest, Sha256};
 
 #[test]
-fn schema_creates_every_sqlite_v3_public_table_with_contract_columns() {
+fn schema_creates_every_sqlite_v5_public_table_with_contract_columns() {
     let conn = open_schema();
 
     let table_names: BTreeSet<_> = conn
@@ -32,7 +35,7 @@ fn schema_creates_every_sqlite_v3_public_table_with_contract_columns() {
         assert_eq!(
             table_columns(&conn, table.name),
             table.columns,
-            "{} columns drifted from sqlite-schema-v3.md",
+            "{} columns drifted from sqlite-schema-v5.md",
             table.name
         );
     }
@@ -54,10 +57,103 @@ fn schema_creates_every_sqlite_v3_public_table_with_contract_columns() {
 }
 
 #[test]
-fn sqlite_schema_version_is_v4() {
-    // INVARIANT: the additive resolution overlay bumps the single-integer schema
-    // version 3 -> 4.
-    assert_eq!(SQLITE_SCHEMA_VERSION, 4);
+fn schema_and_extract_contract_versions_are_v5_and_v4() {
+    assert_eq!(SQLITE_SCHEMA_VERSION, 5);
+    assert_eq!(EXTRACT_CONTRACT_VERSION, 4);
+}
+
+#[test]
+fn sqlite_catalog_matches_checked_in_v5_authority() {
+    let conn = open_schema();
+    let mut statement = conn
+        .prepare(
+            "SELECT type, name, tbl_name, sql
+             FROM sqlite_master
+             WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'
+             ORDER BY type, name",
+        )
+        .unwrap();
+    let catalog = statement
+        .query_map([], |row| {
+            Ok(format!(
+                "{}|{}|{}|{}",
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                compact_whitespace(&row.get::<_, String>(3)?),
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+        .join("\n");
+    let fingerprint = format!("{:x}", Sha256::digest(catalog.as_bytes()));
+
+    assert_eq!(
+        fingerprint,
+        include_str!("../../../docs/contracts/sqlite-schema-v5.catalog.sha256").trim()
+    );
+}
+
+#[test]
+fn schema_creates_canonical_reference_sites_and_evidence_foreign_keys() {
+    let conn = open_schema();
+
+    assert_eq!(
+        table_columns(&conn, "reference_sites"),
+        vec![
+            "reference_site_id TEXT",
+            "file_id TEXT",
+            "path TEXT",
+            "language TEXT",
+            "containing_symbol_id TEXT",
+            "start_line INTEGER",
+            "start_column INTEGER",
+            "end_line INTEGER",
+            "end_column INTEGER",
+            "start_byte INTEGER",
+            "end_byte INTEGER",
+            "is_exact INTEGER",
+            "provenance TEXT",
+        ]
+    );
+
+    for table in ["identifiers", "relationships", "pending_relationships"] {
+        assert!(
+            table_columns(&conn, table)
+                .iter()
+                .any(|column| column == "reference_site_id TEXT"),
+            "{table} must carry canonical reference_site_id"
+        );
+    }
+}
+
+#[test]
+fn schema_rejects_nonexact_reference_sites_with_spans() {
+    let conn = open_schema();
+    conn.execute_batch(
+        "INSERT INTO extraction_revisions
+         (revision_id, operation, started_at, completed_at, binary_version,
+          extract_contract_version, sqlite_schema_version, counts_json)
+         VALUES (1, 'scan', 't', 't', 'v', 4, 5, '{}');
+         INSERT INTO files
+         (file_id, path, language, content_hash, content_bytes, indexed_at,
+          last_revision_id, status)
+         VALUES ('f1', 'src/a.rs', 'rust', 'h', 10, 't', 1, 'indexed');",
+    )
+    .unwrap();
+
+    let error = conn
+        .execute(
+            "INSERT INTO reference_sites
+             (reference_site_id, file_id, path, language, start_line, start_column,
+              end_line, end_column, start_byte, end_byte, is_exact, provenance)
+             VALUES ('site-a', 'f1', 'src/a.rs', 'rust', 1, 0, 1, 3, 0, 3, 0, 'spanless')",
+            [],
+        )
+        .unwrap_err();
+
+    assert!(error.to_string().contains("CHECK constraint failed"));
 }
 
 #[test]
@@ -92,55 +188,6 @@ fn schema_creates_resolution_overlay_tables_with_contract_columns() {
 }
 
 #[test]
-fn schema_upgrade_from_v3_is_additive_and_preserves_data() {
-    // INVARIANT: running create_schema on an existing v3 artifact (overlay tables
-    // absent, data present) adds only the two overlay tables and leaves the
-    // existing rows intact.
-    let conn = Connection::open_in_memory().unwrap();
-    conn.pragma_update(None, "foreign_keys", true).unwrap();
-    create_schema(&conn).unwrap();
-
-    // Simulate a v3 artifact: the overlay tables never existed, but real data does.
-    conn.execute(
-        "INSERT INTO extraction_revisions \
-         (revision_id, operation, started_at, completed_at, binary_version, \
-          extract_contract_version, sqlite_schema_version, counts_json) \
-         VALUES (1, 'scan', 't', 't', 'v', 3, 3, '{}')",
-        [],
-    )
-    .unwrap();
-    conn.execute(
-        "INSERT INTO files \
-         (file_id, path, language, content_hash, content_bytes, indexed_at, \
-          last_revision_id, status) \
-         VALUES ('f1', 'src/a.rs', 'rust', 'h', 10, 't', 1, 'active')",
-        [],
-    )
-    .unwrap();
-    conn.execute("DROP TABLE identifier_resolutions", [])
-        .unwrap();
-    conn.execute("DROP TABLE pending_resolutions", []).unwrap();
-
-    // Re-open with the v4 schema.
-    create_schema(&conn).unwrap();
-
-    let tables: BTreeSet<String> = conn
-        .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-        .unwrap()
-        .query_map([], |r| r.get::<_, String>(0))
-        .unwrap()
-        .collect::<Result<_, _>>()
-        .unwrap();
-    assert!(tables.contains("pending_resolutions"));
-    assert!(tables.contains("identifier_resolutions"));
-
-    let file_count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM files", [], |r| r.get(0))
-        .unwrap();
-    assert_eq!(file_count, 1, "existing v3 data must survive the upgrade");
-}
-
-#[test]
 fn schema_creates_required_indexes_with_contract_columns() {
     let conn = open_schema();
 
@@ -156,7 +203,7 @@ fn schema_creates_required_indexes_with_contract_columns() {
         assert_eq!(
             index_columns(&conn, index.name),
             index.columns,
-            "{} columns drifted from sqlite-schema-v3.md",
+            "{} columns drifted from sqlite-schema-v5.md",
             index.name
         );
     }
@@ -271,8 +318,8 @@ fn metadata_required_keys_are_inserted_and_readable() {
     }
     assert_eq!(rows["artifact_id"], "artifact-test-1");
     assert_eq!(rows["root_path"], "/repo");
-    assert_eq!(rows["schema_version"], "4");
-    assert_eq!(rows["extract_contract_version"], "3");
+    assert_eq!(rows["schema_version"], "5");
+    assert_eq!(rows["extract_contract_version"], "4");
     assert_eq!(
         rows["sqlite_schema_version"],
         SQLITE_SCHEMA_VERSION.to_string()
@@ -570,9 +617,28 @@ fn expected_tables() -> Vec<ExpectedTable> {
         ],
     );
     tables.insert(
+        "reference_sites",
+        vec![
+            "reference_site_id TEXT",
+            "file_id TEXT",
+            "path TEXT",
+            "language TEXT",
+            "containing_symbol_id TEXT",
+            "start_line INTEGER",
+            "start_column INTEGER",
+            "end_line INTEGER",
+            "end_column INTEGER",
+            "start_byte INTEGER",
+            "end_byte INTEGER",
+            "is_exact INTEGER",
+            "provenance TEXT",
+        ],
+    );
+    tables.insert(
         "identifiers",
         vec![
             "identifier_id TEXT",
+            "reference_site_id TEXT",
             "file_id TEXT",
             "path TEXT",
             "language TEXT",
@@ -595,6 +661,7 @@ fn expected_tables() -> Vec<ExpectedTable> {
         "relationships",
         vec![
             "relationship_id TEXT",
+            "reference_site_id TEXT",
             "from_symbol_id TEXT",
             "to_symbol_id TEXT",
             "file_id TEXT",
@@ -614,6 +681,7 @@ fn expected_tables() -> Vec<ExpectedTable> {
         "pending_relationships",
         vec![
             "pending_relationship_id TEXT",
+            "reference_site_id TEXT",
             "from_symbol_id TEXT",
             "caller_scope_symbol_id TEXT",
             "file_id TEXT",

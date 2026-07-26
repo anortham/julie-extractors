@@ -448,6 +448,7 @@ pub(crate) fn table_totals(connection: &Connection) -> RowDomainCounts {
         files: table_count(connection, "files"),
         symbols: table_count(connection, "symbols"),
         symbol_annotations: table_count(connection, "symbol_annotations"),
+        reference_sites: table_count(connection, "reference_sites"),
         identifiers: table_count(connection, "identifiers"),
         relationships: table_count(connection, "relationships"),
         pending_relationships: table_count(connection, "pending_relationships"),
@@ -490,7 +491,7 @@ pub(crate) fn file_row_attribution(
         Err(_) => return FileRowAttribution::default(),
     };
 
-    let count_queries: [CountQuery; 13] = [
+    let count_queries: [CountQuery; 14] = [
         (
             "SELECT file_id, COUNT(*) FROM symbols GROUP BY file_id",
             set_symbols,
@@ -501,6 +502,10 @@ pub(crate) fn file_row_attribution(
              JOIN symbols s ON s.symbol_id = a.symbol_id
              GROUP BY s.file_id",
             set_symbol_annotations,
+        ),
+        (
+            "SELECT file_id, COUNT(*) FROM reference_sites GROUP BY file_id",
+            set_reference_sites,
         ),
         (
             "SELECT file_id, COUNT(*) FROM identifiers GROUP BY file_id",
@@ -640,6 +645,7 @@ fn file_attributed_total(rows: &RowDomainCounts) -> i64 {
     rows.files
         + rows.symbols
         + rows.symbol_annotations
+        + rows.reference_sites
         + rows.identifiers
         + rows.relationships
         + rows.pending_relationships
@@ -659,6 +665,10 @@ fn set_symbols(rows: &mut RowDomainCounts, count: i64) {
 
 fn set_symbol_annotations(rows: &mut RowDomainCounts, count: i64) {
     rows.symbol_annotations = count;
+}
+
+fn set_reference_sites(rows: &mut RowDomainCounts, count: i64) {
+    rows.reference_sites = count;
 }
 
 fn set_identifiers(rows: &mut RowDomainCounts, count: i64) {
@@ -730,6 +740,7 @@ pub(crate) fn jsonl_counts(records_by_kind: &BTreeMap<&'static str, usize>) -> R
             "file" => counts.files = count,
             "symbol" => counts.symbols = count,
             "symbol_annotation" => counts.symbol_annotations = count,
+            "reference_site" => counts.reference_sites = count,
             "identifier" => counts.identifiers = count,
             "relationship" => counts.relationships = count,
             "pending_relationship" => counts.pending_relationships = count,

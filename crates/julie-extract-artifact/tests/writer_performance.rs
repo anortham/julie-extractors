@@ -44,6 +44,7 @@ fn child_row_batch_avoids_per_file_statement_prepare_overhead() {
     assert_eq!(result.files_changed, 3_000);
     assert_eq!(result.rows_written.files, 3_000);
     assert_eq!(result.rows_written.symbols, 9_000);
+    assert_eq!(result.rows_written.reference_sites, 48_000);
     assert_eq!(result.rows_written.identifiers, 36_000);
     assert_eq!(result.rows_written.pending_relationships, 12_000);
     assert_eq!(result.rows_written.type_facts, 9_000);
@@ -83,6 +84,7 @@ fn file_with_child_rows(index: usize) -> ArtifactFile {
     file.identifiers = (0..12)
         .map(|identifier_index| ArtifactIdentifier {
             identifier_id: format!("file-{index}-identifier-{identifier_index}"),
+            reference_site_id: format!("file-{index}-identifier-site-{identifier_index}"),
             name: format!("identifier_{index}_{identifier_index}"),
             containing_symbol_id: Some(format!("file-{index}-symbol-0")),
             target_symbol_id: Some(format!("file-{index}-symbol-1")),
@@ -96,6 +98,7 @@ fn file_with_child_rows(index: usize) -> ArtifactFile {
     file.pending_relationships = (0..4)
         .map(|pending_index| ArtifactPendingRelationship {
             pending_relationship_id: format!("file-{index}-pending-{pending_index}"),
+            reference_site_id: format!("file-{index}-pending-site-{pending_index}"),
             from_symbol_id: format!("file-{index}-symbol-0"),
             caller_scope_symbol_id: Some(format!("file-{index}-symbol-0")),
             target_display_name: format!("externalTarget{pending_index}"),

@@ -36,7 +36,6 @@ where
     let mut results =
         crate::registry::extract_for_language(language, &tree, file_path, content, workspace_root)?;
     results.parse_diagnostics = parse_diagnostics_for_tree(&tree);
-    results.enrich_relationship_spans();
     Ok(results)
 }
 
@@ -83,7 +82,6 @@ where
         results.extend(record_results);
     }
 
-    results.enrich_relationship_spans();
     Ok(results)
 }
 

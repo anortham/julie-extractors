@@ -158,6 +158,26 @@ impl BaseExtractor {
         }
     }
 
+    pub fn create_relationship_at_target(
+        &self,
+        from_symbol_id: String,
+        to_symbol_id: String,
+        kind: RelationshipKind,
+        target_token_node: &Node,
+        confidence: Option<f32>,
+        metadata: Option<HashMap<String, serde_json::Value>>,
+    ) -> Relationship {
+        self.create_relationship(
+            from_symbol_id,
+            to_symbol_id,
+            kind,
+            target_token_node,
+            confidence,
+            metadata,
+        )
+        .attest_target_token_site()
+    }
+
     pub fn create_pending_relationship(
         &self,
         from_symbol_id: String,
@@ -176,7 +196,28 @@ impl BaseExtractor {
             node.start_position().row as u32 + 1,
             confidence.unwrap_or(1.0),
         )
-        .with_span(NormalizedSpan::from_node(node))
+        .with_context_span(NormalizedSpan::from_node(node))
+    }
+
+    pub fn create_pending_relationship_at_target(
+        &self,
+        from_symbol_id: String,
+        target: UnresolvedTarget,
+        kind: RelationshipKind,
+        target_token_node: &Node,
+        caller_scope_symbol_id: Option<String>,
+        confidence: Option<f32>,
+    ) -> StructuredPendingRelationship {
+        StructuredPendingRelationship::new(
+            from_symbol_id,
+            target,
+            caller_scope_symbol_id,
+            kind,
+            self.file_path.clone(),
+            target_token_node.start_position().row as u32 + 1,
+            confidence.unwrap_or(1.0),
+        )
+        .with_target_span(NormalizedSpan::from_node(target_token_node))
     }
 
     /// Find containing symbol - exact port of findContainingSymbol

@@ -14,7 +14,7 @@ use crate::resolution_store::{
 };
 use crate::schema::EXTRACT_CONTRACT_VERSION;
 
-pub const JSONL_SCHEMA_VERSION: i64 = 3;
+pub const JSONL_SCHEMA_VERSION: i64 = 4;
 
 pub const JSONL_RECORD_KINDS: &[&str] = &[
     "artifact",
@@ -27,6 +27,7 @@ pub const JSONL_RECORD_KINDS: &[&str] = &[
     "file",
     "symbol",
     "symbol_annotation",
+    "reference_site",
     "identifier",
     "relationship",
     "pending_relationship",
@@ -132,6 +133,7 @@ pub fn export_jsonl<W: Write>(
     export_files(conn, &mut writer, artifact_id, &mut summary)?;
     export_symbols(conn, &mut writer, artifact_id, &mut summary)?;
     export_symbol_annotations(conn, &mut writer, artifact_id, &mut summary)?;
+    export_reference_sites(conn, &mut writer, artifact_id, &mut summary)?;
     export_identifiers(conn, &mut writer, artifact_id, &mut summary)?;
     export_relationships(conn, &mut writer, artifact_id, &mut summary)?;
     export_pending_relationships(conn, &mut writer, artifact_id, &mut summary)?;
@@ -776,6 +778,81 @@ fn export_symbol_annotations<W: Write>(
     Ok(())
 }
 
+fn export_reference_sites<W: Write>(
+    conn: &Connection,
+    writer: &mut W,
+    artifact_id: &str,
+    summary: &mut JsonlExportSummary,
+) -> JsonlExportResult<()> {
+    let mut stmt = conn.prepare(
+        "SELECT reference_site_id, file_id, path, language, containing_symbol_id,
+                start_line, start_column, end_line, end_column, start_byte, end_byte,
+                is_exact, provenance
+         FROM reference_sites
+         ORDER BY reference_site_id",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, Option<String>>(4)?,
+            row.get::<_, Option<i64>>(5)?,
+            row.get::<_, Option<i64>>(6)?,
+            row.get::<_, Option<i64>>(7)?,
+            row.get::<_, Option<i64>>(8)?,
+            row.get::<_, Option<i64>>(9)?,
+            row.get::<_, Option<i64>>(10)?,
+            row.get::<_, bool>(11)?,
+            row.get::<_, String>(12)?,
+        ))
+    })?;
+    for row in rows {
+        let (
+            reference_site_id,
+            file_id,
+            path,
+            language,
+            containing_symbol_id,
+            start_line,
+            start_column,
+            end_line,
+            end_column,
+            start_byte,
+            end_byte,
+            is_exact,
+            provenance,
+        ) = row?;
+        let record = json!({
+            "reference_site_id": reference_site_id,
+            "file_id": file_id,
+            "path": path,
+            "language": language,
+            "containing_symbol_id": containing_symbol_id,
+            "span": reference_span(
+                start_line,
+                start_column,
+                end_line,
+                end_column,
+                start_byte,
+                end_byte,
+            ),
+            "is_exact": is_exact,
+            "provenance": provenance,
+        });
+        write_record(
+            writer,
+            artifact_id,
+            "reference_site",
+            &reference_site_id,
+            record,
+            summary,
+        )?;
+    }
+    Ok(())
+}
+
 fn export_identifiers<W: Write>(
     conn: &Connection,
     writer: &mut W,
@@ -783,7 +860,7 @@ fn export_identifiers<W: Write>(
     summary: &mut JsonlExportSummary,
 ) -> JsonlExportResult<()> {
     let mut stmt = conn.prepare(
-        "SELECT identifier_id, file_id, path, language, name, kind, containing_symbol_id,
+        "SELECT identifier_id, reference_site_id, file_id, path, language, name, kind, containing_symbol_id,
                 target_symbol_id, start_line, start_column, end_line, end_column, start_byte,
                 end_byte, confidence, code_context, metadata_json
          FROM identifiers
@@ -797,22 +874,24 @@ fn export_identifiers<W: Write>(
             row.get::<_, String>(3)?,
             row.get::<_, String>(4)?,
             row.get::<_, String>(5)?,
-            row.get::<_, Option<String>>(6)?,
+            row.get::<_, String>(6)?,
             row.get::<_, Option<String>>(7)?,
-            row.get::<_, i64>(8)?,
+            row.get::<_, Option<String>>(8)?,
             row.get::<_, i64>(9)?,
             row.get::<_, i64>(10)?,
             row.get::<_, i64>(11)?,
             row.get::<_, i64>(12)?,
             row.get::<_, i64>(13)?,
-            row.get::<_, f64>(14)?,
-            row.get::<_, Option<String>>(15)?,
+            row.get::<_, i64>(14)?,
+            row.get::<_, f64>(15)?,
             row.get::<_, Option<String>>(16)?,
+            row.get::<_, Option<String>>(17)?,
         ))
     })?;
     for row in rows {
         let (
             identifier_id,
+            reference_site_id,
             file_id,
             path,
             language,
@@ -832,6 +911,7 @@ fn export_identifiers<W: Write>(
         ) = row?;
         let record = json!({
             "identifier_id": identifier_id,
+            "reference_site_id": reference_site_id,
             "file_id": file_id,
             "path": path,
             "language": language,
@@ -863,7 +943,7 @@ fn export_relationships<W: Write>(
     summary: &mut JsonlExportSummary,
 ) -> JsonlExportResult<()> {
     let mut stmt = conn.prepare(
-        "SELECT relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
+        "SELECT relationship_id, reference_site_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
                 start_column, end_line, end_column, start_byte, end_byte, confidence,
                 metadata_json
          FROM relationships
@@ -877,19 +957,21 @@ fn export_relationships<W: Write>(
             row.get::<_, String>(3)?,
             row.get::<_, String>(4)?,
             row.get::<_, String>(5)?,
-            row.get::<_, Option<i64>>(6)?,
+            row.get::<_, String>(6)?,
             row.get::<_, Option<i64>>(7)?,
             row.get::<_, Option<i64>>(8)?,
             row.get::<_, Option<i64>>(9)?,
             row.get::<_, Option<i64>>(10)?,
             row.get::<_, Option<i64>>(11)?,
-            row.get::<_, f64>(12)?,
-            row.get::<_, Option<String>>(13)?,
+            row.get::<_, Option<i64>>(12)?,
+            row.get::<_, f64>(13)?,
+            row.get::<_, Option<String>>(14)?,
         ))
     })?;
     for row in rows {
         let (
             relationship_id,
+            reference_site_id,
             from_symbol_id,
             to_symbol_id,
             file_id,
@@ -906,6 +988,7 @@ fn export_relationships<W: Write>(
         ) = row?;
         let record = json!({
             "relationship_id": relationship_id,
+            "reference_site_id": reference_site_id,
             "from_symbol_id": from_symbol_id,
             "to_symbol_id": to_symbol_id,
             "file_id": file_id,
@@ -941,7 +1024,7 @@ fn export_pending_relationships<W: Write>(
     summary: &mut JsonlExportSummary,
 ) -> JsonlExportResult<()> {
     let mut stmt = conn.prepare(
-        "SELECT pending_relationship_id, from_symbol_id, caller_scope_symbol_id, file_id, path,
+        "SELECT pending_relationship_id, reference_site_id, from_symbol_id, caller_scope_symbol_id, file_id, path,
                 kind, target_display_name, target_terminal_name, target_receiver,
                 target_namespace_json, target_import_context, start_line, start_column,
                 end_line, end_column, start_byte, end_byte, confidence, metadata_json
@@ -952,28 +1035,30 @@ fn export_pending_relationships<W: Write>(
         Ok((
             row.get::<_, String>(0)?,
             row.get::<_, String>(1)?,
-            row.get::<_, Option<String>>(2)?,
+            row.get::<_, String>(2)?,
             row.get::<_, String>(3)?,
             row.get::<_, String>(4)?,
             row.get::<_, String>(5)?,
             row.get::<_, String>(6)?,
             row.get::<_, String>(7)?,
-            row.get::<_, Option<String>>(8)?,
-            row.get::<_, String>(9)?,
-            row.get::<_, Option<String>>(10)?,
-            row.get::<_, i64>(11)?,
-            row.get::<_, Option<i64>>(12)?,
+            row.get::<_, String>(8)?,
+            row.get::<_, Option<String>>(9)?,
+            row.get::<_, String>(10)?,
+            row.get::<_, Option<String>>(11)?,
+            row.get::<_, i64>(12)?,
             row.get::<_, Option<i64>>(13)?,
             row.get::<_, Option<i64>>(14)?,
             row.get::<_, Option<i64>>(15)?,
             row.get::<_, Option<i64>>(16)?,
-            row.get::<_, f64>(17)?,
-            row.get::<_, Option<String>>(18)?,
+            row.get::<_, Option<i64>>(17)?,
+            row.get::<_, f64>(18)?,
+            row.get::<_, Option<String>>(19)?,
         ))
     })?;
     for row in rows {
         let (
             pending_relationship_id,
+            reference_site_id,
             from_symbol_id,
             caller_scope_symbol_id,
             file_id,
@@ -995,6 +1080,7 @@ fn export_pending_relationships<W: Write>(
         ) = row?;
         let record = json!({
             "pending_relationship_id": pending_relationship_id,
+            "reference_site_id": reference_site_id,
             "from_symbol_id": from_symbol_id,
             "caller_scope_symbol_id": caller_scope_symbol_id,
             "file_id": file_id,
@@ -1797,6 +1883,26 @@ fn partial_span(
         "end_column": end_column,
         "start_byte": start_byte,
         "end_byte": end_byte,
+    })
+}
+
+fn reference_span(
+    start_line: Option<i64>,
+    start_column: Option<i64>,
+    end_line: Option<i64>,
+    end_column: Option<i64>,
+    start_byte: Option<i64>,
+    end_byte: Option<i64>,
+) -> Value {
+    start_line.map_or(Value::Null, |start_line| {
+        partial_span(
+            start_line,
+            start_column,
+            end_line,
+            end_column,
+            start_byte,
+            end_byte,
+        )
     })
 }
 

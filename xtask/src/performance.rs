@@ -8,8 +8,8 @@ use julie_extract_artifact::model::{
     ArtifactComplexityMetric, ArtifactFile, ArtifactIdentifier, ArtifactLiteral,
     ArtifactParseDiagnostic, ArtifactPendingRelationship, ArtifactRelationship,
     ArtifactSourceRegion, ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation,
-    ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus, RevisionInput,
-    RowCounts, WriteMode, WriteOperation,
+    ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
+    ReferenceSiteProvenance, RevisionInput, RowCounts, WriteMode, WriteOperation,
 };
 use julie_extract_artifact::writer::{ArtifactWriteError, ArtifactWriter};
 use serde::Serialize;
@@ -852,6 +852,7 @@ fn writer_current_schema_identifier(
     let start_line = (identifier_index + 1) as i64;
     ArtifactIdentifier {
         identifier_id: format!("{file_id}-identifier-{identifier_index}"),
+        reference_site_id: format!("{file_id}-identifier-site-{identifier_index}"),
         name: format!("identifier_{identifier_index}"),
         kind: "call".to_string(),
         containing_symbol_id: Some(format!("{file_id}-symbol-{containing_symbol_index}")),
@@ -865,6 +866,8 @@ fn writer_current_schema_identifier(
         confidence: 1.0,
         code_context: Some("synthetic call".to_string()),
         metadata_json: None,
+        site_is_exact: true,
+        site_provenance: ReferenceSiteProvenance::TargetToken,
     }
 }
 
@@ -874,6 +877,7 @@ fn writer_current_schema_relationship(
 ) -> ArtifactRelationship {
     ArtifactRelationship {
         relationship_id: format!("{file_id}-relationship-{relationship_index}"),
+        reference_site_id: format!("{file_id}-relationship-site-{relationship_index}"),
         from_symbol_id: format!("{file_id}-symbol-{relationship_index}"),
         to_symbol_id: format!("{file_id}-symbol-{}", relationship_index + 1),
         kind: "calls".to_string(),
@@ -885,12 +889,15 @@ fn writer_current_schema_relationship(
         end_byte: Some((relationship_index * 32 + 16) as i64),
         confidence: 1.0,
         metadata_json: None,
+        site_is_exact: true,
+        site_provenance: ReferenceSiteProvenance::TargetToken,
     }
 }
 
 fn writer_current_schema_pending_relationship(file_id: &str) -> ArtifactPendingRelationship {
     ArtifactPendingRelationship {
         pending_relationship_id: format!("{file_id}-pending-0"),
+        reference_site_id: format!("{file_id}-pending-site-0"),
         from_symbol_id: format!("{file_id}-symbol-0"),
         caller_scope_symbol_id: Some(format!("{file_id}-symbol-0")),
         kind: "uses".to_string(),
@@ -907,6 +914,8 @@ fn writer_current_schema_pending_relationship(file_id: &str) -> ArtifactPendingR
         end_byte: Some(48),
         confidence: 0.9,
         metadata_json: None,
+        site_is_exact: true,
+        site_provenance: ReferenceSiteProvenance::TargetToken,
     }
 }
 

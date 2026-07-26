@@ -186,6 +186,7 @@ impl<'tx> FileRowInserters<'tx> {
 
 pub(super) struct ChildRowInserters<'tx> {
     symbol_annotations: CachedStatement<'tx>,
+    reference_sites: CachedStatement<'tx>,
     identifiers: CachedStatement<'tx>,
     relationships: CachedStatement<'tx>,
     pending_relationships: CachedStatement<'tx>,
@@ -218,29 +219,38 @@ impl<'tx> ChildRowInserters<'tx> {
                   metadata_json)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             )?,
+            reference_sites: tx.prepare_cached(
+                "INSERT OR IGNORE INTO reference_sites
+                 (reference_site_id, file_id, path, language, containing_symbol_id,
+                  start_line, start_column, end_line, end_column, start_byte, end_byte,
+                  is_exact, provenance)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            )?,
             identifiers: tx.prepare_cached(
                 "INSERT INTO identifiers
-                 (identifier_id, file_id, path, language, name, kind, containing_symbol_id,
-                  target_symbol_id, start_line, start_column, end_line, end_column, start_byte,
-                  end_byte, confidence, code_context, metadata_json)
+                 (identifier_id, reference_site_id, file_id, path, language, name, kind,
+                  containing_symbol_id, target_symbol_id, start_line, start_column, end_line,
+                  end_column, start_byte, end_byte, confidence, code_context, metadata_json)
                  VALUES
-                 (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+                 (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                  ?17, ?18)",
             )?,
             relationships: tx.prepare_cached(
                 "INSERT INTO relationships
-                 (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
-                  start_column, end_line, end_column, start_byte, end_byte, confidence,
-                  metadata_json)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                 (relationship_id, reference_site_id, from_symbol_id, to_symbol_id, file_id, path,
+                  kind, start_line, start_column, end_line, end_column, start_byte, end_byte,
+                  confidence, metadata_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
             )?,
             pending_relationships: tx.prepare_cached(
                 "INSERT INTO pending_relationships
-                 (pending_relationship_id, from_symbol_id, caller_scope_symbol_id, file_id, path,
-                  kind, target_display_name, target_terminal_name, target_receiver,
+                 (pending_relationship_id, reference_site_id, from_symbol_id,
+                  caller_scope_symbol_id, file_id, path, kind, target_display_name,
+                  target_terminal_name, target_receiver,
                   target_namespace_json, target_import_context, start_line, start_column,
                   end_line, end_column, start_byte, end_byte, confidence, metadata_json)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-                         ?17, ?18, ?19)",
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15,
+                         ?16, ?17, ?18, ?19, ?20)",
             )?,
             type_facts: tx.prepare_cached(
                 "INSERT INTO type_facts
@@ -320,6 +330,8 @@ impl<'tx> ChildRowInserters<'tx> {
     ) -> rusqlite::Result<()> {
         counts.symbol_annotations +=
             insert_symbol_annotations(&mut self.symbol_annotations, file, symbol_lookup)?;
+        counts.reference_sites +=
+            insert_reference_sites(&mut self.reference_sites, file, symbol_lookup)?;
         counts.identifiers += insert_identifiers(&mut self.identifiers, file, symbol_lookup)?;
         let identifier_lookup = IdentifierLookup::from_file(file);
         counts.relationships += insert_relationships(&mut self.relationships, file, symbol_lookup)?;
@@ -537,6 +549,98 @@ fn insert_symbol_annotations(
     Ok(inserted)
 }
 
+fn insert_reference_sites(
+    stmt: &mut CachedStatement<'_>,
+    file: &ArtifactFile,
+    symbol_lookup: &SymbolLookup,
+) -> rusqlite::Result<i64> {
+    let mut inserted = 0;
+
+    for identifier in &file.identifiers {
+        let span = identifier.site_is_exact.then_some((
+            identifier.start_line,
+            identifier.start_column,
+            identifier.end_line,
+            identifier.end_column,
+            identifier.start_byte,
+            identifier.end_byte,
+        ));
+        inserted += stmt.execute(params![
+            identifier.reference_site_id,
+            file.file_id,
+            file.path,
+            file.language,
+            valid_symbol_id(symbol_lookup, identifier.containing_symbol_id.as_deref()),
+            span.map(|span| span.0),
+            span.map(|span| span.1),
+            span.map(|span| span.2),
+            span.map(|span| span.3),
+            span.map(|span| span.4),
+            span.map(|span| span.5),
+            identifier.site_is_exact,
+            identifier.site_provenance.as_str(),
+        ])? as i64;
+    }
+
+    for relationship in &file.relationships {
+        let span = relationship.site_is_exact.then_some((
+            relationship.start_line,
+            relationship.start_column,
+            relationship.end_line,
+            relationship.end_column,
+            relationship.start_byte,
+            relationship.end_byte,
+        ));
+        inserted += stmt.execute(params![
+            relationship.reference_site_id,
+            file.file_id,
+            file.path,
+            file.language,
+            valid_symbol_id(symbol_lookup, Some(relationship.from_symbol_id.as_str())),
+            span.and_then(|span| span.0),
+            span.and_then(|span| span.1),
+            span.and_then(|span| span.2),
+            span.and_then(|span| span.3),
+            span.and_then(|span| span.4),
+            span.and_then(|span| span.5),
+            relationship.site_is_exact,
+            relationship.site_provenance.as_str(),
+        ])? as i64;
+    }
+
+    for pending in &file.pending_relationships {
+        let containing_symbol_id = pending
+            .caller_scope_symbol_id
+            .as_deref()
+            .or(Some(pending.from_symbol_id.as_str()));
+        let span = pending.site_is_exact.then_some((
+            pending.start_line,
+            pending.start_column,
+            pending.end_line,
+            pending.end_column,
+            pending.start_byte,
+            pending.end_byte,
+        ));
+        inserted += stmt.execute(params![
+            pending.reference_site_id,
+            file.file_id,
+            file.path,
+            file.language,
+            valid_symbol_id(symbol_lookup, containing_symbol_id),
+            span.map(|span| span.0),
+            span.and_then(|span| span.1),
+            span.and_then(|span| span.2),
+            span.and_then(|span| span.3),
+            span.and_then(|span| span.4),
+            span.and_then(|span| span.5),
+            pending.site_is_exact,
+            pending.site_provenance.as_str(),
+        ])? as i64;
+    }
+
+    Ok(inserted)
+}
+
 fn insert_identifiers(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
@@ -552,6 +656,7 @@ fn insert_identifiers(
         let target = valid_symbol_id(symbol_lookup, identifier.target_symbol_id.as_deref());
         stmt.execute(params![
             identifier.identifier_id,
+            identifier.reference_site_id,
             file.file_id,
             file.path,
             file.language,
@@ -588,6 +693,7 @@ fn insert_relationships(
         }
         stmt.execute(params![
             relationship.relationship_id,
+            relationship.reference_site_id,
             relationship.from_symbol_id,
             relationship.to_symbol_id,
             file.file_id,
@@ -619,6 +725,7 @@ fn insert_pending_relationships(
         }
         stmt.execute(params![
             pending.pending_relationship_id,
+            pending.reference_site_id,
             pending.from_symbol_id,
             valid_symbol_id(symbol_lookup, pending.caller_scope_symbol_id.as_deref()),
             file.file_id,

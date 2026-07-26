@@ -1420,6 +1420,7 @@ mod tests {
         assert_eq!(result.transactions_committed, 1);
         assert_eq!(result.rows_written.files, 5);
         assert_eq!(result.rows_written.symbols, 15);
+        assert_eq!(result.rows_written.reference_sites, 15);
         assert_eq!(result.rows_written.identifiers, 10);
         assert_eq!(result.rows_written.pending_relationships, 5);
         assert_eq!(result.rows_written.type_facts, 5);
@@ -1492,6 +1493,7 @@ mod tests {
         file.identifiers = (0..2)
             .map(|identifier_index| ArtifactIdentifier {
                 identifier_id: format!("file-{index}-identifier-{identifier_index}"),
+                reference_site_id: format!("file-{index}-identifier-site-{identifier_index}"),
                 name: format!("identifier_{index}_{identifier_index}"),
                 containing_symbol_id: Some(format!("file-{index}-symbol-0")),
                 target_symbol_id: Some(format!("file-{index}-symbol-1")),
@@ -1504,6 +1506,7 @@ mod tests {
             .collect();
         file.pending_relationships = vec![ArtifactPendingRelationship {
             pending_relationship_id: format!("file-{index}-pending"),
+            reference_site_id: format!("file-{index}-pending-site"),
             from_symbol_id: format!("file-{index}-symbol-0"),
             caller_scope_symbol_id: Some(format!("file-{index}-symbol-0")),
             target_display_name: "externalTarget".to_string(),

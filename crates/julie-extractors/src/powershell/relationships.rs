@@ -70,27 +70,30 @@ fn extract_command_relationships(
                             Some(command_symbol) => {
                                 // Local function call - create resolved relationship
                                 if func_symbol.id != command_symbol.id {
-                                    relationships.push(extractor.base.create_relationship(
-                                        func_symbol.id.clone(),
-                                        command_symbol.id.clone(),
-                                        RelationshipKind::Calls,
-                                        &node,
-                                        None,
-                                        None,
-                                    ));
+                                    relationships.push(
+                                        extractor.base.create_relationship_at_target(
+                                            func_symbol.id.clone(),
+                                            command_symbol.id.clone(),
+                                            RelationshipKind::Calls,
+                                            &command_name_node,
+                                            None,
+                                            None,
+                                        ),
+                                    );
                                 }
                             }
                             None => {
                                 if !super::commands::is_builtin_cmdlet(&command_name) {
                                     // Command not in local symbols - create pending relationship
-                                    let pending = extractor.base.create_pending_relationship(
-                                        func_symbol.id.clone(),
-                                        UnresolvedTarget::simple(command_name.clone()),
-                                        RelationshipKind::Calls,
-                                        &node,
-                                        Some(func_symbol.id.clone()),
-                                        Some(0.7),
-                                    );
+                                    let pending =
+                                        extractor.base.create_pending_relationship_at_target(
+                                            func_symbol.id.clone(),
+                                            UnresolvedTarget::simple(command_name.clone()),
+                                            RelationshipKind::Calls,
+                                            &command_name_node,
+                                            Some(func_symbol.id.clone()),
+                                            Some(0.7),
+                                        );
                                     extractor.add_structured_pending_relationship(pending);
                                 }
                             }

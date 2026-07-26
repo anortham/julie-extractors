@@ -83,6 +83,7 @@ pub struct RowCounts {
     pub files: i64,
     pub symbols: i64,
     pub symbol_annotations: i64,
+    pub reference_sites: i64,
     pub identifiers: i64,
     pub relationships: i64,
     pub pending_relationships: i64,
@@ -221,10 +222,38 @@ pub struct ArtifactLanguageCapabilityFixtureRow {
 pub struct ArtifactLanguageCapabilityGapRow {
     pub gap_id: String,
     pub capability: String,
-    pub status: String,
+    pub status: CapabilityGapStatus,
     pub reason: String,
     pub required_closure: String,
     pub evidence: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CapabilityGapStatus {
+    Open,
+    Exception,
+}
+
+impl CapabilityGapStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::Exception => "exception",
+        }
+    }
+}
+
+impl TryFrom<&str> for CapabilityGapStatus {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "open" => Ok(Self::Open),
+            "exception" => Ok(Self::Exception),
+            _ => Err(format!("unknown capability gap status `{value}`")),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -329,9 +358,27 @@ pub struct ArtifactSymbolAnnotation {
     pub metadata_json: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReferenceSiteProvenance {
+    TargetToken,
+    #[default]
+    Spanless,
+}
+
+impl ReferenceSiteProvenance {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::TargetToken => "target_token",
+            Self::Spanless => "spanless",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactIdentifier {
     pub identifier_id: String,
+    pub reference_site_id: String,
     pub name: String,
     pub kind: String,
     pub containing_symbol_id: Option<String>,
@@ -342,6 +389,8 @@ pub struct ArtifactIdentifier {
     pub end_column: i64,
     pub start_byte: i64,
     pub end_byte: i64,
+    pub site_is_exact: bool,
+    pub site_provenance: ReferenceSiteProvenance,
     pub confidence: f64,
     pub code_context: Option<String>,
     pub metadata_json: Option<String>,
@@ -351,6 +400,7 @@ impl Default for ArtifactIdentifier {
     fn default() -> Self {
         Self {
             identifier_id: String::new(),
+            reference_site_id: String::new(),
             name: String::new(),
             kind: "call".to_string(),
             containing_symbol_id: None,
@@ -361,6 +411,8 @@ impl Default for ArtifactIdentifier {
             end_column: 0,
             start_byte: 0,
             end_byte: 0,
+            site_is_exact: false,
+            site_provenance: ReferenceSiteProvenance::Spanless,
             confidence: 1.0,
             code_context: None,
             metadata_json: None,
@@ -371,6 +423,7 @@ impl Default for ArtifactIdentifier {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactRelationship {
     pub relationship_id: String,
+    pub reference_site_id: String,
     pub from_symbol_id: String,
     pub to_symbol_id: String,
     pub kind: String,
@@ -380,6 +433,8 @@ pub struct ArtifactRelationship {
     pub end_column: Option<i64>,
     pub start_byte: Option<i64>,
     pub end_byte: Option<i64>,
+    pub site_is_exact: bool,
+    pub site_provenance: ReferenceSiteProvenance,
     pub confidence: f64,
     pub metadata_json: Option<String>,
 }
@@ -388,6 +443,7 @@ impl Default for ArtifactRelationship {
     fn default() -> Self {
         Self {
             relationship_id: String::new(),
+            reference_site_id: String::new(),
             from_symbol_id: String::new(),
             to_symbol_id: String::new(),
             kind: "calls".to_string(),
@@ -397,6 +453,8 @@ impl Default for ArtifactRelationship {
             end_column: None,
             start_byte: None,
             end_byte: None,
+            site_is_exact: false,
+            site_provenance: ReferenceSiteProvenance::Spanless,
             confidence: 1.0,
             metadata_json: None,
         }
@@ -406,6 +464,7 @@ impl Default for ArtifactRelationship {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArtifactPendingRelationship {
     pub pending_relationship_id: String,
+    pub reference_site_id: String,
     pub from_symbol_id: String,
     pub caller_scope_symbol_id: Option<String>,
     pub kind: String,
@@ -420,6 +479,8 @@ pub struct ArtifactPendingRelationship {
     pub end_column: Option<i64>,
     pub start_byte: Option<i64>,
     pub end_byte: Option<i64>,
+    pub site_is_exact: bool,
+    pub site_provenance: ReferenceSiteProvenance,
     pub confidence: f64,
     pub metadata_json: Option<String>,
 }
@@ -428,6 +489,7 @@ impl Default for ArtifactPendingRelationship {
     fn default() -> Self {
         Self {
             pending_relationship_id: String::new(),
+            reference_site_id: String::new(),
             from_symbol_id: String::new(),
             caller_scope_symbol_id: None,
             kind: "calls".to_string(),
@@ -442,6 +504,8 @@ impl Default for ArtifactPendingRelationship {
             end_column: None,
             start_byte: None,
             end_byte: None,
+            site_is_exact: false,
+            site_provenance: ReferenceSiteProvenance::Spanless,
             confidence: 1.0,
             metadata_json: None,
         }

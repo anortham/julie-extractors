@@ -436,6 +436,24 @@ pub struct Relationship {
     pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
+impl Relationship {
+    pub fn attest_target_token_site(mut self) -> Self {
+        self.metadata.get_or_insert_default().insert(
+            "reference_site_provenance".to_string(),
+            serde_json::Value::String("target_token".to_string()),
+        );
+        self
+    }
+
+    pub fn has_attested_target_token_site(&self) -> bool {
+        self.metadata
+            .as_ref()
+            .and_then(|metadata| metadata.get("reference_site_provenance"))
+            .and_then(serde_json::Value::as_str)
+            == Some("target_token")
+    }
+}
+
 /// A pending relationship that needs cross-file resolution after indexing.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PendingRelationship {

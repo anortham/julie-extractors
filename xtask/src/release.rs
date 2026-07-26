@@ -159,6 +159,10 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/sqlite-schema-v5.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
             path_template: "docs/contracts/jsonl-v1.md",
         },
         ReleasePackageItem {
@@ -168,6 +172,10 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
             path_template: "docs/contracts/jsonl-v3.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/jsonl-v4.md",
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
@@ -184,6 +192,10 @@ pub fn release_package_items() -> Vec<ReleasePackageItem> {
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,
             path_template: "docs/contracts/extracted-data-v3.md",
+        },
+        ReleasePackageItem {
+            kind: ReleasePackageKind::Doc,
+            path_template: "docs/contracts/extracted-data-v4.md",
         },
         ReleasePackageItem {
             kind: ReleasePackageKind::Doc,

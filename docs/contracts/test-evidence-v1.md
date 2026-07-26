@@ -13,9 +13,8 @@ The public capability object is available in these equivalent forms:
 - CLI: `julie-extract languages --json` under
   `languages.languages[].kind_coverage.test_detection`
 
-The object is additive inside the existing `kind_coverage` value. SQLite stays
-at schema v4, JSONL stays at v3, and the extraction contract version does not
-change.
+The object remains additive inside the existing `kind_coverage` value. Current
+artifacts use SQLite schema v5, JSONL v4, and extraction contract v4.
 
 ## Vocabulary And Emitted Roles
 

@@ -17,6 +17,7 @@ pub const SQLITE_ROW_DOMAINS: &[&str] = &[
     "files",
     "symbols",
     "symbol_annotations",
+    "reference_sites",
     "identifiers",
     "relationships",
     "pending_relationships",
@@ -222,6 +223,7 @@ pub struct RowDomainCounts {
     pub files: i64,
     pub symbols: i64,
     pub symbol_annotations: i64,
+    pub reference_sites: i64,
     pub identifiers: i64,
     pub relationships: i64,
     pub pending_relationships: i64,
@@ -252,6 +254,7 @@ impl RowDomainCounts {
             || self.files != 0
             || self.symbols != 0
             || self.symbol_annotations != 0
+            || self.reference_sites != 0
             || self.identifiers != 0
             || self.relationships != 0
             || self.pending_relationships != 0
@@ -278,6 +281,7 @@ impl RowDomainCounts {
         self.files += other.files;
         self.symbols += other.symbols;
         self.symbol_annotations += other.symbol_annotations;
+        self.reference_sites += other.reference_sites;
         self.identifiers += other.identifiers;
         self.relationships += other.relationships;
         self.pending_relationships += other.pending_relationships;
@@ -299,6 +303,7 @@ impl RowDomainCounts {
             files: row_counts.files,
             symbols: row_counts.symbols,
             symbol_annotations: row_counts.symbol_annotations,
+            reference_sites: row_counts.reference_sites,
             identifiers: row_counts.identifiers,
             relationships: row_counts.relationships,
             pending_relationships: row_counts.pending_relationships,

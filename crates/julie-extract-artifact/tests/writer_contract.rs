@@ -5,8 +5,8 @@ use julie_extract_artifact::model::{
     ArtifactLanguageCapabilityRow, ArtifactLiteral, ArtifactParseDiagnostic,
     ArtifactParserInventoryRow, ArtifactPendingRelationship, ArtifactRelationship,
     ArtifactSourceRegion, ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation,
-    ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus, RevisionInput,
-    WriteMode, WriteOperation,
+    ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, CapabilityGapStatus,
+    FileStatus, ReferenceSiteProvenance, RevisionInput, WriteMode, WriteOperation,
 };
 use julie_extract_artifact::resolution_store::{ResolutionCounts, record_pending_resolution};
 use julie_extract_artifact::writer::{
@@ -16,6 +16,177 @@ use julie_extract_artifact::writer::{
 use rusqlite::{Connection, limits::Limit};
 use serde_json::json;
 use std::path::PathBuf;
+
+#[test]
+fn writer_canonicalizes_shared_exact_reference_sites_across_evidence_rows() {
+    let mut writer = open_writer();
+    let mut file = file_with_symbols(
+        "file-a",
+        "src/a.rs",
+        "blake3:a",
+        ["caller", "target", "other"],
+    );
+    let reference_site_id = "site-file-a-10-16".to_string();
+
+    file.identifiers.push(ArtifactIdentifier {
+        identifier_id: "identifier-a".to_string(),
+        reference_site_id: reference_site_id.clone(),
+        name: "target".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("file-a-symbol-0".to_string()),
+        target_symbol_id: Some("file-a-symbol-1".to_string()),
+        start_line: 2,
+        start_column: 4,
+        end_line: 2,
+        end_column: 10,
+        start_byte: 10,
+        end_byte: 16,
+        site_is_exact: true,
+        site_provenance: ReferenceSiteProvenance::TargetToken,
+        ..ArtifactIdentifier::default()
+    });
+    file.relationships.push(ArtifactRelationship {
+        relationship_id: "relationship-a".to_string(),
+        reference_site_id: reference_site_id.clone(),
+        from_symbol_id: "file-a-symbol-0".to_string(),
+        to_symbol_id: "file-a-symbol-1".to_string(),
+        kind: "calls".to_string(),
+        start_line: Some(2),
+        start_column: Some(4),
+        end_line: Some(2),
+        end_column: Some(10),
+        start_byte: Some(10),
+        end_byte: Some(16),
+        site_is_exact: true,
+        site_provenance: ReferenceSiteProvenance::TargetToken,
+        ..ArtifactRelationship::default()
+    });
+    file.relationships.push(ArtifactRelationship {
+        relationship_id: "relationship-b".to_string(),
+        reference_site_id: reference_site_id.clone(),
+        from_symbol_id: "file-a-symbol-0".to_string(),
+        to_symbol_id: "file-a-symbol-2".to_string(),
+        kind: "uses".to_string(),
+        start_line: Some(2),
+        start_column: Some(4),
+        end_line: Some(2),
+        end_column: Some(10),
+        start_byte: Some(10),
+        end_byte: Some(16),
+        site_is_exact: true,
+        site_provenance: ReferenceSiteProvenance::TargetToken,
+        ..ArtifactRelationship::default()
+    });
+    file.pending_relationships
+        .push(ArtifactPendingRelationship {
+            pending_relationship_id: "pending-a".to_string(),
+            reference_site_id: reference_site_id.clone(),
+            from_symbol_id: "file-a-symbol-0".to_string(),
+            caller_scope_symbol_id: Some("file-a-symbol-0".to_string()),
+            kind: "calls".to_string(),
+            target_display_name: "target".to_string(),
+            target_terminal_name: "target".to_string(),
+            start_line: 2,
+            start_column: Some(4),
+            end_line: Some(2),
+            end_column: Some(10),
+            start_byte: Some(10),
+            end_byte: Some(16),
+            site_is_exact: true,
+            site_provenance: ReferenceSiteProvenance::TargetToken,
+            ..ArtifactPendingRelationship::default()
+        });
+
+    let result = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file],
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.reference_sites, 1);
+    assert_eq!(result.rows_written.relationships, 2);
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT COUNT(*) FROM reference_sites
+                 WHERE reference_site_id = ?1
+                   AND file_id = 'file-a'
+                   AND start_byte = 10
+                   AND end_byte = 16
+                   AND is_exact = 1
+                   AND provenance = 'target_token'",
+                [&reference_site_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+    for table in ["identifiers", "pending_relationships"] {
+        let query = format!("SELECT reference_site_id FROM {table}");
+        assert_eq!(
+            writer
+                .connection()
+                .query_row(&query, [], |row| row.get::<_, String>(0))
+                .unwrap(),
+            reference_site_id
+        );
+    }
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT COUNT(*) FROM relationships WHERE reference_site_id = ?1",
+                [&reference_site_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        2
+    );
+}
+
+#[test]
+fn writer_rejects_conflicting_physical_data_for_one_reference_site_id() {
+    let mut writer = open_writer();
+    let mut file = file_with_symbols("file-a", "src/a.rs", "blake3:a", ["caller", "target"]);
+
+    for (identifier_id, start_byte, end_byte) in
+        [("identifier-a", 10, 16), ("identifier-b", 20, 26)]
+    {
+        file.identifiers.push(ArtifactIdentifier {
+            identifier_id: identifier_id.to_string(),
+            reference_site_id: "site-conflict".to_string(),
+            name: "target".to_string(),
+            kind: "call".to_string(),
+            containing_symbol_id: Some("file-a-symbol-0".to_string()),
+            target_symbol_id: Some("file-a-symbol-1".to_string()),
+            start_line: 2,
+            start_column: start_byte,
+            end_line: 2,
+            end_column: end_byte,
+            start_byte,
+            end_byte,
+            site_is_exact: true,
+            site_provenance: ReferenceSiteProvenance::TargetToken,
+            ..ArtifactIdentifier::default()
+        });
+    }
+
+    let error = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file],
+        )
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("reference_site identity conflict"),
+        "{error}"
+    );
+}
 
 #[test]
 fn writer_module_does_not_own_capability_snapshot_sync_helpers() {
@@ -322,6 +493,7 @@ fn scan_skips_child_rows_with_missing_required_references() {
     });
     file.relationships.push(ArtifactRelationship {
         relationship_id: "missing-from-symbol".to_string(),
+        reference_site_id: "site-missing-from-symbol".to_string(),
         from_symbol_id: "missing-symbol".to_string(),
         to_symbol_id: "file-a-symbol-0".to_string(),
         kind: "calls".to_string(),
@@ -331,6 +503,7 @@ fn scan_skips_child_rows_with_missing_required_references() {
     file.pending_relationships
         .push(ArtifactPendingRelationship {
             pending_relationship_id: "missing-pending-from-symbol".to_string(),
+            reference_site_id: "site-missing-pending-from-symbol".to_string(),
             from_symbol_id: "missing-symbol".to_string(),
             target_display_name: "Missing".to_string(),
             target_terminal_name: "Missing".to_string(),
@@ -387,6 +560,7 @@ fn scan_batch_allows_relationships_to_symbols_later_in_same_batch() {
     let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
     file_a.relationships.push(ArtifactRelationship {
         relationship_id: "cross-file-relationship".to_string(),
+        reference_site_id: "site-cross-file-relationship".to_string(),
         from_symbol_id: "file-a-symbol-0".to_string(),
         to_symbol_id: "file-b-symbol-0".to_string(),
         kind: "calls".to_string(),
@@ -413,6 +587,7 @@ fn spooled_scan_allows_relationships_to_symbols_later_in_spool() {
     let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
     file_a.relationships.push(ArtifactRelationship {
         relationship_id: "cross-file-relationship".to_string(),
+        reference_site_id: "site-cross-file-relationship".to_string(),
         from_symbol_id: "file-a-symbol-0".to_string(),
         to_symbol_id: "file-b-symbol-0".to_string(),
         kind: "calls".to_string(),
@@ -453,6 +628,7 @@ fn scan_resolves_identifier_containing_and_target_symbol_ids() {
     let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
     file_a.identifiers.push(ArtifactIdentifier {
         identifier_id: "id-resolved".to_string(),
+        reference_site_id: "site-id-resolved".to_string(),
         name: "beta".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("file-a-symbol-0".to_string()),
@@ -461,6 +637,7 @@ fn scan_resolves_identifier_containing_and_target_symbol_ids() {
     });
     file_a.identifiers.push(ArtifactIdentifier {
         identifier_id: "id-dangling".to_string(),
+        reference_site_id: "site-id-dangling".to_string(),
         name: "ghost".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("does-not-exist".to_string()),
@@ -499,6 +676,7 @@ fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
     let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
     file_a.identifiers.push(ArtifactIdentifier {
         identifier_id: "id-resolved".to_string(),
+        reference_site_id: "site-id-resolved".to_string(),
         name: "beta".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("file-a-symbol-0".to_string()),
@@ -507,6 +685,7 @@ fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
     });
     file_a.identifiers.push(ArtifactIdentifier {
         identifier_id: "id-dangling".to_string(),
+        reference_site_id: "site-id-dangling".to_string(),
         name: "ghost".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("does-not-exist".to_string()),
@@ -738,6 +917,7 @@ fn spooled_scan_deleting_cross_file_symbol_keeps_references_valid() {
     let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
     file_a.identifiers.push(ArtifactIdentifier {
         identifier_id: "file-a-identifier-to-b".to_string(),
+        reference_site_id: "site-file-a-identifier-to-b".to_string(),
         name: "beta".to_string(),
         kind: "call".to_string(),
         target_symbol_id: Some("file-b-symbol-0".to_string()),
@@ -745,6 +925,7 @@ fn spooled_scan_deleting_cross_file_symbol_keeps_references_valid() {
     });
     file_a.relationships.push(ArtifactRelationship {
         relationship_id: "file-a-relationship-to-b".to_string(),
+        reference_site_id: "site-file-a-relationship-to-b".to_string(),
         from_symbol_id: "file-a-symbol-0".to_string(),
         to_symbol_id: "file-b-symbol-0".to_string(),
         kind: "calls".to_string(),
@@ -833,6 +1014,7 @@ fn scan_batches_symbol_lookup_under_sqlite_variable_limit() {
     file.relationships = (1..65)
         .map(|index| ArtifactRelationship {
             relationship_id: format!("wide-relationship-{index}"),
+            reference_site_id: format!("site-wide-relationship-{index}"),
             from_symbol_id: "wide-symbol-0".to_string(),
             to_symbol_id: format!("wide-symbol-{index}"),
             kind: "calls".to_string(),
@@ -1429,6 +1611,7 @@ fn file_with_pending(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
     file.pending_relationships
         .push(ArtifactPendingRelationship {
             pending_relationship_id: format!("{file_id}-pending-1"),
+            reference_site_id: format!("{file_id}-pending-site-1"),
             from_symbol_id: format!("{file_id}-symbol-0"),
             kind: "uses".to_string(),
             target_display_name: "target".to_string(),
@@ -1579,7 +1762,7 @@ fn one_language_capability_snapshot() -> ArtifactCapabilitySnapshot {
             gaps: vec![ArtifactLanguageCapabilityGapRow {
                 gap_id: "rust:types".to_string(),
                 capability: "types".to_string(),
-                status: "planned".to_string(),
+                status: CapabilityGapStatus::Open,
                 reason: "test gap".to_string(),
                 required_closure: "add fixture evidence".to_string(),
                 evidence: json!({"fixture": "basic"}),
@@ -1702,6 +1885,7 @@ fn file_with_all_rows(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
     });
     file.identifiers.push(ArtifactIdentifier {
         identifier_id: format!("{file_id}-identifier-1"),
+        reference_site_id: format!("{file_id}-identifier-site-1"),
         name: "beta".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some(format!("{file_id}-symbol-0")),
@@ -1710,6 +1894,7 @@ fn file_with_all_rows(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
     });
     file.relationships.push(ArtifactRelationship {
         relationship_id: format!("{file_id}-relationship-1"),
+        reference_site_id: format!("{file_id}-relationship-site-1"),
         from_symbol_id: format!("{file_id}-symbol-0"),
         to_symbol_id: format!("{file_id}-symbol-1"),
         kind: "calls".to_string(),
@@ -1721,6 +1906,7 @@ fn file_with_all_rows(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
     file.pending_relationships
         .push(ArtifactPendingRelationship {
             pending_relationship_id: format!("{file_id}-pending-1"),
+            reference_site_id: format!("{file_id}-pending-site-1"),
             from_symbol_id: format!("{file_id}-symbol-0"),
             kind: "uses".to_string(),
             target_display_name: "External".to_string(),

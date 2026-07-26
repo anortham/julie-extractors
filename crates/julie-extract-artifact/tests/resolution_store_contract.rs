@@ -29,7 +29,7 @@ fn seed(conn: &Connection) {
         "INSERT INTO extraction_revisions \
          (revision_id, operation, started_at, completed_at, binary_version, \
           extract_contract_version, sqlite_schema_version, counts_json) \
-         VALUES (1, 'scan', 't', 't', 'v', 3, 4, '{}')",
+         VALUES (1, 'scan', 't', 't', 'v', 4, 5, '{}')",
         [],
     )
     .unwrap();
@@ -44,20 +44,35 @@ fn seed(conn: &Connection) {
     insert_symbol(conn, "s_from", "caller", "function");
     insert_symbol(conn, "s_target", "Target", "function");
     conn.execute(
+        "INSERT INTO reference_sites \
+         (reference_site_id, file_id, path, language, containing_symbol_id, is_exact, provenance) \
+         VALUES ('site-p1', 'f1', 'src/a.rs', 'rust', 's_from', 0, 'spanless')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO reference_sites \
+         (reference_site_id, file_id, path, language, containing_symbol_id, start_line, \
+          start_column, end_line, end_column, start_byte, end_byte, is_exact, provenance) \
+         VALUES ('site-i1', 'f1', 'src/a.rs', 'rust', 's_from', 5, 1, 5, 7, 40, 46, 1, 'target_token')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
         "INSERT INTO pending_relationships \
-         (pending_relationship_id, from_symbol_id, file_id, path, kind, \
+         (pending_relationship_id, reference_site_id, from_symbol_id, file_id, path, kind, \
           target_display_name, target_terminal_name, target_receiver, \
           target_namespace_json, start_line, confidence) \
-         VALUES ('p1', 's_from', 'f1', 'src/a.rs', 'calls', 'Target', 'Target', \
+         VALUES ('p1', 'site-p1', 's_from', 'f1', 'src/a.rs', 'calls', 'Target', 'Target', \
                  'obj', '[]', 5, 0.5)",
         [],
     )
     .unwrap();
     conn.execute(
         "INSERT INTO identifiers \
-         (identifier_id, file_id, path, language, name, kind, start_line, \
+         (identifier_id, reference_site_id, file_id, path, language, name, kind, start_line, \
           start_column, end_line, end_column, start_byte, end_byte, confidence) \
-         VALUES ('i1', 'f1', 'src/a.rs', 'rust', 'Target', 'call', 5, 1, 5, 7, 40, 46, 0.5)",
+         VALUES ('i1', 'site-i1', 'f1', 'src/a.rs', 'rust', 'Target', 'call', 5, 1, 5, 7, 40, 46, 0.5)",
         [],
     )
     .unwrap();
@@ -682,26 +697,34 @@ fn resolution_report_aggregates_by_language_tier_outcome() {
     tx.commit().unwrap();
     conn.execute(
         "INSERT INTO relationships \
-         (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, \
+         (relationship_id, reference_site_id, from_symbol_id, to_symbol_id, file_id, path, kind, \
           start_line, start_column, end_line, end_column, start_byte, end_byte, confidence) \
-         VALUES ('r1', 's_from', 's_target', 'f1', 'src/a.rs', 'calls', \
+         VALUES ('r1', 'site-i1', 's_from', 's_target', 'f1', 'src/a.rs', 'calls', \
                  5, 1, 5, 7, 40, 46, 0.8)",
         [],
     )
     .unwrap();
     conn.execute(
+        "INSERT INTO reference_sites \
+         (reference_site_id, file_id, path, language, containing_symbol_id, is_exact, provenance) \
+         VALUES ('site-r-unmapped', 'f1', 'src/a.rs', 'rust', 's_from', 0, 'spanless'), \
+                ('site-p-unmapped', 'f1', 'src/a.rs', 'rust', 's_from', 0, 'spanless')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
         "INSERT INTO relationships \
-         (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, confidence) \
-         VALUES ('r-unmapped', 's_from', 's_target', 'f1', 'src/a.rs', 'joins', 0.8)",
+         (relationship_id, reference_site_id, from_symbol_id, to_symbol_id, file_id, path, kind, confidence) \
+         VALUES ('r-unmapped', 'site-r-unmapped', 's_from', 's_target', 'f1', 'src/a.rs', 'joins', 0.8)",
         [],
     )
     .unwrap();
     conn.execute(
         "INSERT INTO pending_relationships \
-         (pending_relationship_id, from_symbol_id, file_id, path, kind, \
+         (pending_relationship_id, reference_site_id, from_symbol_id, file_id, path, kind, \
           target_display_name, target_terminal_name, target_namespace_json, \
           start_line, confidence) \
-         VALUES ('p-unmapped', 's_from', 'f1', 'src/a.rs', 'joins', \
+         VALUES ('p-unmapped', 'site-p-unmapped', 's_from', 'f1', 'src/a.rs', 'joins', \
                  'Target', 'Target', '[]', 6, 0.8)",
         [],
     )
@@ -766,13 +789,21 @@ fn resolution_report_marks_non_resolvable_pending_kinds_unattempted() {
     let conn = open();
     seed(&conn);
     for (id, kind) in [("p-import", "imports"), ("p-reference", "references")] {
+        let site_id = format!("site-{id}");
+        conn.execute(
+            "INSERT INTO reference_sites \
+             (reference_site_id, file_id, path, language, containing_symbol_id, is_exact, provenance) \
+             VALUES (?1, 'f1', 'src/a.rs', 'rust', 's_from', 0, 'spanless')",
+            [&site_id],
+        )
+        .unwrap();
         conn.execute(
             "INSERT INTO pending_relationships \
-             (pending_relationship_id, from_symbol_id, file_id, path, kind, \
+             (pending_relationship_id, reference_site_id, from_symbol_id, file_id, path, kind, \
               target_display_name, target_terminal_name, target_namespace_json, \
               start_line, confidence) \
-             VALUES (?1, 's_from', 'f1', 'src/a.rs', ?2, 'Target', 'Target', '[]', 6, 0.8)",
-            rusqlite::params![id, kind],
+             VALUES (?1, ?2, 's_from', 'f1', 'src/a.rs', ?3, 'Target', 'Target', '[]', 6, 0.8)",
+            rusqlite::params![id, site_id, kind],
         )
         .unwrap();
     }

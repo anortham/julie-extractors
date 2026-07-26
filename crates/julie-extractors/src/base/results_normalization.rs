@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use super::kinds::{IdentifierKind, RelationshipKind};
 use super::span::{NormalizedSpan, RecordOffset};
 use super::types::{ExtractionResults, TypeInfo};
 use tracing::warn;
@@ -54,75 +53,7 @@ fn merge_type_info(types: &mut HashMap<String, TypeInfo>, incoming: HashMap<Stri
     }
 }
 
-fn identifier_kind_matches_relationship(
-    identifier_kind: &IdentifierKind,
-    relationship_kind: &RelationshipKind,
-) -> bool {
-    matches!(
-        (identifier_kind, relationship_kind),
-        (IdentifierKind::Call, RelationshipKind::Calls)
-            | (
-                IdentifierKind::TypeUsage,
-                RelationshipKind::Extends
-                    | RelationshipKind::Implements
-                    | RelationshipKind::Uses
-                    | RelationshipKind::Imports
-                    | RelationshipKind::Instantiates
-            )
-            | (IdentifierKind::Call, RelationshipKind::Instantiates)
-            | (
-                IdentifierKind::VariableRef | IdentifierKind::MemberAccess,
-                RelationshipKind::References
-            )
-    )
-}
-
 impl ExtractionResults {
-    pub fn enrich_relationship_spans(&mut self) {
-        let target_names = self
-            .symbols
-            .iter()
-            .map(|symbol| (symbol.id.as_str(), symbol.name.as_str()))
-            .collect::<HashMap<_, _>>();
-        for relationship in &mut self.relationships {
-            if relationship.span.is_some() {
-                continue;
-            }
-            let Some(target_name) = target_names.get(relationship.to_symbol_id.as_str()) else {
-                continue;
-            };
-            let mut matches = self.identifiers.iter().filter(|identifier| {
-                identifier.name == **target_name
-                    && identifier.start_line == relationship.line_number
-                    && identifier_kind_matches_relationship(&identifier.kind, &relationship.kind)
-            });
-            let Some(identifier) = matches.next() else {
-                continue;
-            };
-            if matches.next().is_some() {
-                continue;
-            }
-            let span = NormalizedSpan {
-                start_line: identifier.start_line,
-                start_column: identifier.start_column,
-                end_line: identifier.end_line,
-                end_column: identifier.end_column,
-                start_byte: identifier.start_byte,
-                end_byte: identifier.end_byte,
-            };
-            let previous_id = relationship.id.clone();
-            relationship.span = Some(span);
-            relationship.id = relationship_id(
-                &relationship.from_symbol_id,
-                &relationship.to_symbol_id,
-                &relationship.kind,
-                relationship.line_number,
-                Some(span),
-                &previous_id,
-            );
-        }
-    }
-
     pub fn empty() -> Self {
         Self {
             symbols: Vec::new(),
@@ -388,70 +319,12 @@ impl ExtractionResults {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::base::{
-        Identifier, IdentifierKind, Relationship, RelationshipKind, Symbol, SymbolKind,
-    };
-
     #[test]
-    fn relationship_span_inference_rejects_wrong_identifier_kind() {
-        let mut results = ExtractionResults::empty();
-        results.symbols.push(Symbol {
-            id: "target".to_string(),
-            name: "render".to_string(),
-            kind: SymbolKind::Function,
-            language: "rust".to_string(),
-            file_path: "src/main.rs".to_string(),
-            start_line: 1,
-            start_column: 0,
-            end_line: 1,
-            end_column: 6,
-            start_byte: 0,
-            end_byte: 6,
-            body_span: None,
-            body_hash: None,
-            signature: None,
-            doc_comment: None,
-            visibility: None,
-            parent_id: None,
-            metadata: None,
-            annotations: Vec::new(),
-            semantic_group: None,
-            confidence: None,
-            code_context: None,
-            content_type: None,
-        });
-        results.identifiers.push(Identifier {
-            id: "identifier".to_string(),
-            name: "render".to_string(),
-            kind: IdentifierKind::VariableRef,
-            language: "rust".to_string(),
-            file_path: "src/main.rs".to_string(),
-            start_line: 4,
-            start_column: 8,
-            end_line: 4,
-            end_column: 14,
-            start_byte: 24,
-            end_byte: 30,
-            containing_symbol_id: Some("source".to_string()),
-            target_symbol_id: None,
-            confidence: 1.0,
-            code_context: None,
-        });
-        results.relationships.push(Relationship {
-            id: "relationship".to_string(),
-            from_symbol_id: "source".to_string(),
-            to_symbol_id: "target".to_string(),
-            kind: RelationshipKind::Calls,
-            file_path: "src/main.rs".to_string(),
-            line_number: 4,
-            span: None,
-            confidence: 1.0,
-            metadata: None,
-        });
+    fn normalization_has_no_post_hoc_relationship_span_inference() {
+        let inference_name = ["enrich_relationship_", "spans"].concat();
+        let identifier_match = ["identifier_kind_matches_", "relationship"].concat();
 
-        results.enrich_relationship_spans();
-
-        assert_eq!(results.relationships[0].span, None);
+        assert!(!include_str!("results_normalization.rs").contains(&identifier_match));
+        assert!(!include_str!("../pipeline.rs").contains(&inference_name));
     }
 }

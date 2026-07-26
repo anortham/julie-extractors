@@ -8,6 +8,7 @@ use julie_extract_artifact::model::{
     ArtifactParseDiagnostic, ArtifactPendingRelationship, ArtifactRelationship,
     ArtifactSourceRegion, ArtifactStructuralFact, ArtifactSymbol, ArtifactSymbolAnnotation,
     ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
+    ReferenceSiteProvenance,
 };
 use julie_extractors::base::{
     ComplexityMetric, NormalizedSpan, StructuralFact, StructuredPendingRelationship,
@@ -352,16 +353,17 @@ fn map_results(
     type_infos.sort_by(|left, right| left.symbol_id.cmp(&right.symbol_id));
 
     let identifiers = dedupe_by_id(
-        map_identifiers(&results, target, &snapshot.content)?,
+        map_identifiers(&results, target, &snapshot.content, &file_id)?,
         |identifier| identifier.identifier_id.as_str(),
     );
-    let relationships = dedupe_by_id(map_relationships(&results, target)?, |relationship| {
-        relationship.relationship_id.as_str()
-    });
-    let pending_relationships =
-        dedupe_by_id(map_pending_relationships(&results, target)?, |pending| {
-            pending.pending_relationship_id.as_str()
-        });
+    let relationships = dedupe_by_id(
+        map_relationships(&results, target, &file_id)?,
+        |relationship| relationship.relationship_id.as_str(),
+    );
+    let pending_relationships = dedupe_by_id(
+        map_pending_relationships(&results, target, &file_id)?,
+        |pending| pending.pending_relationship_id.as_str(),
+    );
     let type_facts = dedupe_by_id(map_type_facts(type_infos, target)?, |type_fact| {
         type_fact.type_fact_id.as_str()
     });
@@ -431,6 +433,7 @@ fn map_identifiers(
     results: &ExtractionResults,
     target: &FileTarget,
     source: &str,
+    file_id: &str,
 ) -> Result<Vec<ArtifactIdentifier>, ExtractFileError> {
     results
         .identifiers
@@ -438,64 +441,19 @@ fn map_identifiers(
         .map(|identifier| {
             let mut metadata = serde_json::Map::new();
             let identifier_kind = identifier.kind.to_string();
-            let source_receiver = (identifier_kind == "member_access")
+            let source_receiver = matches!(identifier_kind.as_str(), "call" | "member_access")
                 .then(|| receiver_before_identifier(source, identifier.start_byte))
                 .flatten();
-            let pending = results
-                .structured_pending_relationships
-                .iter()
-                .filter(|pending| {
-                    pending.target.terminal_name == identifier.name
-                        && pending_kind_matches_identifier(
-                            &identifier_kind,
-                            &pending.pending.kind.to_string(),
-                        )
-                        && pending.span.is_some_and(|span| {
-                            identifier.start_byte >= span.start_byte
-                                && identifier.end_byte <= span.end_byte
-                        })
-                })
-                .min_by_key(|pending| {
-                    pending
-                        .span
-                        .map(|span| {
-                            (
-                                span.end_byte.saturating_sub(span.start_byte),
-                                span.start_byte,
-                            )
-                        })
-                        .unwrap_or((u32::MAX, u32::MAX))
-                });
-            let pending_receiver = pending.and_then(|pending| pending.target.receiver.as_ref());
-            let context_conflict = source_receiver
-                .as_ref()
-                .zip(pending_receiver)
-                .is_some_and(|(source, extracted)| source != extracted);
-            let receiver = if context_conflict {
-                None
-            } else {
-                source_receiver
-                    .as_ref()
-                    .or(pending_receiver)
-                    .map(String::as_str)
-            };
-            if let Some(receiver) = receiver {
-                metadata.insert(
-                    "receiver".to_string(),
-                    serde_json::Value::String(receiver.to_string()),
-                );
-            }
-            if !context_conflict
-                && let Some(import_context) =
-                    pending.and_then(|pending| pending.target.import_context.as_ref())
-            {
-                metadata.insert(
-                    "import_context".to_string(),
-                    serde_json::Value::String(import_context.clone()),
-                );
+            if let Some(receiver) = source_receiver {
+                metadata.insert("receiver".to_string(), serde_json::Value::String(receiver));
             }
             Ok(ArtifactIdentifier {
                 identifier_id: identifier.id.clone(),
+                reference_site_id: exact_reference_site_id(
+                    file_id,
+                    identifier.start_byte,
+                    identifier.end_byte,
+                ),
                 name: identifier.name.clone(),
                 kind: identifier.kind.to_string(),
                 containing_symbol_id: identifier.containing_symbol_id.clone(),
@@ -506,6 +464,8 @@ fn map_identifiers(
                 end_column: i64::from(identifier.end_column),
                 start_byte: i64::from(identifier.start_byte),
                 end_byte: i64::from(identifier.end_byte),
+                site_is_exact: true,
+                site_provenance: ReferenceSiteProvenance::TargetToken,
                 confidence: f64::from(identifier.confidence),
                 code_context: identifier.code_context.clone(),
                 metadata_json: (!metadata.is_empty())
@@ -514,18 +474,6 @@ fn map_identifiers(
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| serialization_error(target, error))
-}
-
-fn pending_kind_matches_identifier(identifier_kind: &str, pending_kind: &str) -> bool {
-    matches!(
-        (identifier_kind, pending_kind),
-        ("call" | "member_access", "calls" | "instantiates")
-            | ("member_access", "references")
-            | (
-                "type_usage",
-                "extends" | "implements" | "instantiates" | "uses"
-            )
-    )
 }
 
 fn receiver_before_identifier(source: &str, start_byte: u32) -> Option<String> {
@@ -559,13 +507,18 @@ fn receiver_before_identifier(source: &str, start_byte: u32) -> Option<String> {
 fn map_relationships(
     results: &ExtractionResults,
     target: &FileTarget,
+    file_id: &str,
 ) -> Result<Vec<ArtifactRelationship>, ExtractFileError> {
     results
         .relationships
         .iter()
         .map(|relationship| {
-            let span = relationship.span.as_ref();
+            let span = relationship
+                .span
+                .as_ref()
+                .filter(|_| relationship.has_attested_target_token_site());
             Ok(ArtifactRelationship {
+                reference_site_id: reference_site_id(file_id, span, &relationship.id),
                 relationship_id: span.map_or_else(
                     || relationship.id.clone(),
                     |span| {
@@ -596,6 +549,12 @@ fn map_relationships(
                 end_column: span.map(|span| i64::from(span.end_column)),
                 start_byte: span.map(|span| i64::from(span.start_byte)),
                 end_byte: span.map(|span| i64::from(span.end_byte)),
+                site_is_exact: span.is_some(),
+                site_provenance: if span.is_some() {
+                    ReferenceSiteProvenance::TargetToken
+                } else {
+                    ReferenceSiteProvenance::Spanless
+                },
                 confidence: f64::from(relationship.confidence),
                 metadata_json: optional_json(&relationship.metadata, target)?,
             })
@@ -606,37 +565,44 @@ fn map_relationships(
 fn map_pending_relationships(
     results: &ExtractionResults,
     target: &FileTarget,
+    file_id: &str,
 ) -> Result<Vec<ArtifactPendingRelationship>, ExtractFileError> {
     if !results.structured_pending_relationships.is_empty() {
         return results
             .structured_pending_relationships
             .iter()
-            .map(|pending| map_structured_pending(pending, target))
+            .map(|pending| map_structured_pending(pending, target, file_id))
             .collect();
     }
 
     results
         .pending_relationships
         .iter()
-        .map(|pending| map_legacy_pending(pending, target))
+        .map(|pending| map_legacy_pending(pending, file_id))
         .collect()
 }
 
 fn map_structured_pending(
     pending: &StructuredPendingRelationship,
     target: &FileTarget,
+    file_id: &str,
 ) -> Result<ArtifactPendingRelationship, ExtractFileError> {
     let namespace_json = json_string(&pending.target.namespace_path, target)
         .map_err(|error| serialization_error(target, error))?;
-    let span = pending.span.as_ref();
+    let span = pending
+        .span
+        .as_ref()
+        .filter(|_| pending.reference_site_is_exact);
+    let pending_relationship_id = pending_id(
+        pending.pending.from_symbol_id.as_str(),
+        pending.target.display_name.as_str(),
+        pending.pending.kind.to_string().as_str(),
+        pending.pending.line_number,
+        span,
+    );
     Ok(ArtifactPendingRelationship {
-        pending_relationship_id: pending_id(
-            pending.pending.from_symbol_id.as_str(),
-            pending.target.display_name.as_str(),
-            pending.pending.kind.to_string().as_str(),
-            pending.pending.line_number,
-            span,
-        ),
+        reference_site_id: reference_site_id(file_id, span, &pending_relationship_id),
+        pending_relationship_id,
         from_symbol_id: pending.pending.from_symbol_id.clone(),
         caller_scope_symbol_id: pending.caller_scope_symbol_id.clone(),
         kind: pending.pending.kind.to_string(),
@@ -645,8 +611,6 @@ fn map_structured_pending(
         target_receiver: pending.target.receiver.clone(),
         target_namespace_json: namespace_json,
         target_import_context: pending.target.import_context.clone(),
-        // Prefer the span's byte-accurate start line when present; fall back to
-        // the pending's 1-based line number for spanless rows.
         start_line: span.map_or_else(
             || i64::from(pending.pending.line_number),
             |span| i64::from(span.start_line),
@@ -656,6 +620,12 @@ fn map_structured_pending(
         end_column: span.map(|span| i64::from(span.end_column)),
         start_byte: span.map(|span| i64::from(span.start_byte)),
         end_byte: span.map(|span| i64::from(span.end_byte)),
+        site_is_exact: span.is_some(),
+        site_provenance: if span.is_some() {
+            ReferenceSiteProvenance::TargetToken
+        } else {
+            ReferenceSiteProvenance::Spanless
+        },
         confidence: f64::from(pending.pending.confidence),
         metadata_json: None,
     })
@@ -663,16 +633,18 @@ fn map_structured_pending(
 
 fn map_legacy_pending(
     pending: &PendingRelationship,
-    _target: &FileTarget,
+    file_id: &str,
 ) -> Result<ArtifactPendingRelationship, ExtractFileError> {
+    let pending_relationship_id = pending_id(
+        pending.from_symbol_id.as_str(),
+        pending.callee_name.as_str(),
+        pending.kind.to_string().as_str(),
+        pending.line_number,
+        None,
+    );
     Ok(ArtifactPendingRelationship {
-        pending_relationship_id: pending_id(
-            pending.from_symbol_id.as_str(),
-            pending.callee_name.as_str(),
-            pending.kind.to_string().as_str(),
-            pending.line_number,
-            None,
-        ),
+        reference_site_id: reference_site_id(file_id, None, &pending_relationship_id),
+        pending_relationship_id,
         from_symbol_id: pending.from_symbol_id.clone(),
         caller_scope_symbol_id: None,
         kind: pending.kind.to_string(),
@@ -687,6 +659,8 @@ fn map_legacy_pending(
         end_column: None,
         start_byte: None,
         end_byte: None,
+        site_is_exact: false,
+        site_provenance: ReferenceSiteProvenance::Spanless,
         confidence: f64::from(pending.confidence),
         metadata_json: None,
     })
@@ -943,6 +917,28 @@ fn serialization_error(target: &FileTarget, error: serde_json::Error) -> Extract
     }
 }
 
+fn exact_reference_site_id(file_id: &str, start_byte: u32, end_byte: u32) -> String {
+    stable_id(
+        "reference_site",
+        [
+            file_id.to_string(),
+            start_byte.to_string(),
+            end_byte.to_string(),
+        ],
+    )
+}
+
+fn reference_site_id(
+    file_id: &str,
+    span: Option<&NormalizedSpan>,
+    row_specific_id: &str,
+) -> String {
+    span.map_or_else(
+        || stable_id("reference_site_spanless", [file_id, row_specific_id]),
+        |span| exact_reference_site_id(file_id, span.start_byte, span.end_byte),
+    )
+}
+
 fn pending_id(
     from_symbol_id: &str,
     target_name: &str,
@@ -1133,6 +1129,28 @@ mod tests {
             start_byte,
             end_byte: start_byte + 3,
         }
+    }
+
+    #[test]
+    fn exact_reference_site_id_depends_only_on_file_and_byte_span() {
+        let span = span_at(40, 11);
+
+        assert_eq!(
+            reference_site_id("file-a", Some(&span), "identifier-a"),
+            reference_site_id("file-a", Some(&span), "relationship-b")
+        );
+    }
+
+    #[test]
+    fn reference_site_id_keeps_same_line_occurrences_and_spanless_rows_distinct() {
+        assert_ne!(
+            reference_site_id("file-a", Some(&span_at(40, 11)), "identifier-a"),
+            reference_site_id("file-a", Some(&span_at(48, 19)), "identifier-b")
+        );
+        assert_ne!(
+            reference_site_id("file-a", None, "relationship-a"),
+            reference_site_id("file-a", None, "relationship-b")
+        );
     }
 
     /// Invariant: a spanless pending row keeps the historical

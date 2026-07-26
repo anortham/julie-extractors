@@ -26,8 +26,8 @@ fn full_export_emits_every_kind_in_contract_order_with_snapshot_envelope() {
     assert_eq!(records[0]["record_id"], "artifact-jsonl-test");
 
     for record in &records {
-        assert_eq!(record["jsonl_schema_version"], 3);
-        assert_eq!(record["extract_contract_version"], 3);
+        assert_eq!(record["jsonl_schema_version"], 4);
+        assert_eq!(record["extract_contract_version"], 4);
         assert_eq!(record["op"], "snapshot");
         assert_eq!(record["artifact_id"], "artifact-jsonl-test");
         assert!(
@@ -348,9 +348,24 @@ fn every_record_kind_uses_exact_payload_keys() {
     );
     assert_record_keys(
         &records,
+        "reference_site",
+        &[
+            "reference_site_id",
+            "file_id",
+            "path",
+            "language",
+            "containing_symbol_id",
+            "span",
+            "is_exact",
+            "provenance",
+        ],
+    );
+    assert_record_keys(
+        &records,
         "identifier",
         &[
             "identifier_id",
+            "reference_site_id",
             "file_id",
             "path",
             "language",
@@ -369,6 +384,7 @@ fn every_record_kind_uses_exact_payload_keys() {
         "relationship",
         &[
             "relationship_id",
+            "reference_site_id",
             "from_symbol_id",
             "to_symbol_id",
             "file_id",
@@ -384,6 +400,7 @@ fn every_record_kind_uses_exact_payload_keys() {
         "pending_relationship",
         &[
             "pending_relationship_id",
+            "reference_site_id",
             "from_symbol_id",
             "caller_scope_symbol_id",
             "file_id",
@@ -728,7 +745,7 @@ fn insert_extraction_rows(conn: &Connection) {
          (revision_id, parent_revision_id, operation, mode, started_at, completed_at,
           binary_version, extract_contract_version, sqlite_schema_version, input_root, counts_json)
          VALUES (1, NULL, 'scan', 'incremental', '2026-05-31T20:35:00Z',
-                 '2026-05-31T20:35:01Z', 'julie-extract 0.1.0', 1, 1, '/repo', ?1)",
+                 '2026-05-31T20:35:01Z', 'julie-extract 0.1.0', 4, 5, '/repo', ?1)",
         [r#"{"files":1}"#],
     )
     .unwrap();
@@ -781,11 +798,24 @@ fn insert_extraction_rows(conn: &Connection) {
     )
     .unwrap();
     conn.execute(
+        "INSERT INTO reference_sites
+         (reference_site_id, file_id, path, language, containing_symbol_id,
+          start_line, start_column, end_line, end_column, start_byte, end_byte,
+          is_exact, provenance)
+         VALUES
+          ('site-beta', 'file-a', 'src/a.rs', 'rust', 'sym-alpha',
+           2, 4, 2, 8, 16, 20, 1, 'target_token'),
+          ('site-pending', 'file-a', 'src/a.rs', 'rust', 'sym-alpha',
+           NULL, NULL, NULL, NULL, NULL, NULL, 0, 'spanless')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
         "INSERT INTO identifiers
-         (identifier_id, file_id, path, language, name, kind, containing_symbol_id,
+         (identifier_id, reference_site_id, file_id, path, language, name, kind, containing_symbol_id,
           target_symbol_id, start_line, start_column, end_line, end_column, start_byte,
           end_byte, confidence, code_context, metadata_json)
-         VALUES ('ident-beta', 'file-a', 'src/a.rs', 'rust', 'beta', 'call',
+         VALUES ('ident-beta', 'site-beta', 'file-a', 'src/a.rs', 'rust', 'beta', 'call',
                  'sym-alpha', 'sym-beta', 2, 4, 2, 8, 16, 20, 0.95,
                  'beta();', ?1)",
         [r#"{"identifier":true}"#],
@@ -793,20 +823,20 @@ fn insert_extraction_rows(conn: &Connection) {
     .unwrap();
     conn.execute(
         "INSERT INTO relationships
-         (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
+         (relationship_id, reference_site_id, from_symbol_id, to_symbol_id, file_id, path, kind, start_line,
           start_column, end_line, end_column, start_byte, end_byte, confidence, metadata_json)
-         VALUES ('rel-alpha-beta', 'sym-alpha', 'sym-beta', 'file-a', 'src/a.rs', 'calls',
+         VALUES ('rel-alpha-beta', 'site-beta', 'sym-alpha', 'sym-beta', 'file-a', 'src/a.rs', 'calls',
                  2, 4, 2, 8, 16, 20, 0.95, ?1)",
         [r#"{"relationship":true}"#],
     )
     .unwrap();
     conn.execute(
         "INSERT INTO pending_relationships
-         (pending_relationship_id, from_symbol_id, caller_scope_symbol_id, file_id, path, kind,
+         (pending_relationship_id, reference_site_id, from_symbol_id, caller_scope_symbol_id, file_id, path, kind,
           target_display_name, target_terminal_name, target_receiver, target_namespace_json,
           target_import_context, start_line, start_column, end_line, end_column, start_byte,
           end_byte, confidence, metadata_json)
-         VALUES ('pending-external', 'sym-alpha', 'sym-alpha', 'file-a', 'src/a.rs', 'uses',
+         VALUES ('pending-external', 'site-pending', 'sym-alpha', 'sym-alpha', 'file-a', 'src/a.rs', 'uses',
                  'crate::external::Thing', 'Thing', 'external', ?1, 'use crate::external',
                  2, 4, NULL, NULL, 16, NULL, 0.4, ?2)",
         params![r#"["crate","external"]"#, r#"{"pending":true}"#],

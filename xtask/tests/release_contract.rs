@@ -106,6 +106,10 @@ fn release_package_list_is_exact_and_ordered() {
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
+                path_template: "docs/contracts/sqlite-schema-v5.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
                 path_template: "docs/contracts/jsonl-v1.md",
             },
             ReleasePackageItem {
@@ -115,6 +119,10 @@ fn release_package_list_is_exact_and_ordered() {
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
                 path_template: "docs/contracts/jsonl-v3.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
+                path_template: "docs/contracts/jsonl-v4.md",
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
@@ -131,6 +139,10 @@ fn release_package_list_is_exact_and_ordered() {
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
                 path_template: "docs/contracts/extracted-data-v3.md",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
+                path_template: "docs/contracts/extracted-data-v4.md",
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,

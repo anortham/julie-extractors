@@ -101,11 +101,11 @@ fn extract_function_call_relationships(
         unresolved_target.receiver.as_deref(),
     ) {
         LocalTargetResolution::Resolved(called_symbol) => {
-            relationships.push(extractor.get_base_mut().create_relationship(
+            relationships.push(extractor.get_base_mut().create_relationship_at_target(
                 containing_symbol_id,
                 called_symbol.id.clone(),
                 RelationshipKind::Calls,
-                &node,
+                &function_node,
                 Some(relationship_confidence),
                 None,
             ));
@@ -114,14 +114,16 @@ fn extract_function_call_relationships(
         | LocalTargetResolution::Ambiguous
         | LocalTargetResolution::Missing
         | LocalTargetResolution::ReceiverQualified => {
-            let pending = extractor.get_base_mut().create_pending_relationship(
-                containing_symbol_id.clone(),
-                unresolved_target,
-                RelationshipKind::Calls,
-                &node,
-                Some(containing_symbol_id),
-                Some(pending_confidence),
-            );
+            let pending = extractor
+                .get_base_mut()
+                .create_pending_relationship_at_target(
+                    containing_symbol_id.clone(),
+                    unresolved_target,
+                    RelationshipKind::Calls,
+                    &function_node,
+                    Some(containing_symbol_id),
+                    Some(pending_confidence),
+                );
             extractor.add_structured_pending_relationship(pending);
         }
     }
@@ -200,7 +202,7 @@ fn extract_type_use_relationship(
         }
         push_unique_relationship(
             relationships,
-            extractor.get_base_mut().create_relationship(
+            extractor.get_base_mut().create_relationship_at_target(
                 source_symbol_id,
                 target_symbol.id.clone(),
                 RelationshipKind::Uses,
@@ -210,14 +212,16 @@ fn extract_type_use_relationship(
             ),
         );
     } else {
-        let pending = extractor.get_base_mut().create_pending_relationship(
-            source_symbol_id.clone(),
-            UnresolvedTarget::simple(type_name),
-            RelationshipKind::Uses,
-            &node,
-            Some(source_symbol_id),
-            Some(0.7),
-        );
+        let pending = extractor
+            .get_base_mut()
+            .create_pending_relationship_at_target(
+                source_symbol_id.clone(),
+                UnresolvedTarget::simple(type_name),
+                RelationshipKind::Uses,
+                &node,
+                Some(source_symbol_id),
+                Some(0.7),
+            );
         extractor.add_structured_pending_relationship(pending);
     }
 }

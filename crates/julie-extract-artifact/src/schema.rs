@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 
-pub const SQLITE_SCHEMA_VERSION: i64 = 4;
-pub const EXTRACT_CONTRACT_VERSION: i64 = 3;
+pub const SQLITE_SCHEMA_VERSION: i64 = 5;
+pub const EXTRACT_CONTRACT_VERSION: i64 = 4;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute_batch(SCHEMA_SQL)
@@ -109,8 +109,50 @@ CREATE TABLE IF NOT EXISTS symbol_annotations (
   FOREIGN KEY (symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS reference_sites (
+  reference_site_id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  language TEXT NOT NULL,
+  containing_symbol_id TEXT,
+  start_line INTEGER,
+  start_column INTEGER,
+  end_line INTEGER,
+  end_column INTEGER,
+  start_byte INTEGER,
+  end_byte INTEGER,
+  is_exact INTEGER NOT NULL,
+  provenance TEXT NOT NULL,
+  FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
+  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL,
+  CHECK (length(reference_site_id) > 0),
+  CHECK (is_exact IN (0, 1)),
+  CHECK (
+    (is_exact = 1
+      AND start_line IS NOT NULL
+      AND start_column IS NOT NULL
+      AND end_line IS NOT NULL
+      AND end_column IS NOT NULL
+      AND start_byte IS NOT NULL
+      AND end_byte IS NOT NULL)
+    OR
+    (is_exact = 0
+      AND start_line IS NULL
+      AND start_column IS NULL
+      AND end_line IS NULL
+      AND end_column IS NULL
+      AND start_byte IS NULL
+      AND end_byte IS NULL)
+  ),
+  CHECK (
+    (is_exact = 1 AND provenance = 'target_token')
+    OR (is_exact = 0 AND provenance = 'spanless')
+  )
+);
+
 CREATE TABLE IF NOT EXISTS identifiers (
   identifier_id TEXT PRIMARY KEY,
+  reference_site_id TEXT NOT NULL,
   file_id TEXT NOT NULL,
   path TEXT NOT NULL,
   language TEXT NOT NULL,
@@ -127,6 +169,7 @@ CREATE TABLE IF NOT EXISTS identifiers (
   confidence REAL NOT NULL,
   code_context TEXT,
   metadata_json TEXT,
+  FOREIGN KEY (reference_site_id) REFERENCES reference_sites(reference_site_id) ON DELETE CASCADE,
   FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
   FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL,
   FOREIGN KEY (target_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
@@ -134,6 +177,7 @@ CREATE TABLE IF NOT EXISTS identifiers (
 
 CREATE TABLE IF NOT EXISTS relationships (
   relationship_id TEXT PRIMARY KEY,
+  reference_site_id TEXT NOT NULL,
   from_symbol_id TEXT NOT NULL,
   to_symbol_id TEXT NOT NULL,
   file_id TEXT NOT NULL,
@@ -147,6 +191,7 @@ CREATE TABLE IF NOT EXISTS relationships (
   end_byte INTEGER,
   confidence REAL NOT NULL,
   metadata_json TEXT,
+  FOREIGN KEY (reference_site_id) REFERENCES reference_sites(reference_site_id) ON DELETE CASCADE,
   FOREIGN KEY (from_symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE,
   FOREIGN KEY (to_symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE,
   FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE
@@ -154,6 +199,7 @@ CREATE TABLE IF NOT EXISTS relationships (
 
 CREATE TABLE IF NOT EXISTS pending_relationships (
   pending_relationship_id TEXT PRIMARY KEY,
+  reference_site_id TEXT NOT NULL,
   from_symbol_id TEXT NOT NULL,
   caller_scope_symbol_id TEXT,
   file_id TEXT NOT NULL,
@@ -172,6 +218,7 @@ CREATE TABLE IF NOT EXISTS pending_relationships (
   end_byte INTEGER,
   confidence REAL NOT NULL,
   metadata_json TEXT,
+  FOREIGN KEY (reference_site_id) REFERENCES reference_sites(reference_site_id) ON DELETE CASCADE,
   FOREIGN KEY (from_symbol_id) REFERENCES symbols(symbol_id) ON DELETE CASCADE,
   FOREIGN KEY (caller_scope_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL,
   FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE
@@ -209,6 +256,31 @@ CREATE TABLE IF NOT EXISTS identifier_resolutions (
   resolved_at_revision INTEGER NOT NULL,
   CHECK ((outcome = 'resolved') = (target_symbol_id IS NOT NULL))
 );
+
+CREATE TRIGGER IF NOT EXISTS reference_sites_identity_guard
+BEFORE INSERT ON reference_sites
+WHEN EXISTS (
+  SELECT 1
+  FROM reference_sites AS existing
+  WHERE existing.reference_site_id = NEW.reference_site_id
+    AND (
+      existing.file_id IS NOT NEW.file_id
+      OR existing.path IS NOT NEW.path
+      OR existing.language IS NOT NEW.language
+      OR existing.containing_symbol_id IS NOT NEW.containing_symbol_id
+      OR existing.start_line IS NOT NEW.start_line
+      OR existing.start_column IS NOT NEW.start_column
+      OR existing.end_line IS NOT NEW.end_line
+      OR existing.end_column IS NOT NEW.end_column
+      OR existing.start_byte IS NOT NEW.start_byte
+      OR existing.end_byte IS NOT NEW.end_byte
+      OR existing.is_exact IS NOT NEW.is_exact
+      OR existing.provenance IS NOT NEW.provenance
+    )
+)
+BEGIN
+  SELECT RAISE(ABORT, 'reference_site identity conflict');
+END;
 
 CREATE TABLE IF NOT EXISTS type_facts (
   type_fact_id TEXT PRIMARY KEY,
@@ -377,7 +449,7 @@ CREATE TABLE IF NOT EXISTS language_capability_gaps (
   gap_id TEXT PRIMARY KEY,
   language TEXT NOT NULL,
   capability TEXT NOT NULL,
-  status TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('open', 'exception')),
   reason TEXT NOT NULL,
   required_closure TEXT NOT NULL,
   evidence_json TEXT NOT NULL,
@@ -393,6 +465,9 @@ CREATE INDEX IF NOT EXISTS idx_symbols_parent ON symbols(parent_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_symbols_is_test ON symbols(is_test);
 CREATE INDEX IF NOT EXISTS idx_symbols_test_container ON symbols(test_container);
 CREATE INDEX IF NOT EXISTS idx_symbols_test_lifecycle ON symbols(test_lifecycle);
+CREATE INDEX IF NOT EXISTS idx_reference_sites_file ON reference_sites(file_id);
+CREATE INDEX IF NOT EXISTS idx_reference_sites_span
+  ON reference_sites(file_id, start_byte, end_byte);
 CREATE INDEX IF NOT EXISTS idx_identifiers_path ON identifiers(path);
 CREATE INDEX IF NOT EXISTS idx_identifiers_file ON identifiers(file_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_name_kind ON identifiers(name, kind);

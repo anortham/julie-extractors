@@ -56,12 +56,10 @@ pub struct StructuredPendingRelationship {
         skip_serializing_if = "Option::is_none"
     )]
     pub caller_scope_symbol_id: Option<String>,
-    /// Byte-accurate span of the call site, populated wherever the emitting call
-    /// site had the AST node in hand (via [`StructuredPendingRelationship::with_span`]
-    /// or the shared `create_pending_relationship` helper). `None` when the
-    /// emitter had no node span; such rows keep the pre-span dedup identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub span: Option<PendingSpan>,
+    #[serde(default)]
+    pub reference_site_is_exact: bool,
 }
 
 impl StructuredPendingRelationship {
@@ -79,6 +77,7 @@ impl StructuredPendingRelationship {
             target,
             caller_scope_symbol_id,
             span: None,
+            reference_site_is_exact: false,
             pending: PendingRelationship {
                 from_symbol_id,
                 callee_name: display_name,
@@ -90,10 +89,14 @@ impl StructuredPendingRelationship {
         }
     }
 
-    /// Attach a byte-accurate call-site span. Builder form so existing `::new`
-    /// call sites without a span in hand are unaffected.
-    pub fn with_span(mut self, span: PendingSpan) -> Self {
+    pub fn with_context_span(mut self, span: PendingSpan) -> Self {
         self.span = Some(span);
+        self
+    }
+
+    pub fn with_target_span(mut self, span: PendingSpan) -> Self {
+        self.span = Some(span);
+        self.reference_site_is_exact = true;
         self
     }
 

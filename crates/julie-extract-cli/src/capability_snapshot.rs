@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use julie_extract_artifact::model::{
     ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactLanguageCapabilityFixtureRow,
     ArtifactLanguageCapabilityGapRow, ArtifactLanguageCapabilityRow, ArtifactParserInventoryRow,
+    CapabilityGapStatus,
 };
 use julie_extractors::{
     CapabilityFlags, CapabilityKindCoverage, KindCoverage, capability_snapshot,
@@ -48,7 +49,8 @@ pub(crate) fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
                 .map(|gap| ArtifactLanguageCapabilityGapRow {
                     gap_id: format!("{}:{}", row.language, gap.capability),
                     capability: gap.capability.clone(),
-                    status: gap.status.clone(),
+                    status: CapabilityGapStatus::try_from(gap.status.as_str())
+                        .unwrap_or_else(|error| panic!("{error}")),
                     reason: gap.reason.clone(),
                     required_closure: gap.required_closure.clone(),
                     evidence: gap.evidence.clone(),
@@ -103,7 +105,7 @@ fn reference_resolution_gaps(language: &str) -> Vec<ArtifactLanguageCapabilityGa
         gaps.push(ArtifactLanguageCapabilityGapRow {
             gap_id: format!("{language}:reference_resolution.tier2_import"),
             capability: "reference_resolution.tier2_import".to_string(),
-            status: "open_gaps".to_string(),
+            status: CapabilityGapStatus::Open,
             reason: "import-guided resolution is gated off: this language has no \
                      fixture-tested import contract to key tier 2 on"
                 .to_string(),
@@ -120,7 +122,7 @@ fn reference_resolution_gaps(language: &str) -> Vec<ArtifactLanguageCapabilityGa
     gaps.push(ArtifactLanguageCapabilityGapRow {
         gap_id: format!("{language}:reference_resolution.tier3_receiver"),
         capability: "reference_resolution.tier3_receiver".to_string(),
-        status: "open_gaps".to_string(),
+        status: CapabilityGapStatus::Open,
         reason: "receiver-typed resolution coverage is bounded by this language's \
                  type_facts emission; the tier ships with measured coverage, not a \
                  completeness claim"

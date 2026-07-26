@@ -106,8 +106,8 @@ fn validate_outputs_accepts_ok_reports_sqlite_metadata_and_valid_jsonl() {
     )
     .expect("valid dogfood outputs");
 
-    assert_eq!(metrics.sqlite_schema_version, 4);
-    assert_eq!(metrics.extract_contract_version, 3);
+    assert_eq!(metrics.sqlite_schema_version, 5);
+    assert_eq!(metrics.extract_contract_version, 4);
     assert_eq!(metrics.files, 2);
     assert_eq!(metrics.symbols, 3);
     assert_eq!(metrics.jsonl_records, 4);
@@ -356,7 +356,7 @@ impl DogfoodFixture {
         std::fs::write(
             path,
             format!(
-                r#"{{"report_schema_version":3,"status":"{status}","operation":"{operation}","mode":"{mode}","artifact":{{"jsonl_schema_version":3}},"counts":{{"files_scanned":2,"rows_written":{{"files":2,"symbols":3}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
+                r#"{{"report_schema_version":3,"status":"{status}","operation":"{operation}","mode":"{mode}","artifact":{{"jsonl_schema_version":4}},"counts":{{"files_scanned":2,"rows_written":{{"files":2,"symbols":3}},"totals":{{"files":2,"symbols":3}}}},"errors":[]}}"#
             ),
         )
         .expect("write report");
@@ -392,9 +392,9 @@ impl DogfoodFixture {
         .expect("schema");
         for (key, value) in [
             ("artifact_id", "artifact".to_string()),
-            ("schema_version", "4".to_string()),
-            ("extract_contract_version", "3".to_string()),
-            ("sqlite_schema_version", "4".to_string()),
+            ("schema_version", "5".to_string()),
+            ("extract_contract_version", "4".to_string()),
+            ("sqlite_schema_version", "5".to_string()),
             ("binary_version", "julie-extract 0.1.0".to_string()),
             ("hash_algorithm", "blake3".to_string()),
             ("parser_inventory_fingerprint", "sha256:parser".to_string()),
@@ -463,7 +463,7 @@ impl DogfoodFixture {
         for index in 0..records {
             let kind = kinds.get(index).copied().unwrap_or("identifier");
             jsonl.push_str(&format!(
-                r#"{{"jsonl_schema_version":3,"extract_contract_version":3,"kind":"{kind}","op":"snapshot","artifact_id":"artifact","record_id":"{index}","record":{{}}}}"#
+                r#"{{"jsonl_schema_version":4,"extract_contract_version":4,"kind":"{kind}","op":"snapshot","artifact_id":"artifact","record_id":"{index}","record":{{}}}}"#
             ));
             jsonl.push('\n');
         }

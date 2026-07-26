@@ -271,7 +271,7 @@ fn upsert_language_capability_gap(
             gap.gap_id,
             language,
             gap.capability,
-            gap.status,
+            gap.status.as_str(),
             gap.reason,
             gap.required_closure,
             evidence_json,
