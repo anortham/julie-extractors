@@ -46,6 +46,7 @@ pub mod language_policy;
 pub mod laravel;
 pub mod lua;
 pub mod markdown;
+pub mod marker_structural_facts;
 pub mod nestjs;
 pub mod nuxt;
 #[cfg(feature = "test-certification")]

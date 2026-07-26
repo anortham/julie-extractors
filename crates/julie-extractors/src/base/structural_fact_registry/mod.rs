@@ -141,6 +141,7 @@ mod builtins;
 mod data;
 mod framework;
 mod http_client;
+mod marker;
 mod sql;
 mod web;
 
@@ -149,6 +150,7 @@ mod web;
 fn all_specs() -> Vec<StructuralFactPatternSpec> {
     let mut specs = Vec::new();
     specs.extend(builtins::specs());
+    specs.extend_from_slice(marker::SPECS);
     specs.extend_from_slice(data::SPECS);
     specs.extend_from_slice(sql::SPECS);
     specs.extend(framework::specs());

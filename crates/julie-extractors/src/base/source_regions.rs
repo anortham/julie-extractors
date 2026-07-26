@@ -15,6 +15,35 @@ struct RegionLanguageConfig {
     embedded_node_kinds: &'static [&'static str],
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SourceRegionLine<'a> {
+    pub text: &'a str,
+    pub start_byte: usize,
+}
+
+pub(crate) fn source_region_lines<'a>(
+    content: &'a str,
+    region: &SourceRegion,
+) -> Vec<SourceRegionLine<'a>> {
+    let start = region.start_byte as usize;
+    let end = region.end_byte as usize;
+    let Some(region_text) = content.get(start..end) else {
+        return Vec::new();
+    };
+    let mut lines = Vec::new();
+    let mut line_start = start;
+    for line in region_text.split_inclusive('\n') {
+        let text = line.strip_suffix('\n').unwrap_or(line);
+        let text = text.strip_suffix('\r').unwrap_or(text);
+        lines.push(SourceRegionLine {
+            text,
+            start_byte: line_start,
+        });
+        line_start += line.len();
+    }
+    lines
+}
+
 pub fn collect_source_regions(
     language: &str,
     tree: &Tree,

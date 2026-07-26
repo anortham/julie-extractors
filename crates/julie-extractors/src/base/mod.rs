@@ -24,6 +24,7 @@ pub mod extractor;
 pub mod framework_structural_facts;
 pub mod http_boundary;
 pub mod kinds;
+pub mod marker_structural_facts;
 mod markup_scan;
 pub mod relationship_resolution;
 mod results_normalization;
@@ -50,6 +51,7 @@ pub use embedded_span::EmbeddedSpanOffset;
 pub use extractor::BaseExtractor;
 pub use framework_structural_facts::collect_framework_structural_facts;
 pub use kinds::{IdentifierKind, RelationshipKind, SymbolKind, TestRole, Visibility};
+pub use marker_structural_facts::collect_marker_structural_facts;
 pub use relationship_resolution::{
     LocalTargetResolution, ScopedSymbolIndex, StructuredPendingRelationship, UnresolvedTarget,
 };

@@ -1,0 +1,76 @@
+use super::{ALWAYS, BASE_KEYS, MetadataKeySpec, OPT, STR, StructuralFactPatternSpec, key};
+
+const LANGUAGES: &[&str] = &[
+    "rust",
+    "c",
+    "cpp",
+    "go",
+    "zig",
+    "typescript",
+    "tsx",
+    "javascript",
+    "jsx",
+    "html",
+    "css",
+    "vue",
+    "python",
+    "java",
+    "csharp",
+    "vbnet",
+    "php",
+    "ruby",
+    "swift",
+    "kotlin",
+    "scala",
+    "dart",
+    "elixir",
+    "lua",
+    "qml",
+    "r",
+    "bash",
+    "powershell",
+    "gdscript",
+    "razor",
+    "sql",
+    "markdown",
+    "json",
+    "toml",
+    "yaml",
+];
+
+const KEYS: &[MetadataKeySpec] = &[
+    BASE_KEYS[0],
+    BASE_KEYS[1],
+    key(
+        "marker",
+        STR,
+        ALWAYS,
+        "Normalized uppercase marker token: TODO, FIXME, HACK, or XXX.",
+    ),
+    key(
+        "owner",
+        STR,
+        OPT,
+        "Optional owner written in parentheses immediately after the marker.",
+    ),
+    key(
+        "description",
+        STR,
+        OPT,
+        "Optional text following the marker, owner, and delimiter.",
+    ),
+    key(
+        "source_region_kind",
+        STR,
+        ALWAYS,
+        "Canonical source-region kind: comment or doc_comment.",
+    ),
+];
+
+pub(super) const SPECS: &[StructuralFactPatternSpec] = &[StructuralFactPatternSpec {
+    pattern_id: "code.marker.v1",
+    languages: LANGUAGES,
+    query_family: "marker",
+    description: "An actionable TODO, FIXME, HACK, or XXX at the start of a comment line.",
+    metadata_keys: KEYS,
+}];

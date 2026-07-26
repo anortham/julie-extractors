@@ -751,6 +751,86 @@
     "query_family": "preprocessor"
   },
   {
+    "description": "An actionable TODO, FIXME, HACK, or XXX at the start of a comment line.",
+    "languages": [
+      "rust",
+      "c",
+      "cpp",
+      "go",
+      "zig",
+      "typescript",
+      "tsx",
+      "javascript",
+      "jsx",
+      "html",
+      "css",
+      "vue",
+      "python",
+      "java",
+      "csharp",
+      "vbnet",
+      "php",
+      "ruby",
+      "swift",
+      "kotlin",
+      "scala",
+      "dart",
+      "elixir",
+      "lua",
+      "qml",
+      "r",
+      "bash",
+      "powershell",
+      "gdscript",
+      "razor",
+      "sql",
+      "markdown",
+      "json",
+      "toml",
+      "yaml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Normalized uppercase marker token: TODO, FIXME, HACK, or XXX.",
+        "key": "marker",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Optional owner written in parentheses immediately after the marker.",
+        "key": "owner",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Optional text following the marker, owner, and delimiter.",
+        "key": "description",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Canonical source-region kind: comment or doc_comment.",
+        "key": "source_region_kind",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "code.marker.v1",
+    "query_family": "marker"
+  },
+  {
     "description": "A C++ `#define` object-like or function-like macro.",
     "languages": [
       "cpp"
