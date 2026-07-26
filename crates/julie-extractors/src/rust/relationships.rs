@@ -204,6 +204,7 @@ fn extract_impl_relationships(
             file_path: base.file_path.clone(),
             line_number: node.start_position().row as u32 + 1,
             span: Some(crate::base::NormalizedSpan::from_node(&node)),
+            reference_site_is_exact: false,
             confidence: 0.95,
             metadata: None,
         });
@@ -274,6 +275,7 @@ fn extract_field_type_references(
                     file_path: base.file_path.clone(),
                     line_number: field_node.start_position().row as u32 + 1,
                     span: Some(crate::base::NormalizedSpan::from_node(&field_node)),
+                    reference_site_is_exact: false,
                     confidence: 0.8,
                     metadata: None,
                 });
@@ -451,6 +453,7 @@ fn handle_call_target(
                 file_path,
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&call_node)),
+                reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });

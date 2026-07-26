@@ -106,6 +106,7 @@ fn extract_type_relationships(
                 file_path: file_path.clone(),
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: None,
             });
@@ -139,6 +140,7 @@ fn extract_type_relationships(
                 file_path: file_path.clone(),
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: None,
             });
@@ -199,6 +201,7 @@ fn extract_interface_relationships(
                 file_path: file_path.clone(),
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: None,
             });
@@ -396,6 +399,7 @@ fn emit_uses_relationship(
                 file_path: extractor.get_base().file_path.clone(),
                 line_number: node.start_position().row as u32 + 1,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });
@@ -487,6 +491,7 @@ fn extract_call_relationships(
                 file_path,
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });
@@ -522,6 +527,7 @@ fn extract_call_relationships(
                     file_path,
                     line_number,
                     span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                    reference_site_is_exact: false,
                     confidence: 0.9,
                     metadata: None,
                 });
@@ -592,6 +598,7 @@ fn extract_new_expression_relationships(
             file_path: extractor.get_base().file_path.clone(),
             line_number: node.start_position().row as u32 + 1,
             span: Some(crate::base::NormalizedSpan::from_node(&node)),
+            reference_site_is_exact: false,
             confidence: 0.9,
             metadata: None,
         });

@@ -122,6 +122,7 @@ fn extract_inheritance_relationship(
                 file_path: base.file_path.clone(),
                 line_number: node.start_position().row as u32 + 1,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: None,
             });
@@ -230,6 +231,7 @@ fn process_include_extend_call(
                 file_path: base.file_path.clone(),
                 line_number: child.start_position().row as u32 + 1,
                 span: Some(crate::base::NormalizedSpan::from_node(&child)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: None,
             });
@@ -288,6 +290,7 @@ fn extract_call_relationships(
                         file_path,
                         line_number,
                         span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                        reference_site_is_exact: false,
                         confidence: 0.9,
                         metadata: None,
                     };

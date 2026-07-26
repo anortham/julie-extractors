@@ -79,6 +79,7 @@ fn extract_metadata_inheritance_relationships(
                     class_symbol.start_line,
                     base_class,
                 ),
+                reference_site_is_exact: false,
                 confidence: 0.95,
                 metadata: None,
             });
@@ -220,6 +221,7 @@ fn extract_call_relationships(
                     file_path,
                     line_number,
                     span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                    reference_site_is_exact: false,
                     confidence: 0.9,
                     metadata: None,
                 };

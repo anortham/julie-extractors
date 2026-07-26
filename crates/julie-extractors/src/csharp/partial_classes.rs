@@ -64,6 +64,7 @@ fn partial_class_relationship(from: &Symbol, to: &Symbol, full_name: &str) -> Re
             start_byte: from.start_byte,
             end_byte: from.end_byte,
         }),
+        reference_site_is_exact: false,
         confidence: 1.0,
         metadata: Some(metadata),
     }

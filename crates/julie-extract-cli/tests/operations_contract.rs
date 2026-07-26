@@ -2977,7 +2977,8 @@ fn scan_canonicalizes_one_attested_token_across_identifier_and_relationship_evid
              JOIN relationships r ON r.reference_site_id = i.reference_site_id
              JOIN reference_sites s ON s.reference_site_id = i.reference_site_id
              WHERE i.name = 'target' AND r.kind = 'calls'
-               AND s.is_exact = 1 AND s.provenance = 'target_token'",
+               AND s.is_exact = 1 AND s.provenance = 'target_token'
+               AND r.metadata_json IS NULL",
             [],
             |row| row.get::<_, i64>(0),
         )

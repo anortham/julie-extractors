@@ -105,6 +105,7 @@ fn push_relationship(
         file_path: base.file_path.clone(),
         line_number,
         span: crate::base::NormalizedSpan::from_line_occurrence(&base.content, line_number, anchor),
+        reference_site_is_exact: false,
         confidence: 1.0,
         metadata: Some(metadata),
     });

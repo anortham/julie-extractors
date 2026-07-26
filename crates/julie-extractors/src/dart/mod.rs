@@ -365,6 +365,7 @@ impl DartExtractor {
                 file_path: self.base.file_path.clone(),
                 line_number,
                 span: Some(span),
+                reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });

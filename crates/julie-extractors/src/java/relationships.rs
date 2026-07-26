@@ -46,6 +46,7 @@ pub(super) fn extract_inheritance_relationships(
                 file_path: file_path.clone(),
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: {
                     let mut map = HashMap::new();
@@ -91,6 +92,7 @@ pub(super) fn extract_inheritance_relationships(
                 file_path: file_path.clone(),
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: {
                     let mut map = HashMap::new();
@@ -277,6 +279,7 @@ fn extract_method_call_relationship(
                 file_path,
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });
@@ -389,6 +392,7 @@ fn extract_constructor_call_relationship(
                 file_path,
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });

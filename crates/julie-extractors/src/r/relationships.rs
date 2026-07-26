@@ -106,6 +106,7 @@ fn extract_call_relationships(
                         file_path: extractor.base.file_path.clone(),
                         line_number: (node.start_position().row + 1) as u32,
                         span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                        reference_site_is_exact: false,
                         confidence: 1.0,
                         metadata: None,
                     };
@@ -209,6 +210,7 @@ fn extract_pipe_relationships(
                                 file_path: extractor.base.file_path.clone(),
                                 line_number: (node.start_position().row + 1) as u32,
                                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                                reference_site_is_exact: false,
                                 confidence: 1.0,
                                 metadata: None,
                             };

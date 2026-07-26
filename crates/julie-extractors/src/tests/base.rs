@@ -1,6 +1,8 @@
 // Tests extracted from src/extractors/base.rs
 // These were previously inline tests that have been moved to follow project standards
 
+use std::collections::HashMap;
+
 use crate::base::*;
 use crate::tree_traversal::TREE_TRAVERSAL_DEPTH_LIMIT;
 use tree_sitter::Node;
@@ -254,14 +256,10 @@ fn test_relationship_ids_do_not_collide_for_multiple_calls_on_one_line() {
     );
     assert_eq!(first.span, Some(NormalizedSpan::from_node(&first_target)));
     assert_eq!(second.span, Some(NormalizedSpan::from_node(&second_target)));
-    assert_eq!(
-        first
-            .metadata
-            .as_ref()
-            .and_then(|metadata| metadata.get("reference_site_provenance"))
-            .and_then(serde_json::Value::as_str),
-        Some("target_token")
-    );
+    assert!(first.reference_site_is_exact);
+    assert!(second.reference_site_is_exact);
+    assert!(first.metadata.is_none());
+    assert!(second.metadata.is_none());
 }
 
 #[test]
@@ -284,16 +282,23 @@ fn broad_relationship_nodes_are_not_attested_as_exact_target_tokens() {
         RelationshipKind::Calls,
         &call_nodes[0],
         Some(0.9),
-        None,
+        Some(HashMap::from([(
+            "reference_site_provenance".to_string(),
+            serde_json::Value::String("target_token".to_string()),
+        )])),
     );
 
-    assert!(
-        relationship
-            .metadata
-            .as_ref()
-            .and_then(|metadata| metadata.get("reference_site_provenance"))
-            .is_none()
-    );
+    assert!(!relationship.reference_site_is_exact);
+
+    let mut serialized = serde_json::to_value(&relationship).expect("serialize relationship");
+    serialized
+        .as_object_mut()
+        .expect("relationship object")
+        .remove("reference_site_is_exact");
+    let deserialized: Relationship =
+        serde_json::from_value(serialized).expect("deserialize relationship");
+
+    assert!(!deserialized.reference_site_is_exact);
 }
 
 #[test]

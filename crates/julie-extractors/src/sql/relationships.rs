@@ -193,6 +193,7 @@ pub(super) fn extract_foreign_key_relationship(
                 file_path: base.file_path.clone(),
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: Some(metadata),
             });
@@ -333,6 +334,7 @@ pub(super) fn extract_join_relationships(
         file_path: base.file_path.clone(),
         line_number: node.start_position().row as u32 + 1,
         span: Some(crate::base::NormalizedSpan::from_node(&node)),
+        reference_site_is_exact: false,
         confidence: 0.9,
         metadata: Some(metadata),
     });

@@ -364,6 +364,7 @@ fn push_table_relationship_at_line(
             relationship_byte,
             relationship_byte + target_table_name.len(),
         ),
+        reference_site_is_exact: false,
         confidence: 0.95,
         metadata: Some(metadata),
     });

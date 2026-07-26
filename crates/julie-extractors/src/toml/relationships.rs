@@ -116,6 +116,7 @@ fn extract_cargo_relationships(
                 file_path: base.file_path.clone(),
                 line_number: child.start_position().row as u32 + 1,
                 span: Some(crate::base::NormalizedSpan::from_node(&child)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: Some(metadata),
             });
@@ -174,6 +175,7 @@ fn extract_pyproject_relationships(
             file_path: base.file_path.clone(),
             line_number: table.start_position().row as u32 + 1,
             span: Some(crate::base::NormalizedSpan::from_node(&table)),
+            reference_site_is_exact: false,
             confidence: 1.0,
             metadata: Some(metadata),
         });

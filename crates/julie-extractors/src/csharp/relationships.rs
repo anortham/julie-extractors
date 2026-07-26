@@ -139,6 +139,7 @@ fn extract_inheritance_relationships(
                 file_path: file_path.clone(),
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 1.0,
                 metadata: None,
             });
@@ -270,6 +271,7 @@ fn extract_constructor_parameter_relationships(
                     file_path: file_path.clone(),
                     line_number,
                     span: Some(span),
+                    reference_site_is_exact: false,
                     confidence: 0.9,
                     metadata: None,
                 });
@@ -354,6 +356,7 @@ fn extract_object_creation_relationships(
             file_path: extractor.get_base().file_path.clone(),
             line_number: node.start_position().row as u32 + 1,
             span: Some(crate::base::NormalizedSpan::from_node(&node)),
+            reference_site_is_exact: false,
             confidence: 0.9,
             metadata: None,
         });
@@ -510,6 +513,7 @@ fn handle_call_target(
                 file_path,
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&call_node)),
+                reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });

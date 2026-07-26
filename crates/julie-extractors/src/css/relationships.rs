@@ -152,6 +152,7 @@ fn push_relationship(
                     reference_name,
                 )
             }),
+        reference_site_is_exact: false,
         confidence: 1.0,
         metadata: Some(metadata),
     });

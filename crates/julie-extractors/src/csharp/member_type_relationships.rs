@@ -254,6 +254,7 @@ fn emit_uses_relationship(
                 file_path,
                 line_number,
                 span: Some(crate::base::NormalizedSpan::from_node(&node)),
+                reference_site_is_exact: false,
                 confidence: 0.9,
                 metadata: None,
             });

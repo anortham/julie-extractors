@@ -516,7 +516,7 @@ fn map_relationships(
             let span = relationship
                 .span
                 .as_ref()
-                .filter(|_| relationship.has_attested_target_token_site());
+                .filter(|_| relationship.reference_site_is_exact);
             Ok(ArtifactRelationship {
                 reference_site_id: reference_site_id(file_id, span, &relationship.id),
                 relationship_id: span.map_or_else(

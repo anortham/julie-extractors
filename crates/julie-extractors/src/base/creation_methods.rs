@@ -153,6 +153,7 @@ impl BaseExtractor {
             file_path: self.file_path.clone(),
             line_number: (node.start_position().row + 1) as u32, // 1-based standard format
             span: Some(NormalizedSpan::from_node(node)),
+            reference_site_is_exact: false,
             confidence: confidence.unwrap_or(1.0),
             metadata,
         }
@@ -167,15 +168,16 @@ impl BaseExtractor {
         confidence: Option<f32>,
         metadata: Option<HashMap<String, serde_json::Value>>,
     ) -> Relationship {
-        self.create_relationship(
+        let mut relationship = self.create_relationship(
             from_symbol_id,
             to_symbol_id,
             kind,
             target_token_node,
             confidence,
             metadata,
-        )
-        .attest_target_token_site()
+        );
+        relationship.reference_site_is_exact = true;
+        relationship
     }
 
     pub fn create_pending_relationship(
