@@ -87,7 +87,7 @@ may use to decide whether resolution data is present and trustworthy — see
     opened but not yet re-written) or was written before the overlay was
     populated. Consumers must treat absent as "no resolution data", not "no
     references resolved".
-- `reference_resolution_version`: the resolution contract version, currently `2`.
+- `reference_resolution_version`: the resolution contract version, currently `3`.
 - `reference_resolution_last_full_revision`: the `extraction_revisions.revision_id`
   of the last full resolution pass. Preserved across a `failed` write.
 
@@ -441,7 +441,9 @@ CREATE TABLE pending_resolutions (
 - `tier`: the resolution tier (1–4) that fired. See [Tiers](#tiers).
 - `confidence`: the tier's confidence value (see the tier table).
 - `method`: the resolution method string (`tier1_local`, `tier2_import`,
-  `tier3_receiver`, `tier4_global`).
+  `tier3_receiver`, `tier3_static_type`, `tier4_global`). `tier3_receiver` and
+  `tier3_static_type` both stamp `tier = 3`; they differ in whether a `type_facts`
+  row backed the binding.
 - `resolved_at_revision`: the `extraction_revisions.revision_id` at which this
   resolution was written.
 
@@ -500,12 +502,25 @@ is worse than a missing one.
 | 1 | Same-file scope (local index result materialized at extraction time) | `0.95` | `tier1_local` | Same language. |
 | 2 | Import-guided: candidate reachable through an import symbol in the source file whose name/alias matches the terminal name | `0.85` | `tier2_import` | Same language. **Language-gated:** enabled only where a fixture-tested import contract exists — currently **TypeScript and JavaScript**. Every other language records a `reference_resolution.tier2_import` gap until F4 normalizes import facts. |
 | 3 | Receiver-typed: receiver name → scoped symbol → its `type_facts.resolved_type` → type symbol → member with the terminal name | `0.75` (`0.65` when the contributing type fact is inferred) | `tier3_receiver` | Same language. Coverage is bounded by per-language `type_facts` emission; every language records a `reference_resolution.tier3_receiver` gap (broadened by F2). |
+| 3 | Static-type receiver: the receiver names a type directly → that type's member with the terminal name. No `type_facts` row participates | `0.70` | `tier3_static_type` | Same language. Refuses a receiver nested inside another type; refuses a non-public type outside its declaring file — a file-scoped homonym of an external type must not answer for references elsewhere; refuses a member that is not statically reachable, meaning its `signature` lacks `static` as a standalone word (enum members and constants are exempt), because `Type.InstanceMethod()` does not compile; refuses a receiver whose written qualification is not a suffix of the candidate type's declared namespace, so `External.Fixture.Create()` never answers for a workspace `App.Core.Fixture`; and refuses a receiver shadowed by a parameter of an enclosing callable. A namespace or module parent does not count as nesting. |
 | 4 | Unique-language-global: exactly one kind-compatible candidate in the same language workspace-wide | `0.55` | `tier4_global` | Same language. Enabled for `type_usage`, `instantiates`, `uses`, `extends`, `implements`, and `calls` to Function/Constructor kinds. **Disabled for `member_access` and method calls** — member names collide too heavily for global uniqueness to be meaningful. |
+
+`tier3_static_type` carries its own `method` string precisely because no type
+fact backs it: reporting it as `tier3_receiver` would attribute the binding to
+type-fact evidence that does not exist. Both stamp `tier = 3`.
+
+The tier runs for every language, but it can only produce an edge where the
+extractor emits type `visibility` and a standalone `static` member modifier.
+Languages without a fixture-proven contract for both record a
+`reference_resolution.tier3_static_type` gap — currently every language except
+C#.
 
 Kind compatibility: `calls` targets Function/Method/Constructor; `instantiates`
 targets Class/Struct/Constructor; `uses`/type edges and identifier `type_usage`
-target type-like kinds; identifier `member_access` targets Property/Field/Method
-(tiers 1–3 only). Method overloads (same name, same kind) yield >1 candidate and
+target type-like kinds; identifier `member_access` targets
+Property/Field/Method/Constant/EnumMember (tiers 1–3 only) — `Constant` and
+`EnumMember` carry static member access such as `SomeEnum.Value` and
+`Limits.Max`. Method overloads (same name, same kind) yield >1 candidate and
 stay `ambiguous`. Partial classes (multiple same-name class symbols) likewise
 stay `ambiguous` at tier 4 and resolve only via tiers 1–3 — coverage loss, never
 wrong edges.

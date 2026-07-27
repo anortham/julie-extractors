@@ -446,6 +446,14 @@ fn map_identifiers(
                 .flatten();
             if let Some(receiver) = source_receiver {
                 metadata.insert("receiver".to_string(), serde_json::Value::String(receiver));
+                if let Some(qualifier) =
+                    receiver_qualifier_before_identifier(source, identifier.start_byte)
+                {
+                    metadata.insert(
+                        "receiver_qualifier".to_string(),
+                        serde_json::Value::String(qualifier),
+                    );
+                }
             }
             Ok(ArtifactIdentifier {
                 identifier_id: identifier.id.clone(),
@@ -476,9 +484,11 @@ fn map_identifiers(
         .map_err(|error| serialization_error(target, error))
 }
 
-fn receiver_before_identifier(source: &str, start_byte: u32) -> Option<String> {
+/// The member-access token immediately before `at`, with the byte offset it starts
+/// at, so the caller can keep walking the same chain leftward.
+fn receiver_token_before(source: &str, at: usize) -> Option<(String, usize)> {
     let bytes = source.as_bytes();
-    let mut cursor = usize::try_from(start_byte).ok()?.min(bytes.len());
+    let mut cursor = at.min(bytes.len());
     while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
         cursor -= 1;
     }
@@ -501,7 +511,31 @@ fn receiver_before_identifier(source: &str, start_byte: u32) -> Option<String> {
     {
         cursor -= 1;
     }
-    (cursor < end).then(|| source[cursor..end].to_string())
+    (cursor < end).then(|| (source[cursor..end].to_string(), cursor))
+}
+
+fn receiver_before_identifier(source: &str, start_byte: u32) -> Option<String> {
+    let at = usize::try_from(start_byte).ok()?;
+    receiver_token_before(source, at).map(|(token, _)| token)
+}
+
+/// The dotted qualification standing in front of the receiver token:
+/// `Some.Namespace.Fixture.Create()` yields `Some.Namespace` for `Create`. A
+/// resolver needs it to tell a fully-qualified reference to a workspace type from
+/// a foreign one that merely shares the type's simple name.
+fn receiver_qualifier_before_identifier(source: &str, start_byte: u32) -> Option<String> {
+    let at = usize::try_from(start_byte).ok()?;
+    let (_, mut cursor) = receiver_token_before(source, at)?;
+    let mut segments = Vec::new();
+    while let Some((token, start)) = receiver_token_before(source, cursor) {
+        segments.push(token);
+        cursor = start;
+    }
+    if segments.is_empty() {
+        return None;
+    }
+    segments.reverse();
+    Some(segments.join("."))
 }
 
 fn map_relationships(

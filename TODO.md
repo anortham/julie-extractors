@@ -341,10 +341,85 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   The temporary profiler/test scaffolding was removed after recording the
   evidence.
 
-## 16. Identifier target resolution leaves unambiguous same-artifact symbols unresolved — open
+## 16. Identifier target resolution has no static-receiver path — partial
 
-- **Where:** the resolution pass that populates `identifiers.target_symbol_id`
-  (consumed by Miller as `reference_sites.is_exact` / `provenance='target_token'`).
+**Slices 1–3 shipped 2026-07-27** (`RESOLUTION_VERSION = 3`). Both columns below
+are C# on Miller's workspace: "before" from the prior artifact, "after" from a
+fresh full pass with the built binary.
+
+| C# identifier kind | resolved before | resolved after | what produced the gain |
+|---|---|---|---|
+| `call` | 16,659 (19.4%) | **21,995 (25.7%)** | static tier 4,453 + tier 4 **+883** (slice 1 unblocked covered spans) |
+| `member_access` | 96 (**0.2%**) | **5,399 (12.0%)** | static tier 5,300 + tier 3 **+4** (the `Constant`/`EnumMember` widening, on its own, is worth 4 sites) |
+| `type_usage` | 10,132 (37.2%) | **10,631 (39.0%)** | tier 4 **+499** — **entirely slice 1**, zero static tier |
+| `variable_ref` | 7,484 (4.9%) | 7,486 (4.9%) | noise; untouched, needs slice 4 |
+| **overall** | 34,371 (11.1%) | **45,511 (14.7%)** | |
+
+The gain is not uniformly slice 3: `tier3_static_type` contributes 9,752, and
+closing the reporting leak contributes ~1,388 by itself, mostly constructors and
+types whose covering pending edge had swallowed them. Identifiers carrying no
+`identifier_resolutions` row went from 63,840 (C#; 69,173 all languages) to **0**.
+
+Precision held on every case the reviews raised. `NullLoggerFactory.Instance`
+binds only at the 6 sites inside its declaring file and refuses all 18 cross-file
+ones; every external-receiver site stays unresolved — `Assert.Equal` (7,091),
+`Assert.Contains` (2,859), `Path.Combine` (1,691), `Assert.Single` (736),
+`File.WriteAllText` (416), `Directory.CreateDirectory` (390) all at zero; and
+zero of the 9,752 static-tier targets is a non-static, non-enum, non-constant
+member.
+
+Slice 4 (C# locals/params as symbols, real `infer_variable_type`) is **not
+started** — it is the only remaining slice and the only one that moves
+`variable_ref`. Slice 5 stands: bare `Method`-at-tier-4 is rejected.
+
+**Accepted debt carried by the static tier**, from the post-implementation review:
+
+- *Public framework homonym.* The refusals cover nested-in-type and non-public
+  types. A **public, top-level** workspace type whose simple name collides with a
+  framework type would still bind every same-named reference workspace-wide. No
+  instance exists in the measured corpus, but nothing prevents one. Closing it
+  needs import/namespace corroboration, which the receiver token (one bare
+  identifier) cannot supply today.
+- *Visibility dependence.* Cross-file binding requires
+  `visibility = 'public'`. TypeScript records NULL visibility on class
+  declarations, so the cross-file path is silently unavailable there; C# maps
+  `internal` to `private`, over-refusing ~1,556 call sites. Recall loss only,
+  never a wrong edge. Recorded in `fixtures/extraction/capabilities.json` under
+  `reference_resolution.tiers.tier3_static_type.visibility_dependency` with a
+  named closure.
+- *Static-modifier dependence.* A member only binds through a type name if its
+  `signature` carries `static` as a standalone word (enum members and constants
+  are exempt). That is a per-language extractor fact, not a resolver one: C#,
+  Java, and JavaScript emit it; Python spells it `@staticmethod`, Rust
+  associated functions carry no modifier at all, and TypeScript emits no
+  visibility either. So the tier is fixture-proven for **C# only**
+  (`TIER3_STATIC_TYPE_LANGUAGES`), and every other language now emits a
+  `reference_resolution.tier3_static_type` gap row at scan time —
+  35 of 36 languages, enforced by `per_language_tier_parity_guard` and
+  `every_static_type_language_ships_a_proving_fixture`. The gate itself is
+  correctness, not debt: without it `Type.InstanceMethod()` would bind, which
+  does not compile. It cost 100 of the 9,853 pre-gate bindings.
+- *Untyped local shadowing a type name.* A local variable declared in a method
+  body (`var Fixture = ...`) still shadows a workspace type invisibly: local
+  *declarations* are not symbols, so nothing distinguishes the receiver token from
+  a type name. Parameters no longer have this hole — see the shadowing refusal
+  below. Zero measured instances (every binding's receiver is PascalCase, and C#
+  convention makes locals camelCase), and `tier3_receiver` already outranks the
+  static tier whenever the local carries a type fact, so the exposure is untyped
+  locals only. Closes with slice 4.
+- *Recheck ownership.* `recheck_resolved_identifier_items` now skips only
+  identifiers a co-located edge currently owns, not every co-located identifier.
+  This is defensive: the hole it closes could not be reproduced, because every
+  path that forces a full pass either has no prior overlay or re-extracts the
+  identifier rows and cascades it away.
+
+
+- **Where:** `crates/julie-extract-cli/src/resolution.rs` —
+  `resolve_receiver_symbols` (:731), `tier3_candidates` (:653),
+  `tier4_compatible_kinds` (:821), `tier123_compatible_kinds` (:793),
+  `TIER2_IMPORT_LANGUAGES` (:77), `resolve_identifier_items` (:1341).
+  Output surface is `identifiers.target_symbol_id` (consumed by Miller as
+  `reference_sites.is_exact` / `provenance='target_token'`).
 - **Why it matters:** span emission is healthy, but *target* resolution is not, and
   the two are easy to conflate. On a real 400k-site C# corpus (Miller's own
   workspace, julie-extract 2.18.0, schema 5), `reference_sites` carries exact spans
@@ -362,44 +437,195 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   | `member_access` | 44,938 | 96 | **0.2** |
   | `type_usage` | 27,159 | 10,086 | 37.1 |
 
-- **This is not C#-specific.** Same corpus, `target_symbol_id` resolution rate by
-  language: powershell 49.5%, bash 40.9%, javascript 28.2%, python 23.0%,
-  csharp 11.1%, razor 9.8%, css/html 0.0%. C# is simply the largest corpus here,
-  so it surfaces the gap most visibly. Treat this as a general resolution-pass
-  item, not a C# extractor item.
+- **This is not C#-specific,** and the shape is not random. Resolution rate by
+  language — powershell 49.5%, bash 40.9%, javascript 28.2%, python 23.0%,
+  csharp 11.1%, razor 9.8%, css/html 0.0% — tracks whether a language's callables
+  are emitted as `SymbolKind::Function` (tier-4 eligible) or `SymbolKind::Method`
+  (tier-4 ineligible), plus whether tier 2 is enabled for the language. C# is the
+  largest corpus here, so it surfaces the gap most visibly.
 
-- **The tractable subset.** Many unresolved rows are legitimately unresolvable —
-  locals, parameters, and calls into the BCL/LINQ (`ThrowIfNull`, `Select`,
-  `ToList` all appear in the unresolved sample and correctly have no
-  same-artifact target). But a large subset is *not* explainable that way. Counting
-  only unresolved C# rows whose `name` matches **exactly one** symbol in the same
-  artifact (unambiguous by name alone, no type inference required):
+### Root cause, ranked by measured impact
 
-  | kind | unresolved despite a unique same-artifact symbol |
-  |---|---|
-  | `variable_ref` | 17,414 |
-  | `call` | 17,112 |
-  | `member_access` | 8,705 |
-  | `type_usage` | 527 |
+1. **No static/type-name receiver path.** `resolve_receiver_symbols` (:731) binds
+   the receiver only by looking for a symbol *in the caller's scope chain* and then
+   *file top-level*. When the receiver IS a type name — `JulieDbFixture.CreateForEdit`,
+   `SomeEnum.Value` — the receiver is a type defined in another file, so it never
+   binds and tier 3 declines. This is the single largest tractable gap, and it needs
+   no type inference. Yield under the rule "receiver names exactly one workspace
+   type-like symbol AND that type has exactly one direct child with the terminal
+   name":
 
-  Relaxing to "name exists as any symbol" gives 64,661 / 36,198 / 28,563 / 8,362.
-  The unique-name column is the interesting one: those need no overload or
-  receiver-type reasoning to resolve correctly.
+   | site shape | exactly one child | at least one child |
+   |---|---|---|
+   | `call` with a type-name receiver | **6,086** | 7,102 |
+   | `member_access` with a type-name receiver | **6,669** (3,557 enum_member, 2,567 constant, 545 property) | 6,843 |
 
-- **Proposed fix:** treat `member_access` as the first target — 0.2% is low enough
-  to suggest the receiver path is not being walked at all, rather than being walked
-  and failing. Then add a conservative unique-name fallback tier for `call` and
-  `type_usage`: when exactly one symbol in the artifact bears the name and no
-  in-scope binding shadows it, resolve to it and mark the tier so consumers can
-  distinguish it from a type-checked resolution. Keep it strictly opt-out-able —
-  Miller already separates exact from fallback evidence and must keep being able to.
+   The exactly-one column is the shippable rule; the delta to "at least one" is
+   overload declines (1,016 for calls, 14.3%). Applying the safety refusals below
+   brings the predicted yield to ~9,852; the shipped tier measured **9,853**.
 
-- **Caveat before acting:** confirm the unique-name subset is not dominated by
-  workspace symbols that coincidentally share a BCL name (e.g. a local `Select`).
-  Sample it per kind first; if a meaningful share is coincidental, the fallback tier
-  needs a shadowing/import check rather than a bare name match.
+   **This is corroboration, not proof.** The rule declines receivers with *no*
+   workspace type of that simple name (`Path`, `Assert`, `StringComparison` — zero
+   workspace types, safe). It does **not** decline external receivers whose simple
+   name collides with a workspace type. Existence proof in this corpus:
+   `NullLoggerFactory` is a `file static class` test stub defined once in
+   `tests/Miller.Tests/Server/CallToolFilterTelemetryTests.cs`, and 6 of its ~24
+   receiver sites are in that file — the rest are in other test files where the real
+   referent is `Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory`. Those
+   would be wrong edges. A workspace type named `File` is latent in the same way
+   (987 `File.*` sites; currently 0 exact-one matches only because the nested
+   workspace `File` has no BCL-shaped children). Mitigation is mandatory, not
+   optional — see the fix plan.
 
-- **Verification:** re-run the two queries above against a fresh extract of a large
-  C# workspace and compare the resolved percentages and the unique-name residual.
+2. **`tier4_compatible_kinds(Call)` excludes `SymbolKind::Method`** (:823). C# has
+   9,412 methods against 117 functions and 267 constructors, so ~97% of C#
+   callables are ineligible for the only tier available to them (see cause 3).
+   The rationale is
+   `docs/plans/2026-07-06-workspace-reference-resolution-design.md:177`, from
+   accepted doubt-pass finding 6 (:357-359): *"member names collide too heavily for
+   global uniqueness to mean anything."* Asserted, never measured — but **measurement
+   vindicates it.** Widening the filter naively is unsafe because tier 4 keys on
+   terminal name + language + kind and **discards the receiver entirely** (:708-725).
+   Of the 10,575 edges a bare widening would create, **3,135 (29.6%) have a receiver
+   that names nothing in the workspace** — i.e. the real target is external:
+
+   | site | would resolve to | count |
+   |---|---|---|
+   | `Path.Combine` | `CanaryAggregate.Combine` | 1,691 |
+   | `Assert.Single` | `DiffTargetsTests.Single` | 736 |
+   | `File.ReadAllText` | `EditApplier.ReadAllText` | 160 |
+
+   The exactly-one guard does not help here: it proves the *workspace* name is
+   unique, not that the call site refers to a workspace symbol at all. These would
+   be confidently wrong edges, violating
+   `docs/contracts/sqlite-schema-v4.md:495` ("no best-guess selection — a wrong edge
+   is worse than a missing one"). Pinned by four unit tests at
+   `resolution.rs:2184, 2485, 2513, 2609`; mirrored in
+   `docs/contracts/sqlite-schema-v4.md:503` and
+   `fixtures/extraction/capabilities.json:6267-6270`.
+
+3. **Tier 2 is off for C#.** `TIER2_IMPORT_LANGUAGES` is `["typescript",
+   "javascript"]` (:77), so `applicable_tiers` (:533) leaves C# `call` and
+   `type_usage` with tier 4 as their *only* tier — the one whose kind set has no
+   methods. Combined with cause 2 this is why C# `call` resolution is 19.4% and
+   almost all of it comes from tier 1 (13,417 of 16,605).
+
+4. **Tier 3 starves at the receiver→symbol link for instance receivers too.**
+   Funnel over 44,959 C# `member_access` rows: 43,545 carry a receiver → **1,544**
+   resolve to a symbol in scope (−96.5%) → 719 have a type fact → 466 name a unique
+   type → **96** find the member. The extractor emits zero `SymbolKind::Variable`
+   symbols for C# (no `local_declaration_statement` arm in
+   `crates/julie-extractors/src/csharp/mod.rs:220-252`) and `infer_variable_type`
+   returns `None` unconditionally (`csharp/type_inference.rs:130-132`), so
+   `resolve_receiver_symbols` has nothing to bind locals to. All 12,438 C# type
+   facts are `is_inferred: true` (`crates/julie-extractors/src/factory.rs:14-34`),
+   capping tier 3 at confidence 0.65.
+
+5. **`tier123_compatible_kinds(MemberAccess)` omits `Constant` and `EnumMember`**
+   (:806). On its own this is worth almost nothing — replaying the *existing* tier-3
+   funnel with those kinds added yields **4** extra sites, because enum and class
+   symbols carry no type facts, so the receiver never binds in the first place. It
+   only pays off combined with cause 1, where it accounts for 6,124 of the 6,669
+   static-receiver `member_access` sites.
+
+6. **Covered identifiers vanish from the report.** `resolve_identifier_items` skips
+   any identifier "covered" by a co-located pending relationship (:1351), delegating
+   it to `propagate_relationships`. When the pending edge fails to resolve, the
+   identifier gets **no `identifier_resolutions` row at all** — 61,655 C# call sites
+   are recorded as neither `resolved` nor `missing`, violating the "every attempted
+   outcome is recorded" contract at `docs/contracts/sqlite-schema-v4.md:448`. Note
+   these are not uniformly hopeless: ~888 are covered by a pending `instantiates`
+   edge whose kind filter differs from the identifier `call` chain, so they would
+   resolve if the identifier chain were allowed to run.
+
+### Corrections to the original entry (2026-07-27 investigation)
+
+- *"member_access 0.2% suggests the receiver path is not being walked at all"* is
+  **refuted**. The receiver is populated for 43,545 of 44,959 rows and only 1,414
+  come back `no_context`; the path is walked and fails at the receiver→symbol link.
+- *"Add a conservative unique-name fallback tier"* — that tier already exists as
+  tier 4 (`CONFIDENCE_TIER4 = 0.55`, `METHOD_TIER4 = "tier4_global"`, :52/:59), and
+  **it should not be widened**. Name-only matching is the wrong instrument; see
+  cause 2.
+- The tractable `call` subset was overstated twice over: of the 17,112 unique-name
+  unresolved call rows, 7,116 point at an `enum_member` (kind filter rejects them),
+  and of the 10,575 that survive the kind filter, 3,135 have an external receiver.
+  The entry's own caveat was right, and the answer is *not* a shadowing check — it
+  is receiver corroboration.
+- An earlier draft of this entry put the static-receiver call yield at 2,891. That
+  number measured a **stricter filter than the proposed rule** — it additionally
+  required the terminal name to be globally unique among C# callables, which the
+  rule does not. The proposed rule yields **6,086**. The draft also claimed the rule
+  "declines external receivers by construction"; it does not (see root cause 1).
+- *"`partial` means tier-2 gating, so these measurements are from a complete pass"*
+  is **unproven**. `partial` means delta **or** gating (:1027,
+  `docs/contracts/sqlite-schema-v4.md:74`). The measured artifact has
+  `reference_resolution_last_full_revision = 1` against head revision **104**, so it
+  has been delta-maintained for 103 revisions. Per-kind coverage looks near-total,
+  but the baseline must be re-measured after a forced full pass before it is used as
+  a gate.
+
+### Proposed fix, in order
+
+1. ~~**Close the reporting leak first**~~ — **done.** So every later slice can be measured
+   honestly. Give the identifier its own outcome instead of inheriting silence from
+   a failed pending edge — run the identifier chain when the covering pending edge
+   did not resolve, rather than stamping a fabricated `missing`. The kind filters
+   differ between the two chains, so this is not a no-op (~888 C# sites).
+2. ~~**Re-baseline with a forced full resolution pass.**~~ — **done.** The measured artifact is
+   delta-maintained (`last_full_revision = 1`, head 104), so no yield number here is
+   a valid gate until it is re-measured on a full pass. Ordered before slice 3, not
+   deferred to verification.
+3. ~~**Add a static/type-name receiver path**~~ — **done**, for `call` and `member_access`: when the
+   receiver names exactly one workspace type-like symbol in the same language and
+   that type has exactly one direct child with the terminal name, resolve to it.
+   Expected yield ~12,755 C# sites. Non-negotiable implementation constraints:
+   - It is a **new independent filter, not a widening of tier 3.** Tier 3 is
+     receiver → scoped symbol → `type_facts` → type → member. The static path skips
+     scope binding and type facts entirely, so folding it into
+     `resolve_receiver_symbols` would label static bindings `tier3_receiver` and
+     misreport type-fact involvement to consumers. Give it its own method string
+     (e.g. `tier3_static_type`) and its own confidence (≈0.70 — below concrete
+     tier 3's 0.75, well above tier 4's 0.55).
+   - **`applicable_tiers` must change for `(Identifier, Call)`** — it is
+     `[Import, Global]` today (:545), so the receiver path never runs for call
+     identifiers at all.
+   - **Homonym mitigation is required before ship**, not after: prefer same-file,
+     imported, or top-level types over arbitrary unique nested/file-local ones, and
+     decline a `file`-scoped type outside its defining file. Without this the tier
+     reintroduces the tier-4 failure keyed on type names instead of method names.
+   - Document the receiver-token limits: `receiver_before_identifier`
+     (`crates/julie-extract-cli/src/extraction.rs:479-505`) scans one bare token, so
+     `Cache<T>.Get` yields `None` and `foo.Bar.Baz` yields `Bar`. Generic receivers
+     decline; multi-hop receivers bind the intermediate token (51 of 6,086 call
+     sites, 26 of them targeting non-static signatures).
+   - Ship with `Constant` and `EnumMember` added to
+     `tier123_compatible_kinds(MemberAccess)` — they only pay off together.
+4. **Emit C# locals and parameters as symbols** — *not started, the only open slice.* with `parent_symbol_id`, and make
+   `infer_variable_type` real, distinguishing declared from inferred type facts.
+   This is the only slice that moves `variable_ref` (151k rows, 4.9%) and the
+   instance-receiver half of the tier-3 funnel. Largest slice; needs C# golden
+   fixtures and `capabilities.json` updates. Does not block slice 3.
+5. **Do not ship bare `Method`-at-tier-4.** Revisit only as a receiver-corroborated
+   rule with a measured precision gate, after slices 3 and 4 have absorbed the sites
+   that can be resolved correctly. Global name uniqueness alone is rejected.
+
+- **Contract and consumer impact:** every slice that changes observable output must
+  bump `RESOLUTION_VERSION` (:856) and account for full backfill on upgrade.
+  Downstream, Miller classifies *any* overlay target as exact regardless of tier
+  confidence (`ReferenceEvidenceReader.cs` in the Miller repo), so a 0.55-confidence
+  edge is presented to users as an exact reference — precision matters more than
+  recall here. `reference_sites.is_exact` / `provenance` attest span quality, not
+  target correctness (`docs/contracts/sqlite-schema-v5.md`); do not conflate them.
+- **Verification:** assert no `identifiers` row lacks an `identifier_resolutions`
+  row after a full pass, and prove full/delta idempotence. Rate comparisons measure
+  recall only — precision needs its own fixture evidence per the repo's data-quality
+  bar. Required adversarial fixtures: external receiver with no workspace type
+  (`Path.Combine` against an unrelated workspace `Combine`); **framework-homonym
+  receiver** (a workspace `NullLoggerFactory` referenced cross-file where the real
+  referent is the framework type); file-local type referenced outside its file;
+  nested-type homonym; overloads; overrides and inherited members; interface and
+  implementation pairs; partial classes; generic arity and generic static receivers;
+  multi-hop receivers; static enum and constant access; and local-shadows-type-name.
   The numbers above were measured 2026-07-27 on Miller's `.miller/symbols.db`
-  (`artifact-1785123621446275000`, binary_version 2.18.0, sqlite schema 5).
+  (binary_version 2.18.0, sqlite schema 5, head revision 104).

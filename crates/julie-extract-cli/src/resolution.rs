@@ -48,6 +48,10 @@ pub const CONFIDENCE_TIER2: f64 = 0.85;
 pub const CONFIDENCE_TIER3: f64 = 0.75;
 /// Tier-3 receiver-typed confidence when the receiver's `type_facts.is_inferred`.
 pub const CONFIDENCE_TIER3_INFERRED: f64 = 0.65;
+/// Tier-3 static-type-receiver confidence. Below a concrete type fact (0.75)
+/// because the binding rests on type-name uniqueness rather than a recorded type,
+/// and above tier 4 (0.55) because the receiver corroborates the target.
+pub const CONFIDENCE_TIER3_STATIC: f64 = 0.70;
 /// Tier-4 unique-language-global confidence.
 pub const CONFIDENCE_TIER4: f64 = 0.55;
 
@@ -55,6 +59,10 @@ pub const CONFIDENCE_TIER4: f64 = 0.55;
 pub const METHOD_TIER2: &str = "tier2_import";
 /// `method` string stamped on a tier-3 resolution.
 pub const METHOD_TIER3: &str = "tier3_receiver";
+/// `method` string stamped on a static-type-receiver resolution. Distinct from
+/// [`METHOD_TIER3`] because no `type_facts` row participates: reporting these as
+/// `tier3_receiver` would misattribute them to type-fact evidence.
+pub const METHOD_TIER3_STATIC: &str = "tier3_static_type";
 /// `method` string stamped on a tier-4 resolution.
 pub const METHOD_TIER4: &str = "tier4_global";
 
@@ -75,6 +83,23 @@ pub const METHOD_TIER4: &str = "tier4_global";
 /// language to this list without that fixture evidence is a data-quality-bar
 /// violation.
 pub const TIER2_IMPORT_LANGUAGES: &[&str] = &["typescript", "javascript"];
+
+/// Languages with fixture-proven `tier3_static_type` support.
+///
+/// The tier runs for every language — its refusals are language-agnostic and
+/// safe — but it can only *produce* an edge where the extractor supplies two
+/// facts beyond the receiver: `visibility` on the type symbol (so an unreachable
+/// same-named helper in another file is refused) and a standalone `static` word
+/// in the member signature (so an instance member a type name cannot reach is
+/// refused). Where either is missing the tier silently yields nothing —
+/// TypeScript emits neither, Python spells its modifier `@staticmethod`, and
+/// Rust associated functions carry no modifier at all — so membership here is
+/// the honesty gate that `reference_resolution.tier3_static_type` keys on.
+///
+/// Every entry requires a
+/// `fixtures/extraction/resolution_contract/<language>/static_type_receiver/`
+/// case; adding a language without one is a data-quality-bar violation.
+pub const TIER3_STATIC_TYPE_LANGUAGES: &[&str] = &["csharp"];
 
 /// Type-like symbol kinds: the target set for `uses`/`extends`/`implements`/type
 /// edges and identifier `type_usage` (design §"Resolution tiers", kind
@@ -97,7 +122,8 @@ const TYPE_LIKE_KINDS: &[SymbolKind] = &[
 
 /// Where an [`UnresolvedEdge`] came from. The origin selects the tier chain:
 /// pending rows run tiers 2→4 (tier 1 is already materialized), identifiers run a
-/// reduced chain with no tier 3 (no receiver context exists on identifiers today).
+/// reduced chain that skips tier 2 and reaches the receiver tiers only where the
+/// identifier actually carries a receiver. See [`applicable_tiers`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EdgeOrigin {
     /// A pending relationship row (`pending_relationships`).
@@ -190,6 +216,11 @@ pub struct UnresolvedEdge {
     /// Free-string import context recorded by the extractor. Corroborating
     /// evidence only, never the sole tier-2 key (design §"Resolution tiers").
     pub import_context: Option<String>,
+    /// The dotted qualification standing in front of `receiver`, when the source
+    /// wrote one: `Some.Namespace.Fixture.Create()` records `Some.Namespace`.
+    /// Tier 3b uses it to tell a fully-qualified reference to a workspace type
+    /// from a foreign type that merely shares its simple name.
+    pub receiver_qualifier: Option<String>,
     pub source_confidence: f64,
 }
 
@@ -207,6 +238,7 @@ impl UnresolvedEdge {
             receiver: item.target_receiver.clone(),
             caller_scope_symbol_id: item.caller_scope_symbol_id.clone(),
             import_context: item.target_import_context.clone(),
+            receiver_qualifier: namespace_path_qualifier(&item.target_namespace_json),
             source_confidence: item.confidence,
         })
     }
@@ -224,6 +256,7 @@ impl UnresolvedEdge {
             receiver: item.receiver.clone(),
             caller_scope_symbol_id: item.containing_symbol_id.clone(),
             import_context: item.import_context.clone(),
+            receiver_qualifier: item.receiver_qualifier.clone(),
             source_confidence: item.confidence,
         })
     }
@@ -266,6 +299,14 @@ pub struct CandidateSymbol {
     pub name: String,
     pub kind: SymbolKind,
     pub parent_symbol_id: Option<String>,
+    /// Declared visibility as the extractor recorded it. The static-type receiver
+    /// tier uses this to refuse cross-file bindings to non-public types, which is
+    /// what keeps a file-scoped homonym of a framework type from hijacking every
+    /// same-named reference in the workspace.
+    pub visibility: Option<String>,
+    /// Declaration signature, read by the static-type receiver tier to tell a
+    /// statically reachable member from an instance one.
+    pub signature: Option<String>,
 }
 
 /// A `type_facts` row: the resolved type of a symbol (receiver typing for tier 3).
@@ -427,6 +468,7 @@ enum Tier {
     Local,
     Import,
     Receiver,
+    StaticType,
     Global,
 }
 
@@ -435,7 +477,7 @@ impl Tier {
         match self {
             Tier::Local => 1,
             Tier::Import => 2,
-            Tier::Receiver => 3,
+            Tier::Receiver | Tier::StaticType => 3,
             Tier::Global => 4,
         }
     }
@@ -445,6 +487,7 @@ impl Tier {
             Tier::Local => METHOD_TIER1,
             Tier::Import => METHOD_TIER2,
             Tier::Receiver => METHOD_TIER3,
+            Tier::StaticType => METHOD_TIER3_STATIC,
             Tier::Global => METHOD_TIER4,
         }
     }
@@ -456,6 +499,13 @@ impl Tier {
 /// tier 2.
 pub fn tier2_enabled(language: &str) -> bool {
     TIER2_IMPORT_LANGUAGES.contains(&language)
+}
+
+/// Whether `language` has fixture-proven static-type-receiver support. Data-driven
+/// gate over [`TIER3_STATIC_TYPE_LANGUAGES`]; the capability snapshot records a
+/// `reference_resolution.tier3_static_type` gap for every language that fails it.
+pub fn tier3_static_type_proven(language: &str) -> bool {
+    TIER3_STATIC_TYPE_LANGUAGES.contains(&language)
 }
 
 // ---------------------------------------------------------------------------
@@ -536,14 +586,20 @@ fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
     match (edge.origin, edge.kind) {
         // Pending: full workspace chain (tier 4 disabled only for member_access).
         (Pending, Call | Instantiates | TypeUsage) => {
-            vec![Tier::Import, Tier::Receiver, Tier::Global]
+            vec![Tier::Import, Tier::Receiver, Tier::StaticType, Tier::Global]
         }
-        (Pending, MemberAccess) => vec![Tier::Import, Tier::Receiver],
+        (Pending, MemberAccess) => vec![Tier::Import, Tier::Receiver, Tier::StaticType],
         (Pending, VariableRef) => vec![],
         // `Instantiates` is not an identifier kind (never constructed) but is
         // covered for exhaustiveness.
-        (Identifier, Call | TypeUsage) => vec![Tier::Import, Tier::Global],
-        (Identifier, MemberAccess) if edge.receiver.is_some() => vec![Tier::Receiver],
+        (Identifier, Call | TypeUsage) => {
+            vec![Tier::Import, Tier::StaticType, Tier::Global]
+        }
+        // A member access with no receiver carries no context to resolve from, so
+        // it stays NoContext rather than being reported as a failed lookup.
+        (Identifier, MemberAccess) if edge.receiver.is_some() => {
+            vec![Tier::Receiver, Tier::StaticType]
+        }
         (Identifier, MemberAccess) => vec![],
         (Identifier, VariableRef) => vec![Tier::Local],
         (Identifier, Instantiates) => vec![],
@@ -559,8 +615,300 @@ fn tier_candidates(
         Tier::Local => tier1_candidates(edge, index),
         Tier::Import => tier2_candidates(edge, index),
         Tier::Receiver => tier3_candidates(edge, index),
+        Tier::StaticType => static_type_candidates(edge, index),
         Tier::Global => tier4_candidates(edge, index),
     }
+}
+
+/// Static-type receiver: the receiver names a type directly (`SomeEnum.Value`,
+/// `Fixture.Create()`) rather than a variable whose type must be inferred, so the
+/// member is read straight off that type's children.
+///
+/// [`resolve_receiver_symbols`] cannot bind these — it searches the caller's scope
+/// chain and then file top-level, and a referenced type usually lives in another
+/// file. This filter closes that gap without consulting `type_facts`.
+///
+/// Two refusals keep type-name uniqueness from becoming the tier-4 failure keyed on
+/// a different column. A workspace type whose simple name collides with an external
+/// one would otherwise hijack every same-named reference in the workspace:
+///
+/// * **Nested types never bind.** A nested `Foo.File` must not answer for `File.X`.
+/// * **Non-public types bind only inside their own file.** A file-scoped or private
+///   helper is unreachable from elsewhere, so a cross-file reference to that name
+///   means some other type. This deliberately over-refuses `internal` types, which
+///   costs recall and never produces a wrong edge.
+fn static_type_candidates(
+    edge: &UnresolvedEdge,
+    index: &WorkspaceCandidateIndex,
+) -> Vec<TierCandidate> {
+    let Some(receiver) = edge.receiver.as_deref() else {
+        return Vec::new();
+    };
+    if receiver.is_empty() {
+        return Vec::new();
+    }
+    if scope_binds_receiver_name(edge, receiver, index) {
+        return Vec::new();
+    }
+    let Some(type_symbol) = unique_type_symbol(index, receiver, &edge.language) else {
+        return Vec::new();
+    };
+    if !static_receiver_is_reachable(edge, type_symbol, index) {
+        return Vec::new();
+    }
+
+    let member_kinds = tier123_compatible_kinds(edge.kind);
+    let mut set: BTreeSet<String> = BTreeSet::new();
+    for member in index.children_named(&type_symbol.symbol_id, &edge.terminal_name) {
+        if member.language == edge.language
+            && member_kinds.contains(&member.kind)
+            && is_statically_reachable(member)
+        {
+            set.insert(member.symbol_id.clone());
+        }
+    }
+    set.into_iter()
+        .map(|symbol_id| TierCandidate {
+            symbol_id,
+            confidence: CONFIDENCE_TIER3_STATIC,
+        })
+        .collect()
+}
+
+/// Whether `member` can actually be reached through its type's name. Enum members
+/// and constants always can. Anything else has to say `static` in its signature —
+/// `Type.InstanceMethod()` does not compile, so binding it would claim evidence the
+/// source does not support. Languages that express associated items without a
+/// `static` keyword lose recall here rather than gaining wrong edges.
+fn is_statically_reachable(member: &CandidateSymbol) -> bool {
+    if matches!(
+        member.kind,
+        SymbolKind::EnumMember | SymbolKind::Constant | SymbolKind::Enum
+    ) {
+        return true;
+    }
+    member
+        .signature
+        .as_deref()
+        .is_some_and(contains_static_modifier)
+}
+
+/// `static` as a standalone word in the signature's *modifier prefix*.
+///
+/// Scanning the whole signature is unsound: an extractor puts parameters,
+/// field initializers, and expression bodies in there too, and any of them can
+/// contain the bare word — `public int Total => Kinds.Sum(static k => k.Total)`
+/// and `public string Kind = "static"` are both instance members. So the scan
+/// stops at the first `(`, `<`, `=`, `{`, or `"`, which is where modifiers can no
+/// longer appear, after skipping any leading attribute group.
+fn contains_static_modifier(signature: &str) -> bool {
+    modifier_prefix(signature)
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .any(|word| word == "static")
+}
+
+fn modifier_prefix(signature: &str) -> &str {
+    let declaration = strip_leading_attributes(signature);
+    let end = declaration
+        .find(['(', '<', '=', '{', '"'])
+        .unwrap_or(declaration.len());
+    &declaration[..end]
+}
+
+/// Skip balanced `[...]` groups leading the signature: C# and Java put
+/// annotations ahead of the modifiers, and an annotation argument can carry any
+/// text at all (`[Description("use the static form")]`).
+fn strip_leading_attributes(signature: &str) -> &str {
+    let mut rest = signature.trim_start();
+    while rest.starts_with('[') {
+        let mut depth = 0usize;
+        let mut close = None;
+        for (index, character) in rest.char_indices() {
+            match character {
+                '[' => depth += 1,
+                ']' => {
+                    depth = depth.saturating_sub(1);
+                    if depth == 0 {
+                        close = Some(index + character.len_utf8());
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        match close {
+            Some(index) => rest = rest[index..].trim_start(),
+            None => break,
+        }
+    }
+    rest
+}
+
+/// The dotted qualification a pending row recorded, from its stored
+/// `target_namespace_json` array. Empty arrays and unparseable values yield `None`
+/// — an absent qualifier means "unqualified", which is what an empty path means.
+fn namespace_path_qualifier(namespace_json: &str) -> Option<String> {
+    let segments: Vec<String> = serde_json::from_str(namespace_json).ok()?;
+    (!segments.is_empty()).then(|| segments.join("."))
+}
+
+/// The namespace a symbol is declared in, as a dotted path, by walking its
+/// ancestors. C# records one `Namespace` symbol whose own name may already be
+/// dotted (`namespace App.Deep;`), and block syntax can nest several.
+fn declared_namespace_path(symbol: &CandidateSymbol, index: &WorkspaceCandidateIndex) -> String {
+    let mut segments = Vec::new();
+    let mut next = symbol.parent_symbol_id.as_deref();
+    while let Some(parent_id) = next {
+        let Some(parent) = index.symbol_by_id(parent_id) else {
+            break;
+        };
+        if matches!(parent.kind, SymbolKind::Namespace | SymbolKind::Module) {
+            segments.push(parent.name.clone());
+        }
+        next = parent.parent_symbol_id.as_deref();
+    }
+    segments.reverse();
+    segments.join(".")
+}
+
+/// Whether an explicitly written qualification can name `type_symbol`.
+///
+/// A source qualification is a *suffix* of the full namespace path: inside
+/// `Miller.Server`, `Hosting.LeaderIdentityFile` and
+/// `Miller.Server.Hosting.LeaderIdentityFile` both name the same type. So the
+/// written qualifier has to match the tail of the declared path segment-for-
+/// segment. A qualifier naming anything else — `External.Fixture.Create()` — means
+/// a foreign type that merely shares the simple name, and must not bind.
+///
+/// `global::` is an alias for the root namespace, not a segment, so it is dropped
+/// before comparison.
+fn qualifier_matches_namespace(qualifier: &str, declared: &str) -> bool {
+    let written: Vec<&str> = qualifier
+        .split('.')
+        .filter(|segment| !segment.is_empty() && *segment != "global")
+        .collect();
+    if written.is_empty() {
+        return true;
+    }
+    let declared: Vec<&str> = declared
+        .split('.')
+        .flat_map(|part| part.split('.'))
+        .filter(|segment| !segment.is_empty())
+        .collect();
+    declared.len() >= written.len() && declared[declared.len() - written.len()..] == written[..]
+}
+
+/// Whether an enclosing callable declares a parameter named `receiver`.
+///
+/// Such a parameter shadows the type of the same name, so `Fixture.Create()` is an
+/// instance access on the parameter, not a static access on the type. Walks the
+/// scope chain through callables and stops at the first type-like ancestor — a
+/// class is not a binding scope for this purpose, and a record's primary
+/// constructor parameters are members reached through `this`, not shadowing locals.
+fn scope_binds_receiver_name(
+    edge: &UnresolvedEdge,
+    receiver: &str,
+    index: &WorkspaceCandidateIndex,
+) -> bool {
+    let mut next = edge.caller_scope_symbol_id.as_deref();
+    while let Some(scope_id) = next {
+        let Some(scope) = index.symbol_by_id(scope_id) else {
+            return false;
+        };
+        if is_type_like(&scope.kind) {
+            return false;
+        }
+        if let Some(signature) = scope.signature.as_deref()
+            && parameter_names(signature).any(|name| name == receiver)
+        {
+            return true;
+        }
+        next = scope.parent_symbol_id.as_deref();
+    }
+    false
+}
+
+/// The declared parameter names in a callable's signature: the contents of the
+/// first top-level `(...)`, split on top-level commas, each yielding the last
+/// identifier before any default value. Nesting-aware so
+/// `Dictionary<string, int> map` reads as one parameter.
+fn parameter_names(signature: &str) -> impl Iterator<Item = &str> {
+    let list = top_level_parameter_list(signature).unwrap_or("");
+    split_top_level(list, ',').filter_map(|parameter| {
+        let declaration = split_top_level(parameter, '=').next().unwrap_or(parameter);
+        declaration
+            .split(|c: char| !c.is_alphanumeric() && c != '_')
+            .rfind(|token| !token.is_empty())
+    })
+}
+
+fn top_level_parameter_list(signature: &str) -> Option<&str> {
+    let open = signature.find('(')?;
+    let mut depth = 0usize;
+    for (index, character) in signature[open..].char_indices() {
+        match character {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(&signature[open + 1..open + index]);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Split on `separator` only where no bracket is open, so generic arguments and
+/// nested calls stay inside the segment they belong to.
+fn split_top_level(text: &str, separator: char) -> impl Iterator<Item = &str> {
+    let mut segments = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for (index, character) in text.char_indices() {
+        match character {
+            '<' | '(' | '[' | '{' => depth += 1,
+            '>' | ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            _ if character == separator && depth == 0 => {
+                segments.push(&text[start..index]);
+                start = index + character.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    segments.push(&text[start..]);
+    segments.into_iter()
+}
+
+/// Whether `type_symbol` is a legitimate static receiver for a reference in
+/// `edge`'s file. See [`static_type_candidates`] for why each refusal exists.
+///
+/// "Nested" means enclosed by another *type*. A namespace or module parent does
+/// not nest a type — C# block-namespace syntax parents every type that way — so
+/// only a type-like parent disqualifies the receiver.
+fn static_receiver_is_reachable(
+    edge: &UnresolvedEdge,
+    type_symbol: &CandidateSymbol,
+    index: &WorkspaceCandidateIndex,
+) -> bool {
+    let nested_in_type = type_symbol
+        .parent_symbol_id
+        .as_deref()
+        .and_then(|parent| index.symbol_by_id(parent))
+        .is_some_and(|parent| is_type_like(&parent.kind));
+    if nested_in_type {
+        return false;
+    }
+    if let Some(qualifier) = edge.receiver_qualifier.as_deref()
+        && !qualifier_matches_namespace(qualifier, &declared_namespace_path(type_symbol, index))
+    {
+        return false;
+    }
+    if type_symbol.file_id == edge.file_id {
+        return true;
+    }
+    matches!(type_symbol.visibility.as_deref(), Some("public"))
 }
 
 fn tier1_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
@@ -803,9 +1151,16 @@ fn tier123_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
             SymbolKind::Constructor,
         ],
         ReferenceKind::TypeUsage => TYPE_LIKE_KINDS,
-        ReferenceKind::MemberAccess => {
-            &[SymbolKind::Property, SymbolKind::Field, SymbolKind::Method]
-        }
+        // `Constant` and `EnumMember` carry static member access (`SomeEnum.Value`,
+        // `Limits.Max`). Omitting them left those references unresolvable at every
+        // tier, since no other kind matches an enum case or a named constant.
+        ReferenceKind::MemberAccess => &[
+            SymbolKind::Property,
+            SymbolKind::Field,
+            SymbolKind::Method,
+            SymbolKind::Constant,
+            SymbolKind::EnumMember,
+        ],
         ReferenceKind::VariableRef => &[
             SymbolKind::Variable,
             SymbolKind::Constant,
@@ -855,7 +1210,7 @@ use rusqlite::{Connection, Transaction};
 
 /// Value stamped into `reference_resolution_version` metadata. Bump when the
 /// resolver's observable output contract changes so Miller can gate on it.
-pub const RESOLUTION_VERSION: i64 = 2;
+pub const RESOLUTION_VERSION: i64 = 3;
 
 /// `method` string stamped on an identifier filled from a tier-1 (extraction-time,
 /// same-file) `relationships` row. Tier 1 is materialized at extraction; the
@@ -986,16 +1341,16 @@ fn run_resolution(
     // co-location joins, so a delta scopes both to the files it touches (FINDING 1:
     // an O(delta) load rather than reloading every identifier each incremental
     // scan). A full pass loads the whole workspace.
-    let (locator, covered) = if effective_full {
+    let (locator, covered, scope_files) = if effective_full {
         let locator = IdentifierLocator::load_scoped(tx, None)?;
         let covered = covered_identifiers(tx, &index, &locator, None)?;
-        (locator, covered)
+        (locator, covered, Vec::new())
     } else {
         let files = delta_scope_files(tx, scope)?;
         let file_refs: Vec<&str> = files.iter().map(String::as_str).collect();
         let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
         let covered = covered_identifiers(tx, &index, &locator, Some(&file_refs))?;
-        (locator, covered)
+        (locator, covered, files)
     };
 
     let mut counts = ResolutionCounts::default();
@@ -1015,6 +1370,7 @@ fn run_resolution(
         resolve_delta(
             tx,
             scope,
+            &scope_files,
             &index,
             &locator,
             &covered,
@@ -1084,11 +1440,14 @@ fn resolve_full(
     // unresolved-pending fill) sees the demoted rows as unresolved — matches the
     // original immediate-demote ordering.
     buf.flush(tx)?;
+    // Read ownership *after* the demotion flush so an identifier whose pending was
+    // just demoted re-enters the recheck instead of keeping a stale target.
+    let propagation_covered = propagation_covered_identifiers(tx, index, locator, None)?;
     recheck_resolved_identifier_items(
         &mut buf,
         &resolution_store::worklist_resolved_identifiers(tx)?,
         index,
-        covered,
+        &propagation_covered,
         revision,
         counts,
         gated,
@@ -1103,14 +1462,14 @@ fn resolve_full(
     // 2. Propagate tier-1 (extraction-time, same-file) relationships workspace-wide.
     propagate_relationships(tx, &mut buf, index, locator, None, revision, counts)?;
     buf.flush(tx)?;
-    // 3. Generic identifier chain for every identifier with no pending/relationship
-    //    counterpart (the propagation-owned ones were just written or are covered).
+    // 3. Generic identifier chain for every identifier propagation did not resolve.
+    let owned = propagation_owned_identifiers(tx, covered)?;
     let identifiers = resolution_store::worklist_full_identifiers(tx)?;
     resolve_identifier_items(
         &mut buf,
         &identifiers,
         index,
-        covered,
+        &owned,
         revision,
         counts,
         gated,
@@ -1123,6 +1482,7 @@ fn resolve_full(
 fn resolve_delta(
     tx: &Transaction<'_>,
     scope: &ResolutionScopeInput,
+    scope_files: &[String],
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
     covered: &HashSet<String>,
@@ -1157,11 +1517,22 @@ fn resolve_delta(
     // Flush demotions so the resolved-identifier sweep and the unresolved-pending
     // fill worklists (both filter on the overlay tables) see them.
     buf.flush(tx)?;
+    // Read ownership *after* the demotion flush so an identifier whose pending was
+    // just demoted re-enters the recheck instead of keeping a stale target.
+    //
+    // Scoped to `scope_files`, not `files`: the recheck worklist below matches by
+    // name across the whole workspace, so an identifier in an UNCHANGED file can
+    // enter it. Reading ownership over changed files alone would leave that
+    // identifier looking unowned, and the generic chain would overwrite a correct
+    // propagated target. `scope_files` is the same set the locator was built from.
+    let ownership_files: Vec<&str> = scope_files.iter().map(String::as_str).collect();
+    let propagation_covered =
+        propagation_covered_identifiers(tx, index, locator, Some(&ownership_files))?;
     recheck_resolved_identifier_items(
         &mut buf,
         &resolution_store::worklist_resolved_identifiers_by_names(tx, &names)?,
         index,
-        covered,
+        &propagation_covered,
         revision,
         counts,
         gated,
@@ -1203,11 +1574,12 @@ fn resolve_delta(
             identifiers.push(item);
         }
     }
+    let owned = propagation_owned_identifiers(tx, covered)?;
     resolve_identifier_items(
         &mut buf,
         &identifiers,
         index,
-        covered,
+        &owned,
         revision,
         counts,
         gated,
@@ -1349,11 +1721,45 @@ fn resolve_identifier_items(
 ) -> rusqlite::Result<()> {
     for item in items {
         if covered.contains(&item.identifier_id) {
-            continue; // owned by pending/relationship propagation.
+            continue; // propagation already wrote this identifier's target.
         }
         record_identifier_edge(buf, item, index, revision, counts, gated)?;
     }
     Ok(())
+}
+
+/// Narrow a co-location set down to the identifiers propagation actually resolved.
+///
+/// [`covered_identifiers`] answers "is a pending/relationship edge sitting on this
+/// span", which is not the same question as "did that edge produce a target". When
+/// the covering edge failed, the identifier used to be skipped anyway and no
+/// `identifier_resolutions` row was written at all — so the site showed up as
+/// neither resolved nor missing, and the resolution report understated its own gap.
+///
+/// Run after the pending and propagation phases have flushed, so the overlay
+/// reflects this pass. Identifiers not returned here fall through to the generic
+/// identifier chain, whose kind compatibility differs from the pending chain's and
+/// can therefore still resolve some of them.
+fn propagation_owned_identifiers(
+    conn: &Connection,
+    covered: &HashSet<String>,
+) -> rusqlite::Result<HashSet<String>> {
+    let ids: Vec<&str> = covered.iter().map(String::as_str).collect();
+    let mut owned = HashSet::new();
+    for chunk in ids.chunks(FILE_QUERY_CHUNK) {
+        let sql = format!(
+            "SELECT identifier_id FROM identifier_resolutions \
+             WHERE outcome = 'resolved' AND identifier_id IN ({})",
+            placeholders(chunk.len())
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let params = rusqlite::params_from_iter(chunk.iter());
+        let rows = stmt.query_map(params, |row| row.get::<_, String>(0))?;
+        for row in rows {
+            owned.insert(row?);
+        }
+    }
+    Ok(owned)
 }
 
 /// Run the reduced identifier chain for one identifier and record its outcome
@@ -1542,7 +1948,8 @@ fn load_index(conn: &Connection) -> rusqlite::Result<WorkspaceCandidateIndex> {
 
 fn load_candidate_symbols(conn: &Connection) -> rusqlite::Result<Vec<CandidateSymbol>> {
     let mut stmt = conn.prepare(
-        "SELECT symbol_id, file_id, language, name, kind, parent_symbol_id \
+        "SELECT symbol_id, file_id, language, name, kind, parent_symbol_id, visibility, \
+                signature \
          FROM symbols ORDER BY symbol_id",
     )?;
     let rows = stmt.query_map([], |row| {
@@ -1553,11 +1960,14 @@ fn load_candidate_symbols(conn: &Connection) -> rusqlite::Result<Vec<CandidateSy
             row.get::<_, String>(3)?,
             row.get::<_, String>(4)?,
             row.get::<_, Option<String>>(5)?,
+            row.get::<_, Option<String>>(6)?,
+            row.get::<_, Option<String>>(7)?,
         ))
     })?;
     let mut out = Vec::new();
     for row in rows {
-        let (symbol_id, file_id, language, name, kind, parent_symbol_id) = row?;
+        let (symbol_id, file_id, language, name, kind, parent_symbol_id, visibility, signature) =
+            row?;
         // Skip rows whose kind string is not a known SymbolKind (Task 4 contract).
         let Some(kind) = SymbolKind::try_from_string(&kind) else {
             continue;
@@ -1569,6 +1979,8 @@ fn load_candidate_symbols(conn: &Connection) -> rusqlite::Result<Vec<CandidateSy
             name,
             kind,
             parent_symbol_id,
+            visibility,
+            signature,
         });
     }
     Ok(out)
@@ -1791,9 +2203,72 @@ fn placeholders(count: usize) -> String {
     vec!["?"; count].join(", ")
 }
 
+/// Identifier ids whose overlay a co-located edge currently owns: a relationship
+/// (always a materialized tier-1 edge) or a pending row that is resolved right
+/// now. Rechecking one of these would overwrite a span-propagated target with a
+/// weaker generic guess, and the pending recheck already demotes them when the
+/// covering edge goes stale.
+///
+/// This is deliberately narrower than [`covered_identifiers`]. An identifier
+/// merely *co-located* with a failed pending edge is owned by nobody, so it must
+/// stay in the recheck worklist — otherwise a generic resolution written on that
+/// span could never be demoted when the workspace changes under it.
+fn propagation_covered_identifiers(
+    conn: &Connection,
+    index: &WorkspaceCandidateIndex,
+    locator: &IdentifierLocator,
+    files: Option<&[&str]>,
+) -> rusqlite::Result<HashSet<String>> {
+    let mut covered = HashSet::new();
+
+    let pending = query_scoped_rows(
+        conn,
+        "file_id, target_terminal_name, start_byte, end_byte, start_line",
+        "pending_relationships pr \
+         JOIN pending_resolutions res \
+           ON res.pending_relationship_id = pr.pending_relationship_id",
+        files,
+        |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<i64>>(2)?,
+                row.get::<_, Option<i64>>(3)?,
+                row.get::<_, i64>(4)?,
+            ))
+        },
+    )?;
+    for (file_id, name, start_byte, end_byte, start_line) in pending {
+        if let Some(id) = locator.locate(&file_id, &name, start_byte, end_byte, start_line) {
+            covered.insert(id);
+        }
+    }
+
+    let relationships = query_scoped_rows(
+        conn,
+        "to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence",
+        "relationships",
+        files,
+        map_relationship_row,
+    )?;
+    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte, _) in relationships {
+        if ReferenceKind::from_relationship_kind(&kind).is_none() {
+            continue;
+        }
+        if let Some(name) = index.symbol_name(&to_symbol_id) {
+            let name = name.to_string();
+            if let Some(id) = locator.locate(&file_id, &name, start_byte, end_byte, start_line) {
+                covered.insert(id);
+            }
+        }
+    }
+    Ok(covered)
+}
+
 /// Identifier ids that are co-located with a pending row or a resolvable
-/// relationship — the propagation-owned identifiers. The generic identifier chain
-/// skips these so it never clobbers a span-propagated target with a weaker guess.
+/// relationship — the identifiers propagation *may* claim. Whether it actually
+/// did is a separate question, answered by [`propagation_owned_identifiers`]
+/// after the propagation phase and by [`propagation_covered_identifiers`] before it.
 fn covered_identifiers(
     conn: &Connection,
     index: &WorkspaceCandidateIndex,
@@ -2043,7 +2518,21 @@ mod tests {
             name: name.to_string(),
             kind,
             parent_symbol_id: None,
+            visibility: Some("public".to_string()),
+            signature: Some(format!("public static {name}")),
         }
+    }
+
+    fn instance_member(symbol: CandidateSymbol) -> CandidateSymbol {
+        CandidateSymbol {
+            signature: Some(format!("public {}", symbol.name)),
+            ..symbol
+        }
+    }
+
+    fn with_visibility(mut symbol: CandidateSymbol, visibility: &str) -> CandidateSymbol {
+        symbol.visibility = Some(visibility.to_string());
+        symbol
     }
 
     fn child(
@@ -2070,6 +2559,7 @@ mod tests {
             receiver: None,
             caller_scope_symbol_id: None,
             import_context: None,
+            receiver_qualifier: None,
             source_confidence: 1.0,
         }
     }
@@ -2558,6 +3048,491 @@ mod tests {
             }],
             vec![],
         )
+    }
+
+    // ---- static-type receiver ------------------------------------------
+
+    fn static_receiver_index(extra: Vec<CandidateSymbol>) -> WorkspaceCandidateIndex {
+        let mut symbols = vec![
+            sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+            child(
+                "create",
+                "Create",
+                SymbolKind::Method,
+                "csharp",
+                "modA",
+                "fixture",
+            ),
+        ];
+        symbols.extend(extra);
+        WorkspaceCandidateIndex::build(symbols, vec![], vec![])
+    }
+
+    fn static_call_edge(receiver: &str, terminal: &str) -> UnresolvedEdge {
+        let mut edge = ident_edge(ReferenceKind::Call, "csharp", "caller_file", terminal);
+        edge.receiver = Some(receiver.to_string());
+        edge
+    }
+
+    #[test]
+    fn static_type_receiver_resolves_call_across_files() {
+        let index = static_receiver_index(vec![]);
+        let (tier, conf, method, target) =
+            resolved(&resolve_one(&static_call_edge("Fixture", "Create"), &index));
+        assert_eq!(tier, 3);
+        assert_eq!(conf, CONFIDENCE_TIER3_STATIC);
+        assert_eq!(method, METHOD_TIER3_STATIC);
+        assert_eq!(target, "create");
+    }
+
+    #[test]
+    fn static_type_receiver_resolves_enum_member() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("color", "Color", SymbolKind::Enum, "csharp", "modA"),
+                child(
+                    "red",
+                    "Red",
+                    SymbolKind::EnumMember,
+                    "csharp",
+                    "modA",
+                    "color",
+                ),
+            ],
+            vec![],
+            vec![],
+        );
+        let mut edge = ident_edge(ReferenceKind::MemberAccess, "csharp", "caller_file", "Red");
+        edge.receiver = Some("Color".to_string());
+        let (_, _, method, target) = resolved(&resolve_one(&edge, &index));
+        assert_eq!(method, METHOD_TIER3_STATIC);
+        assert_eq!(target, "red");
+    }
+
+    #[test]
+    fn static_type_receiver_resolves_named_constant() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("limits", "Limits", SymbolKind::Class, "csharp", "modA"),
+                child(
+                    "max",
+                    "Max",
+                    SymbolKind::Constant,
+                    "csharp",
+                    "modA",
+                    "limits",
+                ),
+            ],
+            vec![],
+            vec![],
+        );
+        let mut edge = ident_edge(ReferenceKind::MemberAccess, "csharp", "caller_file", "Max");
+        edge.receiver = Some("Limits".to_string());
+        let (_, _, _, target) = resolved(&resolve_one(&edge, &index));
+        assert_eq!(target, "max");
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_non_public_type_from_another_file() {
+        // A file-scoped helper cannot be referenced from elsewhere, so a same-named
+        // reference in another file means some other (external) type. Binding it
+        // would be the framework-homonym wrong edge.
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                with_visibility(
+                    sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+                    "private",
+                ),
+                child(
+                    "create",
+                    "Create",
+                    SymbolKind::Method,
+                    "csharp",
+                    "modA",
+                    "fixture",
+                ),
+            ],
+            vec![],
+            vec![],
+        );
+        assert_eq!(
+            resolve_one(&static_call_edge("Fixture", "Create"), &index),
+            TierOutcome::Missing
+        );
+    }
+
+    #[test]
+    fn static_type_receiver_allows_non_public_type_within_its_own_file() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                with_visibility(
+                    sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+                    "private",
+                ),
+                child(
+                    "create",
+                    "Create",
+                    SymbolKind::Method,
+                    "csharp",
+                    "modA",
+                    "fixture",
+                ),
+            ],
+            vec![],
+            vec![],
+        );
+        let mut edge = static_call_edge("Fixture", "Create");
+        edge.file_id = "modA".to_string();
+        let (_, _, _, target) = resolved(&resolve_one(&edge, &index));
+        assert_eq!(target, "create");
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_nested_type() {
+        // A nested `Outer.File` must never answer for `File.ReadAllText`.
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("outer", "Outer", SymbolKind::Class, "csharp", "modA"),
+                child("file", "File", SymbolKind::Class, "csharp", "modA", "outer"),
+                child(
+                    "read",
+                    "ReadAllText",
+                    SymbolKind::Method,
+                    "csharp",
+                    "modA",
+                    "file",
+                ),
+            ],
+            vec![],
+            vec![],
+        );
+        assert_eq!(
+            resolve_one(&static_call_edge("File", "ReadAllText"), &index),
+            TierOutcome::Missing
+        );
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_instance_member() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+                instance_member(child(
+                    "create",
+                    "Create",
+                    SymbolKind::Method,
+                    "csharp",
+                    "modA",
+                    "fixture",
+                )),
+            ],
+            vec![],
+            vec![],
+        );
+        assert_eq!(
+            resolve_one(&static_call_edge("Fixture", "Create"), &index),
+            TierOutcome::Missing
+        );
+    }
+
+    #[test]
+    fn static_modifier_scan_stops_before_bodies_parameters_and_initializers() {
+        for signature in [
+            "public int TotalCount => Kinds.Sum(static kind => kind.TotalCount)",
+            "public IReadOnlyList<Gen> Deletions => [.. Decisions.Where(static d => d.Keep)]",
+            "public string Kind = \"static\"",
+            "private IEnumerable<Neighbour> Evidence(string id) => dir switch { _ => static F }",
+            "[Description(\"prefer the static form\")] public void Run()",
+        ] {
+            assert!(
+                !contains_static_modifier(signature),
+                "instance member must not read as static: {signature}"
+            );
+        }
+        for signature in [
+            "public static int Create()",
+            "public static Task<int> RunAsync<T>()",
+            "[McpServerTool(Name = \"pin\")] public static void Pin()",
+            "static make()",
+            "public static implicit operator Foo(Bar b)",
+        ] {
+            assert!(
+                contains_static_modifier(signature),
+                "static member must read as static: {signature}"
+            );
+        }
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_member_whose_body_contains_a_static_lambda() {
+        let mut member = child(
+            "total",
+            "TotalCount",
+            SymbolKind::Property,
+            "csharp",
+            "modA",
+            "fixture",
+        );
+        member.signature =
+            Some("public int TotalCount => Kinds.Sum(static kind => kind.TotalCount)".to_string());
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+                member,
+            ],
+            vec![],
+            vec![],
+        );
+        let mut edge = ident_edge(
+            ReferenceKind::MemberAccess,
+            "csharp",
+            "caller_file",
+            "TotalCount",
+        );
+        edge.receiver = Some("Fixture".to_string());
+        assert_eq!(resolve_one(&edge, &index), TierOutcome::Missing);
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_member_whose_signature_only_spells_static_inside_a_word() {
+        let mut member = child(
+            "create",
+            "Create",
+            SymbolKind::Method,
+            "csharp",
+            "modA",
+            "fixture",
+        );
+        member.signature = Some("public StaticFactory Create()".to_string());
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+                member,
+            ],
+            vec![],
+            vec![],
+        );
+        assert_eq!(
+            resolve_one(&static_call_edge("Fixture", "Create"), &index),
+            TierOutcome::Missing
+        );
+    }
+
+    #[test]
+    fn parameter_names_reads_declarations_not_types_or_defaults() {
+        assert_eq!(
+            parameter_names("public int Run(SomeOtherType Fixture)").collect::<Vec<_>>(),
+            vec!["Fixture"]
+        );
+        assert_eq!(
+            parameter_names("void F(Dictionary<string, int> map, int count = 10)")
+                .collect::<Vec<_>>(),
+            vec!["map", "count"]
+        );
+        assert_eq!(parameter_names("public int Run()").count(), 0);
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_receiver_shadowed_by_a_parameter() {
+        let mut caller = sym("run", "Run", SymbolKind::Method, "csharp", "caller_file");
+        caller.signature = Some("public int Run(SomeOtherType Fixture)".to_string());
+        let mut symbols = vec![
+            sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+            child(
+                "create",
+                "Create",
+                SymbolKind::Method,
+                "csharp",
+                "modA",
+                "fixture",
+            ),
+        ];
+        symbols.push(caller);
+        let index = WorkspaceCandidateIndex::build(symbols, vec![], vec![]);
+        let mut edge = static_call_edge("Fixture", "Create");
+        edge.caller_scope_symbol_id = Some("run".to_string());
+        assert_eq!(resolve_one(&edge, &index), TierOutcome::Missing);
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_a_foreign_qualifier_but_keeps_workspace_ones() {
+        let namespace = sym("ns", "App.Core", SymbolKind::Namespace, "csharp", "modA");
+        let mut type_symbol = sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA");
+        type_symbol.parent_symbol_id = Some("ns".to_string());
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                namespace,
+                type_symbol,
+                child(
+                    "create",
+                    "Create",
+                    SymbolKind::Method,
+                    "csharp",
+                    "modA",
+                    "fixture",
+                ),
+            ],
+            vec![],
+            vec![],
+        );
+        for qualifier in ["App.Core", "Core", "global.App.Core"] {
+            let mut edge = static_call_edge("Fixture", "Create");
+            edge.receiver_qualifier = Some(qualifier.to_string());
+            let (_, _, method, target) = resolved(&resolve_one(&edge, &index));
+            assert_eq!(
+                method, METHOD_TIER3_STATIC,
+                "{qualifier} names the workspace type"
+            );
+            assert_eq!(target, "create");
+        }
+        for qualifier in ["External", "Other.Core", "App.Other"] {
+            let mut edge = static_call_edge("Fixture", "Create");
+            edge.receiver_qualifier = Some(qualifier.to_string());
+            assert_eq!(
+                resolve_one(&edge, &index),
+                TierOutcome::Missing,
+                "{qualifier} names a foreign type"
+            );
+        }
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_external_receiver_with_no_workspace_type() {
+        let index = static_receiver_index(vec![sym(
+            "combine",
+            "Combine",
+            SymbolKind::Method,
+            "csharp",
+            "modB",
+        )]);
+        assert_eq!(
+            resolve_one(&static_call_edge("Path", "Combine"), &index),
+            TierOutcome::Missing
+        );
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_overloaded_member() {
+        let index = static_receiver_index(vec![child(
+            "create2",
+            "Create",
+            SymbolKind::Method,
+            "csharp",
+            "modA",
+            "fixture",
+        )]);
+        match resolve_one(&static_call_edge("Fixture", "Create"), &index) {
+            TierOutcome::Ambiguous { candidates } => {
+                assert_eq!(candidates, vec!["create", "create2"])
+            }
+            other => panic!("expected Ambiguous, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_ambiguous_type_name() {
+        let index = static_receiver_index(vec![sym(
+            "fixture2",
+            "Fixture",
+            SymbolKind::Class,
+            "csharp",
+            "modB",
+        )]);
+        assert_eq!(
+            resolve_one(&static_call_edge("Fixture", "Create"), &index),
+            TierOutcome::Missing
+        );
+    }
+
+    #[test]
+    fn static_type_receiver_refuses_cross_language_type() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("fixture", "Fixture", SymbolKind::Class, "rust", "modA"),
+                child(
+                    "create",
+                    "Create",
+                    SymbolKind::Method,
+                    "rust",
+                    "modA",
+                    "fixture",
+                ),
+            ],
+            vec![],
+            vec![],
+        );
+        assert_eq!(
+            resolve_one(&static_call_edge("Fixture", "Create"), &index),
+            TierOutcome::Missing
+        );
+    }
+
+    #[test]
+    fn concrete_type_fact_outranks_static_type_receiver() {
+        // Both tiers can answer; tier 3's type-fact evidence must win so the
+        // recorded confidence and method reflect the stronger signal.
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("caller", "callerFn", SymbolKind::Method, "csharp", "src"),
+                child(
+                    "svc",
+                    "Service",
+                    SymbolKind::Field,
+                    "csharp",
+                    "src",
+                    "caller",
+                ),
+                sym("typeA", "Service", SymbolKind::Class, "csharp", "modA"),
+                child(
+                    "member",
+                    "doWork",
+                    SymbolKind::Method,
+                    "csharp",
+                    "modA",
+                    "typeA",
+                ),
+            ],
+            vec![TypeFact {
+                symbol_id: "svc".to_string(),
+                resolved_type: "Service".to_string(),
+                is_inferred: false,
+            }],
+            vec![],
+        );
+        let mut edge = pending_edge(ReferenceKind::Call, "csharp", "src", "doWork");
+        edge.receiver = Some("Service".to_string());
+        edge.caller_scope_symbol_id = Some("caller".to_string());
+        let (tier, conf, method, _) = resolved(&resolve_one(&edge, &index));
+        assert_eq!(tier, 3);
+        assert_eq!(conf, CONFIDENCE_TIER3);
+        assert_eq!(method, METHOD_TIER3);
+    }
+
+    #[test]
+    fn static_type_receiver_outranks_global_uniqueness() {
+        let index = static_receiver_index(vec![sym(
+            "free",
+            "Create",
+            SymbolKind::Function,
+            "csharp",
+            "modB",
+        )]);
+        let (_, _, method, target) =
+            resolved(&resolve_one(&static_call_edge("Fixture", "Create"), &index));
+        assert_eq!(method, METHOD_TIER3_STATIC);
+        assert_eq!(target, "create");
+    }
+
+    #[test]
+    fn member_access_without_receiver_stays_no_context() {
+        let index = static_receiver_index(vec![]);
+        let edge = ident_edge(
+            ReferenceKind::MemberAccess,
+            "csharp",
+            "caller_file",
+            "Create",
+        );
+        assert_eq!(resolve_one(&edge, &index), TierOutcome::NoContext);
     }
 
     // ---- reduced identifier chains -------------------------------------

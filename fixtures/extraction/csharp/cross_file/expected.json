@@ -32,6 +32,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/csharp/cross_file/Source.cs:Fixture:9:0",
+      "name": "Fixture",
+      "kind": "namespace",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/cross_file/Source.cs",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 18,
+      "start_byte": 344,
+      "end_byte": 362,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "namespace Fixture",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/csharp/cross_file/Source.cs:LocalHelper:19:4",
       "name": "LocalHelper",
       "kind": "method",
@@ -110,7 +134,7 @@
       "signature": "public class Source",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/cross_file/Source.cs:Fixture:9:0",
       "metadata": {
         "csharp_visibility": "public"
       },

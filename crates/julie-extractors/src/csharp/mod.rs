@@ -206,8 +206,24 @@ impl CSharpExtractor {
             return;
         };
         let mut cursor = node.walk();
+        let mut sibling_parent_id = current_parent_id;
         for child in node.children(&mut cursor) {
-            self.walk_tree(child, symbols, current_parent_id.clone(), child_depth);
+            // `namespace App.X;` is a preamble, not a container: the grammar leaves
+            // the declarations it governs as its following siblings. Adopt it as the
+            // parent for the rest of this level so file-scoped syntax nests its types
+            // exactly the way block syntax does.
+            if child.kind() == "file_scoped_namespace_declaration" {
+                let before = symbols.len();
+                self.walk_tree(child, symbols, sibling_parent_id.clone(), child_depth);
+                if let Some(namespace) = symbols[before..]
+                    .iter()
+                    .find(|symbol| symbol.kind == SymbolKind::Namespace)
+                {
+                    sibling_parent_id = Some(namespace.id.clone());
+                }
+                continue;
+            }
+            self.walk_tree(child, symbols, sibling_parent_id.clone(), child_depth);
         }
     }
 
@@ -218,7 +234,9 @@ impl CSharpExtractor {
         parent_id: Option<String>,
     ) -> Option<Symbol> {
         match node.kind() {
-            "namespace_declaration" => types::extract_namespace(&mut self.base, node, parent_id),
+            "namespace_declaration" | "file_scoped_namespace_declaration" => {
+                types::extract_namespace(&mut self.base, node, parent_id)
+            }
             "using_directive" => types::extract_using(&mut self.base, node, parent_id),
             "class_declaration" => types::extract_class(&mut self.base, node, parent_id),
             "interface_declaration" => types::extract_interface(&mut self.base, node, parent_id),

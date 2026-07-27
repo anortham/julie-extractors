@@ -189,6 +189,7 @@ pub struct IdentifierWorkItem {
     pub end_byte: i64,
     pub code_context: Option<String>,
     pub receiver: Option<String>,
+    pub receiver_qualifier: Option<String>,
     pub import_context: Option<String>,
     pub confidence: f64,
 }
@@ -665,6 +666,7 @@ const PENDING_COLUMNS: &str = "pr.pending_relationship_id, pr.from_symbol_id, \
 const IDENTIFIER_COLUMNS: &str = "i.identifier_id, i.file_id, i.path, i.language, \
      i.name, i.kind, i.containing_symbol_id, i.start_line, i.start_byte, \
      i.end_byte, i.code_context, json_extract(i.metadata_json, '$.receiver'), \
+     json_extract(i.metadata_json, '$.receiver_qualifier'), \
      json_extract(i.metadata_json, '$.import_context'), i.confidence";
 
 fn map_pending(row: &rusqlite::Row<'_>) -> rusqlite::Result<PendingWorkItem> {
@@ -702,8 +704,9 @@ fn map_identifier(row: &rusqlite::Row<'_>) -> rusqlite::Result<IdentifierWorkIte
         end_byte: row.get(9)?,
         code_context: row.get(10)?,
         receiver: row.get(11)?,
-        import_context: row.get(12)?,
-        confidence: row.get(13)?,
+        receiver_qualifier: row.get(12)?,
+        import_context: row.get(13)?,
+        confidence: row.get(14)?,
     })
 }
 
@@ -909,16 +912,22 @@ pub fn worklist_resolved_identifiers_by_names(
         |item: &ResolvedIdentifierWorkItem| item.identifier.identifier_id.clone(),
         |chunk| {
             let ph = placeholders(chunk.len());
+            // Matches the pending worklist: a resolution can hang off the receiver
+            // as much as the member, so touching only the receiver's type name has
+            // to sweep the row. Keying on `i.name` alone left `Color.Red` claiming
+            // an exact target after a second `Color` appeared.
             let sql = format!(
                 "SELECT {IDENTIFIER_COLUMNS}, r.target_symbol_id, r.tier, r.confidence, r.method, \
                         r.outcome, r.candidates \
                  FROM identifier_resolutions r \
                  JOIN identifiers i ON i.identifier_id = r.identifier_id \
                  WHERE i.name IN ({ph}) \
+                    OR json_extract(i.metadata_json, '$.receiver') IN ({ph}) \
                  ORDER BY i.identifier_id"
             );
+            let bind = chunk.iter().chain(chunk.iter());
             let mut stmt = conn.prepare(&sql)?;
-            stmt.query_map(params_from_iter(chunk.iter()), map_resolved_identifier)?
+            stmt.query_map(params_from_iter(bind), map_resolved_identifier)?
                 .collect::<Result<Vec<_>, _>>()
         },
     )
@@ -963,22 +972,22 @@ pub fn worklist_full_identifiers(conn: &Connection) -> rusqlite::Result<Vec<Iden
 fn map_resolved_identifier(
     row: &rusqlite::Row<'_>,
 ) -> rusqlite::Result<ResolvedIdentifierWorkItem> {
-    let outcome_str: String = row.get(18)?;
+    let outcome_str: String = row.get(19)?;
     let outcome = Outcome::parse(&outcome_str).ok_or_else(|| {
         rusqlite::Error::FromSqlConversionFailure(
-            18,
+            19,
             rusqlite::types::Type::Text,
             format!("unknown identifier resolution outcome: {outcome_str}").into(),
         )
     })?;
     Ok(ResolvedIdentifierWorkItem {
         identifier: map_identifier(row)?,
-        target_symbol_id: row.get(14)?,
-        tier: row.get(15)?,
-        confidence: row.get(16)?,
-        method: row.get(17)?,
+        target_symbol_id: row.get(15)?,
+        tier: row.get(16)?,
+        confidence: row.get(17)?,
+        method: row.get(18)?,
         outcome,
-        candidates: row.get(19)?,
+        candidates: row.get(20)?,
     })
 }
 

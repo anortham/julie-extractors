@@ -174,6 +174,19 @@ fn identifier_receivers(db: &Path, name: &str, kind: &str) -> Vec<String> {
         .unwrap()
 }
 
+/// How many `name`/`kind` reference sites resolved to a target, when the same
+/// name appears at several sites and only some of them may legitimately bind.
+fn resolved_identifier_count(db: &Path, name: &str, kind: &str) -> i64 {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT COUNT(*) FROM identifiers \
+         WHERE name = ?1 AND kind = ?2 AND target_symbol_id IS NOT NULL",
+        [name, kind],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
 /// Whether the identifier `name` has a non-NULL denormalized target — i.e. it
 /// resolved to exactly one symbol.
 fn identifier_has_target(db: &Path, name: &str) -> bool {
@@ -322,6 +335,87 @@ fn tier3_receiver_typed_resolves_csharp() {
 }
 
 #[test]
+fn static_type_receiver_resolves_csharp_across_files() {
+    let (_t, db) = scan_fixture("csharp/static_type_receiver");
+    let call = resolved_identifier_of_kind(&db, "Create", "call")
+        .expect("static-type call resolves from another file");
+    assert_eq!(call.tier, 3);
+    assert_eq!(call.method, "tier3_static_type");
+    // Capped by the reference site's own confidence, so assert the band the tier
+    // guarantees rather than the constant: stronger than global uniqueness,
+    // never stronger than a concrete type fact.
+    assert!(
+        call.confidence > 0.55 && call.confidence <= 0.75,
+        "static-type confidence {} must rank between tier 4 and concrete tier 3",
+        call.confidence
+    );
+    assert_eq!(
+        identifier_receiver(&db, "Create", "call").as_deref(),
+        Some("Fixture")
+    );
+
+    let enum_member = resolved_identifier_of_kind(&db, "Red", "member_access")
+        .expect("enum member access resolves through its enum type");
+    assert_eq!(enum_member.method, "tier3_static_type");
+
+    let constant = resolved_identifier_of_kind(&db, "Max", "member_access")
+        .expect("named constant resolves through its declaring type");
+    assert_eq!(constant.method, "tier3_static_type");
+}
+
+#[test]
+fn static_type_receiver_binds_only_qualifications_that_name_the_workspace_type() {
+    let (_t, db) = scan_fixture("csharp/static_type_qualifier");
+    assert_eq!(
+        resolved_identifier_count(&db, "Create", "call"),
+        3,
+        "the three suffix-matching qualifications bind; the foreign one and the \
+         parameter-shadowed one do not"
+    );
+    for qualifier in ["App.Core", "Core", "global.App.Core"] {
+        assert!(
+            call_with_qualifier_resolved(&db, qualifier),
+            "{qualifier} names the workspace type and must bind"
+        );
+    }
+    assert!(
+        !call_with_qualifier_resolved(&db, "External"),
+        "a foreign qualification must never bind the workspace type"
+    );
+}
+
+fn call_with_qualifier_resolved(db: &Path, qualifier: &str) -> bool {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT target_symbol_id FROM identifiers \
+         WHERE name = 'Create' AND kind = 'call' \
+           AND json_extract(metadata_json, '$.receiver_qualifier') = ?1",
+        [qualifier],
+        |row| row.get::<_, Option<String>>(0),
+    )
+    .optional()
+    .unwrap()
+    .flatten()
+    .is_some()
+}
+
+#[test]
+fn static_type_receiver_refuses_file_scoped_homonym_across_files() {
+    let (_t, db) = scan_fixture("csharp/static_type_homonym");
+    let receivers = identifier_receivers(&db, "Instance", "member_access");
+    assert_eq!(
+        receivers.len(),
+        2,
+        "both files reference the same simple name"
+    );
+    assert_eq!(
+        resolved_identifier_count(&db, "Instance", "member_access"),
+        1,
+        "only the reference inside the declaring file may bind to a file-scoped type"
+    );
+}
+
+#[test]
 fn tier1_same_file_variable_ref_beats_same_name_in_another_file() {
     let (_t, db) = scan_fixture("javascript/tier1_variable_ref");
     let res = resolved_identifier_of_kind(&db, "counter", "variable_ref")
@@ -460,6 +554,30 @@ fn tier1_and_tier4_resolve_across_representative_languages() {
 /// suite (so they legitimately carry no `tier2_import` gap).
 const TIER2_FIXTURE_LANGUAGES: &[&str] = &["typescript", "javascript"];
 
+/// Languages whose static-type-receiver contract is proven by a passing fixture in
+/// this suite. Bound to the production allowlist so the two cannot drift.
+const TIER3_STATIC_TYPE_LANGUAGES: &[&str] =
+    julie_extract_cli::resolution::TIER3_STATIC_TYPE_LANGUAGES;
+
+#[test]
+fn every_static_type_language_ships_a_proving_fixture() {
+    let missing: Vec<&str> = TIER3_STATIC_TYPE_LANGUAGES
+        .iter()
+        .copied()
+        .filter(|language| {
+            !fixture_base()
+                .join(language)
+                .join("static_type_receiver")
+                .is_dir()
+        })
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "TIER3_STATIC_TYPE_LANGUAGES claims support without a \
+         resolution_contract/<language>/static_type_receiver fixture: {missing:?}"
+    );
+}
+
 /// One gated tier's parity obligation for a language: satisfied by a proving
 /// fixture (allowlist) OR a recorded capability gap.
 fn gated_cell_satisfied(
@@ -502,6 +620,19 @@ fn per_language_tier_parity_guard() {
         // fixture). The gap is the parity surface here.
         if !gap_recorded(&db, language, "reference_resolution.tier3_receiver") {
             violations.push(format!("{language}: tier3 — no recorded gap"));
+        }
+        // Tier 3b (static type receiver): fixture-proven for the languages whose
+        // extractor emits type visibility and a standalone `static` modifier,
+        // otherwise a recorded `tier3_static_type` gap.
+        if !gated_cell_satisfied(
+            &db,
+            language,
+            "reference_resolution.tier3_static_type",
+            TIER3_STATIC_TYPE_LANGUAGES,
+        ) {
+            violations.push(format!(
+                "{language}: tier3_static_type — neither fixture nor recorded gap"
+            ));
         }
     }
 

@@ -99,6 +99,11 @@ pub(crate) fn artifact_capability_snapshot() -> ArtifactCapabilitySnapshot {
 ///   because receiver-typed resolution coverage is bounded by per-language
 ///   `type_facts` emission today (broadened by follow-on F2); the tier ships with
 ///   its measured coverage rather than a completeness claim.
+/// * `reference_resolution.tier3_static_type` is recorded as a gap for every
+///   language without fixture-proven static-receiver support
+///   ([`crate::resolution::tier3_static_type_proven`] is the gate). The tier runs
+///   everywhere, but only yields edges where the extractor emits type `visibility`
+///   and a standalone `static` member modifier.
 fn reference_resolution_gaps(language: &str) -> Vec<ArtifactLanguageCapabilityGapRow> {
     let mut gaps = Vec::new();
     if !crate::resolution::tier2_enabled(language) {
@@ -135,6 +140,29 @@ fn reference_resolution_gaps(language: &str) -> Vec<ArtifactLanguageCapabilityGa
             "planned_closure_task": "F2",
         }),
     });
+    if !crate::resolution::tier3_static_type_proven(language) {
+        gaps.push(ArtifactLanguageCapabilityGapRow {
+            gap_id: format!("{language}:reference_resolution.tier3_static_type"),
+            capability: "reference_resolution.tier3_static_type".to_string(),
+            status: CapabilityGapStatus::Open,
+            reason: "static-type-receiver resolution has no fixture-proven contract for \
+                     this language: the tier only yields an edge where the extractor \
+                     emits visibility on the type symbol and a standalone `static` word \
+                     in the member signature, and neither is verified here"
+                .to_string(),
+            required_closure: "emit type visibility and a language-native static member \
+                               modifier for this language, then register a \
+                               fixtures/extraction/resolution_contract/<language>/\
+                               static_type_receiver/ case and add it to \
+                               TIER3_STATIC_TYPE_LANGUAGES"
+                .to_string(),
+            evidence: json!({
+                "tier": 3,
+                "method": crate::resolution::METHOD_TIER3_STATIC,
+                "planned_closure_task": "F2",
+            }),
+        });
+    }
     gaps
 }
 
