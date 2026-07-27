@@ -1,4 +1,10 @@
-use std::time::Duration;
+//! Structural batching contract for `ArtifactWriter`: one commit per write and
+//! every child row family persisted at scale.
+//!
+//! These assertions are deliberately hardware-independent. Wall-clock budgets
+//! live in the feature-gated `writer_perf.rs` harness, never here — a timing
+//! assertion in the default suite fails on whichever runner happens to be slow
+//! that day, which is exactly what it did on shared CI while passing locally.
 
 use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
@@ -8,15 +14,13 @@ use julie_extract_artifact::model::{
 use julie_extract_artifact::writer::ArtifactWriter;
 
 #[test]
-fn tiny_fixture_batch_uses_one_commit_and_stays_inside_tripwire_budget() {
+fn tiny_fixture_batch_persists_every_file_in_one_commit() {
     let mut writer = ArtifactWriter::open_in_memory(metadata()).unwrap();
     let files = (0..250)
         .map(|index| file_with_symbol(index, 2))
         .collect::<Vec<_>>();
 
-    let started = std::time::Instant::now();
     let result = writer.write_scan(revision(), &files).unwrap();
-    let elapsed = started.elapsed();
 
     assert_eq!(
         result.transactions_committed, 1,
@@ -25,20 +29,14 @@ fn tiny_fixture_batch_uses_one_commit_and_stays_inside_tripwire_budget() {
     assert_eq!(result.files_changed, 250);
     assert_eq!(result.rows_written.files, 250);
     assert_eq!(result.rows_written.symbols, 500);
-    assert!(
-        elapsed < Duration::from_millis(750),
-        "tiny fixture writer tripwire exceeded budget: {elapsed:?}"
-    );
 }
 
 #[test]
-fn child_row_batch_avoids_per_file_statement_prepare_overhead() {
+fn child_row_batch_persists_every_child_row_family_in_one_commit() {
     let mut writer = ArtifactWriter::open_in_memory(metadata()).unwrap();
     let files = (0..3_000).map(file_with_child_rows).collect::<Vec<_>>();
 
-    let started = std::time::Instant::now();
     let result = writer.write_scan(revision(), &files).unwrap();
-    let elapsed = started.elapsed();
 
     assert_eq!(result.transactions_committed, 1);
     assert_eq!(result.files_changed, 3_000);
@@ -49,10 +47,6 @@ fn child_row_batch_avoids_per_file_statement_prepare_overhead() {
     assert_eq!(result.rows_written.pending_relationships, 12_000);
     assert_eq!(result.rows_written.type_facts, 9_000);
     assert_eq!(result.rows_written.complexity_metrics, 9_000);
-    assert!(
-        elapsed < Duration::from_millis(1_750),
-        "child-row writer tripwire exceeded budget: {elapsed:?}"
-    );
 }
 
 fn metadata() -> ArtifactMetadata {
