@@ -468,19 +468,24 @@ CREATE INDEX IF NOT EXISTS idx_symbols_test_lifecycle ON symbols(test_lifecycle)
 CREATE INDEX IF NOT EXISTS idx_reference_sites_file ON reference_sites(file_id);
 CREATE INDEX IF NOT EXISTS idx_reference_sites_span
   ON reference_sites(file_id, start_byte, end_byte);
+CREATE INDEX IF NOT EXISTS idx_reference_sites_containing_symbol
+  ON reference_sites(containing_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_path ON identifiers(path);
 CREATE INDEX IF NOT EXISTS idx_identifiers_file ON identifiers(file_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_name_kind ON identifiers(name, kind);
 CREATE INDEX IF NOT EXISTS idx_identifiers_containing ON identifiers(containing_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_target ON identifiers(target_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_identifiers_reference_site ON identifiers(reference_site_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_from ON relationships(from_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_to ON relationships(to_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_kind ON relationships(kind);
 CREATE INDEX IF NOT EXISTS idx_relationships_file ON relationships(file_id);
+CREATE INDEX IF NOT EXISTS idx_relationships_reference_site ON relationships(reference_site_id);
 CREATE INDEX IF NOT EXISTS idx_pending_terminal ON pending_relationships(target_terminal_name);
 CREATE INDEX IF NOT EXISTS idx_pending_file ON pending_relationships(file_id);
 CREATE INDEX IF NOT EXISTS idx_pending_from ON pending_relationships(from_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_pending_caller_scope ON pending_relationships(caller_scope_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_pending_reference_site ON pending_relationships(reference_site_id);
 CREATE INDEX IF NOT EXISTS idx_type_facts_symbol ON type_facts(symbol_id);
 CREATE INDEX IF NOT EXISTS idx_symbol_annotations_symbol ON symbol_annotations(symbol_id);
 CREATE INDEX IF NOT EXISTS idx_type_argument_usages_identifier ON type_argument_usages(identifier_id);
@@ -488,6 +493,7 @@ CREATE INDEX IF NOT EXISTS idx_type_argument_usages_file ON type_argument_usages
 CREATE INDEX IF NOT EXISTS idx_type_arguments_usage ON type_arguments(usage_id);
 CREATE INDEX IF NOT EXISTS idx_type_arguments_parent ON type_arguments(parent_type_argument_id);
 CREATE INDEX IF NOT EXISTS idx_literals_file ON literals(file_id);
+CREATE INDEX IF NOT EXISTS idx_literals_containing_symbol ON literals(containing_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_source_regions_file_span ON source_regions(file_id, start_byte, end_byte);
 CREATE INDEX IF NOT EXISTS idx_source_regions_export_order ON source_regions(path, start_byte, end_byte, kind, source_region_id);
 CREATE INDEX IF NOT EXISTS idx_source_regions_kind_file ON source_regions(kind, file_id, start_byte);
@@ -505,4 +511,5 @@ CREATE INDEX IF NOT EXISTS idx_diagnostics_file ON parse_diagnostics(file_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_file_line_name ON identifiers(file_id, start_line, name);
 CREATE INDEX IF NOT EXISTS idx_pending_resolutions_target ON pending_resolutions(target_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_identifier_resolutions_target ON identifier_resolutions(target_symbol_id);
+CREATE INDEX IF NOT EXISTS idx_language_capability_gaps_language ON language_capability_gaps(language);
 "#;

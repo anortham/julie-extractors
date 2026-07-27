@@ -259,12 +259,58 @@ fn query_plan_uses_required_writer_delete_indexes() {
             "SEARCH files USING INDEX",
             "path=?",
             "idx_symbols_file",
+            "idx_reference_sites_file",
             "idx_identifiers_file",
             "idx_relationships_file",
             "idx_pending_file",
             "idx_type_argument_usages_file",
             "idx_structural_facts_file_span",
         ],
+    );
+}
+
+#[test]
+fn mutable_foreign_keys_have_leading_indexes() {
+    let conn = open_schema();
+    let tables = conn
+        .prepare(
+            "SELECT name FROM sqlite_master
+             WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+             ORDER BY name",
+        )
+        .unwrap()
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let mut missing = Vec::new();
+
+    for table in tables {
+        let indexed_first_columns = indexed_first_columns(&conn, &table);
+        let mut statement = conn
+            .prepare(&format!("PRAGMA foreign_key_list({table})"))
+            .unwrap();
+        let foreign_keys = statement
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(3)?, row.get::<_, String>(6)?))
+            })
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        for (column, delete_action) in foreign_keys {
+            if matches!(delete_action.as_str(), "CASCADE" | "SET NULL")
+                && !indexed_first_columns.contains(&column)
+            {
+                missing.push(format!("{table}.{column} ({delete_action})"));
+            }
+        }
+    }
+
+    assert!(
+        missing.is_empty(),
+        "mutable foreign keys without a leading index: {}",
+        missing.join(", ")
     );
 }
 
@@ -469,6 +515,23 @@ fn index_columns(conn: &Connection, index: &str) -> Vec<String> {
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap()
+}
+
+fn indexed_first_columns(conn: &Connection, table: &str) -> BTreeSet<String> {
+    let mut statement = conn
+        .prepare(&format!("PRAGMA index_list({table})"))
+        .unwrap_or_else(|err| panic!("failed to inspect indexes for {table}: {err}"));
+    statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .unwrap()
+        .map(|index| {
+            let index = index.unwrap();
+            index_columns(conn, &index)
+                .into_iter()
+                .next()
+                .unwrap_or_else(|| panic!("index {index} has no columns"))
+        })
+        .collect()
 }
 
 fn assert_query_uses_index<const N: usize>(
@@ -963,6 +1026,21 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             columns: vec!["test_lifecycle"],
         },
         ExpectedIndex {
+            name: "idx_reference_sites_file",
+            table: "reference_sites",
+            columns: vec!["file_id"],
+        },
+        ExpectedIndex {
+            name: "idx_reference_sites_span",
+            table: "reference_sites",
+            columns: vec!["file_id", "start_byte", "end_byte"],
+        },
+        ExpectedIndex {
+            name: "idx_reference_sites_containing_symbol",
+            table: "reference_sites",
+            columns: vec!["containing_symbol_id"],
+        },
+        ExpectedIndex {
             name: "idx_identifiers_path",
             table: "identifiers",
             columns: vec!["path"],
@@ -988,6 +1066,11 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             columns: vec!["target_symbol_id"],
         },
         ExpectedIndex {
+            name: "idx_identifiers_reference_site",
+            table: "identifiers",
+            columns: vec!["reference_site_id"],
+        },
+        ExpectedIndex {
             name: "idx_relationships_from",
             table: "relationships",
             columns: vec!["from_symbol_id"],
@@ -1008,6 +1091,11 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             columns: vec!["file_id"],
         },
         ExpectedIndex {
+            name: "idx_relationships_reference_site",
+            table: "relationships",
+            columns: vec!["reference_site_id"],
+        },
+        ExpectedIndex {
             name: "idx_pending_terminal",
             table: "pending_relationships",
             columns: vec!["target_terminal_name"],
@@ -1026,6 +1114,11 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_pending_caller_scope",
             table: "pending_relationships",
             columns: vec!["caller_scope_symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_pending_reference_site",
+            table: "pending_relationships",
+            columns: vec!["reference_site_id"],
         },
         ExpectedIndex {
             name: "idx_type_facts_symbol",
@@ -1061,6 +1154,11 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_literals_file",
             table: "literals",
             columns: vec!["file_id"],
+        },
+        ExpectedIndex {
+            name: "idx_literals_containing_symbol",
+            table: "literals",
+            columns: vec!["containing_symbol_id"],
         },
         ExpectedIndex {
             name: "idx_source_regions_file_span",
@@ -1160,6 +1258,11 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_identifier_resolutions_target",
             table: "identifier_resolutions",
             columns: vec!["target_symbol_id"],
+        },
+        ExpectedIndex {
+            name: "idx_language_capability_gaps_language",
+            table: "language_capability_gaps",
+            columns: vec!["language"],
         },
     ]
 }
