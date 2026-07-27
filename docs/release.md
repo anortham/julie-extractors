@@ -172,9 +172,20 @@ Historical v0.1.0 dogfood evidence: `docs/release-evidence/v0.1.0-dogfood.md`.
 Historical v0.1.0 release-candidate audit evidence:
 `docs/release-evidence/2026-06-01-v0-1-0-release-candidate-audit.md`.
 
-Current published release: `v2.17.0`.
+Current published release: `v2.19.0`.
 
 Current release notes and published evidence:
+
+- `docs/release-notes/v2.19.0.md`
+- `docs/release-evidence/2026-07-27-v2-19-0-release.md`
+
+Historical v2.18.0 release notes:
+
+- `docs/release-notes/v2.18.0.md`
+- No evidence document was recorded for v2.18.0, and this pointer list was not
+  advanced past v2.17.0 at the time. Both are closed from v2.19.0 onward.
+
+Historical v2.17.0 release notes:
 
 - `docs/release-notes/v2.17.0.md`
 - `docs/release-evidence/2026-07-24-v2-17-0-release.md`
