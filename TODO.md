@@ -340,3 +340,66 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
   `cargo test -p julie-extractors --release pipeline::tests::parser_setup_profile_reports_reuse_baseline -- --ignored --nocapture`.
   The temporary profiler/test scaffolding was removed after recording the
   evidence.
+
+## 16. Identifier target resolution leaves unambiguous same-artifact symbols unresolved — open
+
+- **Where:** the resolution pass that populates `identifiers.target_symbol_id`
+  (consumed by Miller as `reference_sites.is_exact` / `provenance='target_token'`).
+- **Why it matters:** span emission is healthy, but *target* resolution is not, and
+  the two are easy to conflate. On a real 400k-site C# corpus (Miller's own
+  workspace, julie-extract 2.18.0, schema 5), `reference_sites` carries exact spans
+  for **78.4%** of C# sites — yet only **11.1%** of C# `identifiers` rows resolve to
+  a `target_symbol_id`. Downstream, anything gated on exact target resolution
+  (reference counts, callers/callees, rename coverage, dead-code candidates) sees a
+  small fraction of the real graph.
+
+- **Measured breakdown (C#, 308,933 identifiers):**
+
+  | kind | rows | resolved | % |
+  |---|---|---|---|
+  | `variable_ref` | 151,426 | 7,440 | 4.9 |
+  | `call` | 85,410 | 16,605 | 19.4 |
+  | `member_access` | 44,938 | 96 | **0.2** |
+  | `type_usage` | 27,159 | 10,086 | 37.1 |
+
+- **This is not C#-specific.** Same corpus, `target_symbol_id` resolution rate by
+  language: powershell 49.5%, bash 40.9%, javascript 28.2%, python 23.0%,
+  csharp 11.1%, razor 9.8%, css/html 0.0%. C# is simply the largest corpus here,
+  so it surfaces the gap most visibly. Treat this as a general resolution-pass
+  item, not a C# extractor item.
+
+- **The tractable subset.** Many unresolved rows are legitimately unresolvable —
+  locals, parameters, and calls into the BCL/LINQ (`ThrowIfNull`, `Select`,
+  `ToList` all appear in the unresolved sample and correctly have no
+  same-artifact target). But a large subset is *not* explainable that way. Counting
+  only unresolved C# rows whose `name` matches **exactly one** symbol in the same
+  artifact (unambiguous by name alone, no type inference required):
+
+  | kind | unresolved despite a unique same-artifact symbol |
+  |---|---|
+  | `variable_ref` | 17,414 |
+  | `call` | 17,112 |
+  | `member_access` | 8,705 |
+  | `type_usage` | 527 |
+
+  Relaxing to "name exists as any symbol" gives 64,661 / 36,198 / 28,563 / 8,362.
+  The unique-name column is the interesting one: those need no overload or
+  receiver-type reasoning to resolve correctly.
+
+- **Proposed fix:** treat `member_access` as the first target — 0.2% is low enough
+  to suggest the receiver path is not being walked at all, rather than being walked
+  and failing. Then add a conservative unique-name fallback tier for `call` and
+  `type_usage`: when exactly one symbol in the artifact bears the name and no
+  in-scope binding shadows it, resolve to it and mark the tier so consumers can
+  distinguish it from a type-checked resolution. Keep it strictly opt-out-able —
+  Miller already separates exact from fallback evidence and must keep being able to.
+
+- **Caveat before acting:** confirm the unique-name subset is not dominated by
+  workspace symbols that coincidentally share a BCL name (e.g. a local `Select`).
+  Sample it per kind first; if a meaningful share is coincidental, the fallback tier
+  needs a shadowing/import check rather than a bare name match.
+
+- **Verification:** re-run the two queries above against a fresh extract of a large
+  C# workspace and compare the resolved percentages and the unique-name residual.
+  The numbers above were measured 2026-07-27 on Miller's `.miller/symbols.db`
+  (`artifact-1785123621446275000`, binary_version 2.18.0, sqlite schema 5).
