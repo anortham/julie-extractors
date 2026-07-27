@@ -110,6 +110,10 @@ fn release_package_list_is_exact_and_ordered() {
             },
             ReleasePackageItem {
                 kind: ReleasePackageKind::Doc,
+                path_template: "docs/contracts/sqlite-schema-v5.catalog.sha256",
+            },
+            ReleasePackageItem {
+                kind: ReleasePackageKind::Doc,
                 path_template: "docs/contracts/jsonl-v1.md",
             },
             ReleasePackageItem {
