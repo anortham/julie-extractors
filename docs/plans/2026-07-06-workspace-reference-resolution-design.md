@@ -174,7 +174,16 @@ distinct future capability — the bridge/structural-fact lane — not a name-ma
 | 1. Same-file scope | existing `ScopedSymbolIndex` local result (already shipping) | 0.95 |
 | 2. Import-guided | candidate reachable through an import **symbol** in the source file: an import row whose name/alias matches the terminal name (or whose module path matches the candidate's defining file where the extractor recorded it). `target_import_context` is corroborating evidence only, never the sole key. **Language-gated:** import-row metadata varies per language (TS records `source`/`importedName`, Python records nothing, Dart stores only the URI — round-2 finding 5), so tier 2 is enabled per language only where a fixture-tested import contract exists; everywhere else it reports a capability gap until F4 normalizes import facts. | 0.85 |
 | 3. Receiver-typed | `target_receiver` name → symbol in scope (walk `caller_scope_symbol_id` / `containing_symbol_id` parent chain, then file, then fields/properties of the enclosing type) → that symbol's `type_facts.resolved_type` → type symbol (same language, exactly one) → member with the terminal name on that type's symbol subtree | 0.75 (0.65 when the type fact `is_inferred`) |
+| 3b. Static-type receiver | `target_receiver` names a type directly (`SomeEnum.Value`, `Fixture.Create()`) rather than a variable needing type inference → unique same-language type symbol → member with the terminal name. No `type_facts` row participates, so it stamps method `tier3_static_type`, not `tier3_receiver`. Refuses a type nested inside another type, and a non-public type outside its declaring file. | 0.70 |
 | 4. Unique-language-global | exactly one kind-compatible candidate in the same language workspace-wide. **Enabled for `type_usage`, `instantiates`, `uses`, `extends`, `implements` and for `calls` to Function/Constructor kinds. Disabled for `member_access` and method calls** — member names collide too heavily for global uniqueness to mean anything (doubt-pass finding 7). | 0.55 |
+
+Tier 3b was added after measurement showed tier 3 could not bind a receiver that
+names a type, because `resolve_receiver_symbols` searches only the caller's scope
+chain and file top-level while a referenced type usually lives elsewhere. Its two
+refusals exist so that type-name uniqueness does not become finding 7's failure
+keyed on a different column: a file-scoped workspace type sharing a simple name
+with a framework type would otherwise hijack every same-named reference in the
+workspace.
 
 Kind compatibility: `calls` targets Function/Method/Constructor; `instantiates` targets
 Class/Struct/Constructor; `uses`/type edges and identifier `type_usage` target type-like kinds;

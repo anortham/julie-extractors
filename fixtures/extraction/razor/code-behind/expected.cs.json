@@ -93,6 +93,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Sample.Components:3:0",
+      "name": "Sample.Components",
+      "kind": "namespace",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/razor/code-behind/Widget.razor.cs",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 28,
+      "start_byte": 40,
+      "end_byte": 68,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "namespace Sample.Components",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Theme:10:4",
       "name": "Theme",
       "kind": "property",
@@ -153,7 +177,7 @@
       "signature": "public partial class Widget",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Sample.Components:3:0",
       "metadata": {
         "csharp_visibility": "public"
       },
@@ -247,7 +271,7 @@
       "end_column": 27,
       "start_byte": 57,
       "end_byte": 67,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Sample.Components:3:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -327,7 +351,7 @@
       "end_column": 16,
       "start_byte": 50,
       "end_byte": 56,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Sample.Components:3:0",
       "target_key": null,
       "confidence": "1.000"
     },

@@ -3,6 +3,7 @@ use std::path::Path;
 use std::process::{Command, Output};
 
 use julie_extract_cli::limits::MAX_SOURCE_FILE_BYTES;
+use julie_extract_cli::resolution::RESOLUTION_VERSION;
 use rusqlite::{Connection, OptionalExtension};
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -141,7 +142,7 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
             |row| row.get::<_, i64>(0),
         )
         .unwrap();
-    assert_eq!(open_reference_resolution_gaps, 70);
+    assert_eq!(open_reference_resolution_gaps, 105);
     assert_eq!(unknown_gap_statuses, 0);
     let rust_kind_coverage = language_kind_coverage(&db, "rust");
     assert_eq!(
@@ -601,7 +602,10 @@ fn scan_reextracts_unchanged_files_when_resolution_version_is_stale() {
             .iter()
             .any(|warning| warning["code"] == "resolution_upgraded")
     );
-    assert_eq!(metadata_value(&db, "reference_resolution_version"), "2");
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_version"),
+        RESOLUTION_VERSION.to_string()
+    );
 }
 
 #[test]
@@ -644,7 +648,10 @@ fn scan_upgrades_resolution_metadata_for_an_empty_artifact() {
         metadata_value(&db, "reference_resolution_status"),
         "complete"
     );
-    assert_eq!(metadata_value(&db, "reference_resolution_version"), "2");
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_version"),
+        RESOLUTION_VERSION.to_string()
+    );
 }
 
 #[test]
@@ -2224,6 +2231,135 @@ fn cross_file_fixture() -> FixtureRoot {
     fixture
 }
 
+fn identifiers_without_resolution(db: &Path) -> i64 {
+    let conn = Connection::open(db).expect("artifact opens");
+    conn.query_row(
+        "SELECT COUNT(*) FROM identifiers i \
+         LEFT JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
+         WHERE r.identifier_id IS NULL",
+        [],
+        |row| row.get(0),
+    )
+    .expect("count query runs")
+}
+
+fn identifier_outcome(db: &Path, name: &str) -> Option<String> {
+    let conn = Connection::open(db).expect("artifact opens");
+    conn.query_row(
+        "SELECT r.outcome FROM identifiers i \
+         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
+         WHERE i.name = ?1 LIMIT 1",
+        [name],
+        |row| row.get(0),
+    )
+    .optional()
+    .expect("outcome query runs")
+}
+
+#[test]
+fn touching_only_the_receiver_type_name_rechecks_the_resolution() {
+    // A static-type resolution depends on the RECEIVER's name, not the member's.
+    // Delta invalidation therefore has to sweep resolved identifiers by receiver
+    // the way it already does for pending rows; keying on the member name alone
+    // leaves `Color.Red` claiming an exact target after a second `Color` appears.
+    let fixture = FixtureRoot::with_file(
+        "src/color.cs",
+        "namespace App { public enum Color { Red, Blue } }\n",
+    );
+    std::fs::write(
+        fixture.path("src/consumer.cs"),
+        "namespace App { public class Consumer { public int Run() { var c = Color.Red; return 0; } } }\n",
+    )
+    .unwrap();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert!(
+        identifier_target(&db, "Red").is_some(),
+        "the enum member must resolve through its enum type before the collision"
+    );
+
+    // A second `Color` makes the receiver ambiguous. It deliberately does NOT
+    // declare `Red`, so the only touched names are `Color` and `Blue`. `update`
+    // is the delta path; `scan` always forces a full pass and would sweep the row
+    // for unrelated reasons.
+    std::fs::write(
+        fixture.path("src/other.cs"),
+        "namespace Other { public enum Color { Blue } }\n",
+    )
+    .unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/other.cs"));
+    assert_eq!(
+        identifier_target(&db, "Red"),
+        None,
+        "an ambiguous receiver type must clear the target even though `Red` itself is untouched"
+    );
+}
+
+#[test]
+fn ambiguous_receiver_type_clears_a_static_type_resolution() {
+    // Closing the reporting leak created a new class of resolved identifier: one
+    // written by the generic chain on a span whose covering pending edge failed.
+    // Nothing propagates those, so the recheck sweep has to own them or a stale
+    // target outlives the workspace change that invalidated it.
+    //
+    // This pins the end-to-end demotion. It does not isolate the recheck-ownership
+    // narrowing: it passes with that narrowing reverted, because both re-extraction
+    // and the delta sweep independently clear the row. A case that isolates it
+    // needs a full pass over an artifact whose identifier rows survive, which no
+    // current code path produces.
+    let fixture = FixtureRoot::with_file(
+        "src/fixture.cs",
+        "namespace App { public class Fixture { public static int Create() { return 1; } } }\n",
+    );
+    std::fs::write(
+        fixture.path("src/consumer.cs"),
+        "namespace App { public class Consumer { public int Run() { return Fixture.Create(); } } }\n",
+    )
+    .unwrap();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert!(
+        identifier_target(&db, "Create").is_some(),
+        "the static-type receiver must resolve this call before the collision"
+    );
+
+    // A second `Fixture` makes the receiver type non-unique, so the tier must decline.
+    std::fs::write(
+        fixture.path("src/other.cs"),
+        "namespace Other { public class Fixture { public int Create() { return 2; } } }\n",
+    )
+    .unwrap();
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(
+        identifier_target(&db, "Create"),
+        None,
+        "an ambiguous receiver type must clear the previously resolved target"
+    );
+}
+
+#[test]
+fn scan_records_an_outcome_for_every_identifier() {
+    let fixture = FixtureRoot::with_file("src/a.rs", "pub fn produce_widget() {}\n");
+    std::fs::write(
+        fixture.path("src/b.rs"),
+        "pub fn consume() { produce_widget(); absent_external(); }\n",
+    )
+    .unwrap();
+    let db = fixture.path("artifact.sqlite");
+    scan(fixture.root_str(), &db);
+
+    assert_eq!(
+        identifiers_without_resolution(&db),
+        0,
+        "a reference site whose covering pending edge failed must still record an outcome"
+    );
+    assert_eq!(
+        identifier_outcome(&db, "absent_external").as_deref(),
+        Some("missing"),
+        "an unresolvable call belongs in the report as missing, not absent from it"
+    );
+}
+
 #[test]
 fn scan_resolves_cross_file_call_and_propagates_to_identifier() {
     let fixture = cross_file_fixture();
@@ -2251,7 +2387,10 @@ fn scan_resolves_cross_file_call_and_propagates_to_identifier() {
         metadata_value(&db, "reference_resolution_status"),
         "partial"
     );
-    assert_eq!(metadata_value(&db, "reference_resolution_version"), "2");
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_version"),
+        RESOLUTION_VERSION.to_string()
+    );
 }
 
 #[test]

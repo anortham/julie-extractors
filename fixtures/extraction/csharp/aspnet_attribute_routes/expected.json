@@ -135,7 +135,7 @@
       "signature": "[ApiController] public class HealthController : ControllerBase",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Sample.Api:3:0",
       "metadata": {
         "csharp_visibility": "public"
       },
@@ -354,6 +354,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Sample.Api:3:0",
+      "name": "Sample.Api",
+      "kind": "namespace",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 21,
+      "start_byte": 33,
+      "end_byte": 54,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "namespace Sample.Api",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:UsersController:5:0",
       "name": "UsersController",
       "kind": "class",
@@ -377,7 +401,7 @@
       "signature": "[ApiController] [Route(\"api/[controller]\")] public class UsersController : ControllerBase",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Sample.Api:3:0",
       "metadata": {
         "csharp_visibility": "public"
       },
@@ -756,7 +780,7 @@
       "end_column": 20,
       "start_byte": 50,
       "end_byte": 53,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Sample.Api:3:0",
       "target_key": null,
       "confidence": "1.000"
     },
@@ -980,7 +1004,7 @@
       "end_column": 16,
       "start_byte": 43,
       "end_byte": 49,
-      "containing_key": null,
+      "containing_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Sample.Api:3:0",
       "target_key": null,
       "confidence": "1.000"
     },

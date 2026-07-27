@@ -6189,8 +6189,8 @@
     }
   ],
   "reference_resolution": {
-    "_comment": "Documentation mirror of the schema-v4 reference-resolution capability posture. The MACHINE-ENFORCED honesty surfaces are (1) the per-language language_capability_gaps rows emitted at scan time by crates/julie-extract-cli/src/capability_snapshot.rs (reference_resolution.tier2_import / .tier3_receiver) and (2) the fixture suite crates/julie-extract-cli/tests/resolution_contract.rs over fixtures/extraction/resolution_contract/. This block is not deserialized by the extractor (serde ignores unknown fields) and is not read by scripts/language-data-quality-report.mjs; do not add per-language capability_gaps entries for these capabilities here, as the runtime already emits them and their gap_id would collide on the language_capability_gaps primary key. Keep this block in sync with those surfaces and docs/contracts/sqlite-schema-v4.md.",
-    "version": 2,
+    "_comment": "Documentation mirror of the schema-v4 reference-resolution capability posture. The MACHINE-ENFORCED honesty surfaces are (1) the per-language language_capability_gaps rows emitted at scan time by crates/julie-extract-cli/src/capability_snapshot.rs (reference_resolution.tier2_import / .tier3_receiver / .tier3_static_type) and (2) the fixture suite crates/julie-extract-cli/tests/resolution_contract.rs over fixtures/extraction/resolution_contract/. This block is not deserialized by the extractor (serde ignores unknown fields) and is not read by scripts/language-data-quality-report.mjs; do not add per-language capability_gaps entries for these capabilities here, as the runtime already emits them and their gap_id would collide on the language_capability_gaps primary key. Keep this block in sync with those surfaces and docs/contracts/sqlite-schema-v4.md.",
+    "version": 3,
     "schema_version": 4,
     "detection_rule": "Consumers gate on the reference_resolution_status metadata key, never on the schema version or table probing.",
     "outcomes": {
@@ -6206,7 +6206,7 @@
     },
     "metadata_keys": {
       "reference_resolution_status": "complete | partial | failed | absent (key missing)",
-      "reference_resolution_version": "resolution contract version (2)",
+      "reference_resolution_version": "resolution contract version (3)",
       "reference_resolution_last_full_revision": "revision_id of the last full pass; preserved across a failed write"
     },
     "tiers": {
@@ -6254,6 +6254,35 @@
         "required_closure": "broaden type_facts emission (especially for local variables) toward full receiver coverage",
         "planned_closure_task": "F2",
         "evidence": "fixtures/extraction/resolution_contract/csharp/tier3_receiver (resolves at 0.65 via an inferred field type fact)"
+      },
+      "tier3_static_type": {
+        "confidence": 0.7,
+        "confidence_semantics": "ceiling capped by source identifier or relationship confidence",
+        "method": "tier3_static_type",
+        "gating": "universal, but the tier only yields an edge where the extractor records visibility='public' on the receiver type (for cross-file binding) and a standalone 'static' word in the member signature",
+        "visibility_dependency": "A cross-file receiver is refused unless the type records visibility='public'. Measured emission: rust maps pub and pub(crate) to public, go maps exported to public, python always reports public, javascript reports public on the class symbol, csharp maps internal to private; typescript records NULL visibility on class declarations, so the cross-file path is silently unavailable there. Same-file receivers bind regardless of visibility.",
+        "visibility_gap_effect": "recall loss only, never a wrong edge",
+        "visibility_required_closure": "record a visibility (or export) value for TypeScript type declarations, and distinguish C# internal from private, then relax the cross-file refusal to assembly-visible kinds",
+        "static_modifier_dependency": "A member other than an enum member, constant, or enum binds through a type name only if its signature carries 'static' as a standalone word, because Type.InstanceMethod() does not compile. Measured emission: csharp, java, and javascript spell the modifier 'static'; python spells it '@staticmethod', rust associated functions carry no modifier, and typescript emits no member modifier at all, so the tier yields nothing for those languages.",
+        "static_modifier_gap_effect": "recall loss only, never a wrong edge",
+        "static_modifier_required_closure": "emit a language-native static-member marker (a normalized modifier or annotation) for the affected languages, then register a resolution_contract static_type_receiver fixture and add the language to TIER3_STATIC_TYPE_LANGUAGES",
+        "per_language_gap_row": "reference_resolution.tier3_static_type, emitted at scan time by crates/julie-extract-cli/src/capability_snapshot.rs for every language outside fixture_proven_languages",
+        "fixture_proven_languages": [
+          "csharp"
+        ],
+        "refuses": [
+          "receiver type nested inside another type",
+          "non-public receiver type referenced outside its declaring file",
+          "member that is not statically reachable: its signature lacks 'static' as a standalone word, and it is not an enum member, constant, or enum",
+          "receiver whose written qualification is not a suffix of the candidate type's declared namespace, so External.Fixture never answers for a workspace App.Core.Fixture",
+          "receiver shadowed by a parameter of an enclosing callable, which makes the access an instance access on that parameter"
+        ],
+        "refusal_reason": "type-name uniqueness alone would reproduce the tier-4 wrong-edge failure keyed on type names: a file-scoped workspace type sharing a simple name with an external type would otherwise answer for every same-named reference in the workspace",
+        "open_wrong_edge_risks": [
+          "unqualified reference to a public top-level workspace type whose simple name collides with an external type binds workspace-wide; needs import corroboration",
+          "a local variable declaration named exactly like a workspace type shadows it; local declarations are not symbols yet, and zero measured bindings have a camelCase receiver; closes when locals become symbols"
+        ],
+        "evidence": "fixtures/extraction/resolution_contract/csharp/{static_type_receiver,static_type_homonym}"
       },
       "tier4_unique_global": {
         "confidence": 0.55,

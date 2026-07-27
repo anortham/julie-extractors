@@ -48,7 +48,7 @@
       "signature": "public static class ComplexityFixture",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
       "metadata": {
         "csharp_visibility": "public"
       },
@@ -150,6 +150,30 @@
       "content_type": null
     },
     {
+      "key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
+      "name": "Fixture",
+      "kind": "namespace",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/basic/source.cs",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 18,
+      "start_byte": 0,
+      "end_byte": 18,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "namespace Fixture",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {},
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
       "key": "fixtures/extraction/csharp/basic/source.cs:GraphTraversal:50:0",
       "name": "GraphTraversal",
       "kind": "class",
@@ -173,7 +197,7 @@
       "signature": "public static class GraphTraversal",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
       "metadata": {
         "csharp_visibility": "public"
       },
@@ -243,7 +267,7 @@
       "signature": "public interface IJob",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
       "metadata": {},
       "annotations": [],
       "semantic_group": null,
@@ -360,7 +384,7 @@
       "signature": "public sealed class Registry",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
       "metadata": {
         "csharp_visibility": "public"
       },
@@ -510,7 +534,7 @@
       "signature": "public sealed class TraceAttribute : Attribute",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
       "metadata": {
         "csharp_visibility": "public"
       },
@@ -574,7 +598,7 @@
       "signature": "public sealed class Worker : IJob",
       "doc_comment": null,
       "visibility": "Public",
-      "parent_key": null,
+      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Fixture:1:0",
       "metadata": {
         "csharp_visibility": "public"
       },
