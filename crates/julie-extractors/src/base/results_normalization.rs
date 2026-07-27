@@ -324,7 +324,9 @@ mod tests {
         let inference_name = ["enrich_relationship_", "spans"].concat();
         let identifier_match = ["identifier_kind_matches_", "relationship"].concat();
 
+        assert!(!include_str!("results_normalization.rs").contains(&inference_name));
         assert!(!include_str!("results_normalization.rs").contains(&identifier_match));
         assert!(!include_str!("../pipeline.rs").contains(&inference_name));
+        assert!(!include_str!("../pipeline.rs").contains(&identifier_match));
     }
 }

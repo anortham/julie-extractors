@@ -3,8 +3,9 @@ use std::collections::HashSet;
 use rusqlite::{CachedStatement, ToSql, Transaction, limits::Limit, params, params_from_iter};
 
 use crate::model::{
-    ArtifactComplexityMetric, ArtifactFile, ArtifactSourceRegion, ArtifactStructuralFact,
-    ArtifactTypeArgument, FileStatus, RevisionChangeKind, RowCounts,
+    ArtifactComplexityMetric, ArtifactFile, ArtifactPendingRelationship, ArtifactRelationship,
+    ArtifactSourceRegion, ArtifactStructuralFact, ArtifactTypeArgument, FileStatus,
+    RevisionChangeKind, RowCounts,
 };
 
 use super::ExistingFile;
@@ -583,6 +584,9 @@ fn insert_reference_sites(
     }
 
     for relationship in &file.relationships {
+        if !relationship_is_insertable(relationship, symbol_lookup) {
+            continue;
+        }
         let span = relationship.site_is_exact.then_some((
             relationship.start_line,
             relationship.start_column,
@@ -609,6 +613,9 @@ fn insert_reference_sites(
     }
 
     for pending in &file.pending_relationships {
+        if !pending_relationship_is_insertable(pending, symbol_lookup) {
+            continue;
+        }
         let containing_symbol_id = pending
             .caller_scope_symbol_id
             .as_deref()
@@ -686,9 +693,7 @@ fn insert_relationships(
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
     for relationship in &file.relationships {
-        if !symbol_lookup.contains(&relationship.from_symbol_id)
-            || !symbol_lookup.contains(&relationship.to_symbol_id)
-        {
+        if !relationship_is_insertable(relationship, symbol_lookup) {
             continue;
         }
         stmt.execute(params![
@@ -720,7 +725,7 @@ fn insert_pending_relationships(
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
     for pending in &file.pending_relationships {
-        if !symbol_lookup.contains(&pending.from_symbol_id) {
+        if !pending_relationship_is_insertable(pending, symbol_lookup) {
             continue;
         }
         stmt.execute(params![
@@ -748,6 +753,21 @@ fn insert_pending_relationships(
         inserted += 1;
     }
     Ok(inserted)
+}
+
+fn relationship_is_insertable(
+    relationship: &ArtifactRelationship,
+    symbol_lookup: &SymbolLookup,
+) -> bool {
+    symbol_lookup.contains(&relationship.from_symbol_id)
+        && symbol_lookup.contains(&relationship.to_symbol_id)
+}
+
+fn pending_relationship_is_insertable(
+    pending: &ArtifactPendingRelationship,
+    symbol_lookup: &SymbolLookup,
+) -> bool {
+    symbol_lookup.contains(&pending.from_symbol_id)
 }
 
 fn insert_type_facts(

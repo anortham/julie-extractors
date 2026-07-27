@@ -147,6 +147,68 @@ fn writer_canonicalizes_shared_exact_reference_sites_across_evidence_rows() {
 }
 
 #[test]
+fn writer_rejects_scope_disagreement_for_one_reference_site_id() {
+    let mut writer = open_writer();
+    let mut file = file_with_symbols(
+        "file-a",
+        "src/a.rs",
+        "blake3:a",
+        ["identifier-owner", "relationship-owner", "target"],
+    );
+    let reference_site_id = "site-file-a-10-16".to_string();
+
+    file.identifiers.push(ArtifactIdentifier {
+        identifier_id: "identifier-a".to_string(),
+        reference_site_id: reference_site_id.clone(),
+        name: "target".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("file-a-symbol-0".to_string()),
+        target_symbol_id: Some("file-a-symbol-2".to_string()),
+        start_line: 2,
+        start_column: 4,
+        end_line: 2,
+        end_column: 10,
+        start_byte: 10,
+        end_byte: 16,
+        site_is_exact: true,
+        site_provenance: ReferenceSiteProvenance::TargetToken,
+        ..ArtifactIdentifier::default()
+    });
+    file.relationships.push(ArtifactRelationship {
+        relationship_id: "relationship-a".to_string(),
+        reference_site_id: reference_site_id.clone(),
+        from_symbol_id: "file-a-symbol-1".to_string(),
+        to_symbol_id: "file-a-symbol-2".to_string(),
+        kind: "calls".to_string(),
+        start_line: Some(2),
+        start_column: Some(4),
+        end_line: Some(2),
+        end_column: Some(10),
+        start_byte: Some(10),
+        end_byte: Some(16),
+        site_is_exact: true,
+        site_provenance: ReferenceSiteProvenance::TargetToken,
+        ..ArtifactRelationship::default()
+    });
+
+    let error = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file],
+        )
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("reference_site identity conflict"),
+        "{error}"
+    );
+    assert_eq!(count(writer.connection(), "reference_sites"), 0);
+    assert_eq!(count(writer.connection(), "relationships"), 0);
+}
+
+#[test]
 fn writer_rejects_conflicting_physical_data_for_one_reference_site_id() {
     let mut writer = open_writer();
     let mut file = file_with_symbols("file-a", "src/a.rs", "blake3:a", ["caller", "target"]);
@@ -540,6 +602,7 @@ fn scan_skips_child_rows_with_missing_required_references() {
 
     assert_eq!(result.rows_written.files, 1);
     assert_eq!(result.rows_written.symbols, 1);
+    assert_eq!(result.rows_written.reference_sites, 0);
     assert_eq!(result.rows_written.symbol_annotations, 0);
     assert_eq!(result.rows_written.relationships, 0);
     assert_eq!(result.rows_written.pending_relationships, 0);
@@ -547,6 +610,7 @@ fn scan_skips_child_rows_with_missing_required_references() {
     assert_eq!(result.rows_written.type_argument_usages, 0);
     assert_eq!(result.rows_written.type_arguments, 0);
     assert_eq!(count(writer.connection(), "symbol_annotations"), 0);
+    assert_eq!(count(writer.connection(), "reference_sites"), 0);
     assert_eq!(count(writer.connection(), "relationships"), 0);
     assert_eq!(count(writer.connection(), "pending_relationships"), 0);
     assert_eq!(count(writer.connection(), "type_facts"), 0);

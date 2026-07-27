@@ -148,17 +148,17 @@ fn marker_prefix(text: &str) -> Option<Marker<'_>> {
         return None;
     }
 
-    let owner = if let Some(owner_text) = rest.strip_prefix('(') {
-        let (owner, after_owner) = owner_text.split_once(')')?;
-        let owner = owner.trim();
-        if owner.is_empty() {
-            return None;
-        }
-        rest = after_owner;
-        Some(owner)
-    } else {
-        None
-    };
+    let owner = rest
+        .strip_prefix('(')
+        .and_then(|owner_text| owner_text.split_once(')'))
+        .and_then(|(owner, after_owner)| {
+            let owner = owner.trim();
+            if owner.is_empty() {
+                return None;
+            }
+            rest = after_owner;
+            Some(owner)
+        });
 
     rest = rest.trim_start();
     rest = rest

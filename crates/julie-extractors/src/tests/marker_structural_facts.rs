@@ -136,6 +136,21 @@ fn marker_matching_is_case_insensitive_but_requires_the_first_semantic_token() {
 }
 
 #[test]
+fn malformed_owner_does_not_suppress_marker_fact() {
+    let source = "// TODO(alice: preserve this marker\n";
+    let results = extract("src/main.rs", source);
+    let facts = marker_facts(&results);
+
+    assert_eq!(facts.len(), 1, "{facts:#?}");
+    assert_eq!(metadata_string(facts[0], "marker"), Some("TODO"));
+    assert_eq!(metadata_string(facts[0], "owner"), None);
+    assert_eq!(
+        metadata_string(facts[0], "description"),
+        Some("(alice: preserve this marker")
+    );
+}
+
+#[test]
 fn marker_language_matrix_covers_every_supported_comment_language() {
     let fixtures = [
         MarkerFixture {

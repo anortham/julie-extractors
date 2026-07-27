@@ -100,6 +100,25 @@ fn sqlite_json_text_columns_are_decoded_into_json_values() {
 }
 
 #[test]
+fn pending_relationship_export_preserves_null_caller_scope() {
+    let conn = populated_artifact();
+    conn.execute(
+        "UPDATE pending_relationships
+         SET caller_scope_symbol_id = NULL
+         WHERE pending_relationship_id = 'pending-external'",
+        [],
+    )
+    .unwrap();
+
+    let records = export_records(&conn);
+
+    assert_eq!(
+        record(&records, "pending_relationship")["caller_scope_symbol_id"],
+        Value::Null
+    );
+}
+
+#[test]
 fn structural_fact_metadata_exports_stored_json_object_raw() {
     let conn = populated_artifact();
     conn.execute(
