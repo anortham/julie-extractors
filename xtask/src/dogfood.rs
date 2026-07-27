@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Output};
 use std::time::{Duration, Instant};
 
+use julie_extract_artifact::jsonl::JSONL_RECORD_KINDS;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
 use serde_json::Value;
@@ -49,30 +50,6 @@ const ROW_DOMAIN_TABLES: &[&str] = &[
     "structural_facts",
     "parse_diagnostics",
 ];
-const JSONL_RECORD_KINDS: &[&str] = &[
-    "artifact",
-    "parser_inventory",
-    "language_capability",
-    "language_capability_fixture",
-    "language_capability_gap",
-    "revision",
-    "revision_file_change",
-    "file",
-    "symbol",
-    "symbol_annotation",
-    "identifier",
-    "relationship",
-    "pending_relationship",
-    "type_fact",
-    "type_argument_usage",
-    "type_argument",
-    "literal",
-    "source_region",
-    "complexity_metric",
-    "structural_fact",
-    "parse_diagnostic",
-];
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DogfoodPlan {
     pub root: PathBuf,
