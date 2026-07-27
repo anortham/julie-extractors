@@ -286,23 +286,46 @@ fn mutable_foreign_keys_have_leading_indexes() {
     let mut missing = Vec::new();
 
     for table in tables {
-        let indexed_first_columns = indexed_first_columns(&conn, &table);
+        let indexed_column_prefixes = indexed_column_prefixes(&conn, &table);
         let mut statement = conn
             .prepare(&format!("PRAGMA foreign_key_list({table})"))
             .unwrap();
-        let foreign_keys = statement
+        let foreign_key_rows = statement
             .query_map([], |row| {
-                Ok((row.get::<_, String>(3)?, row.get::<_, String>(6)?))
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(6)?,
+                ))
             })
             .unwrap()
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
+        let mut foreign_keys = BTreeMap::<i64, (String, Vec<(i64, String)>)>::new();
 
-        for (column, delete_action) in foreign_keys {
+        for (id, sequence, column, delete_action) in foreign_key_rows {
+            let foreign_key = foreign_keys
+                .entry(id)
+                .or_insert_with(|| (delete_action, Vec::new()));
+            foreign_key.1.push((sequence, column));
+        }
+
+        for (_, (delete_action, mut columns)) in foreign_keys {
+            columns.sort_by_key(|(sequence, _)| *sequence);
+            let columns = columns
+                .into_iter()
+                .map(|(_, column)| column)
+                .collect::<Vec<_>>();
             if matches!(delete_action.as_str(), "CASCADE" | "SET NULL")
-                && !indexed_first_columns.contains(&column)
+                && !indexed_column_prefixes
+                    .iter()
+                    .any(|indexed| indexed.starts_with(&columns))
             {
-                missing.push(format!("{table}.{column} ({delete_action})"));
+                missing.push(format!(
+                    "{table}.({}) ({delete_action})",
+                    columns.join(", ")
+                ));
             }
         }
     }
@@ -517,7 +540,7 @@ fn index_columns(conn: &Connection, index: &str) -> Vec<String> {
         .unwrap()
 }
 
-fn indexed_first_columns(conn: &Connection, table: &str) -> BTreeSet<String> {
+fn indexed_column_prefixes(conn: &Connection, table: &str) -> Vec<Vec<String>> {
     let mut statement = conn
         .prepare(&format!("PRAGMA index_list({table})"))
         .unwrap_or_else(|err| panic!("failed to inspect indexes for {table}: {err}"));
@@ -526,10 +549,9 @@ fn indexed_first_columns(conn: &Connection, table: &str) -> BTreeSet<String> {
         .unwrap()
         .map(|index| {
             let index = index.unwrap();
-            index_columns(conn, &index)
-                .into_iter()
-                .next()
-                .unwrap_or_else(|| panic!("index {index} has no columns"))
+            let columns = index_columns(conn, &index);
+            assert!(!columns.is_empty(), "index {index} has no columns");
+            columns
         })
         .collect()
 }
