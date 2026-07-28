@@ -305,8 +305,14 @@ pub struct CandidateSymbol {
     /// same-named reference in the workspace.
     pub visibility: Option<String>,
     /// Declaration signature, read by the static-type receiver tier to tell a
-    /// statically reachable member from an instance one.
+    /// statically reachable member from an instance one. Used as fallback when
+    /// [`Self::is_static`] is `None` (e.g. languages that have not yet emitted
+    /// the normalized metadata key).
     pub signature: Option<String>,
+    /// Normalized static reachability from `symbols.metadata_json.isStatic`.
+    /// `Some(true|false)` wins over signature scanning; `None` falls back to
+    /// [`contains_static_modifier`] on the declaration signature.
+    pub is_static: Option<bool>,
 }
 
 /// A `type_facts` row: the resolved type of a symbol (receiver typing for tier 3).
@@ -676,10 +682,10 @@ fn static_type_candidates(
 }
 
 /// Whether `member` can actually be reached through its type's name. Enum members
-/// and constants always can. Anything else has to say `static` in its signature —
-/// `Type.InstanceMethod()` does not compile, so binding it would claim evidence the
-/// source does not support. Languages that express associated items without a
-/// `static` keyword lose recall here rather than gaining wrong edges.
+/// and constants always can. Anything else prefers normalized `isStatic` metadata
+/// when present; otherwise the declaration signature must contain a standalone
+/// `static` modifier. `Type.InstanceMethod()` does not compile, so binding it
+/// would claim evidence the source does not support.
 fn is_statically_reachable(member: &CandidateSymbol) -> bool {
     if matches!(
         member.kind,
@@ -687,10 +693,30 @@ fn is_statically_reachable(member: &CandidateSymbol) -> bool {
     ) {
         return true;
     }
-    member
-        .signature
-        .as_deref()
-        .is_some_and(contains_static_modifier)
+    match member.is_static {
+        Some(true) => true,
+        Some(false) => false,
+        None => member
+            .signature
+            .as_deref()
+            .is_some_and(contains_static_modifier),
+    }
+}
+
+/// Parse `isStatic` from a symbol's `metadata_json`. Prefers a JSON boolean;
+/// tolerates the strings `"true"` / `"false"`. Any other shape is ignored.
+fn parse_is_static_metadata(metadata_json: Option<&str>) -> Option<bool> {
+    let raw = metadata_json?;
+    let value: serde_json::Value = serde_json::from_str(raw).ok()?;
+    match value.get("isStatic")? {
+        serde_json::Value::Bool(b) => Some(*b),
+        serde_json::Value::String(s) => match s.as_str() {
+            "true" => Some(true),
+            "false" => Some(false),
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 /// `static` as a standalone word in the signature's *modifier prefix*.
@@ -1210,7 +1236,7 @@ use rusqlite::{Connection, Transaction};
 
 /// Value stamped into `reference_resolution_version` metadata. Bump when the
 /// resolver's observable output contract changes so Miller can gate on it.
-pub const RESOLUTION_VERSION: i64 = 3;
+pub const RESOLUTION_VERSION: i64 = 4;
 
 /// `method` string stamped on an identifier filled from a tier-1 (extraction-time,
 /// same-file) `relationships` row. Tier 1 is materialized at extraction; the
@@ -1949,7 +1975,7 @@ fn load_index(conn: &Connection) -> rusqlite::Result<WorkspaceCandidateIndex> {
 fn load_candidate_symbols(conn: &Connection) -> rusqlite::Result<Vec<CandidateSymbol>> {
     let mut stmt = conn.prepare(
         "SELECT symbol_id, file_id, language, name, kind, parent_symbol_id, visibility, \
-                signature \
+                signature, metadata_json \
          FROM symbols ORDER BY symbol_id",
     )?;
     let rows = stmt.query_map([], |row| {
@@ -1962,12 +1988,22 @@ fn load_candidate_symbols(conn: &Connection) -> rusqlite::Result<Vec<CandidateSy
             row.get::<_, Option<String>>(5)?,
             row.get::<_, Option<String>>(6)?,
             row.get::<_, Option<String>>(7)?,
+            row.get::<_, Option<String>>(8)?,
         ))
     })?;
     let mut out = Vec::new();
     for row in rows {
-        let (symbol_id, file_id, language, name, kind, parent_symbol_id, visibility, signature) =
-            row?;
+        let (
+            symbol_id,
+            file_id,
+            language,
+            name,
+            kind,
+            parent_symbol_id,
+            visibility,
+            signature,
+            metadata_json,
+        ) = row?;
         // Skip rows whose kind string is not a known SymbolKind (Task 4 contract).
         let Some(kind) = SymbolKind::try_from_string(&kind) else {
             continue;
@@ -1981,6 +2017,7 @@ fn load_candidate_symbols(conn: &Connection) -> rusqlite::Result<Vec<CandidateSy
             parent_symbol_id,
             visibility,
             signature,
+            is_static: parse_is_static_metadata(metadata_json.as_deref()),
         });
     }
     Ok(out)
@@ -2520,12 +2557,14 @@ mod tests {
             parent_symbol_id: None,
             visibility: Some("public".to_string()),
             signature: Some(format!("public static {name}")),
+            is_static: None,
         }
     }
 
     fn instance_member(symbol: CandidateSymbol) -> CandidateSymbol {
         CandidateSymbol {
             signature: Some(format!("public {}", symbol.name)),
+            is_static: None,
             ..symbol
         }
     }
@@ -3233,6 +3272,109 @@ mod tests {
             resolve_one(&static_call_edge("Fixture", "Create"), &index),
             TierOutcome::Missing
         );
+    }
+
+    #[test]
+    fn static_type_receiver_honors_is_static_metadata_true_without_signature_static() {
+        let mut member = child(
+            "create",
+            "Create",
+            SymbolKind::Method,
+            "csharp",
+            "modA",
+            "fixture",
+        );
+        member.signature = Some("public Create()".to_string());
+        member.is_static = Some(true);
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+                member,
+            ],
+            vec![],
+            vec![],
+        );
+        let (tier, conf, method, target) =
+            resolved(&resolve_one(&static_call_edge("Fixture", "Create"), &index));
+        assert_eq!(tier, 3);
+        assert_eq!(conf, CONFIDENCE_TIER3_STATIC);
+        assert_eq!(method, METHOD_TIER3_STATIC);
+        assert_eq!(target, "create");
+    }
+
+    #[test]
+    fn static_type_receiver_honors_is_static_metadata_false_over_signature() {
+        let mut member = child(
+            "create",
+            "Create",
+            SymbolKind::Method,
+            "csharp",
+            "modA",
+            "fixture",
+        );
+        member.signature = Some("public static Create()".to_string());
+        member.is_static = Some(false);
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("fixture", "Fixture", SymbolKind::Class, "csharp", "modA"),
+                member,
+            ],
+            vec![],
+            vec![],
+        );
+        assert_eq!(
+            resolve_one(&static_call_edge("Fixture", "Create"), &index),
+            TierOutcome::Missing
+        );
+    }
+
+    #[test]
+    fn static_type_receiver_falls_back_to_signature_when_is_static_metadata_absent() {
+        let index = static_receiver_index(vec![]);
+        let (tier, conf, method, target) =
+            resolved(&resolve_one(&static_call_edge("Fixture", "Create"), &index));
+        assert_eq!(tier, 3);
+        assert_eq!(conf, CONFIDENCE_TIER3_STATIC);
+        assert_eq!(method, METHOD_TIER3_STATIC);
+        assert_eq!(target, "create");
+        assert!(
+            index
+                .symbol_by_id("create")
+                .is_some_and(|s| s.is_static.is_none()),
+            "signature-only path requires is_static=None"
+        );
+    }
+
+    #[test]
+    fn parse_is_static_metadata_accepts_bool_and_string_forms() {
+        assert_eq!(
+            parse_is_static_metadata(Some(r#"{"isStatic":true}"#)),
+            Some(true)
+        );
+        assert_eq!(
+            parse_is_static_metadata(Some(r#"{"isStatic":false}"#)),
+            Some(false)
+        );
+        assert_eq!(
+            parse_is_static_metadata(Some(r#"{"isStatic":"true"}"#)),
+            Some(true)
+        );
+        assert_eq!(
+            parse_is_static_metadata(Some(r#"{"isStatic":"false"}"#)),
+            Some(false)
+        );
+        assert_eq!(
+            parse_is_static_metadata(Some(r#"{"isStatic":"yes"}"#)),
+            None
+        );
+        assert_eq!(parse_is_static_metadata(Some(r#"{"other":true}"#)), None);
+        assert_eq!(parse_is_static_metadata(Some("{")), None);
+        assert_eq!(parse_is_static_metadata(None), None);
+    }
+
+    #[test]
+    fn resolution_version_is_four_after_static_metadata_contract() {
+        assert_eq!(RESOLUTION_VERSION, 4);
     }
 
     #[test]
