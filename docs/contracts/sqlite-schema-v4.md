@@ -87,7 +87,7 @@ may use to decide whether resolution data is present and trustworthy — see
     opened but not yet re-written) or was written before the overlay was
     populated. Consumers must treat absent as "no resolution data", not "no
     references resolved".
-- `reference_resolution_version`: the resolution contract version, currently `3`.
+- `reference_resolution_version`: the resolution contract version, currently `4`.
 - `reference_resolution_last_full_revision`: the `extraction_revisions.revision_id`
   of the last full resolution pass. Preserved across a `failed` write.
 
@@ -502,7 +502,7 @@ is worse than a missing one.
 | 1 | Same-file scope (local index result materialized at extraction time) | `0.95` | `tier1_local` | Same language. |
 | 2 | Import-guided: candidate reachable through an import symbol in the source file whose name/alias matches the terminal name | `0.85` | `tier2_import` | Same language. **Language-gated:** enabled only where a fixture-tested import contract exists — currently **TypeScript and JavaScript**. Every other language records a `reference_resolution.tier2_import` gap until F4 normalizes import facts. |
 | 3 | Receiver-typed: receiver name → scoped symbol → its `type_facts.resolved_type` → type symbol → member with the terminal name | `0.75` (`0.65` when the contributing type fact is inferred) | `tier3_receiver` | Same language. Coverage is bounded by per-language `type_facts` emission; every language records a `reference_resolution.tier3_receiver` gap (broadened by F2). |
-| 3 | Static-type receiver: the receiver names a type directly → that type's member with the terminal name. No `type_facts` row participates | `0.70` | `tier3_static_type` | Same language. Refuses a receiver nested inside another type; refuses a non-public type outside its declaring file — a file-scoped homonym of an external type must not answer for references elsewhere; refuses a member that is not statically reachable, meaning its `signature` lacks `static` as a standalone word (enum members and constants are exempt), because `Type.InstanceMethod()` does not compile; refuses a receiver whose written qualification is not a suffix of the candidate type's declared namespace, so `External.Fixture.Create()` never answers for a workspace `App.Core.Fixture`; and refuses a receiver shadowed by a parameter of an enclosing callable. A namespace or module parent does not count as nesting. |
+| 3 | Static-type receiver: the receiver names a type directly → that type's member with the terminal name. No `type_facts` row participates | `0.70` | `tier3_static_type` | Same language. Refuses a receiver nested inside another type; refuses a non-public type outside its declaring file — a file-scoped homonym of an external type must not answer for references elsewhere; refuses a member that is not statically reachable, meaning `symbols.metadata_json.isStatic` is false or absent and its `signature` lacks `static` as a standalone word (enum members and constants are exempt), because `Type.InstanceMethod()` does not compile; refuses a receiver whose written qualification is not a suffix of the candidate type's declared namespace, so `External.Fixture.Create()` never answers for a workspace `App.Core.Fixture`; and refuses a receiver shadowed by a parameter of an enclosing callable. A namespace or module parent does not count as nesting. |
 | 4 | Unique-language-global: exactly one kind-compatible candidate in the same language workspace-wide | `0.55` | `tier4_global` | Same language. Enabled for `type_usage`, `instantiates`, `uses`, `extends`, `implements`, and `calls` to Function/Constructor kinds. **Disabled for `member_access` and method calls** — member names collide too heavily for global uniqueness to be meaningful. |
 
 `tier3_static_type` carries its own `method` string precisely because no type
@@ -510,10 +510,11 @@ fact backs it: reporting it as `tier3_receiver` would attribute the binding to
 type-fact evidence that does not exist. Both stamp `tier = 3`.
 
 The tier runs for every language, but it can only produce an edge where the
-extractor emits type `visibility` and a standalone `static` member modifier.
+extractor emits type `visibility` and static reachability (`isStatic` metadata
+when present, else a standalone `static` member modifier in the signature).
 Languages without a fixture-proven contract for both record a
 `reference_resolution.tier3_static_type` gap — currently every language except
-C#.
+C#, TypeScript, and JavaScript (`TIER3_STATIC_TYPE_LANGUAGES`).
 
 Kind compatibility: `calls` targets Function/Method/Constructor; `instantiates`
 targets Class/Struct/Constructor; `uses`/type edges and identifier `type_usage`

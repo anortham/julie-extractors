@@ -343,9 +343,15 @@ Status legend: `open` (verified present), `partial` (partly done), `idea`
 
 ## 16. Identifier target resolution has no static-receiver path — partial
 
-**Slices 1–3 shipped 2026-07-27** (`RESOLUTION_VERSION = 3`). Both columns below
-are C# on Miller's workspace: "before" from the prior artifact, "after" from a
-fresh full pass with the built binary.
+**Slices 1–3 shipped 2026-07-27** (`RESOLUTION_VERSION = 3` at ship). **Static-tier
+multi-language certification shipped 2026-07-28** (`RESOLUTION_VERSION = 4`):
+`TIER3_STATIC_TYPE_LANGUAGES` is now `csharp`, `typescript`, and `javascript`,
+each with a `static_type_receiver` resolution_contract fixture. Slice 4 (C#
+locals/params as symbols + real `infer_variable_type`) is still open and is the
+only remaining slice that moves `variable_ref`.
+
+Both columns below are C# on Miller's workspace from the v3 ship: "before" from
+the prior artifact, "after" from a fresh full pass with the built binary.
 
 | C# identifier kind | resolved before | resolved after | what produced the gain |
 |---|---|---|---|
@@ -381,24 +387,24 @@ started** — it is the only remaining slice and the only one that moves
   needs import/namespace corroboration, which the receiver token (one bare
   identifier) cannot supply today.
 - *Visibility dependence.* Cross-file binding requires
-  `visibility = 'public'`. TypeScript records NULL visibility on class
-  declarations, so the cross-file path is silently unavailable there; C# maps
-  `internal` to `private`, over-refusing ~1,556 call sites. Recall loss only,
-  never a wrong edge. Recorded in `fixtures/extraction/capabilities.json` under
+  `visibility = 'public'`. TypeScript now records `public` on **exported** type
+  declarations (fixture-proven for the static tier); non-exported types stay
+  non-public. C# still maps `internal` to `private`, over-refusing ~1,556 call
+  sites. Recall loss only, never a wrong edge. Recorded in
+  `fixtures/extraction/capabilities.json` under
   `reference_resolution.tiers.tier3_static_type.visibility_dependency` with a
-  named closure.
-- *Static-modifier dependence.* A member only binds through a type name if its
-  `signature` carries `static` as a standalone word (enum members and constants
-  are exempt). That is a per-language extractor fact, not a resolver one: C#,
-  Java, and JavaScript emit it; Python spells it `@staticmethod`, Rust
-  associated functions carry no modifier at all, and TypeScript emits no
-  visibility either. So the tier is fixture-proven for **C# only**
-  (`TIER3_STATIC_TYPE_LANGUAGES`), and every other language now emits a
-  `reference_resolution.tier3_static_type` gap row at scan time —
-  35 of 36 languages, enforced by `per_language_tier_parity_guard` and
+  named closure (C# `internal` remains open).
+- *Static-modifier dependence.* A member only binds through a type name if it is
+  statically reachable (enum members and constants are exempt): prefer
+  `symbols.metadata_json.isStatic`, else a standalone `static` word in
+  `signature`. That is a per-language extractor fact, not a resolver one.
+  Fixture-proven languages (`TIER3_STATIC_TYPE_LANGUAGES`): **csharp,
+  typescript, javascript**. Every other language emits a
+  `reference_resolution.tier3_static_type` gap row at scan time, enforced by
+  `per_language_tier_parity_guard` and
   `every_static_type_language_ships_a_proving_fixture`. The gate itself is
   correctness, not debt: without it `Type.InstanceMethod()` would bind, which
-  does not compile. It cost 100 of the 9,853 pre-gate bindings.
+  does not compile.
 - *Untyped local shadowing a type name.* A local variable declared in a method
   body (`var Fixture = ...`) still shadows a workspace type invisibly: local
   *declarations* are not symbols, so nothing distinguishes the receiver token from

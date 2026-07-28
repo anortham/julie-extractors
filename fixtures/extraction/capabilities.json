@@ -2607,6 +2607,7 @@
         "identifiers": {
           "supported": [
             "call",
+            "member_access",
             "type_usage",
             "variable_ref"
           ],
@@ -6190,7 +6191,7 @@
   ],
   "reference_resolution": {
     "_comment": "Documentation mirror of the schema-v4 reference-resolution capability posture. The MACHINE-ENFORCED honesty surfaces are (1) the per-language language_capability_gaps rows emitted at scan time by crates/julie-extract-cli/src/capability_snapshot.rs (reference_resolution.tier2_import / .tier3_receiver / .tier3_static_type) and (2) the fixture suite crates/julie-extract-cli/tests/resolution_contract.rs over fixtures/extraction/resolution_contract/. This block is not deserialized by the extractor (serde ignores unknown fields) and is not read by scripts/language-data-quality-report.mjs; do not add per-language capability_gaps entries for these capabilities here, as the runtime already emits them and their gap_id would collide on the language_capability_gaps primary key. Keep this block in sync with those surfaces and docs/contracts/sqlite-schema-v4.md.",
-    "version": 3,
+    "version": 4,
     "schema_version": 4,
     "detection_rule": "Consumers gate on the reference_resolution_status metadata key, never on the schema version or table probing.",
     "outcomes": {
@@ -6206,7 +6207,7 @@
     },
     "metadata_keys": {
       "reference_resolution_status": "complete | partial | failed | absent (key missing)",
-      "reference_resolution_version": "resolution contract version (3)",
+      "reference_resolution_version": "resolution contract version (4)",
       "reference_resolution_last_full_revision": "revision_id of the last full pass; preserved across a failed write"
     },
     "tiers": {
@@ -6259,21 +6260,23 @@
         "confidence": 0.7,
         "confidence_semantics": "ceiling capped by source identifier or relationship confidence",
         "method": "tier3_static_type",
-        "gating": "universal, but the tier only yields an edge where the extractor records visibility='public' on the receiver type (for cross-file binding) and a standalone 'static' word in the member signature",
-        "visibility_dependency": "A cross-file receiver is refused unless the type records visibility='public'. Measured emission: rust maps pub and pub(crate) to public, go maps exported to public, python always reports public, javascript reports public on the class symbol, csharp maps internal to private; typescript records NULL visibility on class declarations, so the cross-file path is silently unavailable there. Same-file receivers bind regardless of visibility.",
+        "gating": "universal, but the tier only yields an edge where the extractor records visibility='public' on the receiver type (for cross-file binding) and static reachability (symbols.metadata_json.isStatic when present, else a standalone 'static' word in the member signature)",
+        "visibility_dependency": "A cross-file receiver is refused unless the type records visibility='public'. Measured emission: rust maps pub and pub(crate) to public, go maps exported to public, python always reports public, javascript reports public on the class symbol, csharp maps internal to private, and typescript records visibility='public' on exported type declarations (export class / export enum / etc.). Non-exported TypeScript types remain non-public so cross-file static binding still refuses. Same-file receivers bind regardless of visibility.",
         "visibility_gap_effect": "recall loss only, never a wrong edge",
-        "visibility_required_closure": "record a visibility (or export) value for TypeScript type declarations, and distinguish C# internal from private, then relax the cross-file refusal to assembly-visible kinds",
-        "static_modifier_dependency": "A member other than an enum member, constant, or enum binds through a type name only if its signature carries 'static' as a standalone word, because Type.InstanceMethod() does not compile. Measured emission: csharp, java, and javascript spell the modifier 'static'; python spells it '@staticmethod', rust associated functions carry no modifier, and typescript emits no member modifier at all, so the tier yields nothing for those languages.",
+        "visibility_required_closure": "distinguish C# internal from private, then relax the cross-file refusal to assembly-visible kinds; TypeScript export visibility is fixture-proven for the static tier",
+        "static_modifier_dependency": "A member other than an enum member, constant, or enum binds through a type name only if it is statically reachable, because Type.InstanceMethod() does not compile. Reachability prefers symbols.metadata_json.isStatic when set, then falls back to a standalone 'static' word in the presentation signature. Fixture-proven emission: csharp (signature + isStatic metadata), typescript (exported types + static methods with isStatic and signature 'static'), and javascript (public class + static methods). Remaining gaps: python spells the modifier '@staticmethod', rust associated functions carry no static marker, and other languages lack a fixture-proven contract.",
         "static_modifier_gap_effect": "recall loss only, never a wrong edge",
-        "static_modifier_required_closure": "emit a language-native static-member marker (a normalized modifier or annotation) for the affected languages, then register a resolution_contract static_type_receiver fixture and add the language to TIER3_STATIC_TYPE_LANGUAGES",
+        "static_modifier_required_closure": "emit a language-native static-member marker (a normalized modifier, annotation, or isStatic metadata) for the remaining languages, then register a resolution_contract static_type_receiver fixture and add the language to TIER3_STATIC_TYPE_LANGUAGES",
         "per_language_gap_row": "reference_resolution.tier3_static_type, emitted at scan time by crates/julie-extract-cli/src/capability_snapshot.rs for every language outside fixture_proven_languages",
         "fixture_proven_languages": [
-          "csharp"
+          "csharp",
+          "typescript",
+          "javascript"
         ],
         "refuses": [
           "receiver type nested inside another type",
           "non-public receiver type referenced outside its declaring file",
-          "member that is not statically reachable: its signature lacks 'static' as a standalone word, and it is not an enum member, constant, or enum",
+          "member that is not statically reachable: isStatic is false or absent and the signature lacks 'static' as a standalone word, and it is not an enum member, constant, or enum",
           "receiver whose written qualification is not a suffix of the candidate type's declared namespace, so External.Fixture never answers for a workspace App.Core.Fixture",
           "receiver shadowed by a parameter of an enclosing callable, which makes the access an instance access on that parameter"
         ],
@@ -6282,7 +6285,7 @@
           "unqualified reference to a public top-level workspace type whose simple name collides with an external type binds workspace-wide; needs import corroboration",
           "a local variable declaration named exactly like a workspace type shadows it; local declarations are not symbols yet, and zero measured bindings have a camelCase receiver; closes when locals become symbols"
         ],
-        "evidence": "fixtures/extraction/resolution_contract/csharp/{static_type_receiver,static_type_homonym}"
+        "evidence": "fixtures/extraction/resolution_contract/{csharp,typescript,javascript}/static_type_receiver; csharp/static_type_homonym; typescript/static_type_nonexport; javascript/static_type_instance"
       },
       "tier4_unique_global": {
         "confidence": 0.55,

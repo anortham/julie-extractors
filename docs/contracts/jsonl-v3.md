@@ -135,7 +135,7 @@ keys are part of the v3 contract.
   "created_at": "2026-05-31T16:00:00Z",
   "updated_at": "2026-05-31T16:05:00Z",
   "reference_resolution_status": "complete",
-  "reference_resolution_version": 3,
+  "reference_resolution_version": 4,
   "reference_resolution_last_full_revision": 7
 }
 ```

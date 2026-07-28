@@ -112,11 +112,11 @@ scripts/check-agent-doc-sync.sh
 - Update any test helpers constructing `CandidateSymbol` to set `is_static: None`.
 
 **Acceptance criteria:**
-- [ ] `is_statically_reachable` honors `isStatic` metadata with signature fallback
-- [ ] `RESOLUTION_VERSION == 4`
-- [ ] Existing C# static unit tests in `resolution.rs` pass
-- [ ] New unit tests cover metadata true/false and signature fallback
-- [ ] Change handed to lead for commit (parallel-lead-commit)
+- [x] `is_statically_reachable` honors `isStatic` metadata with signature fallback
+- [x] `RESOLUTION_VERSION == 4`
+- [x] Existing C# static unit tests in `resolution.rs` pass
+- [x] New unit tests cover metadata true/false and signature fallback
+- [x] Change handed to lead for commit (parallel-lead-commit)
 
 ---
 
@@ -145,10 +145,10 @@ scripts/check-agent-doc-sync.sh
 **Approach:** After `extract_modifiers`, set `metadata.insert("isStatic", json!(modifiers.iter().any(|m| m == "static")))`. Mirror for fields (const/static). Avoid changing kind inventory claims in this task.
 
 **Acceptance criteria:**
-- [ ] Static C# methods/fields carry `isStatic: true` in extraction results
-- [ ] Instance methods carry `isStatic: false` or omit only if proven equivalent for resolver (`Some(false)` path preferred)
-- [ ] C# language tests pass; goldens updated only if they freeze metadata
-- [ ] Handed to lead for commit
+- [x] Static C# methods/fields carry `isStatic: true` in extraction results
+- [x] Instance methods carry `isStatic: false` or omit only if proven equivalent for resolver (`Some(false)` path preferred)
+- [x] C# language tests pass; goldens updated only if they freeze metadata
+- [x] Handed to lead for commit
 
 ---
 
@@ -182,11 +182,11 @@ scripts/check-agent-doc-sync.sh
 **Approach:** Prefer parent-walk one level (and export wrapper used elsewhere for decorators). Do not mark non-exported file-local classes public. Update goldens with UPDATE_GOLDEN only after intentional behavior change.
 
 **Acceptance criteria:**
-- [ ] `export class Foo` yields visibility public in extraction
-- [ ] Non-exported class remains non-public
-- [ ] Static methods have `isStatic: true` and signature containing standalone `static`
-- [ ] TS language tests + affected goldens pass
-- [ ] Handed to lead for commit
+- [x] `export class Foo` yields visibility public in extraction
+- [x] Non-exported class remains non-public
+- [x] Static methods have `isStatic: true` and signature containing standalone `static`
+- [x] TS language tests + affected goldens pass
+- [x] Handed to lead for commit
 
 ---
 
@@ -222,12 +222,12 @@ scripts/check-agent-doc-sync.sh
 **Approach:** Copy structure from `csharp/static_type_receiver`. Use ESM `export` for JS so export surface is clear. Prefer simple names without namespace complexity for first fixtures.
 
 **Acceptance criteria:**
-- [ ] TS and JS static_type_receiver fixtures resolve positive cases at method `tier3_static_type`
-- [ ] Negative cases do not resolve
-- [ ] `TIER3_STATIC_TYPE_LANGUAGES` includes csharp, typescript, javascript
-- [ ] `every_static_type_language_ships_a_proving_fixture` and `per_language_tier_parity_guard` pass
-- [ ] C# static integration tests still pass
-- [ ] Verified and committed (or lead-committed)
+- [x] TS and JS static_type_receiver fixtures resolve positive cases at method `tier3_static_type`
+- [x] Negative cases do not resolve
+- [x] `TIER3_STATIC_TYPE_LANGUAGES` includes csharp, typescript, javascript
+- [x] `every_static_type_language_ships_a_proving_fixture` and `per_language_tier_parity_guard` pass
+- [x] C# static integration tests still pass
+- [x] Verified and committed (or lead-committed)
 
 ---
 
@@ -257,11 +257,11 @@ scripts/check-agent-doc-sync.sh
 **Approach:** Prefer minimal doc edits: version number, fixture_proven list, static-modifier note that TS/JS are now proven. Avoid rewriting historical release notes; add forward notes only if a release note draft is in scope (out of scope unless releasing).
 
 **Acceptance criteria:**
-- [ ] `capabilities.json` fixture_proven_languages includes csharp, typescript, javascript
-- [ ] `node scripts/language-data-quality-report.mjs --strict` → silent_cells=0, quality_bar_debts=0
-- [ ] `node scripts/reference-resolution-coverage-report.mjs --strict` passes
-- [ ] TODO §16 updated: static-tier multi-language done; slice 4 locals still open
-- [ ] Branch gate commands pass
+- [x] `capabilities.json` fixture_proven_languages includes csharp, typescript, javascript
+- [x] `node scripts/language-data-quality-report.mjs --strict` → silent_cells=0, quality_bar_debts=0
+- [x] `node scripts/reference-resolution-coverage-report.mjs --strict` passes
+- [x] TODO §16 updated: static-tier multi-language done; slice 4 locals still open
+- [x] Branch gate commands pass
 
 ---
 
