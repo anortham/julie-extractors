@@ -18,7 +18,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Registry:62:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -82,7 +84,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Registry:62:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [
         {
           "annotation": "Trace",
@@ -112,7 +116,9 @@
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Registry:62:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -143,7 +149,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:ComplexityFixture:32:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -231,7 +239,9 @@
       "doc_comment": "/// <summary>Increments a worker id.</summary>\n/// <param name=\"value\">The worker id.</param>\n/// <returns>The incremented id.</returns>",
       "visibility": "Private",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Worker:8:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": true
+      },
       "annotations": [
         {
           "annotation": "Obsolete",
@@ -299,7 +309,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Worker:8:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -323,7 +335,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:TraceAttribute:55:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -354,7 +368,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:GraphTraversal:50:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -418,7 +434,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Worker:8:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -449,7 +467,9 @@
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:IJob:3:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -473,7 +493,9 @@
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Registry:62:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -504,7 +526,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Registry:62:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -568,7 +592,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:Worker:8:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -625,7 +651,9 @@
       "doc_comment": null,
       "visibility": "Private",
       "parent_key": "fixtures/extraction/csharp/basic/source.cs:ComplexityFixture:32:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": true
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
