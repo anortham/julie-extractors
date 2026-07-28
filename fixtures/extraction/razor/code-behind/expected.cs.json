@@ -49,7 +49,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [
         {
           "annotation": "Inject",
@@ -86,7 +88,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -141,7 +145,9 @@
       "doc_comment": null,
       "visibility": "Public",
       "parent_key": "fixtures/extraction/razor/code-behind/Widget.razor.cs:Widget:5:0",
-      "metadata": {},
+      "metadata": {
+        "isStatic": false
+      },
       "annotations": [
         {
           "annotation": "CascadingParameter",
