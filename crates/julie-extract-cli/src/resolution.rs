@@ -89,17 +89,18 @@ pub const TIER2_IMPORT_LANGUAGES: &[&str] = &["typescript", "javascript"];
 /// The tier runs for every language — its refusals are language-agnostic and
 /// safe — but it can only *produce* an edge where the extractor supplies two
 /// facts beyond the receiver: `visibility` on the type symbol (so an unreachable
-/// same-named helper in another file is refused) and a standalone `static` word
-/// in the member signature (so an instance member a type name cannot reach is
-/// refused). Where either is missing the tier silently yields nothing —
-/// TypeScript emits neither, Python spells its modifier `@staticmethod`, and
-/// Rust associated functions carry no modifier at all — so membership here is
-/// the honesty gate that `reference_resolution.tier3_static_type` keys on.
+/// same-named helper in another file is refused) and static reachability on the
+/// member (`isStatic` metadata or a standalone `static` word in the signature,
+/// so an instance member a type name cannot reach is refused). Where either is
+/// missing the tier silently yields nothing — Python spells its modifier
+/// `@staticmethod`, and Rust associated functions carry no modifier at all —
+/// so membership here is the honesty gate that
+/// `reference_resolution.tier3_static_type` keys on.
 ///
 /// Every entry requires a
 /// `fixtures/extraction/resolution_contract/<language>/static_type_receiver/`
 /// case; adding a language without one is a data-quality-bar violation.
-pub const TIER3_STATIC_TYPE_LANGUAGES: &[&str] = &["csharp"];
+pub const TIER3_STATIC_TYPE_LANGUAGES: &[&str] = &["csharp", "typescript", "javascript"];
 
 /// Type-like symbol kinds: the target set for `uses`/`extends`/`implements`/type
 /// edges and identifier `type_usage` (design §"Resolution tiers", kind

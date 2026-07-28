@@ -364,6 +364,79 @@ fn static_type_receiver_resolves_csharp_across_files() {
 }
 
 #[test]
+fn static_type_receiver_resolves_typescript_across_files() {
+    let (_t, db) = scan_fixture("typescript/static_type_receiver");
+    let call = resolved_identifier_of_kind(&db, "create", "call")
+        .expect("static-type call resolves from another file (ts)");
+    assert_eq!(call.tier, 3);
+    assert_eq!(call.method, "tier3_static_type");
+    assert!(
+        call.confidence > 0.55 && call.confidence <= 0.75,
+        "static-type confidence {} must rank between tier 4 and concrete tier 3",
+        call.confidence
+    );
+    assert_eq!(
+        identifier_receiver(&db, "create", "call").as_deref(),
+        Some("Fixture")
+    );
+
+    let limit = resolved_identifier_of_kind(&db, "max", "call")
+        .expect("second static-type call resolves (ts)");
+    assert_eq!(limit.method, "tier3_static_type");
+    assert_eq!(
+        identifier_receiver(&db, "max", "call").as_deref(),
+        Some("Limits")
+    );
+}
+
+#[test]
+fn static_type_receiver_resolves_javascript_across_files() {
+    let (_t, db) = scan_fixture("javascript/static_type_receiver");
+    let call = resolved_identifier_of_kind(&db, "create", "call")
+        .expect("static-type call resolves from another file (js)");
+    assert_eq!(call.tier, 3);
+    assert_eq!(call.method, "tier3_static_type");
+    assert!(
+        call.confidence > 0.55 && call.confidence <= 0.75,
+        "static-type confidence {} must rank between tier 4 and concrete tier 3",
+        call.confidence
+    );
+    assert_eq!(
+        identifier_receiver(&db, "create", "call").as_deref(),
+        Some("Fixture")
+    );
+}
+
+#[test]
+fn static_type_receiver_refuses_non_exported_typescript_across_files() {
+    let (_t, db) = scan_fixture("typescript/static_type_nonexport");
+    assert_eq!(
+        symbol_count_named(&db, "Hidden"),
+        1,
+        "fixture supplies a unique non-exported class"
+    );
+    // Same-file localUse may bind; the cross-file consumer must refuse.
+    assert_eq!(
+        resolved_identifier_count(&db, "create", "call"),
+        1,
+        "only the same-file reference may bind a non-exported type"
+    );
+}
+
+#[test]
+fn static_type_receiver_refuses_instance_member_javascript() {
+    let (_t, db) = scan_fixture("javascript/static_type_instance");
+    assert!(
+        symbol_count_named(&db, "Fixture") >= 1,
+        "fixture supplies the exported class"
+    );
+    assert!(
+        !identifier_has_target(&db, "run"),
+        "an instance method must not resolve through a type-name receiver"
+    );
+}
+
+#[test]
 fn static_type_receiver_binds_only_qualifications_that_name_the_workspace_type() {
     let (_t, db) = scan_fixture("csharp/static_type_qualifier");
     assert_eq!(
