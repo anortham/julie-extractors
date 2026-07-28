@@ -73,11 +73,7 @@ pub fn extract_fields(
             let mut metadata = HashMap::new();
             metadata.insert(
                 "isStatic".to_string(),
-                serde_json::json!(
-                    modifiers
-                        .iter()
-                        .any(|m| m == "static" || m == "const")
-                ),
+                serde_json::json!(modifiers.iter().any(|m| m == "static" || m == "const")),
             );
 
             let options = SymbolOptions {

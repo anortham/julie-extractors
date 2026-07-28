@@ -453,13 +453,7 @@ namespace MyProject
             .find(|s| s.name == "StaticMethod")
             .expect("StaticMethod");
         assert_eq!(is_static(static_method), Some(true));
-        assert!(
-            static_method
-                .signature
-                .as_ref()
-                .unwrap()
-                .contains("static")
-        );
+        assert!(static_method.signature.as_ref().unwrap().contains("static"));
 
         let instance_method = symbols
             .iter()
@@ -485,10 +479,7 @@ namespace MyProject
             .expect("MaxSize");
         assert_eq!(is_static(max_size), Some(true));
 
-        let shared = symbols
-            .iter()
-            .find(|s| s.name == "Shared")
-            .expect("Shared");
+        let shared = symbols.iter().find(|s| s.name == "Shared").expect("Shared");
         assert_eq!(is_static(shared), Some(true));
 
         let static_prop = symbols
