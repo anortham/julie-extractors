@@ -401,4 +401,134 @@ namespace MyProject
             "Task<List<User>>"
         );
     }
+
+    #[test]
+    fn test_is_static_metadata_on_methods_fields_and_properties() {
+        let code = r#"
+namespace MyProject
+{
+    public class StaticSample
+    {
+        public static int StaticCount;
+        public int InstanceCount;
+        public const int MaxSize = 10;
+        private static readonly string Shared = "x";
+
+        public static int StaticMethod() => 1;
+        public int InstanceMethod() => 2;
+        public static int StaticProp { get; set; }
+        public int InstanceProp { get; set; }
+        public static event EventHandler GlobalEvent;
+        public event EventHandler LocalEvent;
+
+        static StaticSample() {}
+        public StaticSample() {}
+    }
+}
+"#;
+
+        let mut parser = init_parser();
+        let tree = parser.parse(code, None).unwrap();
+
+        let workspace_root = PathBuf::from("/tmp/test");
+        let mut extractor = CSharpExtractor::new(
+            "c_sharp".to_string(),
+            "test.cs".to_string(),
+            code.to_string(),
+            &workspace_root,
+        );
+
+        let symbols = extractor.extract_symbols(&tree);
+
+        fn is_static(symbol: &Symbol) -> Option<bool> {
+            symbol
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get("isStatic"))
+                .and_then(|value| value.as_bool())
+        }
+
+        let static_method = symbols
+            .iter()
+            .find(|s| s.name == "StaticMethod")
+            .expect("StaticMethod");
+        assert_eq!(is_static(static_method), Some(true));
+        assert!(
+            static_method
+                .signature
+                .as_ref()
+                .unwrap()
+                .contains("static")
+        );
+
+        let instance_method = symbols
+            .iter()
+            .find(|s| s.name == "InstanceMethod")
+            .expect("InstanceMethod");
+        assert_eq!(is_static(instance_method), Some(false));
+
+        let static_count = symbols
+            .iter()
+            .find(|s| s.name == "StaticCount")
+            .expect("StaticCount");
+        assert_eq!(is_static(static_count), Some(true));
+
+        let instance_count = symbols
+            .iter()
+            .find(|s| s.name == "InstanceCount")
+            .expect("InstanceCount");
+        assert_eq!(is_static(instance_count), Some(false));
+
+        let max_size = symbols
+            .iter()
+            .find(|s| s.name == "MaxSize")
+            .expect("MaxSize");
+        assert_eq!(is_static(max_size), Some(true));
+
+        let shared = symbols
+            .iter()
+            .find(|s| s.name == "Shared")
+            .expect("Shared");
+        assert_eq!(is_static(shared), Some(true));
+
+        let static_prop = symbols
+            .iter()
+            .find(|s| s.name == "StaticProp")
+            .expect("StaticProp");
+        assert_eq!(is_static(static_prop), Some(true));
+
+        let instance_prop = symbols
+            .iter()
+            .find(|s| s.name == "InstanceProp")
+            .expect("InstanceProp");
+        assert_eq!(is_static(instance_prop), Some(false));
+
+        let global_event = symbols
+            .iter()
+            .find(|s| s.name == "GlobalEvent")
+            .expect("GlobalEvent");
+        assert_eq!(is_static(global_event), Some(true));
+
+        let local_event = symbols
+            .iter()
+            .find(|s| s.name == "LocalEvent")
+            .expect("LocalEvent");
+        assert_eq!(is_static(local_event), Some(false));
+
+        let constructors: Vec<_> = symbols
+            .iter()
+            .filter(|s| s.name == "StaticSample" && s.kind == SymbolKind::Constructor)
+            .collect();
+        assert_eq!(constructors.len(), 2);
+        let static_ctor = constructors
+            .iter()
+            .find(|s| s.signature.as_ref().unwrap().contains("static"))
+            .expect("static constructor");
+        let instance_ctor = constructors
+            .iter()
+            .find(|s| !s.signature.as_ref().unwrap().contains("static"))
+            .expect("instance constructor");
+        assert_eq!(is_static(static_ctor), Some(true));
+        assert_eq!(is_static(instance_ctor), Some(false));
+    }
 }

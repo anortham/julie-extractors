@@ -2,6 +2,7 @@
 
 use super::helpers;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 /// Extract operator
@@ -89,10 +90,17 @@ pub fn extract_operator(
         signature += &format!(" {}", base.get_node_text(arrow_clause));
     }
 
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        "isStatic".to_string(),
+        serde_json::json!(modifiers.iter().any(|m| m == "static")),
+    );
+
     let options = SymbolOptions {
         signature: Some(signature),
         visibility: Some(visibility),
         parent_id,
+        metadata: Some(metadata),
         ..Default::default()
     };
 
@@ -147,10 +155,17 @@ pub fn extract_conversion_operator(
         signature += &format!(" {}", base.get_node_text(arrow_clause));
     }
 
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        "isStatic".to_string(),
+        serde_json::json!(modifiers.iter().any(|m| m == "static")),
+    );
+
     let options = SymbolOptions {
         signature: Some(signature),
         visibility: Some(visibility),
         parent_id,
+        metadata: Some(metadata),
         ..Default::default()
     };
 
@@ -188,10 +203,17 @@ pub fn extract_indexer(
         format!("{} {} this{}", modifiers.join(" "), return_type, params)
     };
 
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        "isStatic".to_string(),
+        serde_json::json!(modifiers.iter().any(|m| m == "static")),
+    );
+
     let options = SymbolOptions {
         signature: Some(signature),
         visibility: Some(visibility),
         parent_id,
+        metadata: Some(metadata),
         ..Default::default()
     };
 

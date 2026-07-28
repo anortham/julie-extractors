@@ -1,4 +1,5 @@
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions};
+use std::collections::HashMap;
 use tree_sitter::Node;
 
 use super::helpers;
@@ -69,13 +70,23 @@ pub fn extract_fields(
                 )
             };
 
+            let mut metadata = HashMap::new();
+            metadata.insert(
+                "isStatic".to_string(),
+                serde_json::json!(
+                    modifiers
+                        .iter()
+                        .any(|m| m == "static" || m == "const")
+                ),
+            );
+
             let options = SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(visibility.clone()),
                 parent_id: parent_id.clone(),
                 doc_comment: doc_comment.clone(),
+                metadata: Some(metadata),
                 annotations: annotations.clone(),
-                ..Default::default()
             };
 
             Some(base.create_symbol(&node, name, symbol_kind.clone(), options))
@@ -141,13 +152,19 @@ pub fn extract_events(
                 format!("{} event {} {}", modifiers.join(" "), event_type, name)
             };
 
+            let mut metadata = HashMap::new();
+            metadata.insert(
+                "isStatic".to_string(),
+                serde_json::json!(modifiers.iter().any(|m| m == "static")),
+            );
+
             let options = SymbolOptions {
                 signature: Some(signature),
                 visibility: Some(visibility.clone()),
                 parent_id: parent_id.clone(),
                 doc_comment: doc_comment.clone(),
+                metadata: Some(metadata),
                 annotations: annotations.clone(),
-                ..Default::default()
             };
 
             Some(base.create_symbol(&node, name, SymbolKind::Event, options))

@@ -70,6 +70,10 @@ pub fn extract_method(
     let doc_comment = base.find_doc_comment(&node);
 
     let mut metadata = HashMap::new();
+    metadata.insert(
+        "isStatic".to_string(),
+        serde_json::json!(modifiers.iter().any(|m| m == "static")),
+    );
     apply_callable_test_metadata(
         "csharp",
         &name,
@@ -85,11 +89,7 @@ pub fn extract_method(
         visibility: Some(visibility),
         parent_id,
         doc_comment,
-        metadata: if metadata.is_empty() {
-            None
-        } else {
-            Some(metadata)
-        },
+        metadata: Some(metadata),
         annotations,
     };
 
@@ -130,6 +130,10 @@ pub fn extract_constructor(
     let doc_comment = base.find_doc_comment(&node);
 
     let mut metadata = HashMap::new();
+    metadata.insert(
+        "isStatic".to_string(),
+        serde_json::json!(modifiers.iter().any(|m| m == "static")),
+    );
     apply_callable_test_metadata(
         "csharp",
         &name,
@@ -145,11 +149,7 @@ pub fn extract_constructor(
         visibility: Some(visibility),
         parent_id,
         doc_comment,
-        metadata: if metadata.is_empty() {
-            None
-        } else {
-            Some(metadata)
-        },
+        metadata: Some(metadata),
         annotations,
     };
 
@@ -277,14 +277,20 @@ pub fn extract_property(
     // Extract XML doc comment
     let doc_comment = base.find_doc_comment(&node);
 
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        "isStatic".to_string(),
+        serde_json::json!(modifiers.iter().any(|m| m == "static")),
+    );
+
     let annotations = helpers::extract_annotations(base, &node);
     let options = SymbolOptions {
         signature: Some(signature),
         visibility: Some(visibility),
         parent_id,
         doc_comment,
+        metadata: Some(metadata),
         annotations,
-        ..Default::default()
     };
 
     Some(base.create_symbol(&node, name, SymbolKind::Property, options))
