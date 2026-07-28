@@ -675,6 +675,25 @@ const TIER3_STATIC_TYPE_LANGUAGES: &[&str] =
     julie_extract_cli::resolution::TIER3_STATIC_TYPE_LANGUAGES;
 
 #[test]
+fn csharp_local_and_parameter_receivers_resolve_member_access() {
+    let (_t, db) = scan_fixture("csharp/local_receiver");
+    // fixture.Create(), local.Value, inferred.Create() — at least the declared-typed
+    // receivers should bind through tier3_receiver.
+    let create_hits = resolved_identifier_count(&db, "Create", "call");
+    assert!(
+        create_hits >= 1,
+        "typed fixture/local receivers should resolve Create(), got {create_hits}"
+    );
+    let value = resolved_identifier_of_kind(&db, "Value", "member_access")
+        .expect("local.Value should resolve via typed local receiver");
+    assert_eq!(value.method, "tier3_receiver");
+    assert_eq!(
+        identifier_receiver(&db, "Value", "member_access").as_deref(),
+        Some("local")
+    );
+}
+
+#[test]
 fn every_static_type_language_ships_a_proving_fixture() {
     let missing: Vec<&str> = TIER3_STATIC_TYPE_LANGUAGES
         .iter()

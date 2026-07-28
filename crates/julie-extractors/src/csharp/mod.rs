@@ -17,6 +17,7 @@ mod fields;
 mod helpers;
 mod identifiers;
 mod local_callables;
+mod locals;
 pub(crate) mod member_type_relationships;
 mod members;
 mod operators;
@@ -157,6 +158,22 @@ impl CSharpExtractor {
             return;
         }
 
+        if node.kind() == "local_declaration_statement" {
+            let local_symbols =
+                locals::extract_local_declaration(&mut self.base, node, parent_id.clone());
+            symbols.extend(local_symbols);
+            // Declarators are fully handled; still walk children for nested
+            // expressions that may contain lambdas with their own locals.
+            let Some(child_depth) = child_tree_depth(depth) else {
+                return;
+            };
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                self.walk_tree(child, symbols, parent_id.clone(), child_depth);
+            }
+            return;
+        }
+
         if node.kind() == "field_declaration" {
             let field_symbols = fields::extract_fields(&mut self.base, node, parent_id.clone());
             let current_parent_id = field_symbols
@@ -268,6 +285,9 @@ impl CSharpExtractor {
                 operators::extract_conversion_operator(&mut self.base, node, parent_id)
             }
             "indexer_declaration" => operators::extract_indexer(&mut self.base, node, parent_id),
+            "parameter" | "parameter_array" => {
+                locals::extract_parameter(&mut self.base, node, parent_id)
+            }
             _ => None,
         }
     }

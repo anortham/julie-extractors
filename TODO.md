@@ -374,9 +374,11 @@ ones; every external-receiver site stays unresolved — `Assert.Equal` (7,091),
 zero of the 9,752 static-tier targets is a non-static, non-enum, non-constant
 member.
 
-Slice 4 (C# locals/params as symbols, real `infer_variable_type`) is **not
-started** — it is the only remaining slice and the only one that moves
-`variable_ref`. Slice 5 stands: bare `Method`-at-tier-4 is rejected.
+Slice 4 (C# locals/params as symbols, real `infer_variable_type`) **landed**
+with RESOLUTION_VERSION 5: locals/params are `SymbolKind::Variable` with
+`metadata.role`, typed `variableType`, and type_facts; identifier `call` with a
+receiver runs the tier-3 receiver path. Slice 5 stands: bare `Method`-at-tier-4
+is rejected.
 
 **Accepted debt carried by the static tier**, from the post-implementation review:
 

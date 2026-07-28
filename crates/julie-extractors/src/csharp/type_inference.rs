@@ -127,6 +127,53 @@ fn infer_field_type(symbol: &Symbol) -> Option<String> {
     None
 }
 
-fn infer_variable_type(_symbol: &Symbol) -> Option<String> {
-    None
+fn infer_variable_type(symbol: &Symbol) -> Option<String> {
+    if let Some(metadata) = symbol.metadata.as_ref()
+        && let Some(declared) = metadata
+            .get("variableType")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty() && *s != "var")
+    {
+        return Some(declared.to_string());
+    }
+
+    let signature = symbol.signature.as_ref()?;
+    // Signatures look like: "int total = 0", "string name", "params string[] args".
+    let without_init = signature.split('=').next()?.trim();
+    let parts: Vec<&str> = without_init.split_whitespace().collect();
+    if parts.len() < 2 {
+        return None;
+    }
+    let name = symbol.name.as_str();
+    if parts.last().copied() != Some(name) {
+        return None;
+    }
+    let type_parts: Vec<&str> = parts[..parts.len() - 1]
+        .iter()
+        .copied()
+        .filter(|part| {
+            !matches!(
+                *part,
+                "public"
+                    | "private"
+                    | "protected"
+                    | "internal"
+                    | "static"
+                    | "readonly"
+                    | "const"
+                    | "ref"
+                    | "out"
+                    | "in"
+                    | "params"
+                    | "this"
+                    | "scoped"
+            )
+        })
+        .collect();
+    let joined = type_parts.join(" ");
+    if joined.is_empty() || joined == "var" {
+        None
+    } else {
+        Some(joined)
+    }
 }

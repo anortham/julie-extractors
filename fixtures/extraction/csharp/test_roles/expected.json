@@ -526,6 +526,34 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/test_roles/source.cs:value:19:53",
+      "name": "value",
+      "kind": "variable",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/test_roles/source.cs",
+      "start_line": 19,
+      "start_column": 53,
+      "end_line": 19,
+      "end_column": 62,
+      "start_byte": 432,
+      "end_byte": 441,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int value",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/test_roles/source.cs:NUnitParameterizedCase:19:4",
+      "metadata": {
+        "isInferred": false,
+        "role": "parameter",
+        "variableType": "int"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -617,6 +645,15 @@
     {
       "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:XunitTheory:17:4",
       "resolved_type": "void",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/test_roles/source.cs:value:19:53",
+      "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

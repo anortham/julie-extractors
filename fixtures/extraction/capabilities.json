@@ -157,7 +157,7 @@
             },
             {
               "kind": "rust.http_client.instance_receiver",
-              "reason": "The reqwest builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) — a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss).",
+              "reason": "The reqwest builder form (`client.get(\"url\")`) requires a same-file-proven reqwest receiver (inline `reqwest::Client::new()` chain, a single-assigned local, or a `reqwest::Client` typed param) \u2014 a struct-field or cross-file client (`self.client.get(...)`) is syntactically identical to a non-HTTP `.get(...)` and stays silent by M2 (a false client edge is worse than a miss).",
               "required_closure": "extend reqwest builder detection to struct-field/typed receivers if in-file type resolution becomes available; scoped `reqwest::get(\"url\")` and proven-receiver forms already emit",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
@@ -2590,7 +2590,8 @@
             "import",
             "interface",
             "method",
-            "property"
+            "property",
+            "variable"
           ],
           "not_applicable": [],
           "open_gaps": []
@@ -2964,7 +2965,7 @@
             },
             {
               "kind": "php.http_client.instance_receiver",
-              "reason": "Guzzle and Symfony variable receivers are proven only via a typed parameter (`Client`/`ClientInterface`/`HttpClientInterface`/`HttpClient`) or a same-scope `new \\GuzzleHttp\\Client()` / `HttpClient::create()` assignment — a property (`$this->client->get(...)`) or cross-file/DI-provided receiver is syntactically identical to a non-HTTP call and stays silent by M2 (a false client edge is worse than a miss). Cross-function curl handles also stay silent.",
+              "reason": "Guzzle and Symfony variable receivers are proven only via a typed parameter (`Client`/`ClientInterface`/`HttpClientInterface`/`HttpClient`) or a same-scope `new \\GuzzleHttp\\Client()` / `HttpClient::create()` assignment \u2014 a property (`$this->client->get(...)`) or cross-file/DI-provided receiver is syntactically identical to a non-HTTP call and stays silent by M2 (a false client edge is worse than a miss). Cross-function curl handles also stay silent.",
               "required_closure": "extend receiver proofs to promoted-property/class-property receivers if in-file type resolution becomes available; typed-param and same-scope construction forms already emit",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
@@ -3453,7 +3454,7 @@
             },
             {
               "kind": "kotlin.http_client.instance_receiver",
-              "reason": "Ktor/WebClient/RestTemplate receivers are proven only via a typed function or primary-constructor parameter, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local — class-property, DI-provided, or cross-file receivers are syntactically identical to non-HTTP fluent calls and stay silent by M2. Retrofit `@HTTP(method = ...)` annotations also stay silent (no static verb element support).",
+              "reason": "Ktor/WebClient/RestTemplate receivers are proven only via a typed function or primary-constructor parameter, an exact `WebClient.create()`/`RestTemplate` builder chain, or (Ktor) a same-file `HttpClient(...)` local \u2014 class-property, DI-provided, or cross-file receivers are syntactically identical to non-HTTP fluent calls and stay silent by M2. Retrofit `@HTTP(method = ...)` annotations also stay silent (no static verb element support).",
               "required_closure": "extend receiver proofs to class-property/field receivers if in-file type resolution becomes available; add `@HTTP` static-element parsing if demanded",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             }
@@ -3921,7 +3922,7 @@
             },
             {
               "kind": "elixir.http_client.tesla_middleware_base_url",
-              "reason": "Tesla client middleware base URLs (`Tesla.client([{Tesla.Middleware.BaseUrl, \"https://api\"}])`) are declared apart from the request call, so `Tesla.get(client, \"/path\")` emits only the static path argument — the middleware base URL is not joined into target_path in-file.",
+              "reason": "Tesla client middleware base URLs (`Tesla.client([{Tesla.Middleware.BaseUrl, \"https://api\"}])`) are declared apart from the request call, so `Tesla.get(client, \"/path\")` emits only the static path argument \u2014 the middleware base URL is not joined into target_path in-file.",
               "required_closure": "join same-file Tesla middleware base URLs into request facts if a same-file client-binding model is designed; static URL arguments already emit",
               "planned_closure_task": "docs/plans/2026-07-03-finish-http-boundary-lane-design.md section 2b (deferred clients open_gaps)"
             },
@@ -6191,7 +6192,7 @@
   ],
   "reference_resolution": {
     "_comment": "Documentation mirror of the schema-v4 reference-resolution capability posture. The MACHINE-ENFORCED honesty surfaces are (1) the per-language language_capability_gaps rows emitted at scan time by crates/julie-extract-cli/src/capability_snapshot.rs (reference_resolution.tier2_import / .tier3_receiver / .tier3_static_type) and (2) the fixture suite crates/julie-extract-cli/tests/resolution_contract.rs over fixtures/extraction/resolution_contract/. This block is not deserialized by the extractor (serde ignores unknown fields) and is not read by scripts/language-data-quality-report.mjs; do not add per-language capability_gaps entries for these capabilities here, as the runtime already emits them and their gap_id would collide on the language_capability_gaps primary key. Keep this block in sync with those surfaces and docs/contracts/sqlite-schema-v4.md.",
-    "version": 4,
+    "version": 5,
     "schema_version": 4,
     "detection_rule": "Consumers gate on the reference_resolution_status metadata key, never on the schema version or table probing.",
     "outcomes": {
@@ -6207,7 +6208,7 @@
     },
     "metadata_keys": {
       "reference_resolution_status": "complete | partial | failed | absent (key missing)",
-      "reference_resolution_version": "resolution contract version (4)",
+      "reference_resolution_version": "resolution contract version (5)",
       "reference_resolution_last_full_revision": "revision_id of the last full pass; preserved across a failed write"
     },
     "tiers": {

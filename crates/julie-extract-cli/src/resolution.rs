@@ -599,6 +599,12 @@ fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
         (Pending, VariableRef) => vec![],
         // `Instantiates` is not an identifier kind (never constructed) but is
         // covered for exhaustiveness.
+        // Calls with a receiver (instance method access) need the typed-receiver
+        // path; without it, `fixture.Create()` never consults type_facts even when
+        // the extractor emits locals/params as symbols.
+        (Identifier, Call) if edge.receiver.is_some() => {
+            vec![Tier::Import, Tier::Receiver, Tier::StaticType, Tier::Global]
+        }
         (Identifier, Call | TypeUsage) => {
             vec![Tier::Import, Tier::StaticType, Tier::Global]
         }
@@ -1302,7 +1308,7 @@ use rusqlite::{Connection, Transaction};
 
 /// Value stamped into `reference_resolution_version` metadata. Bump when the
 /// resolver's observable output contract changes so Miller can gate on it.
-pub const RESOLUTION_VERSION: i64 = 4;
+pub const RESOLUTION_VERSION: i64 = 5;
 
 /// `method` string stamped on an identifier filled from a tier-1 (extraction-time,
 /// same-file) `relationships` row. Tier 1 is materialized at extraction; the
@@ -3439,8 +3445,8 @@ mod tests {
     }
 
     #[test]
-    fn resolution_version_is_four_after_static_metadata_contract() {
-        assert_eq!(RESOLUTION_VERSION, 4);
+    fn resolution_version_is_five_after_csharp_locals_contract() {
+        assert_eq!(RESOLUTION_VERSION, 5);
     }
 
     #[test]

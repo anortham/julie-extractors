@@ -146,6 +146,42 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/cross_file/Source.cs:x:15:12",
+      "name": "x",
+      "kind": "variable",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/cross_file/Source.cs",
+      "start_line": 15,
+      "start_column": 12,
+      "end_line": 15,
+      "end_column": 32,
+      "start_byte": 427,
+      "end_byte": 447,
+      "body_span": {
+        "start_line": 15,
+        "start_column": 30,
+        "end_line": 15,
+        "end_column": 32,
+        "start_byte": 445,
+        "end_byte": 447
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "var x = new OtherClass()",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/cross_file/Source.cs:Entry:13:4",
+      "metadata": {
+        "initializer": "new OtherClass()",
+        "isInferred": true,
+        "role": "local",
+        "variableType": "var"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [

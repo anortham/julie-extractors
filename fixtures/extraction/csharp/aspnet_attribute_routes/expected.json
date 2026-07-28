@@ -436,6 +436,34 @@
       "semantic_group": null,
       "confidence": null,
       "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:id:10:29",
+      "name": "id",
+      "kind": "variable",
+      "language": "csharp",
+      "file_path": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs",
+      "start_line": 10,
+      "start_column": 29,
+      "end_line": 10,
+      "end_column": 35,
+      "start_byte": 199,
+      "end_byte": 205,
+      "body_span": null,
+      "body_hash": null,
+      "signature": "int id",
+      "doc_comment": null,
+      "visibility": "Private",
+      "parent_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Get:9:4",
+      "metadata": {
+        "isInferred": false,
+        "role": "parameter",
+        "variableType": "int"
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
     }
   ],
   "relationships": [],
@@ -1108,6 +1136,15 @@
     {
       "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:Ping:35:4",
       "resolved_type": "IActionResult",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "csharp",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/csharp/aspnet_attribute_routes/source.cs:id:10:29",
+      "resolved_type": "int",
       "generic_params": null,
       "constraints": null,
       "is_inferred": true,

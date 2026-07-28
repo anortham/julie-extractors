@@ -62,6 +62,7 @@ pub mod field_property_relationships;
 pub mod identifier_extraction;
 pub mod language_features;
 pub mod literals;
+mod locals;
 pub mod metadata;
 pub mod runtime;
 mod test_containers;
