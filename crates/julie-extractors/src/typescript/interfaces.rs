@@ -3,6 +3,7 @@
 //! This module handles extraction of TypeScript-specific constructs including
 //! interfaces, type aliases, enums, properties, and namespaces.
 
+use super::helpers;
 use crate::base::{Symbol, SymbolKind, SymbolOptions};
 use crate::typescript::TypeScriptExtractor;
 use tree_sitter::Node;
@@ -23,12 +24,14 @@ pub(super) fn extract_interface(
 
     // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
+    let visibility = helpers::extract_ts_visibility(node);
 
     let iface_symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Interface,
         SymbolOptions {
+            visibility,
             parent_id: parent_id.map(str::to_string),
             doc_comment,
             ..Default::default()
@@ -100,12 +103,14 @@ pub(super) fn extract_type_alias(
 
     // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
+    let visibility = helpers::extract_ts_visibility(node);
 
     Some(extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Type,
         SymbolOptions {
+            visibility,
             parent_id: parent_id.map(str::to_string),
             doc_comment,
             ..Default::default()
@@ -129,12 +134,14 @@ pub(super) fn extract_enum(
 
     // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
+    let visibility = helpers::extract_ts_visibility(node);
 
     let enum_symbol = extractor.base_mut().create_symbol(
         &node,
         name,
         SymbolKind::Enum,
         SymbolOptions {
+            visibility,
             parent_id: parent_id.map(str::to_string),
             doc_comment,
             ..Default::default()

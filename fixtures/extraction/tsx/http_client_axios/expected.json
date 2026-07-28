@@ -85,7 +85,7 @@
       "body_hash": "075b38be7c3eda5ff0cd0b06a58cb58d",
       "signature": "UserList()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,

@@ -54,7 +54,7 @@
       "body_hash": "2f205f467c989866eeb4427bef14d288",
       "signature": "Page()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,

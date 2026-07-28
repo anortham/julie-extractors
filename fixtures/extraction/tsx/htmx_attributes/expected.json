@@ -85,7 +85,7 @@
       "body_hash": "d3dccc9af3abd35921940205c24282b0",
       "signature": "SaveButton({ endpoint }: Props)",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,

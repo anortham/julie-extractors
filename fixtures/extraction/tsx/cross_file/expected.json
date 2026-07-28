@@ -92,7 +92,7 @@
       "body_hash": "e9669344b96c72d02e1896000d944368",
       "signature": "entry()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,

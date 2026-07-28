@@ -168,7 +168,7 @@
       "body_hash": "d92175c6ae710a13bee7650285952dad",
       "signature": "load(): : Promise<Response>",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,

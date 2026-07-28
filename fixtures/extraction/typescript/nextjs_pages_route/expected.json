@@ -54,7 +54,7 @@
       "body_hash": "f5d32bb79913302c5f89e4529c43c899",
       "signature": "Home()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,
@@ -121,7 +121,7 @@
       "body_hash": "8e68abd64bcde4333cb3e7f929871a17",
       "signature": "getStaticProps()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,

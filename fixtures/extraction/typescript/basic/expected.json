@@ -54,7 +54,7 @@
       "body_hash": "e798aba0d26b9ca8236eec4e39f6cd3c",
       "signature": null,
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {},
       "annotations": [],
@@ -116,7 +116,7 @@
       "body_hash": "dea2d18d9598bb206b092f26d7737ce0",
       "signature": "@Component class Worker implements Job",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "implements": [

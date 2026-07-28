@@ -244,7 +244,7 @@
       "body_hash": "6f9ca5b06efa0c8896ca5a2ed9d088d3",
       "signature": "@Controller class UsersController",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAbstract": false

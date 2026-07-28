@@ -178,7 +178,7 @@
       "body_hash": "b9877b6988f03fd1654bc3007067954c",
       "signature": "routes(): : void",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,

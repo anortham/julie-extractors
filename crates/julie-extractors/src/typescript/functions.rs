@@ -108,7 +108,12 @@ pub(super) fn extract_method(
         SymbolKind::Method
     };
 
-    // Build base signature, then prepend decorators
+    // Check for modifiers before building signature (static goes into the text)
+    let is_async = helpers::has_modifier(node, "async");
+    let is_static = helpers::has_modifier(node, "static");
+    let is_generator = helpers::has_modifier(node, "*");
+
+    // Build base signature, then prepend static + decorators
     let base_sig = build_function_signature(extractor, &node, &name);
 
     // Extract decorators from preceding siblings (tree-sitter TS puts method decorators as siblings)
@@ -121,14 +126,10 @@ pub(super) fn extract_method(
         .map(|marker| marker.annotation_key.clone())
         .collect();
     let decorator_prefix = helpers::decorator_prefix(&decorators);
-    let signature = format!("{}{}", decorator_prefix, base_sig);
+    let static_prefix = if is_static { "static " } else { "" };
+    let signature = format!("{}{}{}", decorator_prefix, static_prefix, base_sig);
 
     let visibility = helpers::extract_ts_visibility(node);
-
-    // Check for modifiers
-    let is_async = helpers::has_modifier(node, "async");
-    let is_static = helpers::has_modifier(node, "static");
-    let is_generator = helpers::has_modifier(node, "*");
 
     let parameters = extract_parameters(extractor, &node);
     let return_type = extractor.base().get_field_text(&node, "return_type");

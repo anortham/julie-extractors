@@ -116,7 +116,7 @@
       "body_hash": "3f1962add3a313dac2b4d5ec410b27da",
       "signature": "createUser(payload: User): : Promise<void>",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,
@@ -184,7 +184,7 @@
       "body_hash": "e36b48215f3a7dd0dece22bb2871ab5a",
       "signature": "dynamicRequest(url: string): : Promise<unknown>",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,
@@ -276,7 +276,7 @@
       "body_hash": "18441ce235d9d6d1f29347ebfd0d4dcf",
       "signature": "loadUsers(): : Promise<User[]>",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,

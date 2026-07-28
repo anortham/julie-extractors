@@ -161,7 +161,7 @@
       "body_hash": "571bf0233d69451f478004bde2ec42b0",
       "signature": "View()",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,

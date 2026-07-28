@@ -91,7 +91,7 @@
       "body_hash": "d168be361717580dc89f5311a5e962e1",
       "signature": "GET(\n    request: Request,\n    { params }: { params: { id: string } },\n): : Promise<Response>",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": true,

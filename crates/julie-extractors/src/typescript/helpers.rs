@@ -134,11 +134,33 @@ pub(super) fn decorator_prefix(decorators: &[String]) -> String {
     }
 }
 
-/// Extract visibility from an `accessibility_modifier` child node.
+/// True when this declaration is wrapped by a tree-sitter `export_statement`.
 ///
-/// In TypeScript tree-sitter, access modifiers produce `accessibility_modifier`
-/// child nodes containing `public`, `private`, or `protected`.
+/// Covers `export class/function/...` and `export default` forms. Does not
+/// treat re-export lists (`export { Foo }`) as exporting a sibling definition.
+pub(super) fn is_exported_declaration(node: Node) -> bool {
+    node.parent()
+        .map(|parent| parent.kind() == "export_statement")
+        .unwrap_or(false)
+}
+
+/// Extract visibility from an `accessibility_modifier` child, else export status.
+///
+/// Explicit `public` / `private` / `protected` wins. When no accessibility
+/// modifier is present, exported declarations resolve to `Public` so cross-file
+/// static-type receivers can bind; non-exported declarations stay `None`.
 pub(super) fn extract_ts_visibility(node: Node) -> Option<Visibility> {
+    if let Some(visibility) = extract_accessibility_modifier(node) {
+        return Some(visibility);
+    }
+    if is_exported_declaration(node) {
+        return Some(Visibility::Public);
+    }
+    None
+}
+
+/// Read an explicit `accessibility_modifier` child (`public`/`private`/`protected`).
+fn extract_accessibility_modifier(node: Node) -> Option<Visibility> {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == "accessibility_modifier" {

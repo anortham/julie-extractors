@@ -54,7 +54,7 @@
       "body_hash": "99cc945d4f16f6a34e788a379473c186",
       "signature": "Badge(props: Props)",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAsync": false,
@@ -152,7 +152,7 @@
       "body_hash": "b0abdf6d718b49768145f79eb238ef79",
       "signature": "@Component class WorkerModel",
       "doc_comment": null,
-      "visibility": null,
+      "visibility": "Public",
       "parent_key": null,
       "metadata": {
         "isAbstract": false

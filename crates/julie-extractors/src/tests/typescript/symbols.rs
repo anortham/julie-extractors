@@ -568,13 +568,220 @@ export class Worker {
         .iter()
         .find(|s| s.name == "Worker" && s.kind == SymbolKind::Class)
         .expect("Should extract Worker class");
-    assert_eq!(worker.visibility, None);
+    assert_eq!(
+        worker.visibility,
+        Some(Visibility::Public),
+        "export class should be Public; parameter properties must not leak onto the class"
+    );
 
     let constructor = symbols
         .iter()
         .find(|s| s.name == "constructor" && s.kind == SymbolKind::Constructor)
         .expect("Should extract constructor");
     assert_eq!(constructor.visibility, None);
+}
+
+#[test]
+fn test_export_class_visibility_public() {
+    let code = r#"
+export class ExportedFoo {
+    static bar(): number { return 1; }
+}
+
+export default class DefaultBar {}
+"#;
+
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "test.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+
+    let exported = symbols
+        .iter()
+        .find(|s| s.name == "ExportedFoo" && s.kind == SymbolKind::Class)
+        .expect("Should extract ExportedFoo");
+    assert_eq!(
+        exported.visibility,
+        Some(Visibility::Public),
+        "export class should be Public"
+    );
+
+    let default_bar = symbols
+        .iter()
+        .find(|s| s.name == "DefaultBar" && s.kind == SymbolKind::Class)
+        .expect("Should extract DefaultBar");
+    assert_eq!(
+        default_bar.visibility,
+        Some(Visibility::Public),
+        "export default class should be Public"
+    );
+}
+
+#[test]
+fn test_non_export_class_visibility_none() {
+    let code = r#"
+class LocalOnly {
+    static helper(): void {}
+}
+"#;
+
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "test.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+
+    let local = symbols
+        .iter()
+        .find(|s| s.name == "LocalOnly" && s.kind == SymbolKind::Class)
+        .expect("Should extract LocalOnly");
+    assert_eq!(
+        local.visibility, None,
+        "non-exported class must remain non-public for cross-file static refusal"
+    );
+}
+
+#[test]
+fn test_export_interface_enum_type_function_visibility_public() {
+    let code = r#"
+export interface IFace {}
+export enum Color { Red }
+export type Alias = string;
+export function run(): void {}
+interface HiddenIFace {}
+enum HiddenEnum { A }
+type HiddenAlias = number;
+function hidden(): void {}
+"#;
+
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "test.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+
+    for (name, kind) in [
+        ("IFace", SymbolKind::Interface),
+        ("Color", SymbolKind::Enum),
+        ("Alias", SymbolKind::Type),
+        ("run", SymbolKind::Function),
+    ] {
+        let sym = symbols
+            .iter()
+            .find(|s| s.name == name && s.kind == kind)
+            .unwrap_or_else(|| panic!("Should extract {name}"));
+        assert_eq!(
+            sym.visibility,
+            Some(Visibility::Public),
+            "{name} should be Public when exported"
+        );
+    }
+
+    for (name, kind) in [
+        ("HiddenIFace", SymbolKind::Interface),
+        ("HiddenEnum", SymbolKind::Enum),
+        ("HiddenAlias", SymbolKind::Type),
+        ("hidden", SymbolKind::Function),
+    ] {
+        let sym = symbols
+            .iter()
+            .find(|s| s.name == name && s.kind == kind)
+            .unwrap_or_else(|| panic!("Should extract {name}"));
+        assert_eq!(
+            sym.visibility, None,
+            "{name} should remain non-public when not exported"
+        );
+    }
+}
+
+#[test]
+fn test_static_method_signature_contains_static() {
+    let code = r#"
+class Util {
+    static create(): Util { return new Util(); }
+    instance(): void {}
+}
+"#;
+
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "test.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+
+    let create = symbols
+        .iter()
+        .find(|s| s.name == "create" && s.kind == SymbolKind::Method)
+        .expect("Should extract create method");
+    assert_eq!(
+        create
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("isStatic"))
+            .and_then(|v| v.as_bool()),
+        Some(true),
+        "static method should set isStatic metadata"
+    );
+    let sig = create.signature.as_deref().unwrap_or("");
+    assert!(
+        sig.split_whitespace().any(|token| token == "static"),
+        "static method signature should contain standalone 'static', got: {sig:?}"
+    );
+
+    let instance = symbols
+        .iter()
+        .find(|s| s.name == "instance" && s.kind == SymbolKind::Method)
+        .expect("Should extract instance method");
+    assert_eq!(
+        instance
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("isStatic"))
+            .and_then(|v| v.as_bool()),
+        Some(false)
+    );
+    let sig = instance.signature.as_deref().unwrap_or("");
+    assert!(
+        !sig.split_whitespace().any(|token| token == "static"),
+        "instance method must not get static in signature, got: {sig:?}"
+    );
 }
 
 #[test]
