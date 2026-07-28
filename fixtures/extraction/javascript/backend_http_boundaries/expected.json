@@ -115,6 +115,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "[\"GET\", \"POST\"]"
       },
       "annotations": [],
@@ -287,6 +288,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "\"/fast/:id\""
       },
       "annotations": [],

@@ -357,7 +357,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": null,
-      "metadata": {},
+      "metadata": {
+        "isReadonly": false,
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

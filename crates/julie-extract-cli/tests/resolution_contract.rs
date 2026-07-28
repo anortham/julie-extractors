@@ -364,10 +364,10 @@ fn static_type_receiver_resolves_csharp_across_files() {
 }
 
 #[test]
-fn static_type_receiver_resolves_typescript_across_files() {
+fn static_type_receiver_resolves_typescript_same_file() {
     let (_t, db) = scan_fixture("typescript/static_type_receiver");
     let call = resolved_identifier_of_kind(&db, "create", "call")
-        .expect("static-type call resolves from another file (ts)");
+        .expect("same-file static-type call resolves (ts)");
     assert_eq!(call.tier, 3);
     assert_eq!(call.method, "tier3_static_type");
     assert!(
@@ -381,7 +381,7 @@ fn static_type_receiver_resolves_typescript_across_files() {
     );
 
     let limit = resolved_identifier_of_kind(&db, "max", "call")
-        .expect("second static-type call resolves (ts)");
+        .expect("second same-file static-type call resolves (ts)");
     assert_eq!(limit.method, "tier3_static_type");
     assert_eq!(
         identifier_receiver(&db, "max", "call").as_deref(),
@@ -390,10 +390,28 @@ fn static_type_receiver_resolves_typescript_across_files() {
 }
 
 #[test]
-fn static_type_receiver_resolves_javascript_across_files() {
+fn static_type_receiver_resolves_imported_typescript_across_files() {
+    let (_t, db) = scan_fixture("typescript/static_type_imported");
+    let call = resolved_identifier_of_kind(&db, "create", "call")
+        .expect("imported Fixture.create resolves across files");
+    // Import-guided resolution (tier 2) is preferred when an import is present;
+    // same-file cases exercise tier3_static_type in static_type_receiver fixtures.
+    assert!(
+        call.method == "tier2_import" || call.method == "tier3_static_type",
+        "expected import or static-type method, got {}",
+        call.method
+    );
+    assert_eq!(
+        identifier_receiver(&db, "create", "call").as_deref(),
+        Some("Fixture")
+    );
+}
+
+#[test]
+fn static_type_receiver_resolves_javascript_same_file() {
     let (_t, db) = scan_fixture("javascript/static_type_receiver");
     let call = resolved_identifier_of_kind(&db, "create", "call")
-        .expect("static-type call resolves from another file (js)");
+        .expect("same-file static-type call resolves (js)");
     assert_eq!(call.tier, 3);
     assert_eq!(call.method, "tier3_static_type");
     assert!(
@@ -420,6 +438,30 @@ fn static_type_receiver_refuses_non_exported_typescript_across_files() {
         resolved_identifier_count(&db, "create", "call"),
         1,
         "only the same-file reference may bind a non-exported type"
+    );
+    // The one resolved call lives in the declaring file (same-file path).
+    let conn = Connection::open(&db).unwrap();
+    let declaring_file: String = conn
+        .query_row(
+            "SELECT file_id FROM symbols WHERE name = 'Hidden' LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let resolved_file: String = conn
+        .query_row(
+            "SELECT i.file_id FROM identifiers i
+             JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id
+             WHERE i.name = 'create' AND i.kind = 'call'
+               AND r.outcome = 'resolved'
+             LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        resolved_file, declaring_file,
+        "the only resolved create() must be the same-file call, not the consumer"
     );
 }
 

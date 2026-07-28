@@ -1,4 +1,6 @@
-// Type-name call to an instance method — must stay unresolved.
-export function remoteUse() {
-  return Fixture.run();
+import { Fixture } from "./fixture.js";
+
+export function run() {
+  // Instance method via type name must not resolve.
+  return Fixture.create();
 }

@@ -161,7 +161,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
-      "metadata": {},
+      "metadata": {
+        "isReadonly": false,
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,
@@ -192,7 +195,10 @@
       "doc_comment": null,
       "visibility": null,
       "parent_key": "fixtures/extraction/typescript/nextjs_route_handler/app/api/users/[id]/route.ts:GET:3:7",
-      "metadata": {},
+      "metadata": {
+        "isReadonly": false,
+        "isStatic": false
+      },
       "annotations": [],
       "semantic_group": null,
       "confidence": null,

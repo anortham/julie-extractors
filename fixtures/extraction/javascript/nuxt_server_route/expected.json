@@ -92,6 +92,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "body"
       },
       "annotations": [],

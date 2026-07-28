@@ -657,10 +657,13 @@ fn static_type_candidates(
     if scope_binds_receiver_name(edge, receiver, index) {
         return Vec::new();
     }
-    let Some(type_symbol) = unique_type_symbol(index, receiver, &edge.language) else {
+    let Some(type_symbol) = unique_static_type_symbol(index, receiver, &edge.language) else {
         return Vec::new();
     };
     if !static_receiver_is_reachable(edge, type_symbol, index) {
+        return Vec::new();
+    }
+    if !static_type_import_corroborated(edge, type_symbol, index) {
         return Vec::new();
     }
 
@@ -1139,9 +1142,34 @@ fn unique_type_symbol<'a>(
     type_name: &str,
     language: &str,
 ) -> Option<&'a CandidateSymbol> {
+    unique_named_type_symbol(index, type_name, language, is_type_like)
+}
+
+/// Type-name receiver for the static tier. Module languages only accept runtime
+/// value types (class/enum); interface/type-alias receivers cannot host static
+/// calls at runtime, so they never bind here.
+fn unique_static_type_symbol<'a>(
+    index: &'a WorkspaceCandidateIndex,
+    type_name: &str,
+    language: &str,
+) -> Option<&'a CandidateSymbol> {
+    unique_named_type_symbol(index, type_name, language, |kind| {
+        is_static_type_receiver_kind(language, kind)
+    })
+}
+
+fn unique_named_type_symbol<'a, F>(
+    index: &'a WorkspaceCandidateIndex,
+    type_name: &str,
+    language: &str,
+    kind_ok: F,
+) -> Option<&'a CandidateSymbol>
+where
+    F: Fn(&SymbolKind) -> bool,
+{
     let mut found: Option<&CandidateSymbol> = None;
     for cand in index.by_name(type_name) {
-        if cand.language == language && is_type_like(&cand.kind) {
+        if cand.language == language && kind_ok(&cand.kind) {
             if found.is_some() {
                 return None;
             }
@@ -1149,6 +1177,43 @@ fn unique_type_symbol<'a>(
         }
     }
     found
+}
+
+/// Runtime value types that can appear as `Type.staticMember` receivers.
+/// TypeScript/JavaScript modules: class and enum only (interfaces/type aliases
+/// erase at runtime). Other languages keep the full type-like set.
+fn is_static_type_receiver_kind(language: &str, kind: &SymbolKind) -> bool {
+    if tier2_enabled(language) {
+        matches!(kind, SymbolKind::Class | SymbolKind::Enum)
+    } else {
+        is_type_like(kind)
+    }
+}
+
+/// Module languages (tier-2 import contract) refuse cross-file static-type edges
+/// unless the receiver name is imported from the type's defining file. C# and
+/// similar namespace languages rely on uniqueness + visibility alone.
+fn static_type_import_corroborated(
+    edge: &UnresolvedEdge,
+    type_symbol: &CandidateSymbol,
+    index: &WorkspaceCandidateIndex,
+) -> bool {
+    if type_symbol.file_id == edge.file_id {
+        return true;
+    }
+    if !tier2_enabled(&edge.language) {
+        return true;
+    }
+    let Some(receiver) = edge.receiver.as_deref() else {
+        return false;
+    };
+    index.imports(&edge.file_id).iter().any(|import| {
+        import.local_name == receiver
+            && import
+                .module_file_id
+                .as_deref()
+                .is_some_and(|module| module == type_symbol.file_id)
+    })
 }
 
 fn sorted_by_id(mut symbols: Vec<&CandidateSymbol>) -> Vec<&CandidateSymbol> {

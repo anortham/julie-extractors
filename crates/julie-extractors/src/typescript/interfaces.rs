@@ -233,14 +233,18 @@ pub(super) fn extract_property(
     let content = extractor.base().content.clone();
     let decorators = helpers::extract_decorator_names(node, &content);
 
-    // Check for readonly
+    // Check for readonly / static
     let is_readonly = helpers::has_readonly(node);
+    let is_static = helpers::has_modifier(node, "static");
 
-    // Build signature with decorators, access modifier, readonly, and type annotation
+    // Build signature with decorators, access modifier, readonly, static, and type annotation
     let mut sig_parts = Vec::new();
     let decorator_prefix = helpers::decorator_prefix(&decorators);
     if !decorator_prefix.is_empty() {
         sig_parts.push(decorator_prefix.trim().to_string());
+    }
+    if is_static {
+        sig_parts.push("static".to_string());
     }
     if is_readonly {
         sig_parts.push("readonly".to_string());
@@ -250,7 +254,7 @@ pub(super) fn extract_property(
     if let Some(type_ann) = extractor.base().get_field_text(&node, "type") {
         sig_parts.push(format!(": {}", type_ann));
     }
-    let signature = if sig_parts.len() > 1 || !decorators.is_empty() || is_readonly {
+    let signature = if sig_parts.len() > 1 || !decorators.is_empty() || is_readonly || is_static {
         Some(sig_parts.join(" "))
     } else {
         None
@@ -258,6 +262,10 @@ pub(super) fn extract_property(
 
     // Extract JSDoc comment
     let doc_comment = extractor.base().find_doc_comment(&node);
+
+    let mut metadata = std::collections::HashMap::new();
+    metadata.insert("isStatic".to_string(), serde_json::json!(is_static));
+    metadata.insert("isReadonly".to_string(), serde_json::json!(is_readonly));
 
     Some(extractor.base_mut().create_symbol(
         &node,
@@ -268,6 +276,7 @@ pub(super) fn extract_property(
             visibility,
             parent_id: parent_id.map(str::to_string),
             doc_comment,
+            metadata: Some(metadata),
             ..Default::default()
         },
     ))

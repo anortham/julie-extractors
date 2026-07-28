@@ -516,6 +516,12 @@ Languages without a fixture-proven contract for both record a
 `reference_resolution.tier3_static_type` gap — currently every language except
 C#, TypeScript, and JavaScript (`TIER3_STATIC_TYPE_LANGUAGES`).
 
+For TypeScript and JavaScript modules, a cross-file static-type edge also
+requires import corroboration: the receiver local name must be imported from
+the type's defining file (`module_file_id` match). Same-file receivers still
+bind without an import. Module languages only accept runtime value receivers
+(`class` / `enum`), not erased interfaces or type aliases.
+
 Kind compatibility: `calls` targets Function/Method/Constructor; `instantiates`
 targets Class/Struct/Constructor; `uses`/type edges and identifier `type_usage`
 target type-like kinds; identifier `member_access` targets

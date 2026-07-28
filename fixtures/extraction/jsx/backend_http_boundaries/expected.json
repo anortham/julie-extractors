@@ -122,6 +122,7 @@
       "metadata": {
         "isAsync": true,
         "isGenerator": false,
+        "isStatic": false,
         "parameters": []
       },
       "annotations": [],
@@ -187,6 +188,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "[\"GET\", \"POST\"]"
       },
       "annotations": [],
@@ -215,6 +217,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "true"
       },
       "annotations": [],
@@ -387,6 +390,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "\"/fast/:id\""
       },
       "annotations": [],

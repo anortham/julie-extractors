@@ -1,11 +1,10 @@
-// Non-exported class: file-local visibility. Cross-file static-type receivers
-// must refuse to bind `Hidden.create()` even though the simple name is unique.
+// Not exported: same-file static access may bind; cross-file must refuse.
 class Hidden {
   static create(): number {
     return 1;
   }
 }
 
-export function localUse(): number {
+export function sameFile(): number {
   return Hidden.create();
 }

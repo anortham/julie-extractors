@@ -87,9 +87,13 @@ impl super::JavaScriptExtractor {
         {
             let method_signature = self.build_method_signature(value, &name);
 
+            let is_static = node
+                .children(&mut node.walk())
+                .any(|c| c.kind() == "static");
             let mut metadata = HashMap::new();
             metadata.insert("isAsync".to_string(), json!(self.is_async(value)));
             metadata.insert("isGenerator".to_string(), json!(self.is_generator(value)));
+            metadata.insert("isStatic".to_string(), json!(is_static));
             metadata.insert(
                 "parameters".to_string(),
                 json!(self.extract_parameters(value)),
@@ -121,6 +125,9 @@ impl super::JavaScriptExtractor {
             _ => SymbolKind::Property,
         };
 
+        let is_static = node
+            .children(&mut node.walk())
+            .any(|c| c.kind() == "static");
         let mut metadata = HashMap::new();
         metadata.insert(
             "value".to_string(),
@@ -131,6 +138,7 @@ impl super::JavaScriptExtractor {
             json!(self.is_computed_property(&node)),
         );
         metadata.insert("isPrivate".to_string(), json!(name.starts_with('#')));
+        metadata.insert("isStatic".to_string(), json!(is_static));
 
         // Extract JSDoc comment
         let doc_comment = self.base.find_doc_comment(&node);

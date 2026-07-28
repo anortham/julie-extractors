@@ -1,8 +1,10 @@
-// Static-type receiver for JavaScript: exported class with a static method.
-// `Fixture.create()` resolves at tier3_static_type from another file because
-// the class is Public (JS default) and the method carries isStatic / `static`.
+// Same-file static-type receiver: no import path, so tier2 cannot bind.
 export class Fixture {
   static create() {
     return 1;
   }
+}
+
+export function run() {
+  return Fixture.create();
 }

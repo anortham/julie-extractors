@@ -242,6 +242,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "[]"
       },
       "annotations": [],
@@ -344,6 +345,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "201"
       },
       "annotations": [],

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "fixtures/extraction/capabilities.json registered canonical golden corpus",
-  "source_digest": "sha256:dd5b151443f5bc18fe766ffe350b64a772bcb6afd4306aaec277d9585d497b29",
+  "source_digest": "sha256:668e5e71363915e1109e1a2f25f5afc6620fb75a9364baa213698b786c59436a",
   "languages": [
     "rust",
     "c",

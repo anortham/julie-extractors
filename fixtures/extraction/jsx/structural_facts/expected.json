@@ -21,6 +21,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "Dashboard"
       },
       "annotations": [],
@@ -49,6 +50,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "Home"
       },
       "annotations": [],
@@ -250,6 +252,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "VueDashboard"
       },
       "annotations": [],
@@ -429,6 +432,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "createWebHistory()"
       },
       "annotations": [],
@@ -457,6 +461,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "\"dashboard\""
       },
       "annotations": [],
@@ -485,6 +490,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "true"
       },
       "annotations": [],
@@ -513,6 +519,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "\"/dashboard\""
       },
       "annotations": [],
@@ -541,6 +548,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "\"/vue-dashboard\""
       },
       "annotations": [],
@@ -676,6 +684,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "vueRoutes"
       },
       "annotations": [],

@@ -21,6 +21,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "payload"
       },
       "annotations": [],
@@ -269,6 +270,7 @@
       "metadata": {
         "isComputed": false,
         "isPrivate": false,
+        "isStatic": false,
         "value": "\"POST\""
       },
       "annotations": [],
