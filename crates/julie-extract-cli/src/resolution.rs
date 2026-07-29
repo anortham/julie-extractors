@@ -512,6 +512,15 @@ pub fn tier2_enabled(language: &str) -> bool {
     TIER2_IMPORT_LANGUAGES.contains(&language)
 }
 
+/// Languages with ES module import/export scope, including JSX/TSX aliases.
+///
+/// Used for fail-closed policies (tier-4 same-file only, static-type import
+/// corroboration) even when the language id is not yet on the tier-2 allowlist.
+/// Wrong cross-file edges must not slip through via a dialect alias.
+pub fn es_module_language(language: &str) -> bool {
+    matches!(language, "javascript" | "jsx" | "typescript" | "tsx")
+}
+
 /// Whether `language` has fixture-proven static-type-receiver support. Data-driven
 /// gate over [`TIER3_STATIC_TYPE_LANGUAGES`]; the capability snapshot records a
 /// `reference_resolution.tier3_static_type` gap for every language that fails it.
@@ -1129,7 +1138,7 @@ fn tier4_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
     if kinds.is_empty() {
         return Vec::new();
     }
-    let same_file_only = tier2_enabled(&edge.language);
+    let same_file_only = es_module_language(&edge.language);
     let mut set: BTreeSet<String> = BTreeSet::new();
     for cand in index.by_name(&edge.terminal_name) {
         if cand.language == edge.language
@@ -1228,7 +1237,7 @@ where
 /// TypeScript/JavaScript modules: class and enum only (interfaces/type aliases
 /// erase at runtime). Other languages keep the full type-like set.
 fn is_static_type_receiver_kind(language: &str, kind: &SymbolKind) -> bool {
-    if tier2_enabled(language) {
+    if es_module_language(language) {
         matches!(kind, SymbolKind::Class | SymbolKind::Enum)
     } else {
         is_type_like(kind)
@@ -1245,7 +1254,8 @@ fn resolve_static_type_symbol<'a>(
     if let Some(type_symbol) = unique_static_type_symbol(index, receiver, &edge.language) {
         return Some(type_symbol);
     }
-    if !tier2_enabled(&edge.language) {
+    // Alias path for ES modules including jsx/tsx dialect aliases.
+    if !es_module_language(&edge.language) {
         return None;
     }
     // Aliased import: local binding is the receiver, imported name is the type.
@@ -1277,8 +1287,9 @@ fn resolve_static_type_symbol<'a>(
     found
 }
 
-/// Module languages (tier-2 import contract) refuse cross-file static-type edges
-/// unless the receiver name is imported from the type's defining file. C# and
+/// ES-module languages refuse cross-file static-type edges unless the receiver
+/// name is imported from the type's defining file. Includes JSX/TSX even when
+/// tier-2 resolution is not yet certified for those language ids. C# and
 /// similar namespace languages rely on uniqueness + visibility alone.
 fn static_type_import_corroborated(
     edge: &UnresolvedEdge,
@@ -1288,7 +1299,7 @@ fn static_type_import_corroborated(
     if type_symbol.file_id == edge.file_id {
         return true;
     }
-    if !tier2_enabled(&edge.language) {
+    if !es_module_language(&edge.language) {
         return true;
     }
     let Some(receiver) = edge.receiver.as_deref() else {
@@ -3112,33 +3123,47 @@ mod tests {
 
     #[test]
     fn tier4_module_language_refuses_cross_file_unique_export() {
-        // INVARIANT: TS/JS unimported exports must not resolve via unique global.
-        let index = WorkspaceCandidateIndex::build(
-            vec![sym(
-                "s1",
-                "notImported",
-                SymbolKind::Function,
-                "typescript",
-                "mod",
-            )],
-            vec![],
-            vec![ImportRecord {
-                file_id: "src".to_string(),
-                local_name: "imported".to_string(),
-                imported_name: Some("imported".to_string()),
-                source: Some("./mod".to_string()),
-                module_file_id: Some("mod".to_string()),
-                is_type_only: false,
-                is_default: false,
-                is_namespace: false,
-            }],
-        );
-        let edge = pending_edge(ReferenceKind::Call, "typescript", "src", "notImported");
-        assert_eq!(
-            resolve_one(&edge, &index),
-            TierOutcome::Missing,
-            "unique unimported export must not resolve at tier 4 for module languages"
-        );
+        // INVARIANT: TS/JS/JSX/TSX unimported exports must not resolve via unique global.
+        for language in ["typescript", "javascript", "tsx", "jsx"] {
+            let index = WorkspaceCandidateIndex::build(
+                vec![sym(
+                    "s1",
+                    "notImported",
+                    SymbolKind::Function,
+                    language,
+                    "mod",
+                )],
+                vec![],
+                vec![ImportRecord {
+                    file_id: "src".to_string(),
+                    local_name: "imported".to_string(),
+                    imported_name: Some("imported".to_string()),
+                    source: Some("./mod".to_string()),
+                    module_file_id: Some("mod".to_string()),
+                    is_type_only: false,
+                    is_default: false,
+                    is_namespace: false,
+                }],
+            );
+            let edge = pending_edge(ReferenceKind::Call, language, "src", "notImported");
+            assert_eq!(
+                resolve_one(&edge, &index),
+                TierOutcome::Missing,
+                "unique unimported export must not resolve at tier 4 for {language}"
+            );
+        }
+    }
+
+    #[test]
+    fn es_module_language_covers_jsx_tsx_aliases() {
+        assert!(es_module_language("javascript"));
+        assert!(es_module_language("jsx"));
+        assert!(es_module_language("typescript"));
+        assert!(es_module_language("tsx"));
+        assert!(!es_module_language("csharp"));
+        // Tier-2 certification remains narrower until fixtures land.
+        assert!(!tier2_enabled("jsx"));
+        assert!(!tier2_enabled("tsx"));
     }
 
     #[test]
