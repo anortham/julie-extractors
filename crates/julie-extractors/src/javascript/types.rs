@@ -3,10 +3,21 @@
 //! Handles extraction of class declarations, property definitions,
 //! and export statements.
 
-use crate::base::{Symbol, SymbolKind, SymbolOptions};
+use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
 use serde_json::json;
 use std::collections::HashMap;
 use tree_sitter::Node;
+
+fn is_exported_declaration(node: Node) -> bool {
+    let mut current = Some(node);
+    while let Some(n) = current {
+        if n.kind() == "export_statement" {
+            return true;
+        }
+        current = n.parent();
+    }
+    false
+}
 
 impl super::JavaScriptExtractor {
     /// Extract class declarations - direct Implementation of extractClass
@@ -49,13 +60,22 @@ impl super::JavaScriptExtractor {
         // export_statement when the class is exported.
         let annotations = self.extract_decorator_annotations(node);
 
+        // Exported classes are public for cross-file static-type reachability;
+        // non-exported classes stay private so bare type-name access cannot
+        // resolve across files without an import.
+        let visibility = if is_exported_declaration(node) {
+            Visibility::Public
+        } else {
+            Visibility::Private
+        };
+
         Some(self.base.create_symbol(
             &node,
             name,
             SymbolKind::Class,
             SymbolOptions {
                 signature: Some(signature),
-                visibility: Some(self.extract_visibility(&node)),
+                visibility: Some(visibility),
                 parent_id,
                 metadata: Some(metadata),
                 doc_comment,

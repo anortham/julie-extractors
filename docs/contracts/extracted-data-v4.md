@@ -24,5 +24,7 @@ assertions by `(reference_site_id, target_symbol_id, canonical_kind)` and unreso
 ## Capability gaps
 
 Gap status is the closed vocabulary `open | exception`. The certified reference-resolution
-snapshot contains exactly 70 open rows: 36 tier-3 rows and 34 tier-2 rows, with TypeScript and
-JavaScript tier-2 coverage closed. Unknown statuses are invalid.
+snapshot contains 103 open rows at resolution contract v5: 36 tier-3 receiver rows,
+34 tier-2 import rows, and 33 tier-3 static-type rows (every language outside
+`TIER3_STATIC_TYPE_LANGUAGES` = csharp, typescript, javascript). TypeScript and
+JavaScript tier-2 coverage is closed. Unknown statuses are invalid.

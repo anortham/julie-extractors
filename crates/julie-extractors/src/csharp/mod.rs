@@ -158,12 +158,20 @@ impl CSharpExtractor {
             return;
         }
 
-        if node.kind() == "local_declaration_statement" {
+        if matches!(
+            node.kind(),
+            "local_declaration_statement"
+                | "for_statement"
+                | "for_each_statement"
+                | "using_statement"
+                | "fixed_statement"
+                | "catch_declaration"
+                | "declaration_expression"
+        ) {
             let local_symbols =
                 locals::extract_local_declaration(&mut self.base, node, parent_id.clone());
             symbols.extend(local_symbols);
-            // Declarators are fully handled; still walk children for nested
-            // expressions that may contain lambdas with their own locals.
+            // Still walk children for nested lambdas / blocks.
             let Some(child_depth) = child_tree_depth(depth) else {
                 return;
             };
@@ -285,7 +293,7 @@ impl CSharpExtractor {
                 operators::extract_conversion_operator(&mut self.base, node, parent_id)
             }
             "indexer_declaration" => operators::extract_indexer(&mut self.base, node, parent_id),
-            "parameter" | "parameter_array" => {
+            "parameter" | "parameter_array" | "_parameter_array" | "implicit_parameter" => {
                 locals::extract_parameter(&mut self.base, node, parent_id)
             }
             _ => None,

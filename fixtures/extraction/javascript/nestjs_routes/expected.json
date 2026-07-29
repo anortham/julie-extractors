@@ -95,7 +95,7 @@
       "body_hash": "04055c3cc37b4df96b8e76019fc60a8f",
       "signature": "class HealthController",
       "doc_comment": null,
-      "visibility": "Public",
+      "visibility": "Private",
       "parent_key": null,
       "metadata": {
         "extends": null,

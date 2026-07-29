@@ -14,18 +14,118 @@ pub fn extract_local_declaration(
     node: Node,
     parent_id: Option<String>,
 ) -> Vec<Symbol> {
-    let declaration = if node.kind() == "local_declaration_statement" {
-        find_child(node, "variable_declaration").unwrap_or(node)
-    } else {
-        node
-    };
+    let mut symbols = Vec::new();
+    collect_local_bindings(base, node, parent_id, &mut symbols, 0);
+    symbols
+}
 
+fn collect_local_bindings(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+    out: &mut Vec<Symbol>,
+    depth: u32,
+) {
+    if depth > 32 {
+        return;
+    }
+    match node.kind() {
+        "variable_declaration" | "local_declaration_statement" => {
+            let declaration = if node.kind() == "local_declaration_statement" {
+                find_child(node, "variable_declaration").unwrap_or(node)
+            } else {
+                node
+            };
+            emit_declarators(base, declaration, parent_id.clone(), out);
+        }
+        "declaration_expression" => {
+            // `out var x`, pattern declarations
+            if let Some(decl) = find_child(node, "variable_declaration") {
+                emit_declarators(base, decl, parent_id.clone(), out);
+            } else if let Some(name) = find_child(node, "identifier") {
+                let text = base.get_node_text(&name);
+                if text != "_"
+                    && let Some(symbol) =
+                        extract_named_binding(base, node, &text, parent_id.clone(), None, true)
+                {
+                    out.push(symbol);
+                }
+            }
+        }
+        "catch_declaration" => {
+            if let Some(name) = node.child_by_field_name("name").or_else(|| {
+                let mut c = node.walk();
+                node.children(&mut c).find(|c| c.kind() == "identifier")
+            }) {
+                let text = base.get_node_text(&name);
+                if text != "_" {
+                    let ty = node
+                        .child_by_field_name("type")
+                        .map(|t| base.get_node_text(&t));
+                    if let Some(symbol) =
+                        extract_named_binding(base, node, &text, parent_id.clone(), ty, false)
+                    {
+                        out.push(symbol);
+                    }
+                }
+            }
+        }
+        "for_each_statement" => {
+            // foreach (Type item in items)
+            if let Some(name) = node.child_by_field_name("left").or_else(|| {
+                let mut c = node.walk();
+                node.children(&mut c).find(|c| c.kind() == "identifier")
+            }) {
+                if name.kind() == "identifier" {
+                    let text = base.get_node_text(&name);
+                    if text != "_" {
+                        let ty = node
+                            .child_by_field_name("type")
+                            .map(|t| base.get_node_text(&t));
+                        if let Some(symbol) =
+                            extract_named_binding(base, node, &text, parent_id.clone(), ty, false)
+                        {
+                            out.push(symbol);
+                        }
+                    }
+                } else if name.kind() == "variable_declaration" {
+                    emit_declarators(base, name, parent_id.clone(), out);
+                }
+            }
+        }
+        _ => {
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                if matches!(
+                    child.kind(),
+                    "variable_declaration"
+                        | "local_declaration_statement"
+                        | "declaration_expression"
+                        | "catch_declaration"
+                        | "for_each_statement"
+                        | "for_statement"
+                        | "using_statement"
+                        | "block"
+                        | "expression_statement"
+                ) {
+                    collect_local_bindings(base, child, parent_id.clone(), out, depth + 1);
+                }
+            }
+        }
+    }
+}
+
+fn emit_declarators(
+    base: &mut BaseExtractor,
+    declaration: Node,
+    parent_id: Option<String>,
+    out: &mut Vec<Symbol>,
+) {
     let declared_type = type_name_from_declaration(base, declaration);
     let is_var = declared_type
         .as_deref()
-        .is_some_and(|t| t == "var" || t == "using");
+        .is_some_and(|t| t == "var" || t == "using" || t == "implicit_type");
 
-    let mut symbols = Vec::new();
     let mut cursor = declaration.walk();
     for child in declaration.children(&mut cursor) {
         if child.kind() != "variable_declarator" {
@@ -39,10 +139,46 @@ pub fn extract_local_declaration(
             is_var,
             "local",
         ) {
-            symbols.push(symbol);
+            out.push(symbol);
         }
     }
-    symbols
+}
+
+fn extract_named_binding(
+    base: &mut BaseExtractor,
+    node: Node,
+    name: &str,
+    parent_id: Option<String>,
+    declared_type: Option<String>,
+    is_var: bool,
+) -> Option<Symbol> {
+    let mut signature_parts = Vec::new();
+    if let Some(ref ty) = declared_type {
+        signature_parts.push(ty.clone());
+    }
+    signature_parts.push(name.to_string());
+    let mut metadata = HashMap::new();
+    metadata.insert("role".to_string(), serde_json::json!("local"));
+    if let Some(ref ty) = declared_type {
+        metadata.insert("variableType".to_string(), serde_json::json!(ty));
+    }
+    metadata.insert(
+        "isInferred".to_string(),
+        serde_json::json!(is_var || declared_type.is_none()),
+    );
+    Some(base.create_symbol(
+        &node,
+        name.to_string(),
+        SymbolKind::Variable,
+        SymbolOptions {
+            signature: Some(signature_parts.join(" ")),
+            visibility: Some(Visibility::Private),
+            parent_id,
+            metadata: Some(metadata),
+            doc_comment: None,
+            annotations: Vec::new(),
+        },
+    ))
 }
 
 /// Extract a formal parameter (`parameter`, `parameter_array`).

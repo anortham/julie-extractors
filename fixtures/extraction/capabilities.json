@@ -6284,7 +6284,7 @@
         "refusal_reason": "type-name uniqueness alone would reproduce the tier-4 wrong-edge failure keyed on type names: a file-scoped workspace type sharing a simple name with an external type would otherwise answer for every same-named reference in the workspace",
         "open_wrong_edge_risks": [
           "unqualified reference to a public top-level workspace type whose simple name collides with an external type binds workspace-wide; needs import corroboration",
-          "a local variable declaration named exactly like a workspace type shadows it; local declarations are not symbols yet, and zero measured bindings have a camelCase receiver; closes when locals become symbols"
+          "a local variable declaration named exactly like a workspace type shadows it; C# locals/params are now symbols and refuse the static-type path when they bind the receiver name; residual risk remains for languages without local symbols and for untyped `var` bindings without initializer propagation"
         ],
         "evidence": "fixtures/extraction/resolution_contract/{csharp,typescript,javascript}/static_type_receiver; csharp/static_type_homonym; typescript/static_type_nonexport; javascript/static_type_instance"
       },

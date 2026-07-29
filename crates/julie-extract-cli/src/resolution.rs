@@ -336,6 +336,10 @@ pub struct ImportRecord {
     pub imported_name: Option<String>,
     pub source: Option<String>,
     pub module_file_id: Option<String>,
+    /// TypeScript `import type` / type-only specifier. Must not corroborate runtime edges.
+    pub is_type_only: bool,
+    pub is_default: bool,
+    pub is_namespace: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -592,18 +596,26 @@ fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
     use ReferenceKind::*;
     match (edge.origin, edge.kind) {
         // Pending: full workspace chain (tier 4 disabled only for member_access).
+        // Receiver-qualified pending calls skip Import for the same reason
+        // identifier receiver-calls do: Branch B ignores the receiver.
+        (Pending, Call) if edge.receiver.is_some() => {
+            vec![Tier::Receiver, Tier::StaticType, Tier::Global]
+        }
         (Pending, Call | Instantiates | TypeUsage) => {
             vec![Tier::Import, Tier::Receiver, Tier::StaticType, Tier::Global]
+        }
+        (Pending, MemberAccess) if edge.receiver.is_some() => {
+            vec![Tier::Receiver, Tier::StaticType]
         }
         (Pending, MemberAccess) => vec![Tier::Import, Tier::Receiver, Tier::StaticType],
         (Pending, VariableRef) => vec![],
         // `Instantiates` is not an identifier kind (never constructed) but is
         // covered for exhaustiveness.
-        // Calls with a receiver (instance method access) need the typed-receiver
-        // path; without it, `fixture.Create()` never consults type_facts even when
-        // the extractor emits locals/params as symbols.
+        // Calls with a receiver need typed-receiver / static-type paths. Import is
+        // intentionally omitted: tier-2 Branch B ignores the receiver and can bind
+        // `a.create()` to an unrelated `b.create` from the same module.
         (Identifier, Call) if edge.receiver.is_some() => {
-            vec![Tier::Import, Tier::Receiver, Tier::StaticType, Tier::Global]
+            vec![Tier::Receiver, Tier::StaticType, Tier::Global]
         }
         (Identifier, Call | TypeUsage) => {
             vec![Tier::Import, Tier::StaticType, Tier::Global]
@@ -674,11 +686,13 @@ fn static_type_candidates(
     }
 
     let member_kinds = tier123_compatible_kinds(edge.kind);
+    let cross_file = type_symbol.file_id != edge.file_id;
     let mut set: BTreeSet<String> = BTreeSet::new();
     for member in index.children_named(&type_symbol.symbol_id, &edge.terminal_name) {
         if member.language == edge.language
             && member_kinds.contains(&member.kind)
             && is_statically_reachable(member)
+            && (!cross_file || member_is_cross_file_visible(member))
         {
             set.insert(member.symbol_id.clone());
         }
@@ -689,6 +703,15 @@ fn static_type_candidates(
             confidence: CONFIDENCE_TIER3_STATIC,
         })
         .collect()
+}
+
+/// Cross-file static access only binds members that are publicly visible.
+fn member_is_cross_file_visible(member: &CandidateSymbol) -> bool {
+    match member.visibility.as_deref() {
+        None | Some("public") | Some("open") | Some("internal") => true,
+        Some("private") | Some("protected") | Some("fileprivate") => false,
+        _ => true,
+    }
 }
 
 /// Whether `member` can actually be reached through its type's name. Enum members
@@ -854,6 +877,14 @@ fn scope_binds_receiver_name(
         if is_type_like(&scope.kind) {
             return false;
         }
+        // Prefer emitted local/parameter symbols (R2+) over signature parsing alone.
+        if index
+            .children_named(scope_id, receiver)
+            .into_iter()
+            .any(|child| child.kind == SymbolKind::Variable)
+        {
+            return true;
+        }
         if let Some(signature) = scope.signature.as_deref()
             && parameter_names(signature).any(|name| name == receiver)
         {
@@ -991,6 +1022,9 @@ fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
     let mut set: BTreeSet<String> = BTreeSet::new();
 
     for import in index.imports(&edge.file_id) {
+        if import.is_type_only {
+            continue;
+        }
         // Branch A: named / aliased import brings `terminal_name` into scope.
         if import.local_name == edge.terminal_name {
             let target_name = import
@@ -1011,6 +1045,24 @@ fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
         }
         // Branch B: module import reaches a candidate by its own terminal name
         // (namespace / wildcard imports where the local binding differs).
+        // Never used for receiver-qualified edges (those omit Import entirely).
+        if edge.receiver.is_some() {
+            continue;
+        }
+        if import.is_namespace {
+            // `import * as NS` — terminal name must live in the module file.
+            if let Some(module_file) = import.module_file_id.as_deref() {
+                for cand in index.by_name(&edge.terminal_name) {
+                    if cand.language == edge.language
+                        && kinds.contains(&cand.kind)
+                        && cand.file_id == module_file
+                    {
+                        set.insert(cand.symbol_id.clone());
+                    }
+                }
+            }
+            continue;
+        }
         if let Some(module_file) = import.module_file_id.as_deref() {
             for cand in index.by_name(&edge.terminal_name) {
                 if cand.language == edge.language
@@ -1213,13 +1265,41 @@ fn static_type_import_corroborated(
     let Some(receiver) = edge.receiver.as_deref() else {
         return false;
     };
-    index.imports(&edge.file_id).iter().any(|import| {
-        import.local_name == receiver
-            && import
-                .module_file_id
-                .as_deref()
-                .is_some_and(|module| module == type_symbol.file_id)
-    })
+    index
+        .imports(&edge.file_id)
+        .iter()
+        .any(|import| import_binds_static_type(import, receiver, type_symbol))
+}
+
+/// Whether `import` can name `type_symbol` as local binding `receiver`.
+fn import_binds_static_type(
+    import: &ImportRecord,
+    receiver: &str,
+    type_symbol: &CandidateSymbol,
+) -> bool {
+    if import.is_type_only || import.is_namespace {
+        return false;
+    }
+    if import.local_name != receiver {
+        return false;
+    }
+    let Some(module) = import.module_file_id.as_deref() else {
+        return false;
+    };
+    if module != type_symbol.file_id {
+        return false;
+    }
+    if import.is_default {
+        // `import Fixture from "./fixture"` — local name is the binding; accept
+        // any type in that module whose simple name matches the local binding or
+        // the module's unique type of that name (already unique_static_type_symbol).
+        return true;
+    }
+    let imported = import
+        .imported_name
+        .as_deref()
+        .unwrap_or(import.local_name.as_str());
+    imported == type_symbol.name
 }
 
 fn sorted_by_id(mut symbols: Vec<&CandidateSymbol>) -> Vec<&CandidateSymbol> {
@@ -2127,7 +2207,8 @@ fn load_import_records(conn: &Connection) -> rusqlite::Result<Vec<ImportRecord>>
     let mut out = Vec::new();
     for row in rows {
         let (file_id, path, language, name, metadata_json) = row?;
-        let (local_name, imported_name, source) = import_binding(&name, metadata_json.as_deref());
+        let (local_name, imported_name, source, is_type_only, is_default, is_namespace) =
+            import_binding(&name, metadata_json.as_deref());
         let module_file_id =
             resolve_import_module_file(&path, source.as_deref(), &files_by_path, &language);
         out.push(ImportRecord {
@@ -2136,6 +2217,9 @@ fn load_import_records(conn: &Connection) -> rusqlite::Result<Vec<ImportRecord>>
             imported_name,
             source,
             module_file_id,
+            is_type_only,
+            is_default,
+            is_namespace,
         });
     }
     Ok(out)
@@ -2165,12 +2249,12 @@ fn load_file_ids_by_path(conn: &Connection) -> rusqlite::Result<HashMap<String, 
 fn import_binding(
     name: &str,
     metadata_json: Option<&str>,
-) -> (String, Option<String>, Option<String>) {
+) -> (String, Option<String>, Option<String>, bool, bool, bool) {
     let Some(raw) = metadata_json else {
-        return (name.to_string(), None, None);
+        return (name.to_string(), None, None, false, false, false);
     };
     let Ok(value) = serde_json::from_str::<serde_json::Value>(raw) else {
-        return (name.to_string(), None, None);
+        return (name.to_string(), None, None, false, false, false);
     };
     let string_field = |key: &str| {
         value
@@ -2179,6 +2263,7 @@ fn import_binding(
             .filter(|s| !s.is_empty())
             .map(str::to_string)
     };
+    let bool_field = |key: &str| value.get(key).and_then(|v| v.as_bool()).unwrap_or(false);
     let local_name = string_field("alias")
         .or_else(|| string_field("local_name"))
         .unwrap_or_else(|| name.to_string());
@@ -2196,7 +2281,17 @@ fn import_binding(
             }
         });
     let source = string_field("source");
-    (local_name, imported_name, source)
+    let is_type_only = bool_field("isTypeOnly") || bool_field("is_type_only");
+    let is_default = bool_field("isDefault") || bool_field("is_default");
+    let is_namespace = bool_field("isNamespace") || bool_field("is_namespace");
+    (
+        local_name,
+        imported_name,
+        source,
+        is_type_only,
+        is_default,
+        is_namespace,
+    )
 }
 
 fn resolve_import_module_file(
@@ -2842,6 +2937,9 @@ mod tests {
                 imported_name: None,
                 source: None,
                 module_file_id: Some("mod".to_string()),
+                is_type_only: false,
+                is_default: false,
+                is_namespace: false,
             }],
         );
         let edge = pending_edge(ReferenceKind::TypeUsage, "typescript", "src", "Foo");
@@ -2865,6 +2963,9 @@ mod tests {
                 imported_name: None,
                 source: None,
                 module_file_id: Some("mod".to_string()),
+                is_type_only: false,
+                is_default: false,
+                is_namespace: false,
             }],
         );
         let edge = pending_edge(ReferenceKind::TypeUsage, "typescript", "src", "Foo");
@@ -2885,6 +2986,9 @@ mod tests {
                 imported_name: Some("Foo".to_string()),
                 source: None,
                 module_file_id: Some("mod".to_string()),
+                is_type_only: false,
+                is_default: false,
+                is_namespace: false,
             }],
         );
         let edge = pending_edge(ReferenceKind::TypeUsage, "typescript", "src", "Bar");
@@ -2909,6 +3013,9 @@ mod tests {
                 imported_name: None,
                 source: None,
                 module_file_id: Some("mod".to_string()),
+                is_type_only: false,
+                is_default: false,
+                is_namespace: false,
             }],
         );
         let edge = pending_edge(ReferenceKind::TypeUsage, "python", "src", "Foo");
@@ -2939,6 +3046,9 @@ mod tests {
                 imported_name: None,
                 source: None,
                 module_file_id: Some("mod".to_string()),
+                is_type_only: false,
+                is_default: false,
+                is_namespace: false,
             }],
         );
         // Reference site is typescript; candidate is javascript -> not a tier-2 hit.
@@ -3001,6 +3111,9 @@ mod tests {
                     imported_name: None,
                     source: None,
                     module_file_id: Some("modA".to_string()),
+                    is_type_only: false,
+                    is_default: false,
+                    is_namespace: false,
                 },
                 ImportRecord {
                     file_id: "src".to_string(),
@@ -3008,6 +3121,9 @@ mod tests {
                     imported_name: None,
                     source: None,
                     module_file_id: Some("modB".to_string()),
+                    is_type_only: false,
+                    is_default: false,
+                    is_namespace: false,
                 },
             ],
         );

@@ -472,9 +472,44 @@ fn static_type_receiver_refuses_instance_member_javascript() {
         symbol_count_named(&db, "Fixture") >= 1,
         "fixture supplies the exported class"
     );
-    assert!(
-        !identifier_has_target(&db, "run"),
-        "an instance method must not resolve through a type-name receiver"
+    assert_eq!(
+        resolved_identifier_count(&db, "create", "call"),
+        0,
+        "instance method Fixture.create() must not resolve through a type-name receiver"
+    );
+}
+
+#[test]
+fn static_type_receiver_resolves_imported_typescript_exactly_tier3_or_import() {
+    let (_t, db) = scan_fixture("typescript/static_type_imported");
+    let call = resolved_identifier_of_kind(&db, "create", "call")
+        .expect("imported Fixture.create resolves");
+    // After precision fix, receiver calls do not use tier2 Branch B; expect
+    // tier3_static_type when the import corroborates the type.
+    assert_eq!(
+        call.method, "tier3_static_type",
+        "cross-file static access should use tier3_static_type, got {}",
+        call.method
+    );
+    assert_eq!(call.tier, 3);
+}
+
+#[test]
+fn static_type_receiver_resolves_imported_javascript_exactly_tier3() {
+    let (_t, db) = scan_fixture("javascript/static_type_imported");
+    let call = resolved_identifier_of_kind(&db, "create", "call")
+        .expect("imported Fixture.create resolves (js)");
+    assert_eq!(call.method, "tier3_static_type");
+    assert_eq!(call.tier, 3);
+}
+
+#[test]
+fn static_type_receiver_refuses_type_only_import_typescript() {
+    let (_t, db) = scan_fixture("typescript/static_type_typeonly");
+    assert_eq!(
+        resolved_identifier_count(&db, "create", "call"),
+        0,
+        "import type must not authorize runtime static access"
     );
 }
 
@@ -681,8 +716,8 @@ fn csharp_local_and_parameter_receivers_resolve_member_access() {
     // receivers should bind through tier3_receiver.
     let create_hits = resolved_identifier_count(&db, "Create", "call");
     assert!(
-        create_hits >= 1,
-        "typed fixture/local receivers should resolve Create(), got {create_hits}"
+        create_hits >= 2,
+        "fixture.Create and inferred.Create should resolve, got {create_hits}"
     );
     let value = resolved_identifier_of_kind(&db, "Value", "member_access")
         .expect("local.Value should resolve via typed local receiver");
@@ -690,6 +725,13 @@ fn csharp_local_and_parameter_receivers_resolve_member_access() {
     assert_eq!(
         identifier_receiver(&db, "Value", "member_access").as_deref(),
         Some("local")
+    );
+    // Parameter receiver
+    assert!(
+        identifier_receivers(&db, "Create", "call")
+            .iter()
+            .any(|r| r == "fixture"),
+        "fixture.Create() parameter receiver should resolve"
     );
 }
 

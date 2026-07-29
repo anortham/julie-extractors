@@ -7,6 +7,7 @@ use std::collections::HashMap;
 pub fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
     let mut type_map = HashMap::new();
 
+    // Pass 1: declared types and signature parsing.
     for symbol in symbols {
         let inferred_type = match symbol.kind {
             crate::base::SymbolKind::Method | crate::base::SymbolKind::Function => {
@@ -16,7 +17,7 @@ pub fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
             crate::base::SymbolKind::Field | crate::base::SymbolKind::Constant => {
                 infer_field_type(symbol)
             }
-            crate::base::SymbolKind::Variable => infer_variable_type(symbol),
+            crate::base::SymbolKind::Variable => declared_or_signature_type(symbol),
             _ => None,
         };
 
@@ -25,7 +26,83 @@ pub fn infer_types(symbols: &[Symbol]) -> HashMap<String, String> {
         }
     }
 
+    // Pass 2: `var x = other;` copies a same-scope identifier's known type.
+    let by_name: HashMap<&str, Vec<&Symbol>> = {
+        let mut map: HashMap<&str, Vec<&Symbol>> = HashMap::new();
+        for symbol in symbols {
+            map.entry(symbol.name.as_str()).or_default().push(symbol);
+        }
+        map
+    };
+
+    for symbol in symbols {
+        if symbol.kind != crate::base::SymbolKind::Variable {
+            continue;
+        }
+        if type_map.contains_key(&symbol.id) {
+            continue;
+        }
+        let Some(init) = symbol
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("initializer"))
+            .and_then(|v| v.as_str())
+        else {
+            continue;
+        };
+        let init = init.trim();
+        if !is_simple_identifier(init) {
+            continue;
+        }
+        let Some(candidates) = by_name.get(init) else {
+            continue;
+        };
+        // Prefer a sibling under the same parent (same callable).
+        let parent = symbol.parent_id.as_deref();
+        let mut resolved: Option<String> = None;
+        for candidate in candidates {
+            if candidate.id == symbol.id {
+                continue;
+            }
+            if parent.is_some() && candidate.parent_id.as_deref() != parent {
+                continue;
+            }
+            if let Some(ty) = type_map.get(&candidate.id) {
+                resolved = Some(ty.clone());
+                break;
+            }
+            if let Some(ty) = declared_or_signature_type(candidate) {
+                resolved = Some(ty);
+                break;
+            }
+        }
+        if let Some(ty) = resolved {
+            type_map.insert(symbol.id.clone(), ty);
+        }
+    }
+
     type_map
+}
+
+fn is_simple_identifier(text: &str) -> bool {
+    let mut chars = text.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+fn declared_or_signature_type(symbol: &Symbol) -> Option<String> {
+    if let Some(metadata) = symbol.metadata.as_ref()
+        && let Some(declared) = metadata
+            .get("variableType")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty() && *s != "var" && *s != "using" && *s != "implicit_type")
+    {
+        return Some(declared.to_string());
+    }
+    infer_variable_type_from_signature(symbol)
 }
 
 fn infer_method_return_type(symbol: &Symbol) -> Option<String> {
@@ -127,16 +204,7 @@ fn infer_field_type(symbol: &Symbol) -> Option<String> {
     None
 }
 
-fn infer_variable_type(symbol: &Symbol) -> Option<String> {
-    if let Some(metadata) = symbol.metadata.as_ref()
-        && let Some(declared) = metadata
-            .get("variableType")
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty() && *s != "var")
-    {
-        return Some(declared.to_string());
-    }
-
+fn infer_variable_type_from_signature(symbol: &Symbol) -> Option<String> {
     let signature = symbol.signature.as_ref()?;
     // Signatures look like: "int total = 0", "string name", "params string[] args".
     let without_init = signature.split('=').next()?.trim();
