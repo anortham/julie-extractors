@@ -1026,19 +1026,21 @@ fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
             // receiver (`NS.member`); bare names are not introduced into scope.
             continue;
         }
+        if import.is_default {
+            // Default import local names are arbitrary (`import Foo from "./m"`).
+            // Without default-export provenance on candidates, name-matching a
+            // named export is a wrong edge. Fail closed until extractors mark
+            // default-export declarations.
+            continue;
+        }
         if import.local_name != edge.terminal_name {
             continue;
         }
-        // Default import metadata uses imported_name "default" as a marker, not
-        // a workspace symbol name. Named aliases key on the original export.
-        let target_name = if import.is_default {
-            import.local_name.as_str()
-        } else {
-            import
-                .imported_name
-                .as_deref()
-                .unwrap_or(import.local_name.as_str())
-        };
+        // Named aliases key on the original export; non-aliased use local name.
+        let target_name = import
+            .imported_name
+            .as_deref()
+            .unwrap_or(import.local_name.as_str());
         for cand in index.by_name(target_name) {
             let module_ok = match (import.source.as_deref(), import.module_file_id.as_deref()) {
                 (Some(_), Some(module_file)) => module_file == cand.file_id,
@@ -1118,14 +1120,22 @@ fn tier3_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
 /// workspace-wide. Tier-4 kind compatibility is stricter for calls
 /// (Function/Constructor only — method calls disabled) and empty for
 /// member_access (never reached — member_access excludes tier 4 from its chain).
+///
+/// For module languages with a tier-2 import contract (TS/JS), candidates are
+/// restricted to the same file as the edge. Cross-file names require import
+/// evidence — unique workspace globals would reintroduce unimported-export edges.
 fn tier4_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
     let kinds = tier4_compatible_kinds(edge.kind);
     if kinds.is_empty() {
         return Vec::new();
     }
+    let same_file_only = tier2_enabled(&edge.language);
     let mut set: BTreeSet<String> = BTreeSet::new();
     for cand in index.by_name(&edge.terminal_name) {
-        if cand.language == edge.language && kinds.contains(&cand.kind) {
+        if cand.language == edge.language
+            && kinds.contains(&cand.kind)
+            && (!same_file_only || cand.file_id == edge.file_id)
+        {
             set.insert(cand.symbol_id.clone());
         }
     }
@@ -1309,10 +1319,9 @@ fn import_binds_static_type(
         return false;
     }
     if import.is_default {
-        // Default import: require the type simple name to match the local binding
-        // (`import Fixture from "./x"` → type Fixture). Do not accept arbitrary
-        // same-module types with different names.
-        return type_symbol.name == receiver;
+        // Default import local names are arbitrary. Without default-export
+        // provenance, refuse rather than bind a same-named named export.
+        return false;
     }
     let imported = import
         .imported_name
@@ -1407,7 +1416,7 @@ use rusqlite::{Connection, Transaction};
 
 /// Value stamped into `reference_resolution_version` metadata. Bump when the
 /// resolver's observable output contract changes so Miller can gate on it.
-pub const RESOLUTION_VERSION: i64 = 5;
+pub const RESOLUTION_VERSION: i64 = 6;
 
 /// `method` string stamped on an identifier filled from a tier-1 (extraction-time,
 /// same-file) `relationships` row. Tier 1 is materialized at extraction; the
@@ -3067,15 +3076,24 @@ mod tests {
     }
 
     #[test]
-    fn tier2_default_import_keys_on_local_binding_name() {
-        // Default imports store imported_name "default" as a marker; tier 2 must
-        // look up the local binding name (common `import Fixture from "./x"`).
+    fn tier2_default_import_fails_closed_without_export_provenance() {
+        // Default import local names are arbitrary. Without default-export
+        // provenance, name-matching a named export is a wrong edge — miss.
         let index = WorkspaceCandidateIndex::build(
-            vec![sym("s1", "Fixture", SymbolKind::Class, "typescript", "mod")],
+            vec![
+                sym("s1", "Foo", SymbolKind::Class, "typescript", "mod"),
+                sym(
+                    "s2",
+                    "ActualDefault",
+                    SymbolKind::Class,
+                    "typescript",
+                    "mod",
+                ),
+            ],
             vec![],
             vec![ImportRecord {
                 file_id: "src".to_string(),
-                local_name: "Fixture".to_string(),
+                local_name: "Foo".to_string(),
                 imported_name: Some("default".to_string()),
                 source: Some("./mod".to_string()),
                 module_file_id: Some("mod".to_string()),
@@ -3084,10 +3102,43 @@ mod tests {
                 is_namespace: false,
             }],
         );
-        let edge = pending_edge(ReferenceKind::TypeUsage, "typescript", "src", "Fixture");
-        let (tier, _, _, target) = resolved(&resolve_one(&edge, &index));
-        assert_eq!(tier, 2);
-        assert_eq!(target, "s1");
+        let edge = pending_edge(ReferenceKind::TypeUsage, "typescript", "src", "Foo");
+        assert_eq!(
+            resolve_one(&edge, &index),
+            TierOutcome::Missing,
+            "default import must not bind a same-named named export"
+        );
+    }
+
+    #[test]
+    fn tier4_module_language_refuses_cross_file_unique_export() {
+        // INVARIANT: TS/JS unimported exports must not resolve via unique global.
+        let index = WorkspaceCandidateIndex::build(
+            vec![sym(
+                "s1",
+                "notImported",
+                SymbolKind::Function,
+                "typescript",
+                "mod",
+            )],
+            vec![],
+            vec![ImportRecord {
+                file_id: "src".to_string(),
+                local_name: "imported".to_string(),
+                imported_name: Some("imported".to_string()),
+                source: Some("./mod".to_string()),
+                module_file_id: Some("mod".to_string()),
+                is_type_only: false,
+                is_default: false,
+                is_namespace: false,
+            }],
+        );
+        let edge = pending_edge(ReferenceKind::Call, "typescript", "src", "notImported");
+        assert_eq!(
+            resolve_one(&edge, &index),
+            TierOutcome::Missing,
+            "unique unimported export must not resolve at tier 4 for module languages"
+        );
     }
 
     #[test]
@@ -3654,8 +3705,8 @@ mod tests {
     }
 
     #[test]
-    fn resolution_version_is_five_after_csharp_locals_contract() {
-        assert_eq!(RESOLUTION_VERSION, 5);
+    fn resolution_version_is_six_after_module_scope_tightening() {
+        assert_eq!(RESOLUTION_VERSION, 6);
     }
 
     #[test]

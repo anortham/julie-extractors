@@ -375,7 +375,7 @@ zero of the 9,752 static-tier targets is a non-static, non-enum, non-constant
 member.
 
 Slice 4 (C# locals/params as symbols, real `infer_variable_type`) **landed**
-with RESOLUTION_VERSION 5: locals/params are `SymbolKind::Variable` with
+with RESOLUTION_VERSION 5 (later tightened to 6 for module-scope): locals/params are `SymbolKind::Variable` with
 `metadata.role`, typed `variableType`, and type_facts; identifier `call` with a
 receiver runs the tier-3 receiver path. Slice 5 stands: bare `Method`-at-tier-4
 is rejected.

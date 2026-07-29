@@ -39,6 +39,12 @@ fn collect_local_bindings(
             emit_declarators(base, declaration, parent_id.clone(), out);
         }
         "declaration_expression" => {
+            // foreach / for headers already emit these bindings via the parent
+            // statement arm; re-visiting would duplicate symbols for
+            // `foreach ((var x, var y) in …)`.
+            if is_loop_header_binding(node) {
+                return;
+            }
             // Only true out/ref/in var declarations — never bare `*` multiplications
             // misparsed as declaration_expression by tree-sitter-c-sharp.
             // Check parent argument text for `out`/`ref`/`in` because the
@@ -480,4 +486,28 @@ fn parameter_type_name(base: &BaseExtractor, node: Node) -> Option<String> {
 fn find_child<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
     let mut cursor = node.walk();
     node.children(&mut cursor).find(|c| c.kind() == kind)
+}
+
+/// True when `node` sits in a foreach/for header (not the body block), so the
+/// parent statement owns binding emission.
+fn is_loop_header_binding(node: Node<'_>) -> bool {
+    let mut cur = node;
+    while let Some(parent) = cur.parent() {
+        match parent.kind() {
+            "foreach_statement" | "for_each_statement" | "for_statement" => {
+                if let Some(body) = parent.child_by_field_name("body") {
+                    return node.start_byte() < body.start_byte();
+                }
+                return true;
+            }
+            "method_declaration"
+            | "local_function_statement"
+            | "constructor_declaration"
+            | "class_declaration"
+            | "struct_declaration"
+            | "record_declaration" => return false,
+            _ => cur = parent,
+        }
+    }
+    false
 }

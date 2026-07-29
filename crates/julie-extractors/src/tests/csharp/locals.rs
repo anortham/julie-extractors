@@ -233,3 +233,24 @@ namespace App {
         Some("int")
     );
 }
+
+#[test]
+fn foreach_var_element_deconstruction_emits_each_binding_once() {
+    let source = r#"
+namespace App {
+  public class Service {
+    public void Run() {
+      foreach ((var x, var y) in pairs) {
+        _ = x;
+        _ = y;
+      }
+    }
+  }
+}
+"#;
+    let (symbols, _) = extract(source);
+    let x_count = symbols.iter().filter(|s| s.name == "x").count();
+    let y_count = symbols.iter().filter(|s| s.name == "y").count();
+    assert_eq!(x_count, 1, "foreach (var x, …) must emit x exactly once");
+    assert_eq!(y_count, 1, "foreach (…, var y) must emit y exactly once");
+}

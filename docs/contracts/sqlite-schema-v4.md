@@ -87,7 +87,7 @@ may use to decide whether resolution data is present and trustworthy — see
     opened but not yet re-written) or was written before the overlay was
     populated. Consumers must treat absent as "no resolution data", not "no
     references resolved".
-- `reference_resolution_version`: the resolution contract version, currently `5`.
+- `reference_resolution_version`: the resolution contract version, currently `6`.
 - `reference_resolution_last_full_revision`: the `extraction_revisions.revision_id`
   of the last full resolution pass. Preserved across a `failed` write.
 

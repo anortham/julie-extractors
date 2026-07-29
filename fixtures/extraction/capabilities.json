@@ -6192,7 +6192,7 @@
   ],
   "reference_resolution": {
     "_comment": "Documentation mirror of the schema-v4 reference-resolution capability posture. The MACHINE-ENFORCED honesty surfaces are (1) the per-language language_capability_gaps rows emitted at scan time by crates/julie-extract-cli/src/capability_snapshot.rs (reference_resolution.tier2_import / .tier3_receiver / .tier3_static_type) and (2) the fixture suite crates/julie-extract-cli/tests/resolution_contract.rs over fixtures/extraction/resolution_contract/. This block is not deserialized by the extractor (serde ignores unknown fields) and is not read by scripts/language-data-quality-report.mjs; do not add per-language capability_gaps entries for these capabilities here, as the runtime already emits them and their gap_id would collide on the language_capability_gaps primary key. Keep this block in sync with those surfaces and docs/contracts/sqlite-schema-v4.md.",
-    "version": 5,
+    "version": 6,
     "schema_version": 4,
     "detection_rule": "Consumers gate on the reference_resolution_status metadata key, never on the schema version or table probing.",
     "outcomes": {
@@ -6208,7 +6208,7 @@
     },
     "metadata_keys": {
       "reference_resolution_status": "complete | partial | failed | absent (key missing)",
-      "reference_resolution_version": "resolution contract version (5)",
+      "reference_resolution_version": "resolution contract version (6)",
       "reference_resolution_last_full_revision": "revision_id of the last full pass; preserved across a failed write"
     },
     "tiers": {
