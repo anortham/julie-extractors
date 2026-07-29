@@ -39,14 +39,24 @@ fn collect_local_bindings(
             emit_declarators(base, declaration, parent_id.clone(), out);
         }
         "declaration_expression" => {
-            // `out var x`, pattern declarations
-            if let Some(decl) = find_child(node, "variable_declaration") {
+            // Only true out/ref/in var declarations — never bare `*` multiplications
+            // misparsed as declaration_expression by tree-sitter-c-sharp.
+            let text = base.get_node_text(&node);
+            let looks_like_binding = text.contains("var ")
+                || text.starts_with("out ")
+                || text.starts_with("ref ")
+                || text.starts_with("in ")
+                || text.contains(" out ")
+                || text.contains(" ref ");
+            if !looks_like_binding {
+                // Still walk children for nested true declarations.
+            } else if let Some(decl) = find_child(node, "variable_declaration") {
                 emit_declarators(base, decl, parent_id.clone(), out);
             } else if let Some(name) = find_child(node, "identifier") {
-                let text = base.get_node_text(&name);
-                if text != "_"
+                let name_text = base.get_node_text(&name);
+                if name_text != "_"
                     && let Some(symbol) =
-                        extract_named_binding(base, node, &text, parent_id.clone(), None, true)
+                        extract_named_binding(base, node, &name_text, parent_id.clone(), None, true)
                 {
                     out.push(symbol);
                 }
@@ -102,6 +112,7 @@ fn collect_local_bindings(
                         | "local_declaration_statement"
                         | "declaration_expression"
                         | "catch_declaration"
+                        | "foreach_statement"
                         | "for_each_statement"
                         | "for_statement"
                         | "using_statement"

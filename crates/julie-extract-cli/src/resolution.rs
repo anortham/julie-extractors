@@ -599,7 +599,8 @@ fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
         // Receiver-qualified pending calls skip Import for the same reason
         // identifier receiver-calls do: Branch B ignores the receiver.
         (Pending, Call) if edge.receiver.is_some() => {
-            vec![Tier::Receiver, Tier::StaticType, Tier::Global]
+            // No Global: terminal-name uniqueness without the receiver is unsafe.
+            vec![Tier::Receiver, Tier::StaticType]
         }
         (Pending, Call | Instantiates | TypeUsage) => {
             vec![Tier::Import, Tier::Receiver, Tier::StaticType, Tier::Global]
@@ -611,11 +612,10 @@ fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
         (Pending, VariableRef) => vec![],
         // `Instantiates` is not an identifier kind (never constructed) but is
         // covered for exhaustiveness.
-        // Calls with a receiver need typed-receiver / static-type paths. Import is
-        // intentionally omitted: tier-2 Branch B ignores the receiver and can bind
-        // `a.create()` to an unrelated `b.create` from the same module.
+        // Calls with a receiver need typed-receiver / static-type paths. Import and
+        // Global are omitted: both ignore the receiver and can bind wrong edges.
         (Identifier, Call) if edge.receiver.is_some() => {
-            vec![Tier::Receiver, Tier::StaticType, Tier::Global]
+            vec![Tier::Receiver, Tier::StaticType]
         }
         (Identifier, Call | TypeUsage) => {
             vec![Tier::Import, Tier::StaticType, Tier::Global]
@@ -675,7 +675,7 @@ fn static_type_candidates(
     if scope_binds_receiver_name(edge, receiver, index) {
         return Vec::new();
     }
-    let Some(type_symbol) = unique_static_type_symbol(index, receiver, &edge.language) else {
+    let Some(type_symbol) = resolve_static_type_symbol(edge, index, receiver) else {
         return Vec::new();
     };
     if !static_receiver_is_reachable(edge, type_symbol, index) {
@@ -1248,6 +1248,48 @@ fn is_static_type_receiver_kind(language: &str, kind: &SymbolKind) -> bool {
     }
 }
 
+/// Resolve the type symbol named by a static-type receiver, including aliased
+/// imports (`import { Fixture as F }` → receiver `F` → type `Fixture`).
+fn resolve_static_type_symbol<'a>(
+    edge: &UnresolvedEdge,
+    index: &'a WorkspaceCandidateIndex,
+    receiver: &str,
+) -> Option<&'a CandidateSymbol> {
+    if let Some(type_symbol) = unique_static_type_symbol(index, receiver, &edge.language) {
+        return Some(type_symbol);
+    }
+    if !tier2_enabled(&edge.language) {
+        return None;
+    }
+    // Aliased import: local binding is the receiver, imported name is the type.
+    let mut found: Option<&CandidateSymbol> = None;
+    for import in index.imports(&edge.file_id) {
+        if import.is_type_only || import.is_namespace || import.local_name != receiver {
+            continue;
+        }
+        let type_name = import
+            .imported_name
+            .as_deref()
+            .unwrap_or(import.local_name.as_str());
+        if type_name == receiver {
+            continue; // already tried unique_static_type_symbol(receiver)
+        }
+        let Some(type_symbol) = unique_static_type_symbol(index, type_name, &edge.language) else {
+            continue;
+        };
+        if let Some(module) = import.module_file_id.as_deref()
+            && module != type_symbol.file_id
+        {
+            continue;
+        }
+        if found.is_some() {
+            return None;
+        }
+        found = Some(type_symbol);
+    }
+    found
+}
+
 /// Module languages (tier-2 import contract) refuse cross-file static-type edges
 /// unless the receiver name is imported from the type's defining file. C# and
 /// similar namespace languages rely on uniqueness + visibility alone.
@@ -1290,10 +1332,10 @@ fn import_binds_static_type(
         return false;
     }
     if import.is_default {
-        // `import Fixture from "./fixture"` — local name is the binding; accept
-        // any type in that module whose simple name matches the local binding or
-        // the module's unique type of that name (already unique_static_type_symbol).
-        return true;
+        // Default import: require the type simple name to match the local binding
+        // (`import Fixture from "./x"` → type Fixture). Do not accept arbitrary
+        // same-module types with different names.
+        return type_symbol.name == receiver;
     }
     let imported = import
         .imported_name

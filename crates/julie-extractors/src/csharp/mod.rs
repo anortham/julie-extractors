@@ -162,6 +162,7 @@ impl CSharpExtractor {
             node.kind(),
             "local_declaration_statement"
                 | "for_statement"
+                | "foreach_statement"
                 | "for_each_statement"
                 | "using_statement"
                 | "fixed_statement"

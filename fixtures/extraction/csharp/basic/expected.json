@@ -502,33 +502,6 @@
       "content_type": null
     },
     {
-      "key": "fixtures/extraction/csharp/basic/source.cs:Scale:83:24",
-      "name": "Scale",
-      "kind": "variable",
-      "language": "csharp",
-      "file_path": "fixtures/extraction/csharp/basic/source.cs",
-      "start_line": 83,
-      "start_column": 24,
-      "end_line": 83,
-      "end_column": 41,
-      "start_byte": 1982,
-      "end_byte": 1999,
-      "body_span": null,
-      "body_hash": null,
-      "signature": "Scale",
-      "doc_comment": null,
-      "visibility": "Private",
-      "parent_key": "fixtures/extraction/csharp/basic/source.cs:Scaled:81:4",
-      "metadata": {
-        "isInferred": true,
-        "role": "local"
-      },
-      "annotations": [],
-      "semantic_group": null,
-      "confidence": null,
-      "content_type": null
-    },
-    {
       "key": "fixtures/extraction/csharp/basic/source.cs:Scaled:81:4",
       "name": "Scaled",
       "kind": "method",

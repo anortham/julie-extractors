@@ -9,14 +9,10 @@ use std::collections::HashMap;
 use tree_sitter::Node;
 
 fn is_exported_declaration(node: Node) -> bool {
-    let mut current = Some(node);
-    while let Some(n) = current {
-        if n.kind() == "export_statement" {
-            return true;
-        }
-        current = n.parent();
-    }
-    false
+    // Only a direct wrapping export_statement counts. Searching all ancestors
+    // would mark classes nested inside exported functions as public.
+    node.parent()
+        .is_some_and(|parent| parent.kind() == "export_statement")
 }
 
 impl super::JavaScriptExtractor {
