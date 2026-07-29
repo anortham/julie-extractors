@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hand-written extractors, not query files</title>
+  <meta name="description" content="Why julie-extractors uses 125,000 lines of imperative Rust instead of tree-sitter query packs: typed structural facts, fail-closed reference resolution, owned grammar forks, and fixture-proven coverage across 36 languages.">
+  <link rel="canonical" href="https://anortham.github.io/julie-extractors/extractors.html">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Hand-written extractors, not query files">
+  <meta property="og:description" content="The depth case: what imperative extraction code can express that .scm query packs cannot, and what it costs.">
+  <meta property="og:url" content="https://anortham.github.io/julie-extractors/extractors.html">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav id="site-nav" class="site-nav" aria-label="Main navigation">
+    <a class="brand" href="index.html">julie-extractors</a>
+    <div class="nav-links">
+      <a href="index.html#what">What</a>
+      <a href="index.html#languages">Languages</a>
+      <a href="index.html#evidence">Evidence</a>
+      <a href="index.html#consume">Consume</a>
+      <a href="extractors.html">Deep dive</a>
+      <a href="https://github.com/anortham/julie-extractors" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="section intro-section">
+      <div class="section-heading">
+        <p class="eyebrow">The depth case</p>
+        <h2>Hand-written extractors, not query files.</h2>
+      </div>
+      <div class="prose">
+        <p>
+          Nearly every tree-sitter-based code-intelligence tool drives extraction the same way: a pack of
+          <code>.scm</code> query files per language, matched against the syntax tree by the tree-sitter
+          query engine. julie-extractors does not. Its repository contains <strong>zero</strong> query files
+          and never invokes the query engine. Each of its 36 languages gets an imperative Rust extractor —
+          about 125,000 lines of extraction code in total — walking the concrete syntax tree directly.
+        </p>
+        <p>
+          That is an unfashionable amount of code, and it was written deliberately. This page is the case
+          for why, what it buys, and — honestly — what it costs.
+        </p>
+
+        <h3>What query files are good at, and where they stop</h3>
+        <p>
+          A tree-sitter query is a declarative S-expression pattern: match this node shape, capture these
+          child nodes, tag them <code>@function.name</code> or <code>@reference.call</code>. For syntax
+          highlighting and basic symbol listings this is a great design — compact, data-driven, easy to
+          ship for dozens of grammars.
+        </p>
+        <p>
+          The ceiling appears when a tool needs <em>meaning</em> rather than <em>shape</em>. A query can
+          capture a node; it cannot easily carry context across the tree, apply language rules, or decide
+          anything. Concretely, patterns of this kind sit beyond what query packs express:
+        </p>
+        <ul>
+          <li><strong>Cross-node assembly.</strong> A C# method's real signature — modifiers, generic
+            constraints, parameter defaults, nullability — is scattered across sibling and ancestor nodes.
+            A capture gives you one node; a signature needs an algorithm.</li>
+          <li><strong>Language semantics.</strong> Whether an identifier is a declaration, a shadowing
+            local, or a reference to an outer symbol depends on scope rules the grammar does not encode.</li>
+          <li><strong>Framework conventions.</strong> <code>services.AddScoped&lt;IFoo, Foo&gt;()</code> is
+            just a generic method call to a query. Recognizing it as a dependency-injection registration —
+            and emitting edges to both <code>IFoo</code> and <code>Foo</code> — requires knowing the
+            convention, handling chained receiver forms, and parsing nested generic arguments.</li>
+          <li><strong>Judgment.</strong> A query cannot decline to answer. Reference resolution — deciding
+            <em>which</em> declaration an identifier points at — needs the ability to say "ambiguous" and
+            stop, which is a control-flow decision, not a pattern match.</li>
+        </ul>
+        <p>
+          Tools built on query packs inherit this ceiling quietly. They report symbols and name-based
+          references, and they look complete — until an agent asks "who calls <em>this</em> overload?" or
+          "which class does this route handler live in?" and the answer isn't in the data.
+        </p>
+
+        <h3>What imperative extraction buys</h3>
+        <p>
+          With real code walking the tree, the extractor for each language emits thirteen data domains into
+          one versioned SQLite artifact: symbols, identifiers, relationships, pending cross-file
+          relationships, type facts, type-argument usages, literals, source regions, doc comments,
+          complexity metrics, structural facts, annotations, and parse diagnostics. A few examples of depth
+          that queries do not reach:
+        </p>
+        <ul>
+          <li><strong>Typed structural facts.</strong> Nearly 200 versioned pattern IDs across 60 fact
+            families capture framework and document shape as data: <code>express.route.v1</code>,
+            <code>rails.resource_route.v1</code>, <code>django.url_pattern.v1</code>,
+            <code>spring.request_mapping.v1</code>, <code>fastapi.include_router.v1</code>,
+            <code>aspnet.minimal_api.route.v1</code>, <code>nextjs.file_route.v1</code>,
+            <code>phoenix.route.v1</code>, <code>htmx.attribute.v1</code>, <code>alpine.directive.v1</code>,
+            SQL DDL/DML shapes, and more. Each is a stable, versioned contract a downstream tool can query
+            without touching an AST.</li>
+          <li><strong>Convention-aware relationships.</strong> C# DI registrations become instantiation
+            edges (including chained <code>builder.Services.AddScoped&lt;T&gt;()</code> forms and nested
+            generics, without a brittle method-name allowlist for identifier capture). Partial classes are
+            linked across files. ES-module imports carry export provenance.</li>
+          <li><strong>Role-aware test detection.</strong> Tests are classified by role per language rather
+            than by a single "is a test" bit, with golden fixtures proving at least one emitted role for
+            all 28 code languages.</li>
+          <li><strong>Real signatures and docs.</strong> Symbols carry assembled signatures, doc comments
+            (35 of 36 languages), body spans, and per-function complexity metrics — enough for an agent to
+            reason about an API without opening the file.</li>
+        </ul>
+
+        <h3>Reference resolution that fails closed</h3>
+        <p>
+          The clearest payoff is reference identity. Extraction feeds a four-tier resolution chain, and
+          every tier prefers <em>no answer</em> to a plausible-but-unproven one:
+        </p>
+        <ul>
+          <li><strong>Tier 1 — local.</strong> Same-file resolution with scope awareness: a local
+            <code>variable_ref</code> beats a same-named symbol in another file.</li>
+          <li><strong>Tier 2 — imports.</strong> Cross-file resolution through import statements, including
+            aliased imports — gated per language, and fail-closed: a default import without export
+            provenance does not resolve, and cross-language import candidates are excluded.</li>
+          <li><strong>Tier 3 — receiver types.</strong> Method calls resolve through the receiver's proven
+            static type from extracted type facts; an inferred type lowers confidence instead of faking
+            certainty.</li>
+          <li><strong>Tier 4 — unique global.</strong> A last resort that only fires when exactly one
+            compatible candidate exists in the workspace: overloads stay ambiguous, partial-class
+            collisions stay ambiguous, and a cross-language name collision is refused rather than guessed.</li>
+        </ul>
+        <p>
+          The philosophy: for a coding agent, a wrong edge is worse than a missing edge. An agent that is
+          told "ambiguous" greps and reads; an agent handed a confident wrong answer renames the wrong
+          method. This is also why the outcome vocabulary is explicit — resolved, ambiguous, missing,
+          unattempted — and committed as a per-language coverage artifact that CI checks strictly.
+        </p>
+
+        <h3>Owning grammars where the ecosystem had gaps</h3>
+        <p>
+          Depth sometimes requires owning the layer below. julie-extractors maintains pinned tree-sitter
+          grammar forks for C#, SQL (T-SQL), and Razor — cases where upstream grammars were missing,
+          stale, or could not represent the constructs the extractors needed. Each fork is pinned to an
+          exact commit under a written grammar-dependency policy, so a grammar change is a reviewed event,
+          not a floating dependency.
+        </p>
+
+        <h3>Keeping 36 languages honest</h3>
+        <p>
+          The obvious failure mode of hand-written breadth is uneven depth: three great languages and
+          thirty-three that quietly lag. The repository's answer is a capability matrix with no silent
+          cells. Every language × domain claim is either backed by golden fixture evidence or carries a
+          recorded reason the domain does not apply to that language ("applicable closure"). Missing work
+          cannot hide behind <code>not_applicable</code>, and strict gates fail CI when fixtures drift from
+          claims:
+        </p>
+        <pre><code>node scripts/language-data-quality-report.mjs --strict
+node scripts/reference-resolution-coverage-report.mjs --strict</code></pre>
+        <p>
+          A product rule backs this up: a new extraction capability is not done until it works for every
+          supported language, verified on a real extract — a feature that silently covers one language
+          while looking authoritative is treated as a bug.
+        </p>
+
+        <h3>What it costs, honestly</h3>
+        <p>
+          The trade is real. Averaged out, each language carries roughly 3,500 lines of extraction code,
+          all of which must track grammar updates by hand — work a query pack mostly avoids. Adding a
+          language is days of work, not an afternoon of pattern writing. And imperative extractors can hide
+          bugs that declarative patterns cannot, which is why the fixture and gate machinery above exists;
+          the honesty infrastructure is part of the price.
+        </p>
+        <p>
+          The bet is that for agent-facing tooling the price is right. Agents act on this data — they
+          rename, refactor, and answer questions with it. In a paired benchmark, the same agent using
+          <a href="https://anortham.github.io/miller/benchmark.html" target="_blank" rel="noopener">Miller</a>
+          (whose index is exactly this artifact) got 2.2× more tasks right than with grep and file reads,
+          with a 0% vs 27% wrong-action rate — and the five tasks requiring exact symbol identity, the
+          thing resolution tiers exist for, went 0-for-20 without the artifact.
+        </p>
+
+        <h3>Try it</h3>
+        <pre><code># produce an artifact for any repo
+julie-extract scan --root . --db artifact.sqlite --json
+
+# see exactly what your languages support
+julie-extract languages --json</code></pre>
+        <p>
+          Binaries for macOS, Linux, and Windows are on the
+          <a href="https://github.com/anortham/julie-extractors/releases/latest" target="_blank" rel="noopener">releases page</a>;
+          schema contracts live in <code>docs/contracts/</code>. If you want the artifact with an agent
+          interface on top — search, refs, impact, editing — that is
+          <a href="https://anortham.github.io/miller/" target="_blank" rel="noopener">Miller</a>.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>julie-extractors</span>
+    <a href="https://github.com/anortham/julie-extractors" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/anortham/julie-extractors/releases/latest" target="_blank" rel="noopener">Releases</a>
+    <a href="https://anortham.github.io/miller/" target="_blank" rel="noopener">Miller</a>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -8,7 +8,8 @@ source tree -> versioned extraction artifact
 ```
 
 The primary artifact is SQLite. JSONL is the secondary export and streaming
-format. The primary integration surface is the `julie-extract` CLI, so tools
+format. Site: https://anortham.github.io/julie-extractors/ — including
+[why extraction is hand-written code rather than tree-sitter query files](https://anortham.github.io/julie-extractors/extractors.html). The primary integration surface is the `julie-extract` CLI, so tools
 written in C#, Python, Go, JavaScript, Rust, or any other language can consume
 extraction results by spawning a binary and reading a durable artifact.
 
@@ -19,19 +20,19 @@ records why each fork exists and how its exact remote commit is controlled.
 
 ## Current Release
 
-- Current release: `v2.14.0`
-- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.14.0
-- Published: `2026-07-14T16:24:46Z`
-- Release commit: `dc270e2f590c2b41413a9fd6e642bd8671022979`
-- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/29348623403
-- Release evidence: [docs/release-evidence/2026-07-14-v2-14-0-release.md](docs/release-evidence/2026-07-14-v2-14-0-release.md)
+- Current release: `v2.20.0`
+- Release URL: https://github.com/anortham/julie-extractors/releases/tag/v2.20.0
+- Published: `2026-07-29T02:09:35Z`
+- Release commit: `d886ce8b8965377bb708e5e9be4185eb6ad2706b`
+- Release workflow: https://github.com/anortham/julie-extractors/actions/runs/30415343722
+- Release evidence: [docs/release-evidence/2026-07-29-v2-20-0-release.md](docs/release-evidence/2026-07-29-v2-20-0-release.md)
 
 | Platform | Asset | SHA-256 |
 | --- | --- | --- |
-| Linux x86_64 | [`julie-extract-v2.14.0-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.14.0/julie-extract-v2.14.0-x86_64-unknown-linux-gnu.tar.gz) | `dc94857e7c7f7bee9e4f9ea4b8948cbef11b40ecac4a35551d5653f3fa32081e` |
-| macOS Apple Silicon | [`julie-extract-v2.14.0-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.14.0/julie-extract-v2.14.0-aarch64-apple-darwin.tar.gz) | `e0781be4d561223f57cffe544eda7d615eb05b719c20250d8f092a0b1d79162d` |
-| macOS Intel | [`julie-extract-v2.14.0-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.14.0/julie-extract-v2.14.0-x86_64-apple-darwin.tar.gz) | `22f8717fc068a3610d127f8c641cf8b148ee332cdfade799eb24c827e4213878` |
-| Windows x86_64 | [`julie-extract-v2.14.0-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.14.0/julie-extract-v2.14.0-x86_64-pc-windows-msvc.zip) | `6fbb7e406fb7bec396e1447c4a69568a37599aed1b80d16a7b9b49c42da3839c` |
+| Linux x86_64 | [`julie-extract-v2.20.0-x86_64-unknown-linux-gnu.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.20.0/julie-extract-v2.20.0-x86_64-unknown-linux-gnu.tar.gz) | `d7991c31520cd60206954de68c1315910a87f7ef9e8e6151d7869f4b8e4ac1d1` |
+| macOS Apple Silicon | [`julie-extract-v2.20.0-aarch64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.20.0/julie-extract-v2.20.0-aarch64-apple-darwin.tar.gz) | `1d3f964a79f123508ca4b67927e1f42fc03351a7abff7e7dfb6a516e89505950` |
+| macOS Intel | [`julie-extract-v2.20.0-x86_64-apple-darwin.tar.gz`](https://github.com/anortham/julie-extractors/releases/download/v2.20.0/julie-extract-v2.20.0-x86_64-apple-darwin.tar.gz) | `2f5b169e2ccaa582cc2cc272e4d302f741fc2d689067857b3085508695829324` |
+| Windows x86_64 | [`julie-extract-v2.20.0-x86_64-pc-windows-msvc.zip`](https://github.com/anortham/julie-extractors/releases/download/v2.20.0/julie-extract-v2.20.0-x86_64-pc-windows-msvc.zip) | `8a9e38455bc31aecff3fdc3a23dd60ed6260a13ecb09afd8ee8a04ec147bf15a` |
 
 The v2 line starts above the old in-tree Julie extractor crate line, which had
 reached v1.22.0 before this repo became the standalone product.
@@ -44,9 +45,9 @@ Download a published binary archive from the release page, extract it, and put
 Linux example:
 
 ```bash
-curl -L -o julie-extract-v2.14.0-x86_64-unknown-linux-gnu.tar.gz \
-  https://github.com/anortham/julie-extractors/releases/download/v2.14.0/julie-extract-v2.14.0-x86_64-unknown-linux-gnu.tar.gz
-tar -xzf julie-extract-v2.14.0-x86_64-unknown-linux-gnu.tar.gz
+curl -L -o julie-extract-v2.20.0-x86_64-unknown-linux-gnu.tar.gz \
+  https://github.com/anortham/julie-extractors/releases/download/v2.20.0/julie-extract-v2.20.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf julie-extract-v2.20.0-x86_64-unknown-linux-gnu.tar.gz
 ./dist/x86_64-unknown-linux-gnu/julie-extract --version
 ```
 
@@ -337,8 +338,8 @@ Release and testing:
 
 - [Testing strategy](docs/testing-strategy.md)
 - [Release and certification](docs/release.md)
-- [v2.14.0 release notes](docs/release-notes/v2.14.0.md)
-- [v2.14.0 release evidence](docs/release-evidence/2026-07-14-v2-14-0-release.md)
+- [v2.20.0 release notes](docs/release-notes/v2.20.0.md)
+- [v2.20.0 release evidence](docs/release-evidence/2026-07-29-v2-20-0-release.md)
 - [historical v2.13.0 release notes](docs/release-notes/v2.13.0.md)
 - [historical v2.13.0 release evidence](docs/release-evidence/2026-07-12-v2-13-0-release.md)
 - [historical v2.12.1 release notes](docs/release-notes/v2.12.1.md)
