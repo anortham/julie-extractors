@@ -8,7 +8,7 @@ source tree -> versioned extraction artifact
 ```
 
 The primary artifact is SQLite. JSONL is the secondary export and streaming
-format. Site: https://anortham.github.io/julie-extractors/ — including
+format. The project site is https://anortham.github.io/julie-extractors/, which includes
 [why extraction is hand-written code rather than tree-sitter query files](https://anortham.github.io/julie-extractors/extractors.html). The primary integration surface is the `julie-extract` CLI, so tools
 written in C#, Python, Go, JavaScript, Rust, or any other language can consume
 extraction results by spawning a binary and reading a durable artifact.
