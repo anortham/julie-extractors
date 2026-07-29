@@ -121,3 +121,68 @@ namespace App {
     );
     assert_eq!(types.get(&id("label")).map(String::as_str), Some("string"));
 }
+
+#[test]
+fn out_ref_and_foreach_emit_locals_but_multiplication_does_not() {
+    let source = r#"
+namespace App {
+  public class Service {
+    private const int Scale = 4;
+    public int Scaled(int requested) {
+      return requested * Scale;
+    }
+    public void TryParse(string input) {
+      if (int.TryParse(input, out int value)) {
+        _ = value;
+      }
+      if (int.TryParse(input, out var inferred)) {
+        _ = inferred;
+      }
+      foreach (string item in new[] { "a" }) {
+        _ = item;
+      }
+    }
+  }
+}
+"#;
+    let (symbols, _) = extract(source);
+    let locals: Vec<_> = symbols
+        .iter()
+        .filter(|s| {
+            s.kind == SymbolKind::Variable
+                && s.metadata
+                    .as_ref()
+                    .and_then(|m| m.get("role"))
+                    .and_then(|v| v.as_str())
+                    == Some("local")
+        })
+        .map(|s| s.name.as_str())
+        .collect();
+
+    assert!(
+        !locals.contains(&"Scale"),
+        "multiplication operand must not become a local: {locals:?}"
+    );
+    assert!(
+        locals.contains(&"value"),
+        "out int value should emit a local: {locals:?}"
+    );
+    assert!(
+        locals.contains(&"inferred"),
+        "out var inferred should emit a local: {locals:?}"
+    );
+    assert!(
+        locals.contains(&"item"),
+        "foreach loop variable should emit a local: {locals:?}"
+    );
+
+    let value = symbols.iter().find(|s| s.name == "value").unwrap();
+    assert_eq!(
+        value
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("variableType"))
+            .and_then(|v| v.as_str()),
+        Some("int")
+    );
+}

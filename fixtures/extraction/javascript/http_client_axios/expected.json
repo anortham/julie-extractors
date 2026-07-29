@@ -19,8 +19,9 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
-        "isDefault": false,
+        "isDefault": true,
         "isNamespace": false,
+        "isTypeOnly": false,
         "source": "axios",
         "specifier": "axios"
       },

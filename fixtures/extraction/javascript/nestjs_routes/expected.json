@@ -26,8 +26,10 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
+        "importedName": "Controller",
         "isDefault": false,
         "isNamespace": false,
+        "isTypeOnly": false,
         "source": "@nestjs/common",
         "specifier": "Controller"
       },
@@ -62,8 +64,10 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
+        "importedName": "Get",
         "isDefault": false,
         "isNamespace": false,
+        "isTypeOnly": false,
         "source": "@nestjs/common",
         "specifier": "Get"
       },
@@ -139,8 +143,10 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
+        "importedName": "Post",
         "isDefault": false,
         "isNamespace": false,
+        "isTypeOnly": false,
         "source": "@nestjs/common",
         "specifier": "Post"
       },

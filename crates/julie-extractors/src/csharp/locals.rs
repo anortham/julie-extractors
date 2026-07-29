@@ -41,24 +41,50 @@ fn collect_local_bindings(
         "declaration_expression" => {
             // Only true out/ref/in var declarations — never bare `*` multiplications
             // misparsed as declaration_expression by tree-sitter-c-sharp.
+            // Check parent argument text for `out`/`ref`/`in` because the
+            // declaration node itself is often just `T x` or `var x`.
             let text = base.get_node_text(&node);
-            let looks_like_binding = text.contains("var ")
-                || text.starts_with("out ")
-                || text.starts_with("ref ")
-                || text.starts_with("in ")
-                || text.contains(" out ")
-                || text.contains(" ref ");
-            if !looks_like_binding {
-                // Still walk children for nested true declarations.
-            } else if let Some(decl) = find_child(node, "variable_declaration") {
-                emit_declarators(base, decl, parent_id.clone(), out);
-            } else if let Some(name) = find_child(node, "identifier") {
-                let name_text = base.get_node_text(&name);
-                if name_text != "_"
-                    && let Some(symbol) =
-                        extract_named_binding(base, node, &name_text, parent_id.clone(), None, true)
+            let parent_text = node
+                .parent()
+                .map(|p| base.get_node_text(&p))
+                .unwrap_or_default();
+            let has_var_keyword = text.split_whitespace().any(|t| t == "var")
+                || parent_text.split_whitespace().any(|t| t == "var");
+            let has_out_ref = parent_text
+                .split_whitespace()
+                .any(|t| matches!(t, "out" | "ref" | "in"))
+                || text
+                    .split_whitespace()
+                    .any(|t| matches!(t, "out" | "ref" | "in"));
+            let looks_like_binding = has_var_keyword || has_out_ref;
+            if looks_like_binding {
+                if let Some(decl) = find_child(node, "variable_declaration") {
+                    emit_declarators(base, decl, parent_id.clone(), out);
+                } else if let Some(name) = node
+                    .child_by_field_name("name")
+                    .or_else(|| find_child(node, "identifier"))
                 {
-                    out.push(symbol);
+                    let name_text = base.get_node_text(&name);
+                    if name_text != "_" {
+                        let ty = node
+                            .child_by_field_name("type")
+                            .map(|t| base.get_node_text(&t))
+                            .or_else(|| type_name_from_declaration(base, node));
+                        let is_var = has_var_keyword
+                            || ty
+                                .as_deref()
+                                .is_some_and(|t| t == "var" || t == "implicit_type");
+                        if let Some(symbol) = extract_named_binding(
+                            base,
+                            node,
+                            &name_text,
+                            parent_id.clone(),
+                            ty,
+                            is_var,
+                        ) {
+                            out.push(symbol);
+                        }
+                    }
                 }
             }
         }
@@ -80,7 +106,7 @@ fn collect_local_bindings(
                 }
             }
         }
-        "for_each_statement" => {
+        "foreach_statement" | "for_each_statement" => {
             // foreach (Type item in items)
             if let Some(name) = node.child_by_field_name("left").or_else(|| {
                 let mut c = node.walk();

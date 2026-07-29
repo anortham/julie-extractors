@@ -89,18 +89,6 @@ impl super::JavaScriptExtractor {
             .unwrap_or(false)
     }
 
-    /// Check if import has default - direct Implementation of hasDefaultImport
-    pub(super) fn has_default_import(&self, node: &Node) -> bool {
-        node.children(&mut node.walk())
-            .any(|c| c.kind() == "import_default_specifier")
-    }
-
-    /// Check if import has namespace - direct Implementation of hasNamespaceImport
-    pub(super) fn has_namespace_import(&self, node: &Node) -> bool {
-        node.children(&mut node.walk())
-            .any(|c| c.kind() == "namespace_import")
-    }
-
     /// Check if export is default - direct Implementation of isDefaultExport
     pub(super) fn is_default_export(&self, node: &Node) -> bool {
         node.children(&mut node.walk())

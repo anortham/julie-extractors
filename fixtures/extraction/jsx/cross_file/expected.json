@@ -26,8 +26,10 @@
       "visibility": null,
       "parent_key": null,
       "metadata": {
+        "importedName": "Foo",
         "isDefault": false,
         "isNamespace": false,
+        "isTypeOnly": false,
         "source": "./other",
         "specifier": "Foo"
       },

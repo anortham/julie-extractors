@@ -761,8 +761,16 @@ import { useState } from 'react';
         .collect();
 
     // Aliased import `createElement as h` should produce only "h", not both
-    let h_import = imports.iter().find(|s| s.name == "h");
-    assert!(h_import.is_some(), "Expected alias 'h' as import name");
+    let h_import = imports.iter().find(|s| s.name == "h").expect("alias h");
+    assert_eq!(
+        h_import
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("importedName"))
+            .and_then(|v| v.as_str()),
+        Some("createElement"),
+        "alias h must record original importedName for resolution"
+    );
 
     let create_element_import = imports.iter().find(|s| s.name == "createElement");
     assert!(
@@ -771,10 +779,17 @@ import { useState } from 'react';
     );
 
     // Aliased import `connect as reduxConnect` should produce only "reduxConnect"
-    let redux_connect = imports.iter().find(|s| s.name == "reduxConnect");
-    assert!(
-        redux_connect.is_some(),
-        "Expected alias 'reduxConnect' as import name"
+    let redux_connect = imports
+        .iter()
+        .find(|s| s.name == "reduxConnect")
+        .expect("alias reduxConnect");
+    assert_eq!(
+        redux_connect
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("importedName"))
+            .and_then(|v| v.as_str()),
+        Some("connect")
     );
 
     let connect_import = imports.iter().find(|s| s.name == "connect");
@@ -784,17 +799,31 @@ import { useState } from 'react';
     );
 
     // Non-aliased import `Fragment` should still work
-    let fragment_import = imports.iter().find(|s| s.name == "Fragment");
-    assert!(
-        fragment_import.is_some(),
-        "Non-aliased import 'Fragment' should still appear"
+    let fragment_import = imports
+        .iter()
+        .find(|s| s.name == "Fragment")
+        .expect("Fragment");
+    assert_eq!(
+        fragment_import
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("importedName"))
+            .and_then(|v| v.as_str()),
+        Some("Fragment")
     );
 
     // Non-aliased import `useState` should still work
-    let use_state_import = imports.iter().find(|s| s.name == "useState");
-    assert!(
-        use_state_import.is_some(),
-        "Non-aliased import 'useState' should still appear"
+    let use_state_import = imports
+        .iter()
+        .find(|s| s.name == "useState")
+        .expect("useState");
+    assert_eq!(
+        use_state_import
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("importedName"))
+            .and_then(|v| v.as_str()),
+        Some("useState")
     );
 
     // Total import count: h, Fragment, reduxConnect, useState = 4
