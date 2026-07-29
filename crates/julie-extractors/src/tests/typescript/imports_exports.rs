@@ -161,3 +161,53 @@ import './setup';
         assert!(export_names.contains(&"baz"), "Missing export 'baz'");
     }
 }
+
+#[test]
+fn specifier_level_type_only_import_sets_is_type_only() {
+    use crate::base::SymbolKind;
+    use crate::typescript::TypeScriptExtractor;
+    use std::path::PathBuf;
+
+    let code = r#"
+import { type Fixture, runtimeValue } from "./mod";
+"#;
+    let mut parser = tree_sitter::Parser::new();
+    parser
+        .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        .unwrap();
+    let tree = parser.parse(code, None).unwrap();
+    let workspace_root = PathBuf::from("/tmp/test");
+    let mut extractor = TypeScriptExtractor::new(
+        "typescript".to_string(),
+        "imports.ts".to_string(),
+        code.to_string(),
+        &workspace_root,
+    );
+    let symbols = extractor.extract_symbols(&tree);
+    let fixture = symbols
+        .iter()
+        .find(|s| s.kind == SymbolKind::Import && s.name == "Fixture")
+        .expect("Fixture import");
+    assert_eq!(
+        fixture
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("isTypeOnly"))
+            .and_then(|v| v.as_bool()),
+        Some(true),
+        "import {{ type Fixture }} must be type-only"
+    );
+    let runtime = symbols
+        .iter()
+        .find(|s| s.kind == SymbolKind::Import && s.name == "runtimeValue")
+        .expect("runtimeValue import");
+    assert_eq!(
+        runtime
+            .metadata
+            .as_ref()
+            .and_then(|m| m.get("isTypeOnly"))
+            .and_then(|v| v.as_bool()),
+        Some(false),
+        "value specifier must not inherit type-only"
+    );
+}

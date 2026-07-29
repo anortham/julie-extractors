@@ -108,24 +108,65 @@ fn collect_local_bindings(
         }
         "foreach_statement" | "for_each_statement" => {
             // foreach (Type item in items)
-            if let Some(name) = node.child_by_field_name("left").or_else(|| {
+            // foreach (var (a, b) in pairs)  — tuple_pattern
+            // foreach ((int x, string y) in pairs) — tuple_expression of decls
+            if let Some(left) = node.child_by_field_name("left").or_else(|| {
                 let mut c = node.walk();
-                node.children(&mut c).find(|c| c.kind() == "identifier")
+                node.children(&mut c).find(|c| {
+                    matches!(
+                        c.kind(),
+                        "identifier"
+                            | "variable_declaration"
+                            | "tuple_pattern"
+                            | "tuple_expression"
+                            | "declaration_expression"
+                    )
+                })
             }) {
-                if name.kind() == "identifier" {
-                    let text = base.get_node_text(&name);
-                    if text != "_" {
-                        let ty = node
-                            .child_by_field_name("type")
-                            .map(|t| base.get_node_text(&t));
-                        if let Some(symbol) =
-                            extract_named_binding(base, node, &text, parent_id.clone(), ty, false)
-                        {
-                            out.push(symbol);
+                match left.kind() {
+                    "identifier" => {
+                        let text = base.get_node_text(&left);
+                        if text != "_" {
+                            let ty = node
+                                .child_by_field_name("type")
+                                .map(|t| base.get_node_text(&t));
+                            let is_var = ty.as_deref().is_some_and(|t| t == "var");
+                            if let Some(symbol) = extract_named_binding(
+                                base,
+                                node,
+                                &text,
+                                parent_id.clone(),
+                                ty,
+                                is_var,
+                            ) {
+                                out.push(symbol);
+                            }
                         }
                     }
-                } else if name.kind() == "variable_declaration" {
-                    emit_declarators(base, name, parent_id.clone(), out);
+                    "variable_declaration" => {
+                        emit_declarators(base, left, parent_id.clone(), out);
+                    }
+                    "tuple_pattern" | "tuple_expression" | "declaration_expression" => {
+                        collect_pattern_bindings(base, left, parent_id.clone(), out, depth + 1);
+                    }
+                    _ => {
+                        collect_pattern_bindings(base, left, parent_id.clone(), out, depth + 1);
+                    }
+                }
+            } else {
+                // Some grammars put type + pattern as sibling children without
+                // a `left` field (`foreach (var (a, b) in …)`).
+                let mut c = node.walk();
+                for child in node.children(&mut c) {
+                    if matches!(
+                        child.kind(),
+                        "tuple_pattern"
+                            | "tuple_expression"
+                            | "declaration_expression"
+                            | "variable_declaration"
+                    ) {
+                        collect_pattern_bindings(base, child, parent_id.clone(), out, depth + 1);
+                    }
                 }
             }
         }
@@ -146,6 +187,83 @@ fn collect_local_bindings(
                         | "expression_statement"
                 ) {
                     collect_local_bindings(base, child, parent_id.clone(), out, depth + 1);
+                }
+            }
+        }
+    }
+}
+
+/// Collect binding identifiers from tuple / deconstruction patterns.
+fn collect_pattern_bindings(
+    base: &mut BaseExtractor,
+    node: Node,
+    parent_id: Option<String>,
+    out: &mut Vec<Symbol>,
+    depth: u32,
+) {
+    if depth > 32 {
+        return;
+    }
+    match node.kind() {
+        "identifier" => {
+            let text = base.get_node_text(&node);
+            if text != "_"
+                && let Some(symbol) =
+                    extract_named_binding(base, node, &text, parent_id, None, true)
+            {
+                out.push(symbol);
+            }
+        }
+        "declaration_expression" => {
+            if let Some(name) = node
+                .child_by_field_name("name")
+                .or_else(|| find_child(node, "identifier"))
+            {
+                let name_text = base.get_node_text(&name);
+                if name_text != "_" {
+                    let ty = node
+                        .child_by_field_name("type")
+                        .map(|t| base.get_node_text(&t))
+                        .or_else(|| type_name_from_declaration(base, node));
+                    let is_var = ty
+                        .as_deref()
+                        .is_some_and(|t| t == "var" || t == "implicit_type");
+                    if let Some(symbol) =
+                        extract_named_binding(base, node, &name_text, parent_id, ty, is_var)
+                    {
+                        out.push(symbol);
+                    }
+                }
+            }
+        }
+        "variable_declaration" => {
+            emit_declarators(base, node, parent_id, out);
+        }
+        "variable_declarator" => {
+            if let Some(symbol) = extract_declarator(base, node, parent_id, None, true, "local") {
+                out.push(symbol);
+            }
+        }
+        "tuple_pattern" | "tuple_expression" | "argument" | "parenthesized_expression" => {
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                collect_pattern_bindings(base, child, parent_id.clone(), out, depth + 1);
+            }
+        }
+        _ => {
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                if matches!(
+                    child.kind(),
+                    "identifier"
+                        | "declaration_expression"
+                        | "variable_declaration"
+                        | "variable_declarator"
+                        | "tuple_pattern"
+                        | "tuple_expression"
+                        | "argument"
+                ) {
+                    collect_pattern_bindings(base, child, parent_id.clone(), out, depth + 1);
                 }
             }
         }

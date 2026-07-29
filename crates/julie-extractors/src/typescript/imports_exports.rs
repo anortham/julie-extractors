@@ -113,7 +113,7 @@ fn extract_import_bindings(extractor: &TypeScriptExtractor, node: Node) -> Vec<I
 fn extract_named_imports(
     extractor: &TypeScriptExtractor,
     named_imports: Node,
-    is_type_only: bool,
+    statement_type_only: bool,
     bindings: &mut Vec<ImportBinding>,
 ) {
     let mut cursor = named_imports.walk();
@@ -129,12 +129,18 @@ fn extract_named_imports(
             .child_by_field_name("alias")
             .map(|alias| extractor.base().get_node_text(&alias))
             .unwrap_or_else(|| imported_name.clone());
+        // Specifier-level `import { type X }` is type-only even when the
+        // statement is a value import (`import { type X, y } from ...`).
+        let specifier_type_only = statement_type_only
+            || specifier
+                .children(&mut specifier.walk())
+                .any(|child| child.kind() == "type");
         bindings.push(ImportBinding {
             local_name,
             imported_name,
             is_default: false,
             is_namespace: false,
-            is_type_only,
+            is_type_only: specifier_type_only,
         });
     }
 }

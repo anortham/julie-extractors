@@ -596,8 +596,8 @@ fn applicable_tiers(edge: &UnresolvedEdge) -> Vec<Tier> {
     use ReferenceKind::*;
     match (edge.origin, edge.kind) {
         // Pending: full workspace chain (tier 4 disabled only for member_access).
-        // Receiver-qualified pending calls skip Import for the same reason
-        // identifier receiver-calls do: Branch B ignores the receiver.
+        // Receiver-qualified pending calls skip Import: bare import binding
+        // does not encode the receiver, so Import would ignore it.
         (Pending, Call) if edge.receiver.is_some() => {
             // No Global: terminal-name uniqueness without the receiver is unsafe.
             vec![Tier::Receiver, Tier::StaticType]
@@ -1012,65 +1012,42 @@ fn tier1_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> V
         .collect()
 }
 
-/// Tier 2: candidates reachable through an import in the source file. Two keys
-/// (design §"Resolution tiers"): (A) an import whose local binding matches the
-/// terminal name (aliases key on `imported_name`), and (B) an import whose module
-/// resolves to the candidate's defining file, referenced by the candidate's own
-/// name. Both require same language and kind compatibility.
+/// Tier 2: candidates reachable through an import whose **local binding**
+/// matches the terminal name (design §"Resolution tiers"). Aliases key on
+/// `imported_name` for the candidate lookup. Module-wide Branch B was removed:
+/// a named/default import must not authorize every export in the module.
 fn tier2_candidates(edge: &UnresolvedEdge, index: &WorkspaceCandidateIndex) -> Vec<TierCandidate> {
     let kinds = tier123_compatible_kinds(edge.kind);
     let mut set: BTreeSet<String> = BTreeSet::new();
 
     for import in index.imports(&edge.file_id) {
-        if import.is_type_only {
+        if import.is_type_only || import.is_namespace {
+            // Type-only: no value/runtime edges. Namespace: members need a
+            // receiver (`NS.member`); bare names are not introduced into scope.
             continue;
         }
-        // Branch A: named / aliased import brings `terminal_name` into scope.
-        if import.local_name == edge.terminal_name {
-            let target_name = import
+        if import.local_name != edge.terminal_name {
+            continue;
+        }
+        // Default import metadata uses imported_name "default" as a marker, not
+        // a workspace symbol name. Named aliases key on the original export.
+        let target_name = if import.is_default {
+            import.local_name.as_str()
+        } else {
+            import
                 .imported_name
                 .as_deref()
-                .unwrap_or(&import.local_name);
-            for cand in index.by_name(target_name) {
-                let module_ok = match (import.source.as_deref(), import.module_file_id.as_deref()) {
-                    (Some(_), Some(module_file)) => module_file == cand.file_id,
-                    (Some(_), None) => false,
-                    (None, Some(module_file)) => module_file == cand.file_id,
-                    (None, None) => true,
-                };
-                if cand.language == edge.language && kinds.contains(&cand.kind) && module_ok {
-                    set.insert(cand.symbol_id.clone());
-                }
-            }
-        }
-        // Branch B: module import reaches a candidate by its own terminal name
-        // (namespace / wildcard imports where the local binding differs).
-        // Never used for receiver-qualified edges (those omit Import entirely).
-        if edge.receiver.is_some() {
-            continue;
-        }
-        if import.is_namespace {
-            // `import * as NS` — terminal name must live in the module file.
-            if let Some(module_file) = import.module_file_id.as_deref() {
-                for cand in index.by_name(&edge.terminal_name) {
-                    if cand.language == edge.language
-                        && kinds.contains(&cand.kind)
-                        && cand.file_id == module_file
-                    {
-                        set.insert(cand.symbol_id.clone());
-                    }
-                }
-            }
-            continue;
-        }
-        if let Some(module_file) = import.module_file_id.as_deref() {
-            for cand in index.by_name(&edge.terminal_name) {
-                if cand.language == edge.language
-                    && kinds.contains(&cand.kind)
-                    && cand.file_id == module_file
-                {
-                    set.insert(cand.symbol_id.clone());
-                }
+                .unwrap_or(import.local_name.as_str())
+        };
+        for cand in index.by_name(target_name) {
+            let module_ok = match (import.source.as_deref(), import.module_file_id.as_deref()) {
+                (Some(_), Some(module_file)) => module_file == cand.file_id,
+                (Some(_), None) => false,
+                (None, Some(module_file)) => module_file == cand.file_id,
+                (None, None) => true,
+            };
+            if cand.language == edge.language && kinds.contains(&cand.kind) && module_ok {
+                set.insert(cand.symbol_id.clone());
             }
         }
     }
@@ -3034,6 +3011,80 @@ mod tests {
             }],
         );
         let edge = pending_edge(ReferenceKind::TypeUsage, "typescript", "src", "Bar");
+        let (tier, _, _, target) = resolved(&resolve_one(&edge, &index));
+        assert_eq!(tier, 2);
+        assert_eq!(target, "s1");
+    }
+
+    #[test]
+    fn tier2_named_import_does_not_resolve_unimported_export() {
+        // INVARIANT: importing one name from a module does not authorize every
+        // export in that module (no module-wide Branch B). A second same-named
+        // candidate keeps tier 4 from masking the failure with a unique global.
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("s1", "imported", SymbolKind::Function, "typescript", "mod"),
+                sym(
+                    "s2",
+                    "notImported",
+                    SymbolKind::Function,
+                    "typescript",
+                    "mod",
+                ),
+                sym(
+                    "s3",
+                    "notImported",
+                    SymbolKind::Function,
+                    "typescript",
+                    "other",
+                ),
+            ],
+            vec![],
+            vec![ImportRecord {
+                file_id: "src".to_string(),
+                local_name: "imported".to_string(),
+                imported_name: Some("imported".to_string()),
+                source: Some("./mod".to_string()),
+                module_file_id: Some("mod".to_string()),
+                is_type_only: false,
+                is_default: false,
+                is_namespace: false,
+            }],
+        );
+        let edge = pending_edge(ReferenceKind::Call, "typescript", "src", "notImported");
+        match resolve_one(&edge, &index) {
+            TierOutcome::Resolved {
+                tier,
+                method,
+                target_symbol_id,
+                ..
+            } => panic!(
+                "unimported same-module export must not resolve via import Branch B \
+                 (got tier={tier} method={method} target={target_symbol_id})"
+            ),
+            TierOutcome::Missing | TierOutcome::Ambiguous { .. } | TierOutcome::NoContext => {}
+        }
+    }
+
+    #[test]
+    fn tier2_default_import_keys_on_local_binding_name() {
+        // Default imports store imported_name "default" as a marker; tier 2 must
+        // look up the local binding name (common `import Fixture from "./x"`).
+        let index = WorkspaceCandidateIndex::build(
+            vec![sym("s1", "Fixture", SymbolKind::Class, "typescript", "mod")],
+            vec![],
+            vec![ImportRecord {
+                file_id: "src".to_string(),
+                local_name: "Fixture".to_string(),
+                imported_name: Some("default".to_string()),
+                source: Some("./mod".to_string()),
+                module_file_id: Some("mod".to_string()),
+                is_type_only: false,
+                is_default: true,
+                is_namespace: false,
+            }],
+        );
+        let edge = pending_edge(ReferenceKind::TypeUsage, "typescript", "src", "Fixture");
         let (tier, _, _, target) = resolved(&resolve_one(&edge, &index));
         assert_eq!(tier, 2);
         assert_eq!(target, "s1");

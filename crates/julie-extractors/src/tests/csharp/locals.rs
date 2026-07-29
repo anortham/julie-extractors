@@ -186,3 +186,50 @@ namespace App {
         Some("int")
     );
 }
+
+#[test]
+fn foreach_tuple_deconstruction_emits_each_binding() {
+    let source = r#"
+namespace App {
+  public class Service {
+    public void Run() {
+      foreach (var (a, b) in pairs) {
+        _ = a;
+        _ = b;
+      }
+      foreach ((int x, string y) in pairs) {
+        _ = x;
+        _ = y;
+      }
+    }
+  }
+}
+"#;
+    let (symbols, _) = extract(source);
+    let locals: Vec<_> = symbols
+        .iter()
+        .filter(|s| {
+            s.kind == SymbolKind::Variable
+                && s.metadata
+                    .as_ref()
+                    .and_then(|m| m.get("role"))
+                    .and_then(|v| v.as_str())
+                    == Some("local")
+        })
+        .map(|s| s.name.as_str())
+        .collect();
+    for name in ["a", "b", "x", "y"] {
+        assert!(
+            locals.contains(&name),
+            "foreach deconstruction must emit local {name}: {locals:?}"
+        );
+    }
+    let x = symbols.iter().find(|s| s.name == "x").unwrap();
+    assert_eq!(
+        x.metadata
+            .as_ref()
+            .and_then(|m| m.get("variableType"))
+            .and_then(|v| v.as_str()),
+        Some("int")
+    );
+}
