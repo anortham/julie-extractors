@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>julie-extractors - hand-written code extraction for 36 languages</title>
-  <meta name="description" content="Source tree in, versioned SQLite artifact out. Hand-written tree-sitter extractors for 36 languages - symbols, references, relationships, framework routes, and typed structural facts. Zero query files.">
+  <meta name="description" content="Source tree in, versioned SQLite artifact out. Hand-written tree-sitter extractors for 36 languages cover symbols, references, relationships, framework routes, and typed structural facts without query files.">
   <link rel="canonical" href="https://anortham.github.io/julie-extractors/">
 
   <meta property="og:type" content="website">
   <meta property="og:title" content="julie-extractors - hand-written code extraction for 36 languages">
-  <meta property="og:description" content="Source tree in, versioned SQLite artifact out. Hand-written extractors, zero query files, fixture-proven coverage.">
+  <meta property="og:description" content="Source tree in, versioned SQLite artifact out. Hand-written extractors with fixture-proven coverage and no query files.">
   <meta property="og:url" content="https://anortham.github.io/julie-extractors/">
 
   <link rel="stylesheet" href="style.css">
@@ -32,9 +32,10 @@
       <p class="eyebrow">Source tree in, versioned artifact out</p>
       <h1>Extraction without shortcuts.</h1>
       <p class="hero-lede">
-        A hand-written tree-sitter extractor for each of 36 languages — symbols with real signatures,
-        resolved references, framework route facts, doc comments, and complexity metrics — written as a
-        single SQLite artifact any tool can read. No query files. No silent coverage gaps.
+        Each of 36 languages gets its own hand-written tree-sitter extractor. The output is one SQLite
+        artifact any tool can read: symbols with real signatures, resolved references, framework route
+        facts, doc comments, and complexity metrics. There are no query files anywhere in the codebase,
+        and no coverage claim without fixture evidence behind it.
       </p>
       <div class="hero-actions">
         <a class="button primary" href="extractors.html">Why hand-written beats query files</a>
@@ -59,11 +60,11 @@
           tools in C#, Python, Go, JavaScript, or Rust consume it by spawning a binary and reading a database.
         </p>
         <p>
-          Extraction is imperative Rust per language — over 125,000 lines of it — instead of tree-sitter
+          Extraction is imperative Rust per language, over 125,000 lines of it, instead of tree-sitter
           query packs. There is not a single <code>.scm</code> file in the repository, and the tree-sitter
-          query engine is never invoked. That is a deliberate trade: more code to maintain, in exchange for
-          extraction logic that can express what queries cannot — cross-node context, language semantics,
-          framework conventions, and fail-closed reference resolution.
+          query engine is never invoked. The extra code pays for what queries cannot express: context
+          carried across the tree, language scope rules, framework conventions, and reference resolution
+          that refuses to guess.
         </p>
       </div>
       <div class="feature-strip" aria-label="Product pillars">
@@ -77,7 +78,7 @@
         </div>
         <div>
           <strong>0 query files</strong>
-          <span>no .scm packs, no query engine — extraction logic is real code with real tests</span>
+          <span>extraction logic is ordinary Rust with tests; there are no .scm packs and no query engine</span>
         </div>
       </div>
     </section>
@@ -93,7 +94,7 @@
           Framework awareness rides on top as typed structural facts: route and endpoint definitions across
           Express, Fastify, NestJS, Next.js, Flask, FastAPI, Django, Rails, Laravel, Symfony, Phoenix,
           Spring, Ktor, Gin, Echo, Axum, Actix, ASP.NET, Nuxt, Vue, and React, plus htmx attributes, Alpine
-          directives, and SQL DDL/DML shapes — nearly 200 versioned pattern IDs in all.
+          directives, and SQL DDL/DML shapes. It adds up to nearly 200 versioned pattern IDs.
         </p>
       </div>
       <div class="language-cloud" aria-label="Supported languages">
@@ -121,8 +122,9 @@
         </p>
         <p>
           Reference resolution has its own committed coverage artifact: every golden fixture's identifiers,
-          relationships, and pending relationships are classified by outcome, resolution tier, and method —
-          resolved, ambiguous, missing, or explicitly unattempted. Zero cells are explicit, not omitted.
+          relationships, and pending relationships are classified by outcome, resolution tier, and method
+          (resolved, ambiguous, missing, or explicitly unattempted). Zero cells are recorded rather than
+          omitted.
         </p>
       </div>
       <div class="metrics-table-wrap">
@@ -155,7 +157,7 @@
     <section id="consume" class="section proof-section">
       <div class="section-heading">
         <p class="eyebrow">Consume the artifact</p>
-        <h2>One binary, one database, any language.</h2>
+        <h2>Spawn the binary, read the database.</h2>
       </div>
       <div class="command-grid">
         <button class="command-line" type="button" data-copy="julie-extract scan --root . --db artifact.sqlite --json">
