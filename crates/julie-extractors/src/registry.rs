@@ -428,10 +428,9 @@ fn extract_toml(
     })
 }
 
-/// Erlang extractor: hand-written because Erlang currently ships the symbol
-/// tier only. Relationships, identifiers, and types stay empty until the
-/// matching capability rows in `fixtures/extraction/capabilities.json` are
-/// raised with fixture evidence.
+/// Erlang extractor: hand-written because Erlang does not yet ship a type
+/// tier. `types` stays empty until the matching capability row in
+/// `fixtures/extraction/capabilities.json` is raised with fixture evidence.
 fn extract_erlang(
     tree: &Tree,
     file_path: &str,
@@ -445,12 +444,13 @@ fn extract_erlang(
         workspace_root,
     );
     let symbols = ext.extract_symbols(tree);
+    let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
     Ok(ExtractionResults {
         symbols,
-        relationships: Vec::new(),
-        pending_relationships: Vec::new(),
-        structured_pending_relationships: Vec::new(),
+        relationships,
+        pending_relationships: ext.get_pending_relationships(),
+        structured_pending_relationships: ext.get_structured_pending_relationships(),
         identifiers,
         type_argument_usages: ext.base.take_type_argument_usages(),
         literals: ext.base.take_literals(),

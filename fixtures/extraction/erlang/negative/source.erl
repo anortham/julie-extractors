@@ -1,8 +1,9 @@
 %% Reference-shaped Erlang: every construct below looks like an edge to a
-%% resolver. The golden proves the identifier tier emits the RIGHT rows and no
-%% wrong ones - no module reference is invented for an auto-imported BIF or for
-%% a dynamic call through a variable, a fun reference stays distinct from a call
-%% to the same function, and no relationship or pending row is emitted at all.
+%% resolver. The golden proves the identifier and relationship tiers emit the
+%% RIGHT rows and no wrong ones - no module reference is invented for an
+%% auto-imported BIF or for a dynamic call through a variable, a fun reference
+%% stays distinct from a call to the same function and produces no call edge,
+%% and only queue/1 (defined here) resolves to a same-file target.
 -module(negative).
 -behaviour(gen_server).
 

@@ -20,6 +20,7 @@ mod definition_forms;
 mod doc;
 mod helpers;
 mod identifiers;
+mod relationships;
 
 const EXPORT_ALL_OPTION: &str = "export_all";
 const MODULE_DOC_ATTRIBUTE: &str = "moduledoc";
@@ -114,13 +115,20 @@ impl ErlangExtractor {
         symbols
     }
 
-    /// Relationship extraction is not part of the Erlang symbol tier yet.
-    pub fn extract_relationships(
-        &mut self,
-        _tree: &Tree,
-        _symbols: &[Symbol],
-    ) -> Vec<Relationship> {
-        Vec::new()
+    /// Extract same-file call edges, plus structured pending edges for remote
+    /// calls, `-behaviour`, `-include`/`-include_lib`, and `-import`.
+    pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
+        relationships::extract_relationships(self, tree, symbols)
+    }
+
+    pub fn get_pending_relationships(&self) -> Vec<crate::base::PendingRelationship> {
+        self.base.get_pending_relationships()
+    }
+
+    pub fn get_structured_pending_relationships(
+        &self,
+    ) -> Vec<crate::base::StructuredPendingRelationship> {
+        self.base.get_structured_pending_relationships()
     }
 
     /// Extract call sites, fun references, macro usages, and record/field

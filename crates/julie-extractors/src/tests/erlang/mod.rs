@@ -2,12 +2,15 @@ mod docs;
 mod headers;
 mod identifiers;
 mod parse_errors;
+mod relationships;
 mod symbols;
 mod visibility;
 
 #[cfg(test)]
 pub(crate) mod support {
-    use crate::base::{Identifier, Symbol, SymbolKind};
+    use crate::base::{
+        Identifier, Relationship, StructuredPendingRelationship, Symbol, SymbolKind,
+    };
     use crate::erlang::ErlangExtractor;
     use std::path::PathBuf;
     use tree_sitter::{Parser, Tree};
@@ -78,6 +81,77 @@ pub(crate) mod support {
             identifier_inventory(identifiers)
         );
         matches[0]
+    }
+
+    pub(crate) fn extract_with_relationships(
+        code: &str,
+    ) -> (
+        Vec<Symbol>,
+        Vec<Relationship>,
+        Vec<StructuredPendingRelationship>,
+    ) {
+        extract_from_with_relationships("bank.erl", code)
+    }
+
+    pub(crate) fn extract_from_with_relationships(
+        file_path: &str,
+        code: &str,
+    ) -> (
+        Vec<Symbol>,
+        Vec<Relationship>,
+        Vec<StructuredPendingRelationship>,
+    ) {
+        let tree = parse(code);
+        let mut extractor = ErlangExtractor::new(
+            "erlang".to_string(),
+            file_path.to_string(),
+            code.to_string(),
+            &PathBuf::from("/tmp/test"),
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let relationships = extractor.extract_relationships(&tree, &symbols);
+        let pending = extractor.get_structured_pending_relationships();
+        (symbols, relationships, pending)
+    }
+
+    pub(crate) fn pending_named<'a>(
+        pending: &'a [StructuredPendingRelationship],
+        terminal_name: &str,
+    ) -> &'a StructuredPendingRelationship {
+        let matches: Vec<_> = pending
+            .iter()
+            .filter(|edge| edge.target.terminal_name == terminal_name)
+            .collect();
+        assert_eq!(
+            matches.len(),
+            1,
+            "expected exactly one pending edge targeting {terminal_name}; got {}",
+            pending_inventory(pending)
+        );
+        matches[0]
+    }
+
+    pub(crate) fn pending_inventory(pending: &[StructuredPendingRelationship]) -> String {
+        format!(
+            "{:?}",
+            pending
+                .iter()
+                .map(|edge| (
+                    edge.target.display_name.as_str(),
+                    edge.pending.kind.to_string()
+                ))
+                .collect::<Vec<_>>()
+        )
+    }
+
+    pub(crate) fn relationship_inventory(relationships: &[Relationship]) -> String {
+        format!(
+            "{:?}",
+            relationships
+                .iter()
+                .map(|edge| (edge.kind.to_string(), edge.line_number))
+                .collect::<Vec<_>>()
+        )
     }
 
     pub(crate) fn identifier_inventory(identifiers: &[Identifier]) -> String {

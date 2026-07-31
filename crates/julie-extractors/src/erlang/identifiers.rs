@@ -32,7 +32,7 @@ use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// `(name, arity)` pairs made local by `-import(Module, [...])`, keyed to the
 /// module that owns them.
-type ImportedFunctions = HashMap<NameArity, String>;
+pub(super) type ImportedFunctions = HashMap<NameArity, String>;
 
 pub(super) fn extract_identifiers(
     extractor: &mut ErlangExtractor,
@@ -268,7 +268,10 @@ fn emit_wrapped_atom(
         .create_identifier(&atom, name, kind, scope.map(String::from));
 }
 
-fn imported_functions(extractor: &ErlangExtractor, declarations: &[Node]) -> ImportedFunctions {
+pub(super) fn imported_functions(
+    extractor: &ErlangExtractor,
+    declarations: &[Node],
+) -> ImportedFunctions {
     let mut imports = ImportedFunctions::new();
     for declaration in declarations {
         if declaration.kind() != "import_attribute" {

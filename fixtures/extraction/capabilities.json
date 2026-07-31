@@ -3995,8 +3995,8 @@
       "dependency_status": "current",
       "capabilities": {
         "symbols": true,
-        "relationships": false,
-        "pending_relationships": false,
+        "relationships": true,
+        "pending_relationships": true,
         "identifiers": true,
         "types": false
       },
@@ -4010,6 +4010,11 @@
           "name": "negative",
           "source": "fixtures/extraction/erlang/negative/source.erl",
           "expected": "fixtures/extraction/erlang/negative/expected.json"
+        },
+        {
+          "name": "cross_file",
+          "source": "fixtures/extraction/erlang/cross_file/source.erl",
+          "expected": "fixtures/extraction/erlang/cross_file/expected.json"
         }
       ],
       "target_capabilities": {
@@ -4020,30 +4025,6 @@
         "types": true
       },
       "capability_gaps": [
-        {
-          "capability": "relationships",
-          "status": "open",
-          "reason": "Erlang ships the symbol tier only: the registry entry returns an empty relationship vector, so the registered erlang:basic golden emits no relationship rows for remote calls, -behaviour adoption, or -include edges.",
-          "required_closure": "emit resolved call/behaviour/include edges from the Erlang extractor and register cross-file golden evidence, then raise capabilities.relationships",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/erlang/basic/expected.json",
-            "command": "cargo xtask test golden"
-          },
-          "planned_closure_task": "Task 13: Erlang Capability Closure"
-        },
-        {
-          "capability": "pending_relationships",
-          "status": "open",
-          "reason": "Erlang remote calls (mod:fun/arity) and -behaviour targets cross module boundaries, but no structured pending edges are produced while the extractor ships the symbol and identifier tiers only.",
-          "required_closure": "emit structured pending relationships with terminal name, display name, and caller scope for remote calls and behaviour adoption, then register a cross_file golden",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/erlang/basic/expected.json",
-            "command": "cargo xtask test golden"
-          },
-          "planned_closure_task": "Task 13: Erlang Capability Closure"
-        },
         {
           "capability": "types",
           "status": "open",
@@ -4071,22 +4052,13 @@
           "open_gaps": []
         },
         "relationships": {
-          "supported": [],
+          "supported": [
+            "calls",
+            "implements",
+            "imports"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "calls",
-              "reason": "Erlang local and remote calls are parsed as call/remote nodes, but the registry entry returns an empty relationship vector.",
-              "required_closure": "emit calls edges from function bodies to resolved local functions and register golden evidence",
-              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 6: Erlang relationships + pending"
-            },
-            {
-              "kind": "implements",
-              "reason": "-behaviour(Module) declares an implemented callback contract, but no implements edge is emitted while the extractor emits identifiers but no edges.",
-              "required_closure": "emit implements edges from the module symbol to the declared behaviour and register golden evidence",
-              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 6: Erlang relationships + pending"
-            }
-          ]
+          "open_gaps": []
         },
         "identifiers": {
           "supported": [
@@ -4118,7 +4090,7 @@
               "kind": "erlang.behaviour_declaration",
               "reason": "Erlang has parser-backed shapes worth registering as structural facts (-behaviour adoption, OTP callback sets, and -include chains), but no erlang pattern specs are registered in base/structural_fact_registry beyond the language-agnostic comment-marker pattern.",
               "required_closure": "register erlang structural fact pattern specs in base/structural_fact_registry and emit them with golden evidence",
-              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 6: Erlang relationships + pending"
+              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 8: Erlang real-world corpus gate"
             }
           ]
         },
