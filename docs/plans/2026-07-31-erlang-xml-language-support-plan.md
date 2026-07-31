@@ -118,11 +118,11 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **Approach:** Mirror `src/elixir/` module decomposition but only build what symbols need now. Grammar node names come from the tree-sitter-erlang grammar — discover them by parsing fixtures, never from memory. `EXTRACTION_CONTRACT_VERSION` review: adding a language row is non-breaking; record that conclusion in the commit message.
 
 **Acceptance criteria:**
-- [ ] `cargo xtask test language erlang` green; golden `erlang/basic` passes with zero parse diagnostics
-- [ ] Count assertions updated to 37; `cargo xtask test changed crates/julie-extractors/src/language_spec/specs.rs fixtures/extraction/capabilities.json` green
-- [ ] `languages --json` shows erlang with honest flags
-- [ ] `.hrl` standalone-extraction test asserts records/macros from a header
-- [ ] Worker-scope verification passes and the change is committed (serial-worker-commit)
+- [x] `cargo xtask test language erlang` green; golden `erlang/basic` passes with zero parse diagnostics
+- [x] Count assertions updated to 37; `cargo xtask test changed crates/julie-extractors/src/language_spec/specs.rs fixtures/extraction/capabilities.json` green
+- [x] `languages --json` shows erlang with honest flags
+- [x] `.hrl` standalone-extraction test asserts records/macros from a header
+- [x] Worker-scope verification passes and the change is committed (serial-worker-commit)
 
 ### Task 3: XML registration + symbols + identifiers
 
