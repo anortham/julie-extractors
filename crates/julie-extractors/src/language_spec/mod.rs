@@ -128,14 +128,6 @@ pub const PENDING_NO_TYPES_NO_IDENTIFIERS_CAPABILITIES: LanguageCapabilities =
         ..PENDING_NO_TYPES_CAPABILITIES
     };
 
-pub const SYMBOLS_ONLY_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
-    symbols: true,
-    relationships: false,
-    pending_relationships: false,
-    identifiers: false,
-    types: false,
-};
-
 pub const DATA_ONLY_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
     symbols: true,
     relationships: false,

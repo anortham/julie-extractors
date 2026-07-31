@@ -189,7 +189,7 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         "erlang",
         &["erl", "hrl"],
         "tree-sitter-erlang",
-        SYMBOLS_ONLY_CAPABILITIES,
+        DATA_ONLY_CAPABILITIES,
         parser_erlang,
         ERLANG_DOCS,
     ),

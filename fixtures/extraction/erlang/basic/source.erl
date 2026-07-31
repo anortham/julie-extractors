@@ -5,8 +5,9 @@
 
 -behaviour(gen_server).
 
--export([open/1, balance/1, deposit/2]).
+-export([open/1, balance/1, deposit/2, history/1]).
 -export_type([account/0]).
+-import(lists, [reverse/1]).
 
 -define(MAX_BALANCE, 1000000).
 -define(LOG(Msg), io:format("~p~n", [Msg])).
@@ -36,6 +37,14 @@ deposit(Acct, _Amount) ->
 audit(Acct) ->
     ?LOG(Acct),
     ok.
+
+-doc "Summarise an account for the audit log.".
+history(Acct) ->
+    Ids = reverse([Acct#account.id]),
+    Limit = ?MAX_BALANCE,
+    Reader = fun balance/1,
+    Sizer = fun erlang:length/1,
+    {Ids, Limit, Reader, Sizer, self()}.
 
 balance_test() ->
     0 = balance(#account{id = 1}).

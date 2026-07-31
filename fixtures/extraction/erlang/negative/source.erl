@@ -1,22 +1,26 @@
-%% Reference-shaped Erlang that must not produce relationship, pending, or
-%% identifier rows while Erlang ships the symbol tier only. Every construct
-%% below looks like a reference to a resolver: a remote call, a macro call, a
-%% record construction, a behaviour declaration, and an include directive.
+%% Reference-shaped Erlang: every construct below looks like an edge to a
+%% resolver. The golden proves the identifier tier emits the RIGHT rows and no
+%% wrong ones - no module reference is invented for an auto-imported BIF or for
+%% a dynamic call through a variable, a fun reference stays distinct from a call
+%% to the same function, and no relationship or pending row is emitted at all.
 -module(negative).
 -behaviour(gen_server).
 
 -include_lib("stdlib/include/assert.hrl").
 
--export([run/1]).
+-export([run/2]).
 
 -define(TIMEOUT, 5000).
 
 -record(request, {id, payload}).
 
-run(Payload) ->
+run(Payload, Fun) ->
     Request = #request{id = erlang:unique_integer(), payload = Payload},
     timer:sleep(?TIMEOUT),
-    lists:reverse(queue(Request)).
+    _ = length(queue(Request)),
+    _ = Fun(Request),
+    Queue = fun queue/1,
+    {lists:reverse(queue(Request)), Queue}.
 
 queue(#request{payload = Payload}) ->
     Payload.

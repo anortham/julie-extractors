@@ -445,12 +445,13 @@ fn extract_erlang(
         workspace_root,
     );
     let symbols = ext.extract_symbols(tree);
+    let identifiers = ext.extract_identifiers(tree, &symbols);
     Ok(ExtractionResults {
         symbols,
         relationships: Vec::new(),
         pending_relationships: Vec::new(),
         structured_pending_relationships: Vec::new(),
-        identifiers: Vec::new(),
+        identifiers,
         type_argument_usages: ext.base.take_type_argument_usages(),
         literals: ext.base.take_literals(),
         source_regions: Vec::new(),

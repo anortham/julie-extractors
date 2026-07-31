@@ -19,6 +19,7 @@ mod attributes;
 mod definition_forms;
 mod doc;
 mod helpers;
+mod identifiers;
 
 const EXPORT_ALL_OPTION: &str = "export_all";
 const MODULE_DOC_ATTRIBUTE: &str = "moduledoc";
@@ -122,9 +123,10 @@ impl ErlangExtractor {
         Vec::new()
     }
 
-    /// Identifier extraction is not part of the Erlang symbol tier yet.
-    pub fn extract_identifiers(&mut self, _tree: &Tree, _symbols: &[Symbol]) -> Vec<Identifier> {
-        Vec::new()
+    /// Extract call sites, fun references, macro usages, and record/field
+    /// references from function clauses and macro bodies.
+    pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
+        identifiers::extract_identifiers(self, tree, symbols)
     }
 
     /// Type inference is not part of the Erlang symbol tier yet.

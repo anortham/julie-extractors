@@ -173,10 +173,10 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **What to build:** The identifier layer with per-kind focused tests asserting name, kind, span, and containing scope for each identifier class above.
 
 **Acceptance criteria:**
-- [ ] `cargo xtask test language erlang` + golden green; identifiers=true honest in matrix
-- [ ] Remote call vs fun reference emit distinguishable rows (asserted)
-- [ ] BIF calls don't produce bogus unresolved module references (asserted)
-- [ ] Verified diff handed to lead (parallel-lead-commit)
+- [x] `cargo xtask test language erlang` + golden green; identifiers=true honest in matrix
+- [x] Remote call vs fun reference emit distinguishable rows (asserted)
+- [x] BIF calls don't produce bogus unresolved module references (asserted)
+- [x] Verified diff handed to lead (parallel-lead-commit)
 
 ### Task 5: Oversized-transition policy (Batch A)
 

@@ -1,12 +1,13 @@
 mod docs;
 mod headers;
+mod identifiers;
 mod parse_errors;
 mod symbols;
 mod visibility;
 
 #[cfg(test)]
 pub(crate) mod support {
-    use crate::base::{Symbol, SymbolKind};
+    use crate::base::{Identifier, Symbol, SymbolKind};
     use crate::erlang::ErlangExtractor;
     use std::path::PathBuf;
     use tree_sitter::{Parser, Tree};
@@ -46,6 +47,47 @@ pub(crate) mod support {
             .iter()
             .find(|symbol| symbol.name == name && symbol.kind == kind)
             .unwrap_or_else(|| panic!("no {kind:?} named {name}; got {}", inventory(symbols)))
+    }
+
+    pub(crate) fn extract_with_identifiers(code: &str) -> (Vec<Symbol>, Vec<Identifier>) {
+        let tree = parse(code);
+        let mut extractor = ErlangExtractor::new(
+            "erlang".to_string(),
+            "bank.erl".to_string(),
+            code.to_string(),
+            &PathBuf::from("/tmp/test"),
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let identifiers = extractor.extract_identifiers(&tree, &symbols);
+        (symbols, identifiers)
+    }
+
+    pub(crate) fn named<'a>(identifiers: &'a [Identifier], name: &str) -> Vec<&'a Identifier> {
+        identifiers
+            .iter()
+            .filter(|identifier| identifier.name == name)
+            .collect()
+    }
+
+    pub(crate) fn only<'a>(identifiers: &'a [Identifier], name: &str) -> &'a Identifier {
+        let matches = named(identifiers, name);
+        assert_eq!(
+            matches.len(),
+            1,
+            "expected exactly one identifier named {name}; got {}",
+            identifier_inventory(identifiers)
+        );
+        matches[0]
+    }
+
+    pub(crate) fn identifier_inventory(identifiers: &[Identifier]) -> String {
+        format!(
+            "{:?}",
+            identifiers
+                .iter()
+                .map(|identifier| (identifier.name.as_str(), identifier.kind.clone()))
+                .collect::<Vec<_>>()
+        )
     }
 
     fn inventory(symbols: &[Symbol]) -> String {

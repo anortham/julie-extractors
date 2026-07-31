@@ -3997,7 +3997,7 @@
         "symbols": true,
         "relationships": false,
         "pending_relationships": false,
-        "identifiers": false,
+        "identifiers": true,
         "types": false
       },
       "fixtures": [
@@ -4035,20 +4035,8 @@
         {
           "capability": "pending_relationships",
           "status": "open",
-          "reason": "Erlang remote calls (mod:fun/arity) and -behaviour targets cross module boundaries, but no structured pending edges are produced while the extractor is symbol-only.",
+          "reason": "Erlang remote calls (mod:fun/arity) and -behaviour targets cross module boundaries, but no structured pending edges are produced while the extractor ships the symbol and identifier tiers only.",
           "required_closure": "emit structured pending relationships with terminal name, display name, and caller scope for remote calls and behaviour adoption, then register a cross_file golden",
-          "evidence": {
-            "kind": "fixture",
-            "value": "fixtures/extraction/erlang/basic/expected.json",
-            "command": "cargo xtask test golden"
-          },
-          "planned_closure_task": "Task 13: Erlang Capability Closure"
-        },
-        {
-          "capability": "identifiers",
-          "status": "open",
-          "reason": "Erlang call sites, variable references, and record/type usages parse cleanly but the extractor emits no identifier rows yet, so the registered golden has an empty identifiers array.",
-          "required_closure": "emit call, variable_ref, member_access, and type_usage identifiers with containing-symbol binding and register golden evidence",
           "evidence": {
             "kind": "fixture",
             "value": "fixtures/extraction/erlang/basic/expected.json",
@@ -4088,41 +4076,27 @@
           "open_gaps": [
             {
               "kind": "calls",
-              "reason": "Erlang local and remote calls are parsed as call/remote nodes, but the symbol-only registry entry returns an empty relationship vector.",
+              "reason": "Erlang local and remote calls are parsed as call/remote nodes, but the registry entry returns an empty relationship vector.",
               "required_closure": "emit calls edges from function bodies to resolved local functions and register golden evidence",
               "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 6: Erlang relationships + pending"
             },
             {
               "kind": "implements",
-              "reason": "-behaviour(Module) declares an implemented callback contract, but no implements edge is emitted while the extractor is symbol-only.",
+              "reason": "-behaviour(Module) declares an implemented callback contract, but no implements edge is emitted while the extractor emits identifiers but no edges.",
               "required_closure": "emit implements edges from the module symbol to the declared behaviour and register golden evidence",
               "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 6: Erlang relationships + pending"
             }
           ]
         },
         "identifiers": {
-          "supported": [],
+          "supported": [
+            "call",
+            "member_access",
+            "type_usage",
+            "variable_ref"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "call",
-              "reason": "Call sites inside clause bodies are available in the parse tree but the extractor emits no identifier rows.",
-              "required_closure": "emit call identifiers with containing-symbol binding and register golden evidence",
-              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 4: Erlang identifiers + calls"
-            },
-            {
-              "kind": "variable_ref",
-              "reason": "Erlang variables and record field reads are parsed as var/record_field_expr nodes but no variable_ref identifiers are emitted.",
-              "required_closure": "emit variable_ref identifiers for variable and record field reads and register golden evidence",
-              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 4: Erlang identifiers + calls"
-            },
-            {
-              "kind": "type_usage",
-              "reason": "Type references inside -spec and -type bodies are parsed but not emitted as type_usage identifiers.",
-              "required_closure": "emit type_usage identifiers for type references and register golden evidence",
-              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 4: Erlang identifiers + calls"
-            }
-          ]
+          "open_gaps": []
         },
         "body_spans": {
           "supported": [
@@ -4187,9 +4161,9 @@
           "open_gaps": [
             {
               "kind": "other",
-              "reason": "Literal capture is driven by call-argument analysis, which the symbol-only Erlang tier does not perform, so no literal carriers are recorded.",
-              "required_closure": "capture call-argument literals once Erlang call extraction lands and register golden evidence",
-              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 4: Erlang identifiers + calls"
+              "reason": "Erlang call sites are extracted, but their string-literal arguments are not captured: the carrier gate that classifies a literal is a language-policy surface outside the extractor, so no Erlang literal carriers are recorded.",
+              "required_closure": "capture string-literal call arguments with a verbatim carrier (the bare callee, or module:function for a remote call) and register golden evidence",
+              "planned_closure_task": "docs/plans/2026-07-31-erlang-xml-language-support-plan.md Task 8: Erlang real-world corpus gate"
             }
           ]
         },
