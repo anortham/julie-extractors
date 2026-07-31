@@ -89,10 +89,10 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **Approach:** Follow how existing grammar deps are declared (exact-pin style in `Cargo.toml`). Smoke tests are temporary scaffolding — Tasks 2/3 replace them with real extractor tests; leave a note in the file saying so.
 
 **Acceptance criteria:**
-- [ ] Both crates resolve, compile, and parse their smoke snippets with zero ERROR nodes under `RUSTUP_TOOLCHAIN=1.97.1`
-- [ ] `cargo deny check` passes with the new deps
-- [ ] XML grammar entry point (XML vs DTD) recorded in the task report
-- [ ] Worker-scope verification passes and the change is committed (serial-worker-commit)
+- [x] Both crates resolve, compile, and parse their smoke snippets with zero ERROR nodes under `RUSTUP_TOOLCHAIN=1.97.1`
+- [x] `cargo deny check` passes with the new deps
+- [x] XML grammar entry point (XML vs DTD) recorded in the task report
+- [x] Worker-scope verification passes and the change is committed (serial-worker-commit)
 
 ### Task 2: Erlang registration + symbols
 
