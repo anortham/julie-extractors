@@ -226,9 +226,9 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **What to build:** Relationship extraction with the cross_file golden: two modules where A implements a behaviour, calls B remotely, and includes a header — asserting the implements edge, the pending remote-call shape, and the pending include shape.
 
 **Acceptance criteria:**
-- [ ] `cargo xtask test language erlang` + goldens (basic, cross_file) green
-- [ ] relationships/pending flags honest in matrix with kind_coverage filled
-- [ ] Verification passes and the change is committed (serial-worker-commit)
+- [x] `cargo xtask test language erlang` + goldens (basic, cross_file) green
+- [x] relationships/pending flags honest in matrix with kind_coverage filled
+- [x] Verification passes and the change is committed (serial-worker-commit)
 
 ### Task 7: Erlang types + test roles → FULL
 
