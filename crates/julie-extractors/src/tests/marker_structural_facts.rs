@@ -333,6 +333,11 @@ fn marker_language_matrix_covers_every_supported_comment_language() {
             file_path: "config.yaml",
             source: "# TODO: marker\nvalue: 1\n",
         },
+        MarkerFixture {
+            language: "xml",
+            file_path: "config.xml",
+            source: "<!-- TODO: marker -->\n<config name=\"value\"/>\n",
+        },
     ];
     let applicable = fixtures
         .iter()

@@ -30,7 +30,6 @@ pub mod go;
 pub mod go_http;
 #[cfg(feature = "test-golden")]
 pub mod golden;
-pub mod grammar_smoke;
 pub mod helpers;
 pub mod html;
 pub mod http_client;
@@ -86,6 +85,7 @@ pub mod type_invariants;
 pub mod typescript;
 pub mod vbnet;
 pub mod vue;
+pub mod xml;
 pub mod yaml;
 pub mod zig;
 

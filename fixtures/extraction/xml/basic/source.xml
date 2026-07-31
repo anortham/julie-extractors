@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Application configuration for the phone book service. -->
+<configuration name="phonebook">
+  <appSettings>
+    <add id="ConnectionTimeout" type="xs:int">30</add>
+    <add id="RetryCount" type="xs:int">3</add>
+    <add />
+  </appSettings>
+  <logging name="serilog">
+    <sinks>
+      <sink name="console" type="Serilog.Sinks.Console" />
+      <sink name="file" type="Serilog.Sinks.File">
+        <path>logs/phonebook.log</path>
+      </sink>
+    </sinks>
+  </logging>
+  <features>
+    <feature>audit</feature>
+    <feature>export</feature>
+  </features>
+</configuration>

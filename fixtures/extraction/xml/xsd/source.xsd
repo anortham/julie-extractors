@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="urn:phonebook"
+           targetNamespace="urn:phonebook">
+
+  <!-- A phone number, constrained to the national format. -->
+  <xs:simpleType name="PhoneNumber">
+    <xs:restriction base="xs:string" />
+  </xs:simpleType>
+
+  <xs:complexType name="AddPhone">
+    <xs:sequence>
+      <xs:element name="owner" type="xs:string" />
+      <xs:element name="number" type="tns:PhoneNumber" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="AddMobilePhone">
+    <xs:complexContent>
+      <xs:extension base="tns:AddPhone">
+        <xs:sequence>
+          <xs:element name="carrier" type="xs:string" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="AddPhoneRequest" type="tns:AddPhone" />
+
+  <xs:complexType name="PhoneBook">
+    <xs:sequence>
+      <xs:element ref="tns:AddPhoneRequest" />
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

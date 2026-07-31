@@ -37,6 +37,7 @@ const LANGUAGES: &[&str] = &[
     "json",
     "toml",
     "yaml",
+    "xml",
 ];
 
 const KEYS: &[MetadataKeySpec] = &[

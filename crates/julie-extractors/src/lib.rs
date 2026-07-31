@@ -96,6 +96,7 @@ pub mod toml;
 pub mod typescript;
 pub mod vbnet;
 pub mod vue;
+pub mod xml;
 pub mod yaml;
 pub mod zig;
 

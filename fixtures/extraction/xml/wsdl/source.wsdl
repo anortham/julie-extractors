@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions name="PhoneBookService"
+             xmlns="http://schemas.xmlsoap.org/wsdl/"
+             xmlns:tns="urn:phonebook">
+
+  <!-- Request and response envelopes for the phone book operations. -->
+  <message name="AddPhoneRequest">
+    <part name="body" element="tns:AddPhone" />
+  </message>
+
+  <message name="AddPhoneResponse">
+    <part name="body" type="xs:boolean" />
+  </message>
+
+  <portType name="PhoneBookPort">
+    <operation name="AddPhone">
+      <input message="tns:AddPhoneRequest" />
+      <output message="tns:AddPhoneResponse" />
+    </operation>
+  </portType>
+
+  <binding name="PhoneBookBinding" type="tns:PhoneBookPort">
+    <operation name="AddPhone">
+      <input />
+      <output />
+    </operation>
+  </binding>
+
+  <service name="PhoneBook">
+    <port name="PhoneBookPort" binding="tns:PhoneBookBinding" />
+  </service>
+</definitions>

@@ -788,7 +788,8 @@
       "markdown",
       "json",
       "toml",
-      "yaml"
+      "yaml",
+      "xml"
     ],
     "metadata_keys": [
       {

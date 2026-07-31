@@ -297,6 +297,14 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         parser_yaml,
         EMPTY,
     ),
+    spec(
+        "xml",
+        &["xml", "xsd", "wsdl"],
+        "tree-sitter-xml",
+        DATA_ONLY_CAPABILITIES,
+        parser_xml,
+        EMPTY,
+    ),
 ];
 
 const fn spec(

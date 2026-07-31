@@ -260,6 +260,7 @@ parser!(parser_markdown, tree_sitter_md::LANGUAGE);
 parser!(parser_json, tree_sitter_json::LANGUAGE);
 parser!(parser_toml, tree_sitter_toml_ng::LANGUAGE);
 parser!(parser_yaml, tree_sitter_yaml::LANGUAGE);
+parser!(parser_xml, tree_sitter_xml::LANGUAGE_XML);
 
 mod specs;
 

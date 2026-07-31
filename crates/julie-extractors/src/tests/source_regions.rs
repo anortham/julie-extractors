@@ -348,6 +348,14 @@ name: "hi"
 "#,
             expected_kinds: &[Comment, StringLiteral],
         },
+        SourceRegionFixture {
+            language: "xml",
+            file_path: "config.xml",
+            source: r#"<!-- plain -->
+<config name="hi"/>
+"#,
+            expected_kinds: &[Comment, StringLiteral],
+        },
     ];
 
     let fixture_languages = fixtures

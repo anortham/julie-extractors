@@ -1127,8 +1127,8 @@ fn capability_matrix_has_no_silent_kind_coverage_cells() {
 
 #[test]
 fn capability_matrix_code_languages_require_resolved_test_detection() {
-    const DOMAIN_LANGUAGES: [&str; 8] = [
-        "css", "html", "json", "markdown", "regex", "sql", "toml", "yaml",
+    const DOMAIN_LANGUAGES: [&str; 9] = [
+        "css", "html", "json", "markdown", "regex", "sql", "toml", "xml", "yaml",
     ];
 
     let root = workspace_root();

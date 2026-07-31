@@ -429,6 +429,33 @@ closes types.
 - [ ] Every closed row carries golden-fixture evidence rather than an empty vector.
 - [ ] `cargo xtask test capability` and `cargo xtask test golden` pass.
 
+### Task 14: XML Reference Edge Closure
+
+**Files:**
+- Modify: `crates/julie-extractors/src/xml/`
+- Modify: `fixtures/extraction/xml/`, xml row of `fixtures/extraction/capabilities.json`
+
+**What to build:** Turn XML's QName attribute references (`type`, `ref`, `base`,
+`element`) into resolved `references` relationships, and the cross-document ones
+into structured pending relationships, then raise `capabilities.relationships`
+and `capabilities.pending_relationships` together with `target_capabilities`.
+
+**Approach:** This entry exists because `capability_matrix_open_rows_have_planned_closure_task`
+resolves every open capability row's `planned_closure_task` against **this**
+file, so it is the repository's registry of open capability work regardless of
+which plan owns the implementation. XML shipped at
+`DATA_ONLY_CAPABILITIES` (symbols plus identifiers) with `capabilities ==
+target_capabilities`; the two rows are recorded `status: open` only because
+`capability_matrix_requires_relationship_fixture_evidence` forbids
+`status: exception` for `relationships` while `capabilities.relationships` is
+false. Closing them requires resolving QName prefixes through in-scope `xmlns`
+declarations — the reason the reference edges were left out of the v1 tier.
+
+**Acceptance criteria:**
+- [ ] XML QName references resolve to the declaration they name, with golden evidence.
+- [ ] `fixtures/extraction/xml/` gains a `negative` or `cross_file` fixture proving no wrong edges.
+- [ ] `cargo xtask test capability` and `cargo xtask test golden` pass.
+
 ## Progress Tracking
 
 Use this section as the execution ledger. Update task checkboxes only after the

@@ -113,7 +113,7 @@ fn comment_syntax(language: &str) -> CommentSyntax {
             block: &[("/*", "*/")],
             vbnet_rem: false,
         },
-        "html" | "markdown" | "razor" => CommentSyntax {
+        "html" | "markdown" | "razor" | "xml" => CommentSyntax {
             line: &[],
             block: &[("<!--", "-->")],
             vbnet_rem: false,

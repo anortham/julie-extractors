@@ -57,8 +57,8 @@ mod factory_consistency_tests {
 
         assert_eq!(
             supported.len(),
-            37,
-            "Expected 37 language entries including jsx and tsx aliases"
+            38,
+            "Expected 38 language entries including jsx and tsx aliases"
         );
 
         let workspace_root = PathBuf::from("/tmp/test");

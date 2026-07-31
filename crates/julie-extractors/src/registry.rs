@@ -497,6 +497,40 @@ fn extract_json(
     })
 }
 
+/// XML extractor: hand-written because XML ships the data tier (symbols plus
+/// QName attribute-reference identifiers). Relationships and types stay empty —
+/// resolving a QName reference to its declaration needs namespace resolution,
+/// which v1 does not perform.
+fn extract_xml(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+) -> Result<ExtractionResults, anyhow::Error> {
+    let mut ext = crate::xml::XmlExtractor::new(
+        "xml".to_string(),
+        file_path.to_string(),
+        content.to_string(),
+        workspace_root,
+    );
+    let symbols = ext.extract_symbols(tree);
+    let identifiers = ext.extract_identifiers(tree, &symbols);
+    Ok(ExtractionResults {
+        symbols,
+        relationships: Vec::new(),
+        pending_relationships: Vec::new(),
+        structured_pending_relationships: Vec::new(),
+        identifiers,
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
+        source_regions: Vec::new(),
+        structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
+        types: HashMap::new(),
+        parse_diagnostics: Vec::new(),
+    })
+}
+
 fn extract_vue(
     tree: &Tree,
     file_path: &str,
@@ -573,6 +607,7 @@ const EXTRACTORS: &[(&str, ExtractFn)] = &[
     ("json", extract_json),
     ("toml", extract_toml),
     ("yaml", extract_yaml),
+    ("xml", extract_xml),
 ];
 
 fn registry() -> &'static [LanguageRegistryEntry] {
@@ -707,7 +742,7 @@ mod registry_tests {
 
     #[test]
     fn registry_matches_supported_language_count() {
-        assert_eq!(supported_languages().len(), 37);
+        assert_eq!(supported_languages().len(), 38);
         assert!(
             capabilities_for_language("rust")
                 .unwrap()

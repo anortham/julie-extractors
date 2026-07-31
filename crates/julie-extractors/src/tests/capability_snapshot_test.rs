@@ -5,7 +5,7 @@ use crate::{CapabilitySnapshot, capability_snapshot};
 #[test]
 fn test_capability_snapshot_loads_all_languages() {
     let snap = capability_snapshot();
-    assert_eq!(snap.languages().count(), 37);
+    assert_eq!(snap.languages().count(), 38);
     assert!(snap.get("rust").is_some());
     assert!(snap.get("vbnet").is_some());
 }
