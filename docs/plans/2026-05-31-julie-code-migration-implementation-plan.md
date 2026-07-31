@@ -425,9 +425,9 @@ identifiers, Task 6 closes relationships and pending relationships, and Task 7
 closes types.
 
 **Acceptance criteria:**
-- [ ] Erlang `capabilities` equals `target_capabilities` in the capability matrix.
-- [ ] Every closed row carries golden-fixture evidence rather than an empty vector.
-- [ ] `cargo xtask test capability` and `cargo xtask test golden` pass.
+- [x] Erlang `capabilities` equals `target_capabilities` in the capability matrix.
+- [x] Every closed row carries golden-fixture evidence rather than an empty vector.
+- [x] `cargo xtask test capability` and `cargo xtask test golden` pass.
 
 ### Task 14: XML Reference Edge Closure
 

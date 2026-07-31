@@ -130,10 +130,3 @@ pub(super) fn preceding_attributes<'a>(base: &BaseExtractor, node: &Node<'a>) ->
 
     attributes
 }
-
-/// EUnit names a test by suffix: `sum_test/0` is a test, `sum_test_/0` is a
-/// test generator. Both are discovered by the framework from the name alone,
-/// so detection is deliberately path-independent.
-pub(super) fn is_eunit_test_name(name: &str, arity: u32) -> bool {
-    arity == 0 && (name.ends_with("_test") || name.ends_with("_test_"))
-}

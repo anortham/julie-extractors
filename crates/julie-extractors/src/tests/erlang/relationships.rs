@@ -46,7 +46,9 @@ helper(X, Y) -> X + Y.
     let (symbols, relationships, _) = extract_with_relationships(code);
     let helper_2 = symbols
         .iter()
-        .find(|symbol| symbol.name == "helper" && symbol.signature.as_deref().unwrap().contains("/2"))
+        .find(|symbol| {
+            symbol.name == "helper" && symbol.signature.as_deref().unwrap().contains("/2")
+        })
         .expect("helper/2 symbol");
 
     assert_eq!(relationships.len(), 1);
@@ -132,7 +134,10 @@ entry() ->
     let edge = pending_named(&pending, "record");
     assert_eq!(edge.pending.kind, RelationshipKind::Calls);
     assert_eq!(edge.pending.from_symbol_id, entry.id);
-    assert_eq!(edge.caller_scope_symbol_id.as_deref(), Some(entry.id.as_str()));
+    assert_eq!(
+        edge.caller_scope_symbol_id.as_deref(),
+        Some(entry.id.as_str())
+    );
     assert_eq!(edge.pending.file_path, "bank.erl");
     assert_eq!(edge.pending.line_number, 5);
     assert_eq!(edge.target.display_name, "ledger:record");
@@ -193,7 +198,9 @@ entry(A, B) ->
     let (_, _, pending) = extract_with_relationships(code);
 
     assert!(
-        pending.iter().all(|edge| edge.target.terminal_name != "reverse"),
+        pending
+            .iter()
+            .all(|edge| edge.target.terminal_name != "reverse"),
         "reverse/2 is not the imported reverse/1; got {pending:#?}"
     );
 }
@@ -381,10 +388,7 @@ entry() ->
     ledger:record(1).
 "#;
     let (_, _, structured) = extract_with_relationships(code);
-    let degraded: Vec<_> = structured
-        .iter()
-        .map(|edge| edge.pending.clone())
-        .collect();
+    let degraded: Vec<_> = structured.iter().map(|edge| edge.pending.clone()).collect();
 
     assert_eq!(degraded.len(), structured.len());
     assert!(

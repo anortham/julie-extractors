@@ -23,6 +23,11 @@ pub(super) fn extract_module(
     let doc_comment = extractor.base.find_doc_comment(node).or(module_doc);
     let annotations = super::doc::annotations_for(extractor, node);
 
+    let mut metadata = HashMap::new();
+    if extractor.test_module.is_test_container() {
+        metadata.insert("test_container".to_string(), Value::Bool(true));
+    }
+
     Some(extractor.base.create_symbol(
         node,
         name,
@@ -31,7 +36,7 @@ pub(super) fn extract_module(
             signature: Some(signature),
             visibility: Some(Visibility::Public),
             parent_id: None,
-            metadata: None,
+            metadata: Some(metadata),
             doc_comment,
             annotations,
         },

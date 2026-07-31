@@ -428,9 +428,8 @@ fn extract_toml(
     })
 }
 
-/// Erlang extractor: hand-written because Erlang does not yet ship a type
-/// tier. `types` stays empty until the matching capability row in
-/// `fixtures/extraction/capabilities.json` is raised with fixture evidence.
+/// Erlang extractor: hand-written so it can return structured pending
+/// relationships for remote calls, `-behaviour`, `-include` and `-import`.
 fn extract_erlang(
     tree: &Tree,
     file_path: &str,
@@ -446,6 +445,7 @@ fn extract_erlang(
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
     let identifiers = ext.extract_identifiers(tree, &symbols);
+    let types = ext.infer_types(&symbols);
     Ok(ExtractionResults {
         symbols,
         relationships,
@@ -457,7 +457,7 @@ fn extract_erlang(
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
-        types: HashMap::new(),
+        types: convert_types_map(types, "erlang"),
         parse_diagnostics: Vec::new(),
     })
 }

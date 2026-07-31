@@ -4,6 +4,8 @@ mod identifiers;
 mod parse_errors;
 mod relationships;
 mod symbols;
+mod test_roles;
+mod types;
 mod visibility;
 
 #[cfg(test)]
@@ -50,6 +52,21 @@ pub(crate) mod support {
             .iter()
             .find(|symbol| symbol.name == name && symbol.kind == kind)
             .unwrap_or_else(|| panic!("no {kind:?} named {name}; got {}", inventory(symbols)))
+    }
+
+    pub(crate) fn extract_with_types(
+        code: &str,
+    ) -> (Vec<Symbol>, std::collections::HashMap<String, String>) {
+        let tree = parse(code);
+        let mut extractor = ErlangExtractor::new(
+            "erlang".to_string(),
+            "bank.erl".to_string(),
+            code.to_string(),
+            &PathBuf::from("/tmp/test"),
+        );
+        let symbols = extractor.extract_symbols(&tree);
+        let types = extractor.infer_types(&symbols);
+        (symbols, types)
     }
 
     pub(crate) fn extract_with_identifiers(code: &str) -> (Vec<Symbol>, Vec<Identifier>) {

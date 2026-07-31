@@ -9,10 +9,9 @@ use serde_json::Value;
 use tree_sitter::Node;
 
 use super::ErlangExtractor;
-use super::helpers::{
-    NameArity, arg_count, find_child_by_type, first_atom_text, is_eunit_test_name,
-};
+use super::helpers::{NameArity, arg_count, find_child_by_type, first_atom_text};
 use crate::base::{Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::test_detection::{ErlangTestRole, erlang_test_role};
 
 pub(super) struct FunctionClause {
     pub(super) identity: NameArity,
@@ -39,9 +38,9 @@ pub(super) fn extract_function(
 ) -> Symbol {
     let (name, arity) = clause.identity.clone();
     let signature = format!("{}/{}{}", name, arity, clause.params);
-    let visibility = if extractor.exports_everything
-        || extractor.exported_functions.contains(&clause.identity)
-    {
+    let exported =
+        extractor.exports_everything || extractor.exported_functions.contains(&clause.identity);
+    let visibility = if exported {
         Visibility::Public
     } else {
         Visibility::Private
@@ -53,8 +52,11 @@ pub(super) fn extract_function(
         "clause_count".to_string(),
         Value::Number((clause_count as u64).into()),
     );
-    if is_eunit_test_name(&name, arity) {
+    if let Some(role) = erlang_test_role(extractor.test_module, &name, arity, exported) {
         metadata.insert("is_test".to_string(), Value::Bool(true));
+        if role == ErlangTestRole::Lifecycle {
+            metadata.insert("test_lifecycle".to_string(), Value::Bool(true));
+        }
     }
 
     let doc_comment = super::doc::doc_for(extractor, node);

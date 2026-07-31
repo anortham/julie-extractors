@@ -1047,7 +1047,44 @@
       "confidence": "1.000"
     }
   ],
-  "types": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:account:17:0",
+      "resolved_type": "#account{}",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:init:20:0",
+      "resolved_type": "{ok, term()}",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:open:24:0",
+      "resolved_type": "#account{}",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:token:18:0",
+      "resolved_type": "binary()",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    }
+  ],
   "parse_diagnostics": [],
   "structural_facts": [],
   "complexity_metrics": [],

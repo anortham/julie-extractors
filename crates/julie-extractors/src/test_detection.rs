@@ -84,6 +84,7 @@ pub fn is_test_symbol(
         }
         "scala" => detect_scala(name, file_path, annotation_keys),
         "elixir" => detect_elixir(name, file_path),
+        "erlang" => detect_erlang(name),
         "csharp" | "vbnet" | "razor" => detect_csharp(annotation_keys),
         "go" => detect_go(name, file_path),
         "javascript" | "typescript" => detect_js_ts(name, file_path),
@@ -506,6 +507,88 @@ fn detect_swift(name: &str, file_path: &str) -> bool {
 fn detect_elixir(name: &str, file_path: &str) -> bool {
     // ExUnit convention: test_ prefix or test/ directory
     name.starts_with("test_") || name.starts_with("test ") || is_test_path(file_path)
+}
+
+/// EUnit discovers a test from its name alone: `sum_test/0` is a test case and
+/// `sum_test_/0` is a test generator. Detection is deliberately path-independent
+/// because EUnit tests live beside the code they exercise, and the
+/// `test_`/`Test` prefix the generic fallback looks for never matches the
+/// `_test` suffix convention.
+///
+/// EUnit also requires arity zero, which this entry point does not receive.
+/// The Erlang extractor applies the arity gate through [`erlang_test_role`].
+fn detect_erlang(name: &str) -> bool {
+    name.ends_with("_test") || name.ends_with("_test_")
+}
+
+/// Common Test callbacks that set up or tear down a suite, group, or case.
+const COMMON_TEST_LIFECYCLE_NAMES: [&str; 6] = [
+    "init_per_suite",
+    "end_per_suite",
+    "init_per_testcase",
+    "end_per_testcase",
+    "init_per_group",
+    "end_per_group",
+];
+
+/// Common Test callbacks that describe a suite instead of exercising it.
+const COMMON_TEST_CONFIG_NAMES: [&str; 3] = ["all", "groups", "suite"];
+
+/// Common Test runs every test case as `Case(Config)`.
+const COMMON_TEST_CASE_ARITY: u32 = 1;
+
+/// Whether an Erlang module hosts EUnit tests, Common Test cases, or both.
+/// The two frameworks are independent — a `*_SUITE` module may also include
+/// `eunit.hrl` — so the classification carries a flag per framework.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct ErlangTestModule {
+    eunit: bool,
+    common_test: bool,
+}
+
+impl ErlangTestModule {
+    pub(crate) fn classify(module_name: &str, includes_eunit_header: bool) -> Self {
+        Self {
+            eunit: includes_eunit_header || module_name.ends_with("_tests"),
+            common_test: module_name.ends_with("_SUITE"),
+        }
+    }
+
+    pub(crate) fn is_test_container(&self) -> bool {
+        self.eunit || self.common_test
+    }
+}
+
+/// The role an Erlang function plays in its module's test framework.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ErlangTestRole {
+    Case,
+    Lifecycle,
+}
+
+/// Classify an Erlang function against EUnit and Common Test.
+///
+/// Common Test dispatches on exact callback names inside a `*_SUITE` module and
+/// runs every other exported `Case(Config)` as a test case. EUnit matches the
+/// name suffix on any zero-arity function, in any module, because EUnit test
+/// modules are not required to be named or located in a particular way.
+pub(crate) fn erlang_test_role(
+    module: ErlangTestModule,
+    name: &str,
+    arity: u32,
+    exported: bool,
+) -> Option<ErlangTestRole> {
+    if module.common_test {
+        if COMMON_TEST_LIFECYCLE_NAMES.contains(&name) {
+            return Some(ErlangTestRole::Lifecycle);
+        }
+        if exported && arity == COMMON_TEST_CASE_ARITY && !COMMON_TEST_CONFIG_NAMES.contains(&name)
+        {
+            return Some(ErlangTestRole::Case);
+        }
+    }
+
+    (arity == 0 && detect_erlang(name)).then_some(ErlangTestRole::Case)
 }
 
 fn detect_dart(name: &str, file_path: &str, annotation_keys: &[String]) -> bool {

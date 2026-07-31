@@ -1,0 +1,413 @@
+{
+  "symbols": [
+    {
+      "key": "fixtures/extraction/erlang/test_roles/source.erl:balance_test:19:0",
+      "name": "balance_test",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 7,
+      "start_byte": 800,
+      "end_byte": 825,
+      "body_span": {
+        "start_line": 19,
+        "start_column": 12,
+        "end_line": 19,
+        "end_column": 14,
+        "start_byte": 812,
+        "end_byte": 814
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "balance_test/0()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "metadata": {
+        "arity": 0,
+        "clause_count": 1,
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "spec",
+          "annotation_key": "spec",
+          "raw_text": "spec balance_test() -> ok"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "name": "bank_tests",
+      "kind": "module",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 20,
+      "start_byte": 640,
+      "end_byte": 660,
+      "body_span": {
+        "start_line": 12,
+        "start_column": 7,
+        "end_line": 12,
+        "end_column": 19,
+        "start_byte": 647,
+        "end_byte": 659
+      },
+      "body_hash": "8b74ae6a42c97c7b1666598ceeafb799",
+      "signature": "-module(bank_tests)",
+      "doc_comment": "%% EUnit test roles. The module is a test container two ways over — it is\n%% named `*_tests` AND it includes `eunit.hrl` — and the golden separates the\n%% two case shapes EUnit recognises from the lookalikes it does not:\n%%\n%%   container - bank_tests                         test_container\n%%   case      - balance_test/0                     is_test, a plain test\n%%   case      - deposit_test_/0                    is_test, a test generator\n%%\n%% Negative controls in the same file: check_test/1 carries the suffix but\n%% takes an argument, so EUnit never runs it, and setup/0 is an ordinary\n%% helper. Neither may carry a test role.",
+      "visibility": "Public",
+      "parent_key": null,
+      "metadata": {
+        "test_container": true
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles/source.erl:check_test:26:0",
+      "name": "check_test",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "start_line": 26,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 7,
+      "start_byte": 890,
+      "end_byte": 921,
+      "body_span": {
+        "start_line": 26,
+        "start_column": 10,
+        "end_line": 26,
+        "end_column": 20,
+        "start_byte": 900,
+        "end_byte": 910
+      },
+      "body_hash": "90e40089017965c3f5ae4b70a69e28c8",
+      "signature": "check_test/1(_Account)",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "metadata": {
+        "arity": 1,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles/source.erl:deposit_test_:23:0",
+      "name": "deposit_test_",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 7,
+      "start_byte": 862,
+      "end_byte": 888,
+      "body_span": {
+        "start_line": 23,
+        "start_column": 13,
+        "end_line": 23,
+        "end_column": 15,
+        "start_byte": 875,
+        "end_byte": 877
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "deposit_test_/0()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "metadata": {
+        "arity": 0,
+        "clause_count": 1,
+        "is_test": true
+      },
+      "annotations": [
+        {
+          "annotation": "spec",
+          "annotation_key": "spec",
+          "raw_text": "spec deposit_test_() -> [term()]"
+        }
+      ],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    },
+    {
+      "key": "fixtures/extraction/erlang/test_roles/source.erl:setup:29:0",
+      "name": "setup",
+      "kind": "function",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 30,
+      "end_column": 7,
+      "start_byte": 923,
+      "end_byte": 941,
+      "body_span": {
+        "start_line": 29,
+        "start_column": 5,
+        "end_line": 29,
+        "end_column": 7,
+        "start_byte": 928,
+        "end_byte": 930
+      },
+      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "signature": "setup/0()",
+      "doc_comment": null,
+      "visibility": "Public",
+      "parent_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "metadata": {
+        "arity": 0,
+        "clause_count": 1
+      },
+      "annotations": [],
+      "semantic_group": null,
+      "confidence": null,
+      "content_type": null
+    }
+  ],
+  "relationships": [],
+  "pending_relationships": [
+    {
+      "from_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "callee_name": "eunit/include/eunit.hrl",
+      "kind": "imports",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "line_number": 14,
+      "confidence": "0.900"
+    }
+  ],
+  "structured_pending_relationships": [
+    {
+      "pending": {
+        "from_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+        "callee_name": "eunit/include/eunit.hrl",
+        "kind": "imports",
+        "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+        "line_number": 14,
+        "confidence": "0.900"
+      },
+      "target": {
+        "display_name": "eunit/include/eunit.hrl",
+        "terminal_name": "eunit.hrl",
+        "receiver": null,
+        "namespace_path": [
+          "eunit",
+          "include"
+        ],
+        "import_context": "include_lib"
+      },
+      "caller_scope_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "span": {
+        "start_line": 14,
+        "start_column": 13,
+        "end_line": 14,
+        "end_column": 38,
+        "start_byte": 675,
+        "end_byte": 700
+      }
+    }
+  ],
+  "identifiers": [],
+  "types": [
+    {
+      "symbol_key": "fixtures/extraction/erlang/test_roles/source.erl:balance_test:19:0",
+      "resolved_type": "ok",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    },
+    {
+      "symbol_key": "fixtures/extraction/erlang/test_roles/source.erl:deposit_test_:23:0",
+      "resolved_type": "[term()]",
+      "generic_params": null,
+      "constraints": null,
+      "is_inferred": true,
+      "language": "erlang",
+      "metadata": null
+    }
+  ],
+  "parse_diagnostics": [],
+  "structural_facts": [],
+  "complexity_metrics": [],
+  "literals": [],
+  "source_regions": [
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 1,
+      "end_column": 75,
+      "start_byte": 0,
+      "end_byte": 75,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 10,
+      "start_column": 0,
+      "end_line": 10,
+      "end_column": 72,
+      "start_byte": 525,
+      "end_byte": 597,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 11,
+      "start_column": 0,
+      "end_line": 11,
+      "end_column": 41,
+      "start_byte": 598,
+      "end_byte": 639,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 2,
+      "start_column": 0,
+      "end_line": 2,
+      "end_column": 79,
+      "start_byte": 76,
+      "end_byte": 155,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 3,
+      "start_column": 0,
+      "end_line": 3,
+      "end_column": 68,
+      "start_byte": 156,
+      "end_byte": 224,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 4,
+      "start_column": 0,
+      "end_line": 4,
+      "end_column": 2,
+      "start_byte": 225,
+      "end_byte": 227,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 5,
+      "start_column": 0,
+      "end_line": 5,
+      "end_column": 66,
+      "start_byte": 228,
+      "end_byte": 294,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 6,
+      "start_column": 0,
+      "end_line": 6,
+      "end_column": 73,
+      "start_byte": 295,
+      "end_byte": 368,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 7,
+      "start_column": 0,
+      "end_line": 7,
+      "end_column": 77,
+      "start_byte": 369,
+      "end_byte": 446,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 8,
+      "start_column": 0,
+      "end_line": 8,
+      "end_column": 2,
+      "start_byte": 447,
+      "end_byte": 449,
+      "metadata": null
+    },
+    {
+      "kind": "doc_comment",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 9,
+      "start_column": 0,
+      "end_line": 9,
+      "end_column": 74,
+      "start_byte": 450,
+      "end_byte": 524,
+      "metadata": null
+    },
+    {
+      "kind": "string_literal",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": null,
+      "start_line": 14,
+      "start_column": 13,
+      "end_line": 14,
+      "end_column": 38,
+      "start_byte": 675,
+      "end_byte": 700,
+      "metadata": null
+    }
+  ],
+  "type_argument_usages": []
+}

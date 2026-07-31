@@ -13,6 +13,7 @@ use std::collections::{HashMap, HashSet};
 use tree_sitter::{Node, Tree};
 
 use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
+use crate::test_detection::ErlangTestModule;
 use helpers::{NameArity, function_arity_entries, named_children, wild_attribute_name};
 
 mod attributes;
@@ -21,9 +22,11 @@ mod doc;
 mod helpers;
 mod identifiers;
 mod relationships;
+mod types;
 
 const EXPORT_ALL_OPTION: &str = "export_all";
 const MODULE_DOC_ATTRIBUTE: &str = "moduledoc";
+const EUNIT_HEADER: &str = "eunit/include/eunit.hrl";
 
 pub struct ErlangExtractor {
     pub(crate) base: BaseExtractor,
@@ -33,6 +36,10 @@ pub struct ErlangExtractor {
     pub(crate) exported_types: HashSet<NameArity>,
     /// `-compile(export_all)`, standalone or inside a compile-options list.
     pub(crate) exports_everything: bool,
+    /// Which test frameworks, if any, own this module.
+    pub(crate) test_module: ErlangTestModule,
+    /// Declared `-spec`, `-callback`, `-type` and `-opaque` forms.
+    declared_types: types::DeclaredTypes,
 }
 
 impl ErlangExtractor {
@@ -47,6 +54,8 @@ impl ErlangExtractor {
             exported_functions: HashSet::new(),
             exported_types: HashSet::new(),
             exports_everything: false,
+            test_module: ErlangTestModule::default(),
+            declared_types: types::DeclaredTypes::default(),
         }
     }
 
@@ -60,6 +69,8 @@ impl ErlangExtractor {
         let root = tree.root_node();
         let declarations = named_children(&root);
         self.collect_exports(&declarations);
+        self.test_module = self.classify_test_module(&declarations);
+        self.declared_types = types::collect(&self.base, &declarations);
 
         let clause_counts = self.clause_counts(&declarations);
         let module_doc = self.module_doc(&declarations);
@@ -137,9 +148,10 @@ impl ErlangExtractor {
         identifiers::extract_identifiers(self, tree, symbols)
     }
 
-    /// Type inference is not part of the Erlang symbol tier yet.
-    pub fn infer_types(&self, _symbols: &[Symbol]) -> HashMap<String, String> {
-        HashMap::new()
+    /// Declared `-spec`, `-callback`, `-type` and `-opaque` forms, matched to
+    /// the symbols they annotate by `(name, arity)`.
+    pub fn infer_types(&self, symbols: &[Symbol]) -> HashMap<String, String> {
+        types::infer_types(&self.declared_types, symbols)
     }
 
     fn collect_exports(&mut self, declarations: &[Node]) {
@@ -159,6 +171,24 @@ impl ErlangExtractor {
                 _ => {}
             }
         }
+    }
+
+    /// EUnit owns `*_tests` modules and any module that pulls in `eunit.hrl`;
+    /// Common Test owns `*_SUITE` modules.
+    fn classify_test_module(&self, declarations: &[Node]) -> ErlangTestModule {
+        let module_name = declarations
+            .iter()
+            .find(|declaration| declaration.kind() == "module_attribute")
+            .and_then(|declaration| helpers::first_atom_text(&self.base, declaration))
+            .unwrap_or_default();
+
+        let includes_eunit = declarations
+            .iter()
+            .filter(|declaration| matches!(declaration.kind(), "pp_include" | "pp_include_lib"))
+            .filter_map(|declaration| helpers::find_child_by_type(declaration, "string"))
+            .any(|string| self.base.get_node_text(&string).contains(EUNIT_HEADER));
+
+        ErlangTestModule::classify(&module_name, includes_eunit)
     }
 
     fn declares_export_all(&self, declaration: &Node) -> bool {
