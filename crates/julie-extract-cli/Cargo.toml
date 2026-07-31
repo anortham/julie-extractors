@@ -21,6 +21,12 @@ path = "src/lib.rs"
 # convention (guarded by `tests/perf_gate_convention.rs`). Run on demand with:
 #   cargo test -p julie-extract-cli --features test-perf --test resolution_perf -- --nocapture
 test-perf = []
+# Feature-gated real-world corpus gate (`tests/erlang_corpus.rs`). Scans the
+# vendored hex.pm Erlang packages under `fixtures/real-world/erlang/` with the real
+# CLI, so it is kept out of the default suite by the same test-tier convention as
+# `test-perf`. Feature name matches `julie-extractors`'s real-world gate. Run with:
+#   cargo test -p julie-extract-cli --features test-real-world --test erlang_corpus -- --nocapture
+test-real-world = []
 
 [lints]
 workspace = true
