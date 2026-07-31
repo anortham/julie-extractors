@@ -405,6 +405,30 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 - [x] Parser dependency changes trigger certification gates.
 - [x] Worker-scope verification passes and commit is recorded.
 
+### Task 13: Erlang Capability Closure
+
+**Files:**
+- Modify: `crates/julie-extractors/src/erlang/`
+- Modify: `fixtures/extraction/erlang/`, erlang row of `fixtures/extraction/capabilities.json`
+
+**What to build:** Raise Erlang from the symbol-only tier to its FULL
+`target_capabilities` by closing the `relationships`, `pending_relationships`,
+`identifiers`, and `types` rows recorded as `status: open` in
+`fixtures/extraction/capabilities.json`.
+
+**Approach:** This entry exists because `capability_matrix_open_rows_have_planned_closure_task`
+resolves every open capability row's `planned_closure_task` against **this**
+file, so it is the repository's registry of open capability work regardless of
+which plan owns the implementation. The owning plan is
+`docs/plans/2026-07-31-erlang-xml-language-support-plan.md`; its Task 4 closes
+identifiers, Task 6 closes relationships and pending relationships, and Task 7
+closes types.
+
+**Acceptance criteria:**
+- [ ] Erlang `capabilities` equals `target_capabilities` in the capability matrix.
+- [ ] Every closed row carries golden-fixture evidence rather than an empty vector.
+- [ ] `cargo xtask test capability` and `cargo xtask test golden` pass.
+
 ## Progress Tracking
 
 Use this section as the execution ledger. Update task checkboxes only after the

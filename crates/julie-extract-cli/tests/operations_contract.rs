@@ -142,7 +142,7 @@ fn scan_creates_sqlite_artifact_with_expected_rows() {
             |row| row.get::<_, i64>(0),
         )
         .unwrap();
-    assert_eq!(open_reference_resolution_gaps, 103);
+    assert_eq!(open_reference_resolution_gaps, 106);
     assert_eq!(unknown_gap_statuses, 0);
     let rust_kind_coverage = language_kind_coverage(&db, "rust");
     assert_eq!(

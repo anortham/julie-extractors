@@ -102,8 +102,8 @@ fn semantic_line(line: &str) -> Option<SemanticLine<'_>> {
     let mut text = leading_trimmed;
 
     for decoration in [
-        "<!--", "/**", "/*!", "///", "//!", "'''", "---", "@*", "<#", "/*", "//", "##", "#'", "--",
-        "'", "#", "*",
+        "<!--", "/**", "/*!", "///", "//!", "'''", "---", "@*", "<#", "%%%", "/*", "//", "##",
+        "#'", "--", "%%", "'", "#", "%", "*",
     ] {
         if let Some(rest) = text.strip_prefix(decoration) {
             text = rest;

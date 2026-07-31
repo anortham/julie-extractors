@@ -70,6 +70,7 @@ pub mod csharp;
 pub mod css;
 pub mod dart;
 pub mod elixir;
+pub mod erlang;
 pub mod gdscript;
 pub mod go;
 pub mod html;

@@ -683,6 +683,13 @@ fn config_for_language(language: &str) -> Option<RegionLanguageConfig> {
             html_comment_node_kinds: &[],
             embedded_node_kinds: &[],
         }),
+        "erlang" => Some(RegionLanguageConfig {
+            comment_node_kinds: &["comment"],
+            string_literal_node_kinds: &["string"],
+            quoted_string_literal_node_kinds: &[],
+            html_comment_node_kinds: &[],
+            embedded_node_kinds: &[],
+        }),
         "elixir" => Some(RegionLanguageConfig {
             comment_node_kinds: &["comment"],
             string_literal_node_kinds: &["string", "charlist"],

@@ -24,6 +24,7 @@ const LANGUAGES: &[&str] = &[
     "scala",
     "dart",
     "elixir",
+    "erlang",
     "lua",
     "qml",
     "r",

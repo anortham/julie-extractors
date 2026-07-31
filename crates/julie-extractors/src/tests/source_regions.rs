@@ -298,6 +298,12 @@ var name = "hi"
             expected_kinds: &[DocComment, StringLiteral, Embedded],
         },
         SourceRegionFixture {
+            language: "erlang",
+            file_path: "src/main.erl",
+            source: "% plain\n%% doc\n-module(main).\n-define(NAME, \"hi\").\n",
+            expected_kinds: &[Comment, DocComment, StringLiteral],
+        },
+        SourceRegionFixture {
             language: "sql",
             file_path: "schema.sql",
             source: r#"-- doc

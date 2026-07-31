@@ -22,6 +22,7 @@ pub mod data_format_relationships;
 pub mod doc_comments;
 pub mod elixir;
 pub mod embedded_spans;
+pub mod erlang;
 pub mod express;
 pub mod fastify;
 pub mod gdscript;

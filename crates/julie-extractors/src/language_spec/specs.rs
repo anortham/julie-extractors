@@ -186,6 +186,14 @@ pub(super) const LANGUAGE_SPECS: &[LanguageSpec] = &[
         EMPTY,
     ),
     spec(
+        "erlang",
+        &["erl", "hrl"],
+        "tree-sitter-erlang",
+        SYMBOLS_ONLY_CAPABILITIES,
+        parser_erlang,
+        ERLANG_DOCS,
+    ),
+    spec(
         "lua",
         &["lua"],
         "tree-sitter-lua",

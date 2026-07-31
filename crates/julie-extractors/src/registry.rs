@@ -428,6 +428,39 @@ fn extract_toml(
     })
 }
 
+/// Erlang extractor: hand-written because Erlang currently ships the symbol
+/// tier only. Relationships, identifiers, and types stay empty until the
+/// matching capability rows in `fixtures/extraction/capabilities.json` are
+/// raised with fixture evidence.
+fn extract_erlang(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+) -> Result<ExtractionResults, anyhow::Error> {
+    let mut ext = crate::erlang::ErlangExtractor::new(
+        "erlang".to_string(),
+        file_path.to_string(),
+        content.to_string(),
+        workspace_root,
+    );
+    let symbols = ext.extract_symbols(tree);
+    Ok(ExtractionResults {
+        symbols,
+        relationships: Vec::new(),
+        pending_relationships: Vec::new(),
+        structured_pending_relationships: Vec::new(),
+        identifiers: Vec::new(),
+        type_argument_usages: ext.base.take_type_argument_usages(),
+        literals: ext.base.take_literals(),
+        source_regions: Vec::new(),
+        structural_facts: Vec::new(),
+        complexity_metrics: Vec::new(),
+        types: HashMap::new(),
+        parse_diagnostics: Vec::new(),
+    })
+}
+
 /// JSON extractor (Phase 3.2): hand-written so it can return relationships
 /// (concrete + structured pending) for JSON Schema `$ref` shapes.
 /// `types` stays empty — JSON has no static type system.
@@ -526,6 +559,7 @@ const EXTRACTORS: &[(&str, ExtractFn)] = &[
     ("scala", extract_scala),
     ("dart", extract_dart),
     ("elixir", extract_elixir),
+    ("erlang", extract_erlang),
     ("lua", extract_lua),
     ("qml", extract_qml),
     ("r", extract_r),
@@ -673,7 +707,7 @@ mod registry_tests {
 
     #[test]
     fn registry_matches_supported_language_count() {
-        assert_eq!(supported_languages().len(), 36);
+        assert_eq!(supported_languages().len(), 37);
         assert!(
             capabilities_for_language("rust")
                 .unwrap()

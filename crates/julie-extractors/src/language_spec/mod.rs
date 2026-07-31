@@ -33,6 +33,7 @@ pub enum DocCommentStyle {
     RazorBlock,
     GdscriptDoubleHash,
     VbTripleApostrophe,
+    ErlangPercentBlock,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -85,6 +86,7 @@ impl DocCommentStyle {
             Self::RazorBlock => trimmed.starts_with("@*"),
             Self::GdscriptDoubleHash => trimmed.starts_with("##"),
             Self::VbTripleApostrophe => trimmed.starts_with("'''"),
+            Self::ErlangPercentBlock => trimmed.starts_with("%%"),
         }
     }
 
@@ -125,6 +127,14 @@ pub const PENDING_NO_TYPES_NO_IDENTIFIERS_CAPABILITIES: LanguageCapabilities =
         identifiers: false,
         ..PENDING_NO_TYPES_CAPABILITIES
     };
+
+pub const SYMBOLS_ONLY_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
+    symbols: true,
+    relationships: false,
+    pending_relationships: false,
+    identifiers: false,
+    types: false,
+};
 
 pub const DATA_ONLY_CAPABILITIES: LanguageCapabilities = LanguageCapabilities {
     symbols: true,
@@ -202,6 +212,7 @@ const HASH_DOCS: &[DocCommentStyle] = &[DocCommentStyle::HashLine];
 const RAZOR_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash, DocCommentStyle::RazorBlock];
 const GDSCRIPT_DOCS: &[DocCommentStyle] = &[DocCommentStyle::GdscriptDoubleHash];
 const ZIG_DOCS: &[DocCommentStyle] = &[DocCommentStyle::TripleSlash];
+const ERLANG_DOCS: &[DocCommentStyle] = &[DocCommentStyle::ErlangPercentBlock];
 
 macro_rules! parser {
     ($name:ident, $language:path) => {
@@ -235,6 +246,7 @@ parser!(parser_kotlin, tree_sitter_kotlin_ng::LANGUAGE);
 parser!(parser_scala, tree_sitter_scala::LANGUAGE);
 parser!(parser_dart, tree_sitter_dart::LANGUAGE);
 parser!(parser_elixir, tree_sitter_elixir::LANGUAGE);
+parser!(parser_erlang, tree_sitter_erlang::LANGUAGE);
 parser!(parser_lua, tree_sitter_lua::LANGUAGE);
 parser!(parser_qml, tree_sitter_qmljs::LANGUAGE);
 parser!(parser_r, tree_sitter_r::LANGUAGE);

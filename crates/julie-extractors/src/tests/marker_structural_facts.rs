@@ -269,6 +269,11 @@ fn marker_language_matrix_covers_every_supported_comment_language() {
             source: "# TODO: marker\ndefmodule Main do\nend\n",
         },
         MarkerFixture {
+            language: "erlang",
+            file_path: "src/main.erl",
+            source: "%% TODO: marker\n-module(main).\n",
+        },
+        MarkerFixture {
             language: "lua",
             file_path: "src/main.lua",
             source: "-- TODO: marker\nlocal value = 1\n",
