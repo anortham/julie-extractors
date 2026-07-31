@@ -148,10 +148,10 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **Approach:** Start from `src/yaml/mod.rs` for structure/parent chains; port the filtering discipline from `src/html/elements.rs`. Namespace prefixes stay in identifier text as written (`tns:AddPhone`) — no namespace resolution in v1.
 
 **Acceptance criteria:**
-- [ ] `cargo xtask test language xml` + goldens for all four fixture dirs green, zero parse diagnostics on goldens
-- [ ] Cardinality fixture proves anonymous-element suppression (symbol count stays in the name-promoted handful)
-- [ ] Count assertions at 38; `cargo xtask test changed …` green; `languages --json` shows xml symbols+identifiers only
-- [ ] Worker-scope verification passes and the change is committed (serial-worker-commit)
+- [x] `cargo xtask test language xml` + goldens for all four fixture dirs green, zero parse diagnostics on goldens
+- [x] Cardinality fixture proves anonymous-element suppression (symbol count stays in the name-promoted handful)
+- [x] Count assertions at 38; `cargo xtask test changed …` green; `languages --json` shows xml symbols+identifiers only
+- [x] Worker-scope verification passes and the change is committed (serial-worker-commit)
 
 ### Task 4: Erlang identifiers + calls (Batch A)
 
