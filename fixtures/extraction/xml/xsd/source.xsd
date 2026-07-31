@@ -3,6 +3,9 @@
            xmlns:tns="urn:phonebook"
            targetNamespace="urn:phonebook">
 
+  <xs:import namespace="urn:phonebook-common" schemaLocation="common.xsd" />
+  <xs:include schemaLocation="phonebook-base.xsd" />
+
   <!-- A phone number, constrained to the national format. -->
   <xs:simpleType name="PhoneNumber">
     <xs:restriction base="xs:string" />

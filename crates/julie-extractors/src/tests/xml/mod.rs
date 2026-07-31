@@ -2,6 +2,7 @@ mod cardinality;
 mod identifiers;
 mod parse_errors;
 mod routing;
+mod structural_facts;
 mod symbols;
 
 #[cfg(test)]

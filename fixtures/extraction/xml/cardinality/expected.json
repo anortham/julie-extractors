@@ -128,7 +128,33 @@
   ],
   "types": [],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "xml.document.v1",
+      "capture_name": "document",
+      "node_kind": "document",
+      "language": "xml",
+      "file_path": "fixtures/extraction/xml/cardinality/source.xml",
+      "containing_key": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 2008,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 114171,
+      "confidence": "1.000",
+      "metadata": {
+        "dialect": "xml",
+        "element_count": 6004,
+        "has_xml_declaration": true,
+        "max_depth": 4,
+        "namespace_count": 0,
+        "pattern_version": 1,
+        "query_family": "document_structure",
+        "root_element": "catalog"
+      }
+    }
+  ],
   "complexity_metrics": [],
   "literals": [],
   "source_regions": [

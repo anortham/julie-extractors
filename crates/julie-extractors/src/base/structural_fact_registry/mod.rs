@@ -14,14 +14,14 @@
 //!
 //! - `base/structural_facts.rs`: built-in patterns for c, cpp, go, javascript, jsx, python, rust, tsx, typescript.
 //! - `base/code_structural_facts.rs`: dart, elixir, java, kotlin, lua, php, r, ruby, scala, swift, bash, gdscript, powershell, qml, vbnet, zig.
-//! - `base/data_structural_facts.rs`: markdown, json, toml, yaml, regex.
+//! - `base/data_structural_facts.rs`: markdown, json, toml, yaml, regex, xml.
 //! - `base/sql_structural_facts.rs`: sql.
 //! - `base/framework_structural_facts/`: aspnet, htmx, alpine, razor, HTTP frameworks.
 //! - `base/web_structural_facts/`: css, html, vue, react, nextjs, nuxt, http client.
 //!
-//! SPECS live in sibling family modules (`builtins`, `data`, `sql`, `framework`,
-//! `web`, `http_client`); this file owns types, authoring helpers, and JSON
-//! serialization only.
+//! SPECS live in sibling family modules (`builtins`, `data`, `xml`, `sql`,
+//! `framework`, `web`, `http_client`); this file owns types, authoring helpers,
+//! and JSON serialization only.
 //!
 //! Presence semantics (the conformance rule Task 2 enforces over the golden
 //! corpus): an `Always` key is present on every emitted fact of its pattern; an
@@ -144,6 +144,7 @@ mod http_client;
 mod marker;
 mod sql;
 mod web;
+mod xml;
 
 /// Concatenated registry SPECS in the public accessor's pre-split order.
 /// [`structural_fact_patterns_json`] independently sorts by `pattern_id`.
@@ -152,6 +153,7 @@ fn all_specs() -> Vec<StructuralFactPatternSpec> {
     specs.extend(builtins::specs());
     specs.extend_from_slice(marker::SPECS);
     specs.extend_from_slice(data::SPECS);
+    specs.extend_from_slice(xml::SPECS);
     specs.extend_from_slice(sql::SPECS);
     specs.extend(framework::specs());
     specs.extend(web::specs());

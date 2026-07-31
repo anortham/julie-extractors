@@ -38,6 +38,18 @@ const YAML_ANCHOR_PATTERN_ID: &str = "yaml.anchor.v1";
 const YAML_ALIAS_PATTERN_ID: &str = "yaml.alias.v1";
 const YAML_KEY_VALUE_PATTERN_ID: &str = "yaml.key_value.v1";
 
+// XML
+const XML_DOCUMENT_PATTERN_ID: &str = "xml.document.v1";
+const XML_NAMESPACE_DECLARATION_PATTERN_ID: &str = "xml.namespace_declaration.v1";
+const XML_XSD_TYPE_PATTERN_ID: &str = "xml.xsd.type.v1";
+const XML_XSD_ELEMENT_PATTERN_ID: &str = "xml.xsd.element.v1";
+const XML_XSD_IMPORT_PATTERN_ID: &str = "xml.xsd.import.v1";
+const XML_WSDL_SERVICE_PATTERN_ID: &str = "xml.wsdl.service.v1";
+const XML_WSDL_PORT_PATTERN_ID: &str = "xml.wsdl.port.v1";
+const XML_WSDL_BINDING_PATTERN_ID: &str = "xml.wsdl.binding.v1";
+const XML_WSDL_MESSAGE_PATTERN_ID: &str = "xml.wsdl.message.v1";
+const XML_WSDL_OPERATION_PATTERN_ID: &str = "xml.wsdl.operation.v1";
+
 // Regex
 const REGEX_CAPTURE_GROUP_PATTERN_ID: &str = "regex.capture_group.v1";
 const REGEX_NAMED_CAPTURE_PATTERN_ID: &str = "regex.named_capture.v1";
@@ -85,6 +97,20 @@ const YAML_DATA_PATTERN_IDS: &[&str] = &[
 ];
 
 #[cfg(all(test, feature = "test-capability-matrix"))]
+const XML_DATA_PATTERN_IDS: &[&str] = &[
+    XML_DOCUMENT_PATTERN_ID,
+    XML_NAMESPACE_DECLARATION_PATTERN_ID,
+    XML_WSDL_BINDING_PATTERN_ID,
+    XML_WSDL_MESSAGE_PATTERN_ID,
+    XML_WSDL_OPERATION_PATTERN_ID,
+    XML_WSDL_PORT_PATTERN_ID,
+    XML_WSDL_SERVICE_PATTERN_ID,
+    XML_XSD_ELEMENT_PATTERN_ID,
+    XML_XSD_IMPORT_PATTERN_ID,
+    XML_XSD_TYPE_PATTERN_ID,
+];
+
+#[cfg(all(test, feature = "test-capability-matrix"))]
 const REGEX_DATA_PATTERN_IDS: &[&str] = &[
     REGEX_ALTERNATION_PATTERN_ID,
     REGEX_ANCHOR_PATTERN_ID,
@@ -107,6 +133,7 @@ pub fn collect_data_structural_facts(
         "json" => collect_json_structural_facts(tree, file_path, content),
         "toml" => collect_toml_structural_facts(tree, file_path, content),
         "yaml" => collect_yaml_structural_facts(tree, file_path, content),
+        "xml" => collect_xml_structural_facts(tree, file_path, content),
         "regex" => collect_regex_structural_facts(tree, file_path, content),
         _ => Vec::new(),
     };
@@ -125,6 +152,7 @@ pub(crate) fn data_structural_fact_pattern_ids_for_language(
         "json" => JSON_DATA_PATTERN_IDS,
         "toml" => TOML_DATA_PATTERN_IDS,
         "yaml" => YAML_DATA_PATTERN_IDS,
+        "xml" => XML_DATA_PATTERN_IDS,
         "regex" => REGEX_DATA_PATTERN_IDS,
         _ => &[],
     }
@@ -1663,6 +1691,519 @@ fn regex_anchor_fact(file_path: &str, content: &str, node: Node<'_>) -> Option<S
         node,
         metadata,
     ))
+}
+
+/// Which fact layers apply to a document, chosen by registered extension.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum XmlDialect {
+    Document,
+    Schema,
+    Service,
+}
+
+impl XmlDialect {
+    fn label(self) -> &'static str {
+        match self {
+            XmlDialect::Document => "xml",
+            XmlDialect::Schema => "xsd",
+            XmlDialect::Service => "wsdl",
+        }
+    }
+}
+
+/// The per-document constants every xml collector step needs.
+struct XmlDocument<'a> {
+    file_path: &'a str,
+    content: &'a str,
+    dialect: XmlDialect,
+}
+
+#[derive(Default)]
+struct XmlDocumentStats {
+    root_element: Option<String>,
+    has_xml_declaration: bool,
+    element_count: u64,
+    max_depth: u64,
+    namespace_count: u64,
+}
+
+fn xml_dialect(file_path: &str) -> XmlDialect {
+    match std::path::Path::new(file_path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+    {
+        Some(extension) if extension.eq_ignore_ascii_case("xsd") => XmlDialect::Schema,
+        Some(extension) if extension.eq_ignore_ascii_case("wsdl") => XmlDialect::Service,
+        _ => XmlDialect::Document,
+    }
+}
+
+fn collect_xml_structural_facts(
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+) -> Vec<StructuralFact> {
+    let document = XmlDocument {
+        file_path,
+        content,
+        dialect: xml_dialect(file_path),
+    };
+    let mut facts = Vec::new();
+    let mut stats = XmlDocumentStats::default();
+    let root = tree.root_node();
+    collect_xml_node(root, &document, &mut facts, &mut stats, 0, 1);
+
+    if let Some(root_element) = stats.root_element.as_deref() {
+        let mut metadata = base_metadata("document_structure");
+        insert_string(&mut metadata, "dialect", document.dialect.label());
+        insert_string(&mut metadata, "root_element", root_element);
+        metadata.insert(
+            "has_xml_declaration".to_string(),
+            Value::Bool(stats.has_xml_declaration),
+        );
+        metadata.insert(
+            "element_count".to_string(),
+            Value::Number(Number::from(stats.element_count)),
+        );
+        metadata.insert(
+            "max_depth".to_string(),
+            Value::Number(Number::from(stats.max_depth)),
+        );
+        metadata.insert(
+            "namespace_count".to_string(),
+            Value::Number(Number::from(stats.namespace_count)),
+        );
+        facts.push(fact_for_node(
+            file_path,
+            "xml",
+            XML_DOCUMENT_PATTERN_ID,
+            "document",
+            root,
+            metadata,
+        ));
+    }
+
+    facts
+}
+
+fn collect_xml_node(
+    node: Node<'_>,
+    document: &XmlDocument<'_>,
+    facts: &mut Vec<StructuralFact>,
+    stats: &mut XmlDocumentStats,
+    depth: u32,
+    element_depth: u64,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let mut child_element_depth = element_depth;
+    match node.kind() {
+        "XMLDecl" => stats.has_xml_declaration = true,
+        "element" => {
+            stats.element_count += 1;
+            stats.max_depth = stats.max_depth.max(element_depth);
+            child_element_depth = element_depth + 1;
+            if stats.root_element.is_none()
+                && let Some(name) = xml_element_tag_name(node, document.content)
+            {
+                stats.root_element = Some(name.to_string());
+            }
+            collect_xml_element_facts(node, document, facts);
+        }
+        "Attribute" => {
+            if let Some(fact) =
+                xml_namespace_declaration_fact(node, document.file_path, document.content)
+            {
+                stats.namespace_count += 1;
+                facts.push(fact);
+            }
+        }
+        _ => {}
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        collect_xml_node(
+            child,
+            document,
+            facts,
+            stats,
+            child_depth,
+            child_element_depth,
+        );
+    }
+}
+
+fn collect_xml_element_facts(
+    element: Node<'_>,
+    document: &XmlDocument<'_>,
+    facts: &mut Vec<StructuralFact>,
+) {
+    let (file_path, content, dialect) = (document.file_path, document.content, document.dialect);
+    let Some(local_name) = xml_element_tag_name(element, content).map(xml_local_name) else {
+        return;
+    };
+
+    match dialect {
+        XmlDialect::Document => {}
+        XmlDialect::Schema => match local_name {
+            "complexType" | "simpleType" => {
+                let type_kind = if local_name == "simpleType" {
+                    "simple"
+                } else {
+                    "complex"
+                };
+                if let Some(type_name) = xml_element_attribute(element, content, "name") {
+                    let mut metadata = base_metadata("schema_structure");
+                    insert_string(&mut metadata, "type_name", &type_name);
+                    insert_string(&mut metadata, "type_kind", type_kind);
+                    if let Some(base_type) = xsd_base_type(element, content, 0) {
+                        insert_string(&mut metadata, "base_type", &base_type);
+                    }
+                    facts.push(fact_for_node(
+                        file_path,
+                        "xml",
+                        XML_XSD_TYPE_PATTERN_ID,
+                        "type",
+                        element,
+                        metadata,
+                    ));
+                }
+            }
+            "element" => {
+                let is_top_level = xml_parent_element(element)
+                    .and_then(|parent| xml_element_tag_name(parent, content))
+                    .map(xml_local_name)
+                    == Some("schema");
+                if is_top_level
+                    && let Some(element_name) = xml_element_attribute(element, content, "name")
+                {
+                    let mut metadata = base_metadata("schema_structure");
+                    insert_string(&mut metadata, "element_name", &element_name);
+                    if let Some(type_ref) = xml_element_attribute(element, content, "type") {
+                        insert_string(&mut metadata, "type_ref", &type_ref);
+                    }
+                    facts.push(fact_for_node(
+                        file_path,
+                        "xml",
+                        XML_XSD_ELEMENT_PATTERN_ID,
+                        "element",
+                        element,
+                        metadata,
+                    ));
+                }
+            }
+            "import" | "include" => {
+                let mut metadata = base_metadata("schema_structure");
+                insert_string(&mut metadata, "import_kind", local_name);
+                if let Some(schema_location) =
+                    xml_element_attribute(element, content, "schemaLocation")
+                {
+                    insert_string(&mut metadata, "schema_location", &schema_location);
+                }
+                if let Some(namespace) = xml_element_attribute(element, content, "namespace") {
+                    insert_string(&mut metadata, "namespace", &namespace);
+                }
+                facts.push(fact_for_node(
+                    file_path,
+                    "xml",
+                    XML_XSD_IMPORT_PATTERN_ID,
+                    "import",
+                    element,
+                    metadata,
+                ));
+            }
+            _ => {}
+        },
+        XmlDialect::Service => match local_name {
+            "service" => {
+                if let Some(service_name) = xml_element_attribute(element, content, "name") {
+                    let mut metadata = base_metadata("service_structure");
+                    insert_string(&mut metadata, "service_name", &service_name);
+                    metadata.insert(
+                        "port_count".to_string(),
+                        Value::Number(Number::from(xml_child_element_count(
+                            element, content, "port",
+                        ))),
+                    );
+                    facts.push(fact_for_node(
+                        file_path,
+                        "xml",
+                        XML_WSDL_SERVICE_PATTERN_ID,
+                        "service",
+                        element,
+                        metadata,
+                    ));
+                }
+            }
+            "port" => {
+                if let Some(port_name) = xml_element_attribute(element, content, "name") {
+                    let mut metadata = base_metadata("service_structure");
+                    insert_string(&mut metadata, "port_name", &port_name);
+                    if let Some(binding) = xml_element_attribute(element, content, "binding") {
+                        insert_string(&mut metadata, "binding", &binding);
+                    }
+                    facts.push(fact_for_node(
+                        file_path,
+                        "xml",
+                        XML_WSDL_PORT_PATTERN_ID,
+                        "port",
+                        element,
+                        metadata,
+                    ));
+                }
+            }
+            "binding" => {
+                if let Some(binding_name) = xml_element_attribute(element, content, "name") {
+                    let mut metadata = base_metadata("service_structure");
+                    insert_string(&mut metadata, "binding_name", &binding_name);
+                    if let Some(port_type) = xml_element_attribute(element, content, "type") {
+                        insert_string(&mut metadata, "port_type", &port_type);
+                    }
+                    facts.push(fact_for_node(
+                        file_path,
+                        "xml",
+                        XML_WSDL_BINDING_PATTERN_ID,
+                        "binding",
+                        element,
+                        metadata,
+                    ));
+                }
+            }
+            "message" => {
+                if let Some(message_name) = xml_element_attribute(element, content, "name") {
+                    let mut metadata = base_metadata("service_structure");
+                    insert_string(&mut metadata, "message_name", &message_name);
+                    metadata.insert(
+                        "part_count".to_string(),
+                        Value::Number(Number::from(xml_child_element_count(
+                            element, content, "part",
+                        ))),
+                    );
+                    facts.push(fact_for_node(
+                        file_path,
+                        "xml",
+                        XML_WSDL_MESSAGE_PATTERN_ID,
+                        "message",
+                        element,
+                        metadata,
+                    ));
+                }
+            }
+            "operation" => {
+                if let Some(operation_name) = xml_element_attribute(element, content, "name") {
+                    let mut metadata = base_metadata("service_structure");
+                    insert_string(&mut metadata, "operation_name", &operation_name);
+                    if let Some(parent) = xml_parent_element(element) {
+                        let parent_local =
+                            xml_element_tag_name(parent, content).map(xml_local_name);
+                        let parent_kind = match parent_local {
+                            Some("portType") => Some("port_type"),
+                            Some("binding") => Some("binding"),
+                            _ => None,
+                        };
+                        if let Some(parent_kind) = parent_kind {
+                            insert_string(&mut metadata, "parent_kind", parent_kind);
+                            if let Some(parent_name) =
+                                xml_element_attribute(parent, content, "name")
+                            {
+                                insert_string(&mut metadata, "parent_name", &parent_name);
+                            }
+                        }
+                    }
+                    for (child_local, key) in
+                        [("input", "input_message"), ("output", "output_message")]
+                    {
+                        if let Some(message) =
+                            xml_child_element_attribute(element, content, child_local, "message")
+                        {
+                            insert_string(&mut metadata, key, &message);
+                        }
+                    }
+                    facts.push(fact_for_node(
+                        file_path,
+                        "xml",
+                        XML_WSDL_OPERATION_PATTERN_ID,
+                        "operation",
+                        element,
+                        metadata,
+                    ));
+                }
+            }
+            _ => {}
+        },
+    }
+}
+
+fn xml_namespace_declaration_fact(
+    attribute: Node<'_>,
+    file_path: &str,
+    content: &str,
+) -> Option<StructuralFact> {
+    let name = child_text(attribute, content, "Name")?;
+    let (is_default, prefix) = if name == "xmlns" {
+        (true, None)
+    } else {
+        (false, Some(name.strip_prefix("xmlns:")?))
+    };
+    let namespace_uri = child_text(attribute, content, "AttValue").map(xml_unquote)?;
+
+    let mut metadata = base_metadata("document_metadata");
+    insert_string(&mut metadata, "namespace_uri", namespace_uri);
+    metadata.insert("is_default".to_string(), Value::Bool(is_default));
+    if let Some(prefix) = prefix {
+        insert_string(&mut metadata, "prefix", prefix);
+    }
+
+    Some(fact_for_node(
+        file_path,
+        "xml",
+        XML_NAMESPACE_DECLARATION_PATTERN_ID,
+        "namespace_declaration",
+        attribute,
+        metadata,
+    ))
+}
+
+/// The raw QName an XSD type restricts or extends. Nested `complexType` and
+/// `simpleType` declarations own their own derivation, so the search stops at
+/// them rather than attributing an inner base to the enclosing type.
+fn xsd_base_type(element: Node<'_>, content: &str, depth: u32) -> Option<String> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let child_depth = child_tree_depth(depth)?;
+
+    let mut cursor = element.walk();
+    for child in element.children(&mut cursor) {
+        match child.kind() {
+            "content" => {
+                if let Some(base) = xsd_base_type(child, content, child_depth) {
+                    return Some(base);
+                }
+            }
+            "element" => {
+                let local_name = xml_element_tag_name(child, content).map(xml_local_name);
+                if matches!(local_name, Some("complexType") | Some("simpleType")) {
+                    continue;
+                }
+                if matches!(local_name, Some("restriction") | Some("extension"))
+                    && let Some(base) = xml_element_attribute(child, content, "base")
+                {
+                    return Some(base);
+                }
+                if let Some(base) = xsd_base_type(child, content, child_depth) {
+                    return Some(base);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    None
+}
+
+fn xml_tag_node<'tree>(element: Node<'tree>) -> Option<Node<'tree>> {
+    let mut cursor = element.walk();
+    element
+        .children(&mut cursor)
+        .find(|child| matches!(child.kind(), "STag" | "EmptyElemTag"))
+}
+
+fn xml_element_tag_name<'a>(element: Node<'_>, content: &'a str) -> Option<&'a str> {
+    child_text(xml_tag_node(element)?, content, "Name")
+}
+
+/// `xsd:complexType` and `complexType` name the same component. Prefixes are
+/// dropped only to recognise a component; recorded values keep their prefix,
+/// because the tier does no namespace resolution.
+fn xml_local_name(name: &str) -> &str {
+    name.rsplit(':').next().unwrap_or(name)
+}
+
+fn xml_unquote(text: &str) -> &str {
+    let unquoted = text.strip_prefix(['"', '\'']).unwrap_or(text);
+    unquoted.strip_suffix(['"', '\'']).unwrap_or(unquoted)
+}
+
+fn xml_element_attribute(element: Node<'_>, content: &str, attribute: &str) -> Option<String> {
+    let tag = xml_tag_node(element)?;
+    let mut cursor = tag.walk();
+    for child in tag.children(&mut cursor) {
+        if child.kind() != "Attribute" {
+            continue;
+        }
+        let Some(name) = child_text(child, content, "Name") else {
+            continue;
+        };
+        if xml_local_name(name) != attribute {
+            continue;
+        }
+        let value = child_text(child, content, "AttValue").map(xml_unquote)?;
+        if value.is_empty() {
+            return None;
+        }
+        return Some(value.to_string());
+    }
+    None
+}
+
+fn xml_child_elements<'tree>(element: Node<'tree>) -> Vec<Node<'tree>> {
+    let mut children = Vec::new();
+    let mut cursor = element.walk();
+    for child in element.children(&mut cursor) {
+        if child.kind() != "content" {
+            continue;
+        }
+        let mut content_cursor = child.walk();
+        for grandchild in child.children(&mut content_cursor) {
+            if grandchild.kind() == "element" {
+                children.push(grandchild);
+            }
+        }
+    }
+    children
+}
+
+fn xml_child_element_count(element: Node<'_>, content: &str, local_name: &str) -> u64 {
+    xml_child_elements(element)
+        .into_iter()
+        .filter(|child| {
+            xml_element_tag_name(*child, content).map(xml_local_name) == Some(local_name)
+        })
+        .count() as u64
+}
+
+fn xml_child_element_attribute(
+    element: Node<'_>,
+    content: &str,
+    local_name: &str,
+    attribute: &str,
+) -> Option<String> {
+    xml_child_elements(element)
+        .into_iter()
+        .filter(|child| {
+            xml_element_tag_name(*child, content).map(xml_local_name) == Some(local_name)
+        })
+        .find_map(|child| xml_element_attribute(child, content, attribute))
+}
+
+/// The element that encloses `node`, skipping the `content` node the grammar
+/// puts between an element and its children.
+fn xml_parent_element<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    let mut current = node.parent()?;
+    loop {
+        match current.kind() {
+            "element" => return Some(current),
+            "content" => current = current.parent()?,
+            _ => return None,
+        }
+    }
 }
 
 fn fact_for_node(

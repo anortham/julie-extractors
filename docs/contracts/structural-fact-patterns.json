@@ -7894,6 +7894,406 @@
     "query_family": "component_template"
   },
   {
+    "description": "An XML document with a root element.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Extension-derived document dialect (\"xml\", \"xsd\", or \"wsdl\").",
+        "key": "dialect",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Qualified tag name of the root element, prefix included.",
+        "key": "root_element",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the document opens with an `<?xml …?>` declaration.",
+        "key": "has_xml_declaration",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "Total number of elements in the document.",
+        "key": "element_count",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Deepest element nesting level, counting the root element as 1.",
+        "key": "max_depth",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Number of `xmlns` declarations anywhere in the document.",
+        "key": "namespace_count",
+        "presence": "always",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "xml.document.v1",
+    "query_family": "document_structure"
+  },
+  {
+    "description": "An `xmlns` namespace declaration attribute.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Namespace URI the declaration binds.",
+        "key": "namespace_uri",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the declaration binds the default namespace (`xmlns=`).",
+        "key": "is_default",
+        "presence": "always",
+        "value_type": "bool"
+      },
+      {
+        "description": "Bound prefix; absent on a default-namespace declaration.",
+        "key": "prefix",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.namespace_declaration.v1",
+    "query_family": "document_metadata"
+  },
+  {
+    "description": "A WSDL `binding` declaration.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared binding name.",
+        "key": "binding_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw QName of the port type the binding implements.",
+        "key": "port_type",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.wsdl.binding.v1",
+    "query_family": "service_structure"
+  },
+  {
+    "description": "A WSDL `message` declaration.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared message name.",
+        "key": "message_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Number of parts declared directly under the message.",
+        "key": "part_count",
+        "presence": "always",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "xml.wsdl.message.v1",
+    "query_family": "service_structure"
+  },
+  {
+    "description": "A WSDL `operation` declaration inside a port type or a binding.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared operation name.",
+        "key": "operation_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Owning declaration kind (\"port_type\" or \"binding\"), when the operation has one.",
+        "key": "parent_kind",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared name of the owning port type or binding.",
+        "key": "parent_name",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw QName of the operation's input message.",
+        "key": "input_message",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw QName of the operation's output message.",
+        "key": "output_message",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.wsdl.operation.v1",
+    "query_family": "service_structure"
+  },
+  {
+    "description": "A WSDL `port` declaration inside a service.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared port name.",
+        "key": "port_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw QName of the binding the port exposes.",
+        "key": "binding",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.wsdl.port.v1",
+    "query_family": "service_structure"
+  },
+  {
+    "description": "A WSDL `service` declaration.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared service name.",
+        "key": "service_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Number of ports declared directly under the service.",
+        "key": "port_count",
+        "presence": "always",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "xml.wsdl.service.v1",
+    "query_family": "service_structure"
+  },
+  {
+    "description": "A top-level XSD `element` declaration.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared element name.",
+        "key": "element_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw QName of the declared element's type, when it names one.",
+        "key": "type_ref",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.xsd.element.v1",
+    "query_family": "schema_structure"
+  },
+  {
+    "description": "An XSD `import` or `include` of another schema document.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the reference is an \"import\" or an \"include\".",
+        "key": "import_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `schemaLocation` of the referenced document.",
+        "key": "schema_location",
+        "presence": "optional",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared `namespace` of the imported schema; absent on an include.",
+        "key": "namespace",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.xsd.import.v1",
+    "query_family": "schema_structure"
+  },
+  {
+    "description": "A named XSD `complexType` or `simpleType` declaration.",
+    "languages": [
+      "xml"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared type name.",
+        "key": "type_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared type flavour (\"complex\" or \"simple\").",
+        "key": "type_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Raw QName the type restricts or extends, when it derives from another type.",
+        "key": "base_type",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "xml.xsd.type.v1",
+    "query_family": "schema_structure"
+  },
+  {
     "description": "A YAML alias reference (`*name`).",
     "languages": [
       "yaml"

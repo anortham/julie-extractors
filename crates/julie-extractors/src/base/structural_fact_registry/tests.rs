@@ -194,7 +194,8 @@ fn registry_pattern_ids_match_emitted_union_per_language() {
         "json",
         "toml",
         "yaml",
-        "regex", //
+        "regex",
+        "xml", //
         // sql collector
         "sql", //
         // framework + web collectors
