@@ -125,7 +125,8 @@ invalid `--ignore-file` is a hard CLI error.
 Scans the root, extracts supported changed files, deletes artifact rows for
 source files that disappeared, and records a new revision only when the artifact
 changes. A supported source file larger than 1 MiB is skipped with a
-`slow_file_skipped` warning; its existing rows are preserved rather than deleted.
+`slow_file_skipped` warning, and any rows it already had are deleted so the
+artifact never serves stale symbols for a file that grew past the limit.
 
 `scan --force` rebuilds the artifact contents in one SQLite transaction. It is
 the explicit path for a moved root or full re-extraction.
@@ -133,8 +134,8 @@ the explicit path for a moved root or full re-extraction.
 A scan of an artifact with missing, stale, or failed reference-resolution
 metadata re-extracts every supported file before advancing the resolution
 contract. A successful upgrade emits `resolution_upgraded`. If any source file
-cannot be re-extracted, including an oversized file whose existing rows are
-preserved, or if the resolver fails, the scan returns `failed` with
+cannot be re-extracted, including an oversized file whose rows were removed, or
+if the resolver fails, the scan returns `failed` with
 `schema_migration_required` and exit code `3`. This applies to both incremental
 and `--force` scans.
 
@@ -157,8 +158,8 @@ Outcomes:
 - changed supported file: replaces that file's artifact rows.
 - unchanged supported file: returns `no_change`.
 - oversized supported file (larger than 1 MiB): skipped with a `slow_file_skipped`
-  warning and returns `no_change`. Existing rows for the file are preserved, not
-  deleted — this mirrors `scan`, which also skips the file and keeps its rows.
+  warning and returns `unsupported`. Existing rows for the path are deleted —
+  this mirrors `scan`, which also skips the file and removes its rows.
 - unsupported or ignored file: deletes stale rows for that path and returns
   `unsupported`.
 - missing file: returns `failed` with `file_not_found`; callers should use
@@ -249,6 +250,10 @@ scan can still commit useful rows for other files, the failing file is written
 as `failed_preserved`, its previous symbol rows stay intact, and the command
 returns `partial` with exit code `1`. If the failure prevents a useful artifact
 operation from committing, the command returns `failed`.
+
+An oversized file is a policy skip rather than a failure, so the guard does not
+apply: its rows are removed on both `scan` and `update`. Preserving them would
+serve symbols from a version of the file the extractor can no longer read.
 
 During a reference-resolution contract upgrade, preserved rows have not been
 re-extracted under the new contract. Any read failure, parse failure, extractor

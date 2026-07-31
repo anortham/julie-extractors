@@ -428,9 +428,10 @@ Stable report codes:
 Warnings use the same shape and may use warning-only codes such as
 `metadata_missing`, `capability_gap`, `slow_file_skipped`, or
 `resolution_upgraded`.
-`slow_file_skipped` is emitted by `scan` for otherwise-supported source files
-that exceed the extractor's oversized-file limit and are excluded from
-extraction.
+`slow_file_skipped` is emitted by `scan` and `update` for otherwise-supported
+source files that exceed the extractor's oversized-file limit and are excluded
+from extraction. Both paths remove any artifact rows previously stored for the
+path, so a file that grows past the limit stops serving stale rows.
 `resolution_upgraded` is emitted when a whole-workspace scan automatically
 re-extracts every supported file to advance the reference-resolution evidence
 contract.
@@ -464,7 +465,8 @@ successful `julie-extract scan` of the whole workspace.
 - Must include requested paths in `input.file_path` and
   `input.root_relative_path` when path normalization succeeds.
 - Unsupported or ignored files return `status: unsupported` and exit `0` after
-  stale rows for the path are removed.
+  stale rows for the path are removed. An oversized file takes the same path and
+  reports the `slow_file_skipped` warning instead of `unsupported_file`.
 
 ### `delete`
 

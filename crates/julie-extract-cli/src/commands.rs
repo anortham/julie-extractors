@@ -11,8 +11,8 @@ use julie_extract_artifact::model::{
     ArtifactFile, RevisionChangeKind, RevisionInput, WriteMode, WriteOperation, WriteResult,
 };
 use julie_extract_artifact::reports::{
-    ReportCode, ReportInput, ReportLanguageProfile, ReportMode, ReportOperation, ReportProfile,
-    ReportRevision, ReportStatus, RowDomainCounts,
+    ReportCode, ReportDiagnostic, ReportInput, ReportLanguageProfile, ReportMode, ReportOperation,
+    ReportProfile, ReportRevision, ReportStatus, RowDomainCounts,
 };
 use julie_extract_artifact::writer::{
     ArtifactFileSpool, ArtifactSpoolError, ArtifactWriteError, ArtifactWriter,
@@ -161,7 +161,6 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     let preserved_missing_paths = discovered
         .errors
         .iter()
-        .chain(discovered.slow_file_skips.iter())
         .map(|error| error.root_relative_path.clone())
         .collect::<Vec<_>>();
     record_profile_phase(
@@ -578,10 +577,24 @@ fn update(args: UpdateArgs) -> CommandOutcome {
         FileSelection::Unsupported {
             reason: UnsupportedReason::Oversized,
         } => {
-            return skip_oversized_update(&db, &root, target, args.json);
+            return cleanup_skipped_update(
+                &db,
+                &root,
+                target,
+                existing_artifact,
+                UpdateSkipReason::Oversized,
+                args.json,
+            );
         }
         FileSelection::Unsupported { .. } => {
-            return cleanup_unsupported_update(&db, &root, target, existing_artifact, args.json);
+            return cleanup_skipped_update(
+                &db,
+                &root,
+                target,
+                existing_artifact,
+                UpdateSkipReason::IgnoredOrUnsupported,
+                args.json,
+            );
         }
     };
 
@@ -1442,46 +1455,54 @@ fn create_scan_spool() -> Result<ArtifactFileSpool, ArtifactSpoolError> {
     ArtifactFileSpool::create(path)
 }
 
-/// Handle `update` on an otherwise-supported source file that exceeds
-/// [`crate::limits::MAX_SOURCE_FILE_BYTES`]. The file is skipped exactly as a
-/// full scan skips it: a typed `slow_file_skipped` warning is emitted and the
-/// file's existing artifact rows are left untouched. Deleting rows is reserved
-/// for genuinely unsupported or ignored files, so this path never opens a writer.
-fn skip_oversized_update(
-    db: &Path,
-    root: &Path,
-    target: FileTarget,
-    json_report: bool,
-) -> CommandOutcome {
-    let input = artifact_input(
-        db,
-        Some(root),
-        Some(&target.absolute_path),
-        Some(&target.root_relative_path),
-    );
-    let mut report = base_report(
-        ReportStatus::NoChange,
-        ReportOperation::Update,
-        ReportMode::SingleFile,
-        input,
-    )
-    .with_warning(diagnostic(
-        ReportCode::SlowFileSkipped,
-        crate::limits::slow_file_skip_message(),
-        Some(display_path(&target.absolute_path)),
-        Some(target.root_relative_path),
-        true,
-        json!({}),
-    ));
-    report.counts.files_scanned = 1;
-    outcome(report, 0, json_report, ReportStream::Stdout)
+/// Why `update` refused to extract a file it was pointed at. Both variants
+/// converge the artifact the same way — the path's rows are removed — and differ
+/// only in the diagnostic they report. An oversized file keeps the same
+/// `slow_file_skipped` warning `scan` emits, and `scan` removes its rows too, so
+/// a file that grows past [`crate::limits::MAX_SOURCE_FILE_BYTES`] never keeps
+/// serving stale symbols.
+#[derive(Clone, Copy)]
+enum UpdateSkipReason {
+    IgnoredOrUnsupported,
+    Oversized,
 }
 
-fn cleanup_unsupported_update(
+fn update_skip_diagnostic(
+    reason: UpdateSkipReason,
+    rows_removed: bool,
+    absolute_path: &Path,
+    root_relative_path: String,
+) -> ReportDiagnostic {
+    let (code, message) = match reason {
+        UpdateSkipReason::IgnoredOrUnsupported => (
+            ReportCode::UnsupportedFile,
+            if rows_removed {
+                "file is ignored or unsupported; stale artifact rows were removed".to_string()
+            } else {
+                "file is ignored or unsupported and no artifact rows exist".to_string()
+            },
+        ),
+        UpdateSkipReason::Oversized => (
+            ReportCode::SlowFileSkipped,
+            crate::limits::slow_file_skip_message(),
+        ),
+    };
+    diagnostic(
+        code,
+        message,
+        Some(display_path(absolute_path)),
+        Some(root_relative_path),
+        true,
+        json!({}),
+    )
+}
+
+fn cleanup_skipped_update(
     db: &Path,
     root: &Path,
     target: FileTarget,
     existing_artifact: Option<ExistingArtifact>,
+    reason: UpdateSkipReason,
     json_report: bool,
 ) -> CommandOutcome {
     let input = artifact_input(
@@ -1497,13 +1518,11 @@ fn cleanup_unsupported_update(
             ReportMode::SingleFile,
             input,
         )
-        .with_warning(diagnostic(
-            ReportCode::UnsupportedFile,
-            "file is ignored or unsupported and no artifact rows exist",
-            Some(display_path(&target.absolute_path)),
-            Some(target.root_relative_path),
-            true,
-            json!({}),
+        .with_warning(update_skip_diagnostic(
+            reason,
+            false,
+            &target.absolute_path,
+            target.root_relative_path,
         ));
         report.counts.files_scanned = 1;
         report.counts.files_unsupported = 1;
@@ -1550,17 +1569,11 @@ fn cleanup_unsupported_update(
                 created_revision_id: write_result.revision_id,
             })
             .with_totals(table_totals(connection))
-            .with_warning(diagnostic(
-                ReportCode::UnsupportedFile,
-                if write_result.files_changed > 0 {
-                    "file is ignored or unsupported; stale artifact rows were removed"
-                } else {
-                    "file is ignored or unsupported and no artifact rows exist"
-                },
-                Some(display_path(&target.absolute_path)),
-                Some(root_relative_path),
-                true,
-                json!({}),
+            .with_warning(update_skip_diagnostic(
+                reason,
+                write_result.files_changed > 0,
+                &target.absolute_path,
+                root_relative_path,
             ));
             if let Some(section) =
                 crate::reports::resolution_report_section(resolution_report.as_ref(), &write_result)

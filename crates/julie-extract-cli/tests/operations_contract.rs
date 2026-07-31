@@ -1768,12 +1768,11 @@ fn scan_reports_slow_file_skipped_warning_for_oversized_source_file() {
 }
 
 #[test]
-fn scan_preserves_existing_rows_when_source_file_becomes_oversized() {
+fn scan_removes_existing_rows_when_source_file_becomes_oversized() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
     assert_success(scan(fixture.root_str(), &db));
-    let before = symbols_for_path(&db, "src/a.rs");
-    assert!(!before.is_empty());
+    assert!(!symbols_for_path(&db, "src/a.rs").is_empty());
 
     std::fs::write(
         fixture.path("src/a.rs"),
@@ -1790,9 +1789,49 @@ fn scan_preserves_existing_rows_when_source_file_becomes_oversized() {
         String::from_utf8_lossy(&output.stderr)
     );
     let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["counts"]["files_deleted"], 1);
     assert_eq!(report["warnings"][0]["code"], "slow_file_skipped");
     assert_eq!(report["warnings"][0]["root_relative_path"], "src/a.rs");
-    assert_eq!(symbols_for_path(&db, "src/a.rs"), before);
+    for domain in ["files", "symbols", "identifiers"] {
+        assert_eq!(rows_for_path(&db, domain, "src/a.rs"), 0, "{domain}");
+    }
+    assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+
+    let converged = json_report(&scan(fixture.root_str(), &db));
+    assert_eq!(converged["status"], "no_change");
+    assert_eq!(converged["counts"]["files_deleted"], 0);
+}
+
+#[test]
+fn scan_indexes_a_source_file_at_exactly_the_size_limit() {
+    let fixture = FixtureRoot::with_file(
+        "src/limit.rs",
+        &rust_source_of_exact_size("at_limit", MAX_SOURCE_FILE_BYTES),
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    let output = scan(fixture.root_str(), &db);
+
+    assert_success(output);
+    assert_eq!(symbols_for_path(&db, "src/limit.rs"), vec!["at_limit"]);
+}
+
+#[test]
+fn scan_skips_a_source_file_one_byte_over_the_size_limit() {
+    let fixture = FixtureRoot::with_file(
+        "src/over.rs",
+        &rust_source_of_exact_size("over_limit", MAX_SOURCE_FILE_BYTES + 1),
+    );
+    let db = fixture.path("artifact.sqlite");
+
+    let output = scan(fixture.root_str(), &db);
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["counts"]["files_unsupported"], 1);
+    assert_eq!(report["warnings"][0]["code"], "slow_file_skipped");
+    assert_eq!(rows_for_path(&db, "files", "src/over.rs"), 0);
 }
 
 #[test]
@@ -1800,8 +1839,7 @@ fn resolution_upgrade_remains_blocked_when_a_source_file_is_oversized() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
     assert_success(scan(fixture.root_str(), &db));
-    let before = symbols_for_path(&db, "src/a.rs");
-    assert!(!before.is_empty());
+    assert!(!symbols_for_path(&db, "src/a.rs").is_empty());
 
     let connection = Connection::open(&db).unwrap();
     connection
@@ -1836,7 +1874,7 @@ fn resolution_upgrade_remains_blocked_when_a_source_file_is_oversized() {
             .iter()
             .any(|error| error["code"] == "schema_migration_required")
     );
-    assert_eq!(symbols_for_path(&db, "src/a.rs"), before);
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), Vec::<String>::new());
     assert_eq!(metadata_value(&db, "reference_resolution_status"), "failed");
 
     let update_output = update(fixture.root_str(), &db, "src/b.rs");
@@ -1848,12 +1886,11 @@ fn resolution_upgrade_remains_blocked_when_a_source_file_is_oversized() {
 }
 
 #[test]
-fn update_oversized_supported_file_preserves_rows_and_reports_slow_file_skipped() {
+fn update_oversized_supported_file_removes_rows_and_reports_slow_file_skipped() {
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
     assert_success(scan(fixture.root_str(), &db));
-    let before = symbols_for_path(&db, "src/a.rs");
-    assert!(!before.is_empty());
+    assert!(!symbols_for_path(&db, "src/a.rs").is_empty());
 
     std::fs::write(
         fixture.path("src/a.rs"),
@@ -1871,8 +1908,9 @@ fn update_oversized_supported_file_preserves_rows_and_reports_slow_file_skipped(
     );
     let report = json_report(&output);
     assert_eq!(report["operation"], "update");
-    assert_eq!(report["status"], "no_change");
-    assert_eq!(report["counts"]["files_deleted"], 0);
+    assert_eq!(report["status"], "unsupported");
+    assert_eq!(report["counts"]["files_unsupported"], 1);
+    assert_eq!(report["counts"]["files_deleted"], 1);
     assert_eq!(report["warnings"][0]["code"], "slow_file_skipped");
     assert_eq!(report["warnings"][0]["root_relative_path"], "src/a.rs");
 
@@ -1885,8 +1923,67 @@ fn update_oversized_supported_file_preserves_rows_and_reports_slow_file_skipped(
         .collect::<Vec<_>>();
     assert!(!diagnostic_codes.contains(&"unsupported_file"));
 
-    assert_eq!(symbols_for_path(&db, "src/a.rs"), before);
+    for domain in ["files", "symbols", "identifiers"] {
+        assert_eq!(rows_for_path(&db, domain, "src/a.rs"), 0, "{domain}");
+    }
     assert_eq!(symbols_for_path(&db, "src/b.rs"), vec!["beta"]);
+}
+
+#[test]
+fn update_reindexes_a_file_that_shrinks_back_under_the_size_limit() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    std::fs::write(
+        fixture.path("src/a.rs"),
+        "x".repeat(MAX_SOURCE_FILE_BYTES + 1),
+    )
+    .unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/a.rs"));
+    assert_eq!(rows_for_path(&db, "files", "src/a.rs"), 0);
+
+    std::fs::write(fixture.path("src/a.rs"), "pub fn regrown() {}\n").unwrap();
+    let output = update(fixture.root_str(), &db, "src/a.rs");
+
+    assert_success(output);
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["regrown"]);
+}
+
+#[test]
+fn update_indexes_a_source_file_at_exactly_the_size_limit() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    std::fs::write(
+        fixture.path("src/a.rs"),
+        rust_source_of_exact_size("at_limit", MAX_SOURCE_FILE_BYTES),
+    )
+    .unwrap();
+
+    let output = update(fixture.root_str(), &db, "src/a.rs");
+
+    assert_success(output);
+    assert_eq!(symbols_for_path(&db, "src/a.rs"), vec!["at_limit"]);
+}
+
+#[test]
+fn update_skips_a_source_file_one_byte_over_the_size_limit() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    std::fs::write(
+        fixture.path("src/a.rs"),
+        rust_source_of_exact_size("over_limit", MAX_SOURCE_FILE_BYTES + 1),
+    )
+    .unwrap();
+
+    let output = update(fixture.root_str(), &db, "src/a.rs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "unsupported");
+    assert_eq!(report["warnings"][0]["code"], "slow_file_skipped");
+    assert_eq!(rows_for_path(&db, "files", "src/a.rs"), 0);
 }
 
 #[test]
@@ -2794,6 +2891,24 @@ fn distinct_count(db: &Path, table: &str, column: &str) -> i64 {
         |row| row.get(0),
     )
     .unwrap()
+}
+
+fn rows_for_path(db: &Path, table: &str, path: &str) -> i64 {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        &format!("SELECT COUNT(*) FROM {table} WHERE path = ?1"),
+        [path],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+fn rust_source_of_exact_size(symbol: &str, size: usize) -> String {
+    let mut source = format!("pub fn {symbol}() {{}}\n// ");
+    assert!(source.len() <= size);
+    let padding = size - source.len();
+    source.push_str(&"x".repeat(padding));
+    source
 }
 
 fn symbols_for_path(db: &Path, path: &str) -> Vec<String> {

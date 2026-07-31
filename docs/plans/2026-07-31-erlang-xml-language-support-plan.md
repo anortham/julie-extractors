@@ -200,10 +200,10 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **Approach:** Follow the existing deleted-file row-removal path for the removal mechanics. If report schema docs (`docs/contracts/reports.md`) describe the `no_change` behavior, update them in this task.
 
 **Acceptance criteria:**
-- [ ] Indexed-then-oversized file: rows removed, skipped-too-large recorded, on both `update` and `scan` paths (asserted)
-- [ ] 1MB / 1MB+1 boundary tests pass
-- [ ] Full `julie-extract-cli` test suite green (escalation trigger for `commands.rs`)
-- [ ] Verified diff handed to lead (parallel-lead-commit)
+- [x] Indexed-then-oversized file: rows removed, skipped-too-large recorded, on both `update` and `scan` paths (asserted)
+- [x] 1MB / 1MB+1 boundary tests pass
+- [x] Full `julie-extract-cli` test suite green (escalation trigger for `commands.rs`)
+- [x] Verified diff handed to lead (parallel-lead-commit)
 
 ### Task 6: Erlang relationships + pending relationships
 
