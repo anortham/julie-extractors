@@ -251,9 +251,9 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **What to build:** The last two capability domains, flipping Erlang to FULL honestly. Doc-attribute tests must cover functions, types, AND callbacks (design requirement) if not already proven in Task 2.
 
 **Acceptance criteria:**
-- [ ] `-spec` type facts asserted; EUnit and CT containers/cases/lifecycle asserted in the test_roles golden
-- [ ] Erlang `capabilities == target_capabilities == FULL` in matrix; `cargo xtask test capability` green
-- [ ] Verification passes and the change is committed (serial-worker-commit)
+- [x] `-spec` type facts asserted; EUnit and CT containers/cases/lifecycle asserted in the test_roles golden
+- [x] Erlang `capabilities == target_capabilities == FULL` in matrix; `cargo xtask test capability` green
+- [x] Verification passes and the change is committed (serial-worker-commit)
 
 ### Task 8: Erlang real-world corpus gate
 
