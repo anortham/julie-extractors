@@ -181,6 +181,68 @@ real() -> ok.
     );
 }
 
+/// An unclosed string is not materialized as a `string` node, so a literal scan
+/// of the tree cannot see it. Every form-shaped line after the opening quote is
+/// literal text until the file recovers.
+#[test]
+fn form_like_lines_inside_an_unclosed_string_do_not_become_symbols() {
+    let code = r#"-module(probe).
+-export([real/0]).
+
+f() ->
+    "unclosed
+ghost() -> not_code.
+-record(ghost, {id}).
+
+real() -> ok.
+"#;
+    let results = extract(code);
+    let names = symbol_names(code);
+
+    assert!(
+        !names.iter().any(|name| name == "ghost" || name == "id"),
+        "text inside an unclosed string must not become declarations, got {names:?}"
+    );
+    assert!(
+        results
+            .symbols
+            .iter()
+            .all(|symbol| !(5..=7).contains(&symbol.start_line)),
+        "no symbol may start inside the string text, got {:?}",
+        results
+            .symbols
+            .iter()
+            .map(|symbol| (symbol.name.as_str(), symbol.start_line))
+            .collect::<Vec<_>>()
+    );
+    assert!(names.contains(&"real".to_string()), "got {names:?}");
+}
+
+/// The unclosed-string guard must not swallow the rest of the file: a form after
+/// a string that does close is still recoverable.
+#[test]
+fn a_form_after_a_closed_string_is_still_recovered() {
+    let code = r#"-module(p).
+-export([real/0]).
+
+first() ->
+    ?WITH_STACKTRACE(C, R, S)
+        io:format("ghost() -> not_code.
+-record(ghost, {id}).
+still string")
+    end.
+
+real() -> ok.
+"#;
+    let names = symbol_names(code);
+
+    assert!(names.contains(&"real".to_string()), "got {names:?}");
+    assert!(
+        !names.iter().any(|name| name == "ghost" || name == "id"),
+        "got {names:?}"
+    );
+}
+
 #[test]
 fn garbage_inside_an_error_region_does_not_synthesize_symbols() {
     let code = r#"-module(p).

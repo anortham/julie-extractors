@@ -25,6 +25,7 @@ mod definition_forms;
 mod doc;
 mod helpers;
 mod identifiers;
+mod lexical;
 mod recovery;
 mod relationships;
 mod types;
@@ -37,15 +38,19 @@ const EUNIT_HEADER: &str = "eunit/include/eunit.hrl";
 /// rescued from re-parses, in source order.
 ///
 /// A recovered node is admitted only when it is a real declaration kind, starts
-/// at column 0 the way every top-level Erlang form does, and does not repeat a
-/// declaration already admitted at that offset. Offsets are comparable across
-/// trees because recovery blanks rather than removes the text before its resume
-/// point, so a recovered node's byte range still addresses the original file.
+/// at column 0 the way every top-level Erlang form does, is not literal text,
+/// and does not repeat a declaration already admitted at that offset. Offsets
+/// are comparable across trees because recovery blanks rather than removes the
+/// text before its resume point, so a recovered node's byte range still
+/// addresses the original file.
 ///
 /// The form that failed to parse is never itself readmitted: recovery only
 /// resumes strictly after an error starts, so its own head — the one whose
 /// argument list would yield an invented arity — is never a resume point.
-fn merge_declarations<'tree>(primary: &'tree Tree, recovered: &'tree [Tree]) -> Vec<Node<'tree>> {
+fn merge_declarations<'tree>(
+    primary: &'tree Tree,
+    recovery: &'tree recovery::Recovery,
+) -> Vec<Node<'tree>> {
     let root = primary.root_node();
     let mut declarations = named_children(&root);
     let mut claimed: HashSet<usize> = declarations
@@ -54,11 +59,12 @@ fn merge_declarations<'tree>(primary: &'tree Tree, recovered: &'tree [Tree]) -> 
         .map(|node| node.start_byte())
         .collect();
 
-    for tree in recovered {
+    for tree in &recovery.trees {
         let root = tree.root_node();
         for node in named_children(&root) {
             if !recovery::RECOVERABLE_DECLARATION_KINDS.contains(&node.kind())
                 || node.start_position().column != 0
+                || recovery.is_literal_text(node.start_byte())
                 || !claimed.insert(node.start_byte())
             {
                 continue;
@@ -108,7 +114,7 @@ pub struct ErlangExtractor {
     /// Re-parses produced by [`recovery`] for a file with parse errors. Owned
     /// here so every walk sees the same recovered declarations; empty for a file
     /// that parsed clean.
-    recovered_trees: Vec<Tree>,
+    recovery: Option<recovery::Recovery>,
 }
 
 impl ErlangExtractor {
@@ -125,7 +131,7 @@ impl ErlangExtractor {
             exports_everything: false,
             test_module: ErlangTestModule::default(),
             declared_types: types::DeclaredTypes::default(),
-            recovered_trees: Vec::new(),
+            recovery: None,
         }
     }
 
@@ -133,23 +139,23 @@ impl ErlangExtractor {
     /// top-level children plus anything [`recovery`] rescued from after a parse
     /// error, in source order.
     ///
-    /// The recovered trees are moved out of `self` for the call so the borrow
-    /// checker can see that the declaration nodes borrow them rather than the
+    /// The recovery result is moved out of `self` for the call so the borrow
+    /// checker can see that the declaration nodes borrow it rather than the
     /// extractor, then moved back.
     fn with_declarations<R>(
         &mut self,
         tree: &Tree,
         body: impl FnOnce(&mut Self, &[Node<'_>]) -> R,
     ) -> R {
-        if self.recovered_trees.is_empty() {
-            self.recovered_trees = recovery::recover(&self.base.content, tree);
-        }
-        let recovered = std::mem::take(&mut self.recovered_trees);
+        let recovery = self
+            .recovery
+            .take()
+            .unwrap_or_else(|| recovery::recover(&self.base.content, tree));
         let result = {
-            let declarations = merge_declarations(tree, &recovered);
+            let declarations = merge_declarations(tree, &recovery);
             body(self, &declarations)
         };
-        self.recovered_trees = recovered;
+        self.recovery = Some(recovery);
         result
     }
 

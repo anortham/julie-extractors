@@ -21,10 +21,15 @@
 //! - resume points are only column-0 form starts, never offsets inside a
 //!   string, a comment, or a multiline quoted atom, so neither doc-comment prose
 //!   nor quoted text is re-read as code.
-
-use std::ops::Range;
+//!
+//! Literal extents come from [`lexical`], not from the parse tree. The tree is
+//! the broken artifact recovery exists to work around: an unclosed `"` never
+//! becomes a `string` node, so a tree-derived literal map cannot see it and the
+//! form-shaped lines in its interior would be re-parsed as declarations.
 
 use tree_sitter::{Node, Parser, Tree};
+
+use super::lexical::LiteralSpans;
 
 /// Hard cap on re-parses per file. Recovery only runs on a file that already
 /// failed to parse, and each pass must advance to a later resume point, so this
@@ -53,23 +58,43 @@ pub(super) const RECOVERABLE_DECLARATION_KINDS: &[&str] = &[
     "fun_decl",
 ];
 
+/// The outcome of recovering one file: the extra trees, in pass order, and the
+/// literal map their declarations are filtered against.
+#[derive(Default)]
+pub(super) struct Recovery {
+    pub(super) trees: Vec<Tree>,
+    pub(super) literals: LiteralSpans,
+}
+
+impl Recovery {
+    /// Whether a recovered declaration starting at `offset` is literal text.
+    ///
+    /// The resume-point filter keeps recovery from cutting into a literal, but a
+    /// pass that resumes legally can still leave an unresolved error region whose
+    /// re-parse invents declarations further down inside one.
+    pub(super) fn is_literal_text(&self, offset: usize) -> bool {
+        self.literals.contains_strictly(offset)
+    }
+}
+
 /// Re-parse `content` from successive form starts until the tail parses clean,
-/// no resume point is left, or the budget runs out. Returns the extra trees, in
-/// pass order; an empty vector means the primary parse needs no recovery.
-pub(super) fn recover(content: &str, primary: &Tree) -> Vec<Tree> {
+/// no resume point is left, or the budget runs out. An empty tree list means the
+/// primary parse needs no recovery.
+pub(super) fn recover(content: &str, primary: &Tree) -> Recovery {
     if !primary.root_node().has_error() {
-        return Vec::new();
+        return Recovery::default();
     }
 
     let Ok(language) = crate::language::get_tree_sitter_language("erlang") else {
-        return Vec::new();
+        return Recovery::default();
     };
     let mut parser = Parser::new();
     if parser.set_language(&language).is_err() {
-        return Vec::new();
+        return Recovery::default();
     }
 
-    let resume_points = resume_points(content, primary);
+    let literals = LiteralSpans::scan(content);
+    let resume_points = resume_points(content, &literals);
     let mut trees = Vec::new();
     let mut error_start = first_error_start(&primary.root_node()).unwrap_or(0);
     let mut next_index = 0;
@@ -100,7 +125,7 @@ pub(super) fn recover(content: &str, primary: &Tree) -> Vec<Tree> {
         error_start = next_error_start.unwrap_or(cut);
     }
 
-    trees
+    Recovery { trees, literals }
 }
 
 /// A copy of `content` with every byte before `cut` replaced by a space, except
@@ -130,17 +155,12 @@ pub(super) fn blank_before(content: &str, cut: usize) -> String {
 /// Only offsets STRICTLY inside a literal are rejected. A literal that begins
 /// at the offset is that form's own head — `'quoted name'(X) -> X.` is a legal
 /// Erlang function, and so is every unquoted head, which is an `atom` too.
-fn resume_points(content: &str, primary: &Tree) -> Vec<usize> {
-    let literals = literal_ranges(&primary.root_node());
+fn resume_points(content: &str, literals: &LiteralSpans) -> Vec<usize> {
     let mut points = Vec::new();
     let mut offset = 0;
 
     for line in content.split_inclusive('\n') {
-        if starts_form(line)
-            && !literals
-                .iter()
-                .any(|range| range.start < offset && offset < range.end)
-        {
+        if starts_form(line) && !literals.contains_strictly(offset) {
             points.push(offset);
         }
         offset += line.len();
@@ -154,40 +174,6 @@ fn starts_form(line: &str) -> bool {
         line.as_bytes().first(),
         Some(b'-') | Some(b'?') | Some(b'\'') | Some(b'a'..=b'z')
     )
-}
-
-/// Lexical literal kinds whose token can straddle a line boundary and so hide a
-/// form-shaped line at column 0 inside literal text. `atom` covers the quoted
-/// form (`'…'`) and `char` the escape form (`$…`); both token regexes in
-/// tree-sitter-erlang 0.20.0 admit a newline. Only the multiline instances are
-/// recorded — every unquoted form head is an `atom` too, and excluding those
-/// would leave recovery with no resume points at all.
-const LINE_SPANNING_LITERAL_KINDS: &[&str] = &["atom", "char"];
-
-/// Byte ranges of literal nodes, used to keep resume points out of literal text.
-fn literal_ranges(node: &Node) -> Vec<Range<usize>> {
-    let mut ranges = Vec::new();
-    collect_literal_ranges(node, &mut ranges);
-    ranges
-}
-
-fn collect_literal_ranges(node: &Node, ranges: &mut Vec<Range<usize>>) {
-    if matches!(node.kind(), "string" | "comment") {
-        ranges.push(node.byte_range());
-        return;
-    }
-
-    if LINE_SPANNING_LITERAL_KINDS.contains(&node.kind()) {
-        if node.start_position().row != node.end_position().row {
-            ranges.push(node.byte_range());
-        }
-        return;
-    }
-
-    let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) {
-        collect_literal_ranges(&child, ranges);
-    }
 }
 
 /// Start offset of the first error below `node`. The node itself is never
@@ -227,7 +213,7 @@ mod tests {
         let tree = parse(code);
 
         assert!(!tree.root_node().has_error());
-        assert!(recover(code, &tree).is_empty());
+        assert!(recover(code, &tree).trees.is_empty());
     }
 
     #[test]
@@ -255,8 +241,7 @@ mod tests {
     #[test]
     fn resume_points_skip_lines_inside_strings_and_comments() {
         let code = "-module(bank).\n-doc \"\"\"\nopen(Id) -> Id.\n\"\"\".\n%% audit(A) -> A.\nreal(X) -> X.\n";
-        let tree = parse(code);
-        let points = resume_points(code, &tree);
+        let points = resume_points(code, &LiteralSpans::scan(code));
 
         let lines: Vec<&str> = points
             .iter()
@@ -274,8 +259,7 @@ mod tests {
     #[test]
     fn resume_points_skip_lines_inside_a_multiline_quoted_atom() {
         let code = "-module(bank).\nlabel() -> 'first line\n-export([fake/0]).\nsecond line'.\nreal(X) -> X.\n";
-        let tree = parse(code);
-        let points = resume_points(code, &tree);
+        let points = resume_points(code, &LiteralSpans::scan(code));
 
         let lines: Vec<&str> = points
             .iter()
@@ -292,8 +276,7 @@ mod tests {
     #[test]
     fn a_quoted_atom_that_heads_a_form_stays_a_resume_point() {
         let code = "-module(bank).\n'quoted name'(X) -> X.\n";
-        let tree = parse(code);
-        let points = resume_points(code, &tree);
+        let points = resume_points(code, &LiteralSpans::scan(code));
 
         assert!(points.contains(&code.find('\'').unwrap()), "got {points:?}");
     }
@@ -307,6 +290,6 @@ mod tests {
         let tree = parse(&code);
 
         assert!(tree.root_node().has_error());
-        assert!(recover(&code, &tree).len() <= MAX_RECOVERY_PARSES);
+        assert!(recover(&code, &tree).trees.len() <= MAX_RECOVERY_PARSES);
     }
 }
