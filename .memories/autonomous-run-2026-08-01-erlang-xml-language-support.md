@@ -32,7 +32,7 @@
   - Generic XML `type=`/`ref=`/`base=`/`element=` attributes emitted false TypeUsage references (e.g. `Serilog.Sinks.Console` from a logging config) — fixed by gating on declared schema namespaces; xml/basic 4→0, cardinality 2→0, xsd/wsdl sets unchanged.
 - **Dismissed:** 0
 - **Flagged for your review:** 1
-  - `pp_define` macro bodies are walked as executable, so a type-valued macro (`-define(TYPE, integer()).`) emits a false call identifier — real, but fixing it by dropping macro-body walks would also lose real edges like `-define(LOG(X), io:format(...))`. Lead recommendation: ship as-is, restrict macro-body EDGE emission in a follow-up if dogfood shows noise.
+  - `pp_define` macro bodies are walked as executable, so a type-valued macro (`-define(TYPE, integer()).`) emits a false call identifier — real, but fixing it by dropping macro-body walks would also lose real edges like `-define(LOG(X), io:format(...))`. USER DECISION 2026-08-01: ship as-is; revisit with a targeted macro-body edge restriction in a later release if dogfooding shows noise.
 - Cost: codex does not report per-request token counts.
 
 ## Tests
