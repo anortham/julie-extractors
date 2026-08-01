@@ -59,6 +59,8 @@
 | Task 8: Erlang real-world corpus gate | None - serial | Create: `fixtures/real-world/erlang/**` (corpus + checksums + LICENSE notices), `crates/julie-extract-cli/tests/erlang_corpus.rs` | Yes | Needs Tasks 2/4/6/7 complete — the baseline asserts final extractor behavior. |
 | Task 9: XML schema/WSDL structural facts | None - serial | Modify: `crates/julie-extractors/src/xml/*`, `crates/julie-extractors/src/base/data_structural_facts.rs`, `crates/julie-extractors/src/base/structural_fact_registry/*`, `docs/contracts/structural-fact-patterns.json` (regenerated), xml row of `capabilities.json`, `fixtures/extraction/xml/*` | Yes | Structural-fact registry files are shared repo-wide; runs alone after Task 3. |
 | Task 10: Branch gates + repo docs | None - serial | Modify: `README.md`, any files fixed by gate failures | Yes | Final gate over everything; must run last. |
+| Task 11: Cheap quality-bar debts | None - serial | Modify: erlang + xml extractor/test/fixture trees, both `capabilities.json` rows, migration-plan doc, corpus baseline | Yes | Added 2026-08-01 (user decision to close strict-gate debts on-branch); shares erlang goldens/capabilities/migration doc with Task 12. |
+| Task 12: Erlang structural facts + strict green | None - serial | Create/Modify: structural_fact_registry erlang module + wiring, erlang extractor/fixture trees, contract JSON, erlang `capabilities.json` row, migration-plan doc, corpus baseline | Yes | Runs after Task 11 so the strict-gate exit criterion covers both closures. |
 
 Commit mode: `serial-worker-commit` for serial tasks; `parallel-lead-commit` for Batch A (Tasks 4 and 5) — Batch A workers hand verified diffs to the lead.
 
@@ -325,7 +327,60 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **What to build:** Run the full branch gate: `default`, `golden`, `capability`, `changed` (registration paths), `certification` (REQUIRED — parser deps changed), `languages --json` inspection, `node scripts/language-data-quality-report.mjs --strict`, `cargo fmt --check`, `clippy`, `cargo deny check`. Fix what fails. Update README language facts. Answer checklist §9 review questions in the task report.
 
 **Acceptance criteria:**
-- [ ] Every gate listed above green, recorded in the verification ledger with SHAs
-- [ ] `languages --json` erlang row shows FULL, xml row shows symbols+identifiers (+structural facts coverage), both honest
-- [ ] README language facts current
+- [x] Every gate listed above green, recorded in the verification ledger with SHAs — 13/14 at e2d39c0; the strict data-quality gate stayed red (4 quality-bar debts) and was escalated. User decision 2026-08-01: close all four on this branch via Tasks 11-12; the strict gate re-runs green as Task 12's exit criterion.
+- [x] `languages --json` erlang row shows FULL, xml row shows symbols+identifiers (+structural facts coverage), both honest
+- [x] README language facts current
+- [x] Verification passes and the change is committed (serial-worker-commit)
+
+### Task 11: Close the cheap quality-bar debts (erlang complexity + erlang literals + xml literals)
+
+**Files:**
+- Modify: `crates/julie-extractors/src/erlang/*` (complexity-metric config + string-literal call-argument capture), `crates/julie-extractors/src/xml/*` (attribute-value literal capture), `crates/julie-extractors/src/tests/erlang/*`, `crates/julie-extractors/src/tests/xml/*`, `fixtures/extraction/erlang/*` and `fixtures/extraction/xml/*` (golden regen), `fixtures/extraction/capabilities.json` (erlang + xml rows), `docs/plans/2026-05-31-julie-code-migration-implementation-plan.md` (Tasks 13/14 closure boxes), `crates/julie-extract-cli/tests/erlang_corpus.rs` (baseline update only if extraction output changes)
+
+**Interfaces:**
+- Consumes: the shipped erlang and xml extractors; `base/config_literals.rs::tag_attribute_carrier` (existing helper, used by html and vue); the repo's per-language complexity-metric configuration pattern (discover via Miller from an existing FULL language).
+- Produces: erlang rows claim `complexity_metrics` and `literals` with golden evidence; xml row claims `literals`; the corresponding open gaps removed from `capabilities.json` and the migration-plan registry.
+
+**Contract inputs:** Quality-bar semantics come from `scripts/language-data-quality-report.mjs` — read it to see exactly what makes a domain count as covered before implementing. Golden regen via `UPDATE_GOLDEN=1`. `RUSTUP_TOOLCHAIN=1.97.1` on every cargo command.
+
+**File ownership:** As listed under Files (whole erlang/xml extractor + fixture trees, both capability rows, migration-plan doc, corpus baseline).
+
+**Serialization required:** Yes
+
+**Dependency reason:** Shares erlang goldens, `capabilities.json`, and the migration-plan doc with Task 12; runs first because it is the smaller slice.
+
+**What to build:** Close three of the four strict-scorecard debts. (1) Erlang `complexity_metrics`: add the node-kind configuration so erlang functions get complexity scores like other FULL languages (~config-table change, no new walking). (2) Erlang `literals`: capture string-literal call arguments as literal identifiers following the established literal-capture pattern. (3) XML `literals`: capture attribute-value literals via the existing `tag_attribute_carrier` helper. Regenerate goldens; keep the cardinality golden bounded. If corpus counts shift, update the erlang corpus baseline (allowed by this plan) — diagnostics count must not regress from 45/2.
+
+**Acceptance criteria:**
+- [ ] `node scripts/language-data-quality-report.mjs --strict` shows only `erlang.structural_facts` remaining as debt
+- [ ] Capability matrix: erlang claims complexity_metrics + literals, xml claims literals, all with golden evidence; matching open gaps removed; capability gate green
+- [ ] Golden, capability, language (erlang + xml), and default gates green; corpus gate green (baseline updated only if output legitimately changed, with the change explained in the report)
+- [ ] Migration-plan Tasks 13/14 updated to reflect the closures
+- [ ] Verification passes and the change is committed (serial-worker-commit)
+
+### Task 12: Erlang structural facts + strict gate green
+
+**Files:**
+- Create: `crates/julie-extractors/src/base/structural_fact_registry/erlang.rs` (or per family-ceiling placement)
+- Modify: `crates/julie-extractors/src/erlang/*` (fact emission), `crates/julie-extractors/src/base/structural_fact_registry/*` (registry wiring), `docs/contracts/structural-fact-patterns.json` (regenerated via `UPDATE_CONTRACT_JSON=1`), `fixtures/extraction/erlang/*` (golden regen), `fixtures/extraction/capabilities.json` (erlang row), `docs/plans/2026-05-31-julie-code-migration-implementation-plan.md` (Task 13 closure), `crates/julie-extract-cli/tests/erlang_corpus.rs` (baseline update only if output changes)
+
+**Interfaces:**
+- Consumes: Task 9's xml registry module as the reference implementation; Task 6's pending `behaviour_declaration` relationship work; the structural-fact registry family ceiling (700 lines forces module placement).
+- Produces: erlang `structural_facts` claimed with golden evidence; strict scorecard exits 0; the branch's zero-debt invariant restored.
+
+**Contract inputs:** Pattern specs must be generic `pattern_id` facts consumable by Miller's `patterns` surface. Registry regen via `UPDATE_CONTRACT_JSON=1`; golden regen via `UPDATE_GOLDEN=1`. `RUSTUP_TOOLCHAIN=1.97.1` on every cargo command.
+
+**File ownership:** As listed under Files.
+
+**Serialization required:** Yes
+
+**Dependency reason:** Shares erlang goldens, `capabilities.json`, and the migration-plan doc with Task 11; must run after it so the strict-gate exit criterion covers both.
+
+**What to build:** Erlang structural-fact pattern specs mirroring Task 9's xml slice: behaviour declarations (`-behaviour(...)`), include/include_lib dependencies, and OTP-callback/module-shape facts as warranted by what the grammar exposes — read `scripts/language-data-quality-report.mjs` first to confirm what satisfies the structural_facts quality bar, and scope the spec set to genuinely useful erlang shapes rather than padding. Regenerate the contract JSON and goldens. Then re-run the full Task 10 gate set including `node scripts/language-data-quality-report.mjs --strict`, which must exit 0.
+
+**Acceptance criteria:**
+- [ ] Erlang structural-fact specs registered and emitted with golden evidence; contract JSON regenerated
+- [ ] `node scripts/language-data-quality-report.mjs --strict` exits 0 (zero quality-bar debts — the branch invariant restored)
+- [ ] Full Task 10 gate set re-run green at the new HEAD, recorded in the report
+- [ ] Migration-plan Task 13 updated to reflect closure
 - [ ] Verification passes and the change is committed (serial-worker-commit)
