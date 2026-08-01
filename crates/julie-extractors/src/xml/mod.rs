@@ -7,7 +7,8 @@
 //! chain to their nearest named ancestor the way YAML mapping keys chain.
 //!
 //! Attribute values of `type`, `ref`, `base`, and `element` become `type_usage` identifiers
-//! carrying the raw QName. Relationships and types are out of scope for the XML tier.
+//! carrying the raw QName, and every non-empty attribute value is captured as a literal under
+//! a `tag.attribute` carrier. Relationships and types are out of scope for the XML tier.
 //!
 //! Common use cases:
 //! - XSD schemas (complexType/element/simpleType declarations and their references)
@@ -133,14 +134,10 @@ impl XmlExtractor {
         if node.kind() == "element" {
             child_containing_symbol_id = own_symbol_id;
             if let Some(tag) = elements::tag_node(node) {
-                identifiers::extract_element_references(
-                    &mut self.base,
-                    tag,
-                    child_containing_symbol_id,
-                );
+                identifiers::extract_element_facts(&mut self.base, tag, child_containing_symbol_id);
             }
         } else if elements::is_orphan_tag(node) {
-            identifiers::extract_element_references(&mut self.base, node, own_symbol_id);
+            identifiers::extract_element_facts(&mut self.base, node, own_symbol_id);
         }
 
         let Some(child_depth) = child_tree_depth(depth) else {

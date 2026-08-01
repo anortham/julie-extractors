@@ -692,7 +692,74 @@
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "covered_lines": 28,
+      "covered_bytes": 911,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 28,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 911,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/negative/source.erl:queue:26:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 50,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 26,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 12,
+      "start_byte": 860,
+      "end_byte": 910,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/negative/source.erl:run:18:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/negative/source.erl",
+      "covered_lines": 7,
+      "covered_bytes": 243,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 18,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 43,
+      "start_byte": 615,
+      "end_byte": 858,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {

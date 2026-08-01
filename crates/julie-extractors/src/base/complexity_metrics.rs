@@ -390,6 +390,14 @@ fn complexity_span_for_symbol(
     config: ComplexityLanguageConfig,
 ) -> NormalizedSpan {
     let declaration_span = symbol_span(symbol);
+    // tree-sitter-erlang keeps a clause body under `function_clause`, one level
+    // below the `fun_decl` a function symbol spans, so the generic body-span
+    // inference falls through to text matching and lands on the first tuple or
+    // argument list it finds. The declaration span is already exactly one clause
+    // head plus body, which is the scope this metric wants.
+    if language == "erlang" {
+        return declaration_span;
+    }
     let body_span = sibling_body_span(root, symbol, config).or(symbol.body_span);
     match body_span {
         Some(body) => {
@@ -566,6 +574,7 @@ fn config_for_language(language: &str) -> Option<ComplexityLanguageConfig> {
         "ruby" => Some(RUBY_CONFIG),
         "scala" => Some(SCALA_CONFIG),
         "elixir" => Some(ELIXIR_CONFIG),
+        "erlang" => Some(ERLANG_CONFIG),
         "lua" => Some(LUA_CONFIG),
         "vbnet" => Some(VBNET_CONFIG),
         "r" => Some(R_CONFIG),
@@ -888,6 +897,40 @@ const ELIXIR_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
     parameter_node_kinds: &[],
     call_decision_targets: &["if", "unless", "case", "cond", "with"],
     call_loop_targets: &["for"],
+    ..DEFAULT_CONFIG
+};
+
+// Node kinds verified against tree-sitter-erlang 0.20.0 node-types.json and a
+// to_sexp() parse dump. Erlang branches inside expressions: `case`, `if`,
+// `try`, `receive`, `maybe`, and the old-style `catch Expr` each count as a
+// container plus one per arm, following the switch-container-plus-arm
+// convention. A `guard_clause` is one `;`-separated alternative of a guard
+// sequence and counts wherever a guard appears, including a clause head.
+// Clause-based dispatch of a definition (`function_clause`, `fun_clause`) is
+// not counted: `clause_count` already records it, and every single-clause
+// anonymous fun would otherwise cost a decision. Erlang has no loop statement,
+// so comprehensions are the iteration construct. Clause heads bind arbitrary
+// patterns, so there is no closed set of parameter node kinds and
+// `parameter_count` stays NULL; arity is carried in the symbol signature.
+const ERLANG_CONFIG: ComplexityLanguageConfig = ComplexityLanguageConfig {
+    decision_node_kinds: &[
+        "case_expr",
+        "cr_clause",
+        "if_expr",
+        "if_clause",
+        "try_expr",
+        "catch_clause",
+        "catch_expr",
+        "receive_expr",
+        "receive_after",
+        "maybe_expr",
+        "guard_clause",
+    ],
+    loop_node_kinds: &[
+        "list_comprehension",
+        "binary_comprehension",
+        "map_comprehension",
+    ],
     ..DEFAULT_CONFIG
 };
 

@@ -249,7 +249,118 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "covered_lines": 31,
+      "covered_bytes": 942,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 31,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 942,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/test_roles/source.erl:balance_test:19:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 25,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 7,
+      "start_byte": 800,
+      "end_byte": 825,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/test_roles/source.erl:check_test:26:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 31,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 26,
+      "start_column": 0,
+      "end_line": 27,
+      "end_column": 7,
+      "start_byte": 890,
+      "end_byte": 921,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/test_roles/source.erl:deposit_test_:23:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 26,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 24,
+      "end_column": 7,
+      "start_byte": 862,
+      "end_byte": 888,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/test_roles/source.erl:setup:29:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 18,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 29,
+      "start_column": 0,
+      "end_line": 30,
+      "end_column": 7,
+      "start_byte": 923,
+      "end_byte": 941,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
   "literals": [],
   "source_regions": [
     {

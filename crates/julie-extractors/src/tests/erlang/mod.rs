@@ -1,6 +1,8 @@
+mod complexity;
 mod docs;
 mod headers;
 mod identifiers;
+mod literals;
 mod parse_errors;
 mod relationships;
 mod symbols;

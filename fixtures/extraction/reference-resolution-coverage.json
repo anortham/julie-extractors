@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "fixtures/extraction/capabilities.json registered canonical golden corpus",
-  "source_digest": "sha256:fd23493697dd8bbf242b5b76ad6798f33e121fcb5b698511ab4f194951ecede9",
+  "source_digest": "sha256:684bd88f8b288a38918748ce5e79d63e7b6ace52d464c79b495a20be1ca088b1",
   "languages": [
     "rust",
     "c",
@@ -353,16 +353,16 @@
     },
     {
       "language": "erlang",
-      "total": 87,
-      "attempted": 26,
-      "resolved": 4,
+      "total": 107,
+      "attempted": 33,
+      "resolved": 7,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
-      "unresolved_pending": 22,
-      "unattempted": 61,
-      "span_present": 69,
-      "span_missing": 18
+      "unresolved_pending": 26,
+      "unattempted": 74,
+      "span_present": 86,
+      "span_missing": 21
     },
     {
       "language": "lua",
@@ -2190,7 +2190,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 16
+      "count": 25
     },
     {
       "language": "erlang",
@@ -2214,7 +2214,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 17
+      "count": 19
     },
     {
       "language": "erlang",
@@ -2238,7 +2238,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 8
+      "count": 10
     },
     {
       "language": "erlang",
@@ -2250,7 +2250,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 8
+      "count": 10
     },
     {
       "language": "erlang",
@@ -2298,7 +2298,7 @@
       "method": null,
       "span_present": false,
       "applicability": "observed",
-      "count": 7
+      "count": 8
     },
     {
       "language": "erlang",
@@ -2310,7 +2310,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 7
+      "count": 8
     },
     {
       "language": "erlang",
@@ -2358,7 +2358,7 @@
       "method": "extraction_direct",
       "span_present": true,
       "applicability": "observed",
-      "count": 4
+      "count": 7
     },
     {
       "language": "erlang",

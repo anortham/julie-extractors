@@ -421,6 +421,15 @@ Leave Julie workspace/search/tokenizer/scoring/embedding/watcher policy behind.
 OTP callback, and `-include` shapes), and `complexity_metrics` (file and symbol
 scope, which need an erlang entry in `base/complexity_metrics.rs`).
 
+`literals` and `complexity_metrics` were closed by Task 11 of
+`docs/plans/2026-07-31-erlang-xml-language-support-plan.md`: the erlang
+identifier walk now records string call arguments under the verbatim callee
+(`io:format`, or the bare atom for a local call), and `ERLANG_CONFIG` in
+`base/complexity_metrics.rs` counts case/if/try/receive/catch containers and
+their arms plus each guard alternative, with comprehensions as the loop
+construct. Evidence is the `fixtures/extraction/erlang/control_flow` golden.
+`structural_facts` is the only Erlang `kind_coverage` gap still open.
+
 **Approach:** This entry exists because `capability_matrix_open_rows_have_planned_closure_task`
 resolves every open capability row's `planned_closure_task` against **this**
 file, so it is the repository's registry of open capability work regardless of
@@ -434,9 +443,11 @@ open here and are closed by this entry.
 - [x] Erlang `capabilities` equals `target_capabilities` in the capability matrix.
 - [x] Every closed row carries golden-fixture evidence rather than an empty vector.
 - [x] `cargo xtask test capability` and `cargo xtask test golden` pass.
-- [ ] The erlang `literals`, `structural_facts`, and `complexity_metrics`
-      `kind_coverage` gaps are closed with golden evidence, or re-recorded with a
-      documented `not_applicable` reason.
+- [x] The erlang `literals` `kind_coverage` gap is closed with golden evidence.
+- [x] The erlang `complexity_metrics` `kind_coverage` gap is closed with golden
+      evidence for both the file and symbol scope.
+- [ ] The erlang `structural_facts` `kind_coverage` gap is closed with golden
+      evidence, or re-recorded with a documented `not_applicable` reason.
 
 ### Task 14: XML Reference Edge Closure
 
@@ -448,10 +459,11 @@ open here and are closed by this entry.
 `element`) into resolved `references` relationships, and the cross-document ones
 into structured pending relationships, then raise `capabilities.relationships`
 and `capabilities.pending_relationships` together with `target_capabilities`.
-Also close the XML `kind_coverage.literals` gap: attribute-value literals with a
-`tag.attribute` carrier (the `config_literals::tag_attribute_carrier` helper html
-and vue already use), which is the last XML domain with neither supported kinds
-nor a `not_applicable` reason.
+The XML `kind_coverage.literals` gap — attribute-value literals with a
+`tag.attribute` carrier, from the `config_literals::tag_attribute_carrier` helper
+html and vue already use — was closed by Task 11 of
+`docs/plans/2026-07-31-erlang-xml-language-support-plan.md`, so only the two
+reference-edge rows remain open here.
 
 **Approach:** This entry exists because `capability_matrix_open_rows_have_planned_closure_task`
 resolves every open capability row's `planned_closure_task` against **this**
@@ -467,7 +479,7 @@ declarations — the reason the reference edges were left out of the v1 tier.
 **Acceptance criteria:**
 - [ ] XML QName references resolve to the declaration they name, with golden evidence.
 - [ ] `fixtures/extraction/xml/` gains a `negative` or `cross_file` fixture proving no wrong edges.
-- [ ] XML attribute-value literals are emitted with golden evidence, closing the
+- [x] XML attribute-value literals are emitted with golden evidence, closing the
       `kind_coverage.literals` gap.
 - [ ] `cargo xtask test capability` and `cargo xtask test golden` pass.
 

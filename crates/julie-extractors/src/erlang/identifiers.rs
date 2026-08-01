@@ -16,6 +16,10 @@
 //!   rather than invoking it, so they are `VariableRef` and stay distinguishable
 //!   from the `Call` row a real invocation of the same name produces
 //! - a record name is `TypeUsage` and a record field is `MemberAccess`
+//!
+//! The same walk captures string-literal call arguments as `Literal` rows,
+//! carried by the verbatim callee (`io:format` for a remote call, the bare
+//! atom otherwise).
 
 use std::collections::HashMap;
 
@@ -163,7 +167,11 @@ fn emit_call(
         scope.map(String::from),
     );
 
-    if node.parent().map(|parent| parent.kind()) == Some("remote") {
+    let is_remote = node.parent().map(|parent| parent.kind()) == Some("remote");
+    let carrier = call_carrier(extractor, node, &name, is_remote);
+    record_call_arg_literals(extractor, node, &carrier, scope);
+
+    if is_remote {
         return;
     }
     let arity = find_child_by_type(&node, "expr_args")
@@ -174,6 +182,54 @@ fn emit_call(
             &atom,
             module,
             IdentifierKind::TypeUsage,
+            scope.map(String::from),
+        );
+    }
+}
+
+/// The carrier a call's string-literal arguments are filed under: `io:format`
+/// for a remote call and the bare callee for a local, imported, or
+/// auto-imported one. A remote call whose module is a variable (`Mod:run(...)`)
+/// names no module in the source, so it falls back to the bare callee.
+fn call_carrier(extractor: &ErlangExtractor, node: Node, name: &str, is_remote: bool) -> String {
+    if !is_remote {
+        return name.to_string();
+    }
+    let module = node
+        .parent()
+        .and_then(|remote| find_child_by_type(&remote, "remote_module"))
+        .and_then(|wrapper| find_child_by_type(&wrapper, "atom"))
+        .map(|atom| unquote_atom(&extractor.base.get_node_text(&atom)));
+    match module {
+        Some(module) => format!("{module}:{name}"),
+        None => name.to_string(),
+    }
+}
+
+/// Capture string-literal arguments of a call as `Literal` records.
+///
+/// Config-free: `kind` stays `Other` and `arg_position` counts over the whole
+/// argument list; the artifact language-policy pass reclassifies and gates by
+/// carrier. Only direct arguments are captured, so a string nested inside a
+/// list or tuple argument is not a call-argument literal.
+fn record_call_arg_literals(
+    extractor: &mut ErlangExtractor,
+    node: Node,
+    carrier: &str,
+    scope: Option<&str>,
+) {
+    let Some(args) = find_child_by_type(&node, "expr_args") else {
+        return;
+    };
+    for (position, argument) in named_children(&args).into_iter().enumerate() {
+        let Some(text) = extractor.base.decode_string_literal(&argument) else {
+            continue;
+        };
+        extractor.base.record_literal(
+            &argument,
+            text,
+            Some(carrier.to_string()),
+            position as u32,
             scope.map(String::from),
         );
     }

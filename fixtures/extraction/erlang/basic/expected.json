@@ -1087,8 +1087,202 @@
   ],
   "parse_diagnostics": [],
   "structural_facts": [],
-  "complexity_metrics": [],
-  "literals": [],
+  "complexity_metrics": [
+    {
+      "scope": "file",
+      "symbol_key": null,
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "covered_lines": 51,
+      "covered_bytes": 1229,
+      "decision_count": 1,
+      "loop_count": 0,
+      "max_nesting_depth": 1,
+      "parameter_count": null,
+      "start_line": 1,
+      "start_column": 0,
+      "end_line": 51,
+      "end_column": 0,
+      "start_byte": 0,
+      "end_byte": 1229,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:audit:37:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "covered_lines": 3,
+      "covered_bytes": 38,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 37,
+      "start_column": 0,
+      "end_line": 39,
+      "end_column": 7,
+      "start_byte": 904,
+      "end_byte": 942,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:balance:28:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 40,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 28,
+      "start_column": 0,
+      "end_line": 29,
+      "end_column": 6,
+      "start_byte": 691,
+      "end_byte": 731,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:balance_test:49:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 52,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 49,
+      "start_column": 0,
+      "end_line": 50,
+      "end_column": 34,
+      "start_byte": 1176,
+      "end_byte": 1228,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:deposit:31:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 99,
+      "decision_count": 1,
+      "loop_count": 0,
+      "max_nesting_depth": 1,
+      "parameter_count": null,
+      "start_line": 31,
+      "start_column": 0,
+      "end_line": 32,
+      "end_column": 58,
+      "start_byte": 733,
+      "end_byte": 832,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:history:42:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "covered_lines": 6,
+      "covered_bytes": 182,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 42,
+      "start_column": 0,
+      "end_line": 47,
+      "end_column": 40,
+      "start_byte": 992,
+      "end_byte": 1174,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:init:20:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "covered_lines": 1,
+      "covered_bytes": 47,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 20,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 47,
+      "start_byte": 474,
+      "end_byte": 521,
+      "metadata": {
+        "metric_version": 1
+      }
+    },
+    {
+      "scope": "symbol",
+      "symbol_key": "fixtures/extraction/erlang/basic/source.erl:open:24:0",
+      "algorithm_id": "julie-ast-complexity-v1",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "covered_lines": 2,
+      "covered_bytes": 34,
+      "decision_count": 0,
+      "loop_count": 0,
+      "max_nesting_depth": 0,
+      "parameter_count": null,
+      "start_line": 24,
+      "start_column": 0,
+      "end_line": 25,
+      "end_column": 22,
+      "start_byte": 608,
+      "end_byte": 642,
+      "metadata": {
+        "metric_version": 1
+      }
+    }
+  ],
+  "literals": [
+    {
+      "literal_text": "~p~n",
+      "kind": "other",
+      "carrier": "io:format",
+      "arg_position": 0,
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/basic/source.erl",
+      "start_line": 13,
+      "start_column": 28,
+      "end_line": 13,
+      "end_column": 34,
+      "start_byte": 331,
+      "end_byte": 337,
+      "containing_key": "fixtures/extraction/erlang/basic/source.erl:LOG:13:0",
+      "confidence": "1.000"
+    }
+  ],
   "source_regions": [
     {
       "kind": "comment",

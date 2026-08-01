@@ -4017,6 +4017,11 @@
           "expected": "fixtures/extraction/erlang/cross_file/expected.json"
         },
         {
+          "name": "control_flow",
+          "source": "fixtures/extraction/erlang/control_flow/source.erl",
+          "expected": "fixtures/extraction/erlang/control_flow/expected.json"
+        },
+        {
           "name": "test_roles",
           "source": "fixtures/extraction/erlang/test_roles/source.erl",
           "expected": "fixtures/extraction/erlang/test_roles/expected.json"
@@ -4092,22 +4097,12 @@
           ]
         },
         "complexity_metrics": {
-          "supported": [],
+          "supported": [
+            "file",
+            "symbol"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "file",
-              "reason": "base/complexity_metrics.rs has no erlang config entry, so no file-scope metric is produced for Erlang sources.",
-              "required_closure": "add an erlang decision/loop node configuration to base/complexity_metrics.rs and register golden evidence for the file scope",
-              "planned_closure_task": "docs/plans/2026-05-31-julie-code-migration-implementation-plan.md Task 13: Erlang Capability Closure"
-            },
-            {
-              "kind": "symbol",
-              "reason": "base/complexity_metrics.rs has no erlang config entry, so no per-function metric is produced even though clauses, guards, case, and receive supply decision points.",
-              "required_closure": "add an erlang decision/loop node configuration to base/complexity_metrics.rs and register golden evidence for the symbol scope",
-              "planned_closure_task": "docs/plans/2026-05-31-julie-code-migration-implementation-plan.md Task 13: Erlang Capability Closure"
-            }
-          ]
+          "open_gaps": []
         },
         "annotations": {
           "supported": [
@@ -4125,16 +4120,11 @@
           "open_gaps": []
         },
         "literals": {
-          "supported": [],
+          "supported": [
+            "other"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "other",
-              "reason": "Erlang call sites are extracted, but their string-literal arguments are not captured: the carrier gate that classifies a literal is a language-policy surface outside the extractor, so no Erlang literal carriers are recorded.",
-              "required_closure": "capture string-literal call arguments with a verbatim carrier (the bare callee, or module:function for a remote call) and register golden evidence",
-              "planned_closure_task": "docs/plans/2026-05-31-julie-code-migration-implementation-plan.md Task 13: Erlang Capability Closure"
-            }
-          ]
+          "open_gaps": []
         },
         "source_regions": {
           "supported": [
@@ -6523,16 +6513,11 @@
           "open_gaps": []
         },
         "literals": {
-          "supported": [],
+          "supported": [
+            "other"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "other",
-              "reason": "Attribute values and element text carry configuration literals, but literal capture is driven by call-argument analysis, which the XML tier does not perform, so no literal carriers are recorded.",
-              "required_closure": "record attribute-value and element-text literals with an element key-path carrier and register golden evidence",
-              "planned_closure_task": "docs/plans/2026-05-31-julie-code-migration-implementation-plan.md Task 14: XML Reference Edge Closure"
-            }
-          ]
+          "open_gaps": []
         },
         "source_regions": {
           "supported": [
