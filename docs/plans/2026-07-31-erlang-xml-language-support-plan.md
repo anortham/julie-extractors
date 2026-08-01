@@ -352,11 +352,11 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **What to build:** Close three of the four strict-scorecard debts. (1) Erlang `complexity_metrics`: add the node-kind configuration so erlang functions get complexity scores like other FULL languages (~config-table change, no new walking). (2) Erlang `literals`: capture string-literal call arguments as literal identifiers following the established literal-capture pattern. (3) XML `literals`: capture attribute-value literals via the existing `tag_attribute_carrier` helper. Regenerate goldens; keep the cardinality golden bounded. If corpus counts shift, update the erlang corpus baseline (allowed by this plan) — diagnostics count must not regress from 45/2.
 
 **Acceptance criteria:**
-- [ ] `node scripts/language-data-quality-report.mjs --strict` shows only `erlang.structural_facts` remaining as debt
-- [ ] Capability matrix: erlang claims complexity_metrics + literals, xml claims literals, all with golden evidence; matching open gaps removed; capability gate green
-- [ ] Golden, capability, language (erlang + xml), and default gates green; corpus gate green (baseline updated only if output legitimately changed, with the change explained in the report)
-- [ ] Migration-plan Tasks 13/14 updated to reflect the closures
-- [ ] Verification passes and the change is committed (serial-worker-commit)
+- [x] `node scripts/language-data-quality-report.mjs --strict` shows only `erlang.structural_facts` remaining as debt
+- [x] Capability matrix: erlang claims complexity_metrics + literals, xml claims literals, all with golden evidence; matching open gaps removed; capability gate green
+- [x] Golden, capability, language (erlang + xml), and default gates green; corpus gate green (baseline updated only if output legitimately changed, with the change explained in the report)
+- [x] Migration-plan Tasks 13/14 updated to reflect the closures
+- [x] Verification passes and the change is committed (serial-worker-commit)
 
 ### Task 12: Erlang structural facts + strict gate green
 
