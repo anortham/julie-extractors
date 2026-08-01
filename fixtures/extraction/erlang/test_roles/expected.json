@@ -248,7 +248,71 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "erlang.export_attribute.v1",
+      "capture_name": "export_attribute",
+      "node_kind": "export_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": null,
+      "start_line": 16,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 66,
+      "start_byte": 704,
+      "end_byte": 770,
+      "confidence": "1.000",
+      "metadata": {
+        "export_kind": "function",
+        "exported_count": 4,
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "erlang.include_directive.v1",
+      "capture_name": "include_directive",
+      "node_kind": "pp_include_lib",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": null,
+      "start_line": 14,
+      "start_column": 0,
+      "end_line": 14,
+      "end_column": 40,
+      "start_byte": 662,
+      "end_byte": 702,
+      "confidence": "1.000",
+      "metadata": {
+        "application": "eunit",
+        "include_kind": "include_lib",
+        "path": "eunit/include/eunit.hrl",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "erlang.module_attribute.v1",
+      "capture_name": "module_attribute",
+      "node_kind": "module_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/test_roles/source.erl",
+      "containing_key": "fixtures/extraction/erlang/test_roles/source.erl:bank_tests:12:0",
+      "start_line": 12,
+      "start_column": 0,
+      "end_line": 12,
+      "end_column": 20,
+      "start_byte": 640,
+      "end_byte": 660,
+      "confidence": "1.000",
+      "metadata": {
+        "module": "bank_tests",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",

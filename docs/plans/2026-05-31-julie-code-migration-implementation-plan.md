@@ -428,7 +428,16 @@ identifier walk now records string call arguments under the verbatim callee
 `base/complexity_metrics.rs` counts case/if/try/receive/catch containers and
 their arms plus each guard alternative, with comprehensions as the loop
 construct. Evidence is the `fixtures/extraction/erlang/control_flow` golden.
-`structural_facts` is the only Erlang `kind_coverage` gap still open.
+
+`structural_facts` was closed by Task 12 of that same plan: five erlang pattern
+specs — `erlang.module_attribute.v1`, `erlang.behaviour_declaration.v1`,
+`erlang.callback_declaration.v1`, `erlang.export_attribute.v1`, and
+`erlang.include_directive.v1` — are registered in
+`base/structural_fact_registry/builtins/erlang.rs` and emitted from the erlang
+arm of `base/code_structural_facts.rs`. Every advertised pattern has golden
+evidence in the existing erlang fixtures: `basic` carries the module,
+behaviour, callback, and both export flavours, and `cross_file` carries
+`-include` alongside `-include_lib`. No Erlang `kind_coverage` gap remains open.
 
 **Approach:** This entry exists because `capability_matrix_open_rows_have_planned_closure_task`
 resolves every open capability row's `planned_closure_task` against **this**
@@ -446,7 +455,7 @@ open here and are closed by this entry.
 - [x] The erlang `literals` `kind_coverage` gap is closed with golden evidence.
 - [x] The erlang `complexity_metrics` `kind_coverage` gap is closed with golden
       evidence for both the file and symbol scope.
-- [ ] The erlang `structural_facts` `kind_coverage` gap is closed with golden
+- [x] The erlang `structural_facts` `kind_coverage` gap is closed with golden
       evidence, or re-recorded with a documented `not_applicable` reason.
 
 ### Task 14: XML Reference Edge Closure

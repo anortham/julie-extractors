@@ -5,6 +5,7 @@ mod identifiers;
 mod literals;
 mod parse_errors;
 mod relationships;
+mod structural_facts;
 mod symbols;
 mod test_roles;
 mod types;

@@ -1571,6 +1571,176 @@
     "query_family": "control_flow"
   },
   {
+    "description": "An Erlang `-behaviour(...)`/`-behavior(...)` adoption.",
+    "languages": [
+      "erlang"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Name of the behaviour module the declaring module implements.",
+        "key": "behaviour",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Spelling as written in source (\"behaviour\" or \"behavior\"); both are valid.",
+        "key": "attribute",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "erlang.behaviour_declaration.v1",
+    "query_family": "otp"
+  },
+  {
+    "description": "An Erlang `-callback` declaration in a behaviour module.",
+    "languages": [
+      "erlang"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared callback name.",
+        "key": "callback_name",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Number of arguments in the callback signature.",
+        "key": "arity",
+        "presence": "always",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "erlang.callback_declaration.v1",
+    "query_family": "otp"
+  },
+  {
+    "description": "An Erlang `-export(...)` or `-export_type(...)` list.",
+    "languages": [
+      "erlang"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "What the list publishes (\"function\" or \"type\").",
+        "key": "export_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Number of name/arity entries in the list.",
+        "key": "exported_count",
+        "presence": "always",
+        "value_type": "number"
+      }
+    ],
+    "pattern_id": "erlang.export_attribute.v1",
+    "query_family": "module"
+  },
+  {
+    "description": "An Erlang `-include(...)` or `-include_lib(...)` header dependency.",
+    "languages": [
+      "erlang"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Whether the directive is an \"include\" or an \"include_lib\".",
+        "key": "include_kind",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared header path, exactly as written in the string literal.",
+        "key": "path",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Leading path segment of an `include_lib` path, which names the owning OTP application; absent on a plain include and on a path with no separator.",
+        "key": "application",
+        "presence": "optional",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "erlang.include_directive.v1",
+    "query_family": "imports"
+  },
+  {
+    "description": "An Erlang `-module(...)` declaration.",
+    "languages": [
+      "erlang"
+    ],
+    "metadata_keys": [
+      {
+        "description": "Schema version of this structural-fact pattern (currently 1).",
+        "key": "pattern_version",
+        "presence": "always",
+        "value_type": "number"
+      },
+      {
+        "description": "Coarse query family the fact belongs to; mirrors the spec's query_family.",
+        "key": "query_family",
+        "presence": "always",
+        "value_type": "string"
+      },
+      {
+        "description": "Declared module name.",
+        "key": "module",
+        "presence": "always",
+        "value_type": "string"
+      }
+    ],
+    "pattern_id": "erlang.module_attribute.v1",
+    "query_family": "module"
+  },
+  {
     "description": "A static Express route registration on an in-file traced app/router receiver.",
     "languages": [
       "javascript",

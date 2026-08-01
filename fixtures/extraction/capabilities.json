@@ -4085,16 +4085,15 @@
           "open_gaps": []
         },
         "structural_facts": {
-          "supported": [],
+          "supported": [
+            "erlang.behaviour_declaration.v1",
+            "erlang.callback_declaration.v1",
+            "erlang.export_attribute.v1",
+            "erlang.include_directive.v1",
+            "erlang.module_attribute.v1"
+          ],
           "not_applicable": [],
-          "open_gaps": [
-            {
-              "kind": "erlang.behaviour_declaration",
-              "reason": "Erlang has parser-backed shapes worth registering as structural facts (-behaviour adoption, OTP callback sets, and -include chains), but no erlang pattern specs are registered in base/structural_fact_registry beyond the language-agnostic comment-marker pattern.",
-              "required_closure": "register erlang structural fact pattern specs in base/structural_fact_registry and emit them with golden evidence",
-              "planned_closure_task": "docs/plans/2026-05-31-julie-code-migration-implementation-plan.md Task 13: Erlang Capability Closure"
-            }
-          ]
+          "open_gaps": []
         },
         "complexity_metrics": {
           "supported": [

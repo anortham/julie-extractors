@@ -13,7 +13,7 @@
 //! sources (with the languages each covers):
 //!
 //! - `base/structural_facts.rs`: built-in patterns for c, cpp, go, javascript, jsx, python, rust, tsx, typescript.
-//! - `base/code_structural_facts.rs`: dart, elixir, java, kotlin, lua, php, r, ruby, scala, swift, bash, gdscript, powershell, qml, vbnet, zig.
+//! - `base/code_structural_facts.rs`: dart, elixir, erlang, java, kotlin, lua, php, r, ruby, scala, swift, bash, gdscript, powershell, qml, vbnet, zig.
 //! - `base/data_structural_facts.rs`: markdown, json, toml, yaml, regex, xml.
 //! - `base/sql_structural_facts.rs`: sql.
 //! - `base/framework_structural_facts/`: aspnet, htmx, alpine, razor, HTTP frameworks.

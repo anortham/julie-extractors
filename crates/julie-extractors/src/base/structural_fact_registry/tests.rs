@@ -175,6 +175,7 @@ fn registry_pattern_ids_match_emitted_union_per_language() {
         // code collector
         "dart",
         "elixir",
+        "erlang",
         "java",
         "kotlin",
         "lua",

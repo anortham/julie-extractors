@@ -239,6 +239,39 @@ const ELIXIR_PATTERNS: &[CodeStructuralPattern] = &[
     },
 ];
 
+const ERLANG_PATTERNS: &[CodeStructuralPattern] = &[
+    CodeStructuralPattern {
+        pattern_id: "erlang.module_attribute.v1",
+        capture_name: "module_attribute",
+        node_kinds: &["module_attribute"],
+        query_family: "module",
+    },
+    CodeStructuralPattern {
+        pattern_id: "erlang.behaviour_declaration.v1",
+        capture_name: "behaviour_declaration",
+        node_kinds: &["behaviour_attribute"],
+        query_family: "otp",
+    },
+    CodeStructuralPattern {
+        pattern_id: "erlang.callback_declaration.v1",
+        capture_name: "callback_declaration",
+        node_kinds: &["callback"],
+        query_family: "otp",
+    },
+    CodeStructuralPattern {
+        pattern_id: "erlang.export_attribute.v1",
+        capture_name: "export_attribute",
+        node_kinds: &["export_attribute", "export_type_attribute"],
+        query_family: "module",
+    },
+    CodeStructuralPattern {
+        pattern_id: "erlang.include_directive.v1",
+        capture_name: "include_directive",
+        node_kinds: &["pp_include", "pp_include_lib"],
+        query_family: "imports",
+    },
+];
+
 const LUA_PATTERNS: &[CodeStructuralPattern] = &[
     CodeStructuralPattern {
         pattern_id: "lua.require_call.v1",
@@ -525,6 +558,14 @@ const ELIXIR_PATTERN_IDS: &[&str] = &[
     "elixir.with_expression.v1",
 ];
 #[cfg(all(test, feature = "test-capability-matrix"))]
+const ERLANG_PATTERN_IDS: &[&str] = &[
+    "erlang.module_attribute.v1",
+    "erlang.behaviour_declaration.v1",
+    "erlang.callback_declaration.v1",
+    "erlang.export_attribute.v1",
+    "erlang.include_directive.v1",
+];
+#[cfg(all(test, feature = "test-capability-matrix"))]
 const LUA_PATTERN_IDS: &[&str] = &[
     "lua.require_call.v1",
     "lua.setmetatable_call.v1",
@@ -617,6 +658,7 @@ pub(crate) fn code_structural_fact_pattern_ids_for_language(
     match language {
         "dart" => DART_PATTERN_IDS,
         "elixir" => ELIXIR_PATTERN_IDS,
+        "erlang" => ERLANG_PATTERN_IDS,
         "java" => JAVA_PATTERN_IDS,
         "kotlin" => KOTLIN_PATTERN_IDS,
         "lua" => LUA_PATTERN_IDS,
@@ -640,6 +682,7 @@ fn patterns_for_language(language: &str) -> &'static [CodeStructuralPattern] {
         "bash" => BASH_PATTERNS,
         "dart" => DART_PATTERNS,
         "elixir" => ELIXIR_PATTERNS,
+        "erlang" => ERLANG_PATTERNS,
         "gdscript" => GDSCRIPT_PATTERNS,
         "java" => JAVA_PATTERNS,
         "kotlin" => KOTLIN_PATTERNS,
@@ -763,6 +806,53 @@ fn enrich_metadata(
         | "dart.annotation.v1" => {
             if let Some(name) = annotation_name(content, node) {
                 insert_string(metadata, "annotation_name", &name);
+            }
+        }
+        "erlang.module_attribute.v1" => {
+            if let Some(module) = erlang_attribute_atom(content, node) {
+                insert_string(metadata, "module", &module);
+            }
+        }
+        "erlang.behaviour_declaration.v1" => {
+            if let Some(behaviour) = erlang_attribute_atom(content, node) {
+                insert_string(metadata, "behaviour", &behaviour);
+            }
+            insert_string(
+                metadata,
+                "attribute",
+                erlang_behaviour_spelling(content, node),
+            );
+        }
+        "erlang.callback_declaration.v1" => {
+            if let Some(name) = erlang_attribute_atom(content, node) {
+                insert_string(metadata, "callback_name", &name);
+            }
+            insert_number(metadata, "arity", erlang_callback_arity(node));
+        }
+        "erlang.export_attribute.v1" => {
+            let export_kind = if node.kind() == "export_type_attribute" {
+                "type"
+            } else {
+                "function"
+            };
+            insert_string(metadata, "export_kind", export_kind);
+            insert_number(metadata, "exported_count", erlang_name_arity_count(node));
+        }
+        "erlang.include_directive.v1" => {
+            let include_kind = if node.kind() == "pp_include_lib" {
+                "include_lib"
+            } else {
+                "include"
+            };
+            insert_string(metadata, "include_kind", include_kind);
+            if let Some(path) = erlang_include_path(content, node) {
+                if include_kind == "include_lib"
+                    && let Some((application, _)) = path.split_once('/')
+                    && !application.is_empty()
+                {
+                    insert_string(metadata, "application", application);
+                }
+                insert_string(metadata, "path", &path);
             }
         }
         "swift.attribute.v1" | "vbnet.attribute.v1" => {
@@ -1168,6 +1258,12 @@ fn matches_pattern(language: &str, content: &str, node: Node<'_>, pattern_id: &s
         ("elixir", "elixir.defmodule_call.v1") => {
             elixir_call_target(content, node).as_deref() == Some("defmodule")
         }
+        ("erlang", "erlang.module_attribute.v1")
+        | ("erlang", "erlang.behaviour_declaration.v1")
+        | ("erlang", "erlang.callback_declaration.v1") => {
+            erlang_attribute_atom(content, node).is_some()
+        }
+        ("erlang", "erlang.include_directive.v1") => erlang_include_path(content, node).is_some(),
         ("elixir", "elixir.module_attribute.v1") => elixir_is_module_attribute(node),
         ("elixir", "elixir.directive_call.v1") => elixir_directive_kind(content, node).is_some(),
         ("elixir", "elixir.pipeline_operator.v1") => node_contains_token(node, "|>"),
@@ -1307,6 +1403,60 @@ fn ruby_mixin_target(content: &str, node: Node<'_>) -> Option<String> {
 
 fn ruby_rescue_exception(content: &str, node: Node<'_>) -> Option<String> {
     first_named_identifier(content, node, &["constant", "identifier"])
+}
+
+/// Declared name of an Erlang attribute. `tree-sitter-erlang` spells the
+/// attribute keyword itself as an anonymous token, so the first `atom` child is
+/// always the declared module, behaviour, or callback name.
+fn erlang_attribute_atom(content: &str, node: Node<'_>) -> Option<String> {
+    let atom = first_direct_child(node, "atom")?;
+    let name = node_text(content, atom)
+        .trim()
+        .trim_matches('\'')
+        .to_string();
+    (!name.is_empty()).then_some(name)
+}
+
+/// Both `-behaviour` and `-behavior` parse to `behaviour_attribute`, so the
+/// spelling only survives in the source text.
+fn erlang_behaviour_spelling(content: &str, node: Node<'_>) -> &'static str {
+    let text = node_text(content, node);
+    let keyword = text.trim_start_matches('-').trim_start();
+    if keyword.starts_with("behaviour") {
+        "behaviour"
+    } else {
+        "behavior"
+    }
+}
+
+/// Argument count of a `-callback` signature, read from the first `type_sig`.
+fn erlang_callback_arity(node: Node<'_>) -> u64 {
+    first_direct_child(node, "type_sig")
+        .and_then(|sig| first_direct_child(sig, "expr_args"))
+        .map(|args| {
+            let mut cursor = args.walk();
+            args.named_children(&mut cursor).count() as u64
+        })
+        .unwrap_or(0)
+}
+
+/// Number of `name/arity` entries an `-export`/`-export_type` list declares.
+fn erlang_name_arity_count(node: Node<'_>) -> u64 {
+    let mut cursor = node.walk();
+    node.named_children(&mut cursor)
+        .filter(|child| child.kind() == "fa")
+        .count() as u64
+}
+
+/// Header path of an `-include`/`-include_lib`. A macro-spelled path carries no
+/// string literal, so it yields nothing rather than an invented path.
+fn erlang_include_path(content: &str, node: Node<'_>) -> Option<String> {
+    let string = first_direct_child(node, "string")?;
+    let path = node_text(content, string)
+        .trim()
+        .trim_matches('"')
+        .to_string();
+    (!path.is_empty()).then_some(path)
 }
 
 fn elixir_call_target(content: &str, node: Node<'_>) -> Option<String> {

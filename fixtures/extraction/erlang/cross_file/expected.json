@@ -553,7 +553,113 @@
     }
   ],
   "parse_diagnostics": [],
-  "structural_facts": [],
+  "structural_facts": [
+    {
+      "pattern_id": "erlang.behaviour_declaration.v1",
+      "capture_name": "behaviour_declaration",
+      "node_kind": "behaviour_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "containing_key": null,
+      "start_line": 17,
+      "start_column": 0,
+      "end_line": 17,
+      "end_column": 23,
+      "start_byte": 1055,
+      "end_byte": 1078,
+      "confidence": "1.000",
+      "metadata": {
+        "attribute": "behaviour",
+        "behaviour": "gen_server",
+        "pattern_version": 1,
+        "query_family": "otp"
+      }
+    },
+    {
+      "pattern_id": "erlang.export_attribute.v1",
+      "capture_name": "export_attribute",
+      "node_kind": "export_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "containing_key": null,
+      "start_line": 23,
+      "start_column": 0,
+      "end_line": 23,
+      "end_column": 30,
+      "start_byte": 1185,
+      "end_byte": 1215,
+      "confidence": "1.000",
+      "metadata": {
+        "export_kind": "function",
+        "exported_count": 2,
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    },
+    {
+      "pattern_id": "erlang.include_directive.v1",
+      "capture_name": "include_directive",
+      "node_kind": "pp_include",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "containing_key": null,
+      "start_line": 19,
+      "start_column": 0,
+      "end_line": 19,
+      "end_column": 31,
+      "start_byte": 1080,
+      "end_byte": 1111,
+      "confidence": "1.000",
+      "metadata": {
+        "include_kind": "include",
+        "path": "ledger_records.hrl",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "erlang.include_directive.v1",
+      "capture_name": "include_directive",
+      "node_kind": "pp_include_lib",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "containing_key": null,
+      "start_line": 20,
+      "start_column": 0,
+      "end_line": 20,
+      "end_column": 42,
+      "start_byte": 1112,
+      "end_byte": 1154,
+      "confidence": "1.000",
+      "metadata": {
+        "application": "stdlib",
+        "include_kind": "include_lib",
+        "path": "stdlib/include/assert.hrl",
+        "pattern_version": 1,
+        "query_family": "imports"
+      }
+    },
+    {
+      "pattern_id": "erlang.module_attribute.v1",
+      "capture_name": "module_attribute",
+      "node_kind": "module_attribute",
+      "language": "erlang",
+      "file_path": "fixtures/extraction/erlang/cross_file/source.erl",
+      "containing_key": "fixtures/extraction/erlang/cross_file/source.erl:ledger_client:16:0",
+      "start_line": 16,
+      "start_column": 0,
+      "end_line": 16,
+      "end_column": 23,
+      "start_byte": 1031,
+      "end_byte": 1054,
+      "confidence": "1.000",
+      "metadata": {
+        "module": "ledger_client",
+        "pattern_version": 1,
+        "query_family": "module"
+      }
+    }
+  ],
   "complexity_metrics": [
     {
       "scope": "file",
