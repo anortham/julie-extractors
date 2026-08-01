@@ -58,12 +58,14 @@ pub(super) const RECOVERABLE_DECLARATION_KINDS: &[&str] = &[
     "fun_decl",
 ];
 
-/// The outcome of recovering one file: the extra trees, in pass order, and the
-/// literal map their declarations are filtered against.
+/// The outcome of recovering one file: the extra trees, in pass order, the
+/// literal map their declarations are filtered against, and the offset recovery
+/// gave up at when the budget ran out before the errors did.
 #[derive(Default)]
 pub(super) struct Recovery {
     pub(super) trees: Vec<Tree>,
     pub(super) literals: LiteralSpans,
+    pub(super) exhausted_at: Option<usize>,
 }
 
 impl Recovery {
@@ -98,8 +100,9 @@ pub(super) fn recover(content: &str, primary: &Tree) -> Recovery {
     let mut trees = Vec::new();
     let mut error_start = first_error_start(&primary.root_node()).unwrap_or(0);
     let mut next_index = 0;
+    let mut exhausted_at = None;
 
-    for _ in 0..MAX_RECOVERY_PARSES {
+    for pass in 0..MAX_RECOVERY_PARSES {
         let Some(index) = resume_points
             .iter()
             .position(|offset| *offset > error_start)
@@ -123,9 +126,16 @@ pub(super) fn recover(content: &str, primary: &Tree) -> Recovery {
         }
         next_index = index + 1;
         error_start = next_error_start.unwrap_or(cut);
+        if pass + 1 == MAX_RECOVERY_PARSES {
+            exhausted_at = Some(error_start);
+        }
     }
 
-    Recovery { trees, literals }
+    Recovery {
+        trees,
+        literals,
+        exhausted_at,
+    }
 }
 
 /// A copy of `content` with every byte before `cut` replaced by a space, except

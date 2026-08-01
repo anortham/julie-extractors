@@ -361,6 +361,55 @@ fn parse_errors_are_reported_as_diagnostics() {
     );
 }
 
+/// More broken forms than the recovery budget can re-parse. Recovery stops
+/// partway, so the declarations past that point are missing from an otherwise
+/// ordinary-looking result; the budget diagnostic is what tells a consumer the
+/// difference between "fully recovered" and "stopped early".
+#[test]
+fn exhausting_the_recovery_budget_is_reported_as_a_diagnostic() {
+    let mut code = String::from("-module(p).\n-export([tail/0]).\n");
+    for index in 0..40 {
+        code.push_str(&format!("broken{index}(( ->\n\nf{index}(X) -> X.\n"));
+    }
+    code.push_str("\ntail() -> ok.\n");
+
+    let results = extract(&code);
+    let budget = results
+        .parse_diagnostics
+        .iter()
+        .filter_map(|diagnostic| diagnostic.message.as_deref())
+        .find(|message| message.contains("recovery budget"))
+        .unwrap_or_else(|| {
+            panic!(
+                "expected a recovery-budget diagnostic, got {:?}",
+                results.parse_diagnostics
+            )
+        });
+
+    assert!(
+        budget.contains("byte "),
+        "the diagnostic must name where recovery stopped, got {budget:?}"
+    );
+    assert!(
+        !symbol_names(&code).contains(&"tail".to_string()),
+        "tail/0 sits past the budget; its absence is what the diagnostic explains"
+    );
+}
+
+#[test]
+fn recovery_within_the_budget_reports_no_budget_diagnostic() {
+    let results = extract(BROKEN);
+
+    assert!(
+        results
+            .parse_diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.message.is_none()),
+        "a file that recovers within budget gains no extra diagnostic, got {:?}",
+        results.parse_diagnostics
+    );
+}
+
 #[test]
 fn clean_sources_report_no_diagnostics() {
     let results = extract("-module(bank).\n-export([open/1]).\nopen(Id) -> Id.\n");

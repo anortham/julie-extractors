@@ -35,7 +35,7 @@ where
 
     let mut results =
         crate::registry::extract_for_language(language, &tree, file_path, content, workspace_root)?;
-    results.parse_diagnostics = parse_diagnostics_for_tree(&tree);
+    results.parse_diagnostics = with_tree_diagnostics(&tree, results.parse_diagnostics);
     Ok(results)
 }
 
@@ -73,7 +73,8 @@ where
         };
         let mut record_results =
             crate::registry::extract_for_language("json", &tree, file_path, line, workspace_root)?;
-        record_results.parse_diagnostics = parse_diagnostics_for_tree(&tree);
+        record_results.parse_diagnostics =
+            with_tree_diagnostics(&tree, record_results.parse_diagnostics);
         record_results.apply_record_offset(RecordOffset {
             line_delta,
             byte_delta,
@@ -146,6 +147,7 @@ fn total_parse_failure_diagnostic(content: &str) -> ParseDiagnostic {
     let (end_line, end_column) = content_end_position(content);
     ParseDiagnostic {
         kind: ParseDiagnosticKind::Error,
+        message: None,
         start_line: 1,
         start_column: 0,
         end_line,
@@ -169,6 +171,16 @@ fn content_end_position(content: &str) -> (u32, u32) {
     }
 
     (line, column)
+}
+
+/// The tree's own error and missing spans, followed by whatever the extractor
+/// reported for itself. An extractor sees failures the tree cannot express — an
+/// error-recovery pass that gave up before it ran out of work leaves no node
+/// behind — so its diagnostics are kept rather than overwritten.
+fn with_tree_diagnostics(tree: &Tree, extractor: Vec<ParseDiagnostic>) -> Vec<ParseDiagnostic> {
+    let mut diagnostics = parse_diagnostics_for_tree(tree);
+    diagnostics.extend(extractor);
+    diagnostics
 }
 
 pub fn parse_diagnostics_for_tree(tree: &Tree) -> Vec<ParseDiagnostic> {
@@ -210,6 +222,7 @@ fn parse_diagnostic_for_node(node: Node<'_>, kind: ParseDiagnosticKind) -> Parse
     let span = NormalizedSpan::from_node(&node);
     ParseDiagnostic {
         kind,
+        message: None,
         start_line: span.start_line,
         start_column: span.start_column,
         end_line: span.end_line,

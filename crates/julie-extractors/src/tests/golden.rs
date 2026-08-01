@@ -158,6 +158,8 @@ struct NormalizedTypeInfo {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 struct NormalizedParseDiagnostic {
     kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    message: Option<String>,
     start_line: u32,
     start_column: u32,
     end_line: u32,
@@ -615,6 +617,7 @@ fn normalize_type(
 fn normalize_parse_diagnostic(diagnostic: &ParseDiagnostic) -> NormalizedParseDiagnostic {
     NormalizedParseDiagnostic {
         kind: format!("{:?}", diagnostic.kind),
+        message: diagnostic.message.clone(),
         start_line: diagnostic.start_line,
         start_column: diagnostic.start_column,
         end_line: diagnostic.end_line,

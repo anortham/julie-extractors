@@ -16,7 +16,10 @@ use std::collections::{HashMap, HashSet};
 
 use tree_sitter::{Node, Tree};
 
-use crate::base::{BaseExtractor, Identifier, NormalizedSpan, Relationship, Symbol};
+use crate::base::{
+    BaseExtractor, Identifier, NormalizedSpan, ParseDiagnostic, ParseDiagnosticKind, Relationship,
+    Symbol,
+};
 use crate::test_detection::ErlangTestModule;
 use helpers::{NameArity, function_arity_entries, named_children, wild_attribute_name};
 
@@ -255,6 +258,44 @@ impl ErlangExtractor {
         self.with_declarations(tree, |extractor, declarations| {
             identifiers::extract_identifiers(extractor, &walkable(declarations), symbols)
         })
+    }
+
+    /// Diagnostics the parse tree cannot carry: one span when error recovery
+    /// stopped on its parse budget rather than because the file was recovered,
+    /// so a consumer can tell a complete result from a truncated one. Empty
+    /// unless [`extract_symbols`](Self::extract_symbols) has run.
+    pub fn parse_diagnostics(&self) -> Vec<ParseDiagnostic> {
+        let Some(offset) = self
+            .recovery
+            .as_ref()
+            .and_then(|recovery| recovery.exhausted_at)
+        else {
+            return Vec::new();
+        };
+        let Some(span) = NormalizedSpan::from_content_range_with_line_starts(
+            &self.base.content,
+            self.base.line_starts(),
+            offset,
+            self.base.content.len(),
+        ) else {
+            return Vec::new();
+        };
+
+        vec![ParseDiagnostic {
+            kind: ParseDiagnosticKind::Error,
+            message: Some(format!(
+                "erlang recovery budget exhausted after {} re-parses; \
+                 unresolved parse errors remain from byte {offset}, \
+                 so declarations after it may be missing",
+                recovery::MAX_RECOVERY_PARSES
+            )),
+            start_line: span.start_line,
+            start_column: span.start_column,
+            end_line: span.end_line,
+            end_column: span.end_column,
+            start_byte: span.start_byte,
+            end_byte: span.end_byte,
+        }]
     }
 
     /// Declared `-spec`, `-callback`, `-type` and `-opaque` forms, matched to

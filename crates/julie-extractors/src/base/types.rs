@@ -22,9 +22,16 @@ pub enum ParseDiagnosticKind {
 }
 
 /// Span for syntax recovery produced by tree-sitter.
+///
+/// `message` is `None` for the spans tree-sitter reports directly — the node
+/// kind and span are the whole fact. An extractor sets it when it knows
+/// something about the failure the tree cannot express, such as an
+/// error-recovery pass that stopped before it ran out of work.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParseDiagnostic {
     pub kind: ParseDiagnosticKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
     pub start_line: u32,
     pub start_column: u32,
     pub end_line: u32,

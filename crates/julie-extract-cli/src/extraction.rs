@@ -892,20 +892,25 @@ fn map_parse_diagnostics(
                 ParseDiagnosticKind::Error => "error",
                 ParseDiagnosticKind::Missing => "missing",
             };
+            let mut identity = vec![
+                target.root_relative_path.clone(),
+                kind.to_string(),
+                diagnostic.start_line.to_string(),
+                diagnostic.start_column.to_string(),
+                diagnostic.end_line.to_string(),
+                diagnostic.end_column.to_string(),
+            ];
+            // Only extend the identity when a message is present: an extractor
+            // diagnostic can share a span with a tree one, and the two must not
+            // collide on the primary key.
+            if let Some(message) = &diagnostic.message {
+                identity.push(message.clone());
+            }
+
             ArtifactParseDiagnostic {
-                diagnostic_id: stable_id(
-                    "parse_diagnostic",
-                    [
-                        target.root_relative_path.as_str(),
-                        kind,
-                        diagnostic.start_line.to_string().as_str(),
-                        diagnostic.start_column.to_string().as_str(),
-                        diagnostic.end_line.to_string().as_str(),
-                        diagnostic.end_column.to_string().as_str(),
-                    ],
-                ),
+                diagnostic_id: stable_id("parse_diagnostic", identity),
                 kind: kind.to_string(),
-                message: None,
+                message: diagnostic.message.clone(),
                 start_line: i64::from(diagnostic.start_line),
                 start_column: i64::from(diagnostic.start_column),
                 end_line: i64::from(diagnostic.end_line),

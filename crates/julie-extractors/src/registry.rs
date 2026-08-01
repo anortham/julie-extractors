@@ -458,7 +458,7 @@ fn extract_erlang(
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
         types: convert_types_map(types, "erlang"),
-        parse_diagnostics: Vec::new(),
+        parse_diagnostics: ext.parse_diagnostics(),
     })
 }
 
