@@ -92,40 +92,7 @@
   "relationships": [],
   "pending_relationships": [],
   "structured_pending_relationships": [],
-  "identifiers": [
-    {
-      "key": "fixtures/extraction/xml/cardinality/source.xml:xs:string:type_usage:2005:25",
-      "name": "xs:string",
-      "kind": "type_usage",
-      "language": "xml",
-      "file_path": "fixtures/extraction/xml/cardinality/source.xml",
-      "start_line": 2005,
-      "start_column": 25,
-      "end_line": 2005,
-      "end_column": 36,
-      "start_byte": 114106,
-      "end_byte": 114117,
-      "containing_key": "fixtures/extraction/xml/cardinality/source.xml:bolt:2005:2",
-      "target_key": null,
-      "confidence": "1.000"
-    },
-    {
-      "key": "fixtures/extraction/xml/cardinality/source.xml:xs:string:type_usage:2006:24",
-      "name": "xs:string",
-      "kind": "type_usage",
-      "language": "xml",
-      "file_path": "fixtures/extraction/xml/cardinality/source.xml",
-      "start_line": 2006,
-      "start_column": 24,
-      "end_line": 2006,
-      "end_column": 35,
-      "start_byte": 114145,
-      "end_byte": 114156,
-      "containing_key": "fixtures/extraction/xml/cardinality/source.xml:nut:2006:2",
-      "target_key": null,
-      "confidence": "1.000"
-    }
-  ],
+  "identifiers": [],
   "types": [],
   "parse_diagnostics": [],
   "structural_facts": [

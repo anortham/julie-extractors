@@ -1,7 +1,7 @@
 use crate::pipeline::extract_canonical;
 use std::path::PathBuf;
 
-const DOCUMENT: &str = "<root name=\"cfg\"><entry name=\"a\" type=\"xs:string\"/></root>\n";
+const DOCUMENT: &str = "<root name=\"cfg\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"><xs:entry name=\"a\" type=\"xs:string\"/></root>\n";
 
 fn extract(file_path: &str) -> crate::ExtractionResults {
     extract_canonical(file_path, DOCUMENT, &PathBuf::from("/tmp/test")).expect("extraction failed")

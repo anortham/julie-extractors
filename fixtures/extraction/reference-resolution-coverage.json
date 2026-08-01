@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "fixtures/extraction/capabilities.json registered canonical golden corpus",
-  "source_digest": "sha256:cb20aa5d9d40f93227fc1763fb5ff6c4d00ecfa3d12e66b919913e32b8388bf9",
+  "source_digest": "sha256:3ed411bfd1df3db7fe4887c1289cc6890ca104a0947467b7e82e1a6b6eaad58f",
   "languages": [
     "rust",
     "c",
@@ -535,15 +535,15 @@
     },
     {
       "language": "xml",
-      "total": 16,
+      "total": 10,
       "attempted": 0,
       "resolved": 0,
       "ambiguous": 0,
       "missing": 0,
       "no_context": 0,
       "unresolved_pending": 0,
-      "unattempted": 16,
-      "span_present": 16,
+      "unattempted": 10,
+      "span_present": 10,
       "span_missing": 0
     }
   ],
@@ -8658,7 +8658,7 @@
       "method": null,
       "span_present": true,
       "applicability": "observed",
-      "count": 16
+      "count": 10
     },
     {
       "language": "xml",

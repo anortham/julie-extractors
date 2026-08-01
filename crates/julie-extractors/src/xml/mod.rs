@@ -7,8 +7,11 @@
 //! chain to their nearest named ancestor the way YAML mapping keys chain.
 //!
 //! Attribute values of `type`, `ref`, `base`, and `element` become `type_usage` identifiers
-//! carrying the raw QName, and every non-empty attribute value is captured as a literal under
-//! a `tag.attribute` carrier. Relationships and types are out of scope for the XML tier.
+//! carrying the raw QName, but only in schema context — the owning element must sit in a
+//! declared XML Schema or WSDL namespace, or the attribute itself must (`xsi:type`), because
+//! those four names are ordinary words that a generic document uses for its own purposes.
+//! Every non-empty attribute value is captured as a literal under a `tag.attribute` carrier
+//! regardless of dialect. Relationships and types are out of scope for the XML tier.
 //!
 //! Common use cases:
 //! - XSD schemas (complexType/element/simpleType declarations and their references)
@@ -55,7 +58,14 @@ impl XmlExtractor {
             .iter()
             .map(|symbol| (symbol.start_byte, symbol.id.as_str()))
             .collect();
-        self.walk_references(tree.root_node(), None, 0, &symbols_by_start_byte);
+        let namespaces = identifiers::SchemaNamespaces::scan(&self.base, tree.root_node());
+        self.walk_references(
+            tree.root_node(),
+            None,
+            0,
+            &namespaces,
+            &symbols_by_start_byte,
+        );
         self.base.identifiers.clone()
     }
 
@@ -119,6 +129,7 @@ impl XmlExtractor {
         node: tree_sitter::Node,
         containing_symbol_id: Option<&str>,
         depth: u32,
+        namespaces: &identifiers::SchemaNamespaces,
         symbols_by_start_byte: &HashMap<u32, &str>,
     ) {
         if !should_visit_tree_depth(depth) {
@@ -134,10 +145,15 @@ impl XmlExtractor {
         if node.kind() == "element" {
             child_containing_symbol_id = own_symbol_id;
             if let Some(tag) = elements::tag_node(node) {
-                identifiers::extract_element_facts(&mut self.base, tag, child_containing_symbol_id);
+                identifiers::extract_element_facts(
+                    &mut self.base,
+                    tag,
+                    namespaces,
+                    child_containing_symbol_id,
+                );
             }
         } else if elements::is_orphan_tag(node) {
-            identifiers::extract_element_facts(&mut self.base, node, own_symbol_id);
+            identifiers::extract_element_facts(&mut self.base, node, namespaces, own_symbol_id);
         }
 
         let Some(child_depth) = child_tree_depth(depth) else {
@@ -149,6 +165,7 @@ impl XmlExtractor {
                 child,
                 child_containing_symbol_id,
                 child_depth,
+                namespaces,
                 symbols_by_start_byte,
             );
         }
