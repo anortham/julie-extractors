@@ -35,6 +35,14 @@
   - `pp_define` macro bodies are walked as executable, so a type-valued macro (`-define(TYPE, integer()).`) emits a false call identifier — real, but fixing it by dropping macro-body walks would also lose real edges like `-define(LOG(X), io:format(...))`. USER DECISION 2026-08-01: ship as-is; revisit with a targeted macro-body edge restriction in a later release if dogfooding shows noise.
 - Cost: codex does not report per-request token counts.
 
+## External review round 2 (grok, adversarial — user-requested third opinion before go-live)
+- **Findings:** 2 (verdict needs-attention; other priority surfaces judged solid)
+- **Verified real (lead reproduced both on live scans), fixed:** 2 (commits: d8053db, 436a254)
+  - HIGH: recovery minted phantom symbols from form-shaped lines inside unclosed strings (probe produced ghost function/record/field from string text) — fixed with a tree-independent lexical scanner (`erlang/lexical.rs`: comments, strings, quoted atoms, $-chars, sigils, `"""` with delimiter counting) filtering both resume points and recovered declaration starts; EOF-open literals bounded at the next blank line (heuristic, keeps real forms recoverable; residual: literal text after a blank line inside an unclosed string could still resume — far narrower than before).
+  - MEDIUM: recovery-budget exhaustion was silent (32-parse cap dropped later declarations with no signal) — `ParseDiagnostic` gained `message: Option<String>` (artifact schema already had the column) and the pipeline now appends extractor diagnostics instead of overwriting; budget exhaustion emits an explicit diagnostic naming the give-up offset.
+- **Dismissed:** 0. **Flagged:** 0.
+- Gates: 13/13 exit 0 after fixes; goldens byte-identical, corpus baseline 45/2 untouched, telemetry.erl still 8/8 exports. Cost: grok $1.05 (136k in / 22k out) + $1.16 for a first run that hit the turn cap.
+
 ## Tests
 - Branch gate: all 14 gates exit 0 at 1285687 (default, golden, capability, certification, changed, language erlang, language xml, real-world corpus 3/3 with diagnostics baseline 45/2 unchanged, languages --json, strict scorecard 0 debts, coverage report, fmt, clippy zero warnings, deny). Later commits are docs-only.
 
