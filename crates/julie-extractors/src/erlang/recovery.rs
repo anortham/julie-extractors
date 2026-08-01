@@ -18,8 +18,9 @@
 //! - a clean parse does zero extra work ([`recover`] returns before touching the
 //!   parser when the root has no error);
 //! - at most [`MAX_RECOVERY_PARSES`] re-parses per file;
-//! - resume points are only column-0 form starts, never offsets inside a string
-//!   or comment, so doc-comment prose is not re-read as code.
+//! - resume points are only column-0 form starts, never offsets inside a
+//!   string, a comment, or a multiline quoted atom, so neither doc-comment prose
+//!   nor quoted text is re-read as code.
 
 use std::ops::Range;
 
@@ -122,16 +123,24 @@ pub(super) fn blank_before(content: &str, cut: usize) -> String {
 }
 
 /// Byte offsets of lines that can begin a top-level form: column 0, starting
-/// with an attribute `-`, a macro `?`, or an atom. Offsets inside a string or
-/// comment are excluded, so prose lines inside a `"""` doc block are never used
-/// as resume points.
+/// with an attribute `-`, a macro `?`, or an atom. Offsets inside a literal are
+/// excluded, so neither prose in a `"""` doc block nor text in a multiline
+/// quoted atom is ever used as a resume point.
+///
+/// Only offsets STRICTLY inside a literal are rejected. A literal that begins
+/// at the offset is that form's own head — `'quoted name'(X) -> X.` is a legal
+/// Erlang function, and so is every unquoted head, which is an `atom` too.
 fn resume_points(content: &str, primary: &Tree) -> Vec<usize> {
     let literals = literal_ranges(&primary.root_node());
     let mut points = Vec::new();
     let mut offset = 0;
 
     for line in content.split_inclusive('\n') {
-        if starts_form(line) && !literals.iter().any(|range| range.contains(&offset)) {
+        if starts_form(line)
+            && !literals
+                .iter()
+                .any(|range| range.start < offset && offset < range.end)
+        {
             points.push(offset);
         }
         offset += line.len();
@@ -147,8 +156,15 @@ fn starts_form(line: &str) -> bool {
     )
 }
 
-/// Byte ranges of string and comment nodes, used to keep resume points out of
-/// literal text.
+/// Lexical literal kinds whose token can straddle a line boundary and so hide a
+/// form-shaped line at column 0 inside literal text. `atom` covers the quoted
+/// form (`'…'`) and `char` the escape form (`$…`); both token regexes in
+/// tree-sitter-erlang 0.20.0 admit a newline. Only the multiline instances are
+/// recorded — every unquoted form head is an `atom` too, and excluding those
+/// would leave recovery with no resume points at all.
+const LINE_SPANNING_LITERAL_KINDS: &[&str] = &["atom", "char"];
+
+/// Byte ranges of literal nodes, used to keep resume points out of literal text.
 fn literal_ranges(node: &Node) -> Vec<Range<usize>> {
     let mut ranges = Vec::new();
     collect_literal_ranges(node, &mut ranges);
@@ -158,6 +174,13 @@ fn literal_ranges(node: &Node) -> Vec<Range<usize>> {
 fn collect_literal_ranges(node: &Node, ranges: &mut Vec<Range<usize>>) {
     if matches!(node.kind(), "string" | "comment") {
         ranges.push(node.byte_range());
+        return;
+    }
+
+    if LINE_SPANNING_LITERAL_KINDS.contains(&node.kind()) {
+        if node.start_position().row != node.end_position().row {
+            ranges.push(node.byte_range());
+        }
         return;
     }
 
@@ -246,6 +269,33 @@ mod tests {
             !lines.iter().any(|line| line.starts_with("%%")),
             "got {lines:?}"
         );
+    }
+
+    #[test]
+    fn resume_points_skip_lines_inside_a_multiline_quoted_atom() {
+        let code = "-module(bank).\nlabel() -> 'first line\n-export([fake/0]).\nsecond line'.\nreal(X) -> X.\n";
+        let tree = parse(code);
+        let points = resume_points(code, &tree);
+
+        let lines: Vec<&str> = points
+            .iter()
+            .map(|offset| code[*offset..].lines().next().unwrap_or_default())
+            .collect();
+
+        assert!(lines.contains(&"real(X) -> X."), "got {lines:?}");
+        assert!(!lines.contains(&"-export([fake/0])."), "got {lines:?}");
+        assert!(!lines.contains(&"second line'."), "got {lines:?}");
+    }
+
+    /// A quoted atom is a legal function name, so a multiline one may head a
+    /// real form. Only offsets strictly inside a literal are rejected.
+    #[test]
+    fn a_quoted_atom_that_heads_a_form_stays_a_resume_point() {
+        let code = "-module(bank).\n'quoted name'(X) -> X.\n";
+        let tree = parse(code);
+        let points = resume_points(code, &tree);
+
+        assert!(points.contains(&code.find('\'').unwrap()), "got {points:?}");
     }
 
     #[test]

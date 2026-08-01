@@ -154,6 +154,33 @@ real() -> ok.
     );
 }
 
+/// A quoted atom may span lines, so a form-shaped line at column 0 can sit
+/// inside one. Resuming there would blank the opening quote away and re-parse
+/// literal text as declarations.
+#[test]
+fn form_like_lines_inside_a_multiline_quoted_atom_do_not_become_symbols() {
+    let code = r#"-module(p).
+-export([real/0]).
+
+first() ->
+    ?WITH_STACKTRACE(C, R, S)
+        io:format("~p", ['ghost line one
+ghost() -> not_code.
+-record(ghost, {id}).
+-define(GHOST, 1).
+ghost line two'])
+    end.
+
+real() -> ok.
+"#;
+
+    assert_eq!(
+        symbol_names(code),
+        vec!["first".to_string(), "p".to_string(), "real".to_string()],
+        "declarations quoted inside an atom must never be extracted"
+    );
+}
+
 #[test]
 fn garbage_inside_an_error_region_does_not_synthesize_symbols() {
     let code = r#"-module(p).
