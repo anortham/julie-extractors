@@ -16,7 +16,7 @@ use std::collections::{HashMap, HashSet};
 
 use tree_sitter::{Node, Tree};
 
-use crate::base::{BaseExtractor, Identifier, Relationship, Symbol};
+use crate::base::{BaseExtractor, Identifier, NormalizedSpan, Relationship, Symbol};
 use crate::test_detection::ErlangTestModule;
 use helpers::{NameArity, function_arity_entries, named_children, wild_attribute_name};
 
@@ -175,7 +175,7 @@ impl ErlangExtractor {
         let mut module_id: Option<String> = None;
         let mut emitted: HashSet<NameArity> = HashSet::new();
 
-        for declaration in declarations {
+        for (index, declaration) in declarations.iter().enumerate() {
             let parent_id = module_id.clone();
             let parent_id = parent_id.as_deref();
 
@@ -202,9 +202,12 @@ impl ErlangExtractor {
                         }
                         let clause_count =
                             clause_counts.get(&clause.identity).copied().unwrap_or(1);
+                        let extent =
+                            self.clause_run_extent(declarations, index, &clause.identity)?;
                         Some(definition_forms::extract_function(
                             self,
                             declaration,
+                            extent,
                             &clause,
                             clause_count,
                             parent_id,
@@ -305,6 +308,44 @@ impl ErlangExtractor {
         let mut atoms = Vec::new();
         option_atoms(&self.base, declaration, &mut atoms);
         atoms.iter().any(|atom| atom == EXPORT_ALL_OPTION)
+    }
+
+    /// Span of a whole function: from the `fun_decl` at `first` through the end
+    /// of the last clause in the contiguous sibling run that shares its
+    /// name/arity.
+    ///
+    /// Erlang requires a function's clauses to be adjacent, so the run ends at
+    /// the first declaration that is not another clause of the same function.
+    /// Without this the symbol would cover clause one alone, and its body hash
+    /// would not move when a later clause changed.
+    fn clause_run_extent(
+        &self,
+        declarations: &[Node],
+        first: usize,
+        identity: &NameArity,
+    ) -> Option<NormalizedSpan> {
+        let start_byte = declarations.get(first)?.start_byte();
+        let mut end_byte = declarations[first].end_byte();
+
+        for declaration in declarations.get(first + 1..)? {
+            if declaration.kind() != "fun_decl" {
+                break;
+            }
+            let Some(clause) = definition_forms::function_clause(self, declaration) else {
+                break;
+            };
+            if &clause.identity != identity {
+                break;
+            }
+            end_byte = end_byte.max(declaration.end_byte());
+        }
+
+        NormalizedSpan::from_content_range_with_line_starts(
+            &self.base.content,
+            self.base.line_starts(),
+            start_byte,
+            end_byte,
+        )
     }
 
     fn clause_counts(&self, declarations: &[Node]) -> HashMap<NameArity, usize> {

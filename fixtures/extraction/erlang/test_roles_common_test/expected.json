@@ -14,13 +14,13 @@
       "end_byte": 1090,
       "body_span": {
         "start_line": 26,
-        "start_column": 3,
-        "end_line": 26,
-        "end_column": 5,
-        "start_byte": 1048,
-        "end_byte": 1050
+        "start_column": 6,
+        "end_line": 27,
+        "end_column": 36,
+        "start_byte": 1051,
+        "end_byte": 1090
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "ba44ccd6e6b5a4a2ad8e7abc51de9060",
       "signature": "all/0()",
       "doc_comment": null,
       "visibility": "Public",
@@ -87,13 +87,13 @@
       "end_byte": 1440,
       "body_span": {
         "start_line": 53,
-        "start_column": 14,
-        "end_line": 53,
-        "end_column": 23,
-        "start_byte": 1420,
-        "end_byte": 1429
+        "start_column": 24,
+        "end_line": 54,
+        "end_column": 7,
+        "start_byte": 1430,
+        "end_byte": 1440
       },
-      "body_hash": "146c6790083a9173a96f94ae975511e3",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "closes_account/1(_Config)",
       "doc_comment": null,
       "visibility": "Public",
@@ -122,13 +122,13 @@
       "end_byte": 1369,
       "body_span": {
         "start_line": 47,
-        "start_column": 13,
-        "end_line": 47,
-        "end_column": 30,
-        "start_byte": 1341,
-        "end_byte": 1358
+        "start_column": 31,
+        "end_line": 48,
+        "end_column": 7,
+        "start_byte": 1359,
+        "end_byte": 1369
       },
-      "body_hash": "a25a60f878cd7d186db644b61402ae03",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "end_per_group/2(_Group, _Config)",
       "doc_comment": null,
       "visibility": "Public",
@@ -158,13 +158,13 @@
       "end_byte": 1185,
       "body_span": {
         "start_line": 35,
-        "start_column": 13,
-        "end_line": 35,
-        "end_column": 22,
-        "start_byte": 1165,
-        "end_byte": 1174
+        "start_column": 23,
+        "end_line": 36,
+        "end_column": 7,
+        "start_byte": 1175,
+        "end_byte": 1185
       },
-      "body_hash": "146c6790083a9173a96f94ae975511e3",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "end_per_suite/1(_Config)",
       "doc_comment": null,
       "visibility": "Public",
@@ -194,13 +194,13 @@
       "end_byte": 1279,
       "body_span": {
         "start_line": 41,
-        "start_column": 16,
-        "end_line": 41,
-        "end_column": 32,
-        "start_byte": 1252,
-        "end_byte": 1268
+        "start_column": 33,
+        "end_line": 42,
+        "end_column": 7,
+        "start_byte": 1269,
+        "end_byte": 1279
       },
-      "body_hash": "2af121649e407af74df4bf13ca25e2e3",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "end_per_testcase/2(_Case, _Config)",
       "doc_comment": null,
       "visibility": "Public",
@@ -230,13 +230,13 @@
       "end_byte": 1482,
       "body_span": {
         "start_line": 56,
-        "start_column": 13,
-        "end_line": 56,
-        "end_column": 29,
-        "start_byte": 1455,
-        "end_byte": 1471
+        "start_column": 30,
+        "end_line": 57,
+        "end_column": 7,
+        "start_byte": 1472,
+        "end_byte": 1482
       },
-      "body_hash": "2af121649e407af74df4bf13ca25e2e3",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "format_report/2(_Case, _Config)",
       "doc_comment": null,
       "visibility": "Public",
@@ -264,13 +264,13 @@
       "end_byte": 1111,
       "body_span": {
         "start_line": 29,
-        "start_column": 6,
-        "end_line": 29,
-        "end_column": 8,
-        "start_byte": 1098,
-        "end_byte": 1100
+        "start_column": 9,
+        "end_line": 30,
+        "end_column": 7,
+        "start_byte": 1101,
+        "end_byte": 1111
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "b3fd7fa5a875b62692ef5a2f3478a89c",
       "signature": "groups/0()",
       "doc_comment": null,
       "visibility": "Public",
@@ -298,13 +298,13 @@
       "end_byte": 1326,
       "body_span": {
         "start_line": 44,
-        "start_column": 14,
-        "end_line": 44,
-        "end_column": 30,
-        "start_byte": 1295,
-        "end_byte": 1311
+        "start_column": 31,
+        "end_line": 45,
+        "end_column": 11,
+        "start_byte": 1312,
+        "end_byte": 1326
       },
-      "body_hash": "93231d491ac07bf9436fe2125f07b784",
+      "body_hash": "edb0c175512c3c106747f4ed214d7c57",
       "signature": "init_per_group/2(_Group, Config)",
       "doc_comment": null,
       "visibility": "Public",
@@ -334,13 +334,13 @@
       "end_byte": 1150,
       "body_span": {
         "start_line": 32,
-        "start_column": 14,
-        "end_line": 32,
-        "end_column": 22,
-        "start_byte": 1127,
-        "end_byte": 1135
+        "start_column": 23,
+        "end_line": 33,
+        "end_column": 11,
+        "start_byte": 1136,
+        "end_byte": 1150
       },
-      "body_hash": "c02178edf26deb9f9e40458686d8c3aa",
+      "body_hash": "edb0c175512c3c106747f4ed214d7c57",
       "signature": "init_per_suite/1(Config)",
       "doc_comment": null,
       "visibility": "Public",
@@ -370,13 +370,13 @@
       "end_byte": 1234,
       "body_span": {
         "start_line": 38,
-        "start_column": 17,
-        "end_line": 38,
-        "end_column": 32,
-        "start_byte": 1204,
-        "end_byte": 1219
+        "start_column": 33,
+        "end_line": 39,
+        "end_column": 11,
+        "start_byte": 1220,
+        "end_byte": 1234
       },
-      "body_hash": "bb674509ede538d9186795e0f230079b",
+      "body_hash": "edb0c175512c3c106747f4ed214d7c57",
       "signature": "init_per_testcase/2(_Case, Config)",
       "doc_comment": null,
       "visibility": "Public",
@@ -406,13 +406,13 @@
       "end_byte": 1404,
       "body_span": {
         "start_line": 50,
-        "start_column": 13,
-        "end_line": 50,
-        "end_column": 22,
-        "start_byte": 1384,
-        "end_byte": 1393
+        "start_column": 23,
+        "end_line": 51,
+        "end_column": 7,
+        "start_byte": 1394,
+        "end_byte": 1404
       },
-      "body_hash": "146c6790083a9173a96f94ae975511e3",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "opens_account/1(_Config)",
       "doc_comment": null,
       "visibility": "Public",

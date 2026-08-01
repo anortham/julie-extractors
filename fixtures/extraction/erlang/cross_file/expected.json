@@ -45,13 +45,13 @@
       "end_byte": 1534,
       "body_span": {
         "start_line": 33,
-        "start_column": 6,
-        "end_line": 37,
-        "end_column": 18,
-        "start_byte": 1405,
-        "end_byte": 1520
+        "start_column": 21,
+        "end_line": 38,
+        "end_column": 12,
+        "start_byte": 1420,
+        "end_byte": 1534
       },
-      "body_hash": "0ac875a645a7c73042b66ed9c09b8640",
+      "body_hash": "b7b424364c64db07a981d5030c9383a1",
       "signature": "replay/2(Entries, Fun)",
       "doc_comment": null,
       "visibility": "Public",
@@ -79,13 +79,13 @@
       "end_byte": 1397,
       "body_span": {
         "start_line": 30,
-        "start_column": 5,
-        "end_line": 30,
-        "end_column": 21,
-        "start_byte": 1366,
-        "end_byte": 1382
+        "start_column": 22,
+        "end_line": 31,
+        "end_column": 11,
+        "start_byte": 1383,
+        "end_byte": 1397
       },
-      "body_hash": "4a8a7f0010c6c43035a7671575e82c3c",
+      "body_hash": "4ffee28b49261aae7bda69f5b2fe7b1b",
       "signature": "retry/2(_Entry, Amount)",
       "doc_comment": null,
       "visibility": "Private",
@@ -112,14 +112,14 @@
       "start_byte": 1269,
       "end_byte": 1359,
       "body_span": {
-        "start_line": 28,
-        "start_column": 4,
+        "start_line": 26,
+        "start_column": 22,
         "end_line": 28,
-        "end_column": 30,
-        "start_byte": 1332,
-        "end_byte": 1358
+        "end_column": 31,
+        "start_byte": 1291,
+        "end_byte": 1359
       },
-      "body_hash": "66c4d7a0d96003d657f1788fb07695b7",
+      "body_hash": "9217f723a10c9108ba0059f141a18b38",
       "signature": "settle/2(Entry, Amount)",
       "doc_comment": null,
       "visibility": "Public",

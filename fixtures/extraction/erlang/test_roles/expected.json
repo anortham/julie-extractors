@@ -14,13 +14,13 @@
       "end_byte": 825,
       "body_span": {
         "start_line": 19,
-        "start_column": 12,
-        "end_line": 19,
-        "end_column": 14,
-        "start_byte": 812,
-        "end_byte": 814
+        "start_column": 15,
+        "end_line": 20,
+        "end_column": 7,
+        "start_byte": 815,
+        "end_byte": 825
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "balance_test/0()",
       "doc_comment": null,
       "visibility": "Public",
@@ -88,13 +88,13 @@
       "end_byte": 921,
       "body_span": {
         "start_line": 26,
-        "start_column": 10,
-        "end_line": 26,
-        "end_column": 20,
-        "start_byte": 900,
-        "end_byte": 910
+        "start_column": 21,
+        "end_line": 27,
+        "end_column": 7,
+        "start_byte": 911,
+        "end_byte": 921
       },
-      "body_hash": "90e40089017965c3f5ae4b70a69e28c8",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "check_test/1(_Account)",
       "doc_comment": null,
       "visibility": "Public",
@@ -122,13 +122,13 @@
       "end_byte": 888,
       "body_span": {
         "start_line": 23,
-        "start_column": 13,
-        "end_line": 23,
-        "end_column": 15,
-        "start_byte": 875,
-        "end_byte": 877
+        "start_column": 16,
+        "end_line": 24,
+        "end_column": 7,
+        "start_byte": 878,
+        "end_byte": 888
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "b3fd7fa5a875b62692ef5a2f3478a89c",
       "signature": "deposit_test_/0()",
       "doc_comment": null,
       "visibility": "Public",
@@ -163,13 +163,13 @@
       "end_byte": 941,
       "body_span": {
         "start_line": 29,
-        "start_column": 5,
-        "end_line": 29,
+        "start_column": 8,
+        "end_line": 30,
         "end_column": 7,
-        "start_byte": 928,
-        "end_byte": 930
+        "start_byte": 931,
+        "end_byte": 941
       },
-      "body_hash": "22846ff977ceb14610c8da0039a7029b",
+      "body_hash": "656a4c8eb916588b85c2a124afa89c5f",
       "signature": "setup/0()",
       "doc_comment": null,
       "visibility": "Public",

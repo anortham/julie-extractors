@@ -390,11 +390,11 @@ fn complexity_span_for_symbol(
     config: ComplexityLanguageConfig,
 ) -> NormalizedSpan {
     let declaration_span = symbol_span(symbol);
-    // tree-sitter-erlang keeps a clause body under `function_clause`, one level
-    // below the `fun_decl` a function symbol spans, so the generic body-span
-    // inference falls through to text matching and lands on the first tuple or
-    // argument list it finds. The declaration span is already exactly one clause
-    // head plus body, which is the scope this metric wants.
+    // An erlang function symbol spans every clause of its name/arity, and a
+    // `guard_clause` in a clause HEAD is a counted decision. The body span
+    // starts at the first clause's `->`, so measuring it would drop the first
+    // clause's guard; the declaration span is head plus body for every clause,
+    // which is the scope this metric wants.
     if language == "erlang" {
         return declaration_span;
     }

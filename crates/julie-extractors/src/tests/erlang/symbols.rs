@@ -77,6 +77,38 @@ fn multiple_clauses_collapse_into_one_symbol() {
 }
 
 #[test]
+fn multi_clause_symbol_spans_through_the_last_clause() {
+    let symbols = extract(MODULE);
+    let route = find(&symbols, "route");
+    let last_clause_end = MODULE.rfind("undefined.").unwrap() + "undefined.".len();
+
+    assert_eq!(
+        route.start_byte as usize,
+        MODULE.find("route({get").unwrap()
+    );
+    assert_eq!(route.end_byte as usize, last_clause_end);
+}
+
+#[test]
+fn body_hash_moves_when_a_later_clause_changes() {
+    let before = extract("-module(m).\nf(1) -> a;\nf(2) -> b.\n");
+    let after = extract("-module(m).\nf(1) -> a;\nf(2) -> c.\n");
+
+    assert!(find(&before, "f").body_hash.is_some());
+    assert_ne!(find(&before, "f").body_hash, find(&after, "f").body_hash);
+}
+
+#[test]
+fn body_span_covers_the_clause_bodies_not_the_first_brace_run() {
+    let code = "-module(m).\nopen(Id) ->\n    #account{id = Id}.\n";
+    let symbols = extract(code);
+    let body = find(&symbols, "open").body_span.expect("body span");
+
+    assert_eq!(body.start_byte as usize, code.find("->").unwrap());
+    assert_eq!(body.end_byte as usize, code.trim_end().len());
+}
+
+#[test]
 fn same_name_different_arity_are_separate_symbols() {
     let symbols = extract("-module(m).\nf() -> ok.\nf(X) -> X.\n");
     let signatures: Vec<_> = symbols
