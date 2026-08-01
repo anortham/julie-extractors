@@ -25,7 +25,7 @@
 
 use std::collections::HashMap;
 
-use tree_sitter::{Node, Tree};
+use tree_sitter::Node;
 
 use super::ErlangExtractor;
 use super::definition_forms;
@@ -46,12 +46,10 @@ type FunctionIndex<'a> = HashMap<NameArity, &'a Symbol>;
 
 pub(super) fn extract_relationships(
     extractor: &mut ErlangExtractor,
-    tree: &Tree,
+    declarations: &[Node],
     symbols: &[Symbol],
 ) -> Vec<Relationship> {
-    let root = tree.root_node();
-    let declarations = named_children(&root);
-    let imports = imported_functions(extractor, &declarations);
+    let imports = imported_functions(extractor, declarations);
     let functions = function_index(symbols);
     let symbol_map: HashMap<String, &Symbol> = symbols
         .iter()
@@ -63,7 +61,7 @@ pub(super) fn extract_relationships(
         .map(|symbol| symbol.id.clone());
 
     let mut relationships = Vec::new();
-    for declaration in &declarations {
+    for declaration in declarations {
         match declaration.kind() {
             "behaviour_attribute" => {
                 emit_behaviour(extractor, declaration, module_id.as_deref());

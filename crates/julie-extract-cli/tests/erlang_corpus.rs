@@ -31,13 +31,21 @@ use tempfile::TempDir;
 /// a macro whose body is a partial `catch` clause head (`Class:Reason:Stacktrace ->`).
 /// tree-sitter has no preprocessor, so the fragment cannot parse before macro expansion.
 /// `telemetry.hrl` reports one diagnostic per `-define` body (lines 7 and 9); `telemetry.erl`
-/// reports 45 across the two call sites (lines 169 and 344) and the statements they swallow,
-/// which costs the exports declared after line 184 (`list_handlers/1`, `execute/2`, `span/3`,
-/// `report_cb/1`). Every other corpus file parses clean.
+/// reports 45 across the two call sites (lines 169 and 344) and the statements they swallow.
+/// Every other corpus file parses clean.
+///
+/// Diagnostics are unchanged by declaration recovery and always will be: recovery
+/// reads extra declarations out of re-parses, it does not repair the primary parse
+/// the diagnostics are reported from. What it changes is reach — `telemetry.erl`
+/// went from 16 symbols to 24 when recovery landed, restoring the four exports
+/// declared after the first broken macro (`span/3`, `execute/2`, `list_handlers/1`,
+/// `report_cb/1`) plus the four private helpers between them (`assert_event_names/1`,
+/// `assert_event_prefix/1`, `assert_event_name/1`, `merge_ctx/2`). Its 24 = 1 module
+/// + 11 `-type` + 12 functions.
 const BASELINE: &[FileBaseline] = &[
     FileBaseline::new("certifi-2.15.0/src/certifi.erl", 3, 0),
     FileBaseline::new("certifi-2.15.0/src/certifi_pt.erl", 5, 0),
-    FileBaseline::new("telemetry-1.3.0/src/telemetry.erl", 16, 45),
+    FileBaseline::new("telemetry-1.3.0/src/telemetry.erl", 24, 45),
     FileBaseline::new("telemetry-1.3.0/src/telemetry.hrl", 13, 2),
     FileBaseline::new("telemetry-1.3.0/src/telemetry_app.erl", 3, 0),
     FileBaseline::new("telemetry-1.3.0/src/telemetry_handler_table.erl", 15, 0),
@@ -131,6 +139,20 @@ fn erlang_corpus_scans_every_file_against_the_committed_baseline() {
     }
 }
 
+/// `telemetry.erl`'s eight exports, as `-export([...])` declares them. Four are
+/// declared after the first `?WITH_STACKTRACE` macro and reach the artifact only
+/// through declaration recovery, so this list is the gate on that recovery.
+const TELEMETRY_EXPORTS: &[(&str, u32)] = &[
+    ("attach", 4),
+    ("attach_many", 4),
+    ("detach", 1),
+    ("list_handlers", 1),
+    ("execute", 2),
+    ("execute", 3),
+    ("span", 3),
+    ("report_cb", 1),
+];
+
 #[test]
 fn telemetry_module_exposes_its_module_exports_and_behaviour_edges() {
     let scan = ErlangCorpusScan::run();
@@ -145,16 +167,20 @@ fn telemetry_module_exposes_its_module_exports_and_behaviour_edges() {
         )),
         "telemetry.erl must expose its module symbol, got {telemetry:?}"
     );
-    for exported in ["execute", "attach", "detach"] {
+
+    let functions = exported_functions(&connection, "telemetry-1.3.0/src/telemetry.erl");
+    for (name, arity) in TELEMETRY_EXPORTS {
         assert!(
-            telemetry.contains(&(
-                exported.to_string(),
-                "function".to_string(),
-                "public".to_string()
-            )),
-            "exported function {exported} must be a public function symbol, got {telemetry:?}"
+            functions.contains(&((*name).to_string(), *arity)),
+            "exported {name}/{arity} must be a public function symbol, got {functions:?}"
         );
     }
+    assert_eq!(
+        functions.len(),
+        TELEMETRY_EXPORTS.len(),
+        "telemetry.erl must expose exactly its declared exports as public functions, \
+         got {functions:?}"
+    );
 
     for (path, behaviour) in BEHAVIOUR_EDGES {
         let edges = connection
@@ -273,6 +299,24 @@ impl ErlangCorpusScan {
             _temp: temp,
         }
     }
+}
+
+/// Public function symbols in `path`, as `(name, arity)`. Arity is half of
+/// Erlang's function identity, so `execute/2` and `execute/3` must both appear.
+fn exported_functions(connection: &Connection, path: &str) -> BTreeSet<(String, u32)> {
+    connection
+        .prepare(
+            "SELECT s.name, json_extract(s.metadata_json, '$.arity') FROM symbols s \
+             JOIN files f ON f.file_id = s.file_id \
+             WHERE f.path = ?1 AND s.kind = 'function' AND s.visibility = 'public'",
+        )
+        .expect("prepare export query")
+        .query_map((path,), |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as u32))
+        })
+        .expect("query exported functions")
+        .collect::<Result<BTreeSet<_>, _>>()
+        .expect("collect exported functions")
 }
 
 fn symbols_in(connection: &Connection, path: &str) -> BTreeSet<(String, String, String)> {

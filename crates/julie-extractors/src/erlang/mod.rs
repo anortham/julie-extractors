@@ -8,6 +8,10 @@
 /// and `fun_decl` nodes, with no nesting to recurse through. Extraction is
 /// therefore a pre-scan (exports, clause counts, `-moduledoc`) followed by a
 /// single ordered pass over those children.
+///
+/// A file with parse errors contributes extra declarations recovered by
+/// [`recovery`], merged into that same ordered list so the symbol, type,
+/// relationship, and identifier walks all see one declaration set.
 use std::collections::{HashMap, HashSet};
 
 use tree_sitter::{Node, Tree};
@@ -21,12 +25,73 @@ mod definition_forms;
 mod doc;
 mod helpers;
 mod identifiers;
+mod recovery;
 mod relationships;
 mod types;
 
 const EXPORT_ALL_OPTION: &str = "export_all";
 const MODULE_DOC_ATTRIBUTE: &str = "moduledoc";
 const EUNIT_HEADER: &str = "eunit/include/eunit.hrl";
+
+/// The primary tree's top-level children plus the declarations [`recovery`]
+/// rescued from re-parses, in source order.
+///
+/// A recovered node is admitted only when it is a real declaration kind, starts
+/// at column 0 the way every top-level Erlang form does, and does not repeat a
+/// declaration already admitted at that offset. Offsets are comparable across
+/// trees because recovery blanks rather than removes the text before its resume
+/// point, so a recovered node's byte range still addresses the original file.
+///
+/// The form that failed to parse is never itself readmitted: recovery only
+/// resumes strictly after an error starts, so its own head — the one whose
+/// argument list would yield an invented arity — is never a resume point.
+fn merge_declarations<'tree>(primary: &'tree Tree, recovered: &'tree [Tree]) -> Vec<Node<'tree>> {
+    let root = primary.root_node();
+    let mut declarations = named_children(&root);
+    let mut claimed: HashSet<usize> = declarations
+        .iter()
+        .filter(|node| recovery::RECOVERABLE_DECLARATION_KINDS.contains(&node.kind()))
+        .map(|node| node.start_byte())
+        .collect();
+
+    for tree in recovered {
+        let root = tree.root_node();
+        for node in named_children(&root) {
+            if !recovery::RECOVERABLE_DECLARATION_KINDS.contains(&node.kind())
+                || node.start_position().column != 0
+                || !claimed.insert(node.start_byte())
+            {
+                continue;
+            }
+            declarations.push(node);
+        }
+    }
+
+    declarations.sort_by_key(|node| node.start_byte());
+    declarations
+}
+
+/// Declarations to walk for identifiers and relationships: those not already
+/// covered by an earlier declaration.
+///
+/// A damaged parse can leave a `fun_decl` that swallows the forms after it while
+/// recovery also rescues one of those forms precisely. Both are real symbols, but
+/// walking both would attribute the overlapping bytes twice. Top-level forms in a
+/// clean file never overlap, so this is the identity there.
+fn walkable<'tree>(declarations: &[Node<'tree>]) -> Vec<Node<'tree>> {
+    let mut walkable = Vec::with_capacity(declarations.len());
+    let mut covered_end = 0;
+
+    for declaration in declarations {
+        if declaration.end_byte() <= covered_end {
+            continue;
+        }
+        covered_end = declaration.end_byte();
+        walkable.push(*declaration);
+    }
+
+    walkable
+}
 
 pub struct ErlangExtractor {
     pub(crate) base: BaseExtractor,
@@ -40,6 +105,10 @@ pub struct ErlangExtractor {
     pub(crate) test_module: ErlangTestModule,
     /// Declared `-spec`, `-callback`, `-type` and `-opaque` forms.
     declared_types: types::DeclaredTypes,
+    /// Re-parses produced by [`recovery`] for a file with parse errors. Owned
+    /// here so every walk sees the same recovered declarations; empty for a file
+    /// that parsed clean.
+    recovered_trees: Vec<Tree>,
 }
 
 impl ErlangExtractor {
@@ -56,7 +125,32 @@ impl ErlangExtractor {
             exports_everything: false,
             test_module: ErlangTestModule::default(),
             declared_types: types::DeclaredTypes::default(),
+            recovered_trees: Vec::new(),
         }
+    }
+
+    /// Run `body` over the file's full declaration list — the primary tree's
+    /// top-level children plus anything [`recovery`] rescued from after a parse
+    /// error, in source order.
+    ///
+    /// The recovered trees are moved out of `self` for the call so the borrow
+    /// checker can see that the declaration nodes borrow them rather than the
+    /// extractor, then moved back.
+    fn with_declarations<R>(
+        &mut self,
+        tree: &Tree,
+        body: impl FnOnce(&mut Self, &[Node<'_>]) -> R,
+    ) -> R {
+        if self.recovered_trees.is_empty() {
+            self.recovered_trees = recovery::recover(&self.base.content, tree);
+        }
+        let recovered = std::mem::take(&mut self.recovered_trees);
+        let result = {
+            let declarations = merge_declarations(tree, &recovered);
+            body(self, &declarations)
+        };
+        self.recovered_trees = recovered;
+        result
     }
 
     /// Extract all symbols from Erlang source code.
@@ -66,20 +160,22 @@ impl ErlangExtractor {
         self.exported_types.clear();
         self.exports_everything = false;
 
-        let root = tree.root_node();
-        let declarations = named_children(&root);
-        self.collect_exports(&declarations);
-        self.test_module = self.classify_test_module(&declarations);
-        self.declared_types = types::collect(&self.base, &declarations);
+        self.with_declarations(tree, Self::extract_symbols_from)
+    }
 
-        let clause_counts = self.clause_counts(&declarations);
-        let module_doc = self.module_doc(&declarations);
+    fn extract_symbols_from(&mut self, declarations: &[Node]) -> Vec<Symbol> {
+        self.collect_exports(declarations);
+        self.test_module = self.classify_test_module(declarations);
+        self.declared_types = types::collect(&self.base, declarations);
+
+        let clause_counts = self.clause_counts(declarations);
+        let module_doc = self.module_doc(declarations);
 
         let mut symbols = Vec::new();
         let mut module_id: Option<String> = None;
         let mut emitted: HashSet<NameArity> = HashSet::new();
 
-        for declaration in &declarations {
+        for declaration in declarations {
             let parent_id = module_id.clone();
             let parent_id = parent_id.as_deref();
 
@@ -129,7 +225,9 @@ impl ErlangExtractor {
     /// Extract same-file call edges, plus structured pending edges for remote
     /// calls, `-behaviour`, `-include`/`-include_lib`, and `-import`.
     pub fn extract_relationships(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Relationship> {
-        relationships::extract_relationships(self, tree, symbols)
+        self.with_declarations(tree, |extractor, declarations| {
+            relationships::extract_relationships(extractor, &walkable(declarations), symbols)
+        })
     }
 
     pub fn get_pending_relationships(&self) -> Vec<crate::base::PendingRelationship> {
@@ -145,7 +243,9 @@ impl ErlangExtractor {
     /// Extract call sites, fun references, macro usages, and record/field
     /// references from function clauses and macro bodies.
     pub fn extract_identifiers(&mut self, tree: &Tree, symbols: &[Symbol]) -> Vec<Identifier> {
-        identifiers::extract_identifiers(self, tree, symbols)
+        self.with_declarations(tree, |extractor, declarations| {
+            identifiers::extract_identifiers(extractor, &walkable(declarations), symbols)
+        })
     }
 
     /// Declared `-spec`, `-callback`, `-type` and `-opaque` forms, matched to

@@ -19,7 +19,7 @@
 
 use std::collections::HashMap;
 
-use tree_sitter::{Node, Tree};
+use tree_sitter::Node;
 
 use super::ErlangExtractor;
 use super::definition_forms;
@@ -36,19 +36,17 @@ pub(super) type ImportedFunctions = HashMap<NameArity, String>;
 
 pub(super) fn extract_identifiers(
     extractor: &mut ErlangExtractor,
-    tree: &Tree,
+    declarations: &[Node],
     symbols: &[Symbol],
 ) -> Vec<Identifier> {
-    let root = tree.root_node();
-    let declarations = named_children(&root);
-    let imports = imported_functions(extractor, &declarations);
+    let imports = imported_functions(extractor, declarations);
     let symbol_map: HashMap<String, &Symbol> = symbols
         .iter()
         .map(|symbol| (symbol.id.clone(), symbol))
         .collect();
     let mut clause_scopes: HashMap<NameArity, Option<String>> = HashMap::new();
 
-    for declaration in &declarations {
+    for declaration in declarations {
         match declaration.kind() {
             "fun_decl" => {
                 let scope = function_scope(extractor, declaration, &symbol_map, &mut clause_scopes);
