@@ -177,6 +177,7 @@ Current published release: `v2.21.0`.
 Current release notes and published evidence:
 
 - `docs/release-notes/v2.21.0.md`
+- `docs/release-evidence/2026-08-01-v2-21-0-release.md`
 - `docs/release-notes/v2.20.0.md`
 - `docs/release-notes/v2.19.0.md`
 - `docs/release-evidence/2026-07-27-v2-19-0-release.md`
