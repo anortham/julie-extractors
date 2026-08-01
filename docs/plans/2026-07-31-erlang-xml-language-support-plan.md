@@ -379,8 +379,8 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **What to build:** Erlang structural-fact pattern specs mirroring Task 9's xml slice: behaviour declarations (`-behaviour(...)`), include/include_lib dependencies, and OTP-callback/module-shape facts as warranted by what the grammar exposes — read `scripts/language-data-quality-report.mjs` first to confirm what satisfies the structural_facts quality bar, and scope the spec set to genuinely useful erlang shapes rather than padding. Regenerate the contract JSON and goldens. Then re-run the full Task 10 gate set including `node scripts/language-data-quality-report.mjs --strict`, which must exit 0.
 
 **Acceptance criteria:**
-- [ ] Erlang structural-fact specs registered and emitted with golden evidence; contract JSON regenerated
-- [ ] `node scripts/language-data-quality-report.mjs --strict` exits 0 (zero quality-bar debts — the branch invariant restored)
-- [ ] Full Task 10 gate set re-run green at the new HEAD, recorded in the report
-- [ ] Migration-plan Task 13 updated to reflect closure
-- [ ] Verification passes and the change is committed (serial-worker-commit)
+- [x] Erlang structural-fact specs registered and emitted with golden evidence; contract JSON regenerated
+- [x] `node scripts/language-data-quality-report.mjs --strict` exits 0 (zero quality-bar debts — the branch invariant restored)
+- [x] Full Task 10 gate set re-run green at the new HEAD, recorded in the report
+- [x] Migration-plan Task 13 updated to reflect closure
+- [x] Verification passes and the change is committed (serial-worker-commit)
