@@ -275,10 +275,10 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **What to build:** Vendor the corpus (the issue's exact packages), write the gated test running a real scan over it and asserting the baseline. Record scan wall-time in the report (report-only).
 
 **Acceptance criteria:**
-- [ ] All corpus `.erl`/`.hrl` files extract; exported functions, records, behaviours present for `telemetry.erl` (spot-asserted)
-- [ ] Checksums + licenses committed; baseline is exact, not thresholded
-- [ ] Gate excluded from default tier (default suite time unchanged)
-- [ ] Verification passes and the change is committed (serial-worker-commit)
+- [x] All corpus `.erl`/`.hrl` files extract; exported functions, records, behaviours present for `telemetry.erl` (spot-asserted)
+- [x] Checksums + licenses committed; baseline is exact, not thresholded
+- [x] Gate excluded from default tier (default suite time unchanged)
+- [x] Verification passes and the change is committed (serial-worker-commit)
 
 ### Task 9: XML schema/WSDL structural facts
 
