@@ -116,14 +116,18 @@ preserving usable rows from successful files.
 
 ## Supported languages
 
-The current `languages --json` capability snapshot reports 36 languages:
+The current `languages --json` capability snapshot reports 38 languages:
 
 ```text
-bash, c, cpp, csharp, css, dart, elixir, gdscript, go, html, java,
+bash, c, cpp, csharp, css, dart, elixir, erlang, gdscript, go, html, java,
 javascript, json, jsx, kotlin, lua, markdown, php, powershell, python, qml, r,
 razor, regex, ruby, rust, scala, sql, swift, toml, tsx, typescript, vbnet, vue,
-yaml, zig
+xml, yaml, zig
 ```
+
+Erlang is extracted at the full capability tier — symbols, relationships,
+pending relationships, identifiers, and types. XML is extracted at the data tier
+— symbols and identifiers — plus document, XSD, and WSDL structural facts.
 
 Use `julie-extract languages --json` for the current parser and capability
 snapshot instead of hard-coding this list in consumers.

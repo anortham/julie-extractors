@@ -245,6 +245,22 @@ fn test_real_world_tier_selects_every_real_fixture_gate() {
         plan,
         plan_from_args(["test", "real-world-release"]).expect("real-world release plan")
     );
+
+    assert!(
+        plan.commands.contains(&CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-cli",
+                "--features",
+                "test-real-world",
+                "--test",
+                "erlang_corpus",
+            ]
+        )),
+        "real-world tier must run the vendored hex.pm Erlang corpus gate"
+    );
 }
 
 #[test]
@@ -332,6 +348,18 @@ fn test_real_world_smoke_and_release_profiles_are_separate() {
                     "test-real-world",
                     "--lib",
                     "test_real_world_jsonl_memories_fixture",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-real-world",
+                    "--test",
+                    "erlang_corpus",
                 ]
             ),
         ]

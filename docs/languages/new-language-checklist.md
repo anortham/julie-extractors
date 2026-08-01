@@ -28,6 +28,36 @@ upgrading a language claim from partial/domain-limited to fuller support.
 - Make sure `supported_languages()` and `capabilities_for_language()` see the new
   language.
 
+Shared per-language tables live outside the language module and have hard guards
+that fail for any new language until they are updated:
+
+- Add a `RegionLanguageConfig` entry in
+  `crates/julie-extractors/src/base/source_regions.rs` plus a fixture case in
+  `crates/julie-extractors/src/tests/source_regions.rs`. Guard:
+  `supported_languages_with_source_region_syntax_emit_regions`.
+- Add the language to the `code.marker.v1` language list in
+  `crates/julie-extractors/src/base/structural_fact_registry/marker.rs`, add its
+  comment decorations to `base/marker_structural_facts.rs` if they are new, and
+  regenerate `docs/contracts/structural-fact-patterns.json` with
+  `UPDATE_CONTRACT_JSON=1`. Guard:
+  `marker_language_matrix_covers_every_supported_comment_language`.
+- Add a `comment_syntax` arm in `crates/julie-extractors/src/base/body.rs` so
+  comments do not count toward `body_hash`. No guard forces this; a comment-only
+  edit silently changes the hash without it.
+- Bump `open_reference_resolution_gaps` in
+  `crates/julie-extract-cli/tests/operations_contract.rs` by three — the runtime
+  emits three `reference_resolution.*` rows per language.
+- For a data language (no language-native test constructs), add it to
+  `DOMAIN_LANGUAGES` in `crates/julie-extractors/src/tests/capability_matrix.rs`.
+  Guard: `capability_matrix_code_languages_require_resolved_test_detection`,
+  which otherwise demands test-detection evidence a data language cannot give.
+  Add it to the separate `DOMAIN_LANGUAGES` set in
+  `scripts/language-data-quality-report.mjs` as well, or the strict scorecard
+  charges the language quality-bar debt for the code-only domains.
+- Regenerate `fixtures/extraction/reference-resolution-coverage.json` with
+  `node scripts/reference-resolution-coverage-report.mjs --write`. The artifact
+  is exact over the language registry, so a new language makes it stale.
+
 ## 3. Implement Extraction By Data Domain
 
 Implement every domain the language claims:

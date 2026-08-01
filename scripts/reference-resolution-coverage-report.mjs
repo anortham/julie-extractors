@@ -274,7 +274,9 @@ function validate(report) {
   const expectedLanguages = capabilities.languages.map((language) => language.language);
   const problems = [];
   if (JSON.stringify(report.languages) !== JSON.stringify(expectedLanguages)) {
-    problems.push("report languages must exactly equal the 36-language registry");
+    problems.push(
+      `report languages must exactly equal the ${expectedLanguages.length}-language registry`,
+    );
   }
   if (report.source_digest !== sourceDigest(capabilities)) {
     problems.push("report source_digest is stale; regenerate with --write");

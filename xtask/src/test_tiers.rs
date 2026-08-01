@@ -494,6 +494,18 @@ fn real_world_release_plan() -> TestPlan {
                     "test_real_world_jsonl_memories_fixture",
                 ],
             ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-real-world",
+                    "--test",
+                    "erlang_corpus",
+                ],
+            ),
         ],
         max_duration: None,
     }

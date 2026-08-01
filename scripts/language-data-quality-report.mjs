@@ -69,6 +69,7 @@ const DOMAIN_LANGUAGES = new Set([
   "regex",
   "sql",
   "toml",
+  "xml",
   "yaml",
 ]);
 
