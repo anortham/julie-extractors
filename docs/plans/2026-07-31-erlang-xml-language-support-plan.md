@@ -300,10 +300,10 @@ Post-merge delivery chain (release 2.21.0 → Miller pin bump → Miller/site do
 **What to build:** Registered pattern specs + emission + golden assertions for the three fixture types. Deferred schema-type relationship resolution stays a typed `open_gaps` entry with reason/closure/planned-task fields (matrix requires them — `tests/capability_matrix.rs:1095`).
 
 **Acceptance criteria:**
-- [ ] Pattern specs registered; contract JSON regenerated; `cargo xtask test capability` green
-- [ ] XSD golden asserts type/element/import facts; WSDL golden asserts service/operation/message/binding facts
-- [ ] `open_gaps` entry for deferred schema relationships with all required fields
-- [ ] Verification passes and the change is committed (serial-worker-commit)
+- [x] Pattern specs registered; contract JSON regenerated; `cargo xtask test capability` green
+- [x] XSD golden asserts type/element/import facts; WSDL golden asserts service/operation/message/binding facts
+- [x] `open_gaps` entry for deferred schema relationships with all required fields
+- [x] Verification passes and the change is committed (serial-worker-commit)
 
 ### Task 10: Branch gates + repo docs
 
