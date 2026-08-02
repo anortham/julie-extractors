@@ -1,8 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    fs::File,
-    io::{self, BufRead, BufReader, BufWriter, Write},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
@@ -10,8 +8,8 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
     ArtifactCapabilitySnapshot, ArtifactFile, FileStatus, ReferenceSiteConflicts,
-    ResolutionWriteOutcome, RevisionChangeKind, RevisionInput, RowCounts, WriteMode, WriteOperation,
-    WriteResult,
+    ResolutionWriteOutcome, RevisionChangeKind, RevisionInput, RowCounts, WriteMode,
+    WriteOperation, WriteResult,
 };
 use crate::reports::RowDomainCounts;
 use crate::resolution_store::ResolutionCounts;
@@ -19,11 +17,17 @@ use crate::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_sche
 
 mod capabilities;
 mod rows;
+mod spool;
+
+pub use spool::{
+    ArtifactFileSpool, ArtifactFileSpoolIter, ArtifactFileSpoolReader, ArtifactSpoolError,
+    ArtifactSpoolResult, SpoolFileHeader,
+};
 
 use rows::{
     ChildRowInserters, FileRowInserters, collect_existing_symbol_names, collect_file_symbol_ids,
-    collect_requested_symbol_ids, is_preserved_failure, is_preserved_failure_update,
-    load_symbol_lookup, replace_parse_diagnostics, update_failed_preserved_file,
+    is_preserved_failure, is_preserved_failure_update, load_symbol_lookup,
+    replace_parse_diagnostics, update_failed_preserved_file,
 };
 
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
@@ -76,174 +80,6 @@ impl From<rusqlite::Error> for ArtifactWriteError {
 impl From<ArtifactSpoolError> for ArtifactWriteError {
     fn from(value: ArtifactSpoolError) -> Self {
         ArtifactWriteError::Spool(value)
-    }
-}
-
-pub type ArtifactSpoolResult<T> = Result<T, ArtifactSpoolError>;
-
-#[derive(Debug)]
-pub enum ArtifactSpoolError {
-    Io {
-        path: PathBuf,
-        source: io::Error,
-    },
-    Json {
-        path: PathBuf,
-        line: Option<usize>,
-        source: serde_json::Error,
-    },
-    Unfinished {
-        path: PathBuf,
-    },
-}
-
-impl std::fmt::Display for ArtifactSpoolError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ArtifactSpoolError::Io { path, source } => {
-                write!(
-                    f,
-                    "artifact file spool I/O failed at {}: {source}",
-                    path.display()
-                )
-            }
-            ArtifactSpoolError::Json {
-                path,
-                line: Some(line),
-                source,
-            } => write!(
-                f,
-                "artifact file spool JSON decode failed at {}:{line}: {source}",
-                path.display()
-            ),
-            ArtifactSpoolError::Json {
-                path,
-                line: None,
-                source,
-            } => write!(
-                f,
-                "artifact file spool JSON encode failed at {}: {source}",
-                path.display()
-            ),
-            ArtifactSpoolError::Unfinished { path } => write!(
-                f,
-                "artifact file spool must be finished before reading: {}",
-                path.display()
-            ),
-        }
-    }
-}
-
-impl std::error::Error for ArtifactSpoolError {}
-
-pub struct ArtifactFileSpool {
-    path: PathBuf,
-    writer: Option<BufWriter<File>>,
-    len: usize,
-}
-
-impl ArtifactFileSpool {
-    pub fn create(path: impl AsRef<Path>) -> ArtifactSpoolResult<Self> {
-        let path = path.as_ref().to_path_buf();
-        let file = File::create(&path).map_err(|source| ArtifactSpoolError::Io {
-            path: path.clone(),
-            source,
-        })?;
-        Ok(Self {
-            path,
-            writer: Some(BufWriter::new(file)),
-            len: 0,
-        })
-    }
-
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
-    pub fn push(&mut self, file: &ArtifactFile) -> ArtifactSpoolResult<()> {
-        let Some(writer) = self.writer.as_mut() else {
-            return Err(ArtifactSpoolError::Unfinished {
-                path: self.path.clone(),
-            });
-        };
-        serde_json::to_writer(&mut *writer, file).map_err(|source| ArtifactSpoolError::Json {
-            path: self.path.clone(),
-            line: None,
-            source,
-        })?;
-        writer
-            .write_all(b"\n")
-            .map_err(|source| ArtifactSpoolError::Io {
-                path: self.path.clone(),
-                source,
-            })?;
-        self.len += 1;
-        Ok(())
-    }
-
-    pub fn finish(&mut self) -> ArtifactSpoolResult<()> {
-        let Some(mut writer) = self.writer.take() else {
-            return Ok(());
-        };
-        writer.flush().map_err(|source| ArtifactSpoolError::Io {
-            path: self.path.clone(),
-            source,
-        })
-    }
-
-    pub fn iter(&self) -> ArtifactSpoolResult<ArtifactFileSpoolIter> {
-        if self.writer.is_some() {
-            return Err(ArtifactSpoolError::Unfinished {
-                path: self.path.clone(),
-            });
-        }
-        let file = File::open(&self.path).map_err(|source| ArtifactSpoolError::Io {
-            path: self.path.clone(),
-            source,
-        })?;
-        Ok(ArtifactFileSpoolIter {
-            path: self.path.clone(),
-            lines: BufReader::new(file).lines(),
-            line_number: 0,
-        })
-    }
-}
-
-pub struct ArtifactFileSpoolIter {
-    path: PathBuf,
-    lines: io::Lines<BufReader<File>>,
-    line_number: usize,
-}
-
-impl Iterator for ArtifactFileSpoolIter {
-    type Item = ArtifactSpoolResult<ArtifactFile>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let line = match self.lines.next()? {
-            Ok(line) => line,
-            Err(source) => {
-                return Some(Err(ArtifactSpoolError::Io {
-                    path: self.path.clone(),
-                    source,
-                }));
-            }
-        };
-        self.line_number += 1;
-        Some(
-            serde_json::from_str(&line).map_err(|source| ArtifactSpoolError::Json {
-                path: self.path.clone(),
-                line: Some(self.line_number),
-                source,
-            }),
-        )
     }
 }
 
@@ -993,32 +829,37 @@ impl ArtifactWriter {
         let mut planned_files: HashMap<String, Option<ExistingFile>> = HashMap::new();
         let mut files_skipped = 0;
         let mut rewritten_file_ids = HashSet::new();
-        // Symbol-id sets for the cross-file symbol_lookup, accumulated in this planning pass (which
-        // already deserializes every file) so the lookup can be built before symbols are inserted —
-        // letting the insert resolve parent_symbol_id inline instead of in a second UPDATE pass.
+        // Symbol-id sets for the cross-file symbol_lookup, accumulated in this planning pass so the
+        // lookup can be built before symbols are inserted — letting the insert resolve
+        // parent_symbol_id inline instead of in a second UPDATE pass. The referenced ids were
+        // gathered when each file was spooled and travel in its header, so this pass never decodes
+        // a body frame.
         let mut requested_symbol_ids = HashSet::new();
         let mut local_symbol_ids = HashSet::new();
-        // NEW names for the resolution hook, gathered in this same planning pass
-        // (which already deserializes every file); OLD names are added below.
+        // NEW names for the resolution hook, gathered in this same planning pass;
+        // OLD names are added below.
         let mut touched_symbol_names: HashSet<String> = HashSet::new();
 
-        for file in spool.iter()? {
-            let file = file?;
-            if !snapshot_paths.contains(file.path.as_str()) {
+        let mut reader = spool.reader()?;
+        while let Some(header) = reader.next_header() {
+            let mut header = header?;
+            if !snapshot_paths.contains(header.path.as_str()) {
                 return Err(ArtifactWriteError::SnapshotMissingSpooledPath {
-                    path: file.path.clone(),
+                    path: header.path.clone(),
                 });
             }
-            let existing = load_existing_file(&tx, &file.path)?;
+            let existing = load_existing_file(&tx, &header.path)?;
             if skip_unchanged_content
                 && existing
                     .as_ref()
-                    .is_some_and(|row| row.content_hash == file.content_hash)
+                    .is_some_and(|row| row.content_hash == header.content_hash)
             {
                 files_skipped += 1;
                 continue;
             }
 
+            let referenced_symbol_ids = std::mem::take(&mut header.requested_symbol_ids);
+            let file = header.into_file_without_child_rows();
             if file.status != FileStatus::FailedPreserved {
                 ensure_data_loss_guard(&tx, &file)?;
             }
@@ -1026,7 +867,7 @@ impl ArtifactWriter {
             // their symbols to the lookup. This mirrors pass B's else-branch selection exactly.
             if !is_preserved_failure_update(&file, existing.as_ref()) {
                 rewritten_file_ids.insert(file.file_id.clone());
-                collect_requested_symbol_ids(&file, &mut requested_symbol_ids);
+                requested_symbol_ids.extend(referenced_symbol_ids);
                 collect_file_symbol_ids(&file, &mut local_symbol_ids);
                 touched_symbol_names.extend(file.symbols.iter().map(|symbol| symbol.name.clone()));
             }
@@ -1086,8 +927,11 @@ impl ArtifactWriter {
 
         {
             let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
-            for file in spool.iter()? {
-                let file = file?;
+            let mut reader = spool.reader()?;
+            // The `files` row, its symbols, and its parse diagnostics all travel in the header,
+            // so this pass skips every body frame too.
+            while let Some(header) = reader.next_header() {
+                let file = header?.into_file_without_child_rows();
                 let Some(existing) = planned_files.get(file.path.as_str()) else {
                     continue;
                 };
@@ -1132,11 +976,13 @@ impl ArtifactWriter {
 
         let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
-            for file in spool.iter()? {
-                let file = file?;
-                if !rewritten_file_ids.contains(&file.file_id) {
+            let mut reader = spool.reader()?;
+            while let Some(header) = reader.next_header() {
+                let header = header?;
+                if !rewritten_file_ids.contains(&header.file_id) {
                     continue;
                 }
+                let file = reader.read_file(header)?;
                 child_row_inserters.insert_child_rows(&file, &symbol_lookup, &mut row_counts)?;
             }
             child_row_inserters.take_reference_site_conflicts()
