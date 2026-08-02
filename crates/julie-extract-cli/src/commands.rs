@@ -154,7 +154,7 @@ fn scan_collecting_warnings(
     }
     let progress = match progress_path
         .as_deref()
-        .map(ScanProgress::create)
+        .map(|progress_path| ScanProgress::create_for_artifact(progress_path, &db))
         .transpose()
     {
         Ok(progress) => progress,

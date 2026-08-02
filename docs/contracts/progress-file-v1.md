@@ -35,14 +35,31 @@ rather than guarding one instance of it.
 
 The name rule is checked against what the path RESOLVES to, not the spelling
 passed on the command line, so a `report.progress` symlink pointing at a source
-file is refused rather than followed. It also covers the artifact's `-wal` and
-`-shm` sidecars for free: those names cannot end in `.progress`.
+file is refused rather than followed. A path whose final component is a symbolic
+link is then refused outright, even when the target satisfies the name rule: the
+link is a second name for a file the caller did not spell out, and creating the
+progress file writes straight through it.
 
-The path may also not be the artifact database itself, which matters when the
-artifact is named `*.progress` — the only spelling the name rule lets through.
-`--db` and `--progress-file` both resolve their final path component when it
-already exists, so a symlink and its target are the same path for that check and
-a symlinked artifact cannot be truncated through the progress file.
+The path may also not BE the artifact database or either of its `-wal` / `-shm`
+sidecars. That check compares **file identity, not path spelling**: when both
+paths exist their device and inode decide it, so a hard link
+(`ln artifact.sqlite scan.progress`) is refused even though the two names are not
+equal and both satisfy the name rule. The check runs again immediately after the
+progress file is created, because when neither file existed beforehand there was
+no identity to compare — and on a case-insensitive volume creating
+`INDEX.PROGRESS` is what makes it the artifact `index.progress`. A progress file
+created by a run that is then refused is removed again, so a rejected argv leaves
+nothing at the artifact's path.
+
+**Platform limit.** File identity is exact on Unix (macOS, Linux). On Windows it
+is not available: the pinned Rust toolchain gates
+`std::os::windows::fs::MetadataExt::volume_serial_number` and `file_index` behind
+the unstable `windows_by_handle` feature, and the extractor workspace sets
+`unsafe_code = "forbid"`, so the Win32 call behind them cannot be reached
+directly either. On Windows the check falls back to a case-insensitive path
+comparison, which still refuses `INDEX.PROGRESS` against `index.progress` but
+does NOT see a Windows hard link. A `--progress-file` hard-linked to the artifact
+on Windows will truncate it.
 
 ## Format
 

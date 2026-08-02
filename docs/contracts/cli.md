@@ -118,10 +118,11 @@ invalid `--ignore-file` is a hard CLI error.
   `--progress-file` are canonicalized at the CLI boundary before artifact
   operations run. `--spool-dir` is created when it does not exist;
   `--progress-file` requires an existing parent directory, exactly as `--db` does,
-  must use the `.progress` extension, and may not resolve to `--db` or one of its
-  `-wal`/`-shm` sidecars. `--db` and `--progress-file` both resolve their final
-  path component when it already exists, so a symlink and its target are the same
-  path for the collision check.
+  must use the `.progress` extension, may not itself be a symbolic link, and may
+  not BE `--db` or one of its `-wal`/`-shm` sidecars. That last check compares file
+  identity rather than path spelling, so a hard link to the artifact is refused
+  too; it is exact on Unix and degrades to a case-insensitive path comparison on
+  Windows (see [progress-file-v1.md](progress-file-v1.md) for the platform limit).
 - Stored file paths are root-relative Unix-style strings.
 - `--file` may be absolute or root-relative.
 - A file outside `--root` is a typed error.
@@ -223,11 +224,13 @@ record only and is not row-instrumented; a consumer watching artifact file sizes
 already sees that phase. The progress file is excluded from discovery, so writing
 it inside `--root` does not change `counts.files_scanned`. An unusable path fails
 at argument time with `invalid_path` before any scanning starts, as does a path
-equal to `--db`, including through a symlink — creating the progress file
-truncates it, so the collision would destroy the artifact before the scan had
-even validated that it could run. The artifact's `-wal` and `-shm` sidecars are
-covered by the name rule instead: those names cannot end in `.progress`. A write
-failure
+that IS the artifact or one of its `-wal`/`-shm` sidecars — creating the progress
+file truncates it, so the collision would destroy the artifact before the scan had
+even validated that it could run. That check compares file identity, not path
+spelling, so a symlink, a hard link, and a case-variant spelling on a
+case-insensitive volume are all refused rather than followed; the identity
+comparison is exact on Unix and falls back to a case-insensitive path comparison
+on Windows, where a hard link is therefore not detected. A write failure
 mid-scan is swallowed rather than failing the scan. The record schema is
 [progress-file-v1.md](progress-file-v1.md).
 

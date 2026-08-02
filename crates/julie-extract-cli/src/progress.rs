@@ -27,7 +27,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::json;
 
-use crate::paths::{PathPolicyError, invalid_path};
+use crate::paths::{PathPolicyError, invalid_path, reject_progress_file_collision};
 
 pub(crate) const PROGRESS_SCHEMA_VERSION: u32 = 1;
 
@@ -64,7 +64,39 @@ pub(crate) struct ScanProgress {
 }
 
 impl ScanProgress {
-    pub(crate) fn create(path: &Path) -> Result<Self, PathPolicyError> {
+    /// Create the progress file for a scan writing `db_path`, re-running the
+    /// collision guard once the file exists.
+    ///
+    /// The guard the caller already ran can only compare file identity for
+    /// paths that are both there to be compared. When neither the progress file
+    /// nor the artifact exists yet, creating the progress file is what makes
+    /// them comparable — and on a case-insensitive volume it is also what makes
+    /// them the same file, so `--db index.progress --progress-file
+    /// INDEX.PROGRESS` would otherwise hand the scan a progress writer aimed at
+    /// the artifact it is about to write.
+    ///
+    /// A file this call created is removed again on refusal, so a rejected argv
+    /// does not leave an empty file sitting at the artifact's path for the next
+    /// run to open.
+    pub(crate) fn create_for_artifact(
+        path: &Path,
+        db_path: &Path,
+    ) -> Result<Self, PathPolicyError> {
+        let existed = path.exists();
+        let progress = Self::create(path)?;
+        let Err(error) = reject_progress_file_collision(path, db_path) else {
+            return Ok(progress);
+        };
+        drop(progress);
+        if !existed {
+            let _ = std::fs::remove_file(path);
+        }
+        Err(error)
+    }
+
+    /// Private on purpose: creating a progress file without re-running the collision guard is the
+    /// defect `create_for_artifact` exists to prevent, so argv-driven creation has one reachable door.
+    fn create(path: &Path) -> Result<Self, PathPolicyError> {
         Self::create_with_interval(path, DEFAULT_PROGRESS_INTERVAL)
     }
 

@@ -2737,9 +2737,6 @@ fn absent_fleet_safety_flags_leave_the_scan_report_and_the_filesystem_unchanged(
 
 #[test]
 fn a_progress_file_pointed_at_the_artifact_or_a_sidecar_is_refused_by_the_name_rule() {
-    // The name rule is what stops all three: `artifact.sqlite`, `-wal`, and
-    // `-shm` are all names that cannot end in `.progress`, so none of them ever
-    // reaches the collision guard — which is why that guard has no sidecar arms.
     let fixture = FixtureRoot::new();
     let db = fixture.path("artifact.sqlite");
     assert_success(julie_extract(&[
@@ -2793,8 +2790,6 @@ fn a_progress_file_pointed_at_the_artifact_or_a_sidecar_is_refused_by_the_name_r
 
 #[test]
 fn a_progress_file_that_is_an_artifact_named_progress_is_refused_by_the_collision_guard() {
-    // An artifact named `*.progress` is the only spelling that gets past the name
-    // rule, so it is the only input the collision guard ever decides.
     let fixture = FixtureRoot::new();
     let output = TempDir::new().unwrap();
     let db = output.path().join("index.progress");
@@ -2867,10 +2862,6 @@ fn a_progress_file_named_only_progress_is_accepted() {
 #[cfg(unix)]
 #[test]
 fn a_db_and_a_progress_file_that_are_one_file_through_a_symlink_are_refused() {
-    // A large index kept on its own volume and reached through a link in the
-    // workspace. The two flags must resolve the same way or the collision guard
-    // compares two spellings of one file, passes, and `File::create` follows the
-    // link and truncates the artifact.
     let fixture = FixtureRoot::new();
     let store = TempDir::new().unwrap();
     let db = store.path().join("index.progress");
@@ -2909,6 +2900,163 @@ fn a_db_and_a_progress_file_that_are_one_file_through_a_symlink_are_refused() {
     let report = json_report(&output);
     assert_eq!(report["status"], "failed");
     assert_eq!(report["errors"][0]["code"], "invalid_path");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_progress_file_hard_linked_to_the_artifact_leaves_it_byte_identical() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let db = output.path().join("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]));
+    let before = std::fs::read(&db).unwrap();
+    assert!(!before.is_empty());
+
+    let progress = output.path().join("scan.progress");
+    std::fs::hard_link(&db, &progress).unwrap();
+
+    let refused = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--progress-file",
+        path_str(&progress),
+        "--json",
+    ]);
+
+    assert_eq!(
+        std::fs::read(&db).unwrap(),
+        before,
+        "a second name for the artifact must not truncate it"
+    );
+    assert_eq!(refused.status.code(), Some(1));
+    let report = json_report(&refused);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+    assert!(
+        report["errors"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("must not be the artifact database"),
+        "{report:#?}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_progress_file_hard_linked_to_an_artifact_sidecar_is_refused() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let db = output.path().join("artifact.sqlite");
+    let wal = output.path().join("artifact.sqlite-wal");
+    std::fs::write(&wal, b"write-ahead log").unwrap();
+    let progress = output.path().join("scan.progress");
+    std::fs::hard_link(&wal, &progress).unwrap();
+
+    let refused = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--progress-file",
+        path_str(&progress),
+        "--json",
+    ]);
+
+    assert_eq!(refused.status.code(), Some(1));
+    let report = json_report(&refused);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+    assert!(
+        report["errors"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("-wal"),
+        "{report:#?}"
+    );
+    assert_eq!(std::fs::read(&wal).unwrap(), b"write-ahead log");
+    assert!(
+        !db.exists(),
+        "the refusal must happen before any scan work runs"
+    );
+}
+
+#[test]
+fn a_progress_file_a_case_insensitive_volume_makes_the_artifact_is_refused_after_it_is_created() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    if !ignores_case(output.path()) {
+        return;
+    }
+    let db = output.path().join("index.progress");
+    let progress = output.path().join("INDEX.PROGRESS");
+
+    let refused = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--progress-file",
+        path_str(&progress),
+        "--json",
+    ]);
+
+    assert_eq!(refused.status.code(), Some(1));
+    let report = json_report(&refused);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+    assert!(
+        report["errors"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("must not be the artifact database"),
+        "{report:#?}"
+    );
+    assert!(
+        !db.exists(),
+        "the empty progress file the refusal created must be removed again"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_progress_file_symlinked_to_another_progress_file_is_refused() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let target = output.path().join("real.progress");
+    std::fs::write(&target, b"kept").unwrap();
+    let link = output.path().join("link.progress");
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+
+    let refused = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&output.path().join("artifact.sqlite")),
+        "--progress-file",
+        path_str(&link),
+        "--json",
+    ]);
+
+    assert_eq!(refused.status.code(), Some(1));
+    let report = json_report(&refused);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+    assert_eq!(report["errors"][0]["path"], path_str(&link));
+    assert_eq!(std::fs::read(&target).unwrap(), b"kept");
 }
 
 #[cfg(unix)]
@@ -3491,6 +3639,14 @@ fn plant_spool_pair(
         .set_modified(SystemTime::now() - age)
         .unwrap();
     (spool, sentinel)
+}
+
+fn ignores_case(dir: &Path) -> bool {
+    let probe = dir.join("case-probe");
+    std::fs::write(&probe, b"").unwrap();
+    let ignored = dir.join("CASE-PROBE").exists();
+    std::fs::remove_file(&probe).unwrap();
+    ignored
 }
 
 fn entry_names(dir: &Path) -> BTreeSet<String> {

@@ -98,6 +98,11 @@ pub const PROGRESS_FILE_EXTENSION: &str = "progress";
 /// while `--progress-file <same symlink>` kept the link's own path, so
 /// [`reject_progress_file_collision`] would compare two spellings of one file,
 /// pass, and truncate the artifact the link points at.
+///
+/// A path whose final component IS a symbolic link is then refused outright.
+/// The name rule can only be applied to what the link resolves to, so the link
+/// itself is always a second name for a file the caller did not spell out, and
+/// creating the progress file writes straight through it.
 pub fn canonicalize_progress_file(path: &Path) -> Result<PathBuf, PathPolicyError> {
     let resolved = resolve_progress_file(path)?;
     if !is_progress_file_name(&resolved) {
@@ -109,7 +114,18 @@ pub fn canonicalize_progress_file(path: &Path) -> Result<PathBuf, PathPolicyErro
             ),
         ));
     }
+    if is_symbolic_link(path) {
+        return Err(invalid_path(
+            path,
+            "progress file must not be a symbolic link",
+        ));
+    }
     Ok(resolved)
+}
+
+fn is_symbolic_link(path: &Path) -> bool {
+    path.symlink_metadata()
+        .is_ok_and(|metadata| metadata.file_type().is_symlink())
 }
 
 /// Whether a resolved path carries an accepted `--progress-file` name: the bare
@@ -159,27 +175,94 @@ fn resolve_progress_file(path: &Path) -> Result<PathBuf, PathPolicyError> {
     Ok(parent.join(file_name))
 }
 
-/// Refuse a `--progress-file` that resolves to the artifact database. The
-/// progress file is opened with `File::create`, which truncates, before the
-/// artifact is opened at all — a templating bug pointing both flags at the same
-/// path would otherwise destroy the artifact before the scan had even validated
-/// that it could run. It bites when the artifact is itself named `*.progress`,
-/// which is the only spelling that gets past [`canonicalize_progress_file`].
+/// The artifact database's write-ahead-log and shared-memory sidecars. A
+/// progress file that IS one of them wrecks the artifact just as thoroughly as
+/// one that is the artifact.
+const ARTIFACT_SIDECAR_SUFFIXES: [&str; 2] = ["-wal", "-shm"];
+
+/// Refuse a `--progress-file` that is the artifact database or one of its
+/// sidecars. The progress file is opened with `File::create`, which truncates,
+/// before the artifact is opened at all — a templating bug pointing both flags
+/// at one file would otherwise destroy the artifact before the scan had even
+/// validated that it could run.
 ///
-/// The `-wal`/`-shm` sidecars need no arm here, and had unreachable ones before:
-/// a sidecar name always ends in `-wal` or `-shm`, so the name rule refuses it
-/// first and refuses it whether or not an artifact is open at that path.
+/// The comparison is file IDENTITY, not path spelling. Two earlier rounds of
+/// this guard compared paths — first literally, then after resolving symlinks —
+/// and each left the same class open, because one file can always be reached
+/// through a name the other spelling does not equal: `ln artifact.sqlite
+/// scan.progress` gives one inode two names that both satisfy the name rule,
+/// and a case-insensitive volume answers to `INDEX.PROGRESS` and
+/// `index.progress` alike. [`is_one_file`] is what closes that class; see it for
+/// what the answer costs off Unix.
+///
+/// The sidecar arms are reachable for the same reason: `artifact.sqlite-wal`
+/// cannot be named on the command line (the name rule refuses it), but a hard
+/// link named `scan.progress` pointing at it can.
 pub fn reject_progress_file_collision(
     progress_path: &Path,
     db_path: &Path,
 ) -> Result<(), PathPolicyError> {
-    if progress_path == db_path {
+    if is_one_file(progress_path, db_path) {
         return Err(invalid_path(
             progress_path,
             "progress file must not be the artifact database",
         ));
     }
+    for suffix in ARTIFACT_SIDECAR_SUFFIXES {
+        if is_one_file(progress_path, &artifact_sidecar(db_path, suffix)) {
+            return Err(invalid_path(
+                progress_path,
+                format!("progress file must not be the artifact database's `{suffix}` sidecar"),
+            ));
+        }
+    }
     Ok(())
+}
+
+fn artifact_sidecar(db_path: &Path, suffix: &str) -> PathBuf {
+    let mut sidecar = db_path.as_os_str().to_os_string();
+    sidecar.push(suffix);
+    PathBuf::from(sidecar)
+}
+
+/// Whether two paths name one file.
+///
+/// On Unix the answer is exact whenever both paths exist: a device plus an inode
+/// identifies a file however many names point at it, which is the only thing
+/// that sees through a hard link or through a case-variant spelling on a
+/// case-insensitive volume. Paths that do not both exist yet cannot be compared
+/// that way and answer `false`, which is why the caller runs this again once the
+/// progress file has been created.
+///
+/// Off Unix it degrades to a case-insensitive path comparison. The pinned
+/// toolchain exposes no stable identity API there — `volume_serial_number` and
+/// `file_index` on `std::os::windows::fs::MetadataExt` are both behind the
+/// unstable `windows_by_handle` feature — and the workspace sets
+/// `unsafe_code = "forbid"`, which cannot be relaxed per crate, so the Win32
+/// call behind them is not reachable directly either. The fallback still refuses
+/// `INDEX.PROGRESS` against `index.progress`; it does NOT see a Windows hard
+/// link, which stays an open hole recorded in the CLI contract.
+#[cfg(unix)]
+fn is_one_file(left: &Path, right: &Path) -> bool {
+    use std::os::unix::fs::MetadataExt;
+
+    if left == right {
+        return true;
+    }
+    let (Ok(left), Ok(right)) = (std::fs::metadata(left), std::fs::metadata(right)) else {
+        return false;
+    };
+    left.dev() == right.dev() && left.ino() == right.ino()
+}
+
+/// Path-spelling fallback for platforms with no stable file-identity API. See
+/// the Unix definition for what it does and does not cover.
+#[cfg(not(unix))]
+fn is_one_file(left: &Path, right: &Path) -> bool {
+    match (left.to_str(), right.to_str()) {
+        (Some(left), Some(right)) => left.eq_ignore_ascii_case(right),
+        _ => left == right,
+    }
 }
 
 pub fn canonicalize_ignore_file(path: &Path) -> Result<PathBuf, PathPolicyError> {
@@ -381,16 +464,97 @@ mod tests {
     }
 
     #[test]
-    fn a_progress_file_that_is_the_artifact_is_refused_and_a_sidecar_name_never_reaches_the_check()
-    {
+    fn the_artifact_is_refused_and_a_sidecar_name_never_gets_past_the_name_rule() {
         let db = Path::new("/ws/index.progress");
 
         assert!(reject_progress_file_collision(db, db).is_err());
         assert!(reject_progress_file_collision(Path::new("/ws/scan.progress"), db).is_ok());
         assert!(
             !accepted("index.progress-wal") && !accepted("index.progress-shm"),
-            "the sidecar spellings are refused by the name rule, which is why the \
-             collision check has no arm for them"
+            "a sidecar cannot be named on the command line; only a link can reach one"
         );
+    }
+
+    #[test]
+    fn two_distinct_files_are_not_a_collision() {
+        let temp = TempDir::new().unwrap();
+        let db = temp.path().join("artifact.sqlite");
+        let progress = temp.path().join("scan.progress");
+        std::fs::write(&db, b"artifact").unwrap();
+        std::fs::write(&progress, b"").unwrap();
+
+        assert!(reject_progress_file_collision(&progress, &db).is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_progress_file_hard_linked_to_the_artifact_is_refused() {
+        let temp = TempDir::new().unwrap();
+        let db = temp.path().join("artifact.sqlite");
+        std::fs::write(&db, b"artifact").unwrap();
+        let progress = temp.path().join("scan.progress");
+        std::fs::hard_link(&db, &progress).unwrap();
+
+        assert!(matches!(
+            reject_progress_file_collision(&progress, &db),
+            Err(PathPolicyError::InvalidPath { .. })
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_progress_file_hard_linked_to_an_artifact_sidecar_is_refused() {
+        for suffix in ["-wal", "-shm"] {
+            let temp = TempDir::new().unwrap();
+            let db = temp.path().join("artifact.sqlite");
+            std::fs::write(&db, b"artifact").unwrap();
+            let sidecar = temp.path().join(format!("artifact.sqlite{suffix}"));
+            std::fs::write(&sidecar, b"sidecar").unwrap();
+            let progress = temp.path().join("scan.progress");
+            std::fs::hard_link(&sidecar, &progress).unwrap();
+
+            let Err(PathPolicyError::InvalidPath { message, .. }) =
+                reject_progress_file_collision(&progress, &db)
+            else {
+                panic!("a hard link to the {suffix} sidecar must be refused");
+            };
+            assert!(message.contains(suffix), "{message}");
+        }
+    }
+
+    #[test]
+    fn a_case_variant_of_the_artifact_is_refused_where_the_filesystem_ignores_case() {
+        let temp = TempDir::new().unwrap();
+        if !ignores_case(temp.path()) {
+            return;
+        }
+        let db = temp.path().join("index.progress");
+        std::fs::write(&db, b"artifact").unwrap();
+
+        assert!(reject_progress_file_collision(&temp.path().join("INDEX.PROGRESS"), &db).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlinked_progress_path_is_refused() {
+        let temp = TempDir::new().unwrap();
+        let target = temp.path().join("real.progress");
+        std::fs::write(&target, b"").unwrap();
+        let link = temp.path().join("link.progress");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+
+        let Err(PathPolicyError::InvalidPath { message, .. }) = canonicalize_progress_file(&link)
+        else {
+            panic!("a symlinked progress path must be refused");
+        };
+        assert!(message.contains("symbolic link"), "{message}");
+    }
+
+    fn ignores_case(dir: &Path) -> bool {
+        let probe = dir.join("case-probe");
+        std::fs::write(&probe, b"").unwrap();
+        let ignored = dir.join("CASE-PROBE").exists();
+        std::fs::remove_file(&probe).unwrap();
+        ignored
     }
 }
