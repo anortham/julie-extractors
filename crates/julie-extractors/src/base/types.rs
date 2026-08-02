@@ -373,7 +373,9 @@ pub struct Identifier {
     pub target_symbol_id: Option<String>,
     /// Confidence score for identifier extraction (0.0 to 1.0)
     pub confidence: f32,
-    /// Code context around the identifier
+    /// Always `None`. Per-identifier code context was write-only dead weight —
+    /// roughly half of all identifier bytes in the scan spool and the artifact —
+    /// and no consumer ever read it, so extractors stopped populating it.
     pub code_context: Option<String>,
 }
 

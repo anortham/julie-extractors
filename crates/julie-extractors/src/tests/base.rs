@@ -1144,7 +1144,7 @@ fn test_create_identifier_basic_call() {
     assert_eq!(identifier.target_symbol_id, None); // Unresolved
     assert_eq!(identifier.confidence, 1.0);
     assert_eq!(identifier.id.len(), 32); // MD5 hash
-    assert!(identifier.code_context.is_some());
+    assert!(identifier.code_context.is_none());
 }
 
 #[test]

@@ -427,6 +427,8 @@ pub struct ArtifactIdentifier {
     pub site_is_exact: bool,
     pub site_provenance: ReferenceSiteProvenance,
     pub confidence: f64,
+    /// Always `None` from the current producer. The column and the JSONL key are
+    /// retained so existing readers keep parsing; both now carry `null`.
     pub code_context: Option<String>,
     pub metadata_json: Option<String>,
 }

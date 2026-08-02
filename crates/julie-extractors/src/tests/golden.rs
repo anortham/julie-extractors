@@ -257,6 +257,46 @@ struct NormalizedTypeArgument {
 }
 
 #[test]
+fn no_language_emits_per_identifier_code_context() {
+    let root = workspace_root();
+    let matrix = load_matrix(&root);
+    let mut languages_with_identifiers = BTreeSet::new();
+
+    for row in matrix.languages {
+        for fixture in row.fixtures {
+            let source_path = root.join(&fixture.source);
+            let source =
+                normalize_fixture_line_endings(fs::read_to_string(&source_path).unwrap_or_else(
+                    |err| panic!("failed to read {}: {err}", source_path.display()),
+                ));
+            let results =
+                extract_canonical(&fixture.source, &source, &root).unwrap_or_else(|err| {
+                    panic!(
+                        "extract_canonical failed for {}:{}: {err}",
+                        row.language, fixture.name
+                    )
+                });
+
+            if !results.identifiers.is_empty() {
+                languages_with_identifiers.insert(row.language.clone());
+            }
+            for identifier in &results.identifiers {
+                assert_eq!(
+                    identifier.code_context, None,
+                    "{}:{} identifier `{}` still carries code_context",
+                    row.language, fixture.name, identifier.name
+                );
+            }
+        }
+    }
+
+    assert!(
+        languages_with_identifiers.len() > 20,
+        "expected identifier coverage across the fixture corpus, saw {languages_with_identifiers:?}"
+    );
+}
+
+#[test]
 fn golden_fixtures_match_canonical_extraction() {
     let root = workspace_root();
     let matrix = load_matrix(&root);

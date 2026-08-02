@@ -119,6 +119,22 @@ fn pending_relationship_export_preserves_null_caller_scope() {
 }
 
 #[test]
+fn identifier_export_keeps_code_context_key_as_null() {
+    let conn = populated_artifact();
+    conn.execute(
+        "UPDATE identifiers SET code_context = NULL WHERE identifier_id = 'ident-beta'",
+        [],
+    )
+    .unwrap();
+
+    let records = export_records(&conn);
+    let identifier = record(&records, "identifier");
+
+    assert!(identifier.as_object().unwrap().contains_key("code_context"));
+    assert_eq!(identifier["code_context"], Value::Null);
+}
+
+#[test]
 fn structural_fact_metadata_exports_stored_json_object_raw() {
     let conn = populated_artifact();
     conn.execute(

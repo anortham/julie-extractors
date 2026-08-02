@@ -34,3 +34,13 @@ For a spanless site, `span` and `containing_symbol_id` may be `null`; `is_exact`
 `reference_site_id`. All other record payloads retain their version-3 shape. The checked-in SQLite
 catalog fingerprint in `sqlite-schema-v5.catalog.sha256` is the authority for the corresponding
 artifact tables.
+
+## Identifier `code_context`
+
+The `identifier` payload still carries a `code_context` key, and the `identifiers.code_context`
+column still exists, but the producer no longer populates either: every exported identifier record
+has `"code_context": null`. Per-identifier context snippets were write-only — no consumer read them
+— and they accounted for roughly half of all identifier bytes in both the scan spool and the
+artifact. Symbol records dropped their equivalent field in version 1; this is the same disposition
+for identifiers. Consumers must treat `code_context` as always `null`; the key and column are
+retained only so existing readers keep parsing.

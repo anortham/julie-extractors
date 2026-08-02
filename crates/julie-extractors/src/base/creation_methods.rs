@@ -98,12 +98,6 @@ impl BaseExtractor {
         // Generate unique ID for this identifier
         let id = self.generate_id_for_span(&name, &span);
 
-        // Extract code context around the identifier (lighter context for identifiers)
-        let code_context = self.extract_code_context(
-            span.start_line.saturating_sub(1) as usize,
-            span.end_line.saturating_sub(1) as usize,
-        );
-
         let identifier = Identifier {
             id,
             name,
@@ -119,7 +113,7 @@ impl BaseExtractor {
             containing_symbol_id,
             target_symbol_id: None, // Unresolved - will be resolved on-demand in C#
             confidence: 1.0,        // Default high confidence for tree-sitter extractions
-            code_context,
+            code_context: None,
         };
 
         self.identifiers.push(identifier.clone());

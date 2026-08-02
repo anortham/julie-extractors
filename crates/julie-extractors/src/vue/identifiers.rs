@@ -397,11 +397,6 @@ fn create_identifier_with_offset(
     let containing_span = offset.apply(NormalizedSpan::from_node(containing_node));
     let containing_symbol_id =
         find_containing_symbol_id_for_span(base, containing_span, symbol_map);
-    let code_context = base.extract_code_context(
-        span.start_line.saturating_sub(1) as usize,
-        span.end_line.saturating_sub(1) as usize,
-    );
-
     let identifier = Identifier {
         id: base.generate_id_for_span(&name, &span),
         name,
@@ -417,7 +412,7 @@ fn create_identifier_with_offset(
         containing_symbol_id,
         target_symbol_id: None,
         confidence: 1.0,
-        code_context,
+        code_context: None,
     };
 
     base.identifiers.push(identifier.clone());

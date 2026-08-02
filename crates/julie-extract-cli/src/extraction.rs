@@ -475,7 +475,7 @@ fn map_identifiers(
                 site_is_exact: true,
                 site_provenance: ReferenceSiteProvenance::TargetToken,
                 confidence: f64::from(identifier.confidence),
-                code_context: identifier.code_context.clone(),
+                code_context: None,
                 metadata_json: (!metadata.is_empty())
                     .then(|| serde_json::Value::Object(metadata).to_string()),
             })

@@ -1126,6 +1126,33 @@ fn scan_deduplicates_duplicate_extractor_identifiers_before_writing() {
 }
 
 #[test]
+fn scan_writes_no_identifier_code_context() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_success(output);
+    assert!(table_count(&db, "identifiers") > 0);
+    let with_context = Connection::open(&db)
+        .unwrap()
+        .query_row(
+            "SELECT COUNT(*) FROM identifiers WHERE code_context IS NOT NULL",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .unwrap();
+    assert_eq!(with_context, 0);
+}
+
+#[test]
 fn scan_skips_relationships_with_missing_symbol_endpoints_before_writing() {
     let fixture = FixtureRoot::with_file(
         "src/page.razor",
