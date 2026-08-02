@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     path::Path,
+    time::{Duration, Instant},
 };
 
 use rusqlite::{Connection, OptionalExtension, Transaction, params};
@@ -9,7 +10,7 @@ use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
     ArtifactCapabilitySnapshot, ArtifactFile, FileStatus, ReferenceSiteConflicts,
     ResolutionWriteOutcome, RevisionChangeKind, RevisionInput, RowCounts, WriteMode,
-    WriteOperation, WriteResult,
+    WriteOperation, WritePhaseDurations, WriteResult,
 };
 use crate::reports::RowDomainCounts;
 use crate::resolution_store::ResolutionCounts;
@@ -129,6 +130,33 @@ impl std::fmt::Display for ResolutionHookError {
 }
 
 impl std::error::Error for ResolutionHookError {}
+
+/// Stopwatch over the disjoint segments of [`WritePhaseDurations`]. Each `lap`
+/// closes the segment that has been running and starts the next one, so the
+/// recorded segments partition the write instead of overlapping.
+struct PhaseClock {
+    segment_started: Instant,
+    phases: WritePhaseDurations,
+}
+
+impl PhaseClock {
+    fn start() -> Self {
+        Self {
+            segment_started: Instant::now(),
+            phases: WritePhaseDurations::default(),
+        }
+    }
+
+    fn lap(&mut self, slot: impl FnOnce(&mut WritePhaseDurations) -> &mut Duration) {
+        let now = Instant::now();
+        *slot(&mut self.phases) += now - self.segment_started;
+        self.segment_started = now;
+    }
+
+    fn finish(self) -> WritePhaseDurations {
+        self.phases
+    }
+}
 
 /// The no-op hook that hookless writer methods delegate with, so existing callers
 /// compile and behave unchanged: it writes nothing and reports zero counts.
@@ -265,8 +293,13 @@ impl ArtifactWriter {
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
         debug_assert_eq!(revision.operation, WriteOperation::Scan);
+        let spool_finish_started = Instant::now();
         spool.finish()?;
-        self.write_scan_spooled_snapshot(revision, snapshot_paths, &[], spool, &mut hook)
+        let spool_finish = spool_finish_started.elapsed();
+        let mut result =
+            self.write_scan_spooled_snapshot(revision, snapshot_paths, &[], spool, &mut hook)?;
+        result.phases.plan += spool_finish;
+        Ok(result)
     }
 
     pub fn write_scan_spooled_preserving_missing_paths(
@@ -302,14 +335,18 @@ impl ArtifactWriter {
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
         debug_assert_eq!(revision.operation, WriteOperation::Scan);
+        let spool_finish_started = Instant::now();
         spool.finish()?;
-        self.write_scan_spooled_snapshot(
+        let spool_finish = spool_finish_started.elapsed();
+        let mut result = self.write_scan_spooled_snapshot(
             revision,
             snapshot_paths,
             preserved_missing_paths,
             spool,
             &mut hook,
-        )
+        )?;
+        result.phases.plan += spool_finish;
+        Ok(result)
     }
 
     pub fn write_update(
@@ -400,15 +437,20 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
         let existing = load_existing_file(&tx, path)?;
         let Some(existing) = existing else {
+            clock.lap(|phases| &mut phases.plan);
             tx.commit()?;
+            clock.lap(|phases| &mut phases.commit);
             checkpoint_wal(&self.connection)?;
+            clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = RowDomainCounts::default();
             return Ok(WriteResult {
                 transactions_committed: 1,
+                phases: clock.finish(),
                 ..WriteResult::default()
             });
         };
@@ -425,6 +467,8 @@ impl ArtifactWriter {
             collect_existing_symbol_names(&tx, &[existing.file_id.as_str()])?;
         delete_file_rows(&tx, &existing.file_id, path)?;
 
+        clock.lap(|phases| &mut phases.plan);
+
         let row_counts = RowCounts {
             revision_file_changes: insert_revision_file_change(
                 &tx,
@@ -435,6 +479,8 @@ impl ArtifactWriter {
             )?,
             ..RowCounts::default()
         };
+        clock.lap(|phases| &mut phases.file_symbol_insert);
+
         let scope = ResolutionScopeInput {
             changed_file_ids: vec![existing.file_id.clone()],
             touched_symbol_names,
@@ -448,8 +494,11 @@ impl ArtifactWriter {
             &scope,
             hook,
         )?;
+        clock.lap(|phases| &mut phases.resolution);
         tx.commit()?;
+        clock.lap(|phases| &mut phases.commit);
         checkpoint_wal(&self.connection)?;
+        clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -461,6 +510,7 @@ impl ArtifactWriter {
             transactions_committed: 1,
             resolution,
             reference_site_conflicts: ReferenceSiteConflicts::default(),
+            phases: clock.finish(),
         })
     }
 
@@ -476,6 +526,7 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
@@ -512,12 +563,16 @@ impl ArtifactWriter {
         }
 
         if planned.is_empty() && !capability_rows_written.has_rows() {
+            clock.lap(|phases| &mut phases.plan);
             tx.commit()?;
+            clock.lap(|phases| &mut phases.commit);
             checkpoint_wal(&self.connection)?;
+            clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
                 transactions_committed: 1,
+                phases: clock.finish(),
                 ..WriteResult::default()
             });
         }
@@ -541,6 +596,8 @@ impl ArtifactWriter {
             .iter()
             .map(|(file, _, _)| file.file_id.clone())
             .collect::<Vec<_>>();
+
+        clock.lap(|phases| &mut phases.plan);
 
         for (file, existing, _) in &planned {
             if let Some(existing) = existing {
@@ -570,6 +627,7 @@ impl ArtifactWriter {
                 .update_symbol_parents(planned.iter().map(|(file, _, _)| *file), &symbol_lookup)?;
             symbol_lookup
         };
+        clock.lap(|phases| &mut phases.file_symbol_insert);
 
         let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
@@ -578,6 +636,7 @@ impl ArtifactWriter {
             }
             child_row_inserters.take_reference_site_conflicts()
         };
+        clock.lap(|phases| &mut phases.child_rows);
 
         let scope = ResolutionScopeInput {
             changed_file_ids,
@@ -592,8 +651,11 @@ impl ArtifactWriter {
             &scope,
             hook,
         )?;
+        clock.lap(|phases| &mut phases.resolution);
         tx.commit()?;
+        clock.lap(|phases| &mut phases.commit);
         checkpoint_wal(&self.connection)?;
+        clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -605,6 +667,7 @@ impl ArtifactWriter {
             transactions_committed: 1,
             resolution,
             reference_site_conflicts,
+            phases: clock.finish(),
         })
     }
 
@@ -620,6 +683,7 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
@@ -666,12 +730,16 @@ impl ArtifactWriter {
         }
 
         if planned.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
+            clock.lap(|phases| &mut phases.plan);
             tx.commit()?;
+            clock.lap(|phases| &mut phases.commit);
             checkpoint_wal(&self.connection)?;
+            clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
                 transactions_committed: 1,
+                phases: clock.finish(),
                 ..WriteResult::default()
             });
         }
@@ -719,6 +787,7 @@ impl ArtifactWriter {
             .map(|file| file.file_id.clone())
             .chain(deleted.iter().map(|existing| existing.file_id.clone()))
             .collect::<Vec<_>>();
+        clock.lap(|phases| &mut phases.plan);
 
         let symbol_lookup = {
             let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
@@ -759,6 +828,7 @@ impl ArtifactWriter {
                 .update_symbol_parents(rewritten_files.iter().copied(), &symbol_lookup)?;
             symbol_lookup
         };
+        clock.lap(|phases| &mut phases.file_symbol_insert);
 
         let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
@@ -767,6 +837,7 @@ impl ArtifactWriter {
             }
             child_row_inserters.take_reference_site_conflicts()
         };
+        clock.lap(|phases| &mut phases.child_rows);
 
         let scope = ResolutionScopeInput {
             changed_file_ids,
@@ -781,8 +852,11 @@ impl ArtifactWriter {
             &scope,
             hook,
         )?;
+        clock.lap(|phases| &mut phases.resolution);
         tx.commit()?;
+        clock.lap(|phases| &mut phases.commit);
         checkpoint_wal(&self.connection)?;
+        clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -794,6 +868,7 @@ impl ArtifactWriter {
             transactions_committed: 1,
             resolution,
             reference_site_conflicts,
+            phases: clock.finish(),
         })
     }
 
@@ -811,6 +886,7 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.unchecked_transaction()?;
         // Symbol parent FKs can point to symbols inserted later in the same spooled transaction.
@@ -886,12 +962,16 @@ impl ArtifactWriter {
             .collect::<Vec<_>>();
 
         if planned_files.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
+            clock.lap(|phases| &mut phases.plan);
             tx.commit()?;
+            clock.lap(|phases| &mut phases.commit);
             checkpoint_wal(&self.connection)?;
+            clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
                 files_skipped,
                 transactions_committed: 1,
+                phases: clock.finish(),
                 ..WriteResult::default()
             });
         }
@@ -924,6 +1004,7 @@ impl ArtifactWriter {
             &requested_symbol_ids,
             &local_symbol_ids,
         )?;
+        clock.lap(|phases| &mut phases.plan);
 
         {
             let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
@@ -973,6 +1054,7 @@ impl ArtifactWriter {
                     )?;
             }
         }
+        clock.lap(|phases| &mut phases.file_symbol_insert);
 
         let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
@@ -987,6 +1069,7 @@ impl ArtifactWriter {
             }
             child_row_inserters.take_reference_site_conflicts()
         };
+        clock.lap(|phases| &mut phases.child_rows);
 
         let scope = ResolutionScopeInput {
             changed_file_ids,
@@ -1001,8 +1084,11 @@ impl ArtifactWriter {
             &scope,
             hook,
         )?;
+        clock.lap(|phases| &mut phases.resolution);
         tx.commit()?;
+        clock.lap(|phases| &mut phases.commit);
         checkpoint_wal(&self.connection)?;
+        clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
         Ok(WriteResult {
@@ -1014,6 +1100,7 @@ impl ArtifactWriter {
             transactions_committed: 1,
             resolution,
             reference_site_conflicts,
+            phases: clock.finish(),
         })
     }
 }

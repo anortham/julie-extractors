@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WriteOperation {
     Scan,
@@ -147,6 +149,43 @@ impl RowCounts {
     }
 }
 
+/// Wall-clock split of one artifact write. The segments are disjoint and cover
+/// the whole write, so `total()` equals the write's own elapsed time to within
+/// the cost of reading the clock.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct WritePhaseDurations {
+    /// Planning: existing-row lookups, change decisions, revision row, and the
+    /// cross-file symbol lookup — everything before the first row insert.
+    pub plan: Duration,
+    /// `files`, `symbols`, and `revision_file_changes` inserts plus per-file
+    /// deletes of the rows being replaced.
+    pub file_symbol_insert: Duration,
+    /// Every other row domain: reference sites, identifiers, relationships,
+    /// pending relationships, literals, regions, facts, metrics, diagnostics.
+    pub child_rows: Duration,
+    /// The in-transaction resolution hook.
+    pub resolution: Duration,
+    /// Secondary-index creation, non-zero only on the fresh-artifact bulk-load
+    /// path where index building is deferred to the end of the write.
+    pub index_build: Duration,
+    pub commit: Duration,
+    /// WAL checkpoint plus, on the bulk-load path, the restore of the durable
+    /// journal mode.
+    pub wal_checkpoint: Duration,
+}
+
+impl WritePhaseDurations {
+    pub fn total(&self) -> Duration {
+        self.plan
+            + self.file_symbol_insert
+            + self.child_rows
+            + self.resolution
+            + self.index_build
+            + self.commit
+            + self.wal_checkpoint
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WriteResult {
     pub revision_id: Option<i64>,
@@ -162,6 +201,9 @@ pub struct WriteResult {
     /// Reference sites whose sharing passes disagreed about the site payload.
     /// `Default` (zero) for the overwhelmingly common agreeing case.
     pub reference_site_conflicts: ReferenceSiteConflicts,
+    /// Sub-phase split of this write, surfaced by the CLI as additive
+    /// `artifact_write_*` profile keys.
+    pub phases: WritePhaseDurations,
 }
 
 /// One source token owns ONE reference site, written once per sharing pass

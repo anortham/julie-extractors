@@ -16,6 +16,7 @@ use julie_extract_artifact::writer::{
 use rusqlite::{Connection, limits::Limit};
 use serde_json::json;
 use std::path::PathBuf;
+use std::time::Duration;
 
 #[test]
 fn writer_canonicalizes_shared_exact_reference_sites_across_evidence_rows() {
@@ -1386,6 +1387,46 @@ fn data_loss_guard_preserves_known_good_rows_on_parser_failure_evidence() {
         Some("hash-a".to_string())
     );
     assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+}
+
+#[test]
+fn write_scan_attributes_hook_time_to_the_resolution_phase() {
+    let mut writer = open_writer();
+    let files = vec![file_with_symbols(
+        "file-a",
+        "src/a.rs",
+        "blake3:a",
+        ["alpha"],
+    )];
+    let hook_work = Duration::from_millis(60);
+
+    let result = writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Force)),
+            &files,
+            |_tx, _scope| {
+                std::thread::sleep(hook_work);
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+
+    assert!(
+        result.phases.resolution >= hook_work,
+        "hook time must land in the resolution phase: {:?}",
+        result.phases
+    );
+    assert!(
+        result.phases.total() >= result.phases.resolution,
+        "the phase total must cover every segment: {:?}",
+        result.phases
+    );
+    assert_eq!(
+        result.phases.index_build,
+        Duration::ZERO,
+        "in-memory writers never take the deferred-index path: {:?}",
+        result.phases
+    );
 }
 
 #[test]

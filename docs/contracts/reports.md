@@ -141,7 +141,14 @@ part of this contract.
       "discovery": 18,
       "extraction_spool": 621,
       "writer_open": 2,
-      "artifact_write": 581
+      "artifact_write": 581,
+      "artifact_write_plan": 42,
+      "artifact_write_file_symbol_insert": 96,
+      "artifact_write_child_rows": 312,
+      "artifact_write_resolution": 88,
+      "artifact_write_index_build": 0,
+      "artifact_write_commit": 31,
+      "artifact_write_wal_checkpoint": 12
     },
     "languages": {
       "rust": {
@@ -348,6 +355,26 @@ Fields:
 - `phases`: command-specific phase timings in milliseconds. `scan` phase keys
   include `existing_artifact`, `discovery`, `extraction_spool`, `writer_open`,
   and `artifact_write` when those phases run.
+- `artifact_write_*`: the sub-phase split of `artifact_write`. The segments are
+  disjoint and cover the whole write, so they sum to `artifact_write` up to
+  per-key millisecond truncation. Keys:
+  - `artifact_write_plan`: spool flush, existing-row lookups, change decisions,
+    the revision row, and the cross-file symbol lookup — everything before the
+    first row insert.
+  - `artifact_write_file_symbol_insert`: `files`, `symbols`, and
+    `revision_file_changes` inserts plus the deletes of rows being replaced.
+  - `artifact_write_child_rows`: every other row domain — reference sites,
+    identifiers, relationships, pending relationships, literals, source regions,
+    structural facts, complexity metrics, parse diagnostics.
+  - `artifact_write_resolution`: the in-transaction reference-resolution pass.
+  - `artifact_write_index_build`: secondary-index creation. Non-zero only on the
+    fresh-artifact bulk-load path, which defers index building to the end of the
+    write; `0` on every incremental write, where the indexes already exist.
+  - `artifact_write_commit`: the transaction commit.
+  - `artifact_write_wal_checkpoint`: WAL checkpoint plus, on the bulk-load path,
+    the restore of the durable journal mode.
+
+  These keys are diagnostic. Consumers must tolerate new phase keys appearing.
 - `languages`: per-language scan timing and volume data keyed by canonical
   language name.
 - `languages.*.files`: supported files considered for that language.

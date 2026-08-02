@@ -8,7 +8,8 @@ use clap::Parser;
 use julie_extract_artifact::jsonl::{JSONL_SCHEMA_VERSION, export_jsonl, export_jsonl_to_path};
 use julie_extract_artifact::metadata::ArtifactMetadata;
 use julie_extract_artifact::model::{
-    ArtifactFile, RevisionChangeKind, RevisionInput, WriteMode, WriteOperation, WriteResult,
+    ArtifactFile, RevisionChangeKind, RevisionInput, WriteMode, WriteOperation,
+    WritePhaseDurations, WriteResult,
 };
 use julie_extract_artifact::reports::{
     ReportCode, ReportDiagnostic, ReportInput, ReportLanguageProfile, ReportMode, ReportOperation,
@@ -392,6 +393,7 @@ fn scan_collecting_warnings(
                         "artifact_write",
                         artifact_write_started.elapsed(),
                     );
+                    record_write_phase_profile(&mut profile_phases, &write_result.phases);
                     let capability_rows_written = writer.last_capability_rows_written();
                     let connection = writer.connection();
                     let has_source_errors =
@@ -1443,6 +1445,33 @@ fn scan_profile(
 
 fn record_profile_phase(phases: &mut BTreeMap<String, u64>, phase: &str, duration: Duration) {
     add_duration_ms(phases.entry(phase.to_string()).or_insert(0), duration);
+}
+
+/// Additive `artifact_write_*` sub-phase keys. The segments partition the write,
+/// so they sum to `artifact_write` up to clock-read overhead.
+fn record_write_phase_profile(
+    phases: &mut BTreeMap<String, u64>,
+    write_phases: &WritePhaseDurations,
+) {
+    record_profile_phase(phases, "artifact_write_plan", write_phases.plan);
+    record_profile_phase(
+        phases,
+        "artifact_write_file_symbol_insert",
+        write_phases.file_symbol_insert,
+    );
+    record_profile_phase(phases, "artifact_write_child_rows", write_phases.child_rows);
+    record_profile_phase(phases, "artifact_write_resolution", write_phases.resolution);
+    record_profile_phase(
+        phases,
+        "artifact_write_index_build",
+        write_phases.index_build,
+    );
+    record_profile_phase(phases, "artifact_write_commit", write_phases.commit);
+    record_profile_phase(
+        phases,
+        "artifact_write_wal_checkpoint",
+        write_phases.wal_checkpoint,
+    );
 }
 
 fn add_duration_ms(total: &mut u64, duration: Duration) {

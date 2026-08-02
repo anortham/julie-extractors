@@ -187,7 +187,6 @@ pub struct IdentifierWorkItem {
     pub start_line: i64,
     pub start_byte: i64,
     pub end_byte: i64,
-    pub code_context: Option<String>,
     pub receiver: Option<String>,
     pub receiver_qualifier: Option<String>,
     pub import_context: Option<String>,
@@ -665,7 +664,7 @@ const PENDING_COLUMNS: &str = "pr.pending_relationship_id, pr.from_symbol_id, \
 
 const IDENTIFIER_COLUMNS: &str = "i.identifier_id, i.file_id, i.path, i.language, \
      i.name, i.kind, i.containing_symbol_id, i.start_line, i.start_byte, \
-     i.end_byte, i.code_context, json_extract(i.metadata_json, '$.receiver'), \
+     i.end_byte, json_extract(i.metadata_json, '$.receiver'), \
      json_extract(i.metadata_json, '$.receiver_qualifier'), \
      json_extract(i.metadata_json, '$.import_context'), i.confidence";
 
@@ -702,11 +701,10 @@ fn map_identifier(row: &rusqlite::Row<'_>) -> rusqlite::Result<IdentifierWorkIte
         start_line: row.get(7)?,
         start_byte: row.get(8)?,
         end_byte: row.get(9)?,
-        code_context: row.get(10)?,
-        receiver: row.get(11)?,
-        receiver_qualifier: row.get(12)?,
-        import_context: row.get(13)?,
-        confidence: row.get(14)?,
+        receiver: row.get(10)?,
+        receiver_qualifier: row.get(11)?,
+        import_context: row.get(12)?,
+        confidence: row.get(13)?,
     })
 }
 
@@ -972,22 +970,22 @@ pub fn worklist_full_identifiers(conn: &Connection) -> rusqlite::Result<Vec<Iden
 fn map_resolved_identifier(
     row: &rusqlite::Row<'_>,
 ) -> rusqlite::Result<ResolvedIdentifierWorkItem> {
-    let outcome_str: String = row.get(19)?;
+    let outcome_str: String = row.get(18)?;
     let outcome = Outcome::parse(&outcome_str).ok_or_else(|| {
         rusqlite::Error::FromSqlConversionFailure(
-            19,
+            18,
             rusqlite::types::Type::Text,
             format!("unknown identifier resolution outcome: {outcome_str}").into(),
         )
     })?;
     Ok(ResolvedIdentifierWorkItem {
         identifier: map_identifier(row)?,
-        target_symbol_id: row.get(15)?,
-        tier: row.get(16)?,
-        confidence: row.get(17)?,
-        method: row.get(18)?,
+        target_symbol_id: row.get(14)?,
+        tier: row.get(15)?,
+        confidence: row.get(16)?,
+        method: row.get(17)?,
         outcome,
-        candidates: row.get(20)?,
+        candidates: row.get(19)?,
     })
 }
 

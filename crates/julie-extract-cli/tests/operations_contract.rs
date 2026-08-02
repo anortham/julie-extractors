@@ -415,6 +415,54 @@ fn scan_report_includes_profile_phases_and_language_timings() {
 }
 
 #[test]
+fn scan_profile_splits_artifact_write_into_additive_sub_phases() {
+    let fixture = FixtureRoot::with_file("src/lib.rs", "pub fn alpha() { beta(); }\n");
+    std::fs::write(fixture.path("src/app.js"), "function run() { return 1; }\n").unwrap();
+    let db = fixture.path("artifact.sqlite");
+
+    let report = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    let phases = report["profile"]["phases"]
+        .as_object()
+        .expect("scan reports should include profile phases");
+    let artifact_write = phases["artifact_write"]
+        .as_u64()
+        .expect("artifact_write phase should be present");
+
+    let sub_phases = [
+        "artifact_write_plan",
+        "artifact_write_file_symbol_insert",
+        "artifact_write_child_rows",
+        "artifact_write_resolution",
+        "artifact_write_index_build",
+        "artifact_write_commit",
+        "artifact_write_wal_checkpoint",
+    ];
+    let mut sum = 0;
+    for key in sub_phases {
+        sum += phases[key]
+            .as_u64()
+            .unwrap_or_else(|| panic!("sub-phase {key} should be present: {phases:#?}"));
+    }
+
+    assert!(
+        sum <= artifact_write + 2,
+        "sub-phases must partition artifact_write, not exceed it: sum={sum} artifact_write={artifact_write} {phases:#?}"
+    );
+    assert!(
+        artifact_write - sum <= 30,
+        "sub-phases must account for artifact_write: sum={sum} artifact_write={artifact_write} {phases:#?}"
+    );
+}
+
+#[test]
 fn scan_report_includes_profile_when_db_open_fails_after_extraction() {
     let fixture = FixtureRoot::with_file("src/lib.rs", "pub fn alpha() {}\n");
     let db = fixture.path("artifact.sqlite");
