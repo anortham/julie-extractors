@@ -369,6 +369,408 @@ fn writer_module_does_not_own_row_inserter_helpers() {
     }
 }
 
+// --- fresh-artifact bulk load -------------------------------------------------
+//
+// The bulk load is invisible from outside the writer, so these tests observe it
+// from inside the write transaction through the resolution hook: that is the one
+// place a caller can see the schema and journal the inserts actually ran under.
+
+#[test]
+fn fresh_path_scan_inserts_without_secondary_indexes_and_restores_them() {
+    let temp_dir = unique_temp_dir("bulk-load-defers-indexes");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(writer.bulk_load_eligible());
+    let expected_indexes = secondary_index_names(writer.connection());
+    assert!(
+        expected_indexes.len() > 40,
+        "the schema should carry the full secondary-index catalog: {expected_indexes:?}"
+    );
+
+    let mut in_transaction_indexes = Vec::new();
+    let mut in_transaction_journal = String::new();
+    writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+            |tx, _scope| {
+                in_transaction_indexes = secondary_index_names(tx);
+                in_transaction_journal = pragma_text(tx, "journal_mode").to_lowercase();
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+
+    assert!(
+        in_transaction_indexes.is_empty(),
+        "a fresh bulk load must insert with no secondary indexes present: \
+         {in_transaction_indexes:?}"
+    );
+    assert_eq!(in_transaction_journal, "memory");
+    assert_eq!(secondary_index_names(writer.connection()), expected_indexes);
+    assert_eq!(
+        pragma_text(writer.connection(), "journal_mode").to_lowercase(),
+        "wal"
+    );
+    assert_eq!(pragma_i64(writer.connection(), "synchronous"), 1);
+    assert!(
+        !writer.bulk_load_eligible(),
+        "eligibility must be consumed by the write that used it"
+    );
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn bulk_load_never_activates_on_update_delete_or_populated_scan() {
+    let temp_dir = unique_temp_dir("bulk-load-gate");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    let expected_indexes = secondary_index_names(writer.connection());
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[
+                file_with_all_rows("file-a", "src/a.rs", "hash-a"),
+                file_with_all_rows("file-b", "src/b.rs", "hash-b"),
+            ],
+        )
+        .unwrap();
+    drop(writer);
+
+    for probe in [
+        WriteProbe::Update,
+        WriteProbe::Delete,
+        WriteProbe::Scan,
+        WriteProbe::ForcedScan,
+    ] {
+        let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+        assert!(
+            !writer.bulk_load_eligible(),
+            "{probe:?} opened a populated artifact and must not be bulk-load eligible"
+        );
+
+        let mut in_transaction_indexes = Vec::new();
+        let mut in_transaction_journal = String::new();
+        let mut hook = |tx: &rusqlite::Transaction<'_>, _scope: &ResolutionScopeInput| {
+            in_transaction_indexes = secondary_index_names(tx);
+            in_transaction_journal = pragma_text(tx, "journal_mode").to_lowercase();
+            Ok(ResolutionCounts::default())
+        };
+        match probe {
+            WriteProbe::Update => {
+                writer
+                    .write_update_with_resolution(
+                        revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
+                        &file_with_all_rows("file-a", "src/a.rs", "hash-a2"),
+                        &mut hook,
+                    )
+                    .unwrap();
+            }
+            WriteProbe::Delete => {
+                writer
+                    .delete_file_with_resolution(
+                        revision(WriteOperation::Delete, Some(WriteMode::SingleFile)),
+                        "src/b.rs",
+                        &mut hook,
+                    )
+                    .unwrap();
+            }
+            WriteProbe::Scan | WriteProbe::ForcedScan => {
+                let mode = if matches!(probe, WriteProbe::ForcedScan) {
+                    WriteMode::Force
+                } else {
+                    WriteMode::Incremental
+                };
+                writer
+                    .write_scan_with_resolution(
+                        revision(WriteOperation::Scan, Some(mode)),
+                        &[
+                            file_with_all_rows("file-a", "src/a.rs", "hash-a3"),
+                            file_with_all_rows("file-b", "src/b.rs", "hash-b3"),
+                        ],
+                        &mut hook,
+                    )
+                    .unwrap();
+            }
+        }
+
+        assert_eq!(
+            in_transaction_indexes, expected_indexes,
+            "{probe:?} must keep every secondary index: delta resolution needs the \
+             file_id indexes"
+        );
+        assert_eq!(
+            in_transaction_journal, "wal",
+            "{probe:?} must stay on the durable journal"
+        );
+    }
+
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn a_single_file_write_spends_bulk_load_eligibility() {
+    let temp_dir = unique_temp_dir("bulk-load-eligibility-spent");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(writer.bulk_load_eligible());
+    writer
+        .write_update(
+            revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
+            &file_with_all_rows("file-a", "src/a.rs", "hash-a"),
+        )
+        .unwrap();
+    assert!(
+        !writer.bulk_load_eligible(),
+        "the update left rows behind, so a later scan must not bulk-load"
+    );
+
+    let mut in_transaction_indexes = Vec::new();
+    writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Force)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a2")],
+            |tx, _scope| {
+                in_transaction_indexes = secondary_index_names(tx);
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+    assert!(
+        !in_transaction_indexes.is_empty(),
+        "a scan following a write must keep its secondary indexes"
+    );
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn bulk_load_and_indexed_path_write_identical_artifacts() {
+    let temp_dir = unique_temp_dir("bulk-load-equivalence");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+    let files = [
+        file_with_all_rows("file-a", "src/a.rs", "hash-a"),
+        file_with_all_rows("file-b", "src/b.rs", "hash-b"),
+    ];
+
+    let mut bulk = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(bulk.bulk_load_eligible());
+    let bulk_result = bulk
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &files,
+            resolve_every_pending_row,
+        )
+        .unwrap();
+
+    let mut indexed = ArtifactWriter::open_in_memory(artifact_metadata()).unwrap();
+    assert!(!indexed.bulk_load_eligible());
+    let indexed_result = indexed
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &files,
+            resolve_every_pending_row,
+        )
+        .unwrap();
+
+    assert_eq!(bulk_result.rows_written, indexed_result.rows_written);
+    assert_eq!(bulk_result.resolution, indexed_result.resolution);
+    assert!(bulk_result.phases.index_build > Duration::ZERO);
+    assert_eq!(indexed_result.phases.index_build, Duration::ZERO);
+
+    for table in ARTIFACT_ROW_TABLES {
+        assert_eq!(
+            table_rows(bulk.connection(), table),
+            table_rows(indexed.connection(), table),
+            "table {table} must be identical whichever path wrote it"
+        );
+    }
+    assert_eq!(
+        schema_object_catalog(bulk.connection()),
+        schema_object_catalog(indexed.connection()),
+        "a bulk-loaded artifact must carry the same schema objects"
+    );
+
+    drop(bulk);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn failed_bulk_load_leaves_an_empty_artifact_a_fresh_rerun_replaces() {
+    let temp_dir = unique_temp_dir("bulk-load-failed");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(writer.bulk_load_eligible());
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("scan.spool")).unwrap();
+    spool
+        .push(&file_with_all_rows("file-a", "src/a.rs", "hash-a"))
+        .unwrap();
+
+    // A spooled path missing from the snapshot set aborts the write from inside
+    // the transaction, after the bulk load has dropped the indexes and swapped
+    // the journal — the same window a killed process would die in.
+    let failed = writer.write_scan_spooled(
+        revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+        &[],
+        &mut spool,
+    );
+    assert!(matches!(
+        failed,
+        Err(ArtifactWriteError::SnapshotMissingSpooledPath { .. })
+    ));
+    assert_eq!(
+        pragma_text(writer.connection(), "journal_mode").to_lowercase(),
+        "wal",
+        "a failed bulk load must leave the connection durable again"
+    );
+    drop(writer);
+
+    let mut rerun = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(
+        rerun.bulk_load_eligible(),
+        "the rolled-back artifact is still empty, so the rerun bulk-loads too"
+    );
+    let result = rerun
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+        )
+        .unwrap();
+
+    assert_eq!(result.rows_written.files, 1);
+    assert_eq!(count(rerun.connection(), "files"), 1);
+    assert!(
+        !secondary_index_names(rerun.connection()).is_empty(),
+        "the replacement artifact must carry its secondary indexes"
+    );
+    let integrity: String = rerun
+        .connection()
+        .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(integrity, "ok");
+
+    drop(rerun);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[derive(Debug, Clone, Copy)]
+enum WriteProbe {
+    Update,
+    Delete,
+    Scan,
+    ForcedScan,
+}
+
+/// A hook that does real overlay work, so the equivalence test compares a
+/// resolution pass that ran without secondary indexes against one that had them.
+fn resolve_every_pending_row(
+    tx: &rusqlite::Transaction<'_>,
+    _scope: &ResolutionScopeInput,
+) -> Result<ResolutionCounts, ResolutionHookError> {
+    let pending: Vec<(String, String)> = {
+        let mut statement = tx
+            .prepare("SELECT pending_relationship_id, from_symbol_id FROM pending_relationships")
+            .map_err(|error| ResolutionHookError::new(error.to_string()))?;
+        let rows = statement
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .map_err(|error| ResolutionHookError::new(error.to_string()))?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+            .map_err(|error| ResolutionHookError::new(error.to_string()))?
+    };
+    let mut counts = ResolutionCounts::default();
+    for (pending_relationship_id, target_symbol_id) in pending {
+        record_pending_resolution(
+            tx,
+            &pending_relationship_id,
+            &target_symbol_id,
+            1,
+            1.0,
+            "test",
+            1,
+        )
+        .map_err(|error| ResolutionHookError::new(error.to_string()))?;
+        counts.pending_resolutions += 1;
+    }
+    Ok(counts)
+}
+
+const ARTIFACT_ROW_TABLES: [&str; 16] = [
+    "files",
+    "symbols",
+    "symbol_annotations",
+    "reference_sites",
+    "identifiers",
+    "relationships",
+    "pending_relationships",
+    "pending_resolutions",
+    "identifier_resolutions",
+    "type_facts",
+    "type_argument_usages",
+    "type_arguments",
+    "literals",
+    "source_regions",
+    "structural_facts",
+    "complexity_metrics",
+];
+
+fn secondary_index_names(conn: &Connection) -> Vec<String> {
+    let mut statement = conn
+        .prepare(
+            "SELECT name FROM sqlite_master
+             WHERE type = 'index' AND sql IS NOT NULL
+             ORDER BY name",
+        )
+        .unwrap();
+    let rows = statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap();
+    rows.collect::<rusqlite::Result<Vec<_>>>().unwrap()
+}
+
+fn schema_object_catalog(conn: &Connection) -> Vec<(String, String, Option<String>)> {
+    let mut statement = conn
+        .prepare("SELECT type, name, sql FROM sqlite_master ORDER BY type, name")
+        .unwrap();
+    let rows = statement
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+        .unwrap();
+    rows.collect::<rusqlite::Result<Vec<_>>>().unwrap()
+}
+
+/// Every row of `table` rendered value-by-value and sorted, so two artifacts can
+/// be compared column-for-column without naming a single column.
+fn table_rows(conn: &Connection, table: &str) -> Vec<Vec<String>> {
+    let mut statement = conn
+        .prepare(&format!("SELECT * FROM {table}"))
+        .unwrap_or_else(|error| panic!("{table} must be selectable: {error}"));
+    let column_count = statement.column_count();
+    let rows = statement
+        .query_map([], |row| {
+            (0..column_count)
+                .map(|index| {
+                    row.get::<_, rusqlite::types::Value>(index)
+                        .map(|value| format!("{value:?}"))
+                })
+                .collect::<rusqlite::Result<Vec<_>>>()
+        })
+        .unwrap();
+    let mut rows = rows.collect::<rusqlite::Result<Vec<_>>>().unwrap();
+    rows.sort();
+    rows
+}
+
 #[test]
 fn path_writer_uses_bulk_sqlite_pragmas() {
     let temp_dir = unique_temp_dir("path-writer-pragmas");

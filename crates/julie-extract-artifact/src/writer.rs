@@ -14,7 +14,10 @@ use crate::model::{
 };
 use crate::reports::RowDomainCounts;
 use crate::resolution_store::ResolutionCounts;
-use crate::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_schema};
+use crate::schema::{
+    EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION, create_schema, create_secondary_indexes,
+    drop_secondary_indexes,
+};
 
 mod capabilities;
 mod rows;
@@ -172,6 +175,10 @@ pub struct ArtifactWriter {
     metadata: ArtifactMetadata,
     staged_capability_snapshot: Option<ArtifactCapabilitySnapshot>,
     last_capability_rows_written: RowDomainCounts,
+    /// Set when `open_path` found an on-disk artifact with no `files` rows.
+    /// Consumed by the first write, so only that write may bulk-load and a
+    /// second scan through the same writer sees a live artifact.
+    bulk_load_eligible: bool,
 }
 
 impl ArtifactWriter {
@@ -185,6 +192,9 @@ impl ArtifactWriter {
             metadata,
             staged_capability_snapshot: None,
             last_capability_rows_written: RowDomainCounts::default(),
+            // An in-memory artifact has no journal file and no promote step, so
+            // the bulk-load trade (durability for speed) buys nothing here.
+            bulk_load_eligible: false,
         })
     }
 
@@ -201,12 +211,26 @@ impl ArtifactWriter {
         if !existed || metadata_row_count(&connection)? == 0 {
             initialize_metadata(&connection, &metadata)?;
         }
+        let bulk_load_eligible = !artifact_has_files(&connection)?;
         Ok(Self {
             connection,
             metadata,
             staged_capability_snapshot: None,
             last_capability_rows_written: RowDomainCounts::default(),
+            bulk_load_eligible,
         })
+    }
+
+    /// True while this writer may still take the fresh-artifact bulk-load path:
+    /// it opened an empty on-disk artifact and has not written yet.
+    pub fn bulk_load_eligible(&self) -> bool {
+        self.bulk_load_eligible
+    }
+
+    /// Reads the eligibility and clears it, so bulk load can fire at most once
+    /// per opened artifact and never on a write that follows another.
+    fn take_bulk_load_eligibility(&mut self) -> bool {
+        std::mem::replace(&mut self.bulk_load_eligible, false)
     }
 
     pub fn connection(&self) -> &Connection {
@@ -437,6 +461,10 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        // A single-file write never bulk-loads, and it leaves rows behind, so it
+        // must also spend the eligibility a later scan through this writer would
+        // otherwise inherit.
+        self.take_bulk_load_eligibility();
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
@@ -526,6 +554,10 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        // A single-file write never bulk-loads, and it leaves rows behind, so it
+        // must also spend the eligibility a later scan through this writer would
+        // otherwise inherit.
+        self.take_bulk_load_eligibility();
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
@@ -683,9 +715,44 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        let bulk_load = self.take_bulk_load_eligibility();
+        let bulk_setup_started = Instant::now();
+        if bulk_load {
+            begin_bulk_load(&self.connection)?;
+        }
+        let bulk_setup = bulk_setup_started.elapsed();
+        let mut result = self.write_scan_snapshot_in_mode(revision, files, hook, bulk_load);
+        match result.as_mut() {
+            Ok(result) => result.phases.plan += bulk_setup,
+            Err(_) if bulk_load => {
+                // The success path restores the durable journal itself; a failed
+                // write rolled back to the empty artifact, so restore it here.
+                let _ = end_bulk_load(&self.connection);
+            }
+            Err(_) => {}
+        }
+        result
+    }
+
+    fn write_scan_snapshot_in_mode<F>(
+        &mut self,
+        revision: RevisionInput,
+        files: &[ArtifactFile],
+        hook: &mut F,
+        bulk_load: bool,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.transaction()?;
+        if bulk_load {
+            drop_secondary_indexes(&tx)?;
+        }
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
             &tx,
             capability_snapshot.as_ref(),
@@ -731,9 +798,13 @@ impl ArtifactWriter {
 
         if planned.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
             clock.lap(|phases| &mut phases.plan);
+            if bulk_load {
+                create_secondary_indexes(&tx)?;
+                clock.lap(|phases| &mut phases.index_build);
+            }
             tx.commit()?;
             clock.lap(|phases| &mut phases.commit);
-            checkpoint_wal(&self.connection)?;
+            finish_journal(&self.connection, bulk_load)?;
             clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
@@ -853,9 +924,13 @@ impl ArtifactWriter {
             hook,
         )?;
         clock.lap(|phases| &mut phases.resolution);
+        if bulk_load {
+            create_secondary_indexes(&tx)?;
+            clock.lap(|phases| &mut phases.index_build);
+        }
         tx.commit()?;
         clock.lap(|phases| &mut phases.commit);
-        checkpoint_wal(&self.connection)?;
+        finish_journal(&self.connection, bulk_load)?;
         clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
@@ -886,6 +961,47 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        let bulk_load = self.take_bulk_load_eligibility();
+        let bulk_setup_started = Instant::now();
+        if bulk_load {
+            begin_bulk_load(&self.connection)?;
+        }
+        let bulk_setup = bulk_setup_started.elapsed();
+        let mut result = self.write_scan_spooled_snapshot_in_mode(
+            revision,
+            snapshot_paths,
+            preserved_missing_paths,
+            spool,
+            hook,
+            bulk_load,
+        );
+        match result.as_mut() {
+            Ok(result) => result.phases.plan += bulk_setup,
+            Err(_) if bulk_load => {
+                // The success path restores the durable journal itself; a failed
+                // write rolled back to the empty artifact, so restore it here.
+                let _ = end_bulk_load(&self.connection);
+            }
+            Err(_) => {}
+        }
+        result
+    }
+
+    fn write_scan_spooled_snapshot_in_mode<F>(
+        &mut self,
+        revision: RevisionInput,
+        snapshot_paths: &[String],
+        preserved_missing_paths: &[String],
+        spool: &ArtifactFileSpool,
+        hook: &mut F,
+        bulk_load: bool,
+    ) -> ArtifactWriteResult<WriteResult>
+    where
+        F: for<'t> FnMut(
+            &Transaction<'t>,
+            &ResolutionScopeInput,
+        ) -> Result<ResolutionCounts, ResolutionHookError>,
+    {
         let mut clock = PhaseClock::start();
         let capability_snapshot = self.staged_capability_snapshot();
         let tx = self.connection.unchecked_transaction()?;
@@ -893,6 +1009,9 @@ impl ArtifactWriter {
         // Defer validation until commit while keeping connection-level foreign_keys ON so
         // ON DELETE CASCADE/SET NULL actions still run during rewrites and snapshot deletes.
         tx.pragma_update(None, "defer_foreign_keys", "ON")?;
+        if bulk_load {
+            drop_secondary_indexes(&tx)?;
+        }
         let capability_rows_written = capabilities::sync_optional_capability_snapshot_in_tx(
             &tx,
             capability_snapshot.as_ref(),
@@ -963,9 +1082,13 @@ impl ArtifactWriter {
 
         if planned_files.is_empty() && deleted.is_empty() && !capability_rows_written.has_rows() {
             clock.lap(|phases| &mut phases.plan);
+            if bulk_load {
+                create_secondary_indexes(&tx)?;
+                clock.lap(|phases| &mut phases.index_build);
+            }
             tx.commit()?;
             clock.lap(|phases| &mut phases.commit);
-            checkpoint_wal(&self.connection)?;
+            finish_journal(&self.connection, bulk_load)?;
             clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
@@ -1085,9 +1208,13 @@ impl ArtifactWriter {
             hook,
         )?;
         clock.lap(|phases| &mut phases.resolution);
+        if bulk_load {
+            create_secondary_indexes(&tx)?;
+            clock.lap(|phases| &mut phases.index_build);
+        }
         tx.commit()?;
         clock.lap(|phases| &mut phases.commit);
-        checkpoint_wal(&self.connection)?;
+        finish_journal(&self.connection, bulk_load)?;
         clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
@@ -1269,6 +1396,50 @@ fn update_revision_counts(
 fn checkpoint_wal(connection: &Connection) -> rusqlite::Result<()> {
     connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")?;
     Ok(())
+}
+
+fn artifact_has_files(connection: &Connection) -> rusqlite::Result<bool> {
+    connection.query_row("SELECT EXISTS (SELECT 1 FROM files)", [], |row| row.get(0))
+}
+
+/// Trades durability for throughput while filling an EMPTY on-disk artifact.
+///
+/// Safe only because there is nothing to lose: the artifact holds no rows, and
+/// Miller consumes fresh builds under promote-not-merge, so a torn `.rebuild` is
+/// discarded rather than served. `MEMORY` (not `OFF`) keeps the rollback journal
+/// working, so an error inside the write still rolls back cleanly to the empty
+/// artifact — only a process death mid-write leaves a torn file. On a fresh
+/// artifact that journal stays tiny: every page the write touches is new, and
+/// SQLite journals only pages that existed before the transaction.
+///
+/// The win is avoiding the WAL: a WAL-mode bulk load writes the whole artifact
+/// to the WAL and then copies all of it back into the database at checkpoint.
+fn begin_bulk_load(connection: &Connection) -> rusqlite::Result<()> {
+    connection.pragma_update(None, "journal_mode", "MEMORY")?;
+    connection.pragma_update(None, "synchronous", "OFF")?;
+    Ok(())
+}
+
+/// Restores the durable settings `open_path` established, so a bulk-loaded
+/// artifact is indistinguishable from one the incremental path wrote.
+fn end_bulk_load(connection: &Connection) -> rusqlite::Result<()> {
+    connection.pragma_update(None, "synchronous", "NORMAL")?;
+    connection.pragma_update(None, "journal_mode", "WAL")?;
+    Ok(())
+}
+
+/// Leaves a committed artifact with an empty WAL and the durable journal.
+///
+/// A bulk load wrote straight into the database file, so there is no WAL to
+/// checkpoint — and asking for one right after re-entering WAL mode fails with
+/// `SQLITE_LOCKED` because the mode change has not yet initialized a WAL to
+/// truncate.
+fn finish_journal(connection: &Connection, bulk_load: bool) -> rusqlite::Result<()> {
+    if bulk_load {
+        end_bulk_load(connection)
+    } else {
+        checkpoint_wal(connection)
+    }
 }
 
 fn revision_counts_with_capabilities(

@@ -5,7 +5,35 @@ pub const EXTRACT_CONTRACT_VERSION: i64 = 4;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
     drop_superseded_reference_site_guard(conn)?;
-    conn.execute_batch(SCHEMA_SQL)
+    conn.execute_batch(SCHEMA_TABLES_SQL)?;
+    create_secondary_indexes(conn)
+}
+
+/// The secondary indexes only. Split out of [`create_schema`] so the
+/// fresh-artifact bulk load can build them once at the end of the write instead
+/// of maintaining every one of them per inserted row. Idempotent.
+pub fn create_secondary_indexes(conn: &Connection) -> rusqlite::Result<()> {
+    conn.execute_batch(SCHEMA_INDEXES_SQL)
+}
+
+/// Drops every index [`create_secondary_indexes`] creates, leaving the implicit
+/// PRIMARY KEY and UNIQUE indexes SQLite owns. Read from `sqlite_master` rather
+/// than a second hand-maintained list, so an index added to the DDL can never be
+/// silently left behind during a bulk load.
+pub fn drop_secondary_indexes(conn: &Connection) -> rusqlite::Result<()> {
+    let names = {
+        let mut statement = conn.prepare(
+            "SELECT name FROM sqlite_master
+             WHERE type = 'index' AND sql IS NOT NULL
+             ORDER BY name",
+        )?;
+        let names = statement.query_map([], |row| row.get::<_, String>(0))?;
+        names.collect::<rusqlite::Result<Vec<_>>>()?
+    };
+    for name in names {
+        conn.execute_batch(&format!("DROP INDEX IF EXISTS \"{name}\""))?;
+    }
+    Ok(())
 }
 
 /// The guard originally raised ABORT, so one payload disagreement between
@@ -30,7 +58,7 @@ fn drop_superseded_reference_site_guard(conn: &Connection) -> rusqlite::Result<(
     Ok(())
 }
 
-const SCHEMA_SQL: &str = r#"
+const SCHEMA_TABLES_SQL: &str = r#"
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS artifact_metadata (
@@ -484,7 +512,9 @@ CREATE TABLE IF NOT EXISTS language_capability_gaps (
   evidence_json TEXT NOT NULL,
   FOREIGN KEY (language) REFERENCES language_capabilities(language) ON DELETE CASCADE
 );
+"#;
 
+const SCHEMA_INDEXES_SQL: &str = r#"
 CREATE INDEX IF NOT EXISTS idx_files_path ON files(path);
 CREATE INDEX IF NOT EXISTS idx_files_language ON files(language);
 CREATE INDEX IF NOT EXISTS idx_symbols_path ON symbols(path);
