@@ -1,5 +1,6 @@
 use super::PythonExtractor;
 use crate::base::{BaseExtractor, Identifier, TypeArgument};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 use tree_sitter::Node;
 
 /// If `value_node` is the type-name identifier of an outermost generic, record
@@ -18,7 +19,7 @@ pub(super) fn record_outermost_python_type_arguments(
             if is_generic_type_nested_in_args(parent) {
                 return;
             }
-            collect_generic_type_args(extractor.base(), parent)
+            collect_generic_type_args(extractor.base(), parent, 0)
         }
         "subscript" => {
             let is_value = parent
@@ -61,7 +62,15 @@ fn is_subscript_nested_in_args(subscript_node: Node<'_>) -> bool {
 fn collect_generic_type_args(
     base: &BaseExtractor,
     generic_type_node: Node<'_>,
+    depth: u32,
 ) -> Vec<TypeArgument> {
+    if !should_visit_tree_depth(depth) {
+        return Vec::new();
+    }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return Vec::new();
+    };
+
     let mut outer_cursor = generic_type_node.walk();
     let type_param = match generic_type_node
         .named_children(&mut outer_cursor)
@@ -83,7 +92,7 @@ fn collect_generic_type_args(
         let Some(inner) = type_wrapper.named_children(&mut inner_cursor).next() else {
             continue;
         };
-        if let Some(arg) = python_type_expr_to_type_arg(base, inner, ordinal) {
+        if let Some(arg) = python_type_expr_to_type_arg(base, inner, ordinal, child_depth) {
             ordinal += 1;
             result.push(arg);
         }
@@ -112,7 +121,12 @@ fn python_type_expr_to_type_arg(
     base: &BaseExtractor,
     node: Node<'_>,
     ordinal: u32,
+    depth: u32,
 ) -> Option<TypeArgument> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     match node.kind() {
         "generic_type" => {
             let mut cursor = node.walk();
@@ -120,7 +134,7 @@ fn python_type_expr_to_type_arg(
                 .named_children(&mut cursor)
                 .find(|n| n.kind() == "identifier")?;
             let type_name = base.get_node_text(&name_node);
-            let children = collect_generic_type_args(base, node);
+            let children = collect_generic_type_args(base, node, depth);
             Some(TypeArgument {
                 ordinal,
                 type_name,

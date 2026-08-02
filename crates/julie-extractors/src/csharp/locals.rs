@@ -2,8 +2,13 @@
 
 use super::helpers;
 use crate::base::{BaseExtractor, Symbol, SymbolKind, SymbolOptions, Visibility};
+use crate::tree_traversal::should_visit_bounded_depth;
 use std::collections::HashMap;
 use tree_sitter::Node;
+
+/// C# binding patterns nest through tuples and declarations, never through
+/// thousands of levels; this budget is far tighter than the crate-wide one.
+const LOCAL_BINDING_DEPTH_LIMIT: u32 = 32;
 
 /// Extract a local `variable_declaration` / `local_declaration_statement`.
 ///
@@ -26,7 +31,7 @@ fn collect_local_bindings(
     out: &mut Vec<Symbol>,
     depth: u32,
 ) {
-    if depth > 32 {
+    if !should_visit_bounded_depth(depth, LOCAL_BINDING_DEPTH_LIMIT) {
         return;
     }
     match node.kind() {
@@ -207,7 +212,7 @@ fn collect_pattern_bindings(
     out: &mut Vec<Symbol>,
     depth: u32,
 ) {
-    if depth > 32 {
+    if !should_visit_bounded_depth(depth, LOCAL_BINDING_DEPTH_LIMIT) {
         return;
     }
     match node.kind() {

@@ -14,11 +14,13 @@ use super::type_models::{Literal, TypeArgumentUsage};
 
 pub use super::kinds::{IdentifierKind, RelationshipKind, SymbolKind, TestRole, Visibility};
 
-/// Tree-sitter parse recovery diagnostic kind.
+/// Why a file's extraction is incomplete: tree-sitter parse recovery, or the
+/// crate-wide tree traversal budget cutting a pathologically deep tree short.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ParseDiagnosticKind {
     Error,
     Missing,
+    DepthTruncated,
 }
 
 /// Span for syntax recovery produced by tree-sitter.

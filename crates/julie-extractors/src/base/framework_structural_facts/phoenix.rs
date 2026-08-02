@@ -47,6 +47,7 @@ use super::{
 use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Import gate (design §4.2): a Phoenix router either `use`s `Phoenix.Router`
 /// directly or, in generated apps, `use MyAppWeb, :router` (which expands to it).
@@ -74,6 +75,7 @@ pub(super) fn collect_phoenix_routes(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
@@ -92,8 +94,13 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if try_scope(
         node,
         prefix_stack,
@@ -101,6 +108,7 @@ fn walk(
         tree,
         file_path,
         content,
+        depth,
         facts,
     ) || try_route(
         node,
@@ -129,6 +137,10 @@ fn walk(
     ) {
         return;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         walk(
@@ -138,6 +150,7 @@ fn walk(
             tree,
             file_path,
             content,
+            child_depth,
             facts,
         );
     }
@@ -160,6 +173,7 @@ fn try_scope(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) -> bool {
     if call_macro_name(node, content) != Some("scope") {
@@ -185,9 +199,22 @@ fn try_scope(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return true;
+    };
+
     let mut cursor = block.walk();
     for child in block.children(&mut cursor) {
-        walk(child, &new_stack, language, tree, file_path, content, facts);
+        walk(
+            child,
+            &new_stack,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
     true
 }

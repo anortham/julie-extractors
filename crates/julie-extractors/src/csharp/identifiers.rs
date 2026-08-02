@@ -76,7 +76,7 @@ fn extract_identifier_from_node(
         }
         "object_creation_expression" => {
             if let Some(type_node) = node.child_by_field_name("type")
-                && let Some((name_node, name)) = terminal_type_identifier(base, type_node)
+                && let Some((name_node, name)) = terminal_type_identifier(base, type_node, 0)
             {
                 let containing_symbol_id = find_containing_symbol_id(base, node, symbol_map);
                 base.create_identifier(
@@ -247,21 +247,27 @@ fn type_argument_list_child(generic_name: Node<'_>) -> Option<Node<'_>> {
 fn terminal_type_identifier<'a>(
     base: &BaseExtractor,
     node: Node<'a>,
+    depth: u32,
 ) -> Option<(Node<'a>, String)> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let child_depth = child_tree_depth(depth)?;
+
     match node.kind() {
         "identifier" => Some((node, base.get_node_text(&node))),
         "generic_name" => direct_identifier(base, node).or_else(|| {
             node.child_by_field_name("name")
-                .and_then(|name_node| terminal_type_identifier(base, name_node))
+                .and_then(|name_node| terminal_type_identifier(base, name_node, child_depth))
         }),
         "qualified_name" => {
             if let Some(name_node) = node.child_by_field_name("name") {
-                terminal_type_identifier(base, name_node)
+                terminal_type_identifier(base, name_node, child_depth)
             } else {
-                rightmost_identifier(base, node)
+                rightmost_identifier(base, node, child_depth)
             }
         }
-        _ => rightmost_identifier(base, node),
+        _ => rightmost_identifier(base, node, child_depth),
     }
 }
 
@@ -277,12 +283,21 @@ fn direct_identifier<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(Node<'
     None
 }
 
-fn rightmost_identifier<'a>(base: &BaseExtractor, node: Node<'a>) -> Option<(Node<'a>, String)> {
+fn rightmost_identifier<'a>(
+    base: &BaseExtractor,
+    node: Node<'a>,
+    depth: u32,
+) -> Option<(Node<'a>, String)> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+    let child_depth = child_tree_depth(depth)?;
+
     let mut cursor = node.walk();
     let mut found = None;
 
     for child in node.children(&mut cursor) {
-        if let Some(identifier) = terminal_type_identifier(base, child) {
+        if let Some(identifier) = terminal_type_identifier(base, child, child_depth) {
             found = Some(identifier);
         }
     }

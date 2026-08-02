@@ -39,6 +39,7 @@ use super::{
 use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Import gate (design §4.2): every Laravel route registration goes through the
 /// `Route` facade, so a file with no `Route::` reference registers no routes and
@@ -62,6 +63,7 @@ pub(super) fn collect_laravel_routes(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
@@ -80,8 +82,13 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if try_group(
         node,
         prefix_stack,
@@ -89,6 +96,7 @@ fn walk(
         tree,
         file_path,
         content,
+        depth,
         facts,
     ) || try_route(
         node,
@@ -109,6 +117,10 @@ fn walk(
     ) {
         return;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         walk(
@@ -118,6 +130,7 @@ fn walk(
             tree,
             file_path,
             content,
+            child_depth,
             facts,
         );
     }
@@ -146,6 +159,7 @@ fn try_group(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) -> bool {
     if !is_route_facade_call(node, "group", content) {
@@ -182,6 +196,10 @@ fn try_group(
         // but adds no path segment; leave the stack unchanged.
         None => {}
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return true;
+    };
+
     walk(
         closure_body,
         &new_stack,
@@ -189,6 +207,7 @@ fn try_group(
         tree,
         file_path,
         content,
+        child_depth,
         facts,
     );
     true

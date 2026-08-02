@@ -65,6 +65,7 @@ use super::{AXUM_NEST_PATTERN_ID, AXUM_ROUTE_PATTERN_ID};
 use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Import gate (design §4.2): a file that never references `axum` builds no axum
 /// routers, so the collector stays silent. Precision comes from the method-router
@@ -91,6 +92,7 @@ pub(super) fn collect_axum_routes(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
@@ -122,15 +124,33 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression" {
         try_route(node, receivers, language, tree, file_path, content, facts);
         try_nest(node, receivers, language, tree, file_path, content, facts);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, receivers, language, tree, file_path, content, facts);
+        walk(
+            child,
+            receivers,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
 }
 
@@ -384,7 +404,7 @@ fn dedup_verbs(verbs: Vec<VerbClass>) -> Vec<Option<VerbClass>> {
 fn collect_router_receivers(root: Node, content: &str) -> HashMap<String, ReceiverState> {
     // Per-name assignment roots discovered in a single tree walk.
     let mut assignments: HashMap<String, Vec<AssignRoot>> = HashMap::new();
-    collect_assignments(root, content, &mut assignments);
+    collect_assignments(root, content, 0, &mut assignments);
 
     // Fixpoint: a name *could* be a router if any assignment roots at
     // `Router::new()`, aliases another maybe-router name, or aliases an ABSENT
@@ -455,8 +475,13 @@ enum AssignRoot {
 fn collect_assignments(
     node: Node,
     content: &str,
+    depth: u32,
     assignments: &mut HashMap<String, Vec<AssignRoot>>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "let_declaration"
         && let (Some(pattern), Some(value)) = (
             node.child_by_field_name("pattern"),
@@ -483,9 +508,13 @@ fn collect_assignments(
             .or_default()
             .push(value_root(right, content));
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_assignments(child, content, assignments);
+        collect_assignments(child, content, child_depth, assignments);
     }
 }
 

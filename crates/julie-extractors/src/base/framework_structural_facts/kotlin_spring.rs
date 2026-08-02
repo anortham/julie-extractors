@@ -32,6 +32,7 @@ use super::static_arg::{StaticArgLang, static_route_arg};
 use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Import gate (design §4.2): the Spring routing annotations live under
 /// `org.springframework.web.bind.annotation`. Without that import there is no
@@ -59,6 +60,7 @@ pub(super) fn collect_kotlin_spring_routes(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
@@ -75,8 +77,17 @@ fn walk_types(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if matches!(
@@ -87,7 +98,15 @@ fn walk_types(
             let prefixes = class_prefixes(child, content);
             emit_direct_member_routes(body, &prefixes, language, tree, file_path, content, facts);
         }
-        walk_types(child, language, tree, file_path, content, facts);
+        walk_types(
+            child,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
 }
 
@@ -161,7 +180,7 @@ fn request_mapping_prefix_in_modifiers(modifiers: Node, content: &str) -> Option
 /// followed by a `parenthesized_expression` holding its arguments.
 fn request_mapping_prefix_in_sibling(node: Node, content: &str) -> Option<Vec<String>> {
     let mut pairs = Vec::new();
-    collect_annotated_expression_annotations(node, content, &mut pairs);
+    collect_annotated_expression_annotations(node, content, 0, &mut pairs);
     for (name, args) in pairs {
         if name != "RequestMapping" {
             continue;
@@ -181,8 +200,17 @@ fn request_mapping_prefix_in_sibling(node: Node, content: &str) -> Option<Vec<St
 fn collect_annotated_expression_annotations<'t>(
     node: Node<'t>,
     content: &str,
+    depth: u32,
     out: &mut Vec<(String, Option<Node<'t>>)>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     let children: Vec<Node> = node.children(&mut cursor).collect();
     for (index, child) in children.iter().enumerate() {
@@ -197,7 +225,7 @@ fn collect_annotated_expression_annotations<'t>(
                 }
             }
             "annotated_expression" => {
-                collect_annotated_expression_annotations(*child, content, out)
+                collect_annotated_expression_annotations(*child, content, child_depth, out)
             }
             _ => {}
         }

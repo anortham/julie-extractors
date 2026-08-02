@@ -5,6 +5,7 @@ use super::helpers::{base_metadata, fact_for_node, fact_for_span, insert_string,
 use super::static_arg::{StaticArgLang, static_route_arg};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 struct ReceiverDeclaration {
     name: String,
@@ -22,7 +23,7 @@ pub(super) fn collect_blazor_navigation_facts(
     content: &str,
 ) -> Vec<StructuralFact> {
     let mut declarations = Vec::new();
-    collect_receiver_declarations(tree.root_node(), content, &mut declarations);
+    collect_receiver_declarations(tree.root_node(), content, 0, &mut declarations);
 
     let mut facts = Vec::new();
     collect_navigation_calls(
@@ -31,10 +32,11 @@ pub(super) fn collect_blazor_navigation_facts(
         file_path,
         content,
         &declarations,
+        0,
         &mut facts,
     );
     if language == "razor" {
-        collect_razor_hrefs(tree.root_node(), file_path, content, &mut facts);
+        collect_razor_hrefs(tree.root_node(), file_path, content, 0, &mut facts);
     }
     facts
 }
@@ -42,8 +44,13 @@ pub(super) fn collect_blazor_navigation_facts(
 fn collect_receiver_declarations(
     node: Node<'_>,
     content: &str,
+    depth: u32,
     declarations: &mut Vec<ReceiverDeclaration>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "variable_declaration" => {
             if let Some(type_name) = node
@@ -69,9 +76,13 @@ fn collect_receiver_declarations(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        collect_receiver_declarations(child, content, declarations);
+        collect_receiver_declarations(child, content, child_depth, declarations);
     }
 }
 
@@ -137,17 +148,34 @@ fn collect_navigation_calls(
     file_path: &str,
     content: &str,
     declarations: &[ReceiverDeclaration],
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "invocation_expression"
         && let Some(fact) = navigation_call_fact(node, language, file_path, content, declarations)
     {
         facts.push(fact);
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        collect_navigation_calls(child, language, file_path, content, declarations, facts);
+        collect_navigation_calls(
+            child,
+            language,
+            file_path,
+            content,
+            declarations,
+            child_depth,
+            facts,
+        );
     }
 }
 
@@ -240,21 +268,30 @@ fn collect_razor_hrefs(
     node: Node<'_>,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "element"
         && let Some((target_path, value_start, value_end)) = href_literal(node, content)
         && is_internal_route(target_path)
-        && !has_razor_expression_in_range(node, value_start, value_end)
+        && !has_razor_expression_in_range(node, value_start, value_end, 0)
         && let Some(fact) =
             href_route_reference_fact(content, file_path, target_path, value_start, value_end)
     {
         facts.push(fact);
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        collect_razor_hrefs(child, file_path, content, facts);
+        collect_razor_hrefs(child, file_path, content, child_depth, facts);
     }
 }
 
@@ -334,13 +371,21 @@ fn is_attribute_name_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b':' | b'.')
 }
 
-fn has_razor_expression_in_range(node: Node<'_>, start: usize, end: usize) -> bool {
+fn has_razor_expression_in_range(node: Node<'_>, start: usize, end: usize, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+
     if node.start_byte() >= start && node.end_byte() <= end && node.kind().starts_with("razor_") {
         return true;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+
     let mut cursor = node.walk();
     node.named_children(&mut cursor)
-        .any(|child| has_razor_expression_in_range(child, start, end))
+        .any(|child| has_razor_expression_in_range(child, start, end, child_depth))
 }
 
 fn is_internal_route(value: &str) -> bool {

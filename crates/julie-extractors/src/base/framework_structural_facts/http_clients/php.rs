@@ -13,6 +13,7 @@ use super::super::helpers::node_text;
 use super::super::static_arg::{StaticArgLang, static_route_arg};
 use super::client_fact;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const GUZZLE_NEEDLE: &str = "GuzzleHttp";
 const HTTP_FACADE_NEEDLE: &str = "Facades\\Http";
@@ -52,14 +53,16 @@ pub(super) fn collect_php_http_client_requests(
 ) -> Vec<StructuralFact> {
     let root = tree.root_node();
     let mut gates = ImportGates::default();
-    collect_import_gates(root, content, &mut gates);
+    collect_import_gates(root, content, 0, &mut gates);
     // cURL is call-name based (not an import); AST recognition still requires real calls.
     let curl = content.contains("curl_init") || content.contains("curl_setopt");
     if !gates.guzzle && !gates.http_facade && !gates.symfony && !curl {
         return Vec::new();
     }
     let mut facts = Vec::new();
-    walk(root, &gates, language, tree, file_path, content, &mut facts);
+    walk(
+        root, &gates, language, tree, file_path, content, 0, &mut facts,
+    );
     if curl {
         collect_curl_facts(root, language, tree, file_path, content, &mut facts);
     }
@@ -69,7 +72,11 @@ pub(super) fn collect_php_http_client_requests(
 /// Parser-backed client gates: `namespace_use_declaration` imports and
 /// `qualified_name` FQN references (`new \GuzzleHttp\Client()`). Comments and
 /// strings produce neither node kind.
-fn collect_import_gates(node: Node, content: &str, gates: &mut ImportGates) {
+fn collect_import_gates(node: Node, content: &str, depth: u32, gates: &mut ImportGates) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if matches!(node.kind(), "namespace_use_declaration" | "qualified_name")
         && let Some(text) = node_text(content, node)
     {
@@ -82,12 +89,17 @@ fn collect_import_gates(node: Node, content: &str, gates: &mut ImportGates) {
     if gates.guzzle && gates.http_facade && gates.symfony {
         return;
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_import_gates(child, content, gates);
+        collect_import_gates(child, content, child_depth, gates);
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
     gates: &ImportGates,
@@ -95,8 +107,13 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if matches!(
         node.kind(),
         "scoped_call_expression" | "member_call_expression"
@@ -104,9 +121,22 @@ fn walk(
     {
         facts.push(fact);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, gates, language, tree, file_path, content, facts);
+        walk(
+            child,
+            gates,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
 }
 
@@ -215,11 +245,17 @@ fn variable_from_http_client_create(name: &str, from: Node, content: &str) -> bo
         return false;
     };
     let mut found = false;
-    walk_assignments(function, content, from.start_byte(), &mut |var, value| {
-        if var == name && is_http_client_create(value, content) {
-            found = true;
-        }
-    });
+    walk_assignments(
+        function,
+        content,
+        from.start_byte(),
+        0,
+        &mut |var, value| {
+            if var == name && is_http_client_create(value, content) {
+                found = true;
+            }
+        },
+    );
     found
 }
 
@@ -321,7 +357,7 @@ fn variable_from_guzzle_new(name: &str, from: Node, content: &str) -> bool {
         node
     });
     let mut found = false;
-    walk_assignments(scope, content, from.start_byte(), &mut |var, value| {
+    walk_assignments(scope, content, from.start_byte(), 0, &mut |var, value| {
         if var == name && is_guzzle_client_new(value, content) {
             found = true;
         }
@@ -370,7 +406,17 @@ fn enclosing_function(from: Node) -> Option<Node> {
 /// Visit assignments in the current scope that COMPLETE before byte `limit`
 /// (the call being proven): later assignments and nested-closure assignments
 /// never prove a receiver.
-fn walk_assignments(node: Node, content: &str, limit: usize, f: &mut dyn FnMut(&str, Node)) {
+fn walk_assignments(
+    node: Node,
+    content: &str,
+    limit: usize,
+    depth: u32,
+    f: &mut dyn FnMut(&str, Node),
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "assignment_expression"
         && node.end_byte() <= limit
         && let Some(left) = node.child_by_field_name("left")
@@ -380,6 +426,10 @@ fn walk_assignments(node: Node, content: &str, limit: usize, f: &mut dyn FnMut(&
     {
         f(name, right);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if matches!(
@@ -388,7 +438,7 @@ fn walk_assignments(node: Node, content: &str, limit: usize, f: &mut dyn FnMut(&
         ) {
             continue;
         }
-        walk_assignments(child, content, limit, f);
+        walk_assignments(child, content, limit, child_depth, f);
     }
 }
 
@@ -467,7 +517,7 @@ fn collect_curl_in_scope(
 ) {
     let mut handles: HashMap<String, CurlHandle> = HashMap::new();
     let mut anonymous: Vec<CurlHandle> = Vec::new();
-    gather_curl(scope, content, &mut handles, &mut anonymous);
+    gather_curl(scope, content, 0, &mut handles, &mut anonymous);
 
     for handle in handles.into_values().chain(anonymous) {
         let Some(target_path) = handle.target_path.as_deref() else {
@@ -494,9 +544,14 @@ fn collect_curl_in_scope(
 fn gather_curl(
     node: Node,
     content: &str,
+    depth: u32,
     handles: &mut HashMap<String, CurlHandle>,
     anonymous: &mut Vec<CurlHandle>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "assignment_expression" => {
             if let (Some(left), Some(right)) = (
@@ -526,6 +581,10 @@ fn gather_curl(
         }
         _ => {}
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if matches!(
@@ -534,7 +593,7 @@ fn gather_curl(
         ) {
             continue;
         }
-        gather_curl(child, content, handles, anonymous);
+        gather_curl(child, content, child_depth, handles, anonymous);
     }
 }
 

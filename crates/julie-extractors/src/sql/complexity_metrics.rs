@@ -8,6 +8,7 @@ use crate::base::complexity_metrics::{
 use crate::base::kinds::SymbolKind;
 use crate::base::span::NormalizedSpan;
 use crate::base::types::{ComplexityMetric, Symbol, stable_location_id};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const ALGORITHM_ID: &str = "julie-sql-complexity-v1";
 
@@ -76,7 +77,7 @@ fn metric_for_scope(
     root: &Node<'_>,
 ) -> ComplexityMetric {
     let mut stats = SqlComplexityStats::default();
-    collect_stats(*root, source, input.span, 0, &mut stats);
+    collect_stats(*root, source, input.span, 0, 0, &mut stats);
     let identity = input.symbol_id.as_deref().unwrap_or("file");
     let metadata = HashMap::from([
         (
@@ -123,8 +124,13 @@ fn collect_stats(
     source: &str,
     span: NormalizedSpan,
     current_depth: u32,
+    tree_depth: u32,
     stats: &mut SqlComplexityStats,
 ) {
+    if !should_visit_tree_depth(tree_depth) {
+        return;
+    }
+
     if !overlaps(node, span) {
         return;
     }
@@ -147,9 +153,13 @@ fn collect_stats(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(tree_depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_stats(child, source, span, next_depth, stats);
+        collect_stats(child, source, span, next_depth, child_depth, stats);
     }
 }
 

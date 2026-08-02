@@ -81,6 +81,8 @@ pub mod structural_facts;
 pub mod swift;
 pub mod symfony;
 pub mod toml;
+pub mod traversal_depth_guard;
+pub mod traversal_guard_convention;
 pub mod type_invariants;
 pub mod typescript;
 pub mod vbnet;

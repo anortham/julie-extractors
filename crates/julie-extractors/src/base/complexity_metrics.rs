@@ -30,6 +30,12 @@ struct ComplexityLanguageConfig {
     call_loop_targets: &'static [&'static str],
 }
 
+/// Control-flow nesting level, the metric `collect_stats` reports. Distinct
+/// from the CST depth it walks, which is a stack budget — the newtype keeps the
+/// two `u32`s from being swapped at a call site.
+#[derive(Debug, Clone, Copy)]
+struct NestingDepth(u32);
+
 #[derive(Default)]
 struct ComplexityStats {
     decision_count: u32,
@@ -129,7 +135,16 @@ fn metric_for_scope(
         span,
         parameter_count,
     } = input;
-    collect_stats(language, *root, source, span, config, 0, &mut stats);
+    collect_stats(
+        language,
+        *root,
+        source,
+        span,
+        config,
+        NestingDepth(0),
+        0,
+        &mut stats,
+    );
     let identity = symbol_id.as_deref().unwrap_or("file");
     let metadata = HashMap::from([(
         "metric_version".to_string(),
@@ -159,15 +174,21 @@ fn metric_for_scope(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_stats(
     language: &str,
     node: Node<'_>,
     source: &str,
     span: NormalizedSpan,
     config: ComplexityLanguageConfig,
-    current_depth: u32,
+    nesting: NestingDepth,
+    tree_depth: u32,
     stats: &mut ComplexityStats,
 ) {
+    if !should_visit_tree_depth(tree_depth) {
+        return;
+    }
+
     if !overlaps(node, span) {
         return;
     }
@@ -185,9 +206,9 @@ fn collect_stats(
         && loop_kind
         && !is_same_kind_child_wrapper(language, node, false, config, source);
     let counted = decision || loop_node;
-    let next_depth = if counted {
-        let next = current_depth + 1;
-        stats.max_nesting_depth = stats.max_nesting_depth.max(next);
+    let child_nesting = if counted {
+        let next = NestingDepth(nesting.0 + 1);
+        stats.max_nesting_depth = stats.max_nesting_depth.max(next.0);
         if decision {
             stats.decision_count += 1;
         } else {
@@ -195,12 +216,25 @@ fn collect_stats(
         }
         next
     } else {
-        current_depth
+        nesting
+    };
+
+    let Some(child_depth) = child_tree_depth(tree_depth) else {
+        return;
     };
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_stats(language, child, source, span, config, next_depth, stats);
+        collect_stats(
+            language,
+            child,
+            source,
+            span,
+            config,
+            child_nesting,
+            child_depth,
+            stats,
+        );
     }
 }
 
@@ -1115,6 +1149,7 @@ fn collect_vue_complexity_metrics(
             &section.content,
             local_span,
             config,
+            NestingDepth(0),
             0,
             &mut section_stats,
         );
@@ -1165,6 +1200,7 @@ fn collect_vue_complexity_metrics(
             &section.content,
             local_span,
             config,
+            NestingDepth(0),
             0,
             &mut stats,
         );

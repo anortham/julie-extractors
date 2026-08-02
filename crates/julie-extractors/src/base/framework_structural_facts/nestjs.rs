@@ -35,6 +35,7 @@ use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_ro
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
 use crate::base::web_structural_facts::js_object_scan::parse_js_string_literal;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 pub(super) fn collect_nestjs_route_facts(
     language: &str,
@@ -49,7 +50,7 @@ pub(super) fn collect_nestjs_route_facts(
     }
 
     let mut class_nodes = Vec::new();
-    collect_class_declarations(tree.root_node(), &mut class_nodes);
+    collect_class_declarations(tree.root_node(), 0, &mut class_nodes);
 
     let mut facts = Vec::new();
     for class_node in class_nodes {
@@ -71,13 +72,21 @@ pub(super) fn collect_nestjs_route_facts(
 }
 
 /// Depth-first collect every `class_declaration` node in the tree.
-fn collect_class_declarations<'tree>(node: Node<'tree>, out: &mut Vec<Node<'tree>>) {
+fn collect_class_declarations<'tree>(node: Node<'tree>, depth: u32, out: &mut Vec<Node<'tree>>) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == "class_declaration" {
             out.push(child);
         }
-        collect_class_declarations(child, out);
+        collect_class_declarations(child, child_depth, out);
     }
 }
 

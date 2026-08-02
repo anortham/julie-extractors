@@ -17,6 +17,7 @@ use super::helpers::{fact_for_span, is_comment_or_string_node, smallest_node_cov
 use crate::base::http_boundary::client_request_metadata;
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 pub(super) fn collect_backend_http_client_requests(
     language: &str,
@@ -48,6 +49,7 @@ pub(super) fn collect_razor_http_client_requests(
     collect_razor_csharp_ranges(
         tree.root_node(),
         content,
+        0,
         &mut call_ranges,
         &mut receiver_ranges,
     );
@@ -65,9 +67,14 @@ pub(super) fn collect_razor_http_client_requests(
 fn collect_razor_csharp_ranges(
     node: Node<'_>,
     content: &str,
+    depth: u32,
     call_ranges: &mut Vec<Range<usize>>,
     receiver_ranges: &mut Vec<Range<usize>>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         "razor_block" if is_code_or_functions_block(node, content) => {
             call_ranges.push(node.start_byte()..node.end_byte());
@@ -79,9 +86,13 @@ fn collect_razor_csharp_ranges(
         _ => {}
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        collect_razor_csharp_ranges(child, content, call_ranges, receiver_ranges);
+        collect_razor_csharp_ranges(child, content, child_depth, call_ranges, receiver_ranges);
     }
 }
 

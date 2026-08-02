@@ -891,6 +891,7 @@ fn map_parse_diagnostics(
             let kind = match diagnostic.kind {
                 ParseDiagnosticKind::Error => "error",
                 ParseDiagnosticKind::Missing => "missing",
+                ParseDiagnosticKind::DepthTruncated => "depth_truncated",
             };
             let mut identity = vec![
                 target.root_relative_path.clone(),

@@ -12,6 +12,7 @@ use crate::base::structural_facts::sort_structural_facts;
 use crate::factory::convert_types_map;
 use crate::language;
 pub use crate::language::LanguageCapabilities;
+use crate::tree_traversal::depth_truncation_diagnostic;
 use anyhow::anyhow;
 use std::collections::HashMap;
 use std::path::Path;
@@ -730,6 +731,9 @@ pub fn extract_for_language(
         ),
         _ => collect_complexity_metrics(language, tree, content, file_path, &results.symbols),
     };
+    if let Some(diagnostic) = depth_truncation_diagnostic(tree.root_node()) {
+        results.parse_diagnostics.push(diagnostic);
+    }
     Ok(results)
 }
 

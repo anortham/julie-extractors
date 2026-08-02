@@ -20,6 +20,7 @@ use super::{
 };
 use crate::base::http_boundary::classify_url;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 struct RustClientRequest<'a> {
     client: &'static str,
@@ -43,13 +44,13 @@ pub(super) fn collect_rust_http_client_requests(
         return Vec::new();
     }
 
-    let has_reqwest_use = has_reqwest && has_rust_use_reqwest_client(tree.root_node(), content);
+    let has_reqwest_use = has_reqwest && has_rust_use_reqwest_client(tree.root_node(), content, 0);
     let clients = if has_reqwest {
         collect_reqwest_clients(tree.root_node(), content, has_reqwest_use)
     } else {
         HashSet::new()
     };
-    let has_hyper_import = has_hyper && has_rust_use_crate(tree.root_node(), content, "hyper");
+    let has_hyper_import = has_hyper && has_rust_use_crate(tree.root_node(), content, "hyper", 0);
     let gates = RustGates {
         clients,
         has_reqwest,
@@ -67,6 +68,7 @@ pub(super) fn collect_rust_http_client_requests(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
@@ -81,6 +83,7 @@ struct RustGates {
     has_ureq: bool,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
     gates: &RustGates,
@@ -88,8 +91,13 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression"
         && let Some(req) = classify_rust_client_request(node, gates, content)
         && let Some(fact) = client_fact(
@@ -108,9 +116,22 @@ fn walk(
     {
         facts.push(fact);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, gates, language, tree, file_path, content, facts);
+        walk(
+            child,
+            gates,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
 }
 
@@ -315,7 +336,11 @@ fn scoped_is_hyper_request_builder(
 /// True when a real `use_declaration` AST node imports `crate_name` (or a path
 /// under it). Comments and string literals never produce `use_declaration`
 /// nodes. The `argument` field skips any visibility modifier (`pub use ...`).
-fn has_rust_use_crate(node: Node, content: &str, crate_name: &str) -> bool {
+fn has_rust_use_crate(node: Node, content: &str, crate_name: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+
     if node.kind() == "use_declaration"
         && let Some(argument) = node.child_by_field_name("argument")
         && let Some(text) = node_text(content, argument)
@@ -328,9 +353,13 @@ fn has_rust_use_crate(node: Node, content: &str, crate_name: &str) -> bool {
             return true;
         }
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if has_rust_use_crate(child, content, crate_name) {
+        if has_rust_use_crate(child, content, crate_name, child_depth) {
             return true;
         }
     }
@@ -432,7 +461,7 @@ fn receiver_is_proven_reqwest(
 /// proof-to-emit rather than proof-to-suppress.
 fn collect_reqwest_clients(root: Node, content: &str, has_reqwest_use: bool) -> HashSet<String> {
     let mut assignments: HashMap<String, Vec<ReqwestRoot>> = HashMap::new();
-    collect_reqwest_assignments(root, content, &mut assignments, has_reqwest_use);
+    collect_reqwest_assignments(root, content, &mut assignments, has_reqwest_use, 0);
 
     // Fixpoint: a name is client-ish if any assignment roots at a client ctor or
     // aliases another (already client-ish) name.
@@ -475,7 +504,12 @@ fn collect_reqwest_assignments(
     content: &str,
     assignments: &mut HashMap<String, Vec<ReqwestRoot>>,
     has_reqwest_use: bool,
+    depth: u32,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "let_declaration"
         && let (Some(pattern), Some(value)) = (
             node.child_by_field_name("pattern"),
@@ -502,9 +536,13 @@ fn collect_reqwest_assignments(
             .or_default()
             .push(reqwest_value_root(right, content, has_reqwest_use));
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_reqwest_assignments(child, content, assignments, has_reqwest_use);
+        collect_reqwest_assignments(child, content, assignments, has_reqwest_use, child_depth);
     }
 }
 
@@ -670,7 +708,11 @@ fn path_terminal_is(path: Node, content: &str, expected: &str) -> bool {
 /// A real `use` declaration that brings reqwest's `Client` into scope
 /// (`use reqwest::Client;`, `use reqwest::{Client, ...};`,
 /// `use reqwest::blocking::Client;`).
-fn has_rust_use_reqwest_client(node: Node, content: &str) -> bool {
+fn has_rust_use_reqwest_client(node: Node, content: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+
     if node.kind() == "use_declaration"
         && let Some(argument) = node.child_by_field_name("argument")
         && let Some(text) = node_text(content, argument)
@@ -680,9 +722,13 @@ fn has_rust_use_reqwest_client(node: Node, content: &str) -> bool {
             return true;
         }
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if has_rust_use_reqwest_client(child, content) {
+        if has_rust_use_reqwest_client(child, content, child_depth) {
             return true;
         }
     }

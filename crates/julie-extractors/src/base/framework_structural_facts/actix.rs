@@ -62,6 +62,7 @@ use super::{
 use crate::base::http_boundary::{ParamFlavor, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Import gate (design §4.2): a file that never references `actix_web` builds no
 /// actix routes, so the collector stays silent. Precision comes from the arg
@@ -86,6 +87,7 @@ pub(super) fn collect_actix_routes(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
@@ -97,8 +99,13 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     match node.kind() {
         // `#[get("/x")]` / `#[route("/x", method = "GET")]` macros on a handler fn.
         "attribute_item" => try_attribute_route(node, language, tree, file_path, content, facts),
@@ -110,9 +117,21 @@ fn walk(
         }
         _ => {}
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, language, tree, file_path, content, facts);
+        walk(
+            child,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
 }
 

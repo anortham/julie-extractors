@@ -9,6 +9,7 @@ use super::super::helpers::{child_of_kind, node_text};
 use super::super::static_arg::{StaticArgLang, static_route_arg};
 use super::{client_fact, verb_for_lower_method, verb_for_token};
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const KTOR_NEEDLE: &str = "io.ktor.client";
 const OKHTTP_NEEDLE: &str = "okhttp3.Request";
@@ -73,11 +74,13 @@ pub(super) fn collect_kotlin_http_client_requests(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
 }
 
+#[allow(clippy::too_many_arguments)]
 fn walk(
     node: Node,
     gates: &KotlinGates,
@@ -85,8 +88,13 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression" {
         if gates.ktor
             && let Some(fact) = ktor_request(node, language, tree, file_path, content)
@@ -116,9 +124,22 @@ fn walk(
     {
         facts.push(fact);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, gates, language, tree, file_path, content, facts);
+        walk(
+            child,
+            gates,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
 }
 

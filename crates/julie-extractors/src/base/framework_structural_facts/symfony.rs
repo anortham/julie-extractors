@@ -17,6 +17,7 @@ use super::static_arg::{StaticArgLang, static_route_arg};
 use crate::base::http_boundary::{ParamFlavor, join_route_templates, normalize_route_template};
 use crate::base::span::NormalizedSpan;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const IMPORT_NAMESPACE: &str = "Symfony\\Component\\Routing";
 
@@ -26,12 +27,12 @@ pub(super) fn collect_symfony_routes(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    if !has_symfony_routing_import(tree.root_node(), content) {
+    if !has_symfony_routing_import(tree.root_node(), content, 0) {
         return Vec::new();
     }
 
     let mut class_nodes = Vec::new();
-    collect_nodes_of_kind(tree.root_node(), "class_declaration", &mut class_nodes);
+    collect_nodes_of_kind(tree.root_node(), "class_declaration", 0, &mut class_nodes);
 
     let mut facts = Vec::new();
     for class_node in class_nodes {
@@ -76,21 +77,33 @@ pub(super) fn collect_symfony_routes(
     facts
 }
 
-fn has_symfony_routing_import(node: Node, content: &str) -> bool {
-    if node.kind() == "namespace_use_declaration" {
-        return contains_symfony_routing_import_target(node, content);
+fn has_symfony_routing_import(node: Node, content: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
     }
+
+    if node.kind() == "namespace_use_declaration" {
+        return contains_symfony_routing_import_target(node, content, 0);
+    }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
 
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if has_symfony_routing_import(child, content) {
+        if has_symfony_routing_import(child, content, child_depth) {
             return true;
         }
     }
     false
 }
 
-fn contains_symfony_routing_import_target(node: Node, content: &str) -> bool {
+fn contains_symfony_routing_import_target(node: Node, content: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+
     if matches!(node.kind(), "qualified_name" | "namespace_name")
         && let Some(import_target) = content.get(node.start_byte()..node.end_byte())
     {
@@ -102,22 +115,40 @@ fn contains_symfony_routing_import_target(node: Node, content: &str) -> bool {
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
-        if contains_symfony_routing_import_target(child, content) {
+        if contains_symfony_routing_import_target(child, content, child_depth) {
             return true;
         }
     }
     false
 }
 
-fn collect_nodes_of_kind<'tree>(node: Node<'tree>, kind: &str, out: &mut Vec<Node<'tree>>) {
+fn collect_nodes_of_kind<'tree>(
+    node: Node<'tree>,
+    kind: &str,
+    depth: u32,
+    out: &mut Vec<Node<'tree>>,
+) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == kind {
         out.push(node);
     }
+
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_nodes_of_kind(child, kind, out);
+        collect_nodes_of_kind(child, kind, child_depth, out);
     }
 }
 

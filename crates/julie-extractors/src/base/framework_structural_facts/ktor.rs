@@ -16,6 +16,7 @@ use super::scan::{RouteFactSpec, route_fact};
 use super::static_arg::{StaticArgLang, static_route_arg};
 use crate::base::http_boundary::{ParamFlavor, join_route_templates};
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Server-side Ktor package roots. `io.ktor.server` covers Ktor 2/3;
 /// `io.ktor.routing`/`io.ktor.application` cover the Ktor 1.x server packages.
@@ -39,7 +40,7 @@ pub(super) fn collect_ktor_routes(
     file_path: &str,
     content: &str,
 ) -> Vec<StructuralFact> {
-    if !has_ktor_server_import(tree.root_node(), content) {
+    if !has_ktor_server_import(tree.root_node(), content, 0) {
         return Vec::new();
     }
 
@@ -50,12 +51,17 @@ pub(super) fn collect_ktor_routes(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
 }
 
-fn has_ktor_server_import(node: Node, content: &str) -> bool {
+fn has_ktor_server_import(node: Node, content: &str, depth: u32) -> bool {
+    if !should_visit_tree_depth(depth) {
+        return false;
+    }
+
     if matches!(node.kind(), "import" | "import_header") {
         let mut cursor = node.walk();
         for child in node.named_children(&mut cursor) {
@@ -71,9 +77,13 @@ fn has_ktor_server_import(node: Node, content: &str) -> bool {
         return false;
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return false;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if has_ktor_server_import(child, content) {
+        if has_ktor_server_import(child, content, child_depth) {
             return true;
         }
     }
@@ -86,8 +96,13 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call_expression"
         && let Some((verb, path)) = try_verb_route_call(node, content)
         && let Some(enclosing_prefix) = enclosing_route_prefix(node, content)
@@ -118,9 +133,21 @@ fn walk(
         }
     }
 
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, language, tree, file_path, content, facts);
+        walk(
+            child,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
 }
 

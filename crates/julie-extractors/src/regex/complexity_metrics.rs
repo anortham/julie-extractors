@@ -8,6 +8,7 @@ use crate::base::complexity_metrics::{
 use crate::base::kinds::SymbolKind;
 use crate::base::span::NormalizedSpan;
 use crate::base::types::{ComplexityMetric, Symbol, stable_location_id};
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 const ALGORITHM_ID: &str = "julie-regex-complexity-v1";
 
@@ -68,7 +69,7 @@ pub fn collect_complexity_metrics(
 
 fn metric_for_scope(file_path: &str, input: MetricScopeInput, root: &Node<'_>) -> ComplexityMetric {
     let mut stats = RegexComplexityStats::default();
-    collect_stats(*root, input.span, 0, &mut stats);
+    collect_stats(*root, input.span, 0, 0, &mut stats);
     let identity = input.symbol_id.as_deref().unwrap_or("file");
     let metadata = HashMap::from([
         (
@@ -120,8 +121,13 @@ fn collect_stats(
     node: Node<'_>,
     span: NormalizedSpan,
     current_depth: u32,
+    tree_depth: u32,
     stats: &mut RegexComplexityStats,
 ) {
+    if !should_visit_tree_depth(tree_depth) {
+        return;
+    }
+
     if !overlaps(node, span) {
         return;
     }
@@ -164,9 +170,13 @@ fn collect_stats(
         stats.max_nesting_depth = stats.max_nesting_depth.max(next_depth);
     }
 
+    let Some(child_depth) = child_tree_depth(tree_depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        collect_stats(child, span, next_depth, stats);
+        collect_stats(child, span, next_depth, child_depth, stats);
     }
 }
 

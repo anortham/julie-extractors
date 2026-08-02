@@ -30,6 +30,7 @@
 use tree_sitter::{Node, Parser, Tree};
 
 use super::lexical::LiteralSpans;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 /// Hard cap on re-parses per file. Recovery only runs on a file that already
 /// failed to parse, and each pass must advance to a later resume point, so this
@@ -98,7 +99,7 @@ pub(super) fn recover(content: &str, primary: &Tree) -> Recovery {
     let literals = LiteralSpans::scan(content);
     let resume_points = resume_points(content, &literals);
     let mut trees = Vec::new();
-    let mut error_start = first_error_start(&primary.root_node()).unwrap_or(0);
+    let mut error_start = first_error_start(&primary.root_node(), 0).unwrap_or(0);
     let mut next_index = 0;
     let mut exhausted_at = None;
 
@@ -118,7 +119,7 @@ pub(super) fn recover(content: &str, primary: &Tree) -> Recovery {
         };
 
         let unresolved = tree.root_node().has_error();
-        let next_error_start = first_error_start(&tree.root_node());
+        let next_error_start = first_error_start(&tree.root_node(), 0);
         trees.push(tree);
 
         if !unresolved {
@@ -189,14 +190,20 @@ fn starts_form(line: &str) -> bool {
 /// Start offset of the first error below `node`. The node itself is never
 /// reported: a whole-file failure parses to a root `ERROR`, and resuming at the
 /// start of the file would make no progress.
-fn first_error_start(node: &Node) -> Option<usize> {
+fn first_error_start(node: &Node, depth: u32) -> Option<usize> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
+    let child_depth = child_tree_depth(depth)?;
+
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
         if child.kind() == "ERROR" || child.is_missing() {
             return Some(child.start_byte());
         }
         if child.has_error()
-            && let Some(start) = first_error_start(&child)
+            && let Some(start) = first_error_start(&child, child_depth)
         {
             return Some(start);
         }

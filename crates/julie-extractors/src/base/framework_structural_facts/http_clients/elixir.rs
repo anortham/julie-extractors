@@ -9,6 +9,7 @@ use super::super::helpers::{child_of_kind, node_text};
 use super::super::static_arg::{StaticArgLang, static_route_arg};
 use super::client_fact;
 use crate::base::types::StructuralFact;
+use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
 
 struct ElixirClientRequest<'a> {
     client: &'static str,
@@ -47,6 +48,7 @@ pub(super) fn collect_elixir_http_client_requests(
         tree,
         file_path,
         content,
+        0,
         &mut facts,
     );
     facts
@@ -58,8 +60,13 @@ fn walk(
     tree: &Tree,
     file_path: &str,
     content: &str,
+    depth: u32,
     facts: &mut Vec<StructuralFact>,
 ) {
+    if !should_visit_tree_depth(depth) {
+        return;
+    }
+
     if node.kind() == "call"
         && let Some(req) = classify_call(node, content)
         && let Some(fact) = client_fact(
@@ -78,9 +85,21 @@ fn walk(
     {
         facts.push(fact);
     }
+    let Some(child_depth) = child_tree_depth(depth) else {
+        return;
+    };
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        walk(child, language, tree, file_path, content, facts);
+        walk(
+            child,
+            language,
+            tree,
+            file_path,
+            content,
+            child_depth,
+            facts,
+        );
     }
 }
 

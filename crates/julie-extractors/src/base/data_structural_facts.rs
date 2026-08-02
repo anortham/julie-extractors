@@ -1100,14 +1100,19 @@ fn ancestor_of_toml_kind<'a>(mut node: Node<'a>, kind: &str) -> Option<Node<'a>>
 
 fn toml_inline_table_index(array: Node<'_>, target: Node<'_>) -> Option<usize> {
     let mut index = 0usize;
-    toml_inline_table_index_inner(array, target, &mut index)
+    toml_inline_table_index_inner(array, target, 0, &mut index)
 }
 
 fn toml_inline_table_index_inner(
     node: Node<'_>,
     target: Node<'_>,
+    depth: u32,
     index: &mut usize,
 ) -> Option<usize> {
+    if !should_visit_tree_depth(depth) {
+        return None;
+    }
+
     if node.kind() == "inline_table" {
         if same_toml_node(node, target) {
             return Some(*index);
@@ -1115,9 +1120,11 @@ fn toml_inline_table_index_inner(
         *index += 1;
         return None;
     }
+    let child_depth = child_tree_depth(depth)?;
+
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if let Some(found) = toml_inline_table_index_inner(child, target, index) {
+        if let Some(found) = toml_inline_table_index_inner(child, target, child_depth, index) {
             return Some(found);
         }
     }
