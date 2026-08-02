@@ -424,16 +424,62 @@ pub(crate) fn write_outcome(outcome: &CommandOutcome) {
         return;
     }
 
+    let rendered = human_report(&outcome.report);
     if outcome.exit_code == 0 {
-        let _ = writeln!(io::stdout(), "{}", human_status(&outcome.report));
+        let _ = write!(io::stdout(), "{rendered}");
     } else {
-        let _ = writeln!(io::stderr(), "{}", human_status(&outcome.report));
+        let _ = write!(io::stderr(), "{rendered}");
     }
 }
 
 fn write_json(mut writer: impl Write, report: &Report) {
     let _ = serde_json::to_writer(&mut writer, report);
     let _ = writeln!(writer);
+}
+
+fn human_report(report: &Report) -> String {
+    let mut rendered = format!("{}\n", human_status(report));
+    for error in &report.errors {
+        rendered.push_str(&human_diagnostic(error));
+    }
+    if report.status != ReportStatus::Ok {
+        for warning in &report.warnings {
+            rendered.push_str(&human_diagnostic(warning));
+        }
+    }
+    if let Some(counts) = human_file_counts(report) {
+        rendered.push_str(&counts);
+    }
+    rendered
+}
+
+fn human_diagnostic(diagnostic: &ReportDiagnostic) -> String {
+    let code = diagnostic.code.as_str();
+    let message = &diagnostic.message;
+    match diagnostic
+        .path
+        .as_deref()
+        .or(diagnostic.root_relative_path.as_deref())
+    {
+        Some(path) => format!("{code}: {message} ({path})\n"),
+        None => format!("{code}: {message}\n"),
+    }
+}
+
+fn human_file_counts(report: &Report) -> Option<String> {
+    matches!(
+        report.operation,
+        ReportOperation::Scan | ReportOperation::Update | ReportOperation::Delete
+    )
+    .then(|| {
+        format!(
+            "files: scanned={} changed={} unchanged={} failed={}\n",
+            report.counts.files_scanned,
+            report.counts.files_changed,
+            report.counts.files_unchanged,
+            report.counts.files_failed
+        )
+    })
 }
 
 fn human_status(report: &Report) -> &'static str {
@@ -584,4 +630,110 @@ fn resolution_totals(
         "span_present": rows.iter().filter(matching).filter(|row| row.span_present).map(|row| row.count).sum::<i64>(),
         "span_missing": rows.iter().filter(matching).filter(|row| !row.span_present).map(|row| row.count).sum::<i64>(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn report_for(status: ReportStatus, operation: ReportOperation) -> Report {
+        base_report(
+            status,
+            operation,
+            ReportMode::Incremental,
+            ReportInput {
+                db_path: None,
+                root_path: None,
+                file_path: None,
+                root_relative_path: None,
+                format: None,
+                output_path: None,
+            },
+        )
+    }
+
+    fn read_failure() -> ReportDiagnostic {
+        diagnostic(
+            ReportCode::ReadFailed,
+            "permission denied",
+            Some("/repo/src/lib.rs".to_string()),
+            Some("src/lib.rs".to_string()),
+            true,
+            json!({}),
+        )
+    }
+
+    fn write_failure() -> ReportDiagnostic {
+        diagnostic(
+            ReportCode::DbWriteFailed,
+            "SQLite artifact write failed: disk I/O error",
+            None,
+            None,
+            false,
+            json!({}),
+        )
+    }
+
+    fn skipped_warning() -> ReportDiagnostic {
+        diagnostic(
+            ReportCode::SlowFileSkipped,
+            "file exceeded the read budget",
+            None,
+            Some("vendor/huge.rs".to_string()),
+            true,
+            json!({}),
+        )
+    }
+
+    #[test]
+    fn failed_report_renders_status_diagnostics_and_file_counts() {
+        let mut report = report_for(ReportStatus::Failed, ReportOperation::Scan)
+            .with_error(read_failure())
+            .with_error(write_failure())
+            .with_warning(skipped_warning());
+        report.counts.files_scanned = 12;
+        report.counts.files_changed = 3;
+        report.counts.files_unchanged = 8;
+        report.counts.files_failed = 1;
+
+        assert_eq!(
+            human_report(&report),
+            "failed\n\
+             read_failed: permission denied (/repo/src/lib.rs)\n\
+             db_write_failed: SQLite artifact write failed: disk I/O error\n\
+             slow_file_skipped: file exceeded the read budget (vendor/huge.rs)\n\
+             files: scanned=12 changed=3 unchanged=8 failed=1\n"
+        );
+    }
+
+    #[test]
+    fn successful_report_renders_counts_without_warning_noise() {
+        let mut report =
+            report_for(ReportStatus::Ok, ReportOperation::Update).with_warning(skipped_warning());
+        report.counts.files_scanned = 1;
+        report.counts.files_changed = 1;
+
+        assert_eq!(
+            human_report(&report),
+            "ok\nfiles: scanned=1 changed=1 unchanged=0 failed=0\n"
+        );
+    }
+
+    #[test]
+    fn reports_without_file_work_render_only_the_status_and_diagnostics() {
+        let report =
+            report_for(ReportStatus::Failed, ReportOperation::Export).with_error(diagnostic(
+                ReportCode::UnsupportedFormat,
+                "export format is not supported",
+                None,
+                None,
+                false,
+                json!({}),
+            ));
+
+        assert_eq!(
+            human_report(&report),
+            "failed\nunsupported_format: export format is not supported\n"
+        );
+    }
 }

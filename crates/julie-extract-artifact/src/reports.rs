@@ -373,6 +373,34 @@ pub enum ReportCode {
 }
 
 impl ReportCode {
+    pub const ALL: [Self; 25] = [
+        Self::UsageError,
+        Self::InvalidPath,
+        Self::FileOutsideRoot,
+        Self::FileNotFound,
+        Self::RootMismatch,
+        Self::SchemaMigrationRequired,
+        Self::SchemaIncompatible,
+        Self::ContractIncompatible,
+        Self::DbOpenFailed,
+        Self::DbWriteFailed,
+        Self::UnsupportedFormat,
+        Self::UnsupportedFile,
+        Self::ReadFailed,
+        Self::ParseFailed,
+        Self::DataLossGuard,
+        Self::ExportFailed,
+        Self::InternalError,
+        Self::MetadataMissing,
+        Self::CapabilityGap,
+        Self::SlowFileSkipped,
+        Self::ResolutionUpgraded,
+        Self::ResolutionFailed,
+        Self::ParentExited,
+        Self::SpoolDirExcluded,
+        Self::SpoolLockUnavailable,
+    ];
+
     pub const ERROR_CODES: [Self; 18] = [
         Self::UsageError,
         Self::InvalidPath,
@@ -393,6 +421,37 @@ impl ReportCode {
         Self::InternalError,
         Self::ParentExited,
     ];
+
+    /// Snake-case spelling of the code, identical to its JSON serialization.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::UsageError => "usage_error",
+            Self::InvalidPath => "invalid_path",
+            Self::FileOutsideRoot => "file_outside_root",
+            Self::FileNotFound => "file_not_found",
+            Self::RootMismatch => "root_mismatch",
+            Self::SchemaMigrationRequired => "schema_migration_required",
+            Self::SchemaIncompatible => "schema_incompatible",
+            Self::ContractIncompatible => "contract_incompatible",
+            Self::DbOpenFailed => "db_open_failed",
+            Self::DbWriteFailed => "db_write_failed",
+            Self::UnsupportedFormat => "unsupported_format",
+            Self::UnsupportedFile => "unsupported_file",
+            Self::ReadFailed => "read_failed",
+            Self::ParseFailed => "parse_failed",
+            Self::DataLossGuard => "data_loss_guard",
+            Self::ExportFailed => "export_failed",
+            Self::InternalError => "internal_error",
+            Self::MetadataMissing => "metadata_missing",
+            Self::CapabilityGap => "capability_gap",
+            Self::SlowFileSkipped => "slow_file_skipped",
+            Self::ResolutionUpgraded => "resolution_upgraded",
+            Self::ResolutionFailed => "resolution_failed",
+            Self::ParentExited => "parent_exited",
+            Self::SpoolDirExcluded => "spool_dir_excluded",
+            Self::SpoolLockUnavailable => "spool_lock_unavailable",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
