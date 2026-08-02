@@ -237,7 +237,10 @@ fn writer_keeps_the_first_site_row_when_passes_disagree_about_scope() {
     assert_eq!(conflicts.files_affected, 1);
     assert_eq!(conflicts.files[0].path, "src/a.rs");
     assert_eq!(conflicts.files[0].conflicts, 1);
-    assert_eq!(conflicts.files[0].sites[0].reference_site_id, "site-file-a-10-16");
+    assert_eq!(
+        conflicts.files[0].sites[0].reference_site_id,
+        "site-file-a-10-16"
+    );
     assert_eq!(
         conflicts.files[0].sites[0].fields,
         vec!["containing_symbol_id"]

@@ -738,8 +738,7 @@ mod tests {
             files: vec![conflict_file("scripts/install.ps1", 3)],
         };
 
-        let diagnostics =
-            reference_site_conflict_diagnostics(&conflicts, Some(Path::new("/repo")));
+        let diagnostics = reference_site_conflict_diagnostics(&conflicts, Some(Path::new("/repo")));
 
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(
@@ -770,8 +769,7 @@ mod tests {
             files: vec![conflict_file("a.ps1", 1)],
         };
 
-        let diagnostics =
-            reference_site_conflict_diagnostics(&conflicts, Some(Path::new("/repo")));
+        let diagnostics = reference_site_conflict_diagnostics(&conflicts, Some(Path::new("/repo")));
 
         assert_eq!(diagnostics.len(), 2);
         let summary = diagnostics.last().unwrap();
