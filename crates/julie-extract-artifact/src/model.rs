@@ -159,6 +159,41 @@ pub struct WriteResult {
     /// (zero counts, no failure) when no hook ran or the hook was a no-op — every
     /// existing hookless caller therefore sees an empty resolution outcome.
     pub resolution: ResolutionWriteOutcome,
+    /// Reference sites whose sharing passes disagreed about the site payload.
+    /// `Default` (zero) for the overwhelmingly common agreeing case.
+    pub reference_site_conflicts: ReferenceSiteConflicts,
+}
+
+/// One source token owns ONE reference site, written once per sharing pass
+/// (identifier, relationship, pending). The passes derive the site's
+/// denormalized payload — above all `containing_symbol_id` — through different
+/// code paths, so they can disagree. The import keeps the FIRST row and records
+/// the disagreement here instead of aborting; the site-level column is
+/// convenience only, since `identifiers` and `pending_relationships` carry their
+/// own containing/caller columns.
+///
+/// `files` and each file's `sites` are bounded samples for the report — `total`
+/// and `files_affected` always carry the true totals.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ReferenceSiteConflicts {
+    pub total: i64,
+    pub files_affected: usize,
+    pub files: Vec<ReferenceSiteConflictFile>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReferenceSiteConflictFile {
+    /// Root-relative path, mirroring `ArtifactFile::path`.
+    pub path: String,
+    pub language: String,
+    pub conflicts: i64,
+    pub sites: Vec<ReferenceSiteConflictSite>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReferenceSiteConflictSite {
+    pub reference_site_id: String,
+    pub fields: Vec<&'static str>,
 }
 
 /// What the writer surfaces to callers about the resolution hook that ran inside

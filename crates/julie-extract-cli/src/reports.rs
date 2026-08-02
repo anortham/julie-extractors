@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 use std::path::Path;
 
-use julie_extract_artifact::model::WriteResult;
+use julie_extract_artifact::model::{ReferenceSiteConflicts, WriteResult};
 use julie_extract_artifact::reports::{
     ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
     ReportOperation, ReportProfile, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
@@ -106,6 +106,71 @@ pub(crate) fn slow_file_skipped_diagnostic(error: &DiscoveryError) -> ReportDiag
         true,
         json!({}),
     )
+}
+
+/// One recoverable warning per file whose extraction passes disagreed about a
+/// shared reference site, plus a trailing summary when the writer's sample
+/// bound dropped files. The write already committed: the first site row won and
+/// per-row attribution is intact, so this reports an extractor bug rather than a
+/// failure.
+pub(crate) fn reference_site_conflict_diagnostics(
+    conflicts: &ReferenceSiteConflicts,
+    root: Option<&Path>,
+) -> Vec<ReportDiagnostic> {
+    if conflicts.total == 0 {
+        return Vec::new();
+    }
+
+    let mut diagnostics: Vec<ReportDiagnostic> = conflicts
+        .files
+        .iter()
+        .map(|file| {
+            diagnostic(
+                ReportCode::ReferenceSitePayloadConflict,
+                format!(
+                    "extraction passes disagreed about {} shared reference site payload(s); \
+                     first write kept",
+                    file.conflicts
+                ),
+                root.map(|root| root.join(&file.path).display().to_string()),
+                Some(file.path.clone()),
+                true,
+                json!({
+                    "language": file.language,
+                    "conflict_count": file.conflicts,
+                    "sites": file
+                        .sites
+                        .iter()
+                        .map(|site| json!({
+                            "reference_site_id": site.reference_site_id,
+                            "fields": site.fields,
+                        }))
+                        .collect::<Vec<_>>(),
+                }),
+            )
+        })
+        .collect();
+
+    if conflicts.files_affected > conflicts.files.len() {
+        diagnostics.push(diagnostic(
+            ReportCode::ReferenceSitePayloadConflict,
+            format!(
+                "{} file(s) had reference-site payload conflicts; {} reported",
+                conflicts.files_affected,
+                conflicts.files.len()
+            ),
+            None,
+            None,
+            true,
+            json!({
+                "conflict_count": conflicts.total,
+                "files_affected": conflicts.files_affected,
+                "files_reported": conflicts.files.len(),
+            }),
+        ));
+    }
+
+    diagnostics
 }
 
 pub(crate) fn write_error_outcome(
@@ -635,6 +700,7 @@ fn resolution_totals(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use julie_extract_artifact::model::{ReferenceSiteConflictFile, ReferenceSiteConflictSite};
 
     fn report_for(status: ReportStatus, operation: ReportOperation) -> Report {
         base_report(
@@ -650,6 +716,80 @@ mod tests {
                 output_path: None,
             },
         )
+    }
+
+    fn conflict_file(root_relative_path: &str, conflicts: i64) -> ReferenceSiteConflictFile {
+        ReferenceSiteConflictFile {
+            path: root_relative_path.to_string(),
+            language: "powershell".to_string(),
+            conflicts,
+            sites: vec![ReferenceSiteConflictSite {
+                reference_site_id: "site-1".to_string(),
+                fields: vec!["containing_symbol_id"],
+            }],
+        }
+    }
+
+    #[test]
+    fn reference_site_conflicts_become_one_recoverable_warning_per_file() {
+        let conflicts = ReferenceSiteConflicts {
+            total: 3,
+            files_affected: 1,
+            files: vec![conflict_file("scripts/install.ps1", 3)],
+        };
+
+        let diagnostics =
+            reference_site_conflict_diagnostics(&conflicts, Some(Path::new("/repo")));
+
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].code,
+            ReportCode::ReferenceSitePayloadConflict
+        );
+        assert!(diagnostics[0].recoverable);
+        assert_eq!(
+            diagnostics[0].path.as_deref(),
+            Some("/repo/scripts/install.ps1")
+        );
+        assert_eq!(
+            diagnostics[0].root_relative_path.as_deref(),
+            Some("scripts/install.ps1")
+        );
+        assert_eq!(diagnostics[0].details["conflict_count"], 3);
+        assert_eq!(
+            diagnostics[0].details["sites"][0]["fields"][0],
+            "containing_symbol_id"
+        );
+    }
+
+    #[test]
+    fn reference_site_conflict_sample_bound_reports_the_unlisted_files() {
+        let conflicts = ReferenceSiteConflicts {
+            total: 9,
+            files_affected: 40,
+            files: vec![conflict_file("a.ps1", 1)],
+        };
+
+        let diagnostics =
+            reference_site_conflict_diagnostics(&conflicts, Some(Path::new("/repo")));
+
+        assert_eq!(diagnostics.len(), 2);
+        let summary = diagnostics.last().unwrap();
+        assert_eq!(summary.path, None);
+        assert_eq!(summary.details["files_affected"], 40);
+        assert_eq!(summary.details["files_reported"], 1);
+        assert_eq!(summary.details["conflict_count"], 9);
+    }
+
+    #[test]
+    fn agreeing_passes_emit_no_reference_site_warning() {
+        assert!(
+            reference_site_conflict_diagnostics(
+                &ReferenceSiteConflicts::default(),
+                Some(Path::new("/repo"))
+            )
+            .is_empty()
+        );
     }
 
     fn read_failure() -> ReportDiagnostic {

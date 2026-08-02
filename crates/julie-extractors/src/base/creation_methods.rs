@@ -316,7 +316,15 @@ impl BaseExtractor {
             // on multi-line symbols where end_column < start_column (columns refer to different lines).
             let size_a = a.end_byte - a.start_byte;
             let size_b = b.end_byte - b.start_byte;
-            size_a.cmp(&size_b)
+            // start_byte and id complete the total order. Callers feed this from a
+            // HashMap (identifier passes) or a Vec (relationship passes), and a tie
+            // resolved by input order makes the two passes disagree about the same
+            // token's containing symbol — which is exactly what equal-span symbols
+            // such as C multi-declarator variables produce.
+            size_a
+                .cmp(&size_b)
+                .then_with(|| a.start_byte.cmp(&b.start_byte))
+                .then_with(|| a.id.cmp(&b.id))
         });
 
         Some(containing_symbols[0])
@@ -337,5 +345,82 @@ impl BaseExtractor {
         }
 
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+    use tree_sitter::{Parser, Tree};
+
+    const MULTI_DECLARATOR: &str = "long alpha = 1, beta = 2, gamma = ticks();\n";
+
+    fn parse_c(source: &str) -> Tree {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_c::LANGUAGE.into())
+            .expect("C grammar loads");
+        parser.parse(source, None).expect("C source parses")
+    }
+
+    fn first_node_of_kind<'a>(node: Node<'a>, kind: &str) -> Option<Node<'a>> {
+        if node.kind() == kind {
+            return Some(node);
+        }
+        let mut cursor = node.walk();
+        node.children(&mut cursor)
+            .find_map(|child| first_node_of_kind(child, kind))
+    }
+
+    #[test]
+    fn equal_span_containment_candidates_resolve_independently_of_input_order() {
+        let tree = parse_c(MULTI_DECLARATOR);
+        let declaration =
+            first_node_of_kind(tree.root_node(), "declaration").expect("declaration node");
+        let call = first_node_of_kind(declaration, "call_expression").expect("call node");
+
+        let mut base = BaseExtractor::new(
+            "c".to_string(),
+            "/repo/a.c".to_string(),
+            MULTI_DECLARATOR.to_string(),
+            Path::new("/repo"),
+        );
+        let declarators: Vec<Symbol> = ["alpha", "beta", "gamma"]
+            .into_iter()
+            .map(|name| {
+                base.create_symbol(
+                    &declaration,
+                    name.to_string(),
+                    SymbolKind::Variable,
+                    SymbolOptions::default(),
+                )
+            })
+            .collect();
+
+        let mut winners = std::collections::BTreeSet::new();
+        for order in [
+            [0, 1, 2],
+            [0, 2, 1],
+            [1, 0, 2],
+            [1, 2, 0],
+            [2, 0, 1],
+            [2, 1, 0],
+        ] {
+            let shuffled: Vec<Symbol> = order
+                .iter()
+                .map(|index| declarators[*index].clone())
+                .collect();
+            let winner = base
+                .find_containing_symbol(&call, &shuffled)
+                .expect("an equal-span declarator contains the call");
+            winners.insert(winner.name.clone());
+        }
+
+        assert_eq!(
+            winners.len(),
+            1,
+            "input order changed the containment winner: {winners:?}"
+        );
     }
 }

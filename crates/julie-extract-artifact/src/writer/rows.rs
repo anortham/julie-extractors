@@ -1,14 +1,21 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use rusqlite::{CachedStatement, ToSql, Transaction, limits::Limit, params, params_from_iter};
 
 use crate::model::{
     ArtifactComplexityMetric, ArtifactFile, ArtifactPendingRelationship, ArtifactRelationship,
     ArtifactSourceRegion, ArtifactStructuralFact, ArtifactTypeArgument, FileStatus,
+    ReferenceSiteConflictFile, ReferenceSiteConflictSite, ReferenceSiteConflicts,
     RevisionChangeKind, RowCounts,
 };
 
 use super::ExistingFile;
+
+/// How many conflicting files and per-file sites the write result samples for the
+/// report. A pathological producer must not turn one warning per site into a
+/// multi-megabyte report; `total`/`files_affected` still carry the true counts.
+const MAX_REPORTED_CONFLICT_FILES: usize = 32;
+const MAX_REPORTED_CONFLICT_SITES_PER_FILE: usize = 5;
 
 /// Max `file_id` placeholders per chunk when collecting existing symbol names.
 /// The effective chunk is capped at the connection's runtime variable limit so a
@@ -206,6 +213,7 @@ pub(super) struct ChildRowInserters<'tx> {
     complexity_metrics_multi: CachedStatement<'tx>,
     complexity_metric_chunk: usize,
     parse_diagnostics: CachedStatement<'tx>,
+    reference_site_conflicts: ReferenceSiteConflicts,
 }
 
 impl<'tx> ChildRowInserters<'tx> {
@@ -317,10 +325,15 @@ impl<'tx> ChildRowInserters<'tx> {
                   end_line, end_column, start_byte, end_byte, metadata_json)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             )?,
+            reference_site_conflicts: ReferenceSiteConflicts::default(),
         };
         #[cfg(test)]
         writer_prepare_metrics::record_child_row_inserter_prepare();
         Ok(inserters)
+    }
+
+    pub(super) fn take_reference_site_conflicts(&mut self) -> ReferenceSiteConflicts {
+        std::mem::take(&mut self.reference_site_conflicts)
     }
 
     pub(super) fn insert_child_rows(
@@ -331,8 +344,12 @@ impl<'tx> ChildRowInserters<'tx> {
     ) -> rusqlite::Result<()> {
         counts.symbol_annotations +=
             insert_symbol_annotations(&mut self.symbol_annotations, file, symbol_lookup)?;
-        counts.reference_sites +=
-            insert_reference_sites(&mut self.reference_sites, file, symbol_lookup)?;
+        counts.reference_sites += insert_reference_sites(
+            &mut self.reference_sites,
+            file,
+            symbol_lookup,
+            &mut self.reference_site_conflicts,
+        )?;
         counts.identifiers += insert_identifiers(&mut self.identifiers, file, symbol_lookup)?;
         let identifier_lookup = IdentifierLookup::from_file(file);
         counts.relationships += insert_relationships(&mut self.relationships, file, symbol_lookup)?;
@@ -550,12 +567,115 @@ fn insert_symbol_annotations(
     Ok(inserted)
 }
 
+/// The reference-site columns the identity guard compares, minus the ones that
+/// are constant for every row of one file (`file_id`, `path`, `language`).
+#[derive(PartialEq, Eq)]
+struct SitePayload {
+    containing_symbol_id: Option<String>,
+    start_line: Option<i64>,
+    start_column: Option<i64>,
+    end_line: Option<i64>,
+    end_column: Option<i64>,
+    start_byte: Option<i64>,
+    end_byte: Option<i64>,
+    is_exact: bool,
+    provenance: &'static str,
+}
+
+impl SitePayload {
+    fn diverging_fields(&self, other: &Self) -> Vec<&'static str> {
+        let mut fields = Vec::new();
+        let mut check = |diverges: bool, name: &'static str| {
+            if diverges {
+                fields.push(name);
+            }
+        };
+        check(
+            self.containing_symbol_id != other.containing_symbol_id,
+            "containing_symbol_id",
+        );
+        check(self.start_line != other.start_line, "start_line");
+        check(self.start_column != other.start_column, "start_column");
+        check(self.end_line != other.end_line, "end_line");
+        check(self.end_column != other.end_column, "end_column");
+        check(self.start_byte != other.start_byte, "start_byte");
+        check(self.end_byte != other.end_byte, "end_byte");
+        check(self.is_exact != other.is_exact, "is_exact");
+        check(self.provenance != other.provenance, "provenance");
+        fields
+    }
+}
+
+/// First-write-wins arbitration for one file's reference sites.
+///
+/// Returns `true` when the row must reach SQLite. A repeat of an identical
+/// payload is skipped (the statement's `INSERT OR IGNORE` would drop it anyway);
+/// a divergent repeat is skipped AND recorded, so the disagreement is reported
+/// instead of aborting the import.
+fn claim_reference_site<'a>(
+    seen: &mut HashMap<&'a str, SitePayload>,
+    conflicts: &mut ReferenceSiteConflicts,
+    file: &ArtifactFile,
+    reference_site_id: &'a str,
+    payload: SitePayload,
+) -> bool {
+    let Some(existing) = seen.get(reference_site_id) else {
+        seen.insert(reference_site_id, payload);
+        return true;
+    };
+    let fields = existing.diverging_fields(&payload);
+    if !fields.is_empty() {
+        record_reference_site_conflict(conflicts, file, reference_site_id, fields);
+    }
+    false
+}
+
+fn record_reference_site_conflict(
+    conflicts: &mut ReferenceSiteConflicts,
+    file: &ArtifactFile,
+    reference_site_id: &str,
+    fields: Vec<&'static str>,
+) {
+    conflicts.total += 1;
+    match conflicts
+        .files
+        .iter_mut()
+        .find(|entry| entry.path == file.path)
+    {
+        Some(entry) => {
+            entry.conflicts += 1;
+            if entry.sites.len() < MAX_REPORTED_CONFLICT_SITES_PER_FILE {
+                entry.sites.push(ReferenceSiteConflictSite {
+                    reference_site_id: reference_site_id.to_string(),
+                    fields,
+                });
+            }
+        }
+        None => {
+            conflicts.files_affected += 1;
+            if conflicts.files.len() < MAX_REPORTED_CONFLICT_FILES {
+                conflicts.files.push(ReferenceSiteConflictFile {
+                    path: file.path.clone(),
+                    language: file.language.clone(),
+                    conflicts: 1,
+                    sites: vec![ReferenceSiteConflictSite {
+                        reference_site_id: reference_site_id.to_string(),
+                        fields,
+                    }],
+                });
+            }
+        }
+    }
+}
+
 fn insert_reference_sites(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup,
+    conflicts: &mut ReferenceSiteConflicts,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
+    let mut seen: HashMap<&str, SitePayload> = HashMap::new();
 
     for identifier in &file.identifiers {
         let span = identifier.site_is_exact.then_some((
@@ -566,6 +686,30 @@ fn insert_reference_sites(
             identifier.start_byte,
             identifier.end_byte,
         ));
+        let payload = SitePayload {
+            containing_symbol_id: valid_symbol_id(
+                symbol_lookup,
+                identifier.containing_symbol_id.as_deref(),
+            )
+            .map(ToOwned::to_owned),
+            start_line: span.map(|span| span.0),
+            start_column: span.map(|span| span.1),
+            end_line: span.map(|span| span.2),
+            end_column: span.map(|span| span.3),
+            start_byte: span.map(|span| span.4),
+            end_byte: span.map(|span| span.5),
+            is_exact: identifier.site_is_exact,
+            provenance: identifier.site_provenance.as_str(),
+        };
+        if !claim_reference_site(
+            &mut seen,
+            conflicts,
+            file,
+            identifier.reference_site_id.as_str(),
+            payload,
+        ) {
+            continue;
+        }
         inserted += stmt.execute(params![
             identifier.reference_site_id,
             file.file_id,
@@ -595,6 +739,30 @@ fn insert_reference_sites(
             relationship.start_byte,
             relationship.end_byte,
         ));
+        let payload = SitePayload {
+            containing_symbol_id: valid_symbol_id(
+                symbol_lookup,
+                Some(relationship.from_symbol_id.as_str()),
+            )
+            .map(ToOwned::to_owned),
+            start_line: span.and_then(|span| span.0),
+            start_column: span.and_then(|span| span.1),
+            end_line: span.and_then(|span| span.2),
+            end_column: span.and_then(|span| span.3),
+            start_byte: span.and_then(|span| span.4),
+            end_byte: span.and_then(|span| span.5),
+            is_exact: relationship.site_is_exact,
+            provenance: relationship.site_provenance.as_str(),
+        };
+        if !claim_reference_site(
+            &mut seen,
+            conflicts,
+            file,
+            relationship.reference_site_id.as_str(),
+            payload,
+        ) {
+            continue;
+        }
         inserted += stmt.execute(params![
             relationship.reference_site_id,
             file.file_id,
@@ -628,6 +796,27 @@ fn insert_reference_sites(
             pending.start_byte,
             pending.end_byte,
         ));
+        let payload = SitePayload {
+            containing_symbol_id: valid_symbol_id(symbol_lookup, containing_symbol_id)
+                .map(ToOwned::to_owned),
+            start_line: span.map(|span| span.0),
+            start_column: span.and_then(|span| span.1),
+            end_line: span.and_then(|span| span.2),
+            end_column: span.and_then(|span| span.3),
+            start_byte: span.and_then(|span| span.4),
+            end_byte: span.and_then(|span| span.5),
+            is_exact: pending.site_is_exact,
+            provenance: pending.site_provenance.as_str(),
+        };
+        if !claim_reference_site(
+            &mut seen,
+            conflicts,
+            file,
+            pending.reference_site_id.as_str(),
+            payload,
+        ) {
+            continue;
+        }
         inserted += stmt.execute(params![
             pending.reference_site_id,
             file.file_id,

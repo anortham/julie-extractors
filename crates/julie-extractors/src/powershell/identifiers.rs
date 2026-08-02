@@ -587,7 +587,7 @@ fn find_containing_symbol_id(
         matches!(
             symbol.kind,
             SymbolKind::Function | SymbolKind::Method | SymbolKind::Class
-        ) && symbol.start_line < symbol.end_line
+        )
     })
     .map(|s| s.id.clone())
 }

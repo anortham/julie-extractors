@@ -146,8 +146,14 @@ fn writer_canonicalizes_shared_exact_reference_sites_across_evidence_rows() {
     );
 }
 
+/// The identifier, relationship, and pending passes deliberately share one
+/// reference site per token but derive its denormalized `containing_symbol_id`
+/// through different code paths. A disagreement used to abort the single import
+/// transaction and zero the whole scan; it now keeps the first row and reports
+/// the divergence. Per-row attribution is untouched — `identifiers` and
+/// `relationships` carry their own containing/from columns.
 #[test]
-fn writer_rejects_scope_disagreement_for_one_reference_site_id() {
+fn writer_keeps_the_first_site_row_when_passes_disagree_about_scope() {
     let mut writer = open_writer();
     let mut file = file_with_symbols(
         "file-a",
@@ -191,25 +197,55 @@ fn writer_rejects_scope_disagreement_for_one_reference_site_id() {
         ..ArtifactRelationship::default()
     });
 
-    let error = writer
+    let result = writer
         .write_scan(
             revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
             &[file],
         )
-        .unwrap_err();
+        .unwrap();
 
-    assert!(
-        error
-            .to_string()
-            .contains("reference_site identity conflict"),
-        "{error}"
+    assert_eq!(count(writer.connection(), "reference_sites"), 1);
+    assert_eq!(count(writer.connection(), "relationships"), 1);
+    assert_eq!(result.rows_written.reference_sites, 1);
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT containing_symbol_id FROM reference_sites WHERE reference_site_id = ?1",
+                [&reference_site_id],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "file-a-symbol-0",
+        "the first inserted site row survives"
     );
-    assert_eq!(count(writer.connection(), "reference_sites"), 0);
-    assert_eq!(count(writer.connection(), "relationships"), 0);
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT from_symbol_id FROM relationships WHERE reference_site_id = ?1",
+                [&reference_site_id],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        "file-a-symbol-1",
+        "per-row attribution is not lost"
+    );
+
+    let conflicts = &result.reference_site_conflicts;
+    assert_eq!(conflicts.total, 1);
+    assert_eq!(conflicts.files_affected, 1);
+    assert_eq!(conflicts.files[0].path, "src/a.rs");
+    assert_eq!(conflicts.files[0].conflicts, 1);
+    assert_eq!(conflicts.files[0].sites[0].reference_site_id, "site-file-a-10-16");
+    assert_eq!(
+        conflicts.files[0].sites[0].fields,
+        vec!["containing_symbol_id"]
+    );
 }
 
 #[test]
-fn writer_rejects_conflicting_physical_data_for_one_reference_site_id() {
+fn writer_keeps_the_first_site_row_when_physical_data_disagrees() {
     let mut writer = open_writer();
     let mut file = file_with_symbols("file-a", "src/a.rs", "blake3:a", ["caller", "target"]);
 
@@ -235,18 +271,29 @@ fn writer_rejects_conflicting_physical_data_for_one_reference_site_id() {
         });
     }
 
-    let error = writer
+    let result = writer
         .write_scan(
             revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
             &[file],
         )
-        .unwrap_err();
+        .unwrap();
 
-    assert!(
-        error
-            .to_string()
-            .contains("reference_site identity conflict"),
-        "{error}"
+    assert_eq!(count(writer.connection(), "reference_sites"), 1);
+    assert_eq!(
+        writer
+            .connection()
+            .query_row(
+                "SELECT start_byte FROM reference_sites WHERE reference_site_id = 'site-conflict'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        10
+    );
+    assert_eq!(result.reference_site_conflicts.total, 1);
+    assert_eq!(
+        result.reference_site_conflicts.files[0].sites[0].fields,
+        vec!["start_column", "end_column", "start_byte", "end_byte"]
     );
 }
 

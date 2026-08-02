@@ -4,7 +4,30 @@ pub const SQLITE_SCHEMA_VERSION: i64 = 5;
 pub const EXTRACT_CONTRACT_VERSION: i64 = 4;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
+    drop_superseded_reference_site_guard(conn)?;
     conn.execute_batch(SCHEMA_SQL)
+}
+
+/// The guard originally raised ABORT, so one payload disagreement between
+/// extraction passes rolled back the entire import. `CREATE TRIGGER IF NOT
+/// EXISTS` would leave that fatal version in place on artifacts written before
+/// the demotion, so the superseded trigger is dropped once — the conditional
+/// keeps every later open from churning the SQLite schema cookie.
+fn drop_superseded_reference_site_guard(conn: &Connection) -> rusqlite::Result<()> {
+    let superseded: bool = conn.query_row(
+        "SELECT EXISTS (
+           SELECT 1 FROM sqlite_master
+           WHERE type = 'trigger'
+             AND name = 'reference_sites_identity_guard'
+             AND sql LIKE '%RAISE(ABORT%'
+         )",
+        [],
+        |row| row.get(0),
+    )?;
+    if superseded {
+        conn.execute_batch("DROP TRIGGER reference_sites_identity_guard")?;
+    }
+    Ok(())
 }
 
 const SCHEMA_SQL: &str = r#"
@@ -257,6 +280,12 @@ CREATE TABLE IF NOT EXISTS identifier_resolutions (
   CHECK ((outcome = 'resolved') = (target_symbol_id IS NOT NULL))
 );
 
+-- One source token owns ONE reference site, written once per sharing pass
+-- (identifier, relationship, pending). The passes derive the site payload
+-- through different code paths, so a disagreement is an extractor bug — but it
+-- is a one-column bug on one site, and aborting would roll back the whole
+-- single-transaction import. First write wins; the writer counts the divergence
+-- and the scan report carries a `reference_site_payload_conflict` warning.
 CREATE TRIGGER IF NOT EXISTS reference_sites_identity_guard
 BEFORE INSERT ON reference_sites
 WHEN EXISTS (
@@ -279,7 +308,7 @@ WHEN EXISTS (
     )
 )
 BEGIN
-  SELECT RAISE(ABORT, 'reference_site identity conflict');
+  SELECT RAISE(IGNORE);
 END;
 
 CREATE TABLE IF NOT EXISTS type_facts (

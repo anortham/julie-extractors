@@ -357,6 +357,12 @@ pub enum ReportCode {
     /// (design §"Failure semantics"). Not an `ERROR_CODES` member — it never fails
     /// the write.
     ResolutionFailed,
+    /// Two extraction passes disagreed about the payload of a reference site they
+    /// share for one source token. Non-fatal: the first row wins and the import
+    /// commits. Not an `ERROR_CODES` member — per-row attribution lives in
+    /// `identifiers`/`pending_relationships`, so only the site's denormalized
+    /// column reflects one pass's opinion.
+    ReferenceSitePayloadConflict,
     /// `scan --parent-pid` observed that the named process is no longer this
     /// process's parent, so the scan aborted before writing the artifact.
     /// `details` carries `expected_parent_pid` and `observed_parent_pid`.
@@ -373,7 +379,7 @@ pub enum ReportCode {
 }
 
 impl ReportCode {
-    pub const ALL: [Self; 25] = [
+    pub const ALL: [Self; 26] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -396,6 +402,7 @@ impl ReportCode {
         Self::SlowFileSkipped,
         Self::ResolutionUpgraded,
         Self::ResolutionFailed,
+        Self::ReferenceSitePayloadConflict,
         Self::ParentExited,
         Self::SpoolDirExcluded,
         Self::SpoolLockUnavailable,
@@ -447,6 +454,7 @@ impl ReportCode {
             Self::SlowFileSkipped => "slow_file_skipped",
             Self::ResolutionUpgraded => "resolution_upgraded",
             Self::ResolutionFailed => "resolution_failed",
+            Self::ReferenceSitePayloadConflict => "reference_site_payload_conflict",
             Self::ParentExited => "parent_exited",
             Self::SpoolDirExcluded => "spool_dir_excluded",
             Self::SpoolLockUnavailable => "spool_lock_unavailable",

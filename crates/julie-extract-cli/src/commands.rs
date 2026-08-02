@@ -485,6 +485,12 @@ fn scan_collecting_warnings(
                             json!({}),
                         ));
                     }
+                    for conflict in crate::reports::reference_site_conflict_diagnostics(
+                        &write_result.reference_site_conflicts,
+                        Some(&root),
+                    ) {
+                        report = report.with_warning(conflict);
+                    }
                     if upgrade_completed {
                         report = report.with_warning(diagnostic(
                             ReportCode::ResolutionUpgraded,
@@ -820,6 +826,12 @@ fn update(args: UpdateArgs) -> CommandOutcome {
                             true,
                             json!({}),
                         ));
+                    }
+                    for conflict in crate::reports::reference_site_conflict_diagnostics(
+                        &write_result.reference_site_conflicts,
+                        Some(&root),
+                    ) {
+                        report = report.with_warning(conflict);
                     }
                     report.counts.files_scanned = 1;
                     report.counts.files_changed = write_result.files_changed as i64;
@@ -1687,8 +1699,12 @@ fn extract_supported_files_to_spool(
 
     // `num_threads(0)` lets rayon pick from available parallelism. If the pool
     // cannot be built we fall back to rayon's global pool rather than failing the scan.
+    // The guarded tree walkers permit 1024 frames, which costs 4-8 KiB per frame in a
+    // debug build — rayon's 2 MiB default stack overflows well inside the guard. The
+    // reservation is virtual and committed lazily.
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(request.jobs)
+        .stack_size(16 * 1024 * 1024)
         .build()
         .ok();
 

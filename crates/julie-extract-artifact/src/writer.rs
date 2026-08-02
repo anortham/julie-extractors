@@ -9,8 +9,9 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::metadata::{ArtifactMetadata, initialize_metadata};
 use crate::model::{
-    ArtifactCapabilitySnapshot, ArtifactFile, FileStatus, ResolutionWriteOutcome,
-    RevisionChangeKind, RevisionInput, RowCounts, WriteMode, WriteOperation, WriteResult,
+    ArtifactCapabilitySnapshot, ArtifactFile, FileStatus, ReferenceSiteConflicts,
+    ResolutionWriteOutcome, RevisionChangeKind, RevisionInput, RowCounts, WriteMode, WriteOperation,
+    WriteResult,
 };
 use crate::reports::RowDomainCounts;
 use crate::resolution_store::ResolutionCounts;
@@ -623,6 +624,7 @@ impl ArtifactWriter {
             files_skipped: 0,
             transactions_committed: 1,
             resolution,
+            reference_site_conflicts: ReferenceSiteConflicts::default(),
         })
     }
 
@@ -733,12 +735,13 @@ impl ArtifactWriter {
             symbol_lookup
         };
 
-        {
+        let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
             for (file, _, _) in &planned {
                 child_row_inserters.insert_child_rows(file, &symbol_lookup, &mut row_counts)?;
             }
-        }
+            child_row_inserters.take_reference_site_conflicts()
+        };
 
         let scope = ResolutionScopeInput {
             changed_file_ids,
@@ -765,6 +768,7 @@ impl ArtifactWriter {
             rows_written: row_counts,
             transactions_committed: 1,
             resolution,
+            reference_site_conflicts,
         })
     }
 
@@ -920,12 +924,13 @@ impl ArtifactWriter {
             symbol_lookup
         };
 
-        {
+        let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
             for file in &rewritten_files {
                 child_row_inserters.insert_child_rows(file, &symbol_lookup, &mut row_counts)?;
             }
-        }
+            child_row_inserters.take_reference_site_conflicts()
+        };
 
         let scope = ResolutionScopeInput {
             changed_file_ids,
@@ -952,6 +957,7 @@ impl ArtifactWriter {
             rows_written: row_counts,
             transactions_committed: 1,
             resolution,
+            reference_site_conflicts,
         })
     }
 
@@ -1124,7 +1130,7 @@ impl ArtifactWriter {
             }
         }
 
-        {
+        let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
             for file in spool.iter()? {
                 let file = file?;
@@ -1133,7 +1139,8 @@ impl ArtifactWriter {
                 }
                 child_row_inserters.insert_child_rows(&file, &symbol_lookup, &mut row_counts)?;
             }
-        }
+            child_row_inserters.take_reference_site_conflicts()
+        };
 
         let scope = ResolutionScopeInput {
             changed_file_ids,
@@ -1160,6 +1167,7 @@ impl ArtifactWriter {
             rows_written: row_counts,
             transactions_committed: 1,
             resolution,
+            reference_site_conflicts,
         })
     }
 }

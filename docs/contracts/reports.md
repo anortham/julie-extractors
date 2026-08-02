@@ -460,6 +460,16 @@ path, so a file that grows past the limit stops serving stale rows.
 `resolution_upgraded` is emitted when a whole-workspace scan automatically
 re-extracts every supported file to advance the reference-resolution evidence
 contract.
+`reference_site_payload_conflict` is emitted once per file whose extraction
+passes disagreed about the payload of a reference site they share for one source
+token. The import keeps the FIRST site row and still commits, so this is always
+recoverable; `details` carries `language`, `conflict_count`, and a bounded
+`sites` sample naming the diverging columns. Per-row attribution is unaffected —
+`identifiers` and `pending_relationships` carry their own containing/caller
+columns — but the site's denormalized `containing_symbol_id` reflects one pass's
+opinion. When more files conflicted than the report samples, a trailing
+path-less warning of the same code carries `files_affected`, `files_reported`,
+and the total `conflict_count`.
 
 Any `reference_resolution_status = failed` blocks later single-file `update`
 and `delete` operations with `schema_migration_required`, including a failed
