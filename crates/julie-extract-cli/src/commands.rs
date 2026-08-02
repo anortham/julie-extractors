@@ -37,16 +37,19 @@ use crate::capability_snapshot::{
     structural_fact_patterns_json,
 };
 use crate::discovery::{
-    DiscoveryPolicy, FileSelection, UnsupportedReason, canonicalize_ignore_files,
+    DiscoveryExclusions, DiscoveryPolicy, FileSelection, UnsupportedReason,
+    canonicalize_ignore_files,
 };
 use crate::extraction::{
     ExtractFileError, SourceSnapshot, extract_artifact_file, extract_artifact_file_from_snapshot,
     failed_artifact_file, read_source_snapshot, unchanged_artifact_file,
 };
 use crate::paths::{
-    FileTarget, canonicalize_db_path, canonicalize_root, canonicalize_update_file,
-    normalize_delete_file,
+    FileTarget, canonicalize_db_path, canonicalize_progress_file, canonicalize_root,
+    canonicalize_spool_dir, canonicalize_update_file, normalize_delete_file,
+    reject_progress_file_collision, root_relative_unix,
 };
+use crate::progress::{Counter, ScanProgress};
 use crate::reports::{
     CommandOutcome, PathErrorInput, ReportBuilder, ReportStream, artifact_input, base_report,
     diagnostic, discovery_error_diagnostic, display_path, extract_error_diagnostic,
@@ -54,6 +57,8 @@ use crate::reports::{
     slow_file_skipped_diagnostic, spool_error_outcome, write_error_outcome,
     write_error_outcome_with_profile, write_outcome,
 };
+use crate::spool::{ScanSpool, create_scan_spool, is_spool_artifact_name, reap_unowned_spools};
+use crate::watchdog::ParentWatchdog;
 
 const SCAN_REPORT_FILE_ROW_LIMIT: usize = 20;
 
@@ -83,8 +88,29 @@ fn run(cli: Cli) -> CommandOutcome {
     }
 }
 
+/// Run a scan and attach its configuration warnings to whatever report it
+/// produced.
+///
+/// `spool_dir_excluded` and `spool_lock_unavailable` describe how the scan was
+/// CONFIGURED, not what it found, so they belong on every exit and not only on
+/// the success path. Attached per-exit they were missed by four of them: an
+/// operator who excluded `src/` and then hit a write failure got a report that
+/// never mentioned the exclusion, fixed the disk, reran, saw a clean `ok`, and
+/// never learned — on the run most likely to be read closely. Attaching them
+/// here, once, is also what keeps a later early return from silently dropping
+/// them again.
 fn scan(args: ScanArgs) -> CommandOutcome {
+    let mut configuration_warnings = Vec::new();
+    scan_collecting_warnings(args, &mut configuration_warnings)
+        .with_warnings(configuration_warnings)
+}
+
+fn scan_collecting_warnings(
+    args: ScanArgs,
+    configuration_warnings: &mut Vec<ReportDiagnostic>,
+) -> CommandOutcome {
     let scan_started = Instant::now();
+    let watchdog = args.parent_pid.map(ParentWatchdog::start);
     let mut profile_phases = BTreeMap::new();
     let mode = if args.force {
         ReportMode::Force
@@ -103,9 +129,64 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         Ok(ignore_files) => ignore_files,
         Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
     };
+    let spool_dir = match args
+        .spool_dir
+        .as_deref()
+        .map(canonicalize_spool_dir)
+        .transpose()
+    {
+        Ok(spool_dir) => spool_dir,
+        Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
+    };
+    let progress_path = match args
+        .progress_file
+        .as_deref()
+        .map(canonicalize_progress_file)
+        .transpose()
+    {
+        Ok(progress_path) => progress_path,
+        Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
+    };
+    if let Some(progress_path) = progress_path.as_deref()
+        && let Err(error) = reject_progress_file_collision(progress_path, &db)
+    {
+        return path_error_outcome(error, ReportOperation::Scan, mode, args.json);
+    }
+    let progress = match progress_path
+        .as_deref()
+        .map(ScanProgress::create)
+        .transpose()
+    {
+        Ok(progress) => progress,
+        Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
+    };
+    let controls = ScanControls {
+        spool_dir: spool_dir.as_deref(),
+        progress: progress.as_ref(),
+        watchdog: watchdog.as_ref(),
+    };
+    configuration_warnings.extend(
+        spool_dir
+            .as_deref()
+            .and_then(|spool_dir| spool_dir_inside_root_warning(spool_dir, &root)),
+    );
+    if let Some(spool_dir) = controls.spool_dir {
+        reap_unowned_spools(spool_dir);
+    }
     let input = artifact_input(&db, Some(&root), None, None);
+    if let Some(aborted) = controls.parent_exited_outcome(
+        args.parent_pid,
+        mode,
+        &input,
+        args.json,
+        scan_started,
+        &profile_phases,
+    ) {
+        return aborted;
+    }
 
     let existing_artifact_started = Instant::now();
+    controls.enter_phase("existing_artifact");
     let existing_scan_artifact = if db.exists() && !args.force {
         match open_artifact_for_root(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION), &root) {
             Ok(artifact) => Some(artifact),
@@ -153,11 +234,16 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     );
 
     let discovery_started = Instant::now();
-    let discovery = match DiscoveryPolicy::build(&root, &db, &ignore_files) {
+    controls.enter_phase("discovery");
+    let exclusions = DiscoveryExclusions {
+        progress_path: progress_path.clone(),
+        spool_dir: spool_dir.clone(),
+    };
+    let discovery = match DiscoveryPolicy::build_excluding(&root, &db, exclusions, &ignore_files) {
         Ok(discovery) => discovery,
         Err(error) => return path_error_outcome(error, ReportOperation::Scan, mode, args.json),
     };
-    let discovered = discovery.discover();
+    let discovered = discovery.discover_with_progress(controls.progress);
     let preserved_missing_paths = discovered
         .errors
         .iter()
@@ -169,7 +255,19 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         discovery_started.elapsed(),
     );
 
+    if let Some(aborted) = controls.parent_exited_outcome(
+        args.parent_pid,
+        mode,
+        &input,
+        args.json,
+        scan_started,
+        &profile_phases,
+    ) {
+        return aborted;
+    }
+
     let force_metadata_started = Instant::now();
+    controls.enter_phase("force_metadata");
     let force_existing_metadata = if args.force && db.exists() {
         match open_artifact(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
             Ok(artifact) if artifact.report.root_path == display_path(&root) => {
@@ -192,14 +290,18 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     let should_rebuild_db = args.force && db.exists() && force_existing_metadata.is_none();
     let indexed_at = now_rfc3339();
     let extraction_spool_started = Instant::now();
+    controls.enter_phase("extraction_spool");
     let mut extracted = match spool_discovered_files(
-        &root,
+        ExtractionRequest {
+            root: &root,
+            indexed_at,
+            existing_content_hashes: existing_content_hashes.as_ref(),
+            force: args.force || resolution_upgrade_required,
+            jobs: args.jobs,
+        },
         &discovery,
         &discovered.supported_files,
-        indexed_at,
-        existing_content_hashes.as_ref(),
-        args.force || resolution_upgrade_required,
-        args.jobs,
+        controls,
     ) {
         Ok(extracted) => extracted,
         Err(error) => {
@@ -213,9 +315,37 @@ fn scan(args: ScanArgs) -> CommandOutcome {
     );
     debug_assert_eq!(extracted.files_spooled, extracted.snapshot_paths.len());
     let profile_languages = extracted.profile.languages.clone();
+    configuration_warnings.extend(
+        extracted
+            .spool
+            .ownership_lock_unavailable()
+            .then(|| spool_lock_unavailable_warning(spool_dir.as_deref())),
+    );
 
-    if should_rebuild_db {
-        remove_artifact_files(&db);
+    if let Some(aborted) =
+        abort_before_full_rebuild(&db, should_rebuild_db, || match extracted.completion {
+            SpoolCompletion::Complete => controls.parent_exited_outcome(
+                args.parent_pid,
+                mode,
+                &input,
+                args.json,
+                scan_started,
+                &profile_phases,
+            ),
+            SpoolCompletion::ParentExited {
+                observed_parent_pid,
+            } => Some(parent_exited_abort(
+                args.parent_pid,
+                observed_parent_pid,
+                mode,
+                &input,
+                args.json,
+                scan_started,
+                &profile_phases,
+            )),
+        })
+    {
+        return aborted;
     }
     let db_existed_before_write = db.exists();
 
@@ -225,6 +355,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
         .unwrap_or_else(|| new_artifact_metadata(&root, None));
 
     let writer_open_started = Instant::now();
+    controls.enter_phase("writer_open");
     match ArtifactWriter::open_path(&db, metadata) {
         Ok(mut writer) => {
             record_profile_phase(
@@ -234,6 +365,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
             );
             writer.stage_capability_snapshot(artifact_capability_snapshot());
             let artifact_write_started = Instant::now();
+            controls.enter_phase("artifact_write");
             let mut resolution_report: Option<crate::resolution::ResolutionReport> = None;
             match writer.write_scan_spooled_preserving_missing_paths_with_resolution(
                 revision_input(
@@ -247,7 +379,7 @@ fn scan(args: ScanArgs) -> CommandOutcome {
                 ),
                 &extracted.snapshot_paths,
                 &preserved_missing_paths,
-                &mut extracted.spool,
+                extracted.spool.file_spool_mut(),
                 |tx, scope| {
                     let (counts, report) = crate::resolution::resolve_workspace(tx, scope)?;
                     resolution_report = Some(report);
@@ -984,14 +1116,216 @@ fn languages(args: LanguagesArgs) -> CommandOutcome {
     outcome(report, 0, args.json, ReportStream::Stdout)
 }
 
-fn spool_discovered_files(
-    root: &Path,
-    discovery: &DiscoveryPolicy,
-    targets: &[FileTarget],
+/// Opt-in process-lifecycle controls for one scan. Every field is `None` unless
+/// the matching flag was passed, so an absent flag costs a branch and nothing
+/// else — no file, no thread, no syscall.
+#[derive(Clone, Copy, Default)]
+struct ScanControls<'a> {
+    spool_dir: Option<&'a Path>,
+    progress: Option<&'a ScanProgress>,
+    watchdog: Option<&'a ParentWatchdog>,
+}
+
+impl ScanControls<'_> {
+    fn enter_phase(&self, phase: &'static str) {
+        if let Some(progress) = self.progress {
+            progress.enter_phase(phase);
+        }
+    }
+
+    fn advance(&self, counter: Counter, by: u64) {
+        if let Some(progress) = self.progress {
+            progress.advance(counter, by);
+        }
+    }
+
+    /// Why the extraction loop must stop before the next chunk, or `None`. The
+    /// break condition and the reason recorded in the return value come from
+    /// this one expression, so a caller can never disagree with the loop about
+    /// whether the spool it is holding is complete.
+    fn stop_requested(&self) -> Option<SpoolCompletion> {
+        let watchdog = self.watchdog?;
+        watchdog
+            .parent_exited()
+            .then(|| SpoolCompletion::ParentExited {
+                observed_parent_pid: watchdog.observed_parent_pid(),
+            })
+    }
+
+    fn parent_exited_outcome(
+        &self,
+        expected_parent_pid: Option<u32>,
+        mode: ReportMode,
+        input: &ReportInput,
+        json_report: bool,
+        scan_started: Instant,
+        profile_phases: &BTreeMap<String, u64>,
+    ) -> Option<CommandOutcome> {
+        let watchdog = self.watchdog?;
+        if !watchdog.parent_exited() {
+            return None;
+        }
+        Some(parent_exited_abort(
+            expected_parent_pid,
+            watchdog.observed_parent_pid(),
+            mode,
+            input,
+            json_report,
+            scan_started,
+            profile_phases,
+        ))
+    }
+}
+
+fn parent_exited_abort(
+    expected_parent_pid: Option<u32>,
+    observed_parent_pid: Option<u32>,
+    mode: ReportMode,
+    input: &ReportInput,
+    json_report: bool,
+    scan_started: Instant,
+    profile_phases: &BTreeMap<String, u64>,
+) -> CommandOutcome {
+    outcome(
+        base_report(
+            ReportStatus::Failed,
+            ReportOperation::Scan,
+            mode,
+            input.clone(),
+        )
+        .with_error(diagnostic(
+            ReportCode::ParentExited,
+            "parent process exited; scan aborted before writing the artifact",
+            None,
+            None,
+            true,
+            json!({
+                "expected_parent_pid": expected_parent_pid,
+                "observed_parent_pid": observed_parent_pid,
+            }),
+        ))
+        .with_profile(scan_profile(scan_started, profile_phases, &BTreeMap::new())),
+        1,
+        json_report,
+        ReportStream::Stdout,
+    )
+}
+
+/// Warn when `--spool-dir` resolved to a directory inside `--root` that holds
+/// something the scan would otherwise have read.
+///
+/// The exclusion itself is correct — a surviving `.jsonl` spool would otherwise
+/// be extracted as source — and the directory is created when missing, so no
+/// existence check can catch a caller who typed the wrong variable. Without this
+/// warning `--spool-dir $ROOT/src` exits `ok` with zero diagnostics and an
+/// artifact silently missing every symbol under `src/`, and an incremental
+/// rescan then drops the previously indexed rows for that subtree as missing.
+///
+/// The hazard is a spool directory that SWALLOWS content, so a dedicated scratch
+/// directory such as `$ROOT/.spool` or `$ROOT/.miller/spool` — the layout the
+/// flag is meant to be used with — must stay silent. Warning on placement alone
+/// would put a permanent unactionable warning on every scan the named consumer
+/// runs, which is how a warning channel stops being read.
+///
+/// A spool directory that IS the root is not warned about either: only
+/// spool-shaped file names are skipped there, so no source is lost.
+fn spool_dir_inside_root_warning(spool_dir: &Path, root: &Path) -> Option<ReportDiagnostic> {
+    if spool_dir == root || !spool_dir.starts_with(root) {
+        return None;
+    }
+    if !holds_non_spool_entries(spool_dir) {
+        return None;
+    }
+    let root_relative_path = root_relative_unix(root, spool_dir).ok();
+    Some(diagnostic(
+        ReportCode::SpoolDirExcluded,
+        format!(
+            "spool directory is inside the source root; it and everything under it \
+             are excluded from this scan: {}",
+            display_path(spool_dir)
+        ),
+        Some(display_path(spool_dir)),
+        root_relative_path,
+        true,
+        json!({ "root_path": display_path(root) }),
+    ))
+}
+
+/// Whether a spool directory holds anything other than spool files and their
+/// sentinels — that is, whether excluding it costs the scan any content.
+///
+/// One non-recursive read is enough signal: an entry this module did not create
+/// is content the walk will no longer see, and the directory it names is content
+/// too. An unreadable directory returns `false`: a missing signal is not evidence
+/// of a hazard, and probing for a warning must never fail the scan.
+///
+/// Filesystem metadata a scratch directory collects on its own does not count:
+/// the operator never put content there, and warning on it would restore the
+/// permanent unactionable warning this predicate exists to avoid. The set is
+/// deliberately tiny — hidden entries at large DO count, because discovery does
+/// not skip them and a dot-directory can hold real source.
+fn holds_non_spool_entries(spool_dir: &Path) -> bool {
+    const INERT_METADATA: [&str; 2] = [".DS_Store", "Thumbs.db"];
+
+    let Ok(entries) = std::fs::read_dir(spool_dir) else {
+        return false;
+    };
+    entries.flatten().any(|entry| {
+        entry
+            .file_name()
+            .to_str()
+            .is_none_or(|name| !INERT_METADATA.contains(&name) && !is_spool_artifact_name(name))
+    })
+}
+
+/// Warn when the spool directory could not carry an ownership lock.
+///
+/// Falling back to an unreapable spool name is the right trade — failing the
+/// scan on an `ENOLCK` scratch mount swaps a leak for an outage — but silently
+/// falling back leaves an operator who adopted `--spool-dir` to stop a leak with
+/// no way to learn the protection is inert.
+fn spool_lock_unavailable_warning(spool_dir: Option<&Path>) -> ReportDiagnostic {
+    diagnostic(
+        ReportCode::SpoolLockUnavailable,
+        "spool directory could not carry an ownership lock; this scan's spool is \
+         removed only by this process, and a later scan can never reclaim it if \
+         this one is killed",
+        spool_dir.map(display_path),
+        None,
+        true,
+        json!({}),
+    )
+}
+
+/// Whether an extraction pass reached the end of its target list, and if not,
+/// why it stopped.
+///
+/// A partial spool is shaped exactly like a complete one, and promoting it as a
+/// complete scan deletes every file after the stop point from the artifact. The
+/// reason travels in the return value rather than being re-derived by the
+/// caller, so a second stop condition added later is a compile error at every
+/// caller instead of silent data loss.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SpoolCompletion {
+    Complete,
+    ParentExited { observed_parent_pid: Option<u32> },
+}
+
+/// What one spooling extraction pass extracts, and how. Kept as a struct because
+/// the alternative is an eight-argument call whose meaning depends on position.
+struct ExtractionRequest<'a> {
+    root: &'a Path,
     indexed_at: String,
-    existing_content_hashes: Option<&BTreeMap<String, String>>,
+    existing_content_hashes: Option<&'a BTreeMap<String, String>>,
     force: bool,
     jobs: usize,
+}
+
+fn spool_discovered_files(
+    request: ExtractionRequest<'_>,
+    discovery: &DiscoveryPolicy,
+    targets: &[FileTarget],
+    controls: ScanControls<'_>,
 ) -> Result<SpooledExtractedFiles, ArtifactSpoolError> {
     let mut supported_targets = Vec::with_capacity(targets.len());
     for target in targets {
@@ -1000,12 +1334,9 @@ fn spool_discovered_files(
         }
     }
     extract_supported_files_to_spool(
-        root,
+        request,
         &supported_targets,
-        indexed_at,
-        existing_content_hashes,
-        force,
-        jobs,
+        controls,
         extract_artifact_file_from_snapshot,
     )
 }
@@ -1031,11 +1362,15 @@ impl ExtractedFiles {
 }
 
 struct SpooledExtractedFiles {
-    spool: ArtifactFileSpool,
+    /// Owns the spool file and its removal. The guard is created with the spool
+    /// rather than with this struct so that a spool write failure — which returns
+    /// before this struct exists — still removes the file.
+    spool: ScanSpool,
     snapshot_paths: Vec<String>,
     files_spooled: usize,
     errors: Vec<ExtractFileError>,
     profile: ScanExtractionProfile,
+    completion: SpoolCompletion,
 }
 
 impl SpooledExtractedFiles {
@@ -1046,19 +1381,13 @@ impl SpooledExtractedFiles {
             "expected extraction to succeed without per-file errors: {:?}",
             self.errors
         );
-        self.spool.finish().unwrap();
+        self.spool.file_spool_mut().finish().unwrap();
         self.spool
+            .file_spool()
             .iter()
             .unwrap()
             .collect::<Result<Vec<_>, _>>()
             .unwrap()
-    }
-}
-
-impl Drop for SpooledExtractedFiles {
-    fn drop(&mut self) {
-        let _ = self.spool.finish();
-        let _ = std::fs::remove_file(self.spool.path());
     }
 }
 
@@ -1338,12 +1667,9 @@ fn compute_file_outcome(
 }
 
 fn extract_supported_files_to_spool(
-    root: &Path,
+    request: ExtractionRequest<'_>,
     targets: &[SupportedFileTarget],
-    indexed_at: String,
-    existing_content_hashes: Option<&BTreeMap<String, String>>,
-    force: bool,
-    jobs: usize,
+    controls: ScanControls<'_>,
     extract: impl Fn(
         &Path,
         &FileTarget,
@@ -1353,33 +1679,42 @@ fn extract_supported_files_to_spool(
     ) -> Result<ArtifactFile, ExtractFileError>
     + Sync,
 ) -> Result<SpooledExtractedFiles, ArtifactSpoolError> {
-    let mut spool = create_scan_spool()?;
+    let mut spool = create_scan_spool(controls.spool_dir)?;
     let mut snapshot_paths = Vec::with_capacity(targets.len());
     let mut errors = Vec::new();
     let mut profile = ScanExtractionProfile::default();
+    let mut completion = SpoolCompletion::Complete;
 
     // `num_threads(0)` lets rayon pick from available parallelism. If the pool
     // cannot be built we fall back to rayon's global pool rather than failing the scan.
     let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(jobs)
+        .num_threads(request.jobs)
         .build()
         .ok();
 
     for chunk in targets.chunks(EXTRACT_SPOOL_CHUNK_SIZE) {
+        // Cooperative abort point for the parent watchdog. Stopping between chunks
+        // keeps every `Drop` intact, which is what removes the spool file.
+        if let Some(stopped) = controls.stop_requested() {
+            completion = stopped;
+            break;
+        }
         // Extract every file in the chunk in parallel. `collect` into a Vec preserves
         // chunk order, so the serial drain below stays byte-identical to a sequential scan.
         let map_chunk = || {
             chunk
                 .par_iter()
                 .map(|supported| {
-                    compute_file_outcome(
-                        root,
+                    let outcome = compute_file_outcome(
+                        request.root,
                         supported,
-                        &indexed_at,
-                        existing_content_hashes,
-                        force,
+                        &request.indexed_at,
+                        request.existing_content_hashes,
+                        request.force,
                         &extract,
-                    )
+                    );
+                    controls.advance(Counter::Extracted, 1);
+                    outcome
                 })
                 .collect::<Vec<FileOutcome>>()
         };
@@ -1426,11 +1761,17 @@ fn extract_supported_files_to_spool(
                     }
                 }
             }
-            push_profiled_spool(&mut spool, &mut profile, &outcome.language, &outcome.file)?;
+            push_profiled_spool(
+                spool.file_spool_mut(),
+                &mut profile,
+                &outcome.language,
+                &outcome.file,
+            )?;
             if let Some(error) = outcome.error {
                 errors.push(error);
             }
         }
+        controls.advance(Counter::Spooled, chunk.len() as u64);
     }
 
     let files_spooled = spool.len();
@@ -1440,19 +1781,8 @@ fn extract_supported_files_to_spool(
         files_spooled,
         errors,
         profile,
+        completion,
     })
-}
-
-fn create_scan_spool() -> Result<ArtifactFileSpool, ArtifactSpoolError> {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or(0);
-    let path = std::env::temp_dir().join(format!(
-        "julie-extract-scan-spool-{}-{nanos}.jsonl",
-        std::process::id()
-    ));
-    ArtifactFileSpool::create(path)
 }
 
 /// Why `update` refused to extract a file it was pointed at. Both variants
@@ -1801,6 +2131,26 @@ fn generated_artifact_id() -> String {
     format!("artifact-{nanos}")
 }
 
+/// The scan's last cooperative abort point, ordered ahead of its first
+/// destructive step.
+///
+/// A full rebuild unlinks the live artifact before the writer runs, and past the
+/// writer the spool must stay on disk until it has been read back, so this is the
+/// only place both can be decided. Deciding the abort second would let a scan
+/// delete the artifact and then report `parent_exited` — which
+/// `docs/contracts/reports.md` documents as leaving the artifact untouched.
+fn abort_before_full_rebuild(
+    db: &Path,
+    should_rebuild_db: bool,
+    aborted: impl FnOnce() -> Option<CommandOutcome>,
+) -> Option<CommandOutcome> {
+    let aborted = aborted();
+    if aborted.is_none() && should_rebuild_db {
+        remove_artifact_files(db);
+    }
+    aborted
+}
+
 fn remove_artifact_files(db: &Path) {
     for path in [
         db.to_path_buf(),
@@ -1827,6 +2177,7 @@ mod tests {
     use crate::capability_snapshot::{
         capability_snapshot_fingerprint, parser_inventory_fingerprint,
     };
+    use crate::spool::{owned_spool_file_name, sentinel_file_name, unowned_spool_file_name};
 
     use super::*;
 
@@ -1914,15 +2265,18 @@ mod tests {
         let extracted_paths = std::sync::Mutex::new(Vec::new());
 
         let extracted = extract_supported_files_to_spool(
-            fixture.root(),
+            ExtractionRequest {
+                root: fixture.root(),
+                indexed_at: "2026-06-01T00:00:00Z".to_string(),
+                existing_content_hashes: Some(&existing_hashes),
+                force: false,
+                jobs: 1,
+            },
             &[
                 SupportedFileTarget::new(unchanged.clone(), "rust"),
                 SupportedFileTarget::new(changed.clone(), "rust"),
             ],
-            "2026-06-01T00:00:00Z".to_string(),
-            Some(&existing_hashes),
-            false,
-            1,
+            ScanControls::default(),
             |_, target, language, indexed_at, snapshot| {
                 extracted_paths
                     .lock()
@@ -1986,12 +2340,9 @@ mod tests {
         let max_in_flight = std::sync::atomic::AtomicUsize::new(0);
 
         let extracted = extract_supported_files_to_spool(
-            fixture.root(),
+            request(fixture.root(), 4),
             &targets,
-            "2026-06-01T00:00:00Z".to_string(),
-            None,
-            false,
-            4,
+            ScanControls::default(),
             |_, target, language, indexed_at, snapshot| {
                 let current = in_flight.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
                 max_in_flight.fetch_max(current, std::sync::atomic::Ordering::SeqCst);
@@ -2025,24 +2376,18 @@ mod tests {
         }
 
         let reference = extract_supported_files_to_spool(
-            fixture.root(),
+            request(fixture.root(), 1),
             &targets,
-            "2026-06-01T00:00:00Z".to_string(),
-            None,
-            false,
-            1,
+            ScanControls::default(),
             extract_artifact_file_from_snapshot,
         )
         .unwrap()
         .unwrap();
 
         let parallel = extract_supported_files_to_spool(
-            fixture.root(),
+            request(fixture.root(), 8),
             &targets,
-            "2026-06-01T00:00:00Z".to_string(),
-            None,
-            false,
-            8,
+            ScanControls::default(),
             extract_artifact_file_from_snapshot,
         )
         .unwrap()
@@ -2091,12 +2436,15 @@ mod tests {
         ];
 
         let mut extracted = extract_supported_files_to_spool(
-            fixture.root(),
+            ExtractionRequest {
+                root: fixture.root(),
+                indexed_at: "2026-06-01T00:00:00Z".to_string(),
+                existing_content_hashes: Some(&existing_hashes),
+                force: false,
+                jobs: 8,
+            },
             &targets,
-            "2026-06-01T00:00:00Z".to_string(),
-            Some(&existing_hashes),
-            false,
-            8,
+            ScanControls::default(),
             extract_artifact_file_from_snapshot,
         )
         .unwrap();
@@ -2117,9 +2465,10 @@ mod tests {
         );
         assert_eq!(extracted.errors[0].root_relative_path, "src/c_bad.rs");
 
-        extracted.spool.finish().unwrap();
+        extracted.spool.file_spool_mut().finish().unwrap();
         let files = extracted
             .spool
+            .file_spool()
             .iter()
             .unwrap()
             .collect::<Result<Vec<_>, _>>()
@@ -2249,6 +2598,311 @@ mod tests {
         assert_sha256(&capabilities);
         assert_sha256(&changed_capabilities);
         assert_ne!(capabilities, changed_capabilities);
+    }
+
+    #[test]
+    fn an_aborting_scan_never_unlinks_the_artifact_it_reports_as_untouched() {
+        let temp = TempDir::new().unwrap();
+        let db = temp.path().join("artifact.sqlite");
+        std::fs::write(&db, b"unopenable artifact").unwrap();
+        std::fs::write(temp.path().join("artifact.sqlite-wal"), b"wal").unwrap();
+
+        let aborted = abort_before_full_rebuild(&db, true, || Some(parent_exited_outcome()));
+
+        assert!(aborted.is_some());
+        assert!(
+            db.exists(),
+            "parent_exited is documented as leaving the artifact untouched"
+        );
+        assert!(temp.path().join("artifact.sqlite-wal").exists());
+    }
+
+    #[test]
+    fn a_full_rebuild_that_is_not_aborting_clears_the_artifact_and_its_sidecars() {
+        let temp = TempDir::new().unwrap();
+        let db = temp.path().join("artifact.sqlite");
+        std::fs::write(&db, b"unopenable artifact").unwrap();
+        std::fs::write(temp.path().join("artifact.sqlite-wal"), b"wal").unwrap();
+
+        let aborted = abort_before_full_rebuild(&db, true, || None);
+
+        assert!(aborted.is_none());
+        assert!(!db.exists());
+        assert!(!temp.path().join("artifact.sqlite-wal").exists());
+    }
+
+    fn parent_exited_outcome() -> CommandOutcome {
+        let watchdog = ParentWatchdog::tripped(1);
+        let controls = ScanControls {
+            watchdog: Some(&watchdog),
+            ..ScanControls::default()
+        };
+        controls
+            .parent_exited_outcome(
+                Some(2),
+                ReportMode::Force,
+                &artifact_input(Path::new("artifact.sqlite"), None, None, None),
+                true,
+                Instant::now(),
+                &BTreeMap::new(),
+            )
+            .unwrap()
+    }
+
+    #[test]
+    fn a_tripped_parent_watchdog_stops_extraction_before_the_first_chunk() {
+        let fixture = ScanFixture::new();
+        let targets = (0..4)
+            .map(|index| {
+                SupportedFileTarget::new(
+                    fixture.write(
+                        &format!("src/f{index}.rs"),
+                        &format!("pub fn f{index}() {{}}\n"),
+                    ),
+                    "rust",
+                )
+            })
+            .collect::<Vec<_>>();
+        let watchdog = ParentWatchdog::tripped(1);
+        let controls = ScanControls {
+            watchdog: Some(&watchdog),
+            ..ScanControls::default()
+        };
+
+        let extracted = extract_supported_files_to_spool(
+            request(fixture.root(), 1),
+            &targets,
+            controls,
+            extract_artifact_file_from_snapshot,
+        )
+        .unwrap();
+
+        assert_eq!(extracted.files_spooled, 0);
+        assert!(extracted.snapshot_paths.is_empty());
+        assert!(extracted.errors.is_empty());
+        assert_eq!(
+            extracted.completion,
+            SpoolCompletion::ParentExited {
+                observed_parent_pid: Some(1)
+            },
+            "a partial spool must say so in the return value, not leave the caller to re-derive it"
+        );
+    }
+
+    #[test]
+    fn a_finished_extraction_pass_reports_a_complete_spool() {
+        let fixture = ScanFixture::new();
+        let target =
+            SupportedFileTarget::new(fixture.write("src/only.rs", "pub fn only() {}\n"), "rust");
+
+        let extracted = extract_supported_files_to_spool(
+            request(fixture.root(), 1),
+            &[target],
+            ScanControls::default(),
+            extract_artifact_file_from_snapshot,
+        )
+        .unwrap();
+
+        assert_eq!(extracted.completion, SpoolCompletion::Complete);
+        assert_eq!(extracted.files_spooled, 1);
+    }
+
+    #[test]
+    fn a_spool_dir_that_swallows_source_is_warned_about_and_one_outside_is_not() {
+        let temp = TempDir::new().unwrap();
+        let root = temp.path().join("repo");
+        let source = root.join("src");
+        std::fs::create_dir_all(&source).unwrap();
+        std::fs::write(source.join("lib.rs"), "pub fn lib() {}\n").unwrap();
+
+        let inside = spool_dir_inside_root_warning(&source, &root).unwrap();
+        assert_eq!(inside.code, ReportCode::SpoolDirExcluded);
+        assert_eq!(inside.root_relative_path.as_deref(), Some("src"));
+        assert_eq!(inside.path.as_deref(), Some(display_path(&source).as_str()));
+
+        assert!(
+            spool_dir_inside_root_warning(&temp.path().join("spools"), &root).is_none(),
+            "a spool dir outside the root excludes nothing"
+        );
+        assert!(
+            spool_dir_inside_root_warning(&root, &root).is_none(),
+            "a spool dir that is the root only skips spool-shaped names"
+        );
+    }
+
+    #[test]
+    fn a_dedicated_scratch_spool_dir_inside_the_root_never_warns() {
+        let temp = TempDir::new().unwrap();
+        let root = temp.path().join("repo");
+        let scratch = root.join(".miller").join("spool");
+        std::fs::create_dir_all(&scratch).unwrap();
+
+        assert!(
+            spool_dir_inside_root_warning(&scratch, &root).is_none(),
+            "an empty scratch directory excludes nothing"
+        );
+
+        for name in [
+            owned_spool_file_name(11, 1_754_000_000_000_000_000),
+            sentinel_file_name(11, 1_754_000_000_000_000_000),
+            unowned_spool_file_name(22, 1_754_000_000_000_000_001),
+        ] {
+            std::fs::write(scratch.join(name), b"{}\n").unwrap();
+        }
+        assert!(
+            spool_dir_inside_root_warning(&scratch, &root).is_none(),
+            "leftover spools are the flag doing its job, not content the scan lost"
+        );
+
+        std::fs::write(scratch.join(".DS_Store"), b"\0\0").unwrap();
+        assert!(
+            spool_dir_inside_root_warning(&scratch, &root).is_none(),
+            "metadata the filesystem left behind is not content the operator put there"
+        );
+
+        std::fs::create_dir(scratch.join(".hidden")).unwrap();
+        assert!(
+            spool_dir_inside_root_warning(&scratch, &root).is_some(),
+            "discovery does not skip dot-directories, so neither may this probe"
+        );
+        std::fs::remove_dir(scratch.join(".hidden")).unwrap();
+
+        std::fs::write(scratch.join("notes.md"), b"# real content\n").unwrap();
+        assert!(
+            spool_dir_inside_root_warning(&scratch, &root).is_some(),
+            "one entry the scan would have read is the hazard the warning names"
+        );
+    }
+
+    #[test]
+    fn an_unreadable_spool_dir_inside_the_root_does_not_warn() {
+        let temp = TempDir::new().unwrap();
+        let root = temp.path().join("repo");
+        std::fs::create_dir_all(&root).unwrap();
+
+        assert!(
+            spool_dir_inside_root_warning(&root.join("absent"), &root).is_none(),
+            "a missing signal is not evidence that content was excluded"
+        );
+    }
+
+    #[test]
+    fn a_scan_that_fails_before_it_writes_still_carries_the_spool_dir_warning() {
+        let fixture = ScanFixture::new();
+        fixture.write("src/a.rs", "pub fn a() {}\n");
+        let output = TempDir::new().unwrap();
+        let db = output.path().join("artifact.sqlite");
+        std::fs::create_dir(&db).unwrap();
+
+        let outcome = scan(ScanArgs {
+            root: fixture.root().to_path_buf(),
+            db,
+            force: true,
+            ignore_files: Vec::new(),
+            strict_schema: false,
+            json: true,
+            jobs: 1,
+            spool_dir: Some(fixture.root().join("src")),
+            progress_file: None,
+            parent_pid: None,
+        });
+
+        assert_eq!(outcome.exit_code, 1, "the artifact could not be opened");
+        assert!(
+            outcome
+                .warning_codes()
+                .contains(&ReportCode::SpoolDirExcluded),
+            "a failing run is the one an operator reads closely: {:?}",
+            outcome.warning_codes()
+        );
+    }
+
+    #[test]
+    fn an_unlockable_spool_dir_warns_that_leak_protection_is_inert() {
+        let warning = spool_lock_unavailable_warning(Some(Path::new("/mnt/scratch/spools")));
+
+        assert_eq!(warning.code, ReportCode::SpoolLockUnavailable);
+        assert_eq!(warning.path.as_deref(), Some("/mnt/scratch/spools"));
+        assert!(warning.recoverable);
+    }
+
+    #[test]
+    fn extraction_reports_advancing_counters_to_the_progress_file() {
+        let fixture = ScanFixture::new();
+        let progress_path = fixture.root().join("scan.progress");
+        let progress = ScanProgress::create_with_interval(&progress_path, Duration::ZERO).unwrap();
+        let targets = (0..4)
+            .map(|index| {
+                SupportedFileTarget::new(
+                    fixture.write(
+                        &format!("src/f{index}.rs"),
+                        &format!("pub fn f{index}() {{}}\n"),
+                    ),
+                    "rust",
+                )
+            })
+            .collect::<Vec<_>>();
+        let controls = ScanControls {
+            progress: Some(&progress),
+            ..ScanControls::default()
+        };
+
+        extract_supported_files_to_spool(
+            request(fixture.root(), 1),
+            &targets,
+            controls,
+            extract_artifact_file_from_snapshot,
+        )
+        .unwrap();
+
+        let records = std::fs::read_to_string(&progress_path)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+            .collect::<Vec<_>>();
+        assert!(!records.is_empty());
+        let extracted = records
+            .iter()
+            .map(|record| record["files_extracted"].as_u64().unwrap())
+            .collect::<Vec<_>>();
+        assert!(extracted.windows(2).all(|pair| pair[0] <= pair[1]));
+        assert_eq!(
+            records.last().unwrap()["files_spooled"].as_u64(),
+            Some(targets.len() as u64)
+        );
+    }
+
+    #[test]
+    fn extraction_without_controls_writes_no_progress_records() {
+        let fixture = ScanFixture::new();
+        let target =
+            SupportedFileTarget::new(fixture.write("src/only.rs", "pub fn only() {}\n"), "rust");
+
+        extract_supported_files_to_spool(
+            request(fixture.root(), 1),
+            &[target],
+            ScanControls::default(),
+            extract_artifact_file_from_snapshot,
+        )
+        .unwrap();
+
+        let stray = std::fs::read_dir(fixture.root())
+            .unwrap()
+            .flatten()
+            .map(|entry| entry.file_name().to_string_lossy().into_owned())
+            .filter(|name| name != "src")
+            .collect::<Vec<_>>();
+        assert!(stray.is_empty(), "no side files should appear: {stray:?}");
+    }
+
+    fn request(root: &Path, jobs: usize) -> ExtractionRequest<'_> {
+        ExtractionRequest {
+            root,
+            indexed_at: "2026-06-01T00:00:00Z".to_string(),
+            existing_content_hashes: None,
+            force: false,
+            jobs,
+        }
     }
 
     struct ScanFixture {

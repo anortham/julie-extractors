@@ -304,6 +304,117 @@ fn file_with_symbol(path: &str) -> ArtifactFile {
     }
 }
 
+#[test]
+fn scan_creates_a_missing_spool_dir_and_leaves_it_empty() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().join("repo");
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join("src/lib.rs"), "pub fn alpha() {}\n").unwrap();
+    let spool_dir = temp.path().join("scratch").join("spools");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        path_str(&root),
+        "--db",
+        path_str(&temp.path().join("artifact.sqlite")),
+        "--spool-dir",
+        path_str(&spool_dir),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
+    assert!(spool_dir.is_dir(), "a missing spool dir should be created");
+    assert_eq!(
+        std::fs::read_dir(&spool_dir).unwrap().count(),
+        0,
+        "a completed scan should leave no spool behind"
+    );
+}
+
+#[test]
+fn scan_spool_dir_pointing_at_a_regular_file_is_a_typed_error() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().join("repo");
+    std::fs::create_dir_all(&root).unwrap();
+    let not_a_dir = temp.path().join("not-a-dir");
+    std::fs::write(&not_a_dir, b"regular file").unwrap();
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        path_str(&root),
+        "--db",
+        path_str(&temp.path().join("artifact.sqlite")),
+        "--spool-dir",
+        path_str(&not_a_dir),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+    assert_eq!(report["errors"][0]["path"], path_str(&not_a_dir));
+}
+
+#[test]
+fn scan_progress_file_under_a_missing_directory_is_a_typed_error() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().join("repo");
+    std::fs::create_dir_all(&root).unwrap();
+    let progress = temp.path().join("absent").join("scan.progress");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        path_str(&root),
+        "--db",
+        path_str(&temp.path().join("artifact.sqlite")),
+        "--progress-file",
+        path_str(&progress),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+    assert!(
+        !temp.path().join("artifact.sqlite").exists(),
+        "an unusable progress path must fail before any scan work runs"
+    );
+}
+
+#[test]
+fn scan_progress_file_pointing_at_an_unwritable_path_is_a_typed_error() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().join("repo");
+    std::fs::create_dir_all(&root).unwrap();
+    let progress = temp.path().join("occupied.progress");
+    std::fs::create_dir_all(&progress).unwrap();
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        path_str(&root),
+        "--db",
+        path_str(&temp.path().join("artifact.sqlite")),
+        "--progress-file",
+        path_str(&progress),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+}
+
+fn stderr(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stderr).into_owned()
+}
+
 fn artifact_root(path: &Path) -> String {
     let conn = Connection::open(path).unwrap();
     conn.query_row(

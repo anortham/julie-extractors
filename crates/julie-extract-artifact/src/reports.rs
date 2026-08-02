@@ -357,10 +357,23 @@ pub enum ReportCode {
     /// (design §"Failure semantics"). Not an `ERROR_CODES` member — it never fails
     /// the write.
     ResolutionFailed,
+    /// `scan --parent-pid` observed that the named process is no longer this
+    /// process's parent, so the scan aborted before writing the artifact.
+    /// `details` carries `expected_parent_pid` and `observed_parent_pid`.
+    ParentExited,
+    /// `scan --spool-dir` resolved inside `--root`, so that directory and
+    /// everything under it is excluded from the scan. Warning-only: the
+    /// exclusion is correct, but it must not be silent.
+    SpoolDirExcluded,
+    /// `scan --spool-dir` could not take an ownership lock, so this scan's spool
+    /// falls back to a name no later scan can ever remove. Warning-only: the
+    /// scan is unaffected, but the leak protection the flag was adopted for is
+    /// inert.
+    SpoolLockUnavailable,
 }
 
 impl ReportCode {
-    pub const ERROR_CODES: [Self; 17] = [
+    pub const ERROR_CODES: [Self; 18] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -378,6 +391,7 @@ impl ReportCode {
         Self::DataLossGuard,
         Self::ExportFailed,
         Self::InternalError,
+        Self::ParentExited,
     ];
 }
 

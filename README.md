@@ -198,6 +198,7 @@ Public contracts:
 - [SQLite schema v5](docs/contracts/sqlite-schema-v5.md)
 - [JSONL v4](docs/contracts/jsonl-v4.md)
 - [JSON reports](docs/contracts/reports.md)
+- [Progress file v1](docs/contracts/progress-file-v1.md)
 
 Language support:
 

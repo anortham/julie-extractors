@@ -140,6 +140,9 @@ fn contract_subcommands_parse_their_documented_flags() {
             "--strict-schema",
             "--json",
             "--jobs",
+            "--spool-dir",
+            "--progress-file",
+            "--parent-pid",
         ],
     );
 
@@ -173,6 +176,21 @@ fn contract_subcommands_parse_their_documented_flags() {
 
     let output = julie_extract(&["languages", "--help"]);
     assert_help_contains(&output, &["--json"]);
+}
+
+#[test]
+fn fleet_safety_flags_are_scan_only() {
+    for command in ["update", "delete", "info", "export", "languages"] {
+        let output = julie_extract(&[command, "--help"]);
+        assert!(output.status.success(), "{command} help should succeed");
+        let help = String::from_utf8(output.stdout).unwrap();
+        for flag in ["--spool-dir", "--progress-file", "--parent-pid"] {
+            assert!(
+                !help.contains(flag),
+                "{flag} must stay scan-only but appears in {command} help:\n{help}"
+            );
+        }
+    }
 }
 
 #[test]

@@ -22,6 +22,27 @@ pub(crate) struct CommandOutcome {
     report_stream: ReportStream,
 }
 
+impl CommandOutcome {
+    /// Append warnings to an outcome whose report is already built, so a caller
+    /// can attach them once for every exit path instead of at each `return`.
+    pub(crate) fn with_warnings(
+        mut self,
+        warnings: impl IntoIterator<Item = ReportDiagnostic>,
+    ) -> Self {
+        self.report.warnings.extend(warnings);
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn warning_codes(&self) -> Vec<ReportCode> {
+        self.report
+            .warnings
+            .iter()
+            .map(|warning| warning.code)
+            .collect()
+    }
+}
+
 #[derive(Clone, Copy)]
 pub(crate) enum ReportStream {
     Stdout,

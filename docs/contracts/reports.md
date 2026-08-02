@@ -424,10 +424,35 @@ Stable report codes:
 - `data_loss_guard`: preserving known-good rows blocked replacement.
 - `export_failed`: JSONL export failed.
 - `internal_error`: unexpected implementation failure.
+- `parent_exited`: `scan --parent-pid` observed that the named process is no
+  longer this process's parent, so the scan aborted. The abort point sits before
+  the scan's first destructive step — before the `--force` rebuild unlinks the
+  artifact and its `-wal`/`-shm` sidecars, and therefore before the artifact is
+  opened for writing — so the artifact is untouched on every path that reports
+  this code. The extraction spool was removed. `details` carries
+  `expected_parent_pid` and `observed_parent_pid`. Exit code `1`.
 
 Warnings use the same shape and may use warning-only codes such as
-`metadata_missing`, `capability_gap`, `slow_file_skipped`, or
-`resolution_upgraded`.
+`metadata_missing`, `capability_gap`, `slow_file_skipped`,
+`resolution_upgraded`, `spool_dir_excluded`, or `spool_lock_unavailable`.
+`spool_dir_excluded` is emitted by `scan` when `--spool-dir` resolves to a
+directory inside `--root` that holds anything other than spool files and their
+sentinels. That directory and everything under it is excluded from the walk —
+correct, because a surviving spool is valid `.jsonl` and would otherwise be
+extracted as source — but the exclusion is invisible in the counts, so a
+`--spool-dir` pointed at a source directory would otherwise produce a clean `ok`
+report and an artifact silently missing that subtree. A dedicated scratch
+directory such as `$ROOT/.spool` excludes no content and is not warned about.
+`spool_lock_unavailable` is emitted by `scan` when `--spool-dir` could not carry
+an ownership lock. The scan is unaffected and falls back to a spool name no
+later scan will ever remove, so the leak protection the flag was adopted for is
+inert for this scan.
+Both spool warnings describe how the scan was configured rather than what it
+found, so once determined they appear on every report the scan emits — `ok`,
+`partial`, `failed`, and the `parent_exited` abort alike. A scan that fails
+before the relevant state exists carries neither: argument resolution decides
+`spool_dir_excluded`, and spool creation decides `spool_lock_unavailable`, so a
+failure earlier than that has nothing to report.
 `slow_file_skipped` is emitted by `scan` and `update` for otherwise-supported
 source files that exceed the extractor's oversized-file limit and are excluded
 from extraction. Both paths remove any artifact rows previously stored for the

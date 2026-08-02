@@ -35,7 +35,7 @@ of truth when this table drifts.
 ## Commands
 
 ```bash
-julie-extract scan --root <dir> --db <path> [--force] [--ignore-file <path>...] [--jobs <n>] [--strict-schema] [--json]
+julie-extract scan --root <dir> --db <path> [--force] [--ignore-file <path>...] [--jobs <n>] [--spool-dir <path>] [--progress-file <path>] [--parent-pid <pid>] [--strict-schema] [--json]
 julie-extract update --root <dir> --db <path> --file <path> [--ignore-file <path>...] [--strict-schema] [--json]
 julie-extract delete --root <dir> --db <path> --file <path> [--strict-schema] [--json]
 julie-extract info --db <path> [--strict-schema] [--json]
@@ -51,6 +51,13 @@ julie-extract languages [--json]
 - `--json`: write the stable JSON report to stdout.
 - `--strict-schema`: fail instead of migrating an older compatible artifact.
 - `--ignore-file <path>`: extra gitignore-style ignore file. Repeatable.
+
+`scan` additionally accepts three opt-in process-lifecycle flags — `--spool-dir`,
+`--progress-file`, and `--parent-pid`. They exist for supervisors that run many
+concurrent scans, and each one is inert when absent: an invocation without a flag
+opens no extra file, starts no thread, and produces the same artifact, report, and
+exit code it produced before the flag existed. They are documented under `scan`
+below and are not accepted by any other command.
 
 `--ignore-file` rules take precedence over in-tree `.gitignore` and
 `.julieignore` rules. No ignore rule overrides the hard safety exclusions
@@ -107,8 +114,14 @@ invalid `--ignore-file` is a hard CLI error.
 ## Path Rules
 
 - Input paths use the platform-native path syntax.
-- `--root`, `--db`, `--file`, and `--ignore-file` are canonicalized at the CLI
-  boundary before artifact operations run.
+- `--root`, `--db`, `--file`, `--ignore-file`, `--spool-dir`, and
+  `--progress-file` are canonicalized at the CLI boundary before artifact
+  operations run. `--spool-dir` is created when it does not exist;
+  `--progress-file` requires an existing parent directory, exactly as `--db` does,
+  must use the `.progress` extension, and may not resolve to `--db` or one of its
+  `-wal`/`-shm` sidecars. `--db` and `--progress-file` both resolve their final
+  path component when it already exists, so a symlink and its target are the same
+  path for the collision check.
 - Stored file paths are root-relative Unix-style strings.
 - `--file` may be absolute or root-relative.
 - A file outside `--root` is a typed error.
@@ -144,6 +157,94 @@ and `--force` scans.
 file read + parse + map phase; the SQLite write stays single-writer. Output is
 independent of `--jobs`: the artifact, row ordering, report counts, and per-file
 failure handling are identical for any worker count.
+
+`--spool-dir <path>` places this scan's extraction spool in the named directory
+instead of the system temporary directory, and enables removal of spool files in
+that directory that no live scan owns. The directory is created when missing.
+
+A running scan holds an advisory lock for its spool's lifetime on a sibling
+`<spool>.lock` sentinel, created and locked before the spool file exists. The
+lock never covers the spool's own bytes: file locks are mandatory on Windows, so
+a lock taken over the spool would fail the spool's own writer. Removal is decided
+by that lock and never by file age or by the process id in the file name: a
+locked spool is always kept, and a spool the lock cannot prove unowned is always
+kept. Removal runs once at startup, before this scan creates its own spool, and
+is best effort — a read-only or foreign-owned directory never fails the scan.
+
+Only a spool with a matching sentinel is ever a removal candidate, so a spool
+written without the flag, or by a scan whose sentinel could not be locked, can
+never be removed by anyone. Directories may therefore be shared with flagless
+scans safely; the cost is that those spools are never cleaned up. On a filesystem
+that cannot take the lock at all (some NFS and FUSE scratch mounts return
+`ENOLCK`) the scan falls back to a non-candidate spool name in the requested
+directory rather than failing: the flag makes concurrent scans safer, and
+refusing to run would trade a leak for an outage.
+
+The spool directory is excluded from discovery, so placing it inside `--root`
+does not change `counts.files_scanned` — a surviving spool would otherwise be
+detected as JSON and extracted as if it were source. The exclusion covers the
+whole directory, so a `--spool-dir` inside `--root` drops that subtree from the
+scan; when that directory holds anything other than spool files and their
+sentinels, the report carries a `spool_dir_excluded` warning naming it, because
+the directory is created when missing and the counts alone would look healthy. A
+dedicated scratch directory such as `$ROOT/.spool` excludes nothing and is
+silent. A scan whose spool directory could not carry an ownership lock warns with
+`spool_lock_unavailable`. Both warnings appear on every report a scan emits,
+including a failed one, because they describe how the scan was configured rather
+than what it found.
+
+Accepted limit: `flock` is node-local, and network filesystems emulate it per
+node rather than across the cluster. Two machines sharing one `--spool-dir` over
+NFS can each believe they own a sentinel, leaving the minimum-age veto as the
+only guard. Give each machine its own spool directory.
+
+Without the flag the spool goes to the system temporary directory with no
+sentinel and nothing is ever removed, which is what a scan did before the flag
+existed.
+
+`--progress-file <path>` appends live progress records to the named file while the
+scan runs, so a supervisor can tell a healthy long scan from a wedged one during
+the phase before the artifact database is opened. The file name MUST either have
+the extension `progress` (`scan.progress`) or be the bare dotfile `.progress`;
+case is ignored, and anything else is refused at argument time with
+`invalid_path`. Creating the progress file truncates it, so without that rule a
+templating slip against the wrong variable — `--progress-file $ROOT/src/lib.rs` —
+would silently destroy the file it named and still report `ok`. The format is
+append-only JSONL:
+at most one record per second, written only when a counter or phase advanced, and
+each record is one unbuffered write. Within one scan the file length is therefore
+monotonically non-decreasing and "the length grew" is a sound advance signal on
+its own. A new scan handed the same path truncates it, so a length DECREASE means
+a fresh scan started and must be read as a new baseline and as progress, never as
+a stall. A trailing line without a newline is an incomplete tail and must be
+dropped by parsers; a failed write can also leave one malformed line mid-file,
+which parsers must skip rather than stop at. `artifact_write` emits a phase-entry
+record only and is not row-instrumented; a consumer watching artifact file sizes
+already sees that phase. The progress file is excluded from discovery, so writing
+it inside `--root` does not change `counts.files_scanned`. An unusable path fails
+at argument time with `invalid_path` before any scanning starts, as does a path
+equal to `--db`, including through a symlink — creating the progress file
+truncates it, so the collision would destroy the artifact before the scan had
+even validated that it could run. The artifact's `-wal` and `-shm` sidecars are
+covered by the name rule instead: those names cannot end in `.progress`. A write
+failure
+mid-scan is swallowed rather than failing the scan. The record schema is
+[progress-file-v1.md](progress-file-v1.md).
+
+`--parent-pid <pid>` aborts the scan when the named process stops being this
+process's parent. The value MUST be the DIRECT parent's process id; a value that
+is not already the direct parent aborts on the first probe, which is a loud
+deterministic failure rather than a silent no-op. The kernel is asked who the
+parent is now rather than whether a recorded id is still alive, so process-id
+reuse cannot defeat it. The poll interval is about two seconds and the abort is
+cooperative: the scan stops between extraction chunks or before it opens the
+artifact, unwinds normally so its spool file is removed, and returns `failed` with
+error code `parent_exited` and exit code `1`. The diagnostic's `details` carry
+`expected_parent_pid` and `observed_parent_pid`. Once the artifact write
+transaction has started the scan runs to completion; that write is atomic and the
+spool must survive until the writer has read it. The flag is Unix-only — `std`
+exposes no Windows equivalent — and is accepted and ignored on other platforms so
+one caller argv works everywhere.
 
 With `--json`, successful scan reports include a bounded `counts.file_rows`
 summary of the largest source files by attributed artifact rows. Use

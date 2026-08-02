@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::process::{Command, Output};
+use std::time::{Duration, SystemTime};
 
 use julie_extract_cli::limits::MAX_SOURCE_FILE_BYTES;
 use julie_extract_cli::resolution::RESOLUTION_VERSION;
@@ -2658,6 +2659,846 @@ fn artifact_without_resolution_metadata_requires_full_scan_before_update() {
         metadata_value(&db, "reference_resolution_status"),
         "partial"
     );
+}
+
+#[test]
+fn absent_fleet_safety_flags_leave_the_scan_report_and_the_filesystem_unchanged() {
+    let bare_fixture = FixtureRoot::new();
+    let bare_output = TempDir::new().unwrap();
+    let db = bare_output.path().join("artifact.sqlite");
+    // A spool this test owns the name of. A flagless scan must not reap the
+    // system temporary directory, which is where it puts its own spool.
+    let planted = std::env::temp_dir().join(format!(
+        "julie-extract-scan-owned-spool-{}-1754000000000000000.jsonl",
+        std::process::id()
+    ));
+    let planted_sentinel = std::path::PathBuf::from(format!("{}.lock", planted.display()));
+    std::fs::write(&planted, b"planted").unwrap();
+    std::fs::File::create(&planted_sentinel)
+        .unwrap()
+        .set_modified(SystemTime::now() - Duration::from_secs(3600))
+        .unwrap();
+    let root_before = entry_names(&bare_fixture.root);
+
+    let bare = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        bare_fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]));
+
+    assert_eq!(
+        entry_names(&bare_fixture.root),
+        root_before,
+        "a flagless scan must add nothing to the scanned tree"
+    );
+    assert!(
+        entry_names(bare_output.path()).iter().all(|name| [
+            "artifact.sqlite",
+            "artifact.sqlite-wal",
+            "artifact.sqlite-shm"
+        ]
+        .contains(&name.as_str())),
+        "a flagless scan must write nothing beside the artifact: {:?}",
+        entry_names(bare_output.path())
+    );
+    assert!(
+        planted.exists() && planted_sentinel.exists(),
+        "reaping is opt-in; a flagless scan must not touch the system temporary directory"
+    );
+    std::fs::remove_file(&planted).unwrap();
+    std::fs::remove_file(&planted_sentinel).unwrap();
+
+    let flagged_fixture = FixtureRoot::new();
+    let flagged_output = TempDir::new().unwrap();
+    let progress = flagged_output.path().join("scan.progress");
+    let flagged = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        flagged_fixture.root_str(),
+        "--db",
+        path_str(&flagged_output.path().join("artifact.sqlite")),
+        "--force",
+        "--spool-dir",
+        path_str(&flagged_output.path().join("spools")),
+        "--progress-file",
+        path_str(&progress),
+        "--parent-pid",
+        &std::process::id().to_string(),
+        "--json",
+    ]));
+
+    assert_eq!(stable_report(&bare), stable_report(&flagged));
+    assert!(progress.exists(), "the flagged scan should write progress");
+}
+
+#[test]
+fn a_progress_file_pointed_at_the_artifact_or_a_sidecar_is_refused_by_the_name_rule() {
+    // The name rule is what stops all three: `artifact.sqlite`, `-wal`, and
+    // `-shm` are all names that cannot end in `.progress`, so none of them ever
+    // reaches the collision guard — which is why that guard has no sidecar arms.
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]));
+    let artifact_bytes = std::fs::metadata(&db).unwrap().len();
+    assert!(artifact_bytes > 0);
+
+    for collision in [
+        db.clone(),
+        std::path::PathBuf::from(format!("{}-wal", db.display())),
+        std::path::PathBuf::from(format!("{}-shm", db.display())),
+    ] {
+        let output = julie_extract(&[
+            "scan",
+            "--root",
+            fixture.root_str(),
+            "--db",
+            path_str(&db),
+            "--progress-file",
+            path_str(&collision),
+            "--json",
+        ]);
+
+        assert_eq!(output.status.code(), Some(1));
+        let report = json_report(&output);
+        assert_eq!(report["status"], "failed");
+        assert_eq!(report["errors"][0]["code"], "invalid_path");
+        assert!(
+            report["errors"][0]["message"]
+                .as_str()
+                .unwrap()
+                .contains("`.progress`"),
+            "{} must be refused by the name rule it actually hits: {report:#?}",
+            collision.display()
+        );
+        assert_eq!(
+            std::fs::metadata(&db).unwrap().len(),
+            artifact_bytes,
+            "{} must not truncate the artifact",
+            collision.display()
+        );
+    }
+}
+
+#[test]
+fn a_progress_file_that_is_an_artifact_named_progress_is_refused_by_the_collision_guard() {
+    // An artifact named `*.progress` is the only spelling that gets past the name
+    // rule, so it is the only input the collision guard ever decides.
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let db = output.path().join("index.progress");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]));
+    let artifact_bytes = std::fs::metadata(&db).unwrap().len();
+    assert!(artifact_bytes > 0);
+
+    let refused = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--progress-file",
+        path_str(&db),
+        "--json",
+    ]);
+
+    assert_eq!(refused.status.code(), Some(1));
+    let report = json_report(&refused);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+    assert!(
+        report["errors"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("must not be the artifact database"),
+        "{report:#?}"
+    );
+    assert_eq!(
+        std::fs::metadata(&db).unwrap().len(),
+        artifact_bytes,
+        "the artifact must not be truncated"
+    );
+}
+
+#[test]
+fn a_progress_file_named_only_progress_is_accepted() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let progress = output.path().join(".progress");
+
+    let report = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&output.path().join("artifact.sqlite")),
+        "--force",
+        "--progress-file",
+        path_str(&progress),
+        "--json",
+    ]));
+
+    assert_eq!(report["status"], "ok");
+    assert!(
+        !progress_records(&progress).is_empty(),
+        "a bare `.progress` dotfile is the obvious hidden spelling and must work"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_db_and_a_progress_file_that_are_one_file_through_a_symlink_are_refused() {
+    // A large index kept on its own volume and reached through a link in the
+    // workspace. The two flags must resolve the same way or the collision guard
+    // compares two spellings of one file, passes, and `File::create` follows the
+    // link and truncates the artifact.
+    let fixture = FixtureRoot::new();
+    let store = TempDir::new().unwrap();
+    let db = store.path().join("index.progress");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]));
+    let artifact_bytes = std::fs::metadata(&db).unwrap().len();
+    assert!(artifact_bytes > 0);
+
+    let link = fixture.path("index.progress");
+    std::os::unix::fs::symlink(&db, &link).unwrap();
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&link),
+        "--progress-file",
+        path_str(&link),
+        "--json",
+    ]);
+
+    assert_eq!(
+        std::fs::metadata(&db).unwrap().len(),
+        artifact_bytes,
+        "a symlinked artifact must not be truncated through the progress file"
+    );
+    assert_eq!(output.status.code(), Some(1));
+    let report = json_report(&output);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_progress_file_symlinked_to_a_source_file_is_refused_by_the_name_rule() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let source = fixture.path("src/a.rs");
+    let before = std::fs::read(&source).unwrap();
+    let link = fixture.path("scan.progress");
+    std::os::unix::fs::symlink(&source, &link).unwrap();
+
+    let refused = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&output.path().join("artifact.sqlite")),
+        "--progress-file",
+        path_str(&link),
+        "--json",
+    ]);
+
+    assert_eq!(
+        std::fs::read(&source).unwrap(),
+        before,
+        "the name rule must apply to what the path resolves to"
+    );
+    assert_eq!(refused.status.code(), Some(1));
+    assert_eq!(json_report(&refused)["errors"][0]["code"], "invalid_path");
+}
+
+#[test]
+fn a_progress_file_without_the_progress_extension_is_refused_before_it_truncates() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let source = fixture.path("src/a.rs");
+    let before = std::fs::read(&source).unwrap();
+    assert!(!before.is_empty());
+
+    let refused = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&output.path().join("artifact.sqlite")),
+        "--progress-file",
+        path_str(&source),
+        "--json",
+    ]);
+
+    assert_eq!(refused.status.code(), Some(1));
+    let report = json_report(&refused);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "invalid_path");
+    assert_eq!(report["errors"][0]["path"], path_str(&source));
+    assert_eq!(
+        std::fs::read(&source).unwrap(),
+        before,
+        "a mistyped progress path must never truncate the file it names"
+    );
+    assert!(
+        !output.path().join("artifact.sqlite").exists(),
+        "the refusal must happen before any scan work runs"
+    );
+}
+
+#[test]
+fn a_spool_dir_inside_the_root_does_not_change_the_scan_counts() {
+    let baseline_fixture = FixtureRoot::new();
+    let baseline_output = TempDir::new().unwrap();
+    let baseline = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        baseline_fixture.root_str(),
+        "--db",
+        path_str(&baseline_output.path().join("artifact.sqlite")),
+        "--force",
+        "--json",
+    ]));
+
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let spool_dir = fixture.path("spools");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+    // Held by a "concurrent scan" so the reaper leaves it alone and discovery is
+    // the only thing standing between a live spool and being extracted as source.
+    let (survivor, survivor_sentinel) = plant_spool_pair(&spool_dir, 4242, Duration::from_secs(1));
+    std::fs::write(&survivor, "{\"root_relative_path\":\"src/a.rs\"}\n").unwrap();
+    let holder = std::fs::File::open(&survivor_sentinel).unwrap();
+    holder.lock().unwrap();
+
+    let with_spool_dir = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&output.path().join("artifact.sqlite")),
+        "--force",
+        "--spool-dir",
+        path_str(&spool_dir),
+        "--json",
+    ]));
+    holder.unlock().unwrap();
+
+    assert!(survivor.exists(), "a locked spool must survive the scan");
+    assert_eq!(
+        baseline["counts"]["files_scanned"], with_spool_dir["counts"]["files_scanned"],
+        "a spool directory inside the root must not be discovered"
+    );
+    assert_eq!(
+        baseline["counts"]["files_unsupported"],
+        with_spool_dir["counts"]["files_unsupported"]
+    );
+    assert_eq!(
+        stable_report_without_warnings(&baseline),
+        stable_report_without_warnings(&with_spool_dir)
+    );
+}
+
+#[test]
+fn a_spool_dir_inside_the_root_warns_that_its_contents_are_excluded() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let spool_dir = fixture.path("src");
+
+    let report = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&output.path().join("artifact.sqlite")),
+        "--force",
+        "--spool-dir",
+        path_str(&spool_dir),
+        "--json",
+    ]));
+
+    assert_eq!(report["status"], "ok");
+    let warning = report["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|warning| warning["code"] == "spool_dir_excluded")
+        .unwrap_or_else(|| {
+            panic!("a scan that silently drops a subtree must warn: {report:#?}");
+        });
+    assert_eq!(warning["root_relative_path"], "src");
+    assert!(
+        warning["message"]
+            .as_str()
+            .unwrap()
+            .contains(&spool_dir.canonicalize().unwrap().display().to_string()),
+        "the warning must name the excluded directory: {warning:#?}"
+    );
+    assert_eq!(
+        report["counts"]["files_scanned"], 0,
+        "the excluded subtree really is missing from the scan: {report:#?}"
+    );
+}
+
+#[test]
+fn a_spool_dir_outside_the_root_does_not_warn() {
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+
+    let report = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&output.path().join("artifact.sqlite")),
+        "--force",
+        "--spool-dir",
+        path_str(&output.path().join("spools")),
+        "--json",
+    ]));
+
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["warnings"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn a_dedicated_scratch_spool_dir_inside_the_root_does_not_warn_on_any_scan() {
+    // The per-workspace scratch path a consumer actually wires up. It excludes no
+    // content, so a warning here would be permanent and unactionable on every
+    // scan — and a warning channel nobody can act on stops being read.
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let spool_dir = fixture.path(".miller/spool");
+    let db = output.path().join("artifact.sqlite");
+
+    for pass in 0..2 {
+        let report = json_report(&julie_extract(&[
+            "scan",
+            "--root",
+            fixture.root_str(),
+            "--db",
+            path_str(&db),
+            "--force",
+            "--spool-dir",
+            path_str(&spool_dir),
+            "--json",
+        ]));
+
+        assert_eq!(report["status"], "ok");
+        assert_eq!(
+            report["warnings"].as_array().unwrap().len(),
+            0,
+            "pass {pass} must be silent: {report:#?}"
+        );
+    }
+}
+
+#[test]
+fn a_failing_scan_still_reports_the_spool_dir_it_excluded() {
+    // The run most likely to be read closely. Attached only on the success path,
+    // the operator fixes the failure, reruns, sees `ok`, and never learns that
+    // the first run excluded `src/`.
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let db = output.path().join("artifact.sqlite");
+    std::fs::create_dir(&db).unwrap();
+
+    let failed = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--spool-dir",
+        path_str(&fixture.path("src")),
+        "--json",
+    ]);
+
+    assert_eq!(failed.status.code(), Some(1));
+    let report = json_report(&failed);
+    assert_eq!(report["status"], "failed");
+    assert!(
+        report["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|warning| warning["code"] == "spool_dir_excluded"),
+        "a failed scan must still say what it excluded: {report:#?}"
+    );
+}
+
+#[test]
+fn a_force_scan_aborted_by_the_watchdog_leaves_an_unopenable_artifact_on_disk() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    std::fs::write(&db, b"not an artifact this scan can open").unwrap();
+    let before = std::fs::read(&db).unwrap();
+    let not_the_parent = std::process::id() + 1;
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--parent-pid",
+        &not_the_parent.to_string(),
+        "--json",
+    ]);
+
+    if cfg!(unix) {
+        assert_eq!(output.status.code(), Some(1));
+        assert_eq!(json_report(&output)["errors"][0]["code"], "parent_exited");
+        assert_eq!(
+            std::fs::read(&db).unwrap(),
+            before,
+            "parent_exited is documented as leaving the artifact untouched"
+        );
+    } else {
+        assert_success(output);
+    }
+}
+
+#[test]
+fn spool_dir_holds_the_spool_and_is_empty_after_a_successful_scan() {
+    let fixture = FixtureRoot::new();
+    let spool_dir = fixture.path("spools");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&fixture.path("artifact.sqlite")),
+        "--force",
+        "--spool-dir",
+        path_str(&spool_dir),
+        "--json",
+    ]));
+
+    assert_eq!(
+        std::fs::read_dir(&spool_dir).unwrap().count(),
+        0,
+        "a completed scan must remove its own spool"
+    );
+}
+
+#[test]
+fn scan_startup_reaps_only_spools_that_no_live_process_owns() {
+    let fixture = FixtureRoot::new();
+    let spool_dir = fixture.path("spools");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+    let (unowned, unowned_sentinel) = plant_spool_pair(&spool_dir, 4242, Duration::from_secs(3600));
+    let (owned, owned_sentinel) = plant_spool_pair(&spool_dir, 4243, Duration::from_secs(3600));
+    let (just_created, _) = plant_spool_pair(&spool_dir, 4244, Duration::ZERO);
+    let sentinel_free = spool_dir.join("julie-extract-scan-owned-spool-4245-1754.jsonl");
+    std::fs::File::create(&sentinel_free)
+        .unwrap()
+        .set_modified(SystemTime::now() - Duration::from_secs(3600))
+        .unwrap();
+
+    let holder = std::fs::File::open(&owned_sentinel).unwrap();
+    holder.lock().unwrap();
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&fixture.path("artifact.sqlite")),
+        "--force",
+        "--spool-dir",
+        path_str(&spool_dir),
+        "--json",
+    ]));
+    holder.unlock().unwrap();
+
+    assert!(!unowned.exists(), "an unowned spool should be reaped");
+    assert!(!unowned_sentinel.exists(), "its sentinel goes with it");
+    assert!(owned.exists(), "a live process's spool must survive");
+    assert!(
+        just_created.exists(),
+        "a spool whose sentinel is younger than the creation window must survive"
+    );
+    assert!(
+        sentinel_free.exists(),
+        "a spool with no sentinel can never be proved unowned"
+    );
+}
+
+#[test]
+fn scan_startup_keeps_a_sentinel_whose_spool_it_could_not_remove() {
+    let fixture = FixtureRoot::new();
+    let spool_dir = fixture.path("spools");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+    let (spool, sentinel) = plant_spool_pair(&spool_dir, 4242, Duration::from_secs(3600));
+    // A spool the reaper cannot unlink. The sentinel is the only thing that will
+    // ever make it a candidate again, so removing it would leak the spool forever.
+    std::fs::remove_file(&spool).unwrap();
+    std::fs::create_dir(&spool).unwrap();
+    std::fs::write(spool.join("blocker"), b"holds the directory").unwrap();
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&fixture.path("artifact.sqlite")),
+        "--force",
+        "--spool-dir",
+        path_str(&spool_dir),
+        "--json",
+    ]));
+
+    assert!(spool.exists(), "the spool removal must have failed");
+    assert!(
+        sentinel.exists(),
+        "a reapable leak must not be converted into a permanent one"
+    );
+}
+
+#[test]
+fn scan_without_a_spool_dir_never_touches_a_planted_spool() {
+    let fixture = FixtureRoot::new();
+    let spool_dir = fixture.path("spools");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+    let (unowned, unowned_sentinel) = plant_spool_pair(&spool_dir, 4242, Duration::from_secs(3600));
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&fixture.path("artifact.sqlite")),
+        "--force",
+        "--json",
+    ]));
+
+    assert!(
+        unowned.exists() && unowned_sentinel.exists(),
+        "reaping is opt-in; a scan without --spool-dir must remove nothing"
+    );
+}
+
+#[test]
+fn progress_file_records_advancing_counters_through_to_the_artifact_write() {
+    let fixture = FixtureRoot::new();
+    let progress = fixture.path("scan.progress");
+
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&fixture.path("artifact.sqlite")),
+        "--force",
+        "--progress-file",
+        path_str(&progress),
+        "--json",
+    ]));
+
+    let records = progress_records(&progress);
+    assert!(records.len() >= 2, "expected several records: {records:#?}");
+    for record in &records {
+        assert_eq!(record["progress_schema_version"], 1);
+        assert!(record["pid"].as_u64().is_some());
+        assert!(record["elapsed_ms"].as_u64().is_some());
+    }
+    let phases = records
+        .iter()
+        .map(|record| record["phase"].as_str().unwrap().to_string())
+        .collect::<Vec<_>>();
+    assert!(phases.contains(&"discovery".to_string()));
+    assert!(phases.contains(&"extraction_spool".to_string()));
+    assert_eq!(phases.last().map(String::as_str), Some("artifact_write"));
+
+    for counter in [
+        "files_discovered",
+        "files_supported",
+        "files_extracted",
+        "files_spooled",
+    ] {
+        let values = records
+            .iter()
+            .map(|record| record[counter].as_u64().unwrap())
+            .collect::<Vec<_>>();
+        assert!(
+            values.windows(2).all(|pair| pair[0] <= pair[1]),
+            "{counter} must never decrease: {values:?}"
+        );
+    }
+    assert_eq!(records.last().unwrap()["files_spooled"], 2);
+}
+
+#[test]
+fn a_progress_file_inside_the_root_is_not_scanned() {
+    let baseline_fixture = FixtureRoot::new();
+    let baseline_output = TempDir::new().unwrap();
+    let baseline = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        baseline_fixture.root_str(),
+        "--db",
+        path_str(&baseline_output.path().join("artifact.sqlite")),
+        "--force",
+        "--json",
+    ]));
+
+    let fixture = FixtureRoot::new();
+    let output = TempDir::new().unwrap();
+    let inside = fixture.path("src/scan.progress");
+    let with_progress = json_report(&julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&output.path().join("artifact.sqlite")),
+        "--force",
+        "--progress-file",
+        path_str(&inside),
+        "--json",
+    ]));
+
+    assert!(
+        inside.exists(),
+        "the progress file should have been written"
+    );
+    assert_eq!(
+        baseline["counts"]["files_scanned"], with_progress["counts"]["files_scanned"],
+        "a progress file inside the root must not be discovered"
+    );
+    assert_eq!(
+        baseline["counts"]["files_unsupported"],
+        with_progress["counts"]["files_unsupported"]
+    );
+}
+
+#[test]
+fn parent_pid_that_is_not_the_parent_aborts_before_the_artifact_is_written() {
+    let fixture = FixtureRoot::new();
+    let db = fixture.path("artifact.sqlite");
+    let spool_dir = fixture.path("spools");
+    std::fs::create_dir_all(&spool_dir).unwrap();
+    let not_the_parent = std::process::id() + 1;
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--spool-dir",
+        path_str(&spool_dir),
+        "--parent-pid",
+        &not_the_parent.to_string(),
+        "--json",
+    ]);
+
+    if cfg!(unix) {
+        assert_eq!(output.status.code(), Some(1));
+        let report = json_report(&output);
+        assert_eq!(report["status"], "failed");
+        assert_eq!(report["errors"][0]["code"], "parent_exited");
+        assert_eq!(
+            report["errors"][0]["details"]["expected_parent_pid"],
+            not_the_parent
+        );
+        assert_eq!(
+            report["errors"][0]["details"]["observed_parent_pid"],
+            std::process::id()
+        );
+        assert!(!db.exists(), "an aborted scan must not create the artifact");
+        assert_eq!(
+            std::fs::read_dir(&spool_dir).unwrap().count(),
+            0,
+            "the abort must unwind through Drop and leave no spool"
+        );
+    } else {
+        assert_success(output);
+    }
+}
+
+fn stable_report(report: &Value) -> Value {
+    let mut report = report.clone();
+    let object = report.as_object_mut().unwrap();
+    for volatile in ["profile", "revision", "artifact", "input"] {
+        object.remove(volatile);
+    }
+    report
+}
+
+fn stable_report_without_warnings(report: &Value) -> Value {
+    let mut report = stable_report(report);
+    report.as_object_mut().unwrap().remove("warnings");
+    report
+}
+
+fn progress_records(path: &Path) -> Vec<Value> {
+    std::fs::read_to_string(path)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect()
+}
+
+/// A spool plus the sentinel that makes it a removal candidate. The age is the
+/// sentinel's, because the sentinel is what the reaper ages out.
+fn plant_spool_pair(
+    dir: &Path,
+    pid: u32,
+    age: Duration,
+) -> (std::path::PathBuf, std::path::PathBuf) {
+    let spool = dir.join(format!(
+        "julie-extract-scan-owned-spool-{pid}-1754000000000000000.jsonl"
+    ));
+    let sentinel = std::path::PathBuf::from(format!("{}.lock", spool.display()));
+    std::fs::File::create(&spool).unwrap();
+    std::fs::File::create(&sentinel)
+        .unwrap()
+        .set_modified(SystemTime::now() - age)
+        .unwrap();
+    (spool, sentinel)
+}
+
+fn entry_names(dir: &Path) -> BTreeSet<String> {
+    std::fs::read_dir(dir)
+        .unwrap()
+        .flatten()
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect()
 }
 
 struct FixtureRoot {

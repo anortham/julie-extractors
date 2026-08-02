@@ -47,6 +47,21 @@ pub struct ScanArgs {
     /// Number of parallel extraction workers (0 = auto-detect from available cores).
     #[arg(long, short = 'j', default_value_t = 0)]
     pub jobs: usize,
+    /// Directory to hold this scan's extraction spool file, created when missing.
+    /// Also enables startup removal of spool files in it that no live scan owns.
+    /// Absent = the system temporary directory, with no locking and no removal.
+    #[arg(long)]
+    pub spool_dir: Option<PathBuf>,
+    /// Append live scan progress records to this JSONL file. The name must be
+    /// `.progress` or end in `.progress`, ignoring case, because creating it
+    /// truncates it. Absent = nothing is written and no progress work runs.
+    #[arg(long)]
+    pub progress_file: Option<PathBuf>,
+    /// Abort the scan when this process stops being the DIRECT parent of this one.
+    /// A value that is not already the direct parent aborts immediately. Unix only;
+    /// accepted and ignored elsewhere. Absent = no watchdog thread.
+    #[arg(long)]
+    pub parent_pid: Option<u32>,
 }
 
 #[derive(Debug, Args)]

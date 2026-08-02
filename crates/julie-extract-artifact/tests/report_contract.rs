@@ -121,6 +121,7 @@ fn every_v3_error_code_has_stable_serialized_spelling() {
             json!("data_loss_guard"),
             json!("export_failed"),
             json!("internal_error"),
+            json!("parent_exited"),
         ]
     );
 

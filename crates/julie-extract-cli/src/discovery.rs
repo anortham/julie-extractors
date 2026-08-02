@@ -7,6 +7,29 @@ use julie_extractors::detect_language_from_extension;
 
 use crate::limits::{MAX_SOURCE_FILE_BYTES, slow_file_skip_message};
 use crate::paths::{FileTarget, PathPolicyError, canonicalize_ignore_file};
+use crate::progress::{Counter, ScanProgress};
+use crate::spool::is_spool_artifact_name;
+
+/// Directory entries between progress ticks. The walk is a single serial pass
+/// over every entry in the tree, so consulting the clock on each one would put
+/// a timestamp read on the hottest loop of the discovery phase.
+const DISCOVERY_PROGRESS_TICK: u64 = 256;
+
+struct DiscoveryWalk<'a> {
+    progress: Option<&'a ScanProgress>,
+    entries_seen: u64,
+}
+
+impl DiscoveryWalk<'_> {
+    fn tick(&mut self) {
+        self.entries_seen += 1;
+        if self.entries_seen.is_multiple_of(DISCOVERY_PROGRESS_TICK)
+            && let Some(progress) = self.progress
+        {
+            progress.advance(Counter::Discovered, DISCOVERY_PROGRESS_TICK);
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileSelection {
@@ -26,10 +49,46 @@ pub enum UnsupportedReason {
     Oversized,
 }
 
+/// Paths a scan writes to while it runs, which must therefore stay out of its
+/// own discovery walk. Both are `None` unless the matching flag was passed.
+#[derive(Debug, Clone, Default)]
+pub struct DiscoveryExclusions {
+    /// A `--progress-file` written inside the root would otherwise be discovered
+    /// and extracted while it is being appended to, exactly as the artifact would
+    /// be. Excluded on the same terms.
+    pub progress_path: Option<PathBuf>,
+    /// A `--spool-dir` inside the root holds `.jsonl` spools, and `jsonl` is a
+    /// supported extension — so a spool a concurrent scan still owns would be
+    /// walked and extracted as if it were source.
+    pub spool_dir: Option<PathBuf>,
+}
+
+impl DiscoveryExclusions {
+    fn excludes(&self, path: &Path) -> bool {
+        self.progress_path.as_deref() == Some(path)
+            || self.spool_dir.as_deref() == Some(path)
+            || self.holds_spool_artifact(path)
+    }
+
+    /// Belt and braces for a `--spool-dir` that is the scan root itself, where
+    /// the directory-level skip never gets a chance to fire.
+    fn holds_spool_artifact(&self, path: &Path) -> bool {
+        let Some(spool_dir) = self.spool_dir.as_deref() else {
+            return false;
+        };
+        path.parent() == Some(spool_dir)
+            && path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(is_spool_artifact_name)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DiscoveryPolicy {
     root: PathBuf,
     db_path: PathBuf,
+    exclusions: DiscoveryExclusions,
     /// Rules from `--ignore-file`, anchored at the scan root. The caller
     /// layer is consulted first and is decisive, so explicit invocation
     /// rules always win over in-tree ignore files.
@@ -68,6 +127,15 @@ impl DiscoveryPolicy {
         db_path: &Path,
         ignore_files: &[PathBuf],
     ) -> Result<Self, PathPolicyError> {
+        Self::build_excluding(root, db_path, DiscoveryExclusions::default(), ignore_files)
+    }
+
+    pub fn build_excluding(
+        root: &Path,
+        db_path: &Path,
+        exclusions: DiscoveryExclusions,
+        ignore_files: &[PathBuf],
+    ) -> Result<Self, PathPolicyError> {
         let caller_matcher = build_caller_matcher(root, ignore_files)?;
         let mut scopes = Vec::new();
         let mut warnings = Vec::new();
@@ -81,6 +149,7 @@ impl DiscoveryPolicy {
         Ok(Self {
             root: root.to_path_buf(),
             db_path: db_path.to_path_buf(),
+            exclusions,
             caller_matcher,
             scopes,
             warnings,
@@ -119,6 +188,7 @@ impl DiscoveryPolicy {
             &target.absolute_path,
             &target.root_relative_path,
             &self.db_path,
+            &self.exclusions,
         ) {
             return FileSelection::Unsupported {
                 reason: UnsupportedReason::HardExcluded,
@@ -146,21 +216,37 @@ impl DiscoveryPolicy {
         }
     }
 
+    #[cfg(test)]
     pub fn discover(&self) -> DiscoverySummary {
+        self.discover_with_progress(None)
+    }
+
+    pub fn discover_with_progress(&self, progress: Option<&ScanProgress>) -> DiscoverySummary {
         let mut summary = DiscoverySummary {
             supported_files: Vec::new(),
             unsupported_files: 0,
             errors: self.warnings.clone(),
             slow_file_skips: Vec::new(),
         };
-        self.discover_dir(&self.root, &mut summary);
+        let mut walk = DiscoveryWalk {
+            progress,
+            entries_seen: 0,
+        };
+        self.discover_dir(&self.root, &mut summary, &mut walk);
         summary
             .supported_files
             .sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
+        if let Some(progress) = progress {
+            progress.advance(
+                Counter::Discovered,
+                walk.entries_seen % DISCOVERY_PROGRESS_TICK,
+            );
+            progress.advance(Counter::Supported, summary.supported_files.len() as u64);
+        }
         summary
     }
 
-    fn discover_dir(&self, dir: &Path, summary: &mut DiscoverySummary) {
+    fn discover_dir(&self, dir: &Path, summary: &mut DiscoverySummary, walk: &mut DiscoveryWalk) {
         let entries =
             match fs::read_dir(dir) {
                 Ok(entries) => entries,
@@ -174,6 +260,7 @@ impl DiscoveryPolicy {
             };
 
         for entry in entries {
+            walk.tick();
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
@@ -208,15 +295,22 @@ impl DiscoveryPolicy {
                 continue;
             }
             if file_type.is_dir() {
-                if is_hard_excluded(&path, &relative, &self.db_path)
+                if is_hard_excluded(&path, &relative, &self.db_path, &self.exclusions)
                     || self.is_ignored(&relative, true)
                 {
                     continue;
                 }
-                self.discover_dir(&path, summary);
+                self.discover_dir(&path, summary, walk);
                 continue;
             }
             if !file_type.is_file() {
+                continue;
+            }
+            // Skipped rather than counted as unsupported: a scan's own progress
+            // file and spool must not move `files_scanned`, or it reports
+            // different counts purely because it was asked to report progress or
+            // to place its spool somewhere the caller can supervise.
+            if self.exclusions.excludes(&path) {
                 continue;
             }
             let target = FileTarget {
@@ -457,8 +551,14 @@ fn language_for_path(path: &Path) -> Option<&'static str> {
     detect_language_from_extension(extension)
 }
 
-fn is_hard_excluded(path: &Path, relative_path: &str, db_path: &Path) -> bool {
+fn is_hard_excluded(
+    path: &Path,
+    relative_path: &str,
+    db_path: &Path,
+    exclusions: &DiscoveryExclusions,
+) -> bool {
     path == db_path
+        || exclusions.excludes(path)
         || relative_path
             .split('/')
             .any(|component| HARD_EXCLUDE_DIRS.contains(&component))
@@ -934,6 +1034,131 @@ mod tests {
         assert_eq!(summary.supported_files.len(), 1);
     }
 
+    #[test]
+    fn a_progress_file_inside_the_root_is_hard_excluded() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("src/code.rs", "pub fn code() {}\n");
+        let progress = fixture.write("scan.jsonl", "{\"phase\":\"discovery\"}\n");
+
+        let with_exclusion = fixture
+            .policy_excluding(DiscoveryExclusions {
+                progress_path: Some(progress.absolute_path.clone()),
+                ..DiscoveryExclusions::default()
+            })
+            .discover();
+        assert_eq!(with_exclusion.supported_files.len(), 1);
+        assert_eq!(
+            with_exclusion.unsupported_files, 0,
+            "the progress file must not be counted at all"
+        );
+
+        let without_exclusion = fixture.policy().discover();
+        assert_eq!(
+            without_exclusion.supported_files.len(),
+            2,
+            "the exclusion, not the extension, is what keeps the progress file out"
+        );
+    }
+
+    #[test]
+    fn selecting_the_progress_file_directly_reports_it_as_hard_excluded() {
+        let fixture = DiscoveryFixture::new();
+        let progress = fixture.write("scan.jsonl", "{\"phase\":\"discovery\"}\n");
+
+        let selection = fixture
+            .policy_excluding(DiscoveryExclusions {
+                progress_path: Some(progress.absolute_path.clone()),
+                ..DiscoveryExclusions::default()
+            })
+            .select_file(&progress);
+
+        assert_eq!(
+            selection,
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::HardExcluded
+            }
+        );
+    }
+
+    #[test]
+    fn a_spool_directory_inside_the_root_is_skipped_whole() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("src/code.rs", "pub fn code() {}\n");
+        let spool = fixture.write(
+            "spools/julie-extract-scan-owned-spool-7-9.jsonl",
+            "{\"path\":\"src/code.rs\"}\n",
+        );
+        fixture.write("spools/julie-extract-scan-owned-spool-7-9.jsonl.lock", "");
+
+        let excluded = fixture
+            .policy_excluding(DiscoveryExclusions {
+                spool_dir: Some(fixture.root().join("spools")),
+                ..DiscoveryExclusions::default()
+            })
+            .discover();
+        assert_eq!(excluded.supported_files.len(), 1);
+        assert_eq!(
+            excluded.unsupported_files, 0,
+            "a skipped spool directory must not be counted at all"
+        );
+
+        let without_exclusion = fixture.policy().discover();
+        assert_eq!(
+            without_exclusion.supported_files.len(),
+            2,
+            "jsonl is a supported extension, so only the exclusion keeps a spool out"
+        );
+        assert_eq!(
+            fixture
+                .policy_excluding(DiscoveryExclusions {
+                    spool_dir: Some(fixture.root().join("spools")),
+                    ..DiscoveryExclusions::default()
+                })
+                .select_file(&spool),
+            FileSelection::Unsupported {
+                reason: UnsupportedReason::HardExcluded
+            }
+        );
+    }
+
+    #[test]
+    fn a_spool_directory_that_is_the_root_still_keeps_spool_files_out() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("code.rs", "pub fn code() {}\n");
+        fixture.write("julie-extract-scan-owned-spool-7-9.jsonl", "{}\n");
+        fixture.write("julie-extract-scan-owned-spool-7-9.jsonl.lock", "");
+        fixture.write("julie-extract-scan-spool-7-9.jsonl", "{}\n");
+
+        let summary = fixture
+            .policy_excluding(DiscoveryExclusions {
+                spool_dir: Some(fixture.root().to_path_buf()),
+                ..DiscoveryExclusions::default()
+            })
+            .discover();
+
+        assert_eq!(summary.supported_files.len(), 1);
+        assert_eq!(summary.unsupported_files, 0);
+    }
+
+    #[test]
+    fn a_spool_shaped_file_outside_the_spool_directory_is_still_scanned() {
+        let fixture = DiscoveryFixture::new();
+        fixture.write("src/julie-extract-scan-owned-spool-7-9.jsonl", "{}\n");
+
+        let summary = fixture
+            .policy_excluding(DiscoveryExclusions {
+                spool_dir: Some(fixture.root().join("spools")),
+                ..DiscoveryExclusions::default()
+            })
+            .discover();
+
+        assert_eq!(
+            summary.supported_files.len(),
+            1,
+            "the name shape only suppresses files the scan itself could have written"
+        );
+    }
+
     struct DiscoveryFixture {
         temp: TempDir,
     }
@@ -951,6 +1176,16 @@ mod tests {
 
         fn policy(&self) -> DiscoveryPolicy {
             DiscoveryPolicy::build(self.root(), &self.root().join("artifact.sqlite"), &[]).unwrap()
+        }
+
+        fn policy_excluding(&self, exclusions: DiscoveryExclusions) -> DiscoveryPolicy {
+            DiscoveryPolicy::build_excluding(
+                self.root(),
+                &self.root().join("artifact.sqlite"),
+                exclusions,
+                &[],
+            )
+            .unwrap()
         }
 
         fn policy_with_ignore_lines(&self, lines: &str) -> DiscoveryPolicy {
