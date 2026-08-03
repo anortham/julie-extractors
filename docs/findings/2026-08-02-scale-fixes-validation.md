@@ -723,3 +723,34 @@ Both are recommended to stay as they are.
 
 A `julie-extract` from the sibling `fleet-safety` worktree ran concurrently on this box for part of
 the session. A/B ratios are same-box and same-period so they hold; absolute wall-clock is noisy.
+
+### Content equivalence on a real artifact
+
+The two Miller artifacts (1,518 files, 24 tables) were diffed table by table: row counts, plus a
+blake2b digest over every row sorted by all columns.
+
+All 24 row counts are identical, and 18 of 24 tables digest-match exactly — including
+`reference_sites` (438,135 rows), which is the direct evidence that the identity trigger's
+first-write-wins semantics survive on a real workload and not only in the unit tests, plus
+`identifiers` and `identifier_resolutions` (349,495 each), `pending_relationships` (79,487),
+`type_facts` (45,174), `pending_resolutions`, `symbol_annotations`, `complexity_metrics`,
+`type_arguments`, `type_argument_usages`, `revision_file_changes`, `literals`, `parse_diagnostics`,
+`parser_inventory` and the `language_capabilit*` family.
+
+The six that differ are accounted for and none is caused by this change:
+
+- `files.indexed_at`, `extraction_revisions.started_at` / `completed_at` — wall-clock timestamps.
+- `symbols`, `relationships`, `source_regions`, `structural_facts` differ **only** in `metadata_json`.
+  Re-compared with JSON keys normalized, all four multisets are identical.
+
+### Artifact `metadata_json` key order is not reproducible run-to-run
+
+The key order comes from `pub metadata: Option<HashMap<String, serde_json::Value>>`
+(`crates/julie-extractors/src/base/types.rs`, five sites). Rust randomizes `HashMap` iteration per
+process, so `serde_json` emits a different key order on every run of the same binary. The artifact
+writer binds the value through verbatim and only ever reads it via `json_extract`, so the writer is
+not the source.
+
+The operative consequence: **byte-level artifact comparison is not a valid equivalence method for
+this project.** Compare content with normalized JSON instead. Making the order deterministic is a
+small change (`BTreeMap`, or `serde_json/preserve_order`) but it belongs to the extractors crate.
