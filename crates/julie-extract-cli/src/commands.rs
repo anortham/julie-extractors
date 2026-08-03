@@ -1466,6 +1466,11 @@ fn record_write_phase_profile(
         "artifact_write_index_build",
         write_phases.index_build,
     );
+    record_profile_phase(
+        phases,
+        "artifact_write_foreign_key_check",
+        write_phases.foreign_key_check,
+    );
     record_profile_phase(phases, "artifact_write_commit", write_phases.commit);
     record_profile_phase(
         phases,

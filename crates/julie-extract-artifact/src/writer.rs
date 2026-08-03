@@ -808,8 +808,9 @@ impl ArtifactWriter {
             clock.lap(|phases| &mut phases.plan);
             if bulk_load {
                 create_secondary_indexes(&tx)?;
-                verify_foreign_keys(&tx)?;
                 clock.lap(|phases| &mut phases.index_build);
+                verify_foreign_keys(&tx)?;
+                clock.lap(|phases| &mut phases.foreign_key_check);
             }
             tx.commit()?;
             clock.lap(|phases| &mut phases.commit);
@@ -935,8 +936,9 @@ impl ArtifactWriter {
         clock.lap(|phases| &mut phases.resolution);
         if bulk_load {
             create_secondary_indexes(&tx)?;
-            verify_foreign_keys(&tx)?;
             clock.lap(|phases| &mut phases.index_build);
+            verify_foreign_keys(&tx)?;
+            clock.lap(|phases| &mut phases.foreign_key_check);
         }
         tx.commit()?;
         clock.lap(|phases| &mut phases.commit);
@@ -1094,8 +1096,9 @@ impl ArtifactWriter {
             clock.lap(|phases| &mut phases.plan);
             if bulk_load {
                 create_secondary_indexes(&tx)?;
-                verify_foreign_keys(&tx)?;
                 clock.lap(|phases| &mut phases.index_build);
+                verify_foreign_keys(&tx)?;
+                clock.lap(|phases| &mut phases.foreign_key_check);
             }
             tx.commit()?;
             clock.lap(|phases| &mut phases.commit);
@@ -1221,8 +1224,9 @@ impl ArtifactWriter {
         clock.lap(|phases| &mut phases.resolution);
         if bulk_load {
             create_secondary_indexes(&tx)?;
-            verify_foreign_keys(&tx)?;
             clock.lap(|phases| &mut phases.index_build);
+            verify_foreign_keys(&tx)?;
+            clock.lap(|phases| &mut phases.foreign_key_check);
         }
         tx.commit()?;
         clock.lap(|phases| &mut phases.commit);

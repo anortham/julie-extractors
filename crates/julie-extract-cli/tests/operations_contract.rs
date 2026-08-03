@@ -442,6 +442,7 @@ fn scan_profile_splits_artifact_write_into_additive_sub_phases() {
         "artifact_write_child_rows",
         "artifact_write_resolution",
         "artifact_write_index_build",
+        "artifact_write_foreign_key_check",
         "artifact_write_commit",
         "artifact_write_wal_checkpoint",
     ];

@@ -168,6 +168,10 @@ pub struct WritePhaseDurations {
     /// Secondary-index creation, non-zero only on the fresh-artifact bulk-load
     /// path where index building is deferred to the end of the write.
     pub index_build: Duration,
+    /// The whole-database `foreign_key_check` that replaces per-row enforcement
+    /// on the bulk-load path. Non-zero only there, and kept separate from
+    /// `index_build` so its cost stays attributable as artifacts grow.
+    pub foreign_key_check: Duration,
     pub commit: Duration,
     /// WAL checkpoint plus, on the bulk-load path, the restore of the durable
     /// journal mode.
@@ -181,6 +185,7 @@ impl WritePhaseDurations {
             + self.child_rows
             + self.resolution
             + self.index_build
+            + self.foreign_key_check
             + self.commit
             + self.wal_checkpoint
     }

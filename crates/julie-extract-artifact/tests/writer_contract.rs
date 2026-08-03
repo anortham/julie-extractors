@@ -511,25 +511,21 @@ fn bulk_load_never_activates_on_update_delete_or_populated_scan() {
             in_transaction_journal = pragma_text(tx, "journal_mode").to_lowercase();
             Ok(ResolutionCounts::default())
         };
-        match probe {
-            WriteProbe::Update => {
-                writer
-                    .write_update_with_resolution(
-                        revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
-                        &file_with_all_rows("file-a", "src/a.rs", "hash-a2"),
-                        &mut hook,
-                    )
-                    .unwrap();
-            }
-            WriteProbe::Delete => {
-                writer
-                    .delete_file_with_resolution(
-                        revision(WriteOperation::Delete, Some(WriteMode::SingleFile)),
-                        "src/b.rs",
-                        &mut hook,
-                    )
-                    .unwrap();
-            }
+        let result = match probe {
+            WriteProbe::Update => writer
+                .write_update_with_resolution(
+                    revision(WriteOperation::Update, Some(WriteMode::SingleFile)),
+                    &file_with_all_rows("file-a", "src/a.rs", "hash-a2"),
+                    &mut hook,
+                )
+                .unwrap(),
+            WriteProbe::Delete => writer
+                .delete_file_with_resolution(
+                    revision(WriteOperation::Delete, Some(WriteMode::SingleFile)),
+                    "src/b.rs",
+                    &mut hook,
+                )
+                .unwrap(),
             WriteProbe::Scan | WriteProbe::ForcedScan => {
                 let mode = if matches!(probe, WriteProbe::ForcedScan) {
                     WriteMode::Force
@@ -545,9 +541,9 @@ fn bulk_load_never_activates_on_update_delete_or_populated_scan() {
                         ],
                         &mut hook,
                     )
-                    .unwrap();
+                    .unwrap()
             }
-        }
+        };
 
         assert_eq!(
             in_transaction_indexes, expected_indexes,
@@ -557,6 +553,12 @@ fn bulk_load_never_activates_on_update_delete_or_populated_scan() {
         assert_eq!(
             in_transaction_journal, "wal",
             "{probe:?} must stay on the durable journal"
+        );
+        assert!(
+            result.phases.foreign_key_check.is_zero(),
+            "{probe:?} keeps per-row enforcement, so it must not run the whole-database \
+             foreign_key_check: {:?}",
+            result.phases.foreign_key_check
         );
     }
 
