@@ -386,6 +386,30 @@ exclusion and by the spool-name skip regardless, and a `.progress` file is
 excluded by decision 6, so neither flag is affected. But a consumer that assumes
 `.miller/` as a whole is invisible to the extractor is wrong today.
 
+## Decision 8a — identity is answered by `same-file`, so Windows is not a weaker case
+
+Decision 8 compared resolved paths, which was the second of three rounds of the
+same bug: two names for one file need not compare equal as text. Comparing
+`dev`/`ino` closed it on Unix, but `std::os::windows::fs::MetadataExt`'s
+`volume_serial_number` and `file_index` are behind the unstable
+`windows_by_handle` feature, and `unsafe_code = "forbid"` in
+`[workspace.lints.rust]` cannot be relaxed per crate, so the Win32 call behind
+them was unreachable. Windows fell back to a case-insensitive path comparison,
+which does not see an NTFS hard link — a documented hole through which
+`--progress-file` truncates a multi-gigabyte artifact.
+
+`same-file` answers identity on both platforms and is ALREADY in the lock graph
+(`ignore` → `walkdir` → `same-file`), so taking it as a direct dependency of
+`julie-extract-cli` adds no build unit, no new registry source, and no new
+license — the reason to accept a documented hole instead of a dependency did not
+survive checking whether it was a new dependency at all. The `#[cfg]` split is
+gone, the guard is one function, and the hard-link tests that were `#[cfg(unix)]`
+now compile everywhere.
+
+CI is ubuntu-only, so the Windows arm is asserted by the shared implementation
+rather than executed. That is a strictly better position than the case-insensitive
+fallback, which CI did not execute either AND was known not to cover the case.
+
 ## Accepted limit — `flock` is node-local
 
 Advisory locks are emulated per node on network filesystems rather than shared

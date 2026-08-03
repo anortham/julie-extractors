@@ -51,15 +51,16 @@ no identity to compare — and on a case-insensitive volume creating
 created by a run that is then refused is removed again, so a rejected argv leaves
 nothing at the artifact's path.
 
-**Platform limit.** File identity is exact on Unix (macOS, Linux). On Windows it
-is not available: the pinned Rust toolchain gates
-`std::os::windows::fs::MetadataExt::volume_serial_number` and `file_index` behind
-the unstable `windows_by_handle` feature, and the extractor workspace sets
-`unsafe_code = "forbid"`, so the Win32 call behind them cannot be reached
-directly either. On Windows the check falls back to a case-insensitive path
-comparison, which still refuses `INDEX.PROGRESS` against `index.progress` but
-does NOT see a Windows hard link. A `--progress-file` hard-linked to the artifact
-on Windows will truncate it.
+Identity is exact on every supported platform whenever both paths exist: device
+plus inode on Unix, volume serial plus file index on Windows. Two names for one
+file are refused however they were made — hard link, case variant, or symlink —
+and no platform is a weaker case than another.
+
+The one thing identity cannot answer is a path that does not exist yet, or that
+this process cannot open. Both answer "not the same file" and the argv is
+permitted. That is bounded: the guard runs a second time once the progress file
+has been created, and a path this process cannot open for reading is one it
+cannot truncate either.
 
 ## Format
 

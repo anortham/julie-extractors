@@ -227,42 +227,29 @@ fn artifact_sidecar(db_path: &Path, suffix: &str) -> PathBuf {
 
 /// Whether two paths name one file.
 ///
-/// On Unix the answer is exact whenever both paths exist: a device plus an inode
-/// identifies a file however many names point at it, which is the only thing
-/// that sees through a hard link or through a case-variant spelling on a
-/// case-insensitive volume. Paths that do not both exist yet cannot be compared
-/// that way and answer `false`, which is why the caller runs this again once the
-/// progress file has been created.
+/// The answer is file identity on every supported platform, and it is exact
+/// whenever both paths exist: device plus inode on Unix, volume serial plus file
+/// index on Windows. That is the only thing that sees through a hard link, and
+/// through a case-variant spelling on a case-insensitive volume. Paths that do
+/// not both exist cannot be compared that way and answer `false`, which is why
+/// the caller runs this again once the progress file has been created.
 ///
-/// Off Unix it degrades to a case-insensitive path comparison. The pinned
-/// toolchain exposes no stable identity API there — `volume_serial_number` and
-/// `file_index` on `std::os::windows::fs::MetadataExt` are both behind the
-/// unstable `windows_by_handle` feature — and the workspace sets
-/// `unsafe_code = "forbid"`, which cannot be relaxed per crate, so the Win32
-/// call behind them is not reachable directly either. The fallback still refuses
-/// `INDEX.PROGRESS` against `index.progress`; it does NOT see a Windows hard
-/// link, which stays an open hole recorded in the CLI contract.
-#[cfg(unix)]
+/// The Windows half comes from `same-file` rather than from `std`, because
+/// `volume_serial_number` and `file_index` on `std::os::windows::fs::MetadataExt`
+/// are behind the unstable `windows_by_handle` feature and the workspace sets
+/// `unsafe_code = "forbid"`, which cannot be relaxed per crate — so the Win32
+/// call behind them is unreachable from here directly. The crate is already in
+/// the lock graph (`ignore` → `walkdir` → `same-file`), so this costs no new
+/// build unit and no new supply-chain surface. It replaced a case-insensitive
+/// path comparison that could not see an NTFS hard link, and therefore let one
+/// truncate a multi-gigabyte artifact.
+///
+/// Identity is also the conservative answer when it cannot be established: an
+/// unopenable path answers `false` and the guard permits the argv, which is the
+/// same outcome as before and is bounded by the fact that a path this process
+/// cannot open for reading is one it cannot truncate either.
 fn is_one_file(left: &Path, right: &Path) -> bool {
-    use std::os::unix::fs::MetadataExt;
-
-    if left == right {
-        return true;
-    }
-    let (Ok(left), Ok(right)) = (std::fs::metadata(left), std::fs::metadata(right)) else {
-        return false;
-    };
-    left.dev() == right.dev() && left.ino() == right.ino()
-}
-
-/// Path-spelling fallback for platforms with no stable file-identity API. See
-/// the Unix definition for what it does and does not cover.
-#[cfg(not(unix))]
-fn is_one_file(left: &Path, right: &Path) -> bool {
-    match (left.to_str(), right.to_str()) {
-        (Some(left), Some(right)) => left.eq_ignore_ascii_case(right),
-        _ => left == right,
-    }
+    left == right || same_file::is_same_file(left, right).unwrap_or(false)
 }
 
 pub fn canonicalize_ignore_file(path: &Path) -> Result<PathBuf, PathPolicyError> {
@@ -486,7 +473,6 @@ mod tests {
         assert!(reject_progress_file_collision(&progress, &db).is_ok());
     }
 
-    #[cfg(unix)]
     #[test]
     fn a_progress_file_hard_linked_to_the_artifact_is_refused() {
         let temp = TempDir::new().unwrap();
@@ -501,7 +487,6 @@ mod tests {
         ));
     }
 
-    #[cfg(unix)]
     #[test]
     fn a_progress_file_hard_linked_to_an_artifact_sidecar_is_refused() {
         for suffix in ["-wal", "-shm"] {

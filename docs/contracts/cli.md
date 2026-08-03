@@ -120,9 +120,9 @@ invalid `--ignore-file` is a hard CLI error.
   `--progress-file` requires an existing parent directory, exactly as `--db` does,
   must use the `.progress` extension, may not itself be a symbolic link, and may
   not BE `--db` or one of its `-wal`/`-shm` sidecars. That last check compares file
-  identity rather than path spelling, so a hard link to the artifact is refused
-  too; it is exact on Unix and degrades to a case-insensitive path comparison on
-  Windows (see [progress-file-v1.md](progress-file-v1.md) for the platform limit).
+  identity rather than path spelling — device and inode on Unix, volume serial and
+  file index on Windows — so a hard link to the artifact is refused on every
+  supported platform (see [progress-file-v1.md](progress-file-v1.md)).
 - Stored file paths are root-relative Unix-style strings.
 - `--file` may be absolute or root-relative.
 - A file outside `--root` is a typed error.

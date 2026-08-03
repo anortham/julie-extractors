@@ -2902,7 +2902,6 @@ fn a_db_and_a_progress_file_that_are_one_file_through_a_symlink_are_refused() {
     assert_eq!(report["errors"][0]["code"], "invalid_path");
 }
 
-#[cfg(unix)]
 #[test]
 fn a_progress_file_hard_linked_to_the_artifact_leaves_it_byte_identical() {
     let fixture = FixtureRoot::new();
@@ -2952,7 +2951,6 @@ fn a_progress_file_hard_linked_to_the_artifact_leaves_it_byte_identical() {
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn a_progress_file_hard_linked_to_an_artifact_sidecar_is_refused() {
     let fixture = FixtureRoot::new();
