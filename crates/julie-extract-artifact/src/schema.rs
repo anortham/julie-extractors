@@ -5,8 +5,26 @@ pub const EXTRACT_CONTRACT_VERSION: i64 = 4;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
     drop_superseded_reference_site_guard(conn)?;
+    drop_retired_secondary_indexes(conn)?;
     conn.execute_batch(SCHEMA_TABLES_SQL)?;
     create_secondary_indexes(conn)
+}
+
+/// Retired 2026-08-03: a two-repo consumer audit plus `EXPLAIN QUERY PLAN`
+/// showed no query in julie-extractors or Miller ever selects these three, and
+/// together they were ~11% of a dotnet/runtime-scale artifact plus their share
+/// of bulk-load index-build time. (Two further audit candidates were RETAINED:
+/// `idx_identifiers_reference_site` and `idx_reference_sites_containing_symbol`
+/// back FK cascade/SET NULL child searches that no query plan surfaces.) Dropping here (idempotent, no schema-cookie
+/// churn when absent) lets an existing artifact shed them on its next open;
+/// the freed pages are reused rather than returned until the artifact is
+/// rebuilt or vacuumed.
+fn drop_retired_secondary_indexes(conn: &Connection) -> rusqlite::Result<()> {
+    conn.execute_batch(
+        "DROP INDEX IF EXISTS idx_reference_sites_span;
+         DROP INDEX IF EXISTS idx_identifiers_path;
+         DROP INDEX IF EXISTS idx_identifiers_file_line_name;",
+    )
 }
 
 /// The secondary indexes only. Split out of [`create_schema`] so the
@@ -530,11 +548,8 @@ CREATE INDEX IF NOT EXISTS idx_symbols_is_test ON symbols(is_test);
 CREATE INDEX IF NOT EXISTS idx_symbols_test_container ON symbols(test_container);
 CREATE INDEX IF NOT EXISTS idx_symbols_test_lifecycle ON symbols(test_lifecycle);
 CREATE INDEX IF NOT EXISTS idx_reference_sites_file ON reference_sites(file_id);
-CREATE INDEX IF NOT EXISTS idx_reference_sites_span
-  ON reference_sites(file_id, start_byte, end_byte);
 CREATE INDEX IF NOT EXISTS idx_reference_sites_containing_symbol
   ON reference_sites(containing_symbol_id);
-CREATE INDEX IF NOT EXISTS idx_identifiers_path ON identifiers(path);
 CREATE INDEX IF NOT EXISTS idx_identifiers_file ON identifiers(file_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_name_kind ON identifiers(name, kind);
 CREATE INDEX IF NOT EXISTS idx_identifiers_containing ON identifiers(containing_symbol_id);
@@ -572,7 +587,6 @@ CREATE INDEX IF NOT EXISTS idx_complexity_metrics_scope_language ON complexity_m
 CREATE INDEX IF NOT EXISTS idx_complexity_metrics_symbol ON complexity_metrics(symbol_id);
 CREATE INDEX IF NOT EXISTS idx_diagnostics_path ON parse_diagnostics(path);
 CREATE INDEX IF NOT EXISTS idx_diagnostics_file ON parse_diagnostics(file_id);
-CREATE INDEX IF NOT EXISTS idx_identifiers_file_line_name ON identifiers(file_id, start_line, name);
 CREATE INDEX IF NOT EXISTS idx_pending_resolutions_target ON pending_resolutions(target_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_identifier_resolutions_target ON identifier_resolutions(target_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_language_capability_gaps_language ON language_capability_gaps(language);

@@ -1053,19 +1053,9 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             columns: vec!["file_id"],
         },
         ExpectedIndex {
-            name: "idx_reference_sites_span",
-            table: "reference_sites",
-            columns: vec!["file_id", "start_byte", "end_byte"],
-        },
-        ExpectedIndex {
             name: "idx_reference_sites_containing_symbol",
             table: "reference_sites",
             columns: vec!["containing_symbol_id"],
-        },
-        ExpectedIndex {
-            name: "idx_identifiers_path",
-            table: "identifiers",
-            columns: vec!["path"],
         },
         ExpectedIndex {
             name: "idx_identifiers_file",
@@ -1265,11 +1255,6 @@ fn expected_indexes() -> Vec<ExpectedIndex> {
             name: "idx_diagnostics_file",
             table: "parse_diagnostics",
             columns: vec!["file_id"],
-        },
-        ExpectedIndex {
-            name: "idx_identifiers_file_line_name",
-            table: "identifiers",
-            columns: vec!["file_id", "start_line", "name"],
         },
         ExpectedIndex {
             name: "idx_pending_resolutions_target",

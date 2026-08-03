@@ -36,7 +36,6 @@ use rows::{
 
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
 
-const SQLITE_BULK_CACHE_SIZE_KIB: i64 = -131_072;
 const SQLITE_STATEMENT_CACHE_CAPACITY: usize = 64;
 #[derive(Debug)]
 pub enum ArtifactWriteError {
@@ -67,6 +66,9 @@ pub enum ArtifactWriteError {
     },
     WriterPoisoned {
         reason: String,
+    },
+    BulkResolutionFailed {
+        message: String,
     },
 }
 
@@ -127,6 +129,10 @@ impl std::fmt::Display for ArtifactWriteError {
             ArtifactWriteError::WriterPoisoned { reason } => {
                 write!(f, "this writer refuses further writes: {reason}")
             }
+            ArtifactWriteError::BulkResolutionFailed { message } => write!(
+                f,
+                "resolution failed during a bulk first build, aborting the scan: {message}"
+            ),
         }
     }
 }
@@ -275,7 +281,7 @@ impl ArtifactWriter {
         connection.pragma_update(None, "journal_mode", "WAL")?;
         connection.pragma_update(None, "synchronous", "NORMAL")?;
         connection.pragma_update(None, "temp_store", "MEMORY")?;
-        connection.pragma_update(None, "cache_size", SQLITE_BULK_CACHE_SIZE_KIB)?;
+        connection.pragma_update(None, "cache_size", crate::memory::bulk_cache_size_kib())?;
         create_schema(&connection)?;
         if !existed || metadata_row_count(&connection)? == 0 {
             initialize_metadata(&connection, &metadata)?;
@@ -659,6 +665,7 @@ impl ArtifactWriter {
             &capability_rows_written,
             &scope,
             hook,
+            false,
         )?;
         clock.lap(|phases| &mut phases.resolution);
         tx.commit()?;
@@ -821,6 +828,7 @@ impl ArtifactWriter {
             &capability_rows_written,
             &scope,
             hook,
+            false,
         )?;
         clock.lap(|phases| &mut phases.resolution);
         tx.commit()?;
@@ -1064,6 +1072,7 @@ impl ArtifactWriter {
             &capability_rows_written,
             &scope,
             hook,
+            bulk_load,
         )?;
         clock.lap(|phases| &mut phases.resolution);
         if bulk_load {
@@ -1365,6 +1374,7 @@ impl ArtifactWriter {
             &capability_rows_written,
             &scope,
             hook,
+            bulk_load,
         )?;
         clock.lap(|phases| &mut phases.resolution);
         if bulk_load {
@@ -1491,11 +1501,20 @@ fn insert_revision(
 /// writes, before `update_revision_counts` and commit — and fold its overlay
 /// writes into the revision counts so accounting stays truthful.
 ///
-/// The hook runs inside a `SAVEPOINT`: on error the savepoint is rolled back so
-/// the affected rows simply stay unresolved (nothing written), the counts are
-/// zeroed, and the message is surfaced for the report — the scan itself still
-/// commits (design §"Failure semantics"). This one helper carries the hook call,
-/// count folding, and failure wrap for every mutating writer path.
+/// On the WAL paths (deltas, in-place rescans) the hook runs inside a
+/// `SAVEPOINT`: on error the savepoint is rolled back so the affected rows
+/// simply stay unresolved (nothing written), the counts are zeroed, and the
+/// message is surfaced for the report — the scan itself still commits (design
+/// §"Failure semantics").
+///
+/// A bulk first build must NOT open that savepoint: under `journal_mode =
+/// MEMORY` it forces a pre-image of every bulk-loaded page into the in-memory
+/// rollback journal, and each statement end inside the savepoint truncates
+/// that journal by walking its chunk list — measured as ~4× the entire cold
+/// scan on dotnet/runtime (2026-08-03 baseline). On error the whole scan
+/// aborts instead ([`ArtifactWriteError::BulkResolutionFailed`]): the artifact
+/// is an empty first build, so the caller's bulk-restore path discards it and
+/// nothing durable is lost.
 fn run_resolution_hook<F>(
     tx: &Transaction<'_>,
     revision_id: i64,
@@ -1503,6 +1522,7 @@ fn run_resolution_hook<F>(
     capability_rows_written: &RowDomainCounts,
     scope: &ResolutionScopeInput,
     hook: &mut F,
+    bulk_load: bool,
 ) -> ArtifactWriteResult<ResolutionWriteOutcome>
 where
     F: for<'t> FnMut(
@@ -1510,24 +1530,34 @@ where
         &ResolutionScopeInput,
     ) -> Result<ResolutionCounts, ResolutionHookError>,
 {
-    tx.execute_batch("SAVEPOINT resolution_hook")?;
-    let outcome = match hook(tx, scope) {
-        Ok(counts) => {
-            tx.execute_batch("RELEASE resolution_hook")?;
-            ResolutionWriteOutcome {
-                counts,
-                failed: None,
-            }
+    let outcome = if bulk_load {
+        let counts = hook(tx, scope).map_err(|error| ArtifactWriteError::BulkResolutionFailed {
+            message: error.into_message(),
+        })?;
+        ResolutionWriteOutcome {
+            counts,
+            failed: None,
         }
-        Err(error) => {
-            // Discard whatever the hook wrote before failing, then drop the
-            // savepoint. The affected rows revert to unresolved and the scan
-            // commits without them.
-            tx.execute_batch("ROLLBACK TO resolution_hook")?;
-            tx.execute_batch("RELEASE resolution_hook")?;
-            ResolutionWriteOutcome {
-                counts: ResolutionCounts::default(),
-                failed: Some(error.into_message()),
+    } else {
+        tx.execute_batch("SAVEPOINT resolution_hook")?;
+        match hook(tx, scope) {
+            Ok(counts) => {
+                tx.execute_batch("RELEASE resolution_hook")?;
+                ResolutionWriteOutcome {
+                    counts,
+                    failed: None,
+                }
+            }
+            Err(error) => {
+                // Discard whatever the hook wrote before failing, then drop the
+                // savepoint. The affected rows revert to unresolved and the scan
+                // commits without them.
+                tx.execute_batch("ROLLBACK TO resolution_hook")?;
+                tx.execute_batch("RELEASE resolution_hook")?;
+                ResolutionWriteOutcome {
+                    counts: ResolutionCounts::default(),
+                    failed: Some(error.into_message()),
+                }
             }
         }
     };

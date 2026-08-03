@@ -1111,7 +1111,14 @@ fn path_writer_uses_bulk_sqlite_pragmas() {
     );
     assert_eq!(pragma_i64(writer.connection(), "synchronous"), 1);
     assert_eq!(pragma_i64(writer.connection(), "temp_store"), 2);
-    assert_eq!(pragma_i64(writer.connection(), "cache_size"), -131_072);
+    // Memory-aware cache: an eighth of physical memory clamped to [512 MiB, 8 GiB],
+    // expressed in negative KiB. The exact value is machine-dependent; the policy
+    // bounds are the contract.
+    let cache_kib = pragma_i64(writer.connection(), "cache_size");
+    assert!(
+        (-8 * 1024 * 1024..=-512 * 1024).contains(&cache_kib),
+        "cache_size must land within the sizing policy bounds, got {cache_kib}"
+    );
 
     drop(writer);
     std::fs::remove_dir_all(temp_dir).unwrap();
@@ -2418,6 +2425,120 @@ fn resolution_hook_error_is_non_fatal_and_rolls_back_overlay() {
         0,
         "a failed hook must leave the revision counts truthful (zero)"
     );
+}
+
+#[test]
+fn bulk_scan_resolution_error_aborts_the_scan_and_restores_the_empty_artifact() {
+    // INVARIANT: a bulk first build runs the hook WITHOUT the savepoint (whose
+    // in-memory sub-journal is quadratic at scale), so a hook error cannot be
+    // contained to the resolution overlay — the whole scan aborts, the empty
+    // artifact rolls back, and a rerun rebuilds from scratch.
+    let temp_dir = unique_temp_dir("bulk-resolution-error");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(writer.bulk_load_eligible());
+    let file = file_with_pending("file-a", "src/a.rs", "hash-a");
+
+    let failed = writer.write_scan_with_resolution(
+        revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+        std::slice::from_ref(&file),
+        |_tx: &rusqlite::Transaction<'_>, _scope: &ResolutionScopeInput| {
+            Err(ResolutionHookError::new("resolver boom"))
+        },
+    );
+    assert!(matches!(
+        &failed,
+        Err(ArtifactWriteError::BulkResolutionFailed { message }) if message == "resolver boom"
+    ));
+    assert_eq!(
+        pragma_text(writer.connection(), "journal_mode").to_lowercase(),
+        "wal",
+        "the failed bulk scan must leave the connection durable again"
+    );
+    assert_eq!(count(writer.connection(), "files"), 0);
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
+    drop(writer);
+
+    let mut rerun = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(
+        rerun.bulk_load_eligible(),
+        "the rolled-back artifact is still empty, so the rerun bulk-loads too"
+    );
+    let result = rerun
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            std::slice::from_ref(&file),
+            |tx: &rusqlite::Transaction<'_>, _scope: &ResolutionScopeInput| {
+                record_pending_resolution(
+                    tx,
+                    "file-a-pending-1",
+                    "file-a-symbol-1",
+                    2,
+                    0.9,
+                    "test",
+                    current_revision(tx),
+                )
+                .map_err(|err| ResolutionHookError::new(err.to_string()))?;
+                Ok(ResolutionCounts {
+                    pending_resolutions: 1,
+                    identifier_resolutions: 0,
+                })
+            },
+        )
+        .unwrap();
+    assert!(result.resolution.failed.is_none());
+    assert_eq!(count(rerun.connection(), "files"), 1);
+    assert_eq!(count(rerun.connection(), "pending_resolutions"), 1);
+    assert_eq!(
+        revision_counts_pending_resolutions(rerun.connection()),
+        1,
+        "the rerun's hook writes must fold into the revision counts"
+    );
+}
+
+#[test]
+fn bulk_scan_resolution_success_matches_savepoint_path_semantics() {
+    // INVARIANT: on the savepoint-free bulk path a succeeding hook behaves
+    // exactly as on the WAL path — overlay writes persist and fold into the
+    // revision counts.
+    let temp_dir = unique_temp_dir("bulk-resolution-success");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(writer.bulk_load_eligible());
+    let file = file_with_pending("file-a", "src/a.rs", "hash-a");
+
+    let result = writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            std::slice::from_ref(&file),
+            |tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                assert!(scope.is_full_scan);
+                record_pending_resolution(
+                    tx,
+                    "file-a-pending-1",
+                    "file-a-symbol-1",
+                    2,
+                    0.9,
+                    "test",
+                    current_revision(tx),
+                )
+                .map_err(|err| ResolutionHookError::new(err.to_string()))?;
+                Ok(ResolutionCounts {
+                    pending_resolutions: 1,
+                    identifier_resolutions: 0,
+                })
+            },
+        )
+        .unwrap();
+
+    assert!(result.resolution.failed.is_none());
+    assert_eq!(result.resolution.counts.pending_resolutions, 1);
+    assert_eq!(count(writer.connection(), "pending_resolutions"), 1);
+    assert_eq!(revision_counts_pending_resolutions(writer.connection()), 1);
 }
 
 #[test]

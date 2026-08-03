@@ -6,6 +6,7 @@
 //! editing behavior.
 
 pub mod jsonl;
+mod memory;
 pub mod metadata;
 pub mod model;
 pub mod reports;

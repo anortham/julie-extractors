@@ -239,6 +239,15 @@ pub(crate) fn write_error_outcome_with_profile(
             ),
             json!({"spooled_paths": spooled_paths, "snapshot_paths": snapshot_paths}),
         ),
+        ArtifactWriteError::BulkResolutionFailed { message } => (
+            1,
+            ReportCode::DbWriteFailed,
+            format!(
+                "resolution failed during the bulk first build and the scan was aborted: \
+                 {message}; the empty artifact was discarded — rerun the scan"
+            ),
+            json!({"resolution_error": message}),
+        ),
         ArtifactWriteError::BulkLoadRestoreFailed {
             write_error,
             restore_error,
