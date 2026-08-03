@@ -460,7 +460,7 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "julie-extract-artifact"
-version = "2.23.1"
+version = "2.24.0"
 dependencies = [
  "postcard",
  "rusqlite",
@@ -471,7 +471,7 @@ dependencies = [
 
 [[package]]
 name = "julie-extract-cli"
-version = "2.23.1"
+version = "2.24.0"
 dependencies = [
  "blake3",
  "clap",
@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "julie-extractors"
-version = "2.23.1"
+version = "2.24.0"
 dependencies = [
  "anyhow",
  "md5",
