@@ -391,6 +391,7 @@ fn fresh_path_scan_inserts_without_secondary_indexes_and_restores_them() {
 
     let mut in_transaction_indexes = Vec::new();
     let mut in_transaction_journal = String::new();
+    let mut in_transaction_foreign_keys = -1;
     writer
         .write_scan_with_resolution(
             revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
@@ -398,29 +399,22 @@ fn fresh_path_scan_inserts_without_secondary_indexes_and_restores_them() {
             |tx, _scope| {
                 in_transaction_indexes = secondary_index_names(tx);
                 in_transaction_journal = pragma_text(tx, "journal_mode").to_lowercase();
+                in_transaction_foreign_keys = pragma_i64(tx, "foreign_keys");
                 Ok(ResolutionCounts::default())
             },
         )
         .unwrap();
 
-    let expected_preserved = fk_backing_index_names(writer.connection());
-    assert_eq!(
-        in_transaction_indexes, expected_preserved,
-        "a fresh bulk load must insert with exactly the foreign-key-backing indexes present"
+    assert!(
+        in_transaction_indexes.is_empty(),
+        "a fresh bulk load must insert with no secondary indexes present: \
+         {in_transaction_indexes:?}"
     );
-    for deferred in [
-        "idx_symbols_name_kind",
-        "idx_symbols_path",
-        "idx_identifiers_name_kind",
-        "idx_source_regions_export_order",
-        "idx_structural_facts_export_order",
-        "idx_complexity_metrics_export_order",
-    ] {
-        assert!(
-            !in_transaction_indexes.iter().any(|name| name == deferred),
-            "{deferred} backs no foreign key, so the bulk load must still defer it"
-        );
-    }
+    assert_eq!(
+        in_transaction_foreign_keys, 0,
+        "the bulk load must insert with foreign-key enforcement off, or the deferred \
+         parent-side searches scan every referencing table"
+    );
     assert_eq!(in_transaction_journal, "memory");
     assert_eq!(secondary_index_names(writer.connection()), expected_indexes);
     assert_eq!(
@@ -438,27 +432,10 @@ fn fresh_path_scan_inserts_without_secondary_indexes_and_restores_them() {
 }
 
 #[test]
-fn bulk_load_leaves_every_foreign_key_child_column_indexed() {
-    let connection = Connection::open_in_memory().unwrap();
-    julie_extract_artifact::schema::create_schema(&connection).unwrap();
-
-    let fully_indexed = foreign_key_child_columns_with_an_index(&connection);
-    assert!(
-        fully_indexed.contains(&("symbols".to_string(), "parent_symbol_id".to_string())),
-        "the self-reference that made the insert pass quadratic must be in the covered set"
-    );
-
-    julie_extract_artifact::schema::drop_secondary_indexes(&connection).unwrap();
-
-    assert_eq!(
-        foreign_key_child_columns_with_an_index(&connection),
-        fully_indexed,
-        "the bulk load dropped an index a foreign key needs, so parent inserts will scan"
-    );
-}
-
-#[test]
-fn bulk_load_symbol_insert_never_plans_a_table_scan() {
+fn dropping_indexes_with_deferred_foreign_keys_on_would_scan_every_referencing_table() {
+    // Pins the mechanism the bulk load has to avoid. This is the exact state the load
+    // used to insert 2.58M symbol rows in, and `symbols` is its own child through
+    // `parent_symbol_id`, so one of these scans ran over the table being filled.
     let connection = Connection::open_in_memory().unwrap();
     julie_extract_artifact::schema::create_schema(&connection).unwrap();
     julie_extract_artifact::schema::drop_secondary_indexes(&connection).unwrap();
@@ -470,19 +447,29 @@ fn bulk_load_symbol_insert_never_plans_a_table_scan() {
         .pragma_update(None, "defer_foreign_keys", "ON")
         .unwrap();
 
-    let opcodes = explain_opcodes(
-        &connection,
-        "INSERT INTO symbols (symbol_id, file_id, path, language, name, kind)
-         VALUES (NULL, NULL, NULL, NULL, NULL, NULL)",
+    assert!(
+        symbol_insert_scan_count(&connection) > 0,
+        "if this stops scanning, the reason the bulk load disables foreign keys is gone"
     );
+}
 
-    let scans = opcodes
-        .iter()
-        .filter(|opcode| matches!(opcode.as_str(), "Rewind" | "Last"))
-        .count();
+#[test]
+fn bulk_load_symbol_insert_never_plans_a_table_scan() {
+    let connection = Connection::open_in_memory().unwrap();
+    julie_extract_artifact::schema::create_schema(&connection).unwrap();
+    julie_extract_artifact::schema::drop_secondary_indexes(&connection).unwrap();
+    connection
+        .pragma_update(None, "foreign_keys", "OFF")
+        .unwrap();
+    connection.execute_batch("BEGIN").unwrap();
+    connection
+        .pragma_update(None, "defer_foreign_keys", "ON")
+        .unwrap();
+
     assert_eq!(
-        scans, 0,
-        "a bulk-load symbol insert must not open a full table scan; opcodes: {opcodes:?}"
+        symbol_insert_scan_count(&connection),
+        0,
+        "a bulk-load symbol insert must not open a full table scan"
     );
 }
 
@@ -609,6 +596,55 @@ fn a_single_file_write_spends_bulk_load_eligibility() {
     assert!(
         !in_transaction_indexes.is_empty(),
         "a scan following a write must keep its secondary indexes"
+    );
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn bulk_load_rejects_and_rolls_back_a_foreign_key_violation() {
+    // The bulk load turns per-row enforcement off, so the pre-commit
+    // `foreign_key_check` is the only thing standing between a broken reference and
+    // a committed artifact. Forge one from inside the resolution hook, which is the
+    // one place a test holds the write transaction.
+    let temp_dir = unique_temp_dir("bulk-load-fk-violation");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(writer.bulk_load_eligible());
+
+    let error = writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+            |tx, _scope| {
+                tx.execute(
+                    "INSERT INTO symbol_annotations
+                     (annotation_id, symbol_id, annotation, annotation_key)
+                     VALUES ('orphan', 'no-such-symbol', 'x', 'x')",
+                    [],
+                )
+                .expect("enforcement is off during the bulk load, so the orphan lands");
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .expect_err("a dangling reference must fail the write");
+
+    assert!(
+        matches!(error, ArtifactWriteError::ForeignKeyViolation { .. }),
+        "expected a foreign-key violation, got {error:?}"
+    );
+    assert_eq!(
+        table_rows(writer.connection(), "symbols").len(),
+        0,
+        "the failed write must roll back to the empty artifact"
+    );
+    assert_eq!(
+        pragma_i64(writer.connection(), "foreign_keys"),
+        1,
+        "enforcement must be restored after a failed bulk load"
     );
 
     drop(writer);
@@ -787,48 +823,21 @@ const ARTIFACT_ROW_TABLES: [&str; 16] = [
     "complexity_metrics",
 ];
 
-fn foreign_key_child_columns_with_an_index(conn: &Connection) -> Vec<(String, String)> {
+fn symbol_insert_scan_count(conn: &Connection) -> usize {
     let mut statement = conn
         .prepare(
-            "SELECT fk.\"table\", fk.\"from\"
-             FROM sqlite_master AS m
-             JOIN pragma_foreign_key_list(m.name) AS fk
-             JOIN pragma_index_list(m.name) AS il
-             JOIN pragma_index_info(il.name) AS ii
-             WHERE m.type = 'table'
-               AND m.name NOT LIKE 'sqlite_%'
-               AND fk.seq = 0
-               AND ii.seqno = 0
-               AND ii.name = fk.\"from\"
-             ORDER BY 1, 2",
+            "EXPLAIN INSERT INTO symbols (symbol_id, file_id, path, language, name, kind)
+             VALUES (NULL, NULL, NULL, NULL, NULL, NULL)",
         )
         .unwrap();
     let rows = statement
-        .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        .unwrap();
-    let mut pairs = rows.collect::<rusqlite::Result<Vec<_>>>().unwrap();
-    pairs.dedup();
-    pairs
-}
-
-fn fk_backing_index_names(conn: &Connection) -> Vec<String> {
-    // `secondary_index_names` reads only indexes the schema DDL declares, so the
-    // implicit ones SQLite owns for PRIMARY KEY / UNIQUE are not comparable here.
-    julie_extract_artifact::schema::foreign_key_backing_index_names(conn)
-        .unwrap()
-        .into_iter()
-        .filter(|name| !name.starts_with("sqlite_autoindex_"))
-        .collect()
-}
-
-fn explain_opcodes(conn: &Connection, sql: &str) -> Vec<String> {
-    let mut statement = conn.prepare(&format!("EXPLAIN {sql}")).unwrap();
-    let rows = statement
         .query_map([], |row| row.get::<_, String>(1))
         .unwrap();
-    rows.collect::<rusqlite::Result<Vec<_>>>().unwrap()
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .unwrap()
+        .iter()
+        .filter(|opcode| matches!(opcode.as_str(), "Rewind" | "Last"))
+        .count()
 }
 
 fn secondary_index_names(conn: &Connection) -> Vec<String> {

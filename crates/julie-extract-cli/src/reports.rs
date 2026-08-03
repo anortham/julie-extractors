@@ -220,6 +220,12 @@ pub(crate) fn write_error_outcome_with_profile(
             format!("artifact file spool path was missing from scan snapshot: {path}"),
             json!({"path": path}),
         ),
+        ArtifactWriteError::ForeignKeyViolation { table, parent } => (
+            1,
+            ReportCode::DbWriteFailed,
+            format!("artifact write rolled back: {table} rows reference missing {parent} rows"),
+            json!({"table": table, "parent": parent}),
+        ),
     };
     let mut report = base_report(ReportStatus::Failed, operation, mode, input)
         .with_error(diagnostic(report_code, message, None, None, false, details));

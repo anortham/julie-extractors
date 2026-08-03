@@ -50,6 +50,10 @@ pub enum ArtifactWriteError {
     SnapshotMissingSpooledPath {
         path: String,
     },
+    ForeignKeyViolation {
+        table: String,
+        parent: String,
+    },
 }
 
 impl std::fmt::Display for ArtifactWriteError {
@@ -68,6 +72,10 @@ impl std::fmt::Display for ArtifactWriteError {
             ArtifactWriteError::SnapshotMissingSpooledPath { path } => write!(
                 f,
                 "spooled scan file {path} was not present in the current snapshot path set"
+            ),
+            ArtifactWriteError::ForeignKeyViolation { table, parent } => write!(
+                f,
+                "bulk load left a foreign key unsatisfied: {table} references missing {parent}"
             ),
         }
     }
@@ -800,6 +808,7 @@ impl ArtifactWriter {
             clock.lap(|phases| &mut phases.plan);
             if bulk_load {
                 create_secondary_indexes(&tx)?;
+                verify_foreign_keys(&tx)?;
                 clock.lap(|phases| &mut phases.index_build);
             }
             tx.commit()?;
@@ -926,6 +935,7 @@ impl ArtifactWriter {
         clock.lap(|phases| &mut phases.resolution);
         if bulk_load {
             create_secondary_indexes(&tx)?;
+            verify_foreign_keys(&tx)?;
             clock.lap(|phases| &mut phases.index_build);
         }
         tx.commit()?;
@@ -1084,6 +1094,7 @@ impl ArtifactWriter {
             clock.lap(|phases| &mut phases.plan);
             if bulk_load {
                 create_secondary_indexes(&tx)?;
+                verify_foreign_keys(&tx)?;
                 clock.lap(|phases| &mut phases.index_build);
             }
             tx.commit()?;
@@ -1210,6 +1221,7 @@ impl ArtifactWriter {
         clock.lap(|phases| &mut phases.resolution);
         if bulk_load {
             create_secondary_indexes(&tx)?;
+            verify_foreign_keys(&tx)?;
             clock.lap(|phases| &mut phases.index_build);
         }
         tx.commit()?;
@@ -1417,12 +1429,42 @@ fn artifact_has_files(connection: &Connection) -> rusqlite::Result<bool> {
 fn begin_bulk_load(connection: &Connection) -> rusqlite::Result<()> {
     connection.pragma_update(None, "journal_mode", "MEMORY")?;
     connection.pragma_update(None, "synchronous", "OFF")?;
+    // Enforcement is restored before the write is allowed to commit, by a whole-database
+    // `foreign_key_check` — see `verify_foreign_keys`. Turning it off for the insert passes is
+    // what lets every secondary index stay deferred: SQLite settles a DEFERRED foreign key from
+    // the parent side too, searching each referencing child table on every parent-row INSERT, and
+    // with the indexes dropped each of those searches is a full table scan. `symbols` is its own
+    // child through `parent_symbol_id`, so that scan ran over the table being filled.
+    //
+    // Safe only on this path: the bulk-load gate guarantees a fresh artifact, so no row is ever
+    // deleted or rewritten during the write and no ON DELETE CASCADE / SET NULL action is owed.
+    connection.pragma_update(None, "foreign_keys", "OFF")?;
+    Ok(())
+}
+
+/// Whole-database foreign-key validation, run inside the write transaction so a
+/// violation still rolls back to the empty artifact.
+///
+/// Replaces the per-row enforcement `begin_bulk_load` disables. Runs after the
+/// secondary indexes are rebuilt so each parent probe is a seek, and it is
+/// strictly stronger than the deferred per-row checks: it validates every row in
+/// the artifact rather than only the rows this write touched.
+fn verify_foreign_keys(tx: &Transaction<'_>) -> ArtifactWriteResult<()> {
+    let mut statement = tx.prepare("PRAGMA foreign_key_check")?;
+    let mut rows = statement.query([])?;
+    if let Some(row) = rows.next()? {
+        return Err(ArtifactWriteError::ForeignKeyViolation {
+            table: row.get::<_, Option<String>>(0)?.unwrap_or_default(),
+            parent: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
+        });
+    }
     Ok(())
 }
 
 /// Restores the durable settings `open_path` established, so a bulk-loaded
 /// artifact is indistinguishable from one the incremental path wrote.
 fn end_bulk_load(connection: &Connection) -> rusqlite::Result<()> {
+    connection.pragma_update(None, "foreign_keys", "ON")?;
     connection.pragma_update(None, "synchronous", "NORMAL")?;
     connection.pragma_update(None, "journal_mode", "WAL")?;
     Ok(())
