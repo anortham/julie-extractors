@@ -2686,6 +2686,74 @@ fn revision_counts_pending_resolutions(conn: &Connection) -> i64 {
     value["pending_resolutions"].as_i64().unwrap()
 }
 
+#[test]
+fn write_scan_stamps_the_staged_index_level_once_and_refuses_a_different_one() {
+    let mut writer = open_writer();
+    writer.stage_index_level("full");
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols(
+                "file-a",
+                "src/a.rs",
+                "blake3:a",
+                ["alpha"],
+            )],
+        )
+        .unwrap();
+    let recorded: String = writer
+        .connection()
+        .query_row(
+            "SELECT value FROM artifact_metadata WHERE key = 'index_level'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(recorded, "full");
+
+    // The concurrent-first-scan shape: this scan chose its level before another scan committed a
+    // different one. The write must abort instead of restamping the artifact around foreign rows.
+    writer.stage_index_level("symbols");
+    let error = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[
+                file_with_symbols("file-a", "src/a.rs", "blake3:a", ["alpha"]),
+                file_with_symbols("file-b", "src/b.rs", "blake3:b", ["beta"]),
+            ],
+        )
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        ArtifactWriteError::IndexLevelConflict { ref recorded, ref staged }
+            if recorded == "full" && staged == "symbols"
+    ));
+    let file_b_rows: i64 = writer
+        .connection()
+        .query_row(
+            "SELECT COUNT(*) FROM files WHERE file_id = 'file-b'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        file_b_rows, 0,
+        "the aborted write must leave no rows behind"
+    );
+
+    // Re-staging the recorded level is not a conflict: the delta proceeds.
+    writer.stage_index_level("full");
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[
+                file_with_symbols("file-a", "src/a.rs", "blake3:a", ["alpha"]),
+                file_with_symbols("file-b", "src/b.rs", "blake3:b", ["beta"]),
+            ],
+        )
+        .unwrap();
+}
+
 fn open_writer() -> ArtifactWriter {
     ArtifactWriter::open_in_memory(artifact_metadata()).unwrap()
 }

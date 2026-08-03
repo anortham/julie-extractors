@@ -283,6 +283,16 @@ pub(crate) fn write_error_outcome_with_profile(
             ),
             json!({"reason": reason}),
         ),
+        ArtifactWriteError::IndexLevelConflict { recorded, staged } => (
+            2,
+            ReportCode::UsageError,
+            format!(
+                "artifact write rolled back: the artifact records index_level '{recorded}' but \
+                 this scan planned a '{staged}'-level write (a concurrent scan established the \
+                 level first); rebuild into a fresh artifact to change level"
+            ),
+            json!({"artifact_index_level": recorded, "staged_index_level": staged}),
+        ),
     };
     let mut report = base_report(ReportStatus::Failed, operation, mode, input)
         .with_error(diagnostic(report_code, message, None, None, false, details));

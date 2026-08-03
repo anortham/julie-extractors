@@ -70,6 +70,10 @@ pub enum ArtifactWriteError {
     BulkResolutionFailed {
         message: String,
     },
+    IndexLevelConflict {
+        recorded: String,
+        staged: String,
+    },
 }
 
 impl ArtifactWriteError {
@@ -132,6 +136,12 @@ impl std::fmt::Display for ArtifactWriteError {
             ArtifactWriteError::BulkResolutionFailed { message } => write!(
                 f,
                 "resolution failed during a bulk first build, aborting the scan: {message}"
+            ),
+            ArtifactWriteError::IndexLevelConflict { recorded, staged } => write!(
+                f,
+                "refusing to write a '{staged}'-level scan: the artifact records index_level \
+                 '{recorded}' (a concurrent scan established it after this scan chose its level); \
+                 rebuild into a fresh artifact to change level"
             ),
         }
     }
@@ -978,6 +988,7 @@ impl ArtifactWriter {
         let parent_revision_id = current_revision_id(&tx)?;
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
         write_metadata(&tx, &self.metadata)?;
+        establish_staged_index_level(&tx, self.staged_index_level.as_deref())?;
         let mut row_counts = RowCounts::default();
 
         // OLD names of every file this scan deletes or rewrites, read before the
@@ -1297,9 +1308,7 @@ impl ArtifactWriter {
         let parent_revision_id = current_revision_id(&tx)?;
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
         write_metadata(&tx, &self.metadata)?;
-        if let Some(level) = self.staged_index_level.as_deref() {
-            crate::metadata::write_index_level(&tx, level)?;
-        }
+        establish_staged_index_level(&tx, self.staged_index_level.as_deref())?;
         let mut row_counts = RowCounts::default();
         // Built before the insert pass (the ids were gathered during planning) so symbols can be
         // written with their parent resolved in one statement.
@@ -1439,6 +1448,27 @@ fn write_metadata(tx: &Transaction<'_>, metadata: &ArtifactMetadata) -> rusqlite
     }
 
     Ok(())
+}
+
+/// Establish the staged `index_level` inside the write transaction. The level was decided before
+/// this transaction began — possibly before the artifact existed — so a concurrent scan may have
+/// committed a different level since. The key is written once and never updated: a mismatch aborts
+/// the whole write rather than stamping one level over rows planned under another.
+fn establish_staged_index_level(
+    tx: &Transaction<'_>,
+    staged: Option<&str>,
+) -> ArtifactWriteResult<()> {
+    let Some(staged) = staged else {
+        return Ok(());
+    };
+    match crate::metadata::read_index_level(tx)? {
+        Some(recorded) if recorded == staged => Ok(()),
+        Some(recorded) => Err(ArtifactWriteError::IndexLevelConflict {
+            recorded,
+            staged: staged.to_string(),
+        }),
+        None => Ok(crate::metadata::write_index_level(tx, staged)?),
+    }
 }
 
 fn load_existing_file(tx: &Transaction<'_>, path: &str) -> rusqlite::Result<Option<ExistingFile>> {

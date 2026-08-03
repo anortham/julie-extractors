@@ -301,19 +301,33 @@ fn scan_collecting_warnings(
     let should_rebuild_db = args.force && db.exists() && force_existing_metadata.is_none();
     let recorded_level = force_existing_level.or(existing_scan_level);
     let requested_level = args.level.map(ExtractionLevel::from);
-    let level = match (recorded_level.as_deref(), requested_level) {
-        (Some(recorded), Some(requested)) if requested.metadata_value() != recorded => {
+    let recorded_extraction_level = match recorded_level.as_deref() {
+        None => None,
+        Some(recorded) => match ExtractionLevel::from_metadata_value(recorded) {
+            Some(level) => Some(level),
+            None => {
+                return outcome(
+                    base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                        .with_error(unknown_index_level_diagnostic(&db, recorded)),
+                    3,
+                    args.json,
+                    ReportStream::Stdout,
+                );
+            }
+        },
+    };
+    let level = match (recorded_extraction_level, requested_level) {
+        (Some(recorded), Some(requested)) if requested != recorded => {
             return outcome(
-                base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
-                    .with_error(index_level_conflict_diagnostic(&db, recorded, requested)),
+                base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input).with_error(
+                    index_level_conflict_diagnostic(&db, recorded.metadata_value(), requested),
+                ),
                 2,
                 args.json,
                 ReportStream::Stdout,
             );
         }
-        (Some(recorded), _) => {
-            ExtractionLevel::from_metadata_value(recorded).unwrap_or(ExtractionLevel::Full)
-        }
+        (Some(recorded), _) => recorded,
         (None, requested) => requested.unwrap_or(ExtractionLevel::Full),
     };
     let indexed_at = now_rfc3339();
@@ -780,10 +794,29 @@ fn update(args: UpdateArgs) -> CommandOutcome {
         }
     };
 
-    let update_level = existing_artifact
+    let update_level = match existing_artifact
         .as_ref()
-        .and_then(|artifact| ExtractionLevel::from_metadata_value(&artifact.index_level))
-        .unwrap_or(ExtractionLevel::Full);
+        .map(|artifact| artifact.index_level.as_str())
+    {
+        None => ExtractionLevel::Full,
+        Some(recorded) => match ExtractionLevel::from_metadata_value(recorded) {
+            Some(level) => level,
+            None => {
+                return outcome(
+                    base_report(
+                        ReportStatus::Failed,
+                        ReportOperation::Update,
+                        ReportMode::SingleFile,
+                        input,
+                    )
+                    .with_error(unknown_index_level_diagnostic(&db, recorded)),
+                    3,
+                    args.json,
+                    ReportStream::Stdout,
+                );
+            }
+        },
+    };
     let file = match extract_artifact_file(&root, &target, language, now_rfc3339(), update_level) {
         Ok(file) => file,
         Err(error) => {
@@ -1801,6 +1834,21 @@ fn select_extraction_pool<P, E>(
             build(1)
         }
     })
+}
+
+fn unknown_index_level_diagnostic(db: &Path, recorded: &str) -> ReportDiagnostic {
+    diagnostic(
+        ReportCode::SchemaIncompatible,
+        format!(
+            "artifact records index_level '{recorded}', which this julie-extract does not \
+             recognize; a newer julie-extract likely built it — upgrade this binary or rebuild \
+             into a fresh artifact"
+        ),
+        Some(display_path(db)),
+        None,
+        false,
+        json!({ "artifact_index_level": recorded }),
+    )
 }
 
 fn index_level_conflict_diagnostic(

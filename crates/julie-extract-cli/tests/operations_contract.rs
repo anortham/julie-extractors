@@ -4087,6 +4087,73 @@ fn update_on_a_symbols_artifact_stays_at_symbols_level() {
     );
 }
 
+#[test]
+fn scan_and_update_on_an_unknown_index_level_fail_closed() {
+    let fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+
+    // The forward-compatibility shape: a newer julie-extract built this artifact at a level this
+    // binary does not know. Extracting into it anyway would mix levels behind a wrong stamp.
+    let conn = Connection::open(&db).unwrap();
+    conn.execute(
+        "UPDATE artifact_metadata SET value = 'minimal' WHERE key = 'index_level'",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+
+    std::fs::write(
+        fixture.root.join("src/extra.ts"),
+        "export function extra() { return 1 }\n",
+    )
+    .unwrap();
+    let scan = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+    assert_eq!(scan.status.code(), Some(3));
+    let report = json_report(&scan);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "schema_incompatible");
+    assert_eq!(
+        report["errors"][0]["details"]["artifact_index_level"],
+        "minimal"
+    );
+
+    std::fs::write(
+        fixture.root.join("src/messagesService.ts"),
+        TS_LEVELS_FIXTURE.replace("getActiveMessages", "getActiveMessagesV3"),
+    )
+    .unwrap();
+    let update = julie_extract(&[
+        "update",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--file",
+        "src/messagesService.ts",
+        "--json",
+    ]);
+    assert_eq!(update.status.code(), Some(3));
+    assert_eq!(
+        json_report(&update)["errors"][0]["code"],
+        "schema_incompatible"
+    );
+}
+
 struct FixtureRoot {
     _temp: TempDir,
     root: std::path::PathBuf,
