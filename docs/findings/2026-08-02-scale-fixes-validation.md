@@ -801,3 +801,96 @@ absolute wall-clock is inflated and should be read as an upper bound.**
 
 These are T6 findings that this change does not address and must not alter: exit code 1 with 8
 non-UTF-8 `read_failed` entries, ~4,237 C identity-conflict warnings, and 3 `depth_truncated` rows.
+
+## T7 V1 re-run — result
+
+Same target, same argv, same method as T6's V1: dotnet/runtime @ `a2f953fe266`, 58,366 files,
+`scan --root <target> --db <scratch> --jobs 4 --json` under `/usr/bin/time -l`, read-only source,
+DB and `TMPDIR` in session scratch.
+
+| Field | T6 baseline | T7 | change |
+|---|---|---|---|
+| Wall clock | 13,889.65 s (3 h 51 m 30 s) | **6,927.31 s (1 h 55 m 27 s)** | **−50.1%** |
+| **Total CPU (user+sys)** | **12,016.80 s** | **3,480.56 s** | **−71.0%** |
+| `artifact_write` | 13,661,797 ms (227.7 min) | **6,699,321 ms (111.7 min)** | **−51.0%** |
+| Peak RSS | 32,855,687,168 B (30.60 GiB) | **22,513,025,024 B (20.97 GiB)** | **−31.5%** |
+| Final DB | 24,524,300,288 B | 24,524,304,384 B | +4,096 B (one page) |
+| Exit / status | 1 / `partial` | 1 / `partial` | unchanged |
+
+**Total CPU is the number to trust.** Both runs shared the box with other work, so wall clock is
+contention-sensitive in both directions — but CPU time consumed is not. The fixed binary does the same
+job for **3.45× less CPU**, and that figure needs no caveat.
+
+### Sub-phase profile
+
+| Phase | T6 baseline | T7 | change |
+|---|---|---|---|
+| `artifact_write_plan` | 10,686 ms | 6,960 ms | −34.9% |
+| `artifact_write_file_symbol_insert` | 3,823,466 ms | **13,612 ms** | **−99.6%** |
+| `artifact_write_child_rows` | 1,031,208 ms | 2,646,195 ms | +156.6% — contention, see below |
+| `artifact_write_resolution` | 8,510,071 ms | **3,417,219 ms** | **−59.8%** |
+| `artifact_write_index_build` | 285,787 ms | 614,619 ms | +115.1% — the new check, see below |
+| `artifact_write_commit` | — | 97 ms | |
+| `artifact_write_wal_checkpoint` | — | 58 ms | |
+
+**`file_symbol_insert`: 63.7 minutes → 13.6 seconds.** This is the wall the task was opened for, and it
+is gone. The phase is now 0.2% of `artifact_write`.
+
+**`resolution` fell 59.8%**, closely matching the −59% measured on `src/coreclr`. This was not
+predicted by the insert diagnosis: it is the per-row child-side parent lookups disappearing, ~12.86M
+of them.
+
+**`child_rows` rising is contention, not regression.** A concurrent `julie-extract` from the sibling
+`fleet-safety` worktree occupied the box until 22:07. Reconstructing from the CPU-time sampler, the
+process ran at an 8–13% duty cycle until then and 81–100% after, with artifact growth stepping from
+~110 MB/min to ~500–650 MB/min at that exact boundary. `child_rows` began ~21:30:29 and ended
+~22:14:36, so ~84% of it fell inside the starved window. The same-period `src/coreclr` A/B, where both
+arms ran under identical load, measured `child_rows` **down 21%**.
+
+**`index_build` rising is the new `foreign_key_check`.** Both arms build the same 54 indexes, so the
++328,832 ms delta is the whole-database validation, ≈ **5.5 minutes at 22.84 GiB**. That matches the
+13.5 s/GiB rate measured standalone on the 3.57 GiB `coreclr` artifact. On this run it is still folded
+into `index_build`; it now has its own `artifact_write_foreign_key_check` phase key.
+
+### Against the acceptance target
+
+The target was `artifact_write` under ~45 minutes with RSS well under 10 GiB. **Both are missed**, and
+the residual is resolution:
+
+- Measured `artifact_write` 111.7 min. Normalizing by CPU duty — the run consumed 3,480.56 s of CPU at
+  a 50.2% duty cycle against the baseline's 86.5% — an equally-loaded run projects to roughly
+  **65–70 minutes**, of which resolution is ~45–57 min.
+- Peak RSS 20.97 GiB, down from 30.60 GiB. The climb happens entirely inside resolution: RSS was flat
+  through the insert phases, peaked during resolution, then fell back to 6.67 GiB when it ended.
+
+Both residuals are the resolver's own compute and working set, which is successor task #15's scope. No
+resolver internals were touched.
+
+### Correctness at full scale
+
+All 24 tables have **identical row counts** to the baseline artifact — 53,479,352 rows total:
+
+| table | rows (both) |
+|---|---|
+| `reference_sites` | 15,515,252 |
+| `identifiers` / `identifier_resolutions` | 12,856,606 each |
+| `symbols` | 2,576,001 |
+| `pending_relationships` | 2,493,581 |
+| `source_regions` | 2,189,454 |
+| `type_facts` | 1,925,243 |
+| `complexity_metrics` | 622,360 |
+| `files` / `revision_file_changes` | 41,406 each |
+
+`reference_sites` matching exactly on 15.5M rows is the identity trigger's first-write-wins semantics
+holding at full scale, under a write that ran with per-row foreign-key enforcement disabled.
+
+### Expected-unchanged residuals — all held exactly
+
+| residual | baseline | T7 |
+|---|---|---|
+| Exit / status | 1 / `partial` | 1 / `partial` |
+| Errors | 8, all `read_failed` | 8, all `read_failed` |
+| Warnings | 58 (30 `slow_file_skipped`, 28 `reference_site_payload_conflict`) | identical |
+| Identity conflicts | 4,237 across 28 files, all `language: c` | identical |
+| `depth_truncated` | 3, all C# | identical |
+| Files | 58,366 / 41,406 changed / 16,960 unsupported / 8 failed | identical |
