@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use rusqlite::Connection;
 
 pub const SQLITE_SCHEMA_VERSION: i64 = 5;
@@ -16,11 +18,16 @@ pub fn create_secondary_indexes(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute_batch(SCHEMA_INDEXES_SQL)
 }
 
-/// Drops every index [`create_secondary_indexes`] creates, leaving the implicit
-/// PRIMARY KEY and UNIQUE indexes SQLite owns. Read from `sqlite_master` rather
-/// than a second hand-maintained list, so an index added to the DDL can never be
-/// silently left behind during a bulk load.
+/// Drops every index [`create_secondary_indexes`] creates EXCEPT the ones that
+/// back a foreign-key child column, leaving those plus the implicit PRIMARY KEY
+/// and UNIQUE indexes SQLite owns. Read from `sqlite_master` rather than a second
+/// hand-maintained list, so an index added to the DDL can never be silently left
+/// behind during a bulk load.
+///
+/// The foreign-key exemption is load-bearing — see
+/// [`foreign_key_backing_index_names`].
 pub fn drop_secondary_indexes(conn: &Connection) -> rusqlite::Result<()> {
+    let preserved = foreign_key_backing_index_names(conn)?;
     let names = {
         let mut statement = conn.prepare(
             "SELECT name FROM sqlite_master
@@ -31,9 +38,87 @@ pub fn drop_secondary_indexes(conn: &Connection) -> rusqlite::Result<()> {
         names.collect::<rusqlite::Result<Vec<_>>>()?
     };
     for name in names {
+        if preserved.contains(&name) {
+            continue;
+        }
         conn.execute_batch(&format!("DROP INDEX IF EXISTS \"{name}\""))?;
     }
     Ok(())
+}
+
+/// Every index whose LEFTMOST column is a foreign-key child column.
+///
+/// SQLite enforces a deferred foreign key from the PARENT side too: inserting a
+/// parent row makes it search each referencing child table for rows that point at
+/// the new row, so it can settle the deferred-constraint counter. With no index on
+/// the child's foreign-key column that search is a full table scan. Dropping these
+/// for a bulk load therefore turns every parent-row insert into one scan per
+/// referencing table — and because `symbols.parent_symbol_id` references `symbols`,
+/// the scan runs over the very table being filled, making the insert pass
+/// quadratic. Measured on dotnet/runtime: 600k symbol inserts took 147.4 s without
+/// `idx_symbols_parent` and 3.5 s with it.
+///
+/// Derived from `pragma_foreign_key_list` rather than a hand-maintained list, so a
+/// foreign key added later cannot silently lose its index during a bulk load.
+pub fn foreign_key_backing_index_names(conn: &Connection) -> rusqlite::Result<BTreeSet<String>> {
+    let tables = {
+        let mut statement = conn.prepare(
+            "SELECT name FROM sqlite_master
+             WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+             ORDER BY name",
+        )?;
+        let names = statement.query_map([], |row| row.get::<_, String>(0))?;
+        names.collect::<rusqlite::Result<Vec<_>>>()?
+    };
+
+    let mut preserved = BTreeSet::new();
+    for table in tables {
+        let mut child_columns = BTreeSet::new();
+        conn.pragma(None, "foreign_key_list", table.as_str(), |row| {
+            // A composite foreign key is served by an index on its leftmost column,
+            // which is the `seq = 0` entry of that key.
+            if row.get::<_, i64>(1)? == 0 {
+                child_columns.insert(row.get::<_, String>(3)?);
+            }
+            Ok(())
+        })?;
+        if child_columns.is_empty() {
+            continue;
+        }
+
+        let mut index_names = Vec::new();
+        conn.pragma(None, "index_list", table.as_str(), |row| {
+            index_names.push(row.get::<_, String>(1)?);
+            Ok(())
+        })?;
+
+        // One index per constrained column is all the foreign-key search needs, so
+        // keep the narrowest candidate and let the rest stay deferred.
+        let mut best: BTreeMap<String, (usize, String)> = BTreeMap::new();
+        for index_name in index_names {
+            let mut leftmost = None;
+            let mut width = 0usize;
+            conn.pragma(None, "index_info", index_name.as_str(), |row| {
+                width += 1;
+                if row.get::<_, i64>(0)? == 0 {
+                    leftmost = row.get::<_, Option<String>>(2)?;
+                }
+                Ok(())
+            })?;
+            let Some(column) = leftmost.filter(|column| child_columns.contains(column)) else {
+                continue;
+            };
+            let candidate = (width, index_name);
+            match best.get(&column) {
+                Some(current) if current <= &candidate => {}
+                _ => {
+                    best.insert(column, candidate);
+                }
+            }
+        }
+        preserved.extend(best.into_values().map(|(_, index_name)| index_name));
+    }
+    Ok(preserved)
 }
 
 /// The guard originally raised ABORT, so one payload disagreement between

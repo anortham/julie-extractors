@@ -403,11 +403,24 @@ fn fresh_path_scan_inserts_without_secondary_indexes_and_restores_them() {
         )
         .unwrap();
 
-    assert!(
-        in_transaction_indexes.is_empty(),
-        "a fresh bulk load must insert with no secondary indexes present: \
-         {in_transaction_indexes:?}"
+    let expected_preserved = fk_backing_index_names(writer.connection());
+    assert_eq!(
+        in_transaction_indexes, expected_preserved,
+        "a fresh bulk load must insert with exactly the foreign-key-backing indexes present"
     );
+    for deferred in [
+        "idx_symbols_name_kind",
+        "idx_symbols_path",
+        "idx_identifiers_name_kind",
+        "idx_source_regions_export_order",
+        "idx_structural_facts_export_order",
+        "idx_complexity_metrics_export_order",
+    ] {
+        assert!(
+            !in_transaction_indexes.iter().any(|name| name == deferred),
+            "{deferred} backs no foreign key, so the bulk load must still defer it"
+        );
+    }
     assert_eq!(in_transaction_journal, "memory");
     assert_eq!(secondary_index_names(writer.connection()), expected_indexes);
     assert_eq!(
@@ -422,6 +435,55 @@ fn fresh_path_scan_inserts_without_secondary_indexes_and_restores_them() {
 
     drop(writer);
     std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn bulk_load_leaves_every_foreign_key_child_column_indexed() {
+    let connection = Connection::open_in_memory().unwrap();
+    julie_extract_artifact::schema::create_schema(&connection).unwrap();
+
+    let fully_indexed = foreign_key_child_columns_with_an_index(&connection);
+    assert!(
+        fully_indexed.contains(&("symbols".to_string(), "parent_symbol_id".to_string())),
+        "the self-reference that made the insert pass quadratic must be in the covered set"
+    );
+
+    julie_extract_artifact::schema::drop_secondary_indexes(&connection).unwrap();
+
+    assert_eq!(
+        foreign_key_child_columns_with_an_index(&connection),
+        fully_indexed,
+        "the bulk load dropped an index a foreign key needs, so parent inserts will scan"
+    );
+}
+
+#[test]
+fn bulk_load_symbol_insert_never_plans_a_table_scan() {
+    let connection = Connection::open_in_memory().unwrap();
+    julie_extract_artifact::schema::create_schema(&connection).unwrap();
+    julie_extract_artifact::schema::drop_secondary_indexes(&connection).unwrap();
+    connection
+        .pragma_update(None, "foreign_keys", "ON")
+        .unwrap();
+    connection.execute_batch("BEGIN").unwrap();
+    connection
+        .pragma_update(None, "defer_foreign_keys", "ON")
+        .unwrap();
+
+    let opcodes = explain_opcodes(
+        &connection,
+        "INSERT INTO symbols (symbol_id, file_id, path, language, name, kind)
+         VALUES (NULL, NULL, NULL, NULL, NULL, NULL)",
+    );
+
+    let scans = opcodes
+        .iter()
+        .filter(|opcode| matches!(opcode.as_str(), "Rewind" | "Last"))
+        .count();
+    assert_eq!(
+        scans, 0,
+        "a bulk-load symbol insert must not open a full table scan; opcodes: {opcodes:?}"
+    );
 }
 
 #[test]
@@ -724,6 +786,50 @@ const ARTIFACT_ROW_TABLES: [&str; 16] = [
     "structural_facts",
     "complexity_metrics",
 ];
+
+fn foreign_key_child_columns_with_an_index(conn: &Connection) -> Vec<(String, String)> {
+    let mut statement = conn
+        .prepare(
+            "SELECT fk.\"table\", fk.\"from\"
+             FROM sqlite_master AS m
+             JOIN pragma_foreign_key_list(m.name) AS fk
+             JOIN pragma_index_list(m.name) AS il
+             JOIN pragma_index_info(il.name) AS ii
+             WHERE m.type = 'table'
+               AND m.name NOT LIKE 'sqlite_%'
+               AND fk.seq = 0
+               AND ii.seqno = 0
+               AND ii.name = fk.\"from\"
+             ORDER BY 1, 2",
+        )
+        .unwrap();
+    let rows = statement
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .unwrap();
+    let mut pairs = rows.collect::<rusqlite::Result<Vec<_>>>().unwrap();
+    pairs.dedup();
+    pairs
+}
+
+fn fk_backing_index_names(conn: &Connection) -> Vec<String> {
+    // `secondary_index_names` reads only indexes the schema DDL declares, so the
+    // implicit ones SQLite owns for PRIMARY KEY / UNIQUE are not comparable here.
+    julie_extract_artifact::schema::foreign_key_backing_index_names(conn)
+        .unwrap()
+        .into_iter()
+        .filter(|name| !name.starts_with("sqlite_autoindex_"))
+        .collect()
+}
+
+fn explain_opcodes(conn: &Connection, sql: &str) -> Vec<String> {
+    let mut statement = conn.prepare(&format!("EXPLAIN {sql}")).unwrap();
+    let rows = statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .unwrap();
+    rows.collect::<rusqlite::Result<Vec<_>>>().unwrap()
+}
 
 fn secondary_index_names(conn: &Connection) -> Vec<String> {
     let mut statement = conn
