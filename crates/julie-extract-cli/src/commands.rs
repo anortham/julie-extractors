@@ -2460,7 +2460,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn parallel_spool_orders_failed_unchanged_and_changed_by_target() {
         let fixture = ScanFixture::new();
