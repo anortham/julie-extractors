@@ -575,3 +575,151 @@ read directly from the worktree files, which is the required re-verification ste
   lead.
 - The four bugs the baseline recommended filing can be closed as fixed on this branch, with (c)
   downgraded from blocker to the open C-header residual rather than closed outright.
+
+---
+
+# T7 re-validation — 2026-08-02 (appended)
+
+T6 left `artifact_write` as a 3 h 51 m wall and attributed it to a random-PK B-tree problem
+compounded by an in-RAM journal. Both attributions are wrong. This section records what the wall
+actually was, the measurements that settled it, and the re-validation numbers after the fix.
+
+## Root cause: a quadratic foreign-key scan that T5's index deferral introduced
+
+The spooled writer sets `PRAGMA defer_foreign_keys=ON` (`writer.rs:1011`) so a symbol's parent may be
+inserted later in the same transaction. SQLite enforces a deferred foreign key from the **parent**
+side as well as the child side: every parent-row INSERT searches each referencing child table for rows
+that point at the new row, so the deferred-constraint counter can be settled. With an index on the
+child's foreign-key column that search is a seek; without one it is a full table scan.
+
+T5's bulk load drops **every** secondary index, including `idx_symbols_parent`. Because
+`symbols.parent_symbol_id` references `symbols`, each symbol insert then full-scans the table it is
+filling — O(n²) in symbols.
+
+`EXPLAIN` of the real symbol INSERT, counting full-scan opcodes:
+
+| pragma state | opcodes | Rewind | Next | OpenRead |
+|---|---|---|---|---|
+| `defer_foreign_keys=OFF` | 77 | 0 | 0 | 2 |
+| `defer_foreign_keys=ON` (what the writer sets) | 189 | **16** | **16** | 18 |
+| `defer_foreign_keys=ON` + `idx_symbols_parent` | 194 | 15 | 16 | 18 |
+
+16 is exactly the number of child foreign-key columns referencing `symbols`. T6's EXPLAIN probe
+reported "no `Next`/`Rewind` opcode appears in any variant" and therefore cleared the insert path — it
+did not set `defer_foreign_keys=ON`, which is the pragma that generates the scans.
+
+Per-inserted-row full-scan opcodes across every row table:
+
+| table | defer OFF | defer ON | defer ON + indexes present |
+|---|---|---|---|
+| `symbols` | 0 | **16** | **0** |
+| `files` | 0 | **11** | **0** |
+| `reference_sites` | 3 | 3 | **0** |
+| `identifiers` | 0 | 1 | **0** |
+| all other row tables | 0 | 0 | 0 |
+
+With the indexes present there are zero scans anywhere: this is a regression the bulk load introduced,
+not a property of the schema.
+
+## What the T6 hypotheses actually measure
+
+- **Random-PK B-tree wall — refuted.** 3,000,000 rows with random 32-hex TEXT PRIMARY KEYs, one
+  transaction, the exact T5 bulk-load pragmas: **9.9 s**, 1.16 GB DB, peak RSS **273 MB**. T6's own
+  numbers agree — `child_rows` wrote ~35.6M random-PK rows at 34,500 rows/s while the DB grew 1 → 13 GB,
+  while `file_symbol_insert` wrote 2.58M rows at 675 rows/s while the DB was under 1 GB. The slow phase
+  is the one with the small database.
+- **MEMORY journal growing toward O(DB size) — refuted for the insert phase.** RSS is flat at 0.18 GiB
+  across every reproduction, and T6's own sampler trail shows RSS flat through `file_symbol_insert`.
+  The 13 → 26 GiB growth happens inside `resolution` and belongs to the resolver's in-memory
+  structures.
+
+Replaying all 2.58M real dotnet/runtime symbol rows through the real insert shape (real schema,
+indexes dropped, foreign-key parents loaded, `defer_foreign_keys=ON`, single-row prepared statements,
+source reads timed separately and excluded):
+
+| variant | 600k rows | shape |
+|---|---|---|
+| baseline (today's bulk load) | **147.4 s** | quadratic — 4.8 / 33.2 / 109.4 s per 200k |
+| `journal_mode=DELETE` (the proposed Stage 1) | slower than baseline | no effect on the mechanism |
+| `cache_size=-4194304` (4 GiB; database never spilled a page) | ~40% better, still quadratic | not the mechanism |
+| **`+ idx_symbols_parent`** | **3.5 s** | **linear** — 0.9 / 1.3 / 1.3 s per 200k |
+| `defer_foreign_keys=OFF` | FOREIGN KEY constraint failed | deferral is genuinely required |
+
+The 4 GiB-cache arm is decisive: the whole database stayed resident (16 MB on disk) and the collapse
+still happened, so the cost is in-memory CPU that grows with rows already inserted — not I/O, not cache
+residency, not B-tree shape.
+
+## Fix
+
+`drop_secondary_indexes` now preserves the narrowest index per foreign-key child column, derived from
+`pragma_foreign_key_list` / `pragma_index_list` / `pragma_index_info` rather than a hand-maintained
+list. 34 of 54 indexes stay through the bulk load; the wide search and export-order indexes
+(`idx_symbols_name_kind`, `idx_symbols_path`, `idx_identifiers_name_kind`, the three `*_export_order`
+indexes, …) remain deferred to the end-of-write build, so T5's win is preserved.
+
+## Resolution is not a write wall
+
+Every statement the resolution pass issues plans without a full scan in **all** index states —
+the `identifier_resolutions` and `pending_resolutions` upserts, the `identifiers` target update, and
+the overlay deletes all report 0 scan opcodes with no indexes, with the foreign-key subset, and with
+the full catalog. `worklist_full_identifiers` performs one full `identifiers` scan, which is correct
+and runs once. Resolution's remaining cost is therefore its own compute and its 12.86M-row in-memory
+materialization, which is successor task #15's scope, not this task's.
+
+## Fix and measured results
+
+`begin_bulk_load` sets `PRAGMA foreign_keys=OFF` and `end_bulk_load` restores it; `verify_foreign_keys`
+runs one whole-database `PRAGMA foreign_key_check` inside the write transaction, after the secondary
+indexes are rebuilt and before `COMMIT`. A violation returns `ArtifactWriteError::ForeignKeyViolation`
+and rolls back to the empty artifact. `drop_secondary_indexes` still drops every secondary index, so
+T5's deferral win is kept in full.
+
+This removes the parent-side searches AND the per-row child-side parent lookups. Enforcement is not
+weakened: `foreign_key_check` validates every row in the artifact, where the deferred per-row checks
+only covered rows the write touched. It is safe only on this path for the reason the bulk-load gate
+already guarantees — a fresh artifact never deletes or rewrites a row during the write, so no
+`ON DELETE CASCADE` / `SET NULL` action is owed.
+
+An earlier attempt that instead PRESERVED the 34 foreign-key-backing indexes was measured and
+rejected: it fixes the quadratic but forces those indexes to be maintained through every pass, and
+`idx_identifiers_target` in particular only serves parent-side searches while `symbols` is being
+inserted — when `identifiers` is still empty and the search is free anyway — while resolution updates
+that column 12.86M times. On `src/coreclr` that build was still running at 8 m 18 s with 13.6 GiB RSS
+against a 311 s / 6.29 GiB baseline.
+
+Each arm is the same binary pair on the same input, back-to-back on the same box. The `old` arm
+reproduces T5's published baselines (cmov write ~43.5 s, Miller write 18.8–22.9 s).
+
+| target | files | `artifact_write` | wall | peak RSS | artifact bytes |
+|---|---|---|---|---|---|
+| cmov subtree | 80 | 45.9 → **25.0 s** (−46%) | 57.3 → 36.6 s | 2.37 → 1.60 GiB | 752,828,416 → 752,869,376 |
+| Miller | 1,518 | 19.8 → **16.7 s** (−16%) | 24.2 → 21.1 s | 1.53 → 1.06 GiB | 776,019,968 → 776,003,584 |
+| dotnet `src/coreclr` | 4,697 | 283.5 → **143.3 s** (−49%) | 311.0 → 173.1 s | 6.29 → 4.25 GiB | 3,828,793,344 → 3,828,822,016 |
+
+`src/coreclr` sub-phase split:
+
+| phase | old | new | change |
+|---|---|---|---|
+| `artifact_write` | 283,494 ms | 143,263 ms | **−49%** |
+| `artifact_write_resolution` | 192,797 ms | 79,461 ms | −59% |
+| `artifact_write_child_rows` | 45,223 ms | 35,688 ms | −21% |
+| `artifact_write_file_symbol_insert` | 22,587 ms | **793 ms** | **−96.5%** |
+| `artifact_write_index_build` | 22,278 ms | 25,987 ms | +17% |
+
+Resolution falling 59% was not predicted by the insert diagnosis: it is the per-row child-side parent
+lookups disappearing (each overlay insert probed `identifiers` and `symbols`, each identifier target
+update probed `symbols`). `index_build` rises because it now builds every index from scratch.
+
+### Stage 1 (journal / cache_size) — measured, and not needed
+
+- `journal_mode=DELETE` was *slower* than `MEMORY` on the insert path (110 s vs 101 s for the same
+  200k-row slice) and does not touch the mechanism. Its purpose was bounding RSS, but insert-phase RSS
+  is flat; the growth is resolution's own in-memory worklist.
+- A 4 GiB `cache_size`, large enough that the database never spilled a page, still showed the collapse.
+
+Both are recommended to stay as they are.
+
+### Measurement caveat
+
+A `julie-extract` from the sibling `fleet-safety` worktree ran concurrently on this box for part of
+the session. A/B ratios are same-box and same-period so they hold; absolute wall-clock is noisy.
