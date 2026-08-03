@@ -226,6 +226,54 @@ pub(crate) fn write_error_outcome_with_profile(
             format!("artifact write rolled back: {table} rows reference missing {parent} rows"),
             json!({"table": table, "parent": parent}),
         ),
+        ArtifactWriteError::SpoolMissingSnapshotPaths {
+            spooled_paths,
+            snapshot_paths,
+        } => (
+            1,
+            ReportCode::InternalError,
+            format!(
+                "artifact write rolled back: the scan spool carried {spooled_paths} distinct files \
+                 but the snapshot lists {snapshot_paths}; the spool is missing snapshot files \
+                 (truncated spool)"
+            ),
+            json!({"spooled_paths": spooled_paths, "snapshot_paths": snapshot_paths}),
+        ),
+        ArtifactWriteError::BulkLoadRestoreFailed {
+            write_error,
+            restore_error,
+        } => (
+            1,
+            ReportCode::DbWriteFailed,
+            format!(
+                "bulk-load artifact write failed and durability restoration also failed; the \
+                 writer is poisoned: write error: {write_error}; restore error: {restore_error}"
+            ),
+            json!({
+                "write_error": write_error.to_string(),
+                "restore_error": restore_error.to_string(),
+            }),
+        ),
+        // committed:true is the load-bearing detail: the revision is durable, so a consumer must not
+        // discard the artifact or re-run the whole build — a routine rescan re-establishes journal state.
+        ArtifactWriteError::JournalRestoreFailedAfterCommit { source } => (
+            1,
+            ReportCode::DbWriteFailed,
+            format!(
+                "the revision committed durably, then journal restoration failed: {source}. The \
+                 artifact is valid and carries the new revision; do not discard it — a routine \
+                 rescan re-establishes journal state"
+            ),
+            json!({"committed": true, "restore_error": source.to_string()}),
+        ),
+        ArtifactWriteError::WriterPoisoned { reason } => (
+            1,
+            ReportCode::DbWriteFailed,
+            format!(
+                "artifact writer is poisoned by an earlier failed durability restore: {reason}"
+            ),
+            json!({"reason": reason}),
+        ),
     };
     let mut report = base_report(ReportStatus::Failed, operation, mode, input)
         .with_error(diagnostic(report_code, message, None, None, false, details));
@@ -734,6 +782,33 @@ mod tests {
                 fields: vec!["containing_symbol_id"],
             }],
         }
+    }
+
+    #[test]
+    fn journal_restore_failure_after_commit_reports_the_revision_as_committed() {
+        let outcome = write_error_outcome_with_profile(
+            ArtifactWriteError::JournalRestoreFailedAfterCommit {
+                source: rusqlite::Error::InvalidQuery,
+            },
+            ReportOperation::Scan,
+            ReportMode::Incremental,
+            ReportInput {
+                db_path: None,
+                root_path: None,
+                file_path: None,
+                root_relative_path: None,
+                format: None,
+                output_path: None,
+            },
+            false,
+            None,
+        );
+
+        assert_eq!(outcome.exit_code, 1);
+        let error = &outcome.report.errors[0];
+        assert_eq!(error.code, ReportCode::DbWriteFailed);
+        assert!(error.message.contains("committed durably"));
+        assert_eq!(error.details["committed"], serde_json::Value::Bool(true));
     }
 
     #[test]

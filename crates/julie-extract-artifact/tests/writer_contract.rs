@@ -765,6 +765,215 @@ fn failed_bulk_load_leaves_an_empty_artifact_a_fresh_rerun_replaces() {
     std::fs::remove_dir_all(temp_dir).unwrap();
 }
 
+#[test]
+fn failed_bulk_load_restore_failure_surfaces_and_poisons_the_writer() {
+    let temp_dir = unique_temp_dir("bulk-load-restore-failed");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(writer.bulk_load_eligible());
+    writer.inject_journal_restore_failure("injected restore failure");
+
+    let error = writer
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+            |tx, _scope| {
+                tx.execute(
+                    "INSERT INTO symbol_annotations
+                     (annotation_id, symbol_id, annotation, annotation_key)
+                     VALUES ('orphan', 'no-such-symbol', 'x', 'x')",
+                    [],
+                )
+                .expect("enforcement is off during the bulk load, so the orphan lands");
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .expect_err("a dangling reference must fail the write");
+
+    let ArtifactWriteError::BulkLoadRestoreFailed {
+        write_error,
+        restore_error,
+    } = &error
+    else {
+        panic!("expected BulkLoadRestoreFailed, got {error:?}");
+    };
+    assert!(
+        matches!(
+            **write_error,
+            ArtifactWriteError::ForeignKeyViolation { .. }
+        ),
+        "the original write failure must survive inside the restore failure: {write_error:?}"
+    );
+    assert!(
+        restore_error
+            .to_string()
+            .contains("injected restore failure"),
+        "the restore failure must be surfaced: {restore_error}"
+    );
+    assert!(!error.committed());
+
+    let refused = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+        )
+        .expect_err("a writer left without durability or enforcement must refuse writes");
+    assert!(
+        matches!(refused, ArtifactWriteError::WriterPoisoned { .. }),
+        "expected WriterPoisoned, got {refused:?}"
+    );
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn journal_restore_failure_after_commit_reports_a_committed_revision() {
+    let temp_dir = unique_temp_dir("journal-restore-after-commit");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(writer.bulk_load_eligible());
+    writer.inject_journal_restore_failure("injected restore failure");
+
+    let error = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+        )
+        .expect_err("the failed journal restore must surface");
+
+    assert!(
+        matches!(
+            error,
+            ArtifactWriteError::JournalRestoreFailedAfterCommit { .. }
+        ),
+        "expected JournalRestoreFailedAfterCommit, got {error:?}"
+    );
+    assert!(
+        error.committed(),
+        "the caller must see the revision as durably committed"
+    );
+    let refused = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-b", "src/b.rs", "hash-b")],
+        )
+        .expect_err("bulk pragmas were never restored, so the writer must refuse writes");
+    assert!(matches!(refused, ArtifactWriteError::WriterPoisoned { .. }));
+    drop(writer);
+
+    let reopened = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(
+        !reopened.bulk_load_eligible(),
+        "the committed revision is real history"
+    );
+    assert_eq!(count(reopened.connection(), "files"), 1);
+    assert_eq!(count(reopened.connection(), "extraction_revisions"), 1);
+    assert_eq!(
+        symbols_for_path(reopened.connection(), "src/a.rs"),
+        vec!["alpha", "beta"]
+    );
+
+    drop(reopened);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn checkpoint_failure_after_commit_on_a_live_artifact_does_not_poison_the_writer() {
+    let temp_dir = unique_temp_dir("checkpoint-failure-after-commit");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+        )
+        .unwrap();
+    writer.inject_journal_restore_failure("injected checkpoint failure");
+
+    let error = writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a2")],
+        )
+        .expect_err("the failed checkpoint must surface");
+    assert!(matches!(
+        error,
+        ArtifactWriteError::JournalRestoreFailedAfterCommit { .. }
+    ));
+    assert!(error.committed());
+    assert_eq!(
+        file_hash(writer.connection(), "src/a.rs"),
+        Some("hash-a2".to_string()),
+        "the revision committed before the checkpoint failed"
+    );
+
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a3")],
+        )
+        .expect("a WAL connection is still durable after a failed checkpoint");
+
+    drop(writer);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn bulk_load_never_reengages_after_a_scan_empties_the_artifact() {
+    let temp_dir = unique_temp_dir("bulk-load-emptied-artifact");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let db_path = temp_dir.join("artifact.sqlite");
+
+    let mut writer = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-a", "src/a.rs", "hash-a")],
+        )
+        .unwrap();
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[],
+        )
+        .unwrap();
+    assert_eq!(count(writer.connection(), "files"), 0);
+    drop(writer);
+
+    let mut reopened = ArtifactWriter::open_path(&db_path, artifact_metadata()).unwrap();
+    assert!(
+        !reopened.bulk_load_eligible(),
+        "an artifact emptied by a prior scan still carries extraction history and \
+         must not re-qualify for the non-durable bulk load"
+    );
+
+    let mut in_transaction_journal = String::new();
+    reopened
+        .write_scan_with_resolution(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_all_rows("file-b", "src/b.rs", "hash-b")],
+            |tx, _scope| {
+                in_transaction_journal = pragma_text(tx, "journal_mode").to_lowercase();
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        in_transaction_journal, "wal",
+        "a live artifact must keep the durable journal"
+    );
+
+    drop(reopened);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
 #[derive(Debug, Clone, Copy)]
 enum WriteProbe {
     Update,
@@ -1634,6 +1843,36 @@ fn spooled_scan_rejects_spooled_files_missing_from_snapshot_paths() {
         vec!["alpha"]
     );
     assert_eq!(count(writer.connection(), "extraction_revisions"), 1);
+    std::fs::remove_dir_all(temp_dir).unwrap();
+}
+
+#[test]
+fn spooled_scan_rejects_a_truncated_spool_missing_snapshot_paths() {
+    let mut writer = open_writer();
+    let file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    let snapshot_paths = vec![file_a.path.clone(), "src/b.rs".to_string()];
+    let temp_dir = unique_temp_dir("spooled-truncated");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join("files.jsonl")).unwrap();
+    spool.push(&file_a).unwrap();
+
+    let error = writer
+        .write_scan_spooled(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &snapshot_paths,
+            &mut spool,
+        )
+        .expect_err("a snapshot path the spool never carried must fail the write");
+
+    assert!(matches!(
+        error,
+        ArtifactWriteError::SpoolMissingSnapshotPaths {
+            spooled_paths: 1,
+            snapshot_paths: 2,
+        }
+    ));
+    assert_eq!(count(writer.connection(), "files"), 0);
+    assert_eq!(count(writer.connection(), "extraction_revisions"), 0);
     std::fs::remove_dir_all(temp_dir).unwrap();
 }
 

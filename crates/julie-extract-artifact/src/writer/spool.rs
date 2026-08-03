@@ -40,6 +40,11 @@ use super::rows::collect_requested_symbol_ids;
 
 pub type ArtifactSpoolResult<T> = Result<T, ArtifactSpoolError>;
 
+// A frame serializes one file's extraction; even pathological generated sources
+// stay orders of magnitude below 256 MiB, so a larger length is a corrupted
+// prefix and must be rejected before it drives an allocation or a seek.
+const MAX_FRAME_LEN: u32 = 256 * 1024 * 1024;
+
 #[derive(Debug)]
 pub enum ArtifactSpoolError {
     Io {
@@ -342,11 +347,17 @@ impl ArtifactFileSpool {
             .map_err(|source| encode_error(&self.path, source))?;
 
         for frame in [header.as_slice(), body.as_slice()] {
-            let length = u32::try_from(frame.len()).map_err(|_| ArtifactSpoolError::Codec {
-                path: self.path.clone(),
-                record: None,
-                message: format!("frame of {} bytes exceeds the 4 GiB limit", frame.len()),
-            })?;
+            let length = u32::try_from(frame.len())
+                .ok()
+                .filter(|length| *length <= MAX_FRAME_LEN)
+                .ok_or_else(|| ArtifactSpoolError::Codec {
+                    path: self.path.clone(),
+                    record: None,
+                    message: format!(
+                        "frame of {} bytes exceeds the {MAX_FRAME_LEN} byte limit",
+                        frame.len()
+                    ),
+                })?;
             writer
                 .write_all(&length.to_le_bytes())
                 .and_then(|()| writer.write_all(frame))
@@ -381,9 +392,18 @@ impl ArtifactFileSpool {
             path: self.path.clone(),
             source,
         })?;
+        let file_len = file
+            .metadata()
+            .map_err(|source| ArtifactSpoolError::Io {
+                path: self.path.clone(),
+                source,
+            })?
+            .len();
         Ok(ArtifactFileSpoolReader {
             path: self.path.clone(),
             reader: BufReader::new(file),
+            file_len,
+            position: 0,
             record: 0,
             pending_body: None,
             frame: Vec::new(),
@@ -402,6 +422,8 @@ impl ArtifactFileSpool {
 pub struct ArtifactFileSpoolReader {
     path: PathBuf,
     reader: BufReader<File>,
+    file_len: u64,
+    position: u64,
     record: usize,
     pending_body: Option<u32>,
     frame: Vec<u8>,
@@ -468,19 +490,52 @@ impl ArtifactFileSpoolReader {
             .map_err(|source| ArtifactSpoolError::Io {
                 path: self.path.clone(),
                 source,
-            })
+            })?;
+        self.position += u64::from(length);
+        Ok(())
     }
 
+    /// `Ok(None)` only at a true frame boundary: zero bytes read. A partial
+    /// prefix or a length the remaining file cannot hold is corruption, never
+    /// clean end-of-stream.
     fn read_frame_length(&mut self) -> ArtifactSpoolResult<Option<u32>> {
         let mut length = [0u8; 4];
-        match self.reader.read_exact(&mut length) {
-            Ok(()) => Ok(Some(u32::from_le_bytes(length))),
-            Err(source) if source.kind() == io::ErrorKind::UnexpectedEof => Ok(None),
-            Err(source) => Err(ArtifactSpoolError::Io {
-                path: self.path.clone(),
-                source,
-            }),
+        let mut filled = 0usize;
+        while filled < length.len() {
+            match self.reader.read(&mut length[filled..]) {
+                Ok(0) => break,
+                Ok(read) => filled += read,
+                Err(source) if source.kind() == io::ErrorKind::Interrupted => continue,
+                Err(source) => {
+                    return Err(ArtifactSpoolError::Io {
+                        path: self.path.clone(),
+                        source,
+                    });
+                }
+            }
         }
+        self.position += filled as u64;
+        if filled == 0 {
+            return Ok(None);
+        }
+        if filled < length.len() {
+            return Err(self.codec_error(format!(
+                "frame length prefix truncated to {filled} of 4 bytes"
+            )));
+        }
+        let length = u32::from_le_bytes(length);
+        if length > MAX_FRAME_LEN {
+            return Err(self.codec_error(format!(
+                "frame length {length} exceeds the {MAX_FRAME_LEN} byte limit"
+            )));
+        }
+        let remaining = self.file_len.saturating_sub(self.position);
+        if u64::from(length) > remaining {
+            return Err(self.codec_error(format!(
+                "frame length {length} extends past end of file ({remaining} bytes remain)"
+            )));
+        }
+        Ok(Some(length))
     }
 
     fn read_frame(&mut self, length: u32) -> ArtifactSpoolResult<&[u8]> {
@@ -492,7 +547,16 @@ impl ArtifactFileSpoolReader {
                 path: self.path.clone(),
                 source,
             })?;
+        self.position += u64::from(length);
         Ok(&self.frame)
+    }
+
+    fn codec_error(&self, message: String) -> ArtifactSpoolError {
+        ArtifactSpoolError::Codec {
+            path: self.path.clone(),
+            record: Some(self.record),
+            message,
+        }
     }
 }
 

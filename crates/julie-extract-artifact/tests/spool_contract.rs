@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use julie_extract_artifact::model::{
     ArtifactComplexityMetric, ArtifactFile, ArtifactIdentifier, ArtifactLiteral,
@@ -7,7 +7,7 @@ use julie_extract_artifact::model::{
     ArtifactTypeArgument, ArtifactTypeArgumentUsage, ArtifactTypeFact, FileStatus,
     ReferenceSiteProvenance,
 };
-use julie_extract_artifact::writer::ArtifactFileSpool;
+use julie_extract_artifact::writer::{ArtifactFileSpool, ArtifactSpoolError};
 
 const IDENTIFIER_BYTE_CEILING: u64 = 200;
 
@@ -61,6 +61,115 @@ fn dense_identifier_spool_stays_under_the_bytes_per_row_ceiling() {
         bytes_per_row < IDENTIFIER_BYTE_CEILING,
         "spool spent {bytes_per_row} B per identifier row ({spool_bytes} B for {identifier_rows} rows); ceiling is {IDENTIFIER_BYTE_CEILING} B"
     );
+}
+
+#[test]
+fn truncated_length_prefix_is_a_codec_error_not_clean_eof() {
+    let spool_path = temp_path("truncated-prefix");
+    let mut spool = ArtifactFileSpool::create(&spool_path).unwrap();
+    spool.push(&minimal_file()).unwrap();
+    spool.finish().unwrap();
+    append_bytes(&spool_path, &[0x12, 0x34]);
+
+    let results = spool.iter().unwrap().collect::<Vec<_>>();
+
+    assert_eq!(
+        results.len(),
+        2,
+        "a torn length prefix must surface as an error item, not clean EOF"
+    );
+    assert!(results[0].is_ok());
+    let error = results[1].as_ref().unwrap_err();
+    assert!(matches!(error, ArtifactSpoolError::Codec { .. }), "{error}");
+    std::fs::remove_file(&spool_path).ok();
+}
+
+#[test]
+fn truncated_body_is_an_error_not_clean_eof() {
+    let spool_path = temp_path("truncated-body");
+    let mut spool = ArtifactFileSpool::create(&spool_path).unwrap();
+    spool.push(&minimal_file()).unwrap();
+    spool.finish().unwrap();
+    truncate_by(&spool_path, 2);
+
+    let error = drain_headers(&spool)
+        .expect_err("a body cut short by truncation must error, not read as clean EOF");
+
+    assert!(matches!(error, ArtifactSpoolError::Codec { .. }), "{error}");
+    std::fs::remove_file(&spool_path).ok();
+}
+
+#[test]
+fn body_length_past_end_of_file_is_an_error_not_silent_record_loss() {
+    let spool_path = temp_path("oversize-body-length");
+    let mut spool = ArtifactFileSpool::create(&spool_path).unwrap();
+    spool.push(&minimal_file()).unwrap();
+    spool.push(&minimal_file()).unwrap();
+    spool.finish().unwrap();
+    patch_le_u32(
+        &spool_path,
+        first_body_length_offset(&spool_path),
+        1_000_000,
+    );
+
+    let error = drain_headers(&spool)
+        .expect_err("a body length pointing past EOF must error, not swallow trailing records");
+
+    assert!(matches!(error, ArtifactSpoolError::Codec { .. }), "{error}");
+    std::fs::remove_file(&spool_path).ok();
+}
+
+#[test]
+fn header_length_beyond_frame_limit_is_rejected_before_allocation() {
+    let spool_path = temp_path("frame-limit");
+    let mut spool = ArtifactFileSpool::create(&spool_path).unwrap();
+    spool.push(&minimal_file()).unwrap();
+    spool.finish().unwrap();
+    patch_le_u32(&spool_path, 0, u32::MAX);
+
+    let error = drain_headers(&spool).expect_err("a corrupt oversize length must error");
+
+    assert!(matches!(error, ArtifactSpoolError::Codec { .. }), "{error}");
+    std::fs::remove_file(&spool_path).ok();
+}
+
+fn drain_headers(spool: &ArtifactFileSpool) -> Result<usize, ArtifactSpoolError> {
+    let mut reader = spool.reader().unwrap();
+    let mut headers = 0;
+    while let Some(result) = reader.next_header() {
+        result?;
+        headers += 1;
+    }
+    Ok(headers)
+}
+
+fn append_bytes(path: &Path, bytes: &[u8]) {
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new().append(true).open(path).unwrap();
+    file.write_all(bytes).unwrap();
+}
+
+fn truncate_by(path: &Path, bytes: u64) {
+    let remaining = std::fs::metadata(path).unwrap().len() - bytes;
+    let file = std::fs::OpenOptions::new().write(true).open(path).unwrap();
+    file.set_len(remaining).unwrap();
+}
+
+fn patch_le_u32(path: &Path, offset: u64, value: u32) {
+    use std::io::{Seek, SeekFrom, Write};
+    let mut file = std::fs::OpenOptions::new().write(true).open(path).unwrap();
+    file.seek(SeekFrom::Start(offset)).unwrap();
+    file.write_all(&value.to_le_bytes()).unwrap();
+}
+
+fn first_body_length_offset(path: &Path) -> u64 {
+    use std::io::Read;
+    let mut prefix = [0u8; 4];
+    std::fs::File::open(path)
+        .unwrap()
+        .read_exact(&mut prefix)
+        .unwrap();
+    4 + u64::from(u32::from_le_bytes(prefix))
 }
 
 fn dense_identifier_file(identifiers: usize) -> ArtifactFile {

@@ -50,10 +50,36 @@ pub enum ArtifactWriteError {
     SnapshotMissingSpooledPath {
         path: String,
     },
+    SpoolMissingSnapshotPaths {
+        spooled_paths: usize,
+        snapshot_paths: usize,
+    },
     ForeignKeyViolation {
         table: String,
         parent: String,
     },
+    BulkLoadRestoreFailed {
+        write_error: Box<ArtifactWriteError>,
+        restore_error: rusqlite::Error,
+    },
+    JournalRestoreFailedAfterCommit {
+        source: rusqlite::Error,
+    },
+    WriterPoisoned {
+        reason: String,
+    },
+}
+
+impl ArtifactWriteError {
+    /// True when the write's transaction durably committed before this error
+    /// arose (post-commit journal restoration failure): the artifact carries
+    /// the new revision and must not be discarded or blindly retried.
+    pub fn committed(&self) -> bool {
+        matches!(
+            self,
+            ArtifactWriteError::JournalRestoreFailedAfterCommit { .. }
+        )
+    }
 }
 
 impl std::fmt::Display for ArtifactWriteError {
@@ -73,10 +99,34 @@ impl std::fmt::Display for ArtifactWriteError {
                 f,
                 "spooled scan file {path} was not present in the current snapshot path set"
             ),
+            ArtifactWriteError::SpoolMissingSnapshotPaths {
+                spooled_paths,
+                snapshot_paths,
+            } => write!(
+                f,
+                "spooled scan carried {spooled_paths} distinct files but the snapshot lists \
+                 {snapshot_paths} paths; the spool is missing snapshot files (truncated spool)"
+            ),
             ArtifactWriteError::ForeignKeyViolation { table, parent } => write!(
                 f,
                 "bulk load left a foreign key unsatisfied: {table} references missing {parent}"
             ),
+            ArtifactWriteError::BulkLoadRestoreFailed {
+                write_error,
+                restore_error,
+            } => write!(
+                f,
+                "{write_error}; restoring durable journal settings after the failed bulk load \
+                 also failed: {restore_error}; this writer no longer accepts writes"
+            ),
+            ArtifactWriteError::JournalRestoreFailedAfterCommit { source } => write!(
+                f,
+                "the revision committed durably, but restoring the journal afterwards failed: \
+                 {source}; reopen the artifact instead of discarding or retrying the write"
+            ),
+            ArtifactWriteError::WriterPoisoned { reason } => {
+                write!(f, "this writer refuses further writes: {reason}")
+            }
         }
     }
 }
@@ -183,10 +233,19 @@ pub struct ArtifactWriter {
     metadata: ArtifactMetadata,
     staged_capability_snapshot: Option<ArtifactCapabilitySnapshot>,
     last_capability_rows_written: RowDomainCounts,
-    /// Set when `open_path` found an on-disk artifact with no `files` rows.
-    /// Consumed by the first write, so only that write may bulk-load and a
-    /// second scan through the same writer sees a live artifact.
+    /// Set when `open_path` found an on-disk artifact with no `files` rows and
+    /// no extraction history. Consumed by the first write, so only that write
+    /// may bulk-load and a second scan through the same writer sees a live
+    /// artifact.
     bulk_load_eligible: bool,
+    /// Set when a bulk-load journal restoration failed: the connection may be
+    /// left with `foreign_keys=OFF` and a `MEMORY` journal, so every later
+    /// write must fail fast instead of running without durability/enforcement.
+    poisoned: Option<String>,
+    /// Test seam consumed by [`Self::journal_restore`]: forces the next journal
+    /// restoration to fail, because a real pragma failure needs conditions
+    /// (I/O error, process death) integration tests cannot stage.
+    journal_restore_failure_injection: Option<String>,
 }
 
 impl ArtifactWriter {
@@ -203,6 +262,8 @@ impl ArtifactWriter {
             // An in-memory artifact has no journal file and no promote step, so
             // the bulk-load trade (durability for speed) buys nothing here.
             bulk_load_eligible: false,
+            poisoned: None,
+            journal_restore_failure_injection: None,
         })
     }
 
@@ -219,13 +280,15 @@ impl ArtifactWriter {
         if !existed || metadata_row_count(&connection)? == 0 {
             initialize_metadata(&connection, &metadata)?;
         }
-        let bulk_load_eligible = !artifact_has_files(&connection)?;
+        let bulk_load_eligible = artifact_is_unwritten(&connection)?;
         Ok(Self {
             connection,
             metadata,
             staged_capability_snapshot: None,
             last_capability_rows_written: RowDomainCounts::default(),
             bulk_load_eligible,
+            poisoned: None,
+            journal_restore_failure_injection: None,
         })
     }
 
@@ -239,6 +302,71 @@ impl ArtifactWriter {
     /// per opened artifact and never on a write that follows another.
     fn take_bulk_load_eligibility(&mut self) -> bool {
         std::mem::replace(&mut self.bulk_load_eligible, false)
+    }
+
+    #[doc(hidden)]
+    pub fn inject_journal_restore_failure(&mut self, message: &str) {
+        self.journal_restore_failure_injection = Some(message.to_string());
+    }
+
+    fn ensure_not_poisoned(&self) -> ArtifactWriteResult<()> {
+        match &self.poisoned {
+            Some(reason) => Err(ArtifactWriteError::WriterPoisoned {
+                reason: reason.clone(),
+            }),
+            None => Ok(()),
+        }
+    }
+
+    fn journal_restore(&mut self, bulk_load: bool) -> rusqlite::Result<()> {
+        if let Some(message) = self.journal_restore_failure_injection.take() {
+            return Err(rusqlite::Error::SqliteFailure(
+                rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_IOERR),
+                Some(message),
+            ));
+        }
+        finish_journal(&self.connection, bulk_load)
+    }
+
+    /// The success path restores the durable journal itself; a failed write
+    /// rolled back to the empty artifact, so restore here. A restore that
+    /// itself fails leaves the connection non-durable with enforcement off, so
+    /// poison the writer and surface both errors.
+    fn restore_after_failed_bulk_load(
+        &mut self,
+        write_error: ArtifactWriteError,
+    ) -> ArtifactWriteError {
+        match self.journal_restore(true) {
+            Ok(()) => write_error,
+            Err(restore_error) => {
+                self.poisoned = Some(format!(
+                    "durable journal restoration failed after a failed bulk load: {restore_error}"
+                ));
+                ArtifactWriteError::BulkLoadRestoreFailed {
+                    write_error: Box::new(write_error),
+                    restore_error,
+                }
+            }
+        }
+    }
+
+    /// Post-commit journal restoration. The revision is already durable, so a
+    /// failure here must not read as a failed write: surface the distinct
+    /// committed-write variant, and poison the writer when the bulk-load
+    /// pragmas could not be restored (the connection would otherwise keep
+    /// accepting non-durable writes with enforcement off).
+    fn finish_journal_after_commit(&mut self, bulk_load: bool) -> ArtifactWriteResult<()> {
+        match self.journal_restore(bulk_load) {
+            Ok(()) => Ok(()),
+            Err(source) => {
+                if bulk_load {
+                    self.poisoned = Some(format!(
+                        "durable journal restoration failed after a committed bulk load: {source}"
+                    ));
+                }
+                Err(ArtifactWriteError::JournalRestoreFailedAfterCommit { source })
+            }
+        }
     }
 
     pub fn connection(&self) -> &Connection {
@@ -262,6 +390,7 @@ impl ArtifactWriter {
         &mut self,
         snapshot: &ArtifactCapabilitySnapshot,
     ) -> ArtifactWriteResult<RowDomainCounts> {
+        self.ensure_not_poisoned()?;
         let tx = self.connection.transaction()?;
         let counts = capabilities::sync_capability_snapshot_in_tx(&tx, snapshot)?;
         tx.commit()?;
@@ -469,6 +598,7 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        self.ensure_not_poisoned()?;
         // A single-file write never bulk-loads, and it leaves rows behind, so it
         // must also spend the eligibility a later scan through this writer would
         // otherwise inherit.
@@ -562,6 +692,7 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        self.ensure_not_poisoned()?;
         // A single-file write never bulk-loads, and it leaves rows behind, so it
         // must also spend the eligibility a later scan through this writer would
         // otherwise inherit.
@@ -723,23 +854,24 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        self.ensure_not_poisoned()?;
         let bulk_load = self.take_bulk_load_eligibility();
         let bulk_setup_started = Instant::now();
         if bulk_load {
             begin_bulk_load(&self.connection)?;
         }
         let bulk_setup = bulk_setup_started.elapsed();
-        let mut result = self.write_scan_snapshot_in_mode(revision, files, hook, bulk_load);
-        match result.as_mut() {
-            Ok(result) => result.phases.plan += bulk_setup,
-            Err(_) if bulk_load => {
-                // The success path restores the durable journal itself; a failed
-                // write rolled back to the empty artifact, so restore it here.
-                let _ = end_bulk_load(&self.connection);
+        match self.write_scan_snapshot_in_mode(revision, files, hook, bulk_load) {
+            Ok(mut result) => {
+                result.phases.plan += bulk_setup;
+                Ok(result)
             }
-            Err(_) => {}
+            // A committed error already ran its own restoration attempt.
+            Err(write_error) if bulk_load && !write_error.committed() => {
+                Err(self.restore_after_failed_bulk_load(write_error))
+            }
+            Err(write_error) => Err(write_error),
         }
-        result
     }
 
     fn write_scan_snapshot_in_mode<F>(
@@ -814,7 +946,7 @@ impl ArtifactWriter {
             }
             tx.commit()?;
             clock.lap(|phases| &mut phases.commit);
-            finish_journal(&self.connection, bulk_load)?;
+            self.finish_journal_after_commit(bulk_load)?;
             clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
@@ -942,7 +1074,7 @@ impl ArtifactWriter {
         }
         tx.commit()?;
         clock.lap(|phases| &mut phases.commit);
-        finish_journal(&self.connection, bulk_load)?;
+        self.finish_journal_after_commit(bulk_load)?;
         clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
@@ -973,30 +1105,31 @@ impl ArtifactWriter {
             &ResolutionScopeInput,
         ) -> Result<ResolutionCounts, ResolutionHookError>,
     {
+        self.ensure_not_poisoned()?;
         let bulk_load = self.take_bulk_load_eligibility();
         let bulk_setup_started = Instant::now();
         if bulk_load {
             begin_bulk_load(&self.connection)?;
         }
         let bulk_setup = bulk_setup_started.elapsed();
-        let mut result = self.write_scan_spooled_snapshot_in_mode(
+        match self.write_scan_spooled_snapshot_in_mode(
             revision,
             snapshot_paths,
             preserved_missing_paths,
             spool,
             hook,
             bulk_load,
-        );
-        match result.as_mut() {
-            Ok(result) => result.phases.plan += bulk_setup,
-            Err(_) if bulk_load => {
-                // The success path restores the durable journal itself; a failed
-                // write rolled back to the empty artifact, so restore it here.
-                let _ = end_bulk_load(&self.connection);
+        ) {
+            Ok(mut result) => {
+                result.phases.plan += bulk_setup;
+                Ok(result)
             }
-            Err(_) => {}
+            // A committed error already ran its own restoration attempt.
+            Err(write_error) if bulk_load && !write_error.committed() => {
+                Err(self.restore_after_failed_bulk_load(write_error))
+            }
+            Err(write_error) => Err(write_error),
         }
-        result
     }
 
     fn write_scan_spooled_snapshot_in_mode<F>(
@@ -1046,6 +1179,7 @@ impl ArtifactWriter {
         // NEW names for the resolution hook, gathered in this same planning pass;
         // OLD names are added below.
         let mut touched_symbol_names: HashSet<String> = HashSet::new();
+        let mut spooled_paths: HashSet<String> = HashSet::new();
 
         let mut reader = spool.reader()?;
         while let Some(header) = reader.next_header() {
@@ -1055,6 +1189,7 @@ impl ArtifactWriter {
                     path: header.path.clone(),
                 });
             }
+            spooled_paths.insert(header.path.clone());
             let existing = load_existing_file(&tx, &header.path)?;
             if skip_unchanged_content
                 && existing
@@ -1084,6 +1219,16 @@ impl ArtifactWriter {
             planned_files.insert(file.path, existing);
         }
 
+        // Every spooled path is in the snapshot (checked above), so a distinct-count
+        // mismatch means snapshot paths never reached the spool — a truncated spool
+        // that would otherwise commit an artifact silently missing those files.
+        if spooled_paths.len() != snapshot_paths.len() {
+            return Err(ArtifactWriteError::SpoolMissingSnapshotPaths {
+                spooled_paths: spooled_paths.len(),
+                snapshot_paths: snapshot_paths.len(),
+            });
+        }
+
         let deleted = load_existing_files(&tx)?
             .into_iter()
             .filter(|existing| {
@@ -1102,7 +1247,7 @@ impl ArtifactWriter {
             }
             tx.commit()?;
             clock.lap(|phases| &mut phases.commit);
-            finish_journal(&self.connection, bulk_load)?;
+            self.finish_journal_after_commit(bulk_load)?;
             clock.lap(|phases| &mut phases.wal_checkpoint);
             self.last_capability_rows_written = capability_rows_written;
             return Ok(WriteResult {
@@ -1230,7 +1375,7 @@ impl ArtifactWriter {
         }
         tx.commit()?;
         clock.lap(|phases| &mut phases.commit);
-        finish_journal(&self.connection, bulk_load)?;
+        self.finish_journal_after_commit(bulk_load)?;
         clock.lap(|phases| &mut phases.wal_checkpoint);
         self.last_capability_rows_written = capability_rows_written;
 
@@ -1414,8 +1559,17 @@ fn checkpoint_wal(connection: &Connection) -> rusqlite::Result<()> {
     Ok(())
 }
 
-fn artifact_has_files(connection: &Connection) -> rusqlite::Result<bool> {
-    connection.query_row("SELECT EXISTS (SELECT 1 FROM files)", [], |row| row.get(0))
+/// A true first build: no `files` rows AND no `extraction_revisions` history.
+/// An artifact whose files were all deleted by a later scan is still a live,
+/// served artifact — bulk-loading it would swap the durable journal out from
+/// under real data, so files-empty alone is not enough.
+fn artifact_is_unwritten(connection: &Connection) -> rusqlite::Result<bool> {
+    let has_history: bool = connection.query_row(
+        "SELECT EXISTS (SELECT 1 FROM files) OR EXISTS (SELECT 1 FROM extraction_revisions)",
+        [],
+        |row| row.get(0),
+    )?;
+    Ok(!has_history)
 }
 
 /// Trades durability for throughput while filling an EMPTY on-disk artifact.

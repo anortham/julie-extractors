@@ -135,6 +135,45 @@ fn identifier_export_keeps_code_context_key_as_null() {
 }
 
 #[test]
+fn identifier_export_emits_null_code_context_for_legacy_non_null_rows() {
+    let conn = populated_artifact();
+    conn.execute(
+        "UPDATE identifiers SET code_context = 'let x = beta();' WHERE identifier_id = 'ident-beta'",
+        [],
+    )
+    .unwrap();
+
+    let records = export_records(&conn);
+    let identifier = record(&records, "identifier");
+
+    assert_eq!(
+        *identifier,
+        json!({
+            "identifier_id": "ident-beta",
+            "reference_site_id": "site-beta",
+            "file_id": "file-a",
+            "path": "src/a.rs",
+            "language": "rust",
+            "name": "beta",
+            "kind": "call",
+            "containing_symbol_id": "sym-alpha",
+            "target_symbol_id": "sym-beta",
+            "span": {
+                "start_line": 2,
+                "start_column": 4,
+                "end_line": 2,
+                "end_column": 8,
+                "start_byte": 16,
+                "end_byte": 20,
+            },
+            "confidence": 0.95,
+            "code_context": Value::Null,
+            "metadata": {"identifier": true},
+        })
+    );
+}
+
+#[test]
 fn structural_fact_metadata_exports_stored_json_object_raw() {
     let conn = populated_artifact();
     conn.execute(

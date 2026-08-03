@@ -862,7 +862,7 @@ fn export_identifiers<W: Write>(
     let mut stmt = conn.prepare(
         "SELECT identifier_id, reference_site_id, file_id, path, language, name, kind, containing_symbol_id,
                 target_symbol_id, start_line, start_column, end_line, end_column, start_byte,
-                end_byte, confidence, code_context, metadata_json
+                end_byte, confidence, metadata_json
          FROM identifiers
          ORDER BY identifier_id",
     )?;
@@ -885,7 +885,6 @@ fn export_identifiers<W: Write>(
             row.get::<_, i64>(14)?,
             row.get::<_, f64>(15)?,
             row.get::<_, Option<String>>(16)?,
-            row.get::<_, Option<String>>(17)?,
         ))
     })?;
     for row in rows {
@@ -906,7 +905,6 @@ fn export_identifiers<W: Write>(
             start_byte,
             end_byte,
             confidence,
-            code_context,
             metadata_json,
         ) = row?;
         let record = json!({
@@ -921,7 +919,7 @@ fn export_identifiers<W: Write>(
             "target_symbol_id": target_symbol_id,
             "span": span(start_line, start_column, end_line, end_column, start_byte, end_byte),
             "confidence": confidence,
-            "code_context": code_context,
+            "code_context": Value::Null,
             "metadata": optional_object("identifiers.metadata_json", metadata_json)?,
         });
         write_record(

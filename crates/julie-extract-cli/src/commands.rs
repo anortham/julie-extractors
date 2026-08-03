@@ -305,8 +305,21 @@ fn scan_collecting_warnings(
         controls,
     ) {
         Ok(extracted) => extracted,
-        Err(error) => {
+        Err(ExtractionSpoolError::Spool(error)) => {
             return spool_error_outcome(error, ReportOperation::Scan, mode, input, args.json);
+        }
+        Err(ExtractionSpoolError::PoolUnavailable {
+            requested_jobs,
+            message,
+        }) => {
+            return outcome(
+                base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input).with_error(
+                    extraction_pool_unavailable_diagnostic(requested_jobs, &message),
+                ),
+                1,
+                args.json,
+                ReportStream::Stdout,
+            );
         }
     };
     record_profile_phase(
@@ -1335,12 +1348,32 @@ struct ExtractionRequest<'a> {
     jobs: usize,
 }
 
+/// Why a spooling extraction pass failed outright. Per-file extraction failures
+/// travel in [`SpooledExtractedFiles::errors`] instead; these fail the scan.
+#[derive(Debug)]
+enum ExtractionSpoolError {
+    Spool(ArtifactSpoolError),
+    /// No thread pool carrying the 16 MiB stack reservation could be built, even
+    /// single-threaded. Running the chunk on rayon's global pool instead would
+    /// reintroduce the stack-overflow abort the reservation exists to prevent.
+    PoolUnavailable {
+        requested_jobs: usize,
+        message: String,
+    },
+}
+
+impl From<ArtifactSpoolError> for ExtractionSpoolError {
+    fn from(error: ArtifactSpoolError) -> Self {
+        Self::Spool(error)
+    }
+}
+
 fn spool_discovered_files(
     request: ExtractionRequest<'_>,
     discovery: &DiscoveryPolicy,
     targets: &[FileTarget],
     controls: ScanControls<'_>,
-) -> Result<SpooledExtractedFiles, ArtifactSpoolError> {
+) -> Result<SpooledExtractedFiles, ExtractionSpoolError> {
     let mut supported_targets = Vec::with_capacity(targets.len());
     for target in targets {
         if let FileSelection::Supported { language } = discovery.select_file(target) {
@@ -1712,6 +1745,39 @@ fn compute_file_outcome(
     }
 }
 
+/// Pick the thread count for the extraction pool, retrying single-threaded when
+/// the requested count cannot be built. Extraction never runs on a pool without
+/// the 16 MiB stack reservation: the guarded tree walkers permit 1024 frames,
+/// which costs 4-8 KiB per frame in a debug build, so rayon's 2 MiB default
+/// worker stack overflows well inside the guard. A build failure under resource
+/// pressure therefore fails the scan rather than falling back to the global pool.
+fn select_extraction_pool<P, E>(
+    requested_jobs: usize,
+    mut build: impl FnMut(usize) -> Result<P, E>,
+) -> Result<P, E> {
+    build(requested_jobs).or_else(|error| {
+        if requested_jobs == 1 {
+            Err(error)
+        } else {
+            build(1)
+        }
+    })
+}
+
+fn extraction_pool_unavailable_diagnostic(
+    requested_jobs: usize,
+    message: &str,
+) -> ReportDiagnostic {
+    diagnostic(
+        ReportCode::InternalError,
+        format!("extraction thread pool could not be built, even single-threaded: {message}"),
+        None,
+        None,
+        false,
+        json!({"requested_jobs": requested_jobs}),
+    )
+}
+
 fn extract_supported_files_to_spool(
     request: ExtractionRequest<'_>,
     targets: &[SupportedFileTarget],
@@ -1724,23 +1790,25 @@ fn extract_supported_files_to_spool(
         SourceSnapshot,
     ) -> Result<ArtifactFile, ExtractFileError>
     + Sync,
-) -> Result<SpooledExtractedFiles, ArtifactSpoolError> {
+) -> Result<SpooledExtractedFiles, ExtractionSpoolError> {
     let mut spool = create_scan_spool(controls.spool_dir)?;
     let mut snapshot_paths = Vec::with_capacity(targets.len());
     let mut errors = Vec::new();
     let mut profile = ScanExtractionProfile::default();
     let mut completion = SpoolCompletion::Complete;
 
-    // `num_threads(0)` lets rayon pick from available parallelism. If the pool
-    // cannot be built we fall back to rayon's global pool rather than failing the scan.
-    // The guarded tree walkers permit 1024 frames, which costs 4-8 KiB per frame in a
-    // debug build — rayon's 2 MiB default stack overflows well inside the guard. The
+    // `num_threads(0)` lets rayon pick from available parallelism. The stack
     // reservation is virtual and committed lazily.
-    let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(request.jobs)
-        .stack_size(16 * 1024 * 1024)
-        .build()
-        .ok();
+    let pool = select_extraction_pool(request.jobs, |threads| {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .stack_size(16 * 1024 * 1024)
+            .build()
+    })
+    .map_err(|error| ExtractionSpoolError::PoolUnavailable {
+        requested_jobs: request.jobs,
+        message: error.to_string(),
+    })?;
 
     for chunk in targets.chunks(EXTRACT_SPOOL_CHUNK_SIZE) {
         // Cooperative abort point for the parent watchdog. Stopping between chunks
@@ -1768,10 +1836,7 @@ fn extract_supported_files_to_spool(
                 })
                 .collect::<Vec<FileOutcome>>()
         };
-        let outcomes = match &pool {
-            Some(pool) => pool.install(map_chunk),
-            None => map_chunk(),
-        };
+        let outcomes = pool.install(map_chunk);
 
         // Serial drain in target order: this owns all shared mutable state (spool,
         // profile, errors) so output ordering and profile counts match a sequential scan.
@@ -2458,6 +2523,84 @@ mod tests {
                 .collect::<Vec<_>>(),
             "spooled files must follow input target order regardless of worker scheduling"
         );
+    }
+
+    #[test]
+    fn select_extraction_pool_uses_the_requested_pool_when_it_builds() {
+        let mut attempts = Vec::new();
+        let pool: Result<usize, String> = select_extraction_pool(4, |threads| {
+            attempts.push(threads);
+            Ok(threads)
+        });
+
+        assert_eq!(pool, Ok(4));
+        assert_eq!(attempts, vec![4]);
+    }
+
+    #[test]
+    fn select_extraction_pool_retries_single_threaded_when_the_requested_pool_fails() {
+        let mut attempts = Vec::new();
+        let pool = select_extraction_pool(4, |threads| {
+            attempts.push(threads);
+            if threads == 4 {
+                Err("resource exhausted".to_string())
+            } else {
+                Ok(threads)
+            }
+        });
+
+        assert_eq!(pool, Ok(1));
+        assert_eq!(attempts, vec![4, 1]);
+    }
+
+    #[test]
+    fn select_extraction_pool_retries_single_threaded_when_auto_detection_fails() {
+        let mut attempts = Vec::new();
+        let pool = select_extraction_pool(0, |threads| {
+            attempts.push(threads);
+            if threads == 0 {
+                Err("resource exhausted".to_string())
+            } else {
+                Ok(threads)
+            }
+        });
+
+        assert_eq!(pool, Ok(1));
+        assert_eq!(attempts, vec![0, 1]);
+    }
+
+    #[test]
+    fn select_extraction_pool_fails_when_the_single_threaded_retry_also_fails() {
+        let mut attempts = Vec::new();
+        let pool: Result<usize, String> = select_extraction_pool(4, |threads| {
+            attempts.push(threads);
+            Err(format!("failed at {threads}"))
+        });
+
+        assert_eq!(pool, Err("failed at 1".to_string()));
+        assert_eq!(attempts, vec![4, 1]);
+    }
+
+    #[test]
+    fn select_extraction_pool_does_not_retry_a_single_threaded_request() {
+        let mut attempts = Vec::new();
+        let pool: Result<usize, String> = select_extraction_pool(1, |threads| {
+            attempts.push(threads);
+            Err("resource exhausted".to_string())
+        });
+
+        assert_eq!(pool, Err("resource exhausted".to_string()));
+        assert_eq!(attempts, vec![1]);
+    }
+
+    #[test]
+    fn extraction_pool_unavailable_diagnostic_is_fatal_and_names_the_requested_jobs() {
+        let diagnostic = extraction_pool_unavailable_diagnostic(4, "resource exhausted");
+
+        assert_eq!(diagnostic.code, ReportCode::InternalError);
+        assert!(!diagnostic.recoverable);
+        assert!(diagnostic.message.contains("resource exhausted"));
+        assert_eq!(diagnostic.details["requested_jobs"], 4);
     }
 
     #[test]
