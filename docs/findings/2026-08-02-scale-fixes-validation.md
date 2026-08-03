@@ -767,3 +767,37 @@ not the source.
 The operative consequence: **byte-level artifact comparison is not a valid equivalence method for
 this project.** Compare content with normalized JSON instead. Making the order deterministic is a
 small change (`BTreeMap`, or `serde_json/preserve_order`) but it belongs to the extractors crate.
+
+### The milestone table — baseline vs fixed, same measurement method
+
+Both runs sampled the artifact file size on a fixed interval, so "when did the database reach N GB"
+is directly comparable between them. The baseline trail is T6's own `t6/v1-rss.log` (2 s interval);
+the fixed run is `v1-fkoff-sampler.log` (30 s interval). T+ is measured from the start of each run.
+
+| database reaches | baseline (T6) | fixed (T7) |
+|---|---|---|
+| 1 GB | **T+63.3 min** | ~T+4.0 min |
+| 2 GB | T+63.6 min | ~T+4.5 min |
+| 3 GB | T+64.1 min | ~T+7.0 min |
+| 5 GB | T+65.3 min | ~T+20 min (contended, see below) |
+| 10 GB | T+75.7 min | — |
+| 13 GB | T+100.1 min | — |
+| 20 GB | T+225.8 min | — |
+
+Both runs spend their first ~3.5 minutes in extraction and spool, writing nothing to the artifact. So
+the baseline's first gigabyte took **63 minutes of writing**, and the fixed run's took roughly **30
+seconds**. That gap is the `file_symbol_insert` phase — 3,823 s in T6's profile — and it is the whole
+of the quadratic foreign-key scan described above.
+
+### Contention caveat on the T7 re-run's absolute numbers
+
+A `julie-extract` from the sibling `fleet-safety` worktree (pid 55366, 22.9 GB RSS) ran throughout the
+T7 V1 re-run, having started before it. Sampled over 40 s, it held ~85% of a core while the re-run's
+single-threaded write phase got ~14%, on a 64 GB box whose swap was at 7.5 of 8 GB. **Ratios and the
+milestone shape hold — both arms of every A/B ran same-box and same-period — but the T7 re-run's
+absolute wall-clock is inflated and should be read as an upper bound.**
+
+### Expected-unchanged residuals
+
+These are T6 findings that this change does not address and must not alter: exit code 1 with 8
+non-UTF-8 `read_failed` entries, ~4,237 C identity-conflict warnings, and 3 `depth_truncated` rows.
