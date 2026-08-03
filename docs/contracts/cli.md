@@ -228,9 +228,9 @@ that IS the artifact or one of its `-wal`/`-shm` sidecars — creating the progr
 file truncates it, so the collision would destroy the artifact before the scan had
 even validated that it could run. That check compares file identity, not path
 spelling, so a symlink, a hard link, and a case-variant spelling on a
-case-insensitive volume are all refused rather than followed; the identity
-comparison is exact on Unix and falls back to a case-insensitive path comparison
-on Windows, where a hard link is therefore not detected. A write failure
+case-insensitive volume are all refused rather than followed on every supported
+platform — device and inode on Unix, volume serial and file index on Windows. A
+write failure
 mid-scan is swallowed rather than failing the scan. The record schema is
 [progress-file-v1.md](progress-file-v1.md).
 

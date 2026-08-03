@@ -410,6 +410,43 @@ CI is ubuntu-only, so the Windows arm is asserted by the shared implementation
 rather than executed. That is a strictly better position than the case-insensitive
 fallback, which CI did not execute either AND was known not to cover the case.
 
+## Decision 8b — identity is proven on the handle that gets truncated
+
+Decision 8a made the path comparison exact everywhere, and that still could not
+make truncation safe, because it proves something about a NAME and the caller
+then re-opens that name to truncate it. `File::create` truncates as it opens, so
+the sequence was guard-path → truncate-path → guard-path again: anything that
+re-points the name between the first two steps is destroyed with the guard's
+blessing, and the recheck can only report damage already done. Both reviewers
+found this independently and rated it the most severe finding on the branch.
+
+The order is now open, prove, truncate. The file is opened with
+`create(true).truncate(false)`, `same_file::Handle::from_file` identifies THAT
+handle against the artifact and its sidecars, and `set_len(0)` runs only after
+the comparison. `set_len` acts on the file that compared unequal, so what the
+path means by then cannot matter — the window is removed rather than narrowed,
+which is what distinguishes this from the two rounds before it.
+
+`ScanProgress::create`/`create_with_interval` are now `#[cfg(test)]`. They were
+private already, but "private" only stopped callers outside the module; making
+them test-only means the shipping binary has exactly one way to open a progress
+file and it is the one that proves identity first.
+
+## Decision 11a — the reaper deletes under the lock that authorized the deletion
+
+`probe_sentinel_owner` took the lock, released it, and returned a verdict; the
+caller then unlinked. Nothing legitimate can occupy that window — sentinel names
+embed the owner's process id and a nanosecond stamp, so a starting scan always
+creates its own rather than adopting an existing one — but that is a NAMING
+scheme guarding a deletion, and the entire reason this flag reaps by lock is that
+a naming scheme is not evidence of liveness. Both reviewers raised it.
+
+`claim_sentinel` now returns the locked handle, and the claim is dropped after
+the unlink. This matches what the scan's own retirement has always done
+(`ScanSpool::drop` removes the spool, then unlocks, then removes the sentinel),
+so the two removal paths now hold the same discipline instead of one relying on
+an argument the other does not need.
+
 ## Accepted limit — `flock` is node-local
 
 Advisory locks are emulated per node on network filesystems rather than shared

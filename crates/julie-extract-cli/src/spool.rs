@@ -273,6 +273,14 @@ pub(crate) fn should_reap(owner: SpoolOwner, age: Option<Duration>) -> bool {
 /// sentinels. Best effort throughout: a foreign-owned, read-only, or missing
 /// directory leaves the scan unaffected.
 pub(crate) fn reap_unowned_spools(dir: &Path) {
+    reap_unowned_spools_with(dir, remove_spool_file);
+}
+
+/// [`reap_unowned_spools`] with the spool removal injected — the seam that lets a
+/// test observe the sentinel's lock state at the moment the spool is unlinked,
+/// which is the property the claim exists to provide and the only point at which
+/// it is observable.
+fn reap_unowned_spools_with(dir: &Path, mut remove: impl FnMut(&Path) -> bool) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
@@ -287,14 +295,52 @@ pub(crate) fn reap_unowned_spools(dir: &Path) {
         else {
             continue;
         };
-        if !should_reap(probe_sentinel_owner(&sentinel), file_age(&sentinel, now)) {
+        let claim = claim_sentinel(&sentinel);
+        if !should_reap(claim.owner(), file_age(&sentinel, now)) {
             continue;
         }
         // The sentinel is the only thing that makes its spool a candidate, so
         // removing it after a failed spool removal would turn one transient
         // failure into a leak nothing can ever clean up.
-        if remove_spool_file(&spool) {
+        if remove(&spool) {
             let _ = std::fs::remove_file(&sentinel);
+        }
+        drop(claim);
+    }
+}
+
+/// A reap candidate's ownership, holding the lock for as long as the value lives
+/// when the answer is [`SpoolOwner::Unowned`].
+///
+/// Deciding under the lock and then releasing it before deleting would leave a
+/// window in which the pair is unlocked and still present. Nothing legitimate
+/// occupies that window today — sentinel names embed the owner's process id and
+/// a nanosecond stamp, so a starting scan always creates its own rather than
+/// adopting this one — but that is an argument about a NAMING scheme guarding a
+/// deletion, and the reason this flag reaps by lock at all is that a naming
+/// scheme is not evidence of liveness. Holding the claim through the unlink
+/// makes the deletion true by the same thing that authorized it.
+enum SentinelClaim {
+    /// The lock was free and is held here until this value is dropped.
+    Locked(File),
+    Held,
+    Unknown,
+}
+
+impl SentinelClaim {
+    fn owner(&self) -> SpoolOwner {
+        match self {
+            Self::Locked(_) => SpoolOwner::Unowned,
+            Self::Held => SpoolOwner::Held,
+            Self::Unknown => SpoolOwner::Unknown,
+        }
+    }
+}
+
+impl Drop for SentinelClaim {
+    fn drop(&mut self) {
+        if let Self::Locked(file) = self {
+            let _ = file.unlock();
         }
     }
 }
@@ -303,18 +349,23 @@ pub(crate) fn reap_unowned_spools(dir: &Path) {
 /// not open for writing it is unspecified whether taking a lock returns an
 /// error, and an error here maps to `Unknown`, which vetoes every reap — so a
 /// read-only probe would make the whole flag a silent no-op on such a platform.
-fn probe_sentinel_owner(path: &Path) -> SpoolOwner {
+fn claim_sentinel(path: &Path) -> SentinelClaim {
     let Ok(file) = OpenOptions::new().read(true).write(true).open(path) else {
-        return SpoolOwner::Unknown;
+        return SentinelClaim::Unknown;
     };
     match file.try_lock() {
-        Ok(()) => {
-            let _ = file.unlock();
-            SpoolOwner::Unowned
-        }
-        Err(std::fs::TryLockError::WouldBlock) => SpoolOwner::Held,
-        Err(std::fs::TryLockError::Error(_)) => SpoolOwner::Unknown,
+        Ok(()) => SentinelClaim::Locked(file),
+        Err(std::fs::TryLockError::WouldBlock) => SentinelClaim::Held,
+        Err(std::fs::TryLockError::Error(_)) => SentinelClaim::Unknown,
     }
+}
+
+/// [`claim_sentinel`] reduced to its verdict, releasing any lock it took. The
+/// reaper must not use this: the whole point of the claim is that the lock
+/// outlives the decision.
+#[cfg(test)]
+fn probe_sentinel_owner(path: &Path) -> SpoolOwner {
+    claim_sentinel(path).owner()
 }
 
 fn file_age(path: &Path, now: SystemTime) -> Option<Duration> {
@@ -470,6 +521,25 @@ mod tests {
             "the sentinel must outlive the spool removal, still locked"
         );
         assert!(!sentinel.exists(), "and be removed once the spool is gone");
+    }
+
+    #[test]
+    fn reaping_still_holds_the_sentinel_lock_while_it_unlinks_the_spool() {
+        let temp = TempDir::new().unwrap();
+        let (_spool, sentinel) = plant_owned_pair(temp.path(), 41, SPOOL_REAP_MIN_AGE * 100);
+        let observed = Cell::new(None);
+
+        reap_unowned_spools_with(temp.path(), |path| {
+            observed.set(Some(probe_sentinel_owner(&sentinel)));
+            remove_spool_file(path)
+        });
+
+        assert_eq!(
+            observed.into_inner(),
+            Some(SpoolOwner::Held),
+            "releasing the lock before the unlink leaves the pair unlocked and present"
+        );
+        assert!(!sentinel.exists());
     }
 
     #[test]

@@ -18,7 +18,7 @@
 //! Absent flag means absent module: `scan` holds `Option<&ScanProgress>` and
 //! never constructs one, so nothing is opened, written, or measured.
 
-use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::sync::Mutex;
@@ -27,7 +27,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::json;
 
-use crate::paths::{PathPolicyError, invalid_path, reject_progress_file_collision};
+use crate::paths::{PathPolicyError, invalid_path, reject_open_progress_file_collision};
 
 pub(crate) const PROGRESS_SCHEMA_VERSION: u32 = 1;
 
@@ -64,8 +64,8 @@ pub(crate) struct ScanProgress {
 }
 
 impl ScanProgress {
-    /// Create the progress file for a scan writing `db_path`, re-running the
-    /// collision guard once the file exists.
+    /// Create the progress file for a scan writing `db_path`, proving on the
+    /// opened handle that it is not the artifact before anything is truncated.
     ///
     /// The guard the caller already ran can only compare file identity for
     /// paths that are both there to be compared. When neither the progress file
@@ -75,6 +75,12 @@ impl ScanProgress {
     /// INDEX.PROGRESS` would otherwise hand the scan a progress writer aimed at
     /// the artifact it is about to write.
     ///
+    /// The order is open, prove, then truncate — never `File::create`, which
+    /// truncates as it opens and so destroys the artifact before any recheck can
+    /// run. A guard that ends at a path and a truncation that starts from that
+    /// path again are two operations on a name, and a name can be re-pointed
+    /// between them; `set_len` on the handle that compared unequal cannot be.
+    ///
     /// A file this call created is removed again on refusal, so a rejected argv
     /// does not leave an empty file sitting at the artifact's path for the next
     /// run to open.
@@ -82,29 +88,55 @@ impl ScanProgress {
         path: &Path,
         db_path: &Path,
     ) -> Result<Self, PathPolicyError> {
-        let existed = path.exists();
-        let progress = Self::create(path)?;
-        let Err(error) = reject_progress_file_collision(path, db_path) else {
-            return Ok(progress);
-        };
-        drop(progress);
-        if !existed {
-            let _ = std::fs::remove_file(path);
-        }
-        Err(error)
+        Self::create_for_artifact_with_interval(path, db_path, DEFAULT_PROGRESS_INTERVAL)
     }
 
-    /// Private on purpose: creating a progress file without re-running the collision guard is the
+    pub(crate) fn create_for_artifact_with_interval(
+        path: &Path,
+        db_path: &Path,
+        interval: Duration,
+    ) -> Result<Self, PathPolicyError> {
+        let existed = path.exists();
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(path)
+            .map_err(|error| {
+                invalid_path(path, format!("progress file could not be created: {error}"))
+            })?;
+
+        if let Err(error) = reject_open_progress_file_collision(&file, path, db_path) {
+            drop(file);
+            if !existed {
+                let _ = std::fs::remove_file(path);
+            }
+            return Err(error);
+        }
+
+        file.set_len(0).map_err(|error| {
+            invalid_path(
+                path,
+                format!("progress file could not be truncated: {error}"),
+            )
+        })?;
+        Ok(Self::with_writer(Box::new(file), interval))
+    }
+
+    /// Private on purpose: creating a progress file without proving it is not the artifact is the
     /// defect `create_for_artifact` exists to prevent, so argv-driven creation has one reachable door.
+    #[cfg(test)]
     fn create(path: &Path) -> Result<Self, PathPolicyError> {
         Self::create_with_interval(path, DEFAULT_PROGRESS_INTERVAL)
     }
 
+    #[cfg(test)]
     pub(crate) fn create_with_interval(
         path: &Path,
         interval: Duration,
     ) -> Result<Self, PathPolicyError> {
-        let file = File::create(path).map_err(|error| {
+        let file = std::fs::File::create(path).map_err(|error| {
             invalid_path(path, format!("progress file could not be created: {error}"))
         })?;
         Ok(Self::with_writer(Box::new(file), interval))
@@ -217,6 +249,36 @@ mod tests {
     use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
     use tempfile::TempDir;
+
+    #[test]
+    fn a_progress_path_that_is_the_artifact_is_refused_before_anything_is_truncated() {
+        let temp = TempDir::new().unwrap();
+        let db = temp.path().join("artifact.sqlite");
+        let artifact = b"artifact bytes that must survive a rejected argv";
+        std::fs::write(&db, artifact).unwrap();
+        let progress = temp.path().join("scan.progress");
+        std::fs::hard_link(&db, &progress).unwrap();
+
+        let refused = ScanProgress::create_for_artifact(&progress, &db);
+
+        assert!(matches!(refused, Err(PathPolicyError::InvalidPath { .. })));
+        assert_eq!(std::fs::read(&db).unwrap(), artifact);
+        assert!(
+            progress.exists(),
+            "a link this call did not create must stay"
+        );
+    }
+
+    #[test]
+    fn a_rejected_progress_file_this_call_created_is_removed_again() {
+        let temp = TempDir::new().unwrap();
+        let db = temp.path().join("index.progress");
+        std::fs::write(&db, b"artifact").unwrap();
+        let progress = temp.path().join("index.progress");
+
+        assert!(ScanProgress::create_for_artifact(&progress, &db).is_err());
+        assert_eq!(std::fs::read(&db).unwrap(), b"artifact");
+    }
 
     #[derive(Clone, Default)]
     struct TearingWriter {

@@ -1,4 +1,5 @@
 use std::ffi::OsStr;
+use std::fs::File;
 use std::path::{Component, Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -217,6 +218,48 @@ pub fn reject_progress_file_collision(
         }
     }
     Ok(())
+}
+
+/// [`reject_progress_file_collision`] decided on an OPEN handle instead of on the
+/// path that produced it.
+///
+/// The path-based guard cannot make truncation safe on its own, however exactly
+/// it answers identity. It proves something about a NAME, and the caller then
+/// re-opens that name to truncate it — so anything that re-points the name in
+/// between (a hard link planted into the window, a swapped symlink) is truncated
+/// with the guard's blessing. Proving identity on the handle that will be
+/// truncated removes the window rather than narrowing it: `set_len` acts on the
+/// file this compared equal, whatever the path means by then.
+///
+/// A handle that cannot be duplicated or identified falls back to the path
+/// comparison, which is what this call would have been without it.
+pub fn reject_open_progress_file_collision(
+    progress: &File,
+    progress_path: &Path,
+    db_path: &Path,
+) -> Result<(), PathPolicyError> {
+    let Ok(open_progress) = progress.try_clone().and_then(same_file::Handle::from_file) else {
+        return reject_progress_file_collision(progress_path, db_path);
+    };
+    if is_the_open_file(db_path, &open_progress) {
+        return Err(invalid_path(
+            progress_path,
+            "progress file must not be the artifact database",
+        ));
+    }
+    for suffix in ARTIFACT_SIDECAR_SUFFIXES {
+        if is_the_open_file(&artifact_sidecar(db_path, suffix), &open_progress) {
+            return Err(invalid_path(
+                progress_path,
+                format!("progress file must not be the artifact database's `{suffix}` sidecar"),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn is_the_open_file(path: &Path, open: &same_file::Handle) -> bool {
+    same_file::Handle::from_path(path).is_ok_and(|handle| handle == *open)
 }
 
 fn artifact_sidecar(db_path: &Path, suffix: &str) -> PathBuf {
