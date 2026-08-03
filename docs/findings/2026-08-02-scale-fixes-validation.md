@@ -894,3 +894,82 @@ holding at full scale, under a write that ran with per-row foreign-key enforceme
 | Identity conflicts | 4,237 across 28 files, all `language: c` | identical |
 | `depth_truncated` | 3, all C# | identical |
 | Files | 58,366 / 41,406 changed / 16,960 unsupported / 8 failed | identical |
+
+## Resolution throughput curve — the decay is still there
+
+### Reconciling the two baseline characterizations
+
+T6's trail recorded baseline resolution decaying **45.8 → 6.5 MB/min**. The T7 write-up above compared
+against "≈70 MB/min". Those cannot both describe the same phase, and **the T7 figure was the wrong
+one.**
+
+The error: it assumed resolution grows the artifact from 13 to 22.8 GiB. It does not. Reconstructing
+phase boundaries from the profile against the sampler trails, **resolution grows the artifact by
+exactly 2.18 GiB in both runs** (≈12.2 → 14.40 GiB). The remaining ~8.4 GiB is added by
+`index_build`, where 54 secondary indexes are created over 53.5M rows. Attributing that growth to
+resolution inflated its apparent rate by ~4×.
+
+That both runs grow by the same 2.18 GiB is an independent check that the reconstructed boundaries are
+right and that the two runs perform identical work.
+
+Recomputed from the baseline's own 2-second trail over 17:49:25–20:11:15 (141.8 min, 4,153 samples),
+the decay is **45.2 → 5.8 MB/min**, which matches T6's characterization. T6 was correct.
+
+### The curve, baseline vs T7
+
+Deciles of each run's resolution window:
+
+| decile | baseline MB/min | T7 MB/min |
+|---|---|---|
+| 1 | 45.2 | 63.6 |
+| 2 | 24.7 | 83.2 |
+| 3 | 18.2 | 45.5 |
+| 4 | 15.3 | 40.4 |
+| 5 | 13.2 | 38.7 |
+| 6 | 10.9 | 35.0 |
+| 7 | 8.3 | 31.9 |
+| 8 | 8.6 | 24.2 |
+| 9 | 7.1 | 22.5 |
+| 10 | 5.8 | 12.0 |
+| **average** | **15.7** | **39.7** |
+
+T7 is ~2.5× faster throughout — and **the shape is unchanged**. Monotone decay, no plateau, ~7×
+baseline and ~7× in T7 from peak to final decile.
+
+### Controlling for contention
+
+A second `fleet-safety` scan started at ~22:21, inside T7's resolution window, so the decay could in
+principle be rising contention rather than falling work rate. It is not. Normalizing by the process's
+own CPU consumption removes the question:
+
+| decile | duty cycle | MB/min | **MB per CPU-minute** |
+|---|---|---|---|
+| 1 | 94.9% | 63.6 | 67.1 |
+| 2 | 61.9% | 83.2 | 134.3 |
+| 3 | 57.2% | 45.5 | 79.6 |
+| 4 | 58.8% | 40.4 | 68.7 |
+| 5 | 61.9% | 38.7 | 62.6 |
+| 6 | 61.5% | 35.0 | 56.9 |
+| 7 | 59.6% | 31.9 | 53.5 |
+| 8 | 48.0% | 24.2 | 50.5 |
+| 9 | 45.8% | 22.5 | 49.1 |
+| 10 | 51.9% | 12.0 | 23.2 |
+
+Duty cycle is flat-with-noise across deciles 3–10 (46–62%, no trend). CPU-normalized throughput falls
+monotonically — **5.8× from peak**. The decay survives removing contention entirely, so it is real
+work-rate decay.
+
+### What this means
+
+The fix in this task raised the whole resolution curve ~2.5× by removing the per-row child-side parent
+lookups. It did **not** touch the mechanism that makes the curve decay. Something in the resolution
+pass still costs more per unit of work the further into the phase it gets.
+
+The named candidate remains the savepoint sub-journal: the hook runs under `SAVEPOINT resolution_hook`
+(`writer.rs`) with `temp_store=MEMORY` (`open_path`), and `resolution_store.rs` documents the v2.9.0
+`memjrnlTruncate` quadratic. A sub-journal accumulating pre-images of spilled pages in RAM would
+produce exactly this signature — monotone decay with no plateau, plus RSS climbing only during
+resolution and falling the moment it ends, which is what both runs show.
+
+This is transaction plumbing around the hook, not resolver algorithm. It is **unaddressed and still
+live**, and it is a smaller, more targeted lever than rewriting resolver internals.
