@@ -129,11 +129,18 @@ priority+size only).
   write_update/delete/incremental); resolution equivalence without secondary indexes; profile keys
   sum to phase total; Scale tripwire on ms/file; crash-safety kill test mid-fresh-build.
 
-### T6 — Scale validation + release prep.
+### T6 — Scale validation + release prep. (DONE 2026-08-02 — `docs/findings/2026-08-02-scale-fixes-validation.md`)
 
-- Full scan of dotnet/runtime @ pinned commit at default stacks: exit 0, zero errors, warnings only
-  where designed (identity conflicts should be zero after T3 root fixes — assert), record phase
-  timings + final DB/WAL/spool sizes in a findings doc here and update the miller-side baseline doc.
+- Full scan of dotnet/runtime @ pinned commit at default stacks: **no fatal error, per-file source
+  errors only** (the corpus ships 8 non-UTF-8 files, so exit 0 is unreachable by design —
+  original "exit 0, zero errors" wording corrected by T6), warnings only where designed, record
+  phase timings + final DB/WAL/spool sizes in a findings doc here and update the miller-side
+  baseline doc.
+- **Identity-conflict assertion NOT met:** 4,237 conflicts across 28 files, all `language: c`
+  (25/28 `.h`) — T3's predicted own-scope residual class. Recoverable (first-write-wins held,
+  import committed); zero PowerShell conflicts. Fix is the tracked containment-helper follow-up
+  (route all own-scope relationship passes through the shared helper), scheduled next cycle, and
+  the release notes must record it as a known residual.
 - `~/.hermes/hermes-agent` scans green. Miller repo write phase re-measured (target: severalfold
   improvement from T4+T5).
 - Full `cargo test` + `xtask dogfood`; release checklist; hand coordination notes to the
