@@ -139,6 +139,28 @@ priority+size only).
 - Full `cargo test` + `xtask dogfood`; release checklist; hand coordination notes to the
   fleet-safety session (spool glob, W5 hook point). Release + pin bump gated on user approval.
 
+### T7 — Large-artifact write scaling (added 2026-08-02 after T6's V1 exposed the wall; user-directed: multi-hour is not shippable).
+
+T6's dotnet/runtime run proved the five original defects fixed but exposed artifact_write as a
+multi-hour wall at 58,500 files (DB past 14.7 GB, RSS tracking it 1:1). Diagnosed mechanism (lead,
+verified against schema + SQLite semantics): child-row tables key on random hash TEXT PRIMARY KEYs
+(md5/blake3 hex), so at 100× the 128 MB page cache every insert lands on a cold random B-tree leaf;
+and under T5's bulk-load `journal_mode=MEMORY`, mid-transaction cache spills put pages into the db
+file whose later re-modification journals pre-images IN RAM — the MEMORY journal grows toward
+O(DB size). cmov (791 MB) never showed either because it fits in cache.
+
+- Stage 1 (mitigations): bulk-load journal goes disk-backed (DELETE/TRUNCATE rollback journal —
+  keeps T5's error-rollback property without the RAM cost); bulk-load `cache_size` scaled for large
+  builds (policy proposed by implementer, bounded by physical RAM; 128 MB stays the non-bulk
+  default). Both scoped to the existing bulk-load path only.
+- Stage 2 (the real fix, evidence-gated on Stage 1's numbers): PK-sorted child-row insertion —
+  stream child rows into unindexed rowid staging tables (sequential appends), then
+  `INSERT INTO <table> SELECT … ORDER BY <pk>` so the final B-tree build is a sorted sequential
+  append (SQLite's canonical bulk-load pattern). Byte-equivalence + gate tests mirror T5's.
+- Validation: re-run the T6 V1 dotnet/runtime scan on the new binary; today's bounded/completed
+  multi-hour run is the before-number. Target: artifact_write in minutes, RSS bounded and
+  independent of DB size.
+
 ## Sequencing
 
 | Order | Task | Why |
@@ -148,6 +170,7 @@ priority+size only).
 | 3 | T4 spool diet | Stage 1 independent; Stage 2 shares import-pass code with T5 |
 | 4 | T5 write throughput | Stage 1 anytime; Stage 2 after T4 Stage 2 (shared import passes) |
 | 5 | T6 validation + release prep | needs all |
+| 6 | T7 large-artifact write scaling | added after T6 V1; release holds until its re-validation |
 
 Worker verification scope: targeted `cargo test -p julie-extract-cli` / `-p julie-extract-artifact`
 (+ `-p julie-extractors` for T2/T3 extractor changes) per change; full `cargo test` + dogfood is
