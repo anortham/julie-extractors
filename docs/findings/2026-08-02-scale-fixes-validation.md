@@ -708,7 +708,20 @@ reproduces T5's published baselines (cmov write ~43.5 s, Miller write 18.8–22.
 
 Resolution falling 59% was not predicted by the insert diagnosis: it is the per-row child-side parent
 lookups disappearing (each overlay insert probed `identifiers` and `symbols`, each identifier target
-update probed `symbols`). `index_build` rises because it now builds every index from scratch.
+update probed `symbols`).
+
+`index_build` rising 3,709 ms is the price of the fix, and it is worth stating precisely because it is
+the one cost this change adds. Both arms drop and rebuild the same 54 indexes, so the index work is
+identical; the delta is the new whole-database `foreign_key_check`, which `verify_foreign_keys` runs
+just before `clock.lap(index_build)` and which is therefore folded into that phase.
+
+Run standalone against the finished 3.57 GiB `coreclr` artifact with a cold cache, that check takes
+**48.2 s** (13.5 s/GiB). In situ it costs **~3.7 s** on the same artifact, because it runs inside the
+write transaction with the pages it just wrote still hot. The in-situ figure is the one that matters;
+extrapolated to a 22.8 GiB artifact it is on the order of half a minute, against an `artifact_write`
+budget measured in tens of minutes. It buys strictly stronger validation than the per-row deferred
+checks it replaces: `foreign_key_check` verifies every row of every table, not only rows touched
+during the write.
 
 ### Stage 1 (journal / cache_size) — measured, and not needed
 
