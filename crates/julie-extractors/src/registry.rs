@@ -1,3 +1,4 @@
+use crate::base::ExtractionLevel;
 use crate::base::ExtractionResults;
 use crate::base::collect_code_structural_facts;
 use crate::base::collect_complexity_metrics;
@@ -19,7 +20,8 @@ use std::path::Path;
 use std::sync::OnceLock;
 use tree_sitter::Tree;
 
-type ExtractFn = fn(&Tree, &str, &str, &Path) -> Result<ExtractionResults, anyhow::Error>;
+type ExtractFn =
+    fn(&Tree, &str, &str, &Path, ExtractionLevel) -> Result<ExtractionResults, anyhow::Error>;
 
 #[derive(Debug, Clone, Copy)]
 pub struct LanguageRegistryEntry {
@@ -36,6 +38,7 @@ macro_rules! define_structured_full_language_extractors {
                 file_path: &str,
                 content: &str,
                 workspace_root: &Path,
+                level: ExtractionLevel,
             ) -> Result<ExtractionResults, anyhow::Error> {
                 let mut ext = <$extractor>::new(
                     $language.to_string(),
@@ -45,7 +48,11 @@ macro_rules! define_structured_full_language_extractors {
                 );
                 let symbols = ext.extract_symbols(tree);
                 let relationships = ext.extract_relationships(tree, &symbols);
-                let identifiers = ext.extract_identifiers(tree, &symbols);
+                let identifiers = if level.includes_references() {
+                    ext.extract_identifiers(tree, &symbols)
+                } else {
+                    Vec::new()
+                };
                 let types = ext.infer_types(&symbols);
                 let pending_relationships = ext.base.take_pending_relationships();
                 let structured_pending_relationships = ext.base.take_structured_pending_relationships();
@@ -76,6 +83,7 @@ macro_rules! define_structured_full_file_extractors {
                 file_path: &str,
                 content: &str,
                 workspace_root: &Path,
+                level: ExtractionLevel,
             ) -> Result<ExtractionResults, anyhow::Error> {
                 let mut ext = <$extractor>::new(
                     file_path.to_string(),
@@ -84,7 +92,11 @@ macro_rules! define_structured_full_file_extractors {
                 );
                 let symbols = ext.extract_symbols(tree);
                 let relationships = ext.extract_relationships(tree, &symbols);
-                let identifiers = ext.extract_identifiers(tree, &symbols);
+                let identifiers = if level.includes_references() {
+                    ext.extract_identifiers(tree, &symbols)
+                } else {
+                    Vec::new()
+                };
                 let types = ext.infer_types(&symbols);
                 let pending_relationships = ext.base.take_pending_relationships();
                 let structured_pending_relationships = ext.base.take_structured_pending_relationships();
@@ -115,6 +127,7 @@ macro_rules! define_no_pending_extractors {
                 file_path: &str,
                 content: &str,
                 workspace_root: &Path,
+                level: ExtractionLevel,
             ) -> Result<ExtractionResults, anyhow::Error> {
                 let mut ext = <$extractor>::new(
                     $language.to_string(),
@@ -124,7 +137,11 @@ macro_rules! define_no_pending_extractors {
                 );
                 let symbols = ext.extract_symbols(tree);
                 let relationships = ext.extract_relationships(tree, &symbols);
-                let identifiers = ext.extract_identifiers(tree, &symbols);
+                let identifiers = if level.includes_references() {
+                    ext.extract_identifiers(tree, &symbols)
+                } else {
+                    Vec::new()
+                };
                 let types = ext.infer_types(&symbols);
                 Ok(ExtractionResults {
                     symbols,
@@ -153,6 +170,7 @@ macro_rules! define_relationship_data_extractors {
                 file_path: &str,
                 content: &str,
                 workspace_root: &Path,
+                level: ExtractionLevel,
             ) -> Result<ExtractionResults, anyhow::Error> {
                 let mut ext = <$extractor>::new(
                     $language.to_string(),
@@ -162,7 +180,11 @@ macro_rules! define_relationship_data_extractors {
                 );
                 let symbols = ext.extract_symbols(tree);
                 let relationships = ext.extract_relationships(tree, &symbols);
-                let identifiers = ext.extract_identifiers(tree, &symbols);
+                let identifiers = if level.includes_references() {
+                    ext.extract_identifiers(tree, &symbols)
+                } else {
+                    Vec::new()
+                };
                 Ok(ExtractionResults {
                     symbols,
                     relationships,
@@ -227,6 +249,7 @@ fn extract_lua(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::lua::LuaExtractor::new(
         "lua".to_string(),
@@ -236,7 +259,11 @@ fn extract_lua(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = ext.extract_identifiers(tree, &symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
     let pending_relationships = ext.base.take_pending_relationships();
     let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
@@ -260,6 +287,7 @@ fn extract_r(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::r::RExtractor::new(
         "r".to_string(),
@@ -269,7 +297,11 @@ fn extract_r(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = ext.extract_identifiers(tree, &symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
     let pending_relationships = ext.base.take_pending_relationships();
     let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
@@ -310,6 +342,7 @@ fn extract_html(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::html::HTMLExtractor::new(
         "html".to_string(),
@@ -319,7 +352,11 @@ fn extract_html(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = ext.extract_identifiers(tree, &symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
     let types = ext.infer_types(&symbols);
     let structured_pending_relationships =
         ext.extract_structured_pending_relationships(tree, &symbols);
@@ -354,6 +391,7 @@ fn extract_sql(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::sql::SqlExtractor::new(
         "sql".to_string(),
@@ -363,7 +401,11 @@ fn extract_sql(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = ext.extract_identifiers(tree, &symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
     let types = ext.infer_types(&symbols);
     let pending_relationships = ext.base.take_pending_relationships();
     let structured_pending_relationships = ext.base.take_structured_pending_relationships();
@@ -403,6 +445,7 @@ fn extract_toml(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::toml::TomlExtractor::new(
         "toml".to_string(),
@@ -412,7 +455,11 @@ fn extract_toml(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = ext.extract_identifiers(tree, &symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
     Ok(ExtractionResults {
         symbols,
         relationships,
@@ -436,6 +483,7 @@ fn extract_erlang(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::erlang::ErlangExtractor::new(
         "erlang".to_string(),
@@ -445,7 +493,11 @@ fn extract_erlang(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = ext.extract_identifiers(tree, &symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
     let types = ext.infer_types(&symbols);
     Ok(ExtractionResults {
         symbols,
@@ -471,6 +523,7 @@ fn extract_json(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::json::JsonExtractor::new(
         "json".to_string(),
@@ -480,7 +533,11 @@ fn extract_json(
     );
     let symbols = ext.extract_symbols(tree);
     let relationships = ext.extract_relationships(tree, &symbols);
-    let identifiers = ext.extract_identifiers(tree, &symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
     let pending_relationships = ext.base.take_pending_relationships();
     let structured_pending_relationships = ext.base.take_structured_pending_relationships();
     Ok(ExtractionResults {
@@ -508,6 +565,7 @@ fn extract_xml(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::xml::XmlExtractor::new(
         "xml".to_string(),
@@ -516,7 +574,11 @@ fn extract_xml(
         workspace_root,
     );
     let symbols = ext.extract_symbols(tree);
-    let identifiers = ext.extract_identifiers(tree, &symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(tree, &symbols)
+    } else {
+        Vec::new()
+    };
     Ok(ExtractionResults {
         symbols,
         relationships: Vec::new(),
@@ -538,6 +600,7 @@ fn extract_vue(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
     let mut ext = crate::vue::VueExtractor::new(
         "vue".to_string(),
@@ -547,7 +610,11 @@ fn extract_vue(
     );
     let symbols = ext.extract_symbols(Some(tree));
     let relationships = ext.extract_relationships(Some(tree), &symbols);
-    let identifiers = ext.extract_identifiers(&symbols);
+    let identifiers = if level.includes_references() {
+        ext.extract_identifiers(&symbols)
+    } else {
+        Vec::new()
+    };
     let types = ext.infer_types(&symbols);
     let structured_pending_relationships = ext.extract_structured_pending_relationships(&symbols);
     let pending_relationships = structured_pending_relationships
@@ -653,6 +720,24 @@ pub fn extract_for_language(
     content: &str,
     workspace_root: &Path,
 ) -> Result<ExtractionResults, anyhow::Error> {
+    extract_for_language_at(
+        language,
+        tree,
+        file_path,
+        content,
+        workspace_root,
+        ExtractionLevel::Full,
+    )
+}
+
+pub fn extract_for_language_at(
+    language: &str,
+    tree: &Tree,
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
     let entry = registry_entry(language).map_err(|_| {
         anyhow!(
             "No extractor available for language '{}' (file: {})",
@@ -660,63 +745,65 @@ pub fn extract_for_language(
             file_path
         )
     })?;
-    let mut results = (entry.extract)(tree, file_path, content, workspace_root)?;
-    results.source_regions =
-        collect_source_regions(language, tree, file_path, content, &results.symbols);
-    results.structural_facts =
-        collect_structural_facts(language, tree, file_path, &results.symbols);
-    results
-        .structural_facts
-        .extend(collect_framework_structural_facts(
-            language,
-            tree,
-            file_path,
-            content,
-            &results.symbols,
-        ));
-    results
-        .structural_facts
-        .extend(collect_marker_structural_facts(
-            content,
-            &results.source_regions,
-        ));
-    results
-        .structural_facts
-        .extend(collect_web_structural_facts(
-            language,
-            tree,
-            file_path,
-            content,
-            &results.symbols,
-        ));
-    results
-        .structural_facts
-        .extend(collect_code_structural_facts(
-            language,
-            tree,
-            file_path,
-            content,
-            &results.symbols,
-        ));
-    results
-        .structural_facts
-        .extend(collect_data_structural_facts(
-            language,
-            tree,
-            file_path,
-            content,
-            &results.symbols,
-        ));
-    results
-        .structural_facts
-        .extend(collect_sql_structural_facts(
-            language,
-            tree,
-            file_path,
-            content,
-            &results.symbols,
-        ));
-    sort_structural_facts(&mut results.structural_facts);
+    let mut results = (entry.extract)(tree, file_path, content, workspace_root, level)?;
+    if level.includes_references() {
+        results.source_regions =
+            collect_source_regions(language, tree, file_path, content, &results.symbols);
+        results.structural_facts =
+            collect_structural_facts(language, tree, file_path, &results.symbols);
+        results
+            .structural_facts
+            .extend(collect_framework_structural_facts(
+                language,
+                tree,
+                file_path,
+                content,
+                &results.symbols,
+            ));
+        results
+            .structural_facts
+            .extend(collect_marker_structural_facts(
+                content,
+                &results.source_regions,
+            ));
+        results
+            .structural_facts
+            .extend(collect_web_structural_facts(
+                language,
+                tree,
+                file_path,
+                content,
+                &results.symbols,
+            ));
+        results
+            .structural_facts
+            .extend(collect_code_structural_facts(
+                language,
+                tree,
+                file_path,
+                content,
+                &results.symbols,
+            ));
+        results
+            .structural_facts
+            .extend(collect_data_structural_facts(
+                language,
+                tree,
+                file_path,
+                content,
+                &results.symbols,
+            ));
+        results
+            .structural_facts
+            .extend(collect_sql_structural_facts(
+                language,
+                tree,
+                file_path,
+                content,
+                &results.symbols,
+            ));
+        sort_structural_facts(&mut results.structural_facts);
+    }
     results.complexity_metrics = match language {
         "sql" => crate::sql::complexity_metrics::collect_complexity_metrics(
             tree,
@@ -733,6 +820,9 @@ pub fn extract_for_language(
     };
     if let Some(diagnostic) = depth_truncation_diagnostic(tree.root_node()) {
         results.parse_diagnostics.push(diagnostic);
+    }
+    if !level.includes_references() {
+        results.strip_to_symbols_level();
     }
     Ok(results)
 }

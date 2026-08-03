@@ -1616,8 +1616,9 @@ fn info_reports_missing_noncritical_metadata_as_warning() {
     assert_eq!(table_count(&db, "files"), 2);
     assert_eq!(table_count(&db, "symbols"), 3);
     // 11 base metadata keys + 3 `reference_resolution_*` keys written by the
-    // resolution pass, minus the deleted `updated_at`.
-    assert_eq!(table_count(&db, "artifact_metadata"), 13);
+    // resolution pass + the `index_level` key every scan stamps, minus the
+    // deleted `updated_at`.
+    assert_eq!(table_count(&db, "artifact_metadata"), 14);
     assert_eq!(before.len(), artifact_fingerprint(&db).len() + 1);
 }
 
@@ -3729,6 +3730,361 @@ fn entry_names(dir: &Path) -> BTreeSet<String> {
         .flatten()
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
         .collect()
+}
+
+const TS_LEVELS_FIXTURE: &str = r#"
+import { BroadcastMessage, AppSetting, Parameter } from "@/models"
+import axios from "./apiConfig"
+
+export async function getActiveMessages() {
+    let response = await axios.get<BroadcastMessage[]>("/api/messages/active")
+    return response.data
+}
+
+export async function saveParameter(parameter: Parameter) {
+    let response = await axios.put<Parameter>("/api/parameter", parameter)
+    return response.data
+}
+"#;
+
+const SYMBOLS_LEVEL_GATED_DOMAINS: &[&str] = &[
+    "identifiers",
+    "literals",
+    "type_argument_usages",
+    "type_arguments",
+    "source_regions",
+    "structural_facts",
+];
+
+const SYMBOLS_LEVEL_KEPT_DOMAINS: &[&str] = &[
+    "files",
+    "symbols",
+    "symbol_annotations",
+    "relationships",
+    "pending_relationships",
+    "type_facts",
+    "complexity_metrics",
+    "parse_diagnostics",
+];
+
+fn index_level_metadata(db: &Path) -> Option<String> {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT value FROM artifact_metadata WHERE key = 'index_level'",
+        [],
+        |row| row.get(0),
+    )
+    .optional()
+    .unwrap()
+}
+
+fn resolution_status_metadata(db: &Path) -> Option<String> {
+    let conn = Connection::open(db).unwrap();
+    conn.query_row(
+        "SELECT value FROM artifact_metadata WHERE key = 'reference_resolution_status'",
+        [],
+        |row| row.get(0),
+    )
+    .optional()
+    .unwrap()
+}
+
+#[test]
+fn scan_level_symbols_builds_a_symbol_core_artifact() {
+    let fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    let db = fixture.path("artifact.sqlite");
+
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--level",
+        "symbols",
+        "--json",
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["artifact"]["index_level"], "symbols");
+    assert!(
+        report["counts"]["rows_written"]["symbols"]
+            .as_i64()
+            .unwrap()
+            >= 2
+    );
+    for domain in SYMBOLS_LEVEL_GATED_DOMAINS {
+        assert_eq!(
+            report["counts"]["totals"][*domain], 0,
+            "{domain} must be empty at symbols level"
+        );
+        assert_eq!(
+            table_count(&db, domain),
+            0,
+            "{domain} table must be empty at symbols level"
+        );
+    }
+    assert_eq!(table_count(&db, "identifier_resolutions"), 0);
+    assert_eq!(index_level_metadata(&db).as_deref(), Some("symbols"));
+    assert_eq!(
+        resolution_status_metadata(&db).as_deref(),
+        Some("complete"),
+        "the resolution hook still runs at symbols level (pending relationships resolve)"
+    );
+}
+
+#[test]
+fn symbols_level_keeps_symbol_core_domains_equal_to_full() {
+    const GENERICS_FIXTURE: &str = "pub fn collect() { let ids: Vec<String> = Vec::<String>::new(); let n = \"42\".parse::<u32>().unwrap(); process(ids, n); }\npub fn process(v: Vec<String>, n: u32) {}\n";
+
+    let full_fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    std::fs::write(full_fixture.root.join("src/generics.rs"), GENERICS_FIXTURE).unwrap();
+    let full_db = full_fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        full_fixture.root_str(),
+        "--db",
+        path_str(&full_db),
+        "--json",
+    ]));
+
+    let symbols_fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    std::fs::write(
+        symbols_fixture.root.join("src/generics.rs"),
+        GENERICS_FIXTURE,
+    )
+    .unwrap();
+    let symbols_db = symbols_fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        symbols_fixture.root_str(),
+        "--db",
+        path_str(&symbols_db),
+        "--level",
+        "symbols",
+        "--json",
+    ]));
+
+    for domain in SYMBOLS_LEVEL_KEPT_DOMAINS {
+        assert_eq!(
+            table_count(&full_db, domain),
+            table_count(&symbols_db, domain),
+            "{domain} must be identical between full and symbols levels"
+        );
+    }
+    for domain in &[
+        "identifiers",
+        "literals",
+        "type_argument_usages",
+        "type_arguments",
+        "source_regions",
+    ] {
+        assert!(
+            table_count(&full_db, domain) > 0,
+            "fixture must exercise {domain} at full level or the gating assertions are vacuous"
+        );
+        assert_eq!(table_count(&symbols_db, domain), 0);
+    }
+    assert_eq!(index_level_metadata(&full_db).as_deref(), Some("full"));
+    assert_eq!(
+        index_level_metadata(&symbols_db).as_deref(),
+        Some("symbols")
+    );
+}
+
+#[test]
+fn scan_level_is_inherited_and_conflicts_are_usage_errors() {
+    let fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--level",
+        "symbols",
+        "--json",
+    ]));
+
+    std::fs::write(
+        fixture.root.join("src/extra.ts"),
+        "export function extra() { return 1 }\n",
+    )
+    .unwrap();
+    let output = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]);
+    assert_eq!(output.status.code(), Some(0));
+    let report = json_report(&output);
+    assert_eq!(
+        report["artifact"]["index_level"], "symbols",
+        "a rescan without --level inherits the artifact's recorded level"
+    );
+    assert_eq!(table_count(&db, "identifiers"), 0);
+
+    let conflict = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--level",
+        "full",
+        "--json",
+    ]);
+    assert_eq!(conflict.status.code(), Some(2));
+    let report = json_report(&conflict);
+    assert_eq!(report["status"], "failed");
+    assert_eq!(report["errors"][0]["code"], "usage_error");
+    assert_eq!(
+        report["errors"][0]["details"]["artifact_index_level"],
+        "symbols"
+    );
+    assert_eq!(
+        report["errors"][0]["details"]["requested_index_level"],
+        "full"
+    );
+
+    let force_conflict = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--level",
+        "full",
+        "--json",
+    ]);
+    assert_eq!(
+        force_conflict.status.code(),
+        Some(2),
+        "--force does not license an in-place level change"
+    );
+
+    let force_inherit = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--force",
+        "--json",
+    ]);
+    assert_eq!(force_inherit.status.code(), Some(0));
+    let report = json_report(&force_inherit);
+    assert_eq!(report["artifact"]["index_level"], "symbols");
+    assert_eq!(table_count(&db, "identifiers"), 0);
+}
+
+#[test]
+fn scan_default_level_is_full_and_symbols_conflict_errors() {
+    let fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--json",
+    ]));
+    assert_eq!(index_level_metadata(&db).as_deref(), Some("full"));
+    assert!(table_count(&db, "identifiers") > 0);
+
+    let conflict = julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--level",
+        "symbols",
+        "--json",
+    ]);
+    assert_eq!(conflict.status.code(), Some(2));
+    assert_eq!(json_report(&conflict)["errors"][0]["code"], "usage_error");
+}
+
+#[test]
+fn update_on_a_symbols_artifact_stays_at_symbols_level() {
+    let fixture = FixtureRoot::with_file("src/messagesService.ts", TS_LEVELS_FIXTURE);
+    let db = fixture.path("artifact.sqlite");
+    assert_success(julie_extract(&[
+        "scan",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--level",
+        "symbols",
+        "--json",
+    ]));
+
+    std::fs::write(
+        fixture.root.join("src/messagesService.ts"),
+        TS_LEVELS_FIXTURE.replace("getActiveMessages", "getActiveMessagesV2"),
+    )
+    .unwrap();
+    let output = julie_extract(&[
+        "update",
+        "--root",
+        fixture.root_str(),
+        "--db",
+        path_str(&db),
+        "--file",
+        "src/messagesService.ts",
+        "--json",
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report = json_report(&output);
+    assert_eq!(report["status"], "ok");
+    assert_eq!(
+        report["artifact"]["index_level"], "symbols",
+        "a single-file update reports the artifact's recorded level"
+    );
+    assert_eq!(
+        table_count(&db, "identifiers"),
+        0,
+        "a single-file update re-extracts at the artifact's recorded level"
+    );
+    assert_eq!(table_count(&db, "literals"), 0);
+    let conn = Connection::open(&db).unwrap();
+    let mut stmt = conn
+        .prepare("SELECT name FROM symbols ORDER BY name")
+        .unwrap();
+    let symbol_names = stmt
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<Vec<String>, _>>()
+        .unwrap();
+    assert!(
+        symbol_names
+            .iter()
+            .any(|name| name == "getActiveMessagesV2"),
+        "the update re-extracted the new symbol: {symbol_names:?}"
+    );
 }
 
 struct FixtureRoot {

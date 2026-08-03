@@ -35,7 +35,7 @@ of truth when this table drifts.
 ## Commands
 
 ```bash
-julie-extract scan --root <dir> --db <path> [--force] [--ignore-file <path>...] [--jobs <n>] [--spool-dir <path>] [--progress-file <path>] [--parent-pid <pid>] [--strict-schema] [--json]
+julie-extract scan --root <dir> --db <path> [--force] [--level <symbols|full>] [--ignore-file <path>...] [--jobs <n>] [--spool-dir <path>] [--progress-file <path>] [--parent-pid <pid>] [--strict-schema] [--json]
 julie-extract update --root <dir> --db <path> --file <path> [--ignore-file <path>...] [--strict-schema] [--json]
 julie-extract delete --root <dir> --db <path> --file <path> [--strict-schema] [--json]
 julie-extract info --db <path> [--strict-schema] [--json]
@@ -152,6 +152,27 @@ cannot be re-extracted, including an oversized file whose rows were removed, or
 if the resolver fails, the scan returns `failed` with
 `schema_migration_required` and exit code `3`. This applies to both incremental
 and `--force` scans.
+
+`--level <symbols|full>` chooses the extraction level for a NEW artifact.
+`full` (the default) is the complete extraction — every invocation without the
+flag behaves exactly as it did before the flag existed. `symbols` builds the
+progressive-indexing symbol core: the identifier walks and text/facts collectors
+never run, so `identifiers`, `identifier_resolutions`, `literals`,
+`type_argument_usages`, `type_arguments`, `source_regions`, and
+`structural_facts` stay empty, uniformly across every supported language, while
+`files`, `symbols`, `symbol_annotations`, `relationships`,
+`pending_relationships`, `type_facts`, `complexity_metrics`, and
+`parse_diagnostics` are identical to a full extraction. The resolution hook
+still runs (pending relationships resolve). The chosen level is recorded in the
+`index_level` artifact-metadata key and in `artifact.index_level` on every
+report.
+
+An artifact's level is fixed when it is first built. A rescan or `update`
+without `--level` inherits the recorded level; passing a conflicting `--level`
+for an existing artifact — with or without `--force` — is a `usage_error`
+(exit 2) whose details carry `artifact_index_level` and
+`requested_index_level`. To change level, rebuild into a fresh artifact.
+Artifacts written before this flag existed read as `full`.
 
 `--jobs <n>` (alias `-j`) sets the number of parallel extraction workers. `0`
 (the default) auto-detects from available cores. Parallelism only affects the

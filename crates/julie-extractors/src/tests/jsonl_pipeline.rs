@@ -101,12 +101,17 @@ fn test_jsonl_extraction_configures_one_parser_for_the_file() {
     );
     let mut parser_factory_calls = 0;
 
-    let results =
-        extract_jsonl_canonical_with_parser_factory(file_path, content, &workspace_root, || {
+    let results = extract_jsonl_canonical_with_parser_factory(
+        file_path,
+        content,
+        &workspace_root,
+        crate::base::ExtractionLevel::Full,
+        || {
             parser_factory_calls += 1;
             configured_parser_for_language("json")
-        })
-        .expect("jsonl extraction should succeed with injected parser factory");
+        },
+    )
+    .expect("jsonl extraction should succeed with injected parser factory");
 
     assert_eq!(
         parser_factory_calls, 1,

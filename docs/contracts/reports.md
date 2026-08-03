@@ -38,7 +38,8 @@ part of this contract.
     "jsonl_schema_version": null,
     "hash_algorithm": "blake3",
     "parser_inventory_fingerprint": "sha256:...",
-    "capability_snapshot_fingerprint": "sha256:..."
+    "capability_snapshot_fingerprint": "sha256:...",
+    "index_level": "full"
   },
   "tool": {
     "binary_name": "julie-extract",

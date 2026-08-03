@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use julie_extract_artifact::jsonl::{JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION};
-use julie_extract_artifact::metadata::{ArtifactMetadata, REQUIRED_METADATA_KEYS, read_metadata};
+use julie_extract_artifact::metadata::{
+    ArtifactMetadata, KEY_INDEX_LEVEL, REQUIRED_METADATA_KEYS, read_metadata,
+};
 use julie_extract_artifact::reports::{
     ArtifactReport, ReportCode, ReportDiagnostic, ReportFileRows, RowDomainCounts,
 };
@@ -20,6 +22,11 @@ pub(crate) struct OpenArtifact {
     pub(crate) write_metadata: ArtifactMetadata,
     pub(crate) reference_resolution_version: Option<i64>,
     pub(crate) reference_resolution_ready: bool,
+    /// The recorded `index_level` metadata value, `"full"` when absent.
+    pub(crate) index_level: String,
+    /// Whether any extraction revision has committed. An artifact with no
+    /// history has not fixed its level yet — a scan may still choose one.
+    pub(crate) has_extraction_history: bool,
 }
 
 pub(crate) struct OpenInfoArtifact {
@@ -30,6 +37,8 @@ pub(crate) struct OpenInfoArtifact {
 
 pub(crate) struct ExistingArtifact {
     pub(crate) write_metadata: ArtifactMetadata,
+    /// The recorded `index_level` metadata value, `"full"` when absent.
+    pub(crate) index_level: String,
 }
 
 /// Upper bound for memory-mapped I/O on read-only artifact connections. SQLite
@@ -116,12 +125,32 @@ pub(crate) fn open_artifact(
     });
     let write_metadata = artifact_metadata_from_rows(&metadata)?;
     let report = artifact_report(db_path, &metadata, jsonl_schema_version)?;
+    let index_level = report.index_level.clone();
+    let has_extraction_history = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM extraction_revisions)",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(|error| {
+            command_error(
+                3,
+                ReportCode::SchemaIncompatible,
+                format!("artifact extraction history could not be read: {error}"),
+                Some(display_path(db_path)),
+                None,
+                false,
+                json!({}),
+            )
+        })?;
     Ok(OpenArtifact {
         connection,
         report,
         write_metadata,
         reference_resolution_version,
         reference_resolution_ready,
+        index_level,
+        has_extraction_history,
     })
 }
 
@@ -259,6 +288,7 @@ pub(crate) fn existing_artifact_for_root(
 
     Ok(Some(ExistingArtifact {
         write_metadata: artifact.write_metadata,
+        index_level: artifact.index_level,
     }))
 }
 
@@ -363,6 +393,10 @@ fn artifact_report(
             metadata,
             "capability_snapshot_fingerprint",
         )?,
+        index_level: metadata
+            .get(KEY_INDEX_LEVEL)
+            .cloned()
+            .unwrap_or_else(|| "full".to_string()),
     })
 }
 

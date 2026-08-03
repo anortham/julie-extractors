@@ -238,6 +238,10 @@ pub struct ArtifactWriter {
     connection: Connection,
     metadata: ArtifactMetadata,
     staged_capability_snapshot: Option<ArtifactCapabilitySnapshot>,
+    /// Extraction level recorded into `artifact_metadata.index_level` by scan
+    /// writes. Staged by the CLI once per scan; `None` writes nothing, which
+    /// preserves whatever the artifact already records (absent = full).
+    staged_index_level: Option<String>,
     last_capability_rows_written: RowDomainCounts,
     /// Set when `open_path` found an on-disk artifact with no `files` rows and
     /// no extraction history. Consumed by the first write, so only that write
@@ -264,6 +268,7 @@ impl ArtifactWriter {
             connection,
             metadata,
             staged_capability_snapshot: None,
+            staged_index_level: None,
             last_capability_rows_written: RowDomainCounts::default(),
             // An in-memory artifact has no journal file and no promote step, so
             // the bulk-load trade (durability for speed) buys nothing here.
@@ -291,6 +296,7 @@ impl ArtifactWriter {
             connection,
             metadata,
             staged_capability_snapshot: None,
+            staged_index_level: None,
             last_capability_rows_written: RowDomainCounts::default(),
             bulk_load_eligible,
             poisoned: None,
@@ -386,6 +392,10 @@ impl ArtifactWriter {
     pub fn stage_capability_snapshot(&mut self, snapshot: ArtifactCapabilitySnapshot) {
         self.staged_capability_snapshot = Some(snapshot);
         self.last_capability_rows_written = RowDomainCounts::default();
+    }
+
+    pub fn stage_index_level(&mut self, level: &str) {
+        self.staged_index_level = Some(level.to_string());
     }
 
     pub fn last_capability_rows_written(&self) -> RowDomainCounts {
@@ -1287,6 +1297,9 @@ impl ArtifactWriter {
         let parent_revision_id = current_revision_id(&tx)?;
         let revision_id = insert_revision(&tx, parent_revision_id, &revision)?;
         write_metadata(&tx, &self.metadata)?;
+        if let Some(level) = self.staged_index_level.as_deref() {
+            crate::metadata::write_index_level(&tx, level)?;
+        }
         let mut row_counts = RowCounts::default();
         // Built before the insert pass (the ids were gathered during planning) so symbols can be
         // written with their parent resolved in one statement.

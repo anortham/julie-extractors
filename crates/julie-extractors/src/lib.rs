@@ -102,8 +102,8 @@ pub mod zig;
 
 // Re-export the public API - Core types
 pub use base::{
-    AnnotationMarker, ComplexityMetric, ContextConfig, ExtractionResults, Identifier,
-    IdentifierKind, Literal, LiteralKind, ParseDiagnostic, ParseDiagnosticKind,
+    AnnotationMarker, ComplexityMetric, ContextConfig, ExtractionLevel, ExtractionResults,
+    Identifier, IdentifierKind, Literal, LiteralKind, ParseDiagnostic, ParseDiagnosticKind,
     PendingRelationship, Relationship, RelationshipKind, SourceRegion, SourceRegionKind,
     StructuralFact, Symbol, SymbolKind, SymbolOptions, TestRole, TypeArgument, TypeArgumentUsage,
     TypeInfo, Visibility, extract_type_arguments, normalize_annotations,
@@ -111,7 +111,7 @@ pub use base::{
 
 // Re-export the public API - canonical extraction functions
 pub use manager::ExtractorManager;
-pub use pipeline::extract_canonical;
+pub use pipeline::{extract_canonical, extract_canonical_at};
 pub use registry::{LanguageCapabilities, LanguageRegistryEntry};
 
 // Re-export Pillar 3 stable capability snapshot API

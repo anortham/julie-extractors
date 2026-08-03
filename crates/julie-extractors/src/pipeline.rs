@@ -2,6 +2,7 @@ use std::path::Path;
 use tree_sitter::{Node, Parser, Tree};
 
 use crate::ExtractionResults;
+use crate::base::ExtractionLevel;
 use crate::base::RecordOffset;
 use crate::base::{NormalizedSpan, ParseDiagnostic, ParseDiagnosticKind};
 use crate::tree_traversal::{child_tree_depth, should_visit_tree_depth};
@@ -11,17 +12,33 @@ pub fn extract_canonical(
     content: &str,
     workspace_root: &Path,
 ) -> Result<ExtractionResults, anyhow::Error> {
+    extract_canonical_at(file_path, content, workspace_root, ExtractionLevel::Full)
+}
+
+pub fn extract_canonical_at(
+    file_path: &str,
+    content: &str,
+    workspace_root: &Path,
+    level: ExtractionLevel,
+) -> Result<ExtractionResults, anyhow::Error> {
     if file_path.ends_with(".jsonl") {
-        return extract_jsonl_canonical(file_path, content, workspace_root);
+        return extract_jsonl_canonical(file_path, content, workspace_root, level);
     }
 
-    extract_canonical_with_parse(file_path, content, workspace_root, parse_for_language)
+    extract_canonical_with_parse(
+        file_path,
+        content,
+        workspace_root,
+        level,
+        parse_for_language,
+    )
 }
 
 pub(crate) fn extract_canonical_with_parse<F>(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
     parse: F,
 ) -> Result<ExtractionResults, anyhow::Error>
 where
@@ -33,8 +50,14 @@ where
         return Ok(degraded_parse_failure_result(content));
     };
 
-    let mut results =
-        crate::registry::extract_for_language(language, &tree, file_path, content, workspace_root)?;
+    let mut results = crate::registry::extract_for_language_at(
+        language,
+        &tree,
+        file_path,
+        content,
+        workspace_root,
+        level,
+    )?;
     results.parse_diagnostics = with_tree_diagnostics(&tree, results.parse_diagnostics);
     Ok(results)
 }
@@ -43,8 +66,9 @@ fn extract_jsonl_canonical(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
 ) -> Result<ExtractionResults, anyhow::Error> {
-    extract_jsonl_canonical_with_parser_factory(file_path, content, workspace_root, || {
+    extract_jsonl_canonical_with_parser_factory(file_path, content, workspace_root, level, || {
         configured_parser_for_language("json")
     })
 }
@@ -53,6 +77,7 @@ pub(crate) fn extract_jsonl_canonical_with_parser_factory<F>(
     file_path: &str,
     content: &str,
     workspace_root: &Path,
+    level: ExtractionLevel,
     parser_factory: F,
 ) -> Result<ExtractionResults, anyhow::Error>
 where
@@ -71,8 +96,14 @@ where
             results.extend(record_results);
             continue;
         };
-        let mut record_results =
-            crate::registry::extract_for_language("json", &tree, file_path, line, workspace_root)?;
+        let mut record_results = crate::registry::extract_for_language_at(
+            "json",
+            &tree,
+            file_path,
+            line,
+            workspace_root,
+            level,
+        )?;
         record_results.parse_diagnostics =
             with_tree_diagnostics(&tree, record_results.parse_diagnostics);
         record_results.apply_record_offset(RecordOffset {

@@ -248,6 +248,7 @@ fn sample_report(status: ReportStatus) -> Report {
             hash_algorithm: "blake3".to_string(),
             parser_inventory_fingerprint: "sha256:parser".to_string(),
             capability_snapshot_fingerprint: "sha256:cap".to_string(),
+            index_level: "full".to_string(),
         }),
         tool: ToolReport {
             binary_name: "julie-extract".to_string(),

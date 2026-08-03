@@ -155,6 +155,15 @@ pub struct ArtifactReport {
     pub hash_algorithm: String,
     pub parser_inventory_fingerprint: String,
     pub capability_snapshot_fingerprint: String,
+    /// The artifact's extraction level: `"symbols"` or `"full"`. Reports state
+    /// it explicitly even though the artifact key is absent for full-level
+    /// artifacts.
+    #[serde(default = "default_index_level")]
+    pub index_level: String,
+}
+
+fn default_index_level() -> String {
+    "full".to_string()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

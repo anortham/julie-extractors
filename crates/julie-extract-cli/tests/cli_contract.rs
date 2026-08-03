@@ -143,6 +143,7 @@ fn contract_subcommands_parse_their_documented_flags() {
             "--spool-dir",
             "--progress-file",
             "--parent-pid",
+            "--level",
         ],
     );
 

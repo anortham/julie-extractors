@@ -24,6 +24,7 @@ pub mod elixir;
 pub mod embedded_spans;
 pub mod erlang;
 pub mod express;
+pub mod extraction_levels;
 pub mod fastify;
 pub mod gdscript;
 pub mod go;

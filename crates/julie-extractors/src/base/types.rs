@@ -498,6 +498,46 @@ pub struct SymbolOptions {
     pub annotations: Vec<AnnotationMarker>,
 }
 
+/// How much of the extraction surface a scan materializes.
+///
+/// `Symbols` is the progressive-indexing first-open level: the identifier
+/// walk, its byproducts (literals, type-argument usages), and the text/facts
+/// collectors (source regions, structural facts) never run. `Full` is the
+/// complete extraction — the default everywhere a level is not requested, so
+/// pre-levels callers and artifacts are unaffected.
+///
+/// The level is uniform across all supported languages by construction: the
+/// gate lives in the shared registry dispatch, and
+/// [`ExtractionResults::strip_to_symbols_level`] is the single authority on
+/// which result families a `Symbols` extraction may carry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExtractionLevel {
+    Symbols,
+    Full,
+}
+
+impl ExtractionLevel {
+    pub fn includes_references(self) -> bool {
+        matches!(self, ExtractionLevel::Full)
+    }
+
+    /// Canonical `artifact_metadata.index_level` value for this level.
+    pub fn metadata_value(self) -> &'static str {
+        match self {
+            ExtractionLevel::Symbols => "symbols",
+            ExtractionLevel::Full => "full",
+        }
+    }
+
+    pub fn from_metadata_value(value: &str) -> Option<Self> {
+        match value {
+            "symbols" => Some(ExtractionLevel::Symbols),
+            "full" => Some(ExtractionLevel::Full),
+            _ => None,
+        }
+    }
+}
+
 /// Extraction results - matches getResults return type
 #[derive(Debug, Clone)]
 pub struct ExtractionResults {

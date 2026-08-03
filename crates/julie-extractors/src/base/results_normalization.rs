@@ -71,6 +71,21 @@ impl ExtractionResults {
         }
     }
 
+    /// The single authority on what a `Symbols`-level extraction may carry.
+    ///
+    /// The registry gate skips the identifier walks and text/facts collectors
+    /// for speed, but a few languages record literals outside their identifier
+    /// walk (sql, markdown, regex). Stripping here keeps the level uniform
+    /// across every language instead of leaving a silent three-language subset
+    /// in the artifact.
+    pub fn strip_to_symbols_level(&mut self) {
+        self.identifiers.clear();
+        self.type_argument_usages.clear();
+        self.literals.clear();
+        self.source_regions.clear();
+        self.structural_facts.clear();
+    }
+
     pub fn extend(&mut self, mut other: Self) {
         self.symbols.append(&mut other.symbols);
         self.relationships.append(&mut other.relationships);

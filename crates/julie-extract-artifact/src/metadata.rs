@@ -70,6 +70,41 @@ pub fn initialize_metadata(conn: &Connection, metadata: &ArtifactMetadata) -> ru
     Ok(())
 }
 
+/// `artifact_metadata` key recording the artifact's extraction level.
+///
+/// ABSENT means `full`: every pre-levels artifact and every full-level
+/// artifact read the same way, so old binaries and old artifacts stay
+/// compatible in both directions. A `symbols`-level artifact carries
+/// `index_level = "symbols"` so consumers can distinguish "empty because the
+/// reference layer was never extracted" from "empty because nothing was
+/// found". The level is fixed for the artifact's lifetime — an upgrade is a
+/// rebuild into a fresh artifact, never an in-place widen. Deliberately not
+/// part of `REQUIRED_METADATA_KEYS` / `ArtifactMetadata::rows()`, same as the
+/// resolution keys.
+pub const KEY_INDEX_LEVEL: &str = "index_level";
+
+pub fn write_index_level(conn: &Connection, level: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT INTO artifact_metadata (key, value) VALUES (?1, ?2) \
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![KEY_INDEX_LEVEL, level],
+    )?;
+    Ok(())
+}
+
+pub fn read_index_level(conn: &Connection) -> rusqlite::Result<Option<String>> {
+    conn.query_row(
+        "SELECT value FROM artifact_metadata WHERE key = ?1",
+        params![KEY_INDEX_LEVEL],
+        |row| row.get::<_, String>(0),
+    )
+    .map(Some)
+    .or_else(|error| match error {
+        rusqlite::Error::QueryReturnedNoRows => Ok(None),
+        other => Err(other),
+    })
+}
+
 pub fn read_metadata(conn: &Connection) -> rusqlite::Result<BTreeMap<String, String>> {
     let mut statement = conn.prepare("SELECT key, value FROM artifact_metadata ORDER BY key")?;
     statement

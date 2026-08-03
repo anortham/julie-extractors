@@ -239,6 +239,7 @@ fn test_extract_canonical_parse_none_returns_degraded_result_with_diagnostic() {
         "src/broken.rs",
         content,
         &workspace_root,
+        crate::base::ExtractionLevel::Full,
         |_language, _file_path, _content| Ok(None),
     )
     .expect("parser None should return a degraded extraction result");

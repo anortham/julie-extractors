@@ -19,7 +19,8 @@ use julie_extract_artifact::writer::{
     ArtifactFileSpool, ArtifactSpoolError, ArtifactWriteError, ArtifactWriter,
 };
 use julie_extractors::{
-    capability_snapshot as extractor_capability_snapshot, detect_language_for_source,
+    ExtractionLevel, capability_snapshot as extractor_capability_snapshot,
+    detect_language_for_source,
 };
 use rayon::prelude::*;
 use serde_json::json;
@@ -42,8 +43,9 @@ use crate::discovery::{
     canonicalize_ignore_files,
 };
 use crate::extraction::{
-    ExtractFileError, SourceSnapshot, extract_artifact_file, extract_artifact_file_from_snapshot,
-    failed_artifact_file, read_source_snapshot, unchanged_artifact_file,
+    ExtractFileError, SourceSnapshot, extract_artifact_file,
+    extract_artifact_file_from_snapshot_at, failed_artifact_file, read_source_snapshot,
+    unchanged_artifact_file,
 };
 use crate::paths::{
     FileTarget, canonicalize_db_path, canonicalize_progress_file, canonicalize_root,
@@ -227,6 +229,10 @@ fn scan_collecting_warnings(
             );
         }
     };
+    let existing_scan_level = existing_scan_artifact
+        .as_ref()
+        .filter(|artifact| artifact.has_extraction_history)
+        .map(|artifact| artifact.index_level.clone());
     let existing_scan_metadata = existing_scan_artifact.map(|artifact| artifact.write_metadata);
     record_profile_phase(
         &mut profile_phases,
@@ -269,6 +275,7 @@ fn scan_collecting_warnings(
 
     let force_metadata_started = Instant::now();
     controls.enter_phase("force_metadata");
+    let mut force_existing_level = None;
     let force_existing_metadata = if args.force && db.exists() {
         match open_artifact(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
             Ok(artifact) if artifact.report.root_path == display_path(&root) => {
@@ -276,6 +283,9 @@ fn scan_collecting_warnings(
                 resolution_upgrade_required = artifact.reference_resolution_version
                     != Some(crate::resolution::RESOLUTION_VERSION)
                     || !artifact.reference_resolution_ready;
+                if artifact.has_extraction_history {
+                    force_existing_level = Some(artifact.index_level.clone());
+                }
                 Some(artifact.write_metadata)
             }
             Ok(_) | Err(_) => None,
@@ -289,6 +299,23 @@ fn scan_collecting_warnings(
         force_metadata_started.elapsed(),
     );
     let should_rebuild_db = args.force && db.exists() && force_existing_metadata.is_none();
+    let recorded_level = force_existing_level.or(existing_scan_level);
+    let requested_level = args.level.map(ExtractionLevel::from);
+    let level = match (recorded_level.as_deref(), requested_level) {
+        (Some(recorded), Some(requested)) if requested.metadata_value() != recorded => {
+            return outcome(
+                base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                    .with_error(index_level_conflict_diagnostic(&db, recorded, requested)),
+                2,
+                args.json,
+                ReportStream::Stdout,
+            );
+        }
+        (Some(recorded), _) => {
+            ExtractionLevel::from_metadata_value(recorded).unwrap_or(ExtractionLevel::Full)
+        }
+        (None, requested) => requested.unwrap_or(ExtractionLevel::Full),
+    };
     let indexed_at = now_rfc3339();
     let extraction_spool_started = Instant::now();
     controls.enter_phase("extraction_spool");
@@ -299,6 +326,7 @@ fn scan_collecting_warnings(
             existing_content_hashes: existing_content_hashes.as_ref(),
             force: args.force || resolution_upgrade_required,
             jobs: args.jobs,
+            level,
         },
         &discovery,
         &discovered.supported_files,
@@ -378,6 +406,7 @@ fn scan_collecting_warnings(
                 writer_open_started.elapsed(),
             );
             writer.stage_capability_snapshot(artifact_capability_snapshot());
+            writer.stage_index_level(level.metadata_value());
             let artifact_write_started = Instant::now();
             controls.enter_phase("artifact_write");
             let mut resolution_report: Option<crate::resolution::ResolutionReport> = None;
@@ -751,7 +780,11 @@ fn update(args: UpdateArgs) -> CommandOutcome {
         }
     };
 
-    let file = match extract_artifact_file(&root, &target, language, now_rfc3339()) {
+    let update_level = existing_artifact
+        .as_ref()
+        .and_then(|artifact| ExtractionLevel::from_metadata_value(&artifact.index_level))
+        .unwrap_or(ExtractionLevel::Full);
+    let file = match extract_artifact_file(&root, &target, language, now_rfc3339(), update_level) {
         Ok(file) => file,
         Err(error) => {
             return extract_error_outcome(
@@ -1346,6 +1379,7 @@ struct ExtractionRequest<'a> {
     existing_content_hashes: Option<&'a BTreeMap<String, String>>,
     force: bool,
     jobs: usize,
+    level: ExtractionLevel,
 }
 
 /// Why a spooling extraction pass failed outright. Per-file extraction failures
@@ -1380,11 +1414,16 @@ fn spool_discovered_files(
             supported_targets.push(SupportedFileTarget::new(target.clone(), language));
         }
     }
+    let level = request.level;
     extract_supported_files_to_spool(
         request,
         &supported_targets,
         controls,
-        extract_artifact_file_from_snapshot,
+        move |root, target, language, indexed_at, snapshot| {
+            extract_artifact_file_from_snapshot_at(
+                root, target, language, indexed_at, snapshot, level,
+            )
+        },
     )
 }
 
@@ -1762,6 +1801,29 @@ fn select_extraction_pool<P, E>(
             build(1)
         }
     })
+}
+
+fn index_level_conflict_diagnostic(
+    db: &Path,
+    recorded: &str,
+    requested: ExtractionLevel,
+) -> ReportDiagnostic {
+    diagnostic(
+        ReportCode::UsageError,
+        format!(
+            "index level is fixed when an artifact is first built: this artifact records \
+             '{recorded}' but --level {} was requested; rebuild into a fresh artifact to \
+             change level",
+            requested.metadata_value()
+        ),
+        Some(display_path(db)),
+        None,
+        false,
+        json!({
+            "artifact_index_level": recorded,
+            "requested_index_level": requested.metadata_value(),
+        }),
+    )
 }
 
 fn extraction_pool_unavailable_diagnostic(
@@ -2282,6 +2344,8 @@ fn remove_artifact_files(db: &Path) {
 mod tests {
     use std::cell::RefCell;
 
+    use crate::extraction::extract_artifact_file_from_snapshot;
+
     use julie_extract_artifact::model::{
         ArtifactCapabilityFlags, ArtifactLanguageCapabilityFixtureRow,
         ArtifactLanguageCapabilityGapRow, ArtifactLanguageCapabilityRow,
@@ -2386,6 +2450,7 @@ mod tests {
                 existing_content_hashes: Some(&existing_hashes),
                 force: false,
                 jobs: 1,
+                level: ExtractionLevel::Full,
             },
             &[
                 SupportedFileTarget::new(unchanged.clone(), "rust"),
@@ -2635,6 +2700,7 @@ mod tests {
                 existing_content_hashes: Some(&existing_hashes),
                 force: false,
                 jobs: 8,
+                level: ExtractionLevel::Full,
             },
             &targets,
             ScanControls::default(),
@@ -2998,6 +3064,7 @@ mod tests {
             spool_dir: Some(fixture.root().join("src")),
             progress_file: None,
             parent_pid: None,
+            level: None,
         });
 
         assert_eq!(outcome.exit_code, 1, "the artifact could not be opened");
@@ -3095,6 +3162,7 @@ mod tests {
             existing_content_hashes: None,
             force: false,
             jobs,
+            level: ExtractionLevel::Full,
         }
     }
 

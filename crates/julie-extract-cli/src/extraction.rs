@@ -15,8 +15,9 @@ use julie_extractors::base::{
 };
 use julie_extractors::language_policy::classify_literals_by_carrier;
 use julie_extractors::{
-    ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship, SourceRegion,
-    TypeArgument, TypeArgumentUsage, TypeInfo, detect_language_for_source, extract_canonical,
+    ExtractionLevel, ExtractionResults, Literal, ParseDiagnosticKind, PendingRelationship,
+    SourceRegion, TypeArgument, TypeArgumentUsage, TypeInfo, detect_language_for_source,
+    extract_canonical_at,
 };
 use serde::Serialize;
 use serde_json::Value;
@@ -62,9 +63,10 @@ pub(crate) fn extract_artifact_file(
     target: &FileTarget,
     language: String,
     indexed_at: String,
+    level: ExtractionLevel,
 ) -> Result<ArtifactFile, ExtractFileError> {
     let snapshot = read_source_snapshot(target)?;
-    extract_artifact_file_from_snapshot(root, target, language, indexed_at, snapshot)
+    extract_artifact_file_from_snapshot_at(root, target, language, indexed_at, snapshot, level)
 }
 
 pub(crate) fn read_source_snapshot(
@@ -125,6 +127,7 @@ fn decode_utf16_content(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn extract_artifact_file_from_snapshot(
     root: &Path,
     target: &FileTarget,
@@ -132,11 +135,29 @@ pub(crate) fn extract_artifact_file_from_snapshot(
     indexed_at: String,
     snapshot: SourceSnapshot,
 ) -> Result<ArtifactFile, ExtractFileError> {
+    extract_artifact_file_from_snapshot_at(
+        root,
+        target,
+        language,
+        indexed_at,
+        snapshot,
+        ExtractionLevel::Full,
+    )
+}
+
+pub(crate) fn extract_artifact_file_from_snapshot_at(
+    root: &Path,
+    target: &FileTarget,
+    language: String,
+    indexed_at: String,
+    snapshot: SourceSnapshot,
+    level: ExtractionLevel,
+) -> Result<ArtifactFile, ExtractFileError> {
     let language = detect_language_for_source(&target.root_relative_path, &snapshot.content)
         .unwrap_or(language.as_str())
         .to_string();
     let mut results = catch_extraction_panic(target, &snapshot, || {
-        extract_canonical(&target.root_relative_path, &snapshot.content, root)
+        extract_canonical_at(&target.root_relative_path, &snapshot.content, root, level)
     })?;
     classify_literals_by_carrier(&mut results.literals);
 
