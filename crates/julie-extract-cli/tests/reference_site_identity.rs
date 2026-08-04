@@ -1,3 +1,4 @@
+#![cfg(feature = "test-heavy-contracts")]
 //! Reference-site identity contract.
 //!
 //! One source token owns ONE reference site, shared by the identifier,

@@ -46,6 +46,30 @@ fn erlang_corpus_gate_is_feature_gated_out_of_default_suite() {
     );
 }
 
+/// Same convention for the heavy contract suites: they spawn the real CLI
+/// against large generated fixtures, so they must stay behind
+/// `test-heavy-contracts` and only run from the xtask contract tier.
+#[test]
+fn heavy_contract_gates_are_feature_gated_out_of_default_suite() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    let manifest = read(&crate_root.join("Cargo.toml"));
+    assert!(
+        manifest.contains("test-heavy-contracts = []"),
+        "Cargo feature `test-heavy-contracts` must exist so the heavy contract suites are \
+         selectable by name"
+    );
+
+    for harness in ["deep_recursion_contract.rs", "reference_site_identity.rs"] {
+        let source = read(&crate_root.join("tests").join(harness));
+        assert!(
+            source.contains("#![cfg(feature = \"test-heavy-contracts\")]"),
+            "tests/{harness} must start with `#![cfg(feature = \"test-heavy-contracts\")]` so \
+             the heavy contract suite never leaks into the default suite"
+        );
+    }
+}
+
 fn read(path: &PathBuf) -> String {
     fs::read_to_string(path)
         .unwrap_or_else(|err| panic!("failed to read {}: {}", path.display(), err))

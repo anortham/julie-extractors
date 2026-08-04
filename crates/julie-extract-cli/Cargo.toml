@@ -27,6 +27,14 @@ test-perf = []
 # `test-perf`. Feature name matches `julie-extractors`'s real-world gate. Run with:
 #   cargo test -p julie-extract-cli --features test-real-world --test erlang_corpus -- --nocapture
 test-real-world = []
+# Feature-gated heavy contract suites (`tests/deep_recursion_contract.rs`,
+# `tests/reference_site_identity.rs`). Both spawn the real CLI against large
+# generated fixtures (~80s combined on hosted runners), so they are kept out of
+# the default suite by the same test-tier convention and run from the xtask
+# contract tier. Run on demand with:
+#   cargo test -p julie-extract-cli --features test-heavy-contracts --test deep_recursion_contract
+#   cargo test -p julie-extract-cli --features test-heavy-contracts --test reference_site_identity
+test-heavy-contracts = []
 
 [lints]
 workspace = true

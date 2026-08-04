@@ -344,6 +344,30 @@ fn contract_plan() -> TestPlan {
             "operations_contract",
         ],
     ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-cli",
+            "--features",
+            "test-heavy-contracts",
+            "--test",
+            "deep_recursion_contract",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-cli",
+            "--features",
+            "test-heavy-contracts",
+            "--test",
+            "reference_site_identity",
+        ],
+    ));
     TestPlan {
         commands,
         max_duration: None,

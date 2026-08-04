@@ -1,3 +1,4 @@
+#![cfg(feature = "test-heavy-contracts")]
 //! Regression gate for the generated-source stack overflow.
 //!
 //! dotnet/runtime ships JIT regression tests whose single statement chains tens

@@ -186,6 +186,30 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "operations_contract",
                 ]
             ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-heavy-contracts",
+                    "--test",
+                    "deep_recursion_contract",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-heavy-contracts",
+                    "--test",
+                    "reference_site_identity",
+                ]
+            ),
         ]
     );
 }
