@@ -2570,7 +2570,7 @@ fn resolution_hook_fires_in_spooled_and_unsupported_paths() {
         )
         .unwrap();
     let (full, ids, names) = spooled.expect("spooled hook must fire");
-    assert!(full, "write_scan_spooled is a Full-scope path");
+    assert!(full, "inserting a path is a structure change, so Full");
     assert_eq!(ids, vec!["file-a".to_string()]);
     assert!(names.contains(&"alpha".to_string()), "got {names:?}");
 
@@ -2587,7 +2587,10 @@ fn resolution_hook_fires_in_spooled_and_unsupported_paths() {
             &[],
             &mut spool2,
             |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
-                assert!(scope.is_full_scan);
+                // A pure rewrite adds and removes no path, so the scan scopes rather
+                // than re-deriving — while still reporting whole-corpus coverage.
+                assert!(!scope.is_full_scan);
+                assert!(scope.whole_corpus);
                 preserved = Some(sorted_names(scope));
                 Ok(ResolutionCounts::default())
             },
@@ -3215,4 +3218,100 @@ fn index_exists(conn: &Connection, name: &str) -> bool {
         |_| Ok(()),
     )
     .is_ok()
+}
+
+/// The scope contract a whole-repo scan hands the resolver. `is_full_scan` answers
+/// "re-derive the whole overlay"; `whole_corpus` answers "every file was hash-checked".
+/// A whole-repo scan always satisfies the second and only sometimes needs the first.
+fn spooled_scan_scope(
+    writer: &mut ArtifactWriter,
+    temp_dir: &std::path::Path,
+    tag: &str,
+    files: &[ArtifactFile],
+    mode: WriteMode,
+) -> (bool, bool) {
+    let snapshot_paths: Vec<String> = files.iter().map(|f| f.path.clone()).collect();
+    let mut spool = ArtifactFileSpool::create(temp_dir.join(format!("{tag}.jsonl"))).unwrap();
+    for file in files {
+        spool.push(file).unwrap();
+    }
+    let mut seen = None;
+    writer
+        .write_scan_spooled_with_resolution(
+            revision(WriteOperation::Scan, Some(mode)),
+            &snapshot_paths,
+            &mut spool,
+            |_tx: &rusqlite::Transaction<'_>, scope: &ResolutionScopeInput| {
+                seen = Some((scope.is_full_scan, scope.whole_corpus));
+                Ok(ResolutionCounts::default())
+            },
+        )
+        .unwrap();
+    seen.expect("scan hook must fire")
+}
+
+#[test]
+fn whole_repo_scan_scopes_resolution_unless_a_path_changed_or_force() {
+    let temp_dir = unique_temp_dir("scan-scope-contract");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let mut writer = open_writer();
+
+    let inserted = spooled_scan_scope(
+        &mut writer,
+        &temp_dir,
+        "insert",
+        &[file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"])],
+        WriteMode::Incremental,
+    );
+    assert_eq!(inserted, (true, true), "a new path can re-point a module");
+
+    let rewritten = spooled_scan_scope(
+        &mut writer,
+        &temp_dir,
+        "rewrite",
+        &[file_with_symbols(
+            "file-a",
+            "src/a.rs",
+            "hash-a2",
+            ["alpha_v2"],
+        )],
+        WriteMode::Incremental,
+    );
+    assert_eq!(
+        rewritten,
+        (false, true),
+        "a rewrite moves no path, so it scopes — and still covers the corpus"
+    );
+
+    let forced = spooled_scan_scope(
+        &mut writer,
+        &temp_dir,
+        "force",
+        &[file_with_symbols(
+            "file-a",
+            "src/a.rs",
+            "hash-a3",
+            ["alpha_v3"],
+        )],
+        WriteMode::Force,
+    );
+    assert_eq!(
+        forced,
+        (true, true),
+        "force skips nothing, so the delta scope already is the workspace"
+    );
+
+    // Dropping `src/a.rs` from the snapshot is how a whole-repo scan deletes it.
+    let deleted = spooled_scan_scope(
+        &mut writer,
+        &temp_dir,
+        "delete",
+        &[file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"])],
+        WriteMode::Incremental,
+    );
+    assert_eq!(
+        deleted,
+        (true, true),
+        "a removed path can re-point a module"
+    );
 }

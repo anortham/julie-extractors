@@ -4867,3 +4867,67 @@ fn scan_canonicalizes_one_attested_token_across_identifier_and_relationship_evid
 
     assert_eq!(shared_exact_sites, 1);
 }
+
+#[test]
+fn a_scoped_whole_repo_scan_still_reports_whole_corpus_coverage() {
+    // What makes the overlay current workspace-wide is that the scan hash-checked
+    // every file, not that resolution re-derived every row. A rewrite-only rescan now
+    // takes the scoped branch, and it must still report `complete` and advance
+    // `last_full_revision` — pinning either to the dispatch switch would freeze both
+    // the moment whole-repo scans started scoping.
+    //
+    // Sized past the delta-scope crossover on purpose: below it every pass promotes to
+    // Full, and the single-file arm below would then advance for a legitimate reason
+    // that has nothing to do with what this test is pinning.
+    let fixture = FixtureRoot::with_file("src/b.ts", "export function shared(): void {}\n");
+    std::fs::write(
+        fixture.path("src/a.ts"),
+        "import { shared } from './b';\nexport function caller(): void { shared(); }\n",
+    )
+    .unwrap();
+    for i in 0..20 {
+        std::fs::write(
+            fixture.path(&format!("src/other{i}.ts")),
+            format!("export function helper{i}(): number {{ return {i}; }}\n"),
+        )
+        .unwrap();
+    }
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_status"),
+        "complete"
+    );
+    let after_first = metadata_value(&db, "reference_resolution_last_full_revision");
+
+    // Rewrite only: no path added or removed, so this rescan scopes.
+    std::fs::write(
+        fixture.path("src/b.ts"),
+        "export function shared(): void {}\nexport function extra(): void {}\n",
+    )
+    .unwrap();
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_status"),
+        "complete",
+        "a rewrite-only rescan covers the corpus even though it scoped"
+    );
+    let after_rescan = metadata_value(&db, "reference_resolution_last_full_revision");
+    assert_ne!(
+        after_rescan, after_first,
+        "whole-corpus coverage must advance last_full_revision"
+    );
+
+    // A single-file update verifies nothing about the rest of the workspace.
+    std::fs::write(
+        fixture.path("src/b.ts"),
+        "export function shared(): void {}\nexport function extra2(): void {}\n",
+    )
+    .unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/b.ts"));
+    assert_eq!(
+        metadata_value(&db, "reference_resolution_last_full_revision"),
+        after_rescan,
+        "a single-file update must not claim whole-corpus coverage"
+    );
+}

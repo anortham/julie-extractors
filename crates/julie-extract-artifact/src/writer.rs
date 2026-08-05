@@ -167,13 +167,23 @@ impl From<ArtifactSpoolError> for ArtifactWriteError {
 /// `touched_symbol_names` is the union of names inserted by this write and the
 /// OLD names of every symbol in the files this write deleted or rewrote (collected
 /// from the DB before deletion). `changed_file_ids` is every file this write
-/// deleted, rewrote, or inserted. `is_full_scan` is true for the whole-tree scan
-/// paths (`Full` scope) and false for single-file update/delete (`Delta` scope).
+/// deleted, rewrote, or inserted.
+///
+/// The two booleans answer different questions and must not be conflated — one flag
+/// drove both until the delta path became sound enough to scope a whole-repo scan:
+///
+/// - `is_full_scan` — "re-derive the overlay across the whole workspace". The
+///   resolver's dispatch switch, and nothing else.
+/// - `whole_corpus` — "this write hash-checked every file in the workspace". What
+///   makes the resulting overlay current workspace-wide, and therefore what
+///   `status`/`last_full_revision` report on. A whole-repo scan that resolves a
+///   SCOPED set still satisfies it; a single-file update never does.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ResolutionScopeInput {
     pub changed_file_ids: Vec<String>,
     pub touched_symbol_names: HashSet<String>,
     pub is_full_scan: bool,
+    pub whole_corpus: bool,
 }
 
 /// Error returned by a resolution hook. Non-fatal by contract: the scan still
@@ -677,6 +687,7 @@ impl ArtifactWriter {
             changed_file_ids: vec![existing.file_id.clone()],
             touched_symbol_names,
             is_full_scan: false,
+            whole_corpus: false,
         };
         let resolution = run_resolution_hook(
             &tx,
@@ -840,6 +851,7 @@ impl ArtifactWriter {
             changed_file_ids,
             touched_symbol_names,
             is_full_scan: false,
+            whole_corpus: false,
         };
         let resolution = run_resolution_hook(
             &tx,
@@ -1085,6 +1097,7 @@ impl ArtifactWriter {
             changed_file_ids,
             touched_symbol_names,
             is_full_scan: true,
+            whole_corpus: true,
         };
         let resolution = run_resolution_hook(
             &tx,
@@ -1384,10 +1397,29 @@ impl ArtifactWriter {
         };
         clock.lap(|phases| &mut phases.child_rows);
 
+        // A whole-repo scan hash-checks every file, so the overlay it leaves is current
+        // workspace-wide — but that does not require re-deriving every row to get
+        // there. It re-derives only where the delta scope cannot be trusted to reach
+        // everything that moved:
+        //
+        // - *A path appeared or vanished.* `file_id` is `stable_id("file", [&path])`,
+        //   so a pure rewrite cannot move a `module_file_id`; an insert or delete can.
+        //   `delta_scope_files` widens by module candidate for exactly that case, but a
+        //   whole-repo scan can carry thousands of such paths at once, which is the
+        //   width where Full is both cheaper and the provably safe answer.
+        // - *Force.* Force skips nothing (`skip_unchanged_content` is false above), so
+        //   the delta scope already IS the whole workspace; funnelling it through
+        //   chunked `IN` clauses would be strictly worse than resolving Full outright.
+        //
+        // `prior.is_none()` still forces Full inside the hook, which is what keeps v3
+        // backfill and Miller's rebuild-and-promote path on the Full branch.
+        let structure_changed =
+            !deleted.is_empty() || planned_files.values().any(|existing| existing.is_none());
         let scope = ResolutionScopeInput {
             changed_file_ids,
             touched_symbol_names,
-            is_full_scan: true,
+            is_full_scan: structure_changed || revision.mode == Some(WriteMode::Force),
+            whole_corpus: true,
         };
         let resolution = run_resolution_hook(
             &tx,

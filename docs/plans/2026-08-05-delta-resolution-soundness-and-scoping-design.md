@@ -133,8 +133,31 @@ doing it. Soundness first is not tidiness; it is the precondition.
   *is* the whole workspace; scoping there funnels workspace-sized work through chunked `IN` clauses,
   strictly worse.
 - *Crossover.* If the widened `scope_files` covers a large fraction of the workspace, promote to Full.
-  Sets the threshold from T6's measurement rather than a guess, and restores a periodic whole-workspace
-  re-derivation for big syncs (branch switch, rebase, pull).
+  Decided inside `run_resolution` rather than at the writer, because `scope_files` is not known until
+  `delta_scope_files` has run — the writer cannot see the number the decision turns on. Threshold is a
+  provisional 0.5 pending the T6 arm; it only ever converts a scoped pass into a Full one, so a wrong
+  value costs time, never correctness.
+
+**Measured, Phase A vs Phase B, whole-repo scan of a 2,201-file / 124k-symbol / 120k-identifier TS
+fixture, 1 file rewritten, release build:**
+
+| Changed file | Phase A (always Full) | Phase B | |
+|---|---:|---:|---|
+| A leaf — no widely-shared names | 12.20 s | **2.88 s** | 4.2× faster |
+| One importing a hot shared module | 12.36 s | 13.26 s | 7% slower |
+
+The second row is the design working, not failing. Every file in that fixture imports the same 60
+names, so `files_importing_names` widens the delta scope to the whole workspace; the crossover sees
+that and promotes to Full. The 7% is what it costs to compute the delta scope before discovering it
+was workspace-sized — the alternative, resolving a workspace-sized set through the scoped path, is
+strictly worse. It also bounds how bad Phase B can get: a repo where every scan touches a hot shared
+import pays ~7%, it does not regress to something pathological.
+
+**The 13.97 s resolution figure in "The two findings" above did not reproduce.** On this machine a
+whole-repo scan of Miller's own artifact with zero changed files short-circuits before the hook (the
+overlay's `last_full_revision` does not advance), so it measures discovery, not resolution. The
+numbers above come from a fixture where resolution provably ran. Treat the original table as
+unverified until it is re-measured with a changed file.
 - *`prior.is_none()` keeps forcing Full*, untouched — that is what keeps v3 backfill and Miller's
   rebuild-and-promote path on the Full branch.
 

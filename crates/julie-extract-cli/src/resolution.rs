@@ -1620,7 +1620,7 @@ fn run_resolution(
     // tables via the additive schema create but has no resolution metadata yet.
     // Any scan then forces a Full resolve so the whole workspace is backfilled
     // (design §"Contract & rollout" item 2 — the WRITE path).
-    let effective_full = scope.is_full_scan || prior.is_none();
+    let requested_full = scope.is_full_scan || prior.is_none();
 
     // Build the candidate index ONCE per hook invocation (design §"Performance &
     // determinism"). The index is always whole-workspace: a delta edge may resolve
@@ -1630,16 +1630,28 @@ fn run_resolution(
     // co-location joins, so a delta scopes both to the files it touches (FINDING 1:
     // an O(delta) load rather than reloading every identifier each incremental
     // scan). A full pass loads the whole workspace.
-    let (locator, covered, scope_files) = if effective_full {
+    //
+    // The delta scope is computed BEFORE the branch is final: the widening unions can
+    // return most of the workspace, and past the crossover a scoped pass is strictly
+    // worse than Full — same rows, plus chunked `IN` clauses and per-file bookkeeping.
+    let mut effective_full = requested_full;
+    let (locator, covered, scope_files) = if requested_full {
         let locator = IdentifierLocator::load_scoped(tx, None)?;
         let covered = covered_identifiers(tx, &index, &locator, None)?;
         (locator, covered, Vec::new())
     } else {
         let files = delta_scope_files(tx, scope, &index, revision)?;
-        let file_refs: Vec<&str> = files.iter().map(String::as_str).collect();
-        let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
-        let covered = covered_identifiers(tx, &index, &locator, Some(&file_refs))?;
-        (locator, covered, files)
+        if delta_scope_crosses_over(tx, files.len())? {
+            effective_full = true;
+            let locator = IdentifierLocator::load_scoped(tx, None)?;
+            let covered = covered_identifiers(tx, &index, &locator, None)?;
+            (locator, covered, Vec::new())
+        } else {
+            let file_refs: Vec<&str> = files.iter().map(String::as_str).collect();
+            let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
+            let covered = covered_identifiers(tx, &index, &locator, Some(&file_refs))?;
+            (locator, covered, files)
+        }
     };
 
     let mut counts = ResolutionCounts::default();
@@ -1670,12 +1682,29 @@ fn run_resolution(
     }
 
     let rows = resolution_store::resolution_report(tx)?;
-    let status = if effective_full && gated.is_empty() {
+    // What makes the overlay current for the whole workspace is that every file was
+    // hash-checked, NOT that resolution re-derived every row: a scoped pass over a
+    // whole-corpus write reaches everything that moved, which is the property the
+    // equivalence gate holds. Keying these two on the dispatch switch instead is what
+    // would pin `status` to `partial` and freeze `last_full_revision` the moment a
+    // whole-repo scan started scoping.
+    let corpus_current = effective_full || scope.whole_corpus;
+    // `gated` accumulates only over items the sweep actually visited, so a scoped pass
+    // sees only the languages in scope — enough for the report, which describes what
+    // THIS pass did, but not enough to claim `complete` for the workspace. Only that
+    // claim reads the workspace-wide set, and only when a scoped pass is about to make
+    // it; the reported set is left exactly as observed.
+    let status_gated_clear = if effective_full {
+        gated.is_empty()
+    } else {
+        gated.is_empty() && workspace_tier2_gated_languages(tx)?.is_empty()
+    };
+    let status = if corpus_current && status_gated_clear {
         ResolutionStatus::Complete
     } else {
         ResolutionStatus::Partial
     };
-    let last_full_revision = if effective_full {
+    let last_full_revision = if corpus_current {
         revision
     } else {
         prior
@@ -2597,6 +2626,50 @@ fn unresolved_pending_in_files(
 
 fn placeholders(count: usize) -> String {
     vec!["?"; count].join(", ")
+}
+
+/// Fraction of the workspace a delta scope may cover before Full is the better plan.
+///
+/// PROVISIONAL. The design calls for setting this from the T6 perf arm (N = 1, 50, 500
+/// changed files); that arm is not written yet, so this is a deliberately conservative
+/// placeholder rather than a measured crossover. It only ever converts a scoped pass
+/// into a Full one, so a wrong value costs time, never correctness.
+const DELTA_SCOPE_CROSSOVER: f64 = 0.5;
+
+/// Whether a delta scope has widened far enough that Full is cheaper.
+///
+/// Past the crossover a scoped pass does everything Full does and then pays extra for
+/// it: the same rows, plus chunked `IN` clauses, per-file worklist bookkeeping, and a
+/// locator built from an explicit file list instead of one unfiltered query.
+fn delta_scope_crosses_over(conn: &Connection, scope_file_count: usize) -> rusqlite::Result<bool> {
+    if scope_file_count == 0 {
+        return Ok(false);
+    }
+    let total: i64 = conn.query_row("SELECT COUNT(*) FROM files", [], |row| row.get(0))?;
+    if total <= 0 {
+        return Ok(false);
+    }
+    Ok(scope_file_count as f64 >= total as f64 * DELTA_SCOPE_CROSSOVER)
+}
+
+/// Languages present in the artifact's pending rows that tier 2 does not cover.
+///
+/// `tier2_enabled` is a pure allowlist test, so the workspace-wide answer is exactly
+/// the distinct languages carrying pending work — no need to persist what a previous
+/// pass observed.
+fn workspace_tier2_gated_languages(conn: &Connection) -> rusqlite::Result<BTreeSet<String>> {
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT f.language FROM pending_relationships pr \
+         JOIN files f ON f.file_id = pr.file_id",
+    )?;
+    let mut gated = BTreeSet::new();
+    for row in stmt.query_map([], |row| row.get::<_, String>(0))? {
+        let language = row?;
+        if !tier2_enabled(&language) {
+            gated.insert(language);
+        }
+    }
+    Ok(gated)
 }
 
 /// Paths whose EXISTENCE this revision changed — the only changes that can re-point a
