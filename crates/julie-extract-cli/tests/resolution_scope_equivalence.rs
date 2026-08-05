@@ -263,6 +263,37 @@ fn module_shadowing_applied_by_a_delta_matches_a_full_rederivation() {
 }
 
 #[test]
+fn restored_receiver_type_uniqueness_matches_a_full_rederivation() {
+    // The inverse of the demotion case: the member starts AMBIGUOUS (two `Widget`
+    // types), so the overlay holds a NULL-target row. Removing the rival makes it
+    // resolvable again, which only a pass that retries already-attempted rows can
+    // notice — a never-attempted-only worklist skips it forever.
+    let fixture = Fixture::new();
+    fixture.write(
+        "src/widget.cs",
+        "namespace App { public class Widget { public int Render() { return 1; } } }\n",
+    );
+    fixture.write(
+        "src/rival.cs",
+        "namespace Other { public class Widget { } }\n",
+    );
+    fixture.write(
+        "src/consumer.cs",
+        "namespace App { public class Consumer { public int Run() { Widget w = new Widget(); return w.Render(); } } }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    fixture.write(
+        "src/rival.cs",
+        "namespace Other { public class Unrelated { } }\n",
+    );
+    update(&fixture.root, &db, "src/rival.cs");
+
+    assert_matches_full_rederivation(&db, "receiver type uniqueness restored by a delta");
+}
+
+#[test]
 fn a_multi_step_edit_sequence_matches_a_full_rederivation() {
     // Order-dependence is the failure this whole gate exists to catch, so drive
     // several shapes through one artifact: an add, a rewrite that removes a symbol,
