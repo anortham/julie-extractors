@@ -11,7 +11,7 @@ use julie_extract_artifact::reports::{
 };
 use julie_extract_artifact::resolution_store::{ResolutionStatus, read_resolution_metadata};
 use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VERSION};
-use rusqlite::{Connection, OpenFlags};
+use rusqlite::{Connection, OpenFlags, params};
 use serde_json::json;
 
 use crate::capability_snapshot::current_capability_fingerprints;
@@ -371,6 +371,18 @@ pub(crate) fn open_artifact_for_rebind(
 /// Atomicity is the whole point: an interrupted rebind must leave the artifact
 /// either fully retargeted or metadata-identical, never half-renamed with a
 /// stale identity.
+///
+/// The transaction re-verifies the identity the caller validated, because
+/// validation ran on a read-only connection that is already closed. Under the
+/// staging protocol nothing can interleave between the two phases; a direct CLI
+/// caller racing a scan, a second rebind, or a path replacement can, and this
+/// write would then clobber the newer state and stamp `rebound_from_*`
+/// provenance naming an identity the artifact no longer carried.
+///
+/// The connection opens READ_WRITE without `SQLITE_OPEN_CREATE` for the same
+/// reason: an artifact that vanished between the phases must fail as
+/// `db_open_failed`, not be re-created as an empty database carrying six
+/// metadata rows and nothing else.
 pub(crate) fn write_rebind(
     db_path: &Path,
     rebind: &RebindMetadata<'_>,
@@ -387,20 +399,82 @@ pub(crate) fn write_rebind(
         )
     };
 
-    let connection = Connection::open(db_path).map_err(|error| {
+    let connection = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_WRITE)
+        .map_err(|error| {
+            command_error(
+                1,
+                ReportCode::DbOpenFailed,
+                format!("could not open SQLite artifact for rebind: {error}"),
+                Some(display_path(db_path)),
+                None,
+                true,
+                json!({}),
+            )
+        })?;
+    let transaction = connection.unchecked_transaction().map_err(write_failed)?;
+    check_validated_identity(&transaction, db_path, rebind)?;
+    apply_rebind(&transaction, rebind).map_err(write_failed)?;
+    transaction.commit().map_err(write_failed)
+}
+
+/// Refuse the write unless the artifact still records the identity `rebind`
+/// was validated against. Returning without committing drops the transaction,
+/// which rolls back.
+fn check_validated_identity(
+    connection: &Connection,
+    db_path: &Path,
+    rebind: &RebindMetadata<'_>,
+) -> Result<(), CommandError> {
+    let reread_failed = |key: &str, error: rusqlite::Error| {
         command_error(
             1,
-            ReportCode::DbOpenFailed,
-            format!("could not open SQLite artifact for rebind: {error}"),
+            ReportCode::DbWriteFailed,
+            format!("artifact {key} could not be re-read for the rebind write: {error}"),
             Some(display_path(db_path)),
             None,
             true,
             json!({}),
         )
-    })?;
-    let transaction = connection.unchecked_transaction().map_err(write_failed)?;
-    apply_rebind(&transaction, rebind).map_err(write_failed)?;
-    transaction.commit().map_err(write_failed)
+    };
+    let found_root_path = recorded_metadata_value(connection, "root_path")
+        .map_err(|error| reread_failed("root_path", error))?;
+    let found_artifact_id = recorded_metadata_value(connection, "artifact_id")
+        .map_err(|error| reread_failed("artifact_id", error))?;
+
+    if found_root_path.as_deref() == Some(rebind.previous_root)
+        && found_artifact_id.as_deref() == Some(rebind.previous_artifact_id)
+    {
+        return Ok(());
+    }
+
+    Err(command_error(
+        1,
+        ReportCode::ArtifactChanged,
+        "artifact changed while rebind was validating",
+        Some(display_path(db_path)),
+        None,
+        true,
+        json!({
+            "expected_root_path": rebind.previous_root,
+            "found_root_path": found_root_path,
+            "expected_artifact_id": rebind.previous_artifact_id,
+            "found_artifact_id": found_artifact_id,
+        }),
+    ))
+}
+
+fn recorded_metadata_value(connection: &Connection, key: &str) -> rusqlite::Result<Option<String>> {
+    connection
+        .query_row(
+            "SELECT value FROM artifact_metadata WHERE key = ?1",
+            params![key],
+            |row| row.get::<_, String>(0),
+        )
+        .map(Some)
+        .or_else(|error| match error {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(other),
+        })
 }
 
 fn check_versions(
@@ -877,4 +951,152 @@ pub(crate) fn jsonl_counts(records_by_kind: &BTreeMap<&'static str, usize>) -> R
         }
     }
     counts
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use julie_extract_artifact::metadata::{initialize_metadata, read_metadata};
+    use julie_extract_artifact::schema::create_schema;
+    use tempfile::TempDir;
+
+    const VALIDATED_ROOT: &str = "/staging/checkout-a";
+    const VALIDATED_ARTIFACT_ID: &str = "artifact-1111111111111111111111111111aaaa";
+    const NEW_ROOT: &str = "/staging/checkout-b";
+    const NEW_ARTIFACT_ID: &str = "artifact-2222222222222222222222222222bbbb";
+    const REBOUND_AT: &str = "2026-08-05T00:00:00Z";
+
+    fn seed_artifact(db_path: &Path) {
+        let connection = Connection::open(db_path).unwrap();
+        create_schema(&connection).unwrap();
+        initialize_metadata(
+            &connection,
+            &ArtifactMetadata {
+                artifact_id: VALIDATED_ARTIFACT_ID.to_string(),
+                root_path: VALIDATED_ROOT.to_string(),
+                binary_version: "test".to_string(),
+                hash_algorithm: "blake3".to_string(),
+                parser_inventory_fingerprint: "parser".to_string(),
+                capability_snapshot_fingerprint: "capability".to_string(),
+                created_at: "2026-08-04T00:00:00Z".to_string(),
+                updated_at: "2026-08-04T00:00:00Z".to_string(),
+            },
+        )
+        .unwrap();
+    }
+
+    fn set_metadata(db_path: &Path, key: &str, value: &str) {
+        let connection = Connection::open(db_path).unwrap();
+        connection
+            .execute(
+                "INSERT INTO artifact_metadata (key, value) VALUES (?1, ?2) \
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                params![key, value],
+            )
+            .unwrap();
+    }
+
+    fn validated_rebind() -> RebindMetadata<'static> {
+        RebindMetadata {
+            previous_root: VALIDATED_ROOT,
+            previous_artifact_id: VALIDATED_ARTIFACT_ID,
+            new_root: NEW_ROOT,
+            new_artifact_id: NEW_ARTIFACT_ID,
+            rebound_at: REBOUND_AT,
+        }
+    }
+
+    fn metadata_rows(db_path: &Path) -> BTreeMap<String, String> {
+        read_metadata(&Connection::open(db_path).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn write_rebind_commits_when_the_recorded_identity_still_matches() {
+        let temp = TempDir::new().unwrap();
+        let db_path = temp.path().join("artifact.sqlite");
+        seed_artifact(&db_path);
+
+        assert!(write_rebind(&db_path, &validated_rebind()).is_ok());
+
+        let rows = metadata_rows(&db_path);
+        assert_eq!(rows["root_path"], NEW_ROOT);
+        assert_eq!(rows["artifact_id"], NEW_ARTIFACT_ID);
+        assert_eq!(rows["rebound_from_root"], VALIDATED_ROOT);
+        assert_eq!(rows["rebound_from_artifact_id"], VALIDATED_ARTIFACT_ID);
+    }
+
+    #[test]
+    fn write_rebind_refuses_an_artifact_id_that_changed_after_validation() {
+        let temp = TempDir::new().unwrap();
+        let db_path = temp.path().join("artifact.sqlite");
+        seed_artifact(&db_path);
+        set_metadata(
+            &db_path,
+            "artifact_id",
+            "artifact-9999999999999999999999999999cccc",
+        );
+        let before = metadata_rows(&db_path);
+
+        let Err(error) = write_rebind(&db_path, &validated_rebind()) else {
+            panic!("the rebind write must refuse");
+        };
+
+        assert_eq!(error.exit_code, 1);
+        assert_eq!(error.diagnostic.code, ReportCode::ArtifactChanged);
+        assert!(error.diagnostic.recoverable);
+        assert_eq!(
+            error.diagnostic.details["expected_artifact_id"],
+            json!(VALIDATED_ARTIFACT_ID)
+        );
+        assert_eq!(
+            error.diagnostic.details["found_artifact_id"],
+            json!("artifact-9999999999999999999999999999cccc")
+        );
+        assert_eq!(metadata_rows(&db_path), before);
+    }
+
+    #[test]
+    fn write_rebind_refuses_a_root_path_that_changed_after_validation() {
+        let temp = TempDir::new().unwrap();
+        let db_path = temp.path().join("artifact.sqlite");
+        seed_artifact(&db_path);
+        set_metadata(&db_path, "root_path", "/staging/checkout-z");
+        let before = metadata_rows(&db_path);
+
+        let Err(error) = write_rebind(&db_path, &validated_rebind()) else {
+            panic!("the rebind write must refuse");
+        };
+
+        assert_eq!(error.exit_code, 1);
+        assert_eq!(error.diagnostic.code, ReportCode::ArtifactChanged);
+        assert_eq!(
+            error.diagnostic.details["expected_root_path"],
+            json!(VALIDATED_ROOT)
+        );
+        assert_eq!(
+            error.diagnostic.details["found_root_path"],
+            json!("/staging/checkout-z")
+        );
+        assert_eq!(metadata_rows(&db_path), before);
+    }
+
+    #[test]
+    fn write_rebind_does_not_create_an_artifact_that_vanished_after_validation() {
+        let temp = TempDir::new().unwrap();
+        let db_path = temp.path().join("artifact.sqlite");
+        seed_artifact(&db_path);
+        std::fs::remove_file(&db_path).unwrap();
+
+        let Err(error) = write_rebind(&db_path, &validated_rebind()) else {
+            panic!("the rebind write must refuse");
+        };
+
+        assert_eq!(error.exit_code, 1);
+        assert_eq!(error.diagnostic.code, ReportCode::DbOpenFailed);
+        assert!(
+            !db_path.exists(),
+            "the rebind write must never create the artifact it was asked to retarget"
+        );
+    }
 }

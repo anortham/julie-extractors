@@ -420,10 +420,18 @@ pub enum ReportCode {
     /// metadata-only shell rather than an index. Fatal for `rebind`: there is
     /// nothing to retarget.
     NoCommittedRevision,
+    /// The artifact's recorded `root_path` or `artifact_id` no longer matched
+    /// the values `rebind` validated against when the write transaction
+    /// re-read them. Fatal for `rebind`: writing anyway would clobber whatever
+    /// newer state produced the difference and stamp `rebound_from_*`
+    /// provenance naming an identity the artifact no longer carried. `details`
+    /// carries `expected_root_path`, `found_root_path`, `expected_artifact_id`,
+    /// and `found_artifact_id`.
+    ArtifactChanged,
 }
 
 impl ReportCode {
-    pub const ALL: [Self; 28] = [
+    pub const ALL: [Self; 29] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -452,9 +460,10 @@ impl ReportCode {
         Self::SpoolLockUnavailable,
         Self::FingerprintMismatch,
         Self::NoCommittedRevision,
+        Self::ArtifactChanged,
     ];
 
-    pub const ERROR_CODES: [Self; 20] = [
+    pub const ERROR_CODES: [Self; 21] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -475,6 +484,7 @@ impl ReportCode {
         Self::ParentExited,
         Self::FingerprintMismatch,
         Self::NoCommittedRevision,
+        Self::ArtifactChanged,
     ];
 
     /// Snake-case spelling of the code, identical to its JSON serialization.
@@ -508,6 +518,7 @@ impl ReportCode {
             Self::SpoolLockUnavailable => "spool_lock_unavailable",
             Self::FingerprintMismatch => "fingerprint_mismatch",
             Self::NoCommittedRevision => "no_committed_revision",
+            Self::ArtifactChanged => "artifact_changed",
         }
     }
 }

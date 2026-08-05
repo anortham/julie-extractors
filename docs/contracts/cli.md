@@ -380,6 +380,16 @@ All six writes land in one SQLite transaction, so an interrupted `rebind`
 leaves the artifact either fully retargeted or metadata-identical, never
 half-renamed with a stale identity.
 
+That transaction re-verifies the identity the validation gates ran against: it
+re-reads `root_path` and `artifact_id` before writing, and refuses with
+`artifact_changed` and exit code `1` if either differs from the validated
+value. The staging protocol leaves nothing able to interleave, so this is a
+guard for a direct caller racing a scan, a second `rebind`, or a path
+replacement rather than a step in the intended flow. For the same reason the
+write opens the artifact read-write without SQLite's create flag: an artifact
+that vanished between validation and the write fails as `db_open_failed`, never
+as a silent re-creation.
+
 Validation order, each step refusing before the next runs:
 
 1. Argument parsing. A missing `--root` or `--db` is a `usage_error` with exit
@@ -414,10 +424,11 @@ Outcomes:
   refreshed `updated_at`, no provenance keys. Asking for the root the artifact
   already records succeeds so a caller that cannot cheaply tell whether the
   copy it just made needs retargeting can ask unconditionally.
-- Write failure: `status: failed` with `db_open_failed` or `db_write_failed`
-  and exit code `1`. The transaction rolls back, so the artifact's metadata is
-  byte-identical to what it was before. A new identity that cannot be generated
-  fails the same way with `internal_error` and exit code `1`, before any write.
+- Write failure: `status: failed` with `db_open_failed`, `db_write_failed`, or
+  `artifact_changed` and exit code `1`. The transaction rolls back, so the
+  artifact's metadata is byte-identical to what it was before. A new identity
+  that cannot be generated fails the same way with `internal_error` and exit
+  code `1`, before any write.
 
 `rebind` is additive: it introduces no new table, column, or JSONL record, so
 the extraction, SQLite, and JSONL versions pinned above are unchanged, and the

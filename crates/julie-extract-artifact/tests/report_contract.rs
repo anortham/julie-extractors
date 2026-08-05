@@ -124,6 +124,7 @@ fn every_v3_error_code_has_stable_serialized_spelling() {
             json!("parent_exited"),
             json!("fingerprint_mismatch"),
             json!("no_committed_revision"),
+            json!("artifact_changed"),
         ]
     );
 

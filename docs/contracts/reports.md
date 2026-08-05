@@ -525,6 +525,15 @@ Stable report codes:
   revision, so it is a metadata-only shell rather than an index. Fatal for
   `rebind`: there is nothing to retarget. The diagnostic is recoverable and its
   `details.action` is `julie-extract scan`. Exit code `3`.
+- `artifact_changed`: the artifact's recorded `root_path` or `artifact_id` no
+  longer matched the values `rebind` validated against when the write
+  transaction re-read them. `rebind`-only, and emitted only when something
+  mutated the artifact between the two phases. Nothing is written: the
+  transaction rolls back, so the artifact's metadata is byte-identical to what
+  it was before. The diagnostic is recoverable — re-run `rebind` against the
+  artifact as it now stands — and its `details` carry `expected_root_path`,
+  `found_root_path`, `expected_artifact_id`, and `found_artifact_id`, each
+  found value `null` when the key is absent. Exit code `1`.
 
 Warnings use the same shape and may use warning-only codes such as
 `metadata_missing`, `capability_gap`, `slow_file_skipped`,
