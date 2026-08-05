@@ -208,10 +208,10 @@ the resolution overlay, normalizing the excluded columns. Keep runtime test-suit
 (small fixture, three scans + three rebind chains ≈ seconds).
 
 **Acceptance criteria:**
-- [ ] All three arms assert row-level equivalence with ONLY the contracted exclusions.
-- [ ] Arm (a) additionally asserts the post-rebind scan reported `no_change`.
-- [ ] `cargo test -p julie-extract-cli --test rebind_equivalence` passes.
-- [ ] Verified diff handed to the lead (parallel-lead-commit).
+- [x] All three arms assert row-level equivalence with ONLY the contracted exclusions.
+- [x] Arm (a) additionally asserts the post-rebind scan reported `no_change`.
+- [x] `cargo test -p julie-extract-cli --test rebind_equivalence` passes.
+- [x] Verified diff handed to the lead (parallel-lead-commit).
 
 ---
 
