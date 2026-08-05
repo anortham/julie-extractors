@@ -368,6 +368,14 @@ fn single_file_delta_is_within_budget() {
     // ~81 ms is stale. Left failing on purpose: the ceiling is a real target and the
     // pass really is over it. Fix the pass, or re-baseline deliberately with the
     // measurement that justifies it — do not relax it to get a green run.
+    //
+    // ROOT CAUSE (2026-08-05, bisected — see
+    // docs/findings/2026-08-05-single-file-delta-172ms-attribution.md): the timed pass
+    // ends with the workspace-wide `resolution_report` aggregate, which was 69 ms of the
+    // original 82 ms and 131 ms of the 180 ms here. 6941e05 rewrote it over the base
+    // tables (82 -> 146 ms in one commit); the reference-sites era doubled the real
+    // delta work (~18 -> ~49 ms). True delta resolution has never been near the ceiling
+    // — the fix is moving the report off the delta path, not relaxing this gate.
     let ceil = ceiling(DELTA_CEIL_RELEASE, DELTA_CEIL_DEBUG);
     assert!(
         elapsed < ceil,
