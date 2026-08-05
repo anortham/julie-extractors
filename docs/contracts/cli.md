@@ -41,12 +41,15 @@ julie-extract delete --root <dir> --db <path> --file <path> [--strict-schema] [-
 julie-extract info --db <path> [--strict-schema] [--json]
 julie-extract export --db <path> --format jsonl --out <path|-> [--strict-schema] [--json]
 julie-extract languages [--json]
+julie-extract rebind --root <dir> --db <path> [--strict-schema] [--json]
 ```
 
 ## Shared Flags
 
 - `--db <path>`: SQLite artifact path. Required for artifact commands.
-- `--root <dir>`: source root. Required for `scan`, `update`, and `delete`.
+- `--root <dir>`: source root. Required for `scan`, `update`, `delete`, and
+  `rebind`. For `rebind` it names the root the artifact is retargeted at rather
+  than the root it already records.
 - `--file <path>`: target file. Required for `update` and `delete`.
 - `--json`: write the stable JSON report to stdout.
 - `--strict-schema`: fail instead of migrating an older compatible artifact.
@@ -127,7 +130,11 @@ invalid `--ignore-file` is a hard CLI error.
 - `--file` may be absolute or root-relative.
 - A file outside `--root` is a typed error.
 - One SQLite artifact is bound to one canonical root.
-- A root mismatch is a typed error unless `scan --force` rebuilds the artifact.
+- A root mismatch is a typed error unless `scan --force` rebuilds the artifact
+  or `rebind` retargets it. `rebind` is the sanctioned retarget path: it is the
+  one command that does not run the root gate, because rewriting the binding is
+  what it exists for. After a successful `rebind` the artifact records the new
+  root, so every later command naming that root passes the gate normally.
 - `delete --file` does not require the source file to still exist.
 - `update --file` requires the source file to exist. Missing files should be
   sent to `delete`.
@@ -336,6 +343,85 @@ serializer. Consumers can read it to validate structural-fact metadata payloads
 at runtime without vendoring the repo file. The section is additive and unique to
 this report; `report_schema_version` stays `3`. See `docs/contracts/reports.md`
 for the field description.
+
+### `rebind`
+
+Retargets an existing artifact at a new source root. It rewrites recorded root
+and identity metadata only: nothing is copied, nothing is extracted, and no
+extracted row is read, written, or deleted.
+
+The intended caller flow is three steps: copy an artifact to a staging path,
+`rebind` the copy at the new root, then run an ordinary incremental `scan`
+against that root. The scan passes its own root gate because the artifact now
+records the new root, and reconciles whatever differs between the two
+checkouts. A `rebind` onto a byte-identical checkout leaves that scan with
+nothing to do (`no_change`, `counts.files_changed` of `0`).
+
+Metadata effects of a successful retarget:
+
+- `root_path` is rewritten to the canonicalized `--root`.
+- `artifact_id` is rewritten to a freshly minted `artifact-<32 lowercase hex>`
+  identity. It is random rather than clock-derived, so two artifacts rebound
+  from the same copy in the same instant cannot collide, and a consumer keying
+  cache invalidation on `artifact_id` sees the change.
+- `updated_at` is refreshed to the retarget time. `created_at` is preserved:
+  the artifact still dates from the extraction that built it.
+- Three additive provenance keys are written: `rebound_from_root`,
+  `rebound_from_artifact_id`, and `rebound_at`. `rebound_at` always equals the
+  refreshed `updated_at`, so the two never disagree about when the retarget
+  happened. Like `index_level`, these are optional metadata: an artifact that
+  was never rebound carries none of them, and a reader that does not know them
+  reads the artifact exactly as before.
+- Everything else is untouched — `binary_version`, both capability
+  fingerprints, the reference-resolution keys, `index_level`, every other
+  metadata key, and every data table.
+
+All six writes land in one SQLite transaction, so an interrupted `rebind`
+leaves the artifact either fully retargeted or metadata-identical, never
+half-renamed with a stale identity.
+
+Validation order, each step refusing before the next runs:
+
+1. Argument parsing. A missing `--root` or `--db` is a `usage_error` with exit
+   code `2`.
+2. Path canonicalization of `--root` and `--db`, at the CLI boundary as for
+   every other command. An unusable path fails with `invalid_path` before the
+   artifact is opened.
+3. Artifact open. A missing or unopenable artifact fails with `db_open_failed`
+   and exit code `1`; a refused `rebind` never creates an artifact.
+4. The version gates every artifact command runs: `schema_migration_required`
+   for an older schema under `--strict-schema`, `schema_incompatible`, and
+   `contract_incompatible`, each with exit code `3`.
+5. The capability-fingerprint gate. An artifact whose recorded
+   `parser_inventory_fingerprint` or `capability_snapshot_fingerprint`
+   disagrees with the running binary fails with `fingerprint_mismatch` and exit
+   code `3`. It was built by a different extractor, so retargeting it would
+   serve rows this binary would not produce; the fix is a fresh
+   `julie-extract scan`, which the diagnostic's `details.action` names.
+6. The committed-revision gate. An artifact with no committed extraction
+   revision is a metadata-only shell rather than an index, and fails with
+   `no_committed_revision` and exit code `3`. This runs after the fingerprint
+   gate on purpose: a shell that fails both should name the more fundamental
+   refusal.
+
+The root gate is deliberately not part of that order.
+
+Outcomes:
+
+- New root: `status: ok`, exit code `0`, and `rebind.changed` is `true`.
+- Requested root already the recorded root: `status: no_change`, exit code `0`,
+  and `rebind.changed` is `false`. Not a single metadata row is written — no
+  refreshed `updated_at`, no provenance keys. Asking for the root the artifact
+  already records succeeds so a caller that cannot cheaply tell whether the
+  copy it just made needs retargeting can ask unconditionally.
+- Write failure: `status: failed` with `db_open_failed` or `db_write_failed`
+  and exit code `1`. The transaction rolls back, so the artifact's metadata is
+  byte-identical to what it was before. A new identity that cannot be generated
+  fails the same way with `internal_error` and exit code `1`, before any write.
+
+`rebind` is additive: it introduces no new table, column, or JSONL record, so
+the extraction, SQLite, and JSONL versions pinned above are unchanged, and the
+CLI contract version stays `1`.
 
 ## Status Values
 

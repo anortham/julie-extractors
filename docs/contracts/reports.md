@@ -175,7 +175,9 @@ Fields:
 - `status`: one of the CLI status values.
 - `operation`: command name.
 - `mode`: operation-specific mode such as `incremental`, `force`, `single_file`,
-  `read_only`, or `export`.
+  `read_only`, `jsonl`, `capability_snapshot`, or `metadata`. `metadata` is a
+  write that touches artifact metadata only and never extracted rows; `rebind`
+  is the one command that uses it.
 - `input`: normalized command inputs. Paths are absolute except
   `root_relative_path`.
 - `artifact`: artifact path and version metadata when a database is involved.
@@ -186,6 +188,11 @@ Fields:
   profiling is available.
 - `errors`: typed errors.
 - `warnings`: typed warnings that did not change the exit code.
+- `rebind`: additive top-level object published only by the `rebind` report
+  (omitted from every other command's report, so their shapes are
+  byte-unchanged). It names what the artifact recorded before the retarget,
+  what it records now, and whether anything was written. This is additive:
+  `report_schema_version` stays `3`. See [Rebind Section](#rebind-section).
 - `structural_fact_patterns`: additive top-level array published only by the
   `languages` report (omitted from every other command's report). It is the
   structural-fact pattern registry, produced by the same serializer as the
@@ -333,6 +340,38 @@ fresh aggregates after deltas should read the artifact or run a full scan.
 row domains. Commands must emit every key with `0` when that row kind is not
 written or not present.
 
+## Rebind Section
+
+`rebind` retargets an artifact at a new source root by rewriting root and
+identity metadata only (see [cli.md](cli.md) § `rebind`). Its report carries the
+retarget under the top-level `rebind` key:
+
+```json
+"rebind": {
+  "previous_root": "/repo/checkout-a",
+  "new_root": "/repo/checkout-b",
+  "previous_artifact_id": "artifact-1712...",
+  "new_artifact_id": "artifact-3f9c2ad1b0e64758ac1d9f20b7e35d84",
+  "changed": true
+}
+```
+
+- `previous_root`: the root the artifact recorded before the command ran.
+- `new_root`: the canonicalized `--root` the artifact records now.
+- `previous_artifact_id`: the identity the artifact carried before.
+- `new_artifact_id`: the identity it carries now, minted as
+  `artifact-<32 lowercase hex>`. Equal to `previous_artifact_id` when nothing
+  changed.
+- `changed`: `false` when the requested root already matched the recorded one,
+  which succeeds without mutating a single metadata row; `true` when the
+  retarget was written.
+
+The section is present on both completing statuses and absent from a `failed`
+rebind report, which carries the refusal in `errors` instead. A successful
+retarget also writes the optional `rebound_from_root`,
+`rebound_from_artifact_id`, and `rebound_at` artifact-metadata keys; they are
+absent on a never-rebound artifact, like `index_level`.
+
 ## Per-File Row Attribution
 
 `counts.file_rows` attributes durable extraction rows to source files. Entries
@@ -446,7 +485,8 @@ Stable report codes:
 - `invalid_path`: path cannot be normalized.
 - `file_outside_root`: accepted file path is outside the requested root.
 - `file_not_found`: `update` target does not exist.
-- `root_mismatch`: artifact is bound to a different root.
+- `root_mismatch`: artifact is bound to a different root. `rebind` is the one
+  command that does not run the root gate and therefore never emits this code.
 - `schema_migration_required`: artifact schema is older under
   `--strict-schema`, or single-file `update`/`delete` requires a
   successful whole-workspace scan because reference evidence is missing, stale,
@@ -471,6 +511,20 @@ Stable report codes:
   opened for writing — so the artifact is untouched on every path that reports
   this code. The extraction spool was removed. `details` carries
   `expected_parent_pid` and `observed_parent_pid`. Exit code `1`.
+- `fingerprint_mismatch`: the artifact's recorded
+  `parser_inventory_fingerprint` or `capability_snapshot_fingerprint` does not
+  match the running binary's. Fatal for `rebind`: the artifact was built by a
+  different extractor, so retargeting it would serve rows this binary would not
+  produce. The diagnostic is not recoverable by retrying, and its `details`
+  carry `artifact_parser_inventory_fingerprint`,
+  `expected_parser_inventory_fingerprint`,
+  `artifact_capability_snapshot_fingerprint`,
+  `expected_capability_snapshot_fingerprint`, and `action`
+  (`julie-extract scan`). Exit code `3`.
+- `no_committed_revision`: the artifact carries no committed extraction
+  revision, so it is a metadata-only shell rather than an index. Fatal for
+  `rebind`: there is nothing to retarget. The diagnostic is recoverable and its
+  `details.action` is `julie-extract scan`. Exit code `3`.
 
 Warnings use the same shape and may use warning-only codes such as
 `metadata_missing`, `capability_gap`, `slow_file_skipped`,
@@ -578,6 +632,27 @@ successful `julie-extract scan` of the whole workspace.
   `docs/contracts/structural-fact-patterns.json` and produced by the same
   registry serializer. This section is unique to the `languages` report;
   `report_schema_version` remains `3`.
+
+### `rebind`
+
+- `operation`: `rebind`
+- `mode`: `metadata`
+- Must include the requested root in `input.root_path` and the artifact in
+  `input.db_path`.
+- Completes with `status: ok` and `rebind.changed` of `true` for a real
+  retarget, or `status: no_change` and `rebind.changed` of `false` when the
+  requested root already matched the recorded one. Both exit `0`.
+- Completing reports include `artifact` and `revision`. On `ok`,
+  `artifact.root_path` and `artifact.artifact_id` are the post-retarget values.
+  `revision.latest_revision_id` is the artifact's existing revision and
+  `revision.created_revision_id` is `null`: a rebind commits no revision.
+- `counts` is the zeroed shape with an empty `file_rows`: a rebind extracts
+  nothing, so it reports neither rows written nor recomputed artifact totals.
+  Read totals with `info --json`.
+- Includes the additive top-level `rebind` section on both completing statuses
+  (see [Rebind Section](#rebind-section)); `report_schema_version` remains `3`.
+- A refused rebind returns `status: failed` with the refusal in `errors` and no
+  `rebind` section.
 
 ## stdout And stderr
 
