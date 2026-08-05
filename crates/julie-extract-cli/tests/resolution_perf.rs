@@ -49,7 +49,8 @@ use julie_extract_artifact::resolution_store::{self, ResolutionReportRow};
 use julie_extract_artifact::schema::create_schema;
 use julie_extract_artifact::writer::ResolutionScopeInput;
 use julie_extract_cli::resolution::{
-    RESOLUTION_VERSION, finalize_resolution_metadata, resolve_workspace,
+    DELTA_SCOPE_CROSSOVER as CROSSOVER_THRESHOLD, RESOLUTION_VERSION, finalize_resolution_metadata,
+    resolve_workspace, resolve_workspace_with_crossover,
 };
 use rusqlite::Connection;
 
@@ -110,6 +111,7 @@ fn full_resolve_is_within_budget_at_scale() {
         changed_file_ids: Vec::new(),
         touched_symbol_names: HashSet::new(),
         is_full_scan: true,
+        whole_corpus: true,
     };
 
     let tx = conn.transaction().unwrap();
@@ -223,6 +225,7 @@ fn full_resolve_through_savepoint_seam_is_within_budget() {
         changed_file_ids: Vec::new(),
         touched_symbol_names: HashSet::new(),
         is_full_scan: true,
+        whole_corpus: true,
     };
 
     // Mirror `run_resolution_hook` (writer.rs): open the same savepoint, run the
@@ -282,6 +285,7 @@ fn single_file_delta_is_within_budget() {
             changed_file_ids: Vec::new(),
             touched_symbol_names: HashSet::new(),
             is_full_scan: true,
+            whole_corpus: true,
         };
         let tx = conn.transaction().unwrap();
         let (_c, report) = resolve_workspace(&tx, &full_scope).expect("warm full resolve");
@@ -305,6 +309,7 @@ fn single_file_delta_is_within_budget() {
         changed_file_ids: vec![changed_file.clone()],
         touched_symbol_names: touched.clone(),
         is_full_scan: false,
+        whole_corpus: false,
     };
 
     let tx = conn.transaction().unwrap();
@@ -349,6 +354,20 @@ fn single_file_delta_is_within_budget() {
     }
 
     // Hard gate: measurement-derived regression ceiling (profile-aware).
+    //
+    // KNOWN RED as of 2026-08-05, and NOT from the change that surfaced it. This file
+    // stopped compiling when `reference_sites` became a NOT NULL FK on identifiers,
+    // relationships and pending_relationships, so the gate enforced nothing until the
+    // fixture was repaired. Measured the moment it ran again, release, same seed:
+    //
+    //   a8dc664 (main, before the delta-soundness branch)  172 ms
+    //   241c842 (delta soundness, tiers 2/3)               175 ms
+    //   + module-candidate widening and scan scoping       179 ms
+    //
+    // So ~22 ms of the overrun predates the branch entirely and the note above about
+    // ~81 ms is stale. Left failing on purpose: the ceiling is a real target and the
+    // pass really is over it. Fix the pass, or re-baseline deliberately with the
+    // measurement that justifies it — do not relax it to get a green run.
     let ceil = ceiling(DELTA_CEIL_RELEASE, DELTA_CEIL_DEBUG);
     assert!(
         elapsed < ceil,
@@ -382,6 +401,7 @@ fn delta_with_huge_touched_name_set_resolves_via_chunking() {
             changed_file_ids: Vec::new(),
             touched_symbol_names: HashSet::new(),
             is_full_scan: true,
+            whole_corpus: true,
         };
         let tx = conn.transaction().unwrap();
         let (_c, report) = resolve_workspace(&tx, &full_scope).expect("warm full resolve");
@@ -399,6 +419,7 @@ fn delta_with_huge_touched_name_set_resolves_via_chunking() {
             changed_file_ids: Vec::new(),
             touched_symbol_names: names,
             is_full_scan: false,
+            whole_corpus: false,
         };
 
         // catch_unwind so a panic is reported as the real bug it would be, distinct
@@ -551,30 +572,44 @@ fn seed_artifact_with(conn: &mut Connection, files: usize, scatter_ids: bool) ->
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, 0, ?8, 1, ?9, ?10, ?11)",
             )
             .unwrap();
+        // `identifiers` and `relationships` both carry a NOT NULL FK to
+        // `reference_sites`, so every row needs its site first. Exact sites here:
+        // the schema's CHECK ties `is_exact = 1` to `provenance = 'target_token'`
+        // and to all six span columns being present.
+        let mut ins_site = tx
+            .prepare(
+                "INSERT INTO reference_sites \
+                 (reference_site_id, file_id, path, language, containing_symbol_id, \
+                  start_line, start_column, end_line, end_column, start_byte, end_byte, \
+                  is_exact, provenance) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?6, 8, ?7, ?8, 1, 'target_token')",
+            )
+            .unwrap();
         let mut ins_ident = tx
             .prepare(
                 "INSERT INTO identifiers \
-                 (identifier_id, file_id, path, language, name, kind, containing_symbol_id, \
-                  target_symbol_id, start_line, start_column, end_line, end_column, \
-                  start_byte, end_byte, confidence) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?8, 0, ?8, 8, ?9, ?10, 1.0)",
+                 (identifier_id, reference_site_id, file_id, path, language, name, kind, \
+                  containing_symbol_id, target_symbol_id, start_line, start_column, end_line, \
+                  end_column, start_byte, end_byte, confidence) \
+                 VALUES (?1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?8, 0, ?8, 8, ?9, ?10, 1.0)",
             )
             .unwrap();
         let mut ins_rel = tx
             .prepare(
                 "INSERT INTO relationships \
-                 (relationship_id, from_symbol_id, to_symbol_id, file_id, path, kind, \
-                  start_line, start_byte, end_byte, confidence) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, 'calls', ?6, ?7, ?8, 0.95)",
+                 (relationship_id, reference_site_id, from_symbol_id, to_symbol_id, file_id, \
+                  path, kind, start_line, start_byte, end_byte, confidence) \
+                 VALUES (?1, ?1, ?2, ?3, ?4, ?5, 'calls', ?6, ?7, ?8, 0.95)",
             )
             .unwrap();
         let mut ins_pending = tx
             .prepare(
                 "INSERT INTO pending_relationships \
-                 (pending_relationship_id, from_symbol_id, caller_scope_symbol_id, file_id, path, \
-                  kind, target_display_name, target_terminal_name, target_receiver, \
-                  target_namespace_json, start_line, start_byte, end_byte, confidence) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, '[]', ?10, ?11, ?12, 0.5)",
+                 (pending_relationship_id, reference_site_id, from_symbol_id, \
+                  caller_scope_symbol_id, file_id, path, kind, target_display_name, \
+                  target_terminal_name, target_receiver, target_namespace_json, start_line, \
+                  start_byte, end_byte, confidence) \
+                 VALUES (?1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, '[]', ?10, ?11, ?12, 0.5)",
             )
             .unwrap();
         let mut ins_type_fact = tx
@@ -709,6 +744,9 @@ fn seed_artifact_with(conn: &mut Connection, files: usize, scatter_ids: bool) ->
                     format!("id-{i}-{ident_seq}")
                 };
                 global_ident_seq += 1;
+                ins_site
+                    .execute((&id, &file_id, &path, l, &module_id, line, byte, byte + 8))
+                    .unwrap();
                 ins_ident
                     .execute((
                         &id,
@@ -757,6 +795,18 @@ fn seed_artifact_with(conn: &mut Connection, files: usize, scatter_ids: bool) ->
             for r in 0..RELATIONSHIPS_PER_FILE {
                 let rid = format!("rel-{i}-{r}");
                 let to = format!("gfn-{i}-{r}");
+                ins_site
+                    .execute((
+                        &rid,
+                        &file_id,
+                        &path,
+                        l,
+                        &module_id,
+                        (300 + r) as i64,
+                        (20_000 + r * 16) as i64,
+                        (20_008 + r * 16) as i64,
+                    ))
+                    .unwrap();
                 ins_rel
                     .execute((
                         &rid,
@@ -782,6 +832,18 @@ fn seed_artifact_with(conn: &mut Connection, files: usize, scatter_ids: bool) ->
                     // is a method-ish name (tier-3 will look up members of the type).
                     (format!("method_{i}_{p}"), Some(format!("recv_{i}")))
                 };
+                ins_site
+                    .execute((
+                        &pid,
+                        &file_id,
+                        &path,
+                        l,
+                        &module_id,
+                        (400 + p) as i64,
+                        (30_000 + p * 16) as i64,
+                        (30_008 + p * 16) as i64,
+                    ))
+                    .unwrap();
                 ins_pending
                     .execute((
                         &pid,
@@ -858,4 +920,132 @@ fn env_usize(name: &str, default: usize) -> usize {
         .and_then(|value| value.parse().ok())
         .filter(|value| *value > 0)
         .unwrap_or(default)
+}
+
+/// Where a widened delta scope stops being cheaper than one Full pass.
+///
+/// The crossover in `resolution.rs` decides this at runtime, and its threshold was a
+/// placeholder until this arm existed. Sweeping N changed files against a Full pass on
+/// the same artifact turns it into a measured number: below the crossing a scoped pass
+/// wins, above it the scoped path does everything Full does and pays chunked `IN`
+/// clauses and per-file bookkeeping on top.
+///
+/// Reports rather than asserting a ratio — the crossing moves with machine and corpus,
+/// and a hard ceiling here is the wall-clock leak `test_tiers` exists to keep out. The
+/// one thing it does assert is that the shipped threshold sits on the correct side of
+/// what was just measured.
+#[test]
+fn delta_scope_crossover_sweep() {
+    // Above any real fraction, so the scoped path stays scoped while being measured.
+    const NO_PROMOTION: f64 = 2.0;
+
+    let files = env_usize("JULIE_PERF_FILES", DEFAULT_FILES);
+    let mut conn = fresh_artifact();
+    let counts = seed_artifact(&mut conn, files);
+    print_seed("crossover", &counts);
+
+    let warm = |conn: &mut rusqlite::Connection| {
+        let full_scope = ResolutionScopeInput {
+            changed_file_ids: Vec::new(),
+            touched_symbol_names: HashSet::new(),
+            is_full_scan: true,
+            whole_corpus: true,
+        };
+        let tx = conn.transaction().unwrap();
+        let (_c, report) = resolve_workspace(&tx, &full_scope).expect("warm full resolve");
+        tx.commit().unwrap();
+        finalize_resolution_metadata(conn, &clean_write_result(), Some(&report));
+    };
+    warm(&mut conn);
+
+    let full_elapsed = {
+        let full_scope = ResolutionScopeInput {
+            changed_file_ids: Vec::new(),
+            touched_symbol_names: HashSet::new(),
+            is_full_scan: true,
+            whole_corpus: true,
+        };
+        let tx = conn.transaction().unwrap();
+        let started = Instant::now();
+        let _ = resolve_workspace(&tx, &full_scope).expect("full resolve");
+        let elapsed = started.elapsed();
+        tx.commit().unwrap();
+        elapsed
+    };
+    println!(
+        "resolution_perf: FULL baseline {} ms over {} files",
+        full_elapsed.as_millis(),
+        files,
+    );
+
+    // Changed-file counts spanning the decision, clamped to the corpus.
+    let mut crossing: Option<f64> = None;
+    // Dense between half and the whole corpus: the crossing sits in there, and coarse
+    // points would leave the shipped threshold resting on an interpolation.
+    for n in [
+        1usize,
+        50,
+        500,
+        files / 2,
+        files * 3 / 5,
+        files * 7 / 10,
+        files * 4 / 5,
+        files * 9 / 10,
+        files,
+    ]
+    .into_iter()
+    .filter(|n| *n <= files)
+    {
+        // Names are the file's own symbols, so the widening unions stay proportional
+        // to N rather than pulling the workspace in through one hot shared name.
+        let changed_file_ids: Vec<String> = (0..n).map(|i| format!("file-{i}")).collect();
+        let touched: HashSet<String> = (0..n)
+            .flat_map(|i| (0..TARGET_FNS_PER_FILE).map(move |k| format!("gfn_{i}_{k}")))
+            .collect();
+        let scope = ResolutionScopeInput {
+            changed_file_ids,
+            touched_symbol_names: touched,
+            is_full_scan: false,
+            whole_corpus: true,
+        };
+        let tx = conn.transaction().unwrap();
+        let started = Instant::now();
+        let _ = resolve_workspace_with_crossover(&tx, &scope, NO_PROMOTION).expect("delta resolve");
+        let elapsed = started.elapsed();
+        tx.commit().unwrap();
+
+        let fraction = n as f64 / files as f64;
+        let ratio = elapsed.as_secs_f64() / full_elapsed.as_secs_f64().max(1e-9);
+        println!(
+            "resolution_perf: DELTA n={n:<5} ({:>5.1}% of corpus) {:>6} ms | {:.2}x FULL",
+            fraction * 100.0,
+            elapsed.as_millis(),
+            ratio,
+        );
+        if ratio >= 1.0 && crossing.is_none() {
+            crossing = Some(fraction);
+        }
+    }
+
+    match crossing {
+        Some(fraction) => {
+            println!(
+                "resolution_perf: measured crossover at ~{:.0}% of the corpus; shipped threshold {:.0}%",
+                fraction * 100.0,
+                CROSSOVER_THRESHOLD * 100.0,
+            );
+            assert!(
+                CROSSOVER_THRESHOLD <= fraction + f64::EPSILON,
+                "the shipped crossover threshold ({:.2}) promotes to Full LATER than the measured \
+                 crossing ({:.2}), so scopes between the two run the scoped path when Full is \
+                 already cheaper. Lower DELTA_SCOPE_CROSSOVER to at most the measured value.",
+                CROSSOVER_THRESHOLD,
+                fraction,
+            );
+        }
+        None => println!(
+            "resolution_perf: no crossing up to the whole corpus — a scoped pass never lost, so \
+             the shipped threshold only ever costs an unnecessary promotion to Full",
+        ),
+    }
 }

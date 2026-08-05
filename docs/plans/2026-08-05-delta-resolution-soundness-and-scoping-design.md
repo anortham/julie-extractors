@@ -134,9 +134,33 @@ doing it. Soundness first is not tidiness; it is the precondition.
   strictly worse.
 - *Crossover.* If the widened `scope_files` covers a large fraction of the workspace, promote to Full.
   Decided inside `run_resolution` rather than at the writer, because `scope_files` is not known until
-  `delta_scope_files` has run — the writer cannot see the number the decision turns on. Threshold is a
-  provisional 0.5 pending the T6 arm; it only ever converts a scoped pass into a Full one, so a wrong
-  value costs time, never correctness.
+  `delta_scope_files` has run — the writer cannot see the number the decision turns on. Threshold is
+  0.6, measured by T6 rather than guessed; it only ever converts a scoped pass into a Full one, so an
+  over-conservative value costs time, never correctness.
+
+**T6 measured (release, 2,000-file / 92k-identifier seed, `FULL baseline 648 ms`):**
+
+| Changed files | Share of corpus | Scoped | vs Full |
+|---:|---:|---:|---:|
+| 1 | 0.1% | 175 ms | 0.27× |
+| 50 | 2.5% | 203 ms | 0.31× |
+| 500 | 25% | 372 ms | 0.57× |
+| 1000 | 50% | 555 ms | 0.86× |
+| 1200 | 60% | 630 ms | **0.97×** |
+| 1400 | 70% | 760 ms | 1.17× |
+| 2000 | 100% | 1006 ms | 1.55× |
+
+The crossing sits between 60% and 70%, so the threshold is 0.6 — the last measured point where scoping
+still wins.
+
+**The sweep has to disable promotion to measure this at all.** With the crossover live, every point
+past the shipped threshold times a Full pass and reports it as the scoped cost, so the sweep can only
+rediscover the number it was given — an earlier reading "confirmed" 0.5 that way, and the honest curve
+shows 50% is still 0.86×. `resolve_workspace_with_crossover` exists for that, and is not a tuning knob.
+
+The sweep asserts the shipped constant never promotes LATER than the measured crossing (verified to
+fail at 0.8). It deliberately does not assert the converse: promoting early is safe, so a value that
+drifts conservative should not break a build.
 
 **Measured, Phase A vs Phase B, whole-repo scan of a 2,201-file / 124k-symbol / 120k-identifier TS
 fixture, 1 file rewritten, release build:**

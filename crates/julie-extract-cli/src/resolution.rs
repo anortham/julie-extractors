@@ -1538,7 +1538,23 @@ pub fn resolve_workspace(
     tx: &Transaction<'_>,
     scope: &ResolutionScopeInput,
 ) -> Result<(ResolutionCounts, ResolutionReport), ResolutionHookError> {
-    run_resolution(tx, scope).map_err(|err| ResolutionHookError::new(err.to_string()))
+    resolve_workspace_with_crossover(tx, scope, DELTA_SCOPE_CROSSOVER)
+}
+
+/// `resolve_workspace` with the delta-scope crossover overridden.
+///
+/// Exists for the perf sweep that SETS the crossover: with promotion live, every
+/// measurement past the threshold times a Full pass and reports it as the scoped
+/// cost, so the sweep would only ever rediscover the threshold it was given. Passing
+/// a value above 1.0 keeps the scoped path scoped and yields the curve the shipped
+/// constant is chosen from. Not a tuning knob — production goes through
+/// `resolve_workspace`.
+pub fn resolve_workspace_with_crossover(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+    crossover: f64,
+) -> Result<(ResolutionCounts, ResolutionReport), ResolutionHookError> {
+    run_resolution(tx, scope, crossover).map_err(|err| ResolutionHookError::new(err.to_string()))
 }
 
 /// Write the durable `reference_resolution_*` metadata after the write commits.
@@ -1613,6 +1629,7 @@ pub fn finalize_resolution_upgrade_failure(conn: &Connection) -> bool {
 fn run_resolution(
     tx: &Transaction<'_>,
     scope: &ResolutionScopeInput,
+    crossover: f64,
 ) -> rusqlite::Result<(ResolutionCounts, ResolutionReport)> {
     let revision = current_revision(tx)?;
     let prior = resolution_store::read_resolution_metadata(tx)?;
@@ -1641,7 +1658,7 @@ fn run_resolution(
         (locator, covered, Vec::new())
     } else {
         let files = delta_scope_files(tx, scope, &index, revision)?;
-        if delta_scope_crosses_over(tx, files.len())? {
+        if delta_scope_crosses_over(tx, files.len(), crossover)? {
             effective_full = true;
             let locator = IdentifierLocator::load_scoped(tx, None)?;
             let covered = covered_identifiers(tx, &index, &locator, None)?;
@@ -2630,18 +2647,30 @@ fn placeholders(count: usize) -> String {
 
 /// Fraction of the workspace a delta scope may cover before Full is the better plan.
 ///
-/// PROVISIONAL. The design calls for setting this from the T6 perf arm (N = 1, 50, 500
-/// changed files); that arm is not written yet, so this is a deliberately conservative
-/// placeholder rather than a measured crossover. It only ever converts a scoped pass
-/// into a Full one, so a wrong value costs time, never correctness.
-const DELTA_SCOPE_CROSSOVER: f64 = 0.5;
+/// Measured by `resolution_perf::delta_scope_crossover_sweep`, which fails if this
+/// value promotes to Full later than the crossing it observes. On a 2,000-file / 92k
+/// identifier corpus a scoped pass runs at 0.27x Full for one changed file, 0.57x at a
+/// quarter of the corpus and 0.97x at 60%, then loses: 1.17x at 70%, 1.55x at the whole
+/// corpus. 0.6 is the last point where scoping still wins.
+///
+/// The sweep must disable promotion to measure this — with it live, every point past
+/// the threshold times a Full pass and the measurement just echoes its own input, which
+/// is how an earlier reading put the crossing at 50%.
+///
+/// A wrong value here only ever converts a scoped pass into a Full one, so erring low
+/// costs time and never correctness.
+pub const DELTA_SCOPE_CROSSOVER: f64 = 0.6;
 
 /// Whether a delta scope has widened far enough that Full is cheaper.
 ///
 /// Past the crossover a scoped pass does everything Full does and then pays extra for
 /// it: the same rows, plus chunked `IN` clauses, per-file worklist bookkeeping, and a
 /// locator built from an explicit file list instead of one unfiltered query.
-fn delta_scope_crosses_over(conn: &Connection, scope_file_count: usize) -> rusqlite::Result<bool> {
+fn delta_scope_crosses_over(
+    conn: &Connection,
+    scope_file_count: usize,
+    crossover: f64,
+) -> rusqlite::Result<bool> {
     if scope_file_count == 0 {
         return Ok(false);
     }
@@ -2649,7 +2678,7 @@ fn delta_scope_crosses_over(conn: &Connection, scope_file_count: usize) -> rusql
     if total <= 0 {
         return Ok(false);
     }
-    Ok(scope_file_count as f64 >= total as f64 * DELTA_SCOPE_CROSSOVER)
+    Ok(scope_file_count as f64 >= total as f64 * crossover)
 }
 
 /// Languages present in the artifact's pending rows that tier 2 does not cover.
