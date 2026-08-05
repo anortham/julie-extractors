@@ -827,6 +827,44 @@ pub fn worklist_resolved_pending_by_names(
     )
 }
 
+/// Resolved pending rows (overlay present) living in `file_ids`.
+///
+/// The by-names variant matches `target_terminal_name`/`target_receiver`, which
+/// tiers 2 and 3 do not key on — an aliased import resolves through the import's
+/// `imported_name` and a member through its receiver's resolved TYPE. A delta pass
+/// reaches those rows only by the file their scope was widened to include.
+pub fn worklist_resolved_pending_in_files(
+    conn: &Connection,
+    file_ids: &[&str],
+) -> rusqlite::Result<Vec<ResolvedPendingWorkItem>> {
+    chunked_by(
+        file_ids,
+        |item: &ResolvedPendingWorkItem| item.pending.pending_relationship_id.clone(),
+        |chunk| {
+            let ph = placeholders(chunk.len());
+            let sql = format!(
+                "SELECT {PENDING_COLUMNS}, res.target_symbol_id, res.tier, res.confidence, res.method \
+                 FROM pending_resolutions res \
+                 JOIN pending_relationships pr ON pr.pending_relationship_id = res.pending_relationship_id \
+                 JOIN files f ON f.file_id = pr.file_id \
+                 WHERE pr.file_id IN ({ph}) \
+                 ORDER BY pr.pending_relationship_id"
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            stmt.query_map(params_from_iter(chunk.iter()), |row| {
+                Ok(ResolvedPendingWorkItem {
+                    pending: map_pending(row)?,
+                    target_symbol_id: row.get(16)?,
+                    tier: row.get(17)?,
+                    confidence: row.get(18)?,
+                    method: row.get(19)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()
+        },
+    )
+}
+
 /// Every resolved pending row (overlay present). Used by Full scope to re-check
 /// uniqueness and demote stale overlay rows before filling unresolved rows.
 pub fn worklist_resolved_pending(
@@ -926,6 +964,36 @@ pub fn worklist_resolved_identifiers_by_names(
             let bind = chunk.iter().chain(chunk.iter());
             let mut stmt = conn.prepare(&sql)?;
             stmt.query_map(params_from_iter(bind), map_resolved_identifier)?
+                .collect::<Result<Vec<_>, _>>()
+        },
+    )
+}
+
+/// Resolved identifier rows (overlay present) living in `file_ids`.
+///
+/// Deliberately WITHOUT the `r.target_symbol_id IS NOT NULL` filter the Full
+/// variant carries, matching the by-names arm: a row recorded as
+/// ambiguous/missing/no_context must be re-run too, or an outcome the workspace
+/// has since made resolvable is frozen forever.
+pub fn worklist_resolved_identifiers_in_files(
+    conn: &Connection,
+    file_ids: &[&str],
+) -> rusqlite::Result<Vec<ResolvedIdentifierWorkItem>> {
+    chunked_by(
+        file_ids,
+        |item: &ResolvedIdentifierWorkItem| item.identifier.identifier_id.clone(),
+        |chunk| {
+            let ph = placeholders(chunk.len());
+            let sql = format!(
+                "SELECT {IDENTIFIER_COLUMNS}, r.target_symbol_id, r.tier, r.confidence, r.method, \
+                        r.outcome, r.candidates \
+                 FROM identifier_resolutions r \
+                 JOIN identifiers i ON i.identifier_id = r.identifier_id \
+                 WHERE i.file_id IN ({ph}) \
+                 ORDER BY i.identifier_id"
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            stmt.query_map(params_from_iter(chunk.iter()), map_resolved_identifier)?
                 .collect::<Result<Vec<_>, _>>()
         },
     )

@@ -468,6 +468,47 @@ impl WorkspaceCandidateIndex {
             .map(Vec::as_slice)
             .unwrap_or(&[])
     }
+
+    /// Files holding a type fact whose `resolved_type` is one of `names`.
+    ///
+    /// Tier 3 reaches its target through the receiver's RESOLVED TYPE, a name that
+    /// appears in neither `target_terminal_name` nor `target_receiver` — the only
+    /// two columns the delta worklists match on. Without this, a changed file that
+    /// makes a type name ambiguous never reaches the members typed by it.
+    fn files_declaring_type_named(&self, names: &HashSet<&str>) -> BTreeSet<String> {
+        let mut files = BTreeSet::new();
+        for (symbol_id, facts) in &self.type_facts_by_symbol {
+            if facts
+                .iter()
+                .any(|fact| names.contains(fact.resolved_type.as_str()))
+                && let Some(symbol) = self.symbol_by_id(symbol_id)
+            {
+                files.insert(symbol.file_id.clone());
+            }
+        }
+        files
+    }
+
+    /// Files importing any of `names` under either the imported or the local name.
+    ///
+    /// Tier 2 gates on `local_name` but looks candidates up by `imported_name`, so
+    /// an aliased import is tied to its export by a name the reference row never
+    /// carries. Both sides are matched here because either can be the touched one.
+    fn files_importing_names(&self, names: &HashSet<&str>) -> BTreeSet<String> {
+        let mut files = BTreeSet::new();
+        for (file_id, imports) in &self.imports_by_file {
+            if imports.iter().any(|import| {
+                names.contains(import.local_name.as_str())
+                    || import
+                        .imported_name
+                        .as_deref()
+                        .is_some_and(|name| names.contains(name))
+            }) {
+                files.insert(file_id.clone());
+            }
+        }
+        files
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1563,7 +1604,7 @@ fn run_resolution(
         let covered = covered_identifiers(tx, &index, &locator, None)?;
         (locator, covered, Vec::new())
     } else {
-        let files = delta_scope_files(tx, scope)?;
+        let files = delta_scope_files(tx, scope, &index)?;
         let file_refs: Vec<&str> = files.iter().map(String::as_str).collect();
         let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
         let covered = covered_identifiers(tx, &index, &locator, Some(&file_refs))?;
@@ -1695,6 +1736,26 @@ fn resolve_full(
     Ok(())
 }
 
+/// Union two worklists, keeping the first occurrence of each key and restoring the
+/// primary-key order both queries were issued in. Matches `chunked_by`'s discipline
+/// so a merged worklist stays as deterministic as a single-query one.
+fn merge_by_key<T, K, F>(primary: Vec<T>, secondary: Vec<T>, key: F) -> Vec<T>
+where
+    F: Fn(&T) -> K,
+    K: Ord + Clone + std::hash::Hash,
+{
+    let mut seen: HashSet<K> = HashSet::new();
+    let mut merged = Vec::with_capacity(primary.len() + secondary.len());
+    for item in primary.into_iter().chain(secondary) {
+        let k = key(&item);
+        if seen.insert(k) {
+            merged.push(item);
+        }
+    }
+    merged.sort_by_key(&key);
+    merged
+}
+
 #[allow(clippy::too_many_arguments)]
 fn resolve_delta(
     tx: &Transaction<'_>,
@@ -1724,9 +1785,14 @@ fn resolve_delta(
     // re-run the chain; if the outcome no longer yields the same single target,
     // demote or overwrite with the current outcome. The fill sweep below
     // re-resolves demoted pending rows if a new single candidate exists.
+    let scoped_files: Vec<&str> = scope_files.iter().map(String::as_str).collect();
     recheck_resolved_pending_items(
         &mut buf,
-        &resolution_store::worklist_resolved_pending_by_names(tx, &names)?,
+        &merge_by_key(
+            resolution_store::worklist_resolved_pending_by_names(tx, &names)?,
+            resolution_store::worklist_resolved_pending_in_files(tx, &scoped_files)?,
+            |item| item.pending.pending_relationship_id.clone(),
+        ),
         index,
         locator,
         gated,
@@ -1747,7 +1813,11 @@ fn resolve_delta(
         propagation_covered_identifiers(tx, index, locator, Some(&ownership_files))?;
     recheck_resolved_identifier_items(
         &mut buf,
-        &resolution_store::worklist_resolved_identifiers_by_names(tx, &names)?,
+        &merge_by_key(
+            resolution_store::worklist_resolved_identifiers_by_names(tx, &names)?,
+            resolution_store::worklist_resolved_identifiers_in_files(tx, &scoped_files)?,
+            |item| item.identifier.identifier_id.clone(),
+        ),
         index,
         &propagation_covered,
         revision,
@@ -1758,14 +1828,19 @@ fn resolve_delta(
 
     // --- Fill sweep ---------------------------------------------------------
     // Unresolved pending matching touched names, PLUS every unresolved pending in a
-    // changed file (a changed file's callee may live in an unchanged file whose
+    // scoped file (a changed file's callee may live in an unchanged file whose
     // name is not in the touched set).
+    //
+    // Scoped over `scope_files`, not `files`: an edge whose tier keys on a name the
+    // reference row does not carry — an aliased import's `imported_name`, a
+    // receiver's resolved type — is reachable only through the file unions
+    // `delta_scope_files` adds, never through the name worklists above.
     let mut pending = resolution_store::worklist_unresolved_pending_by_names(tx, &names)?;
     let mut seen: HashSet<String> = pending
         .iter()
         .map(|item| item.pending_relationship_id.clone())
         .collect();
-    for item in unresolved_pending_in_files(tx, &files)? {
+    for item in unresolved_pending_in_files(tx, &ownership_files)? {
         if seen.insert(item.pending_relationship_id.clone()) {
             pending.push(item);
         }
@@ -1779,14 +1854,19 @@ fn resolve_delta(
     propagate_relationships(tx, &mut buf, index, locator, Some(&files), revision, counts)?;
     buf.flush(tx)?;
 
-    // Never-attempted identifiers matching touched names or in changed files.
+    // Never-attempted identifiers matching touched names or in a scoped file.
+    //
+    // Scoped rather than changed: an identifier the first pass never attempted can
+    // sit in an unchanged file that only the tier-2/tier-3 name unions reach.
     let mut identifiers =
         resolution_store::worklist_never_attempted_identifiers_by_names(tx, &names)?;
     let mut seen_ids: HashSet<String> = identifiers
         .iter()
         .map(|item| item.identifier_id.clone())
         .collect();
-    for item in resolution_store::worklist_never_attempted_identifiers_by_files(tx, &files)? {
+    for item in
+        resolution_store::worklist_never_attempted_identifiers_by_files(tx, &ownership_files)?
+    {
         if seen_ids.insert(item.identifier_id.clone()) {
             identifiers.push(item);
         }
@@ -2601,15 +2681,23 @@ fn query_scoped_rows<T>(
 /// any pending/identifier the by-name worklists surface (a matching name may live
 /// in an unchanged file). Scopes the delta locator + covered-set load to O(delta)
 /// instead of O(workspace) — safe because every co-location join is same-file.
+///
+/// The name-keyed worklists above match only `target_terminal_name`/`target_receiver`.
+/// Tiers 2 and 3 key on names those columns never carry (an import's `imported_name`,
+/// a receiver's resolved type), so the index-backed unions below are what make the
+/// delta scope reach the rows those tiers can flip. They read maps `load_index`
+/// already holds, so they cost no extra SQL.
 fn delta_scope_files(
     conn: &Connection,
     scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
 ) -> rusqlite::Result<Vec<String>> {
     let names: Vec<&str> = scope
         .touched_symbol_names
         .iter()
         .map(String::as_str)
         .collect();
+    let name_set: HashSet<&str> = names.iter().copied().collect();
     let mut files: BTreeSet<String> = scope.changed_file_ids.iter().cloned().collect();
     for item in resolution_store::worklist_resolved_pending_by_names(conn, &names)? {
         files.insert(item.pending.file_id);
@@ -2623,6 +2711,8 @@ fn delta_scope_files(
     for item in resolution_store::worklist_never_attempted_identifiers_by_names(conn, &names)? {
         files.insert(item.file_id);
     }
+    files.extend(index.files_declaring_type_named(&name_set));
+    files.extend(index.files_importing_names(&name_set));
     Ok(files.into_iter().collect())
 }
 

@@ -2418,6 +2418,20 @@ fn identifiers_without_resolution(db: &Path) -> i64 {
     .expect("count query runs")
 }
 
+/// The workspace-relative path of the file defining what `name` resolves to.
+fn identifier_target_path(db: &Path, name: &str) -> Option<String> {
+    let conn = Connection::open(db).expect("artifact opens");
+    conn.query_row(
+        "SELECT s.path FROM identifiers i \
+         JOIN symbols s ON s.symbol_id = i.target_symbol_id \
+         WHERE i.name = ?1 LIMIT 1",
+        [name],
+        |row| row.get(0),
+    )
+    .optional()
+    .expect("target path query runs")
+}
+
 fn identifier_outcome(db: &Path, name: &str) -> Option<String> {
     let conn = Connection::open(db).expect("artifact opens");
     conn.query_row(
@@ -2467,6 +2481,125 @@ fn touching_only_the_receiver_type_name_rechecks_the_resolution() {
         identifier_target(&db, "Red"),
         None,
         "an ambiguous receiver type must clear the target even though `Red` itself is untouched"
+    );
+}
+
+#[test]
+fn delta_repoints_an_aliased_import_when_a_new_file_shadows_its_module() {
+    // `./util` resolves to the directory module until `src/util.ts` shadows it.
+    // The reference is `h`, the export is `helper`, so the alias is again the only
+    // link — and here the stale overlay points at a symbol that is still alive, so
+    // no cascade fires and nothing else would clear it.
+    let fixture =
+        FixtureRoot::with_file("src/util/index.ts", "export function helper(): void {}\n");
+    std::fs::write(
+        fixture.path("src/consumer.ts"),
+        "import { helper as h } from './util';\nexport function run(): void { h(); }\n",
+    )
+    .unwrap();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(
+        identifier_target_path(&db, "h").as_deref(),
+        Some("src/util/index.ts"),
+        "the alias must resolve to the directory module before it is shadowed"
+    );
+
+    std::fs::write(
+        fixture.path("src/util.ts"),
+        "export function helper(): void {}\n",
+    )
+    .unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/util.ts"));
+
+    assert_eq!(
+        identifier_target_path(&db, "h").as_deref(),
+        Some("src/util.ts"),
+        "a new file that shadows the module must re-point the import, not leave the old target"
+    );
+}
+
+#[test]
+fn delta_recheck_demotes_a_variable_typed_receiver_when_its_type_becomes_ambiguous() {
+    // The sibling test above uses a STATIC receiver, where the receiver token IS
+    // the type name and the by-receiver worklist already matches. Here the receiver
+    // token is the local `w`, so the only name tying this row to the change is the
+    // type fact `w: Widget` — a third name carried by neither `target_terminal_name`
+    // nor `target_receiver`.
+    let fixture = FixtureRoot::with_file(
+        "src/widget.cs",
+        "namespace App { public class Widget { public int Render() { return 1; } } }\n",
+    );
+    std::fs::write(
+        fixture.path("src/consumer.cs"),
+        "namespace App { public class Consumer { public int Run() { Widget w = new Widget(); return w.Render(); } } }\n",
+    )
+    .unwrap();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert!(
+        identifier_target(&db, "Render").is_some(),
+        "the member must resolve through the local's declared type before the collision"
+    );
+
+    // A second `Widget` that does NOT declare `Render`, so the only touched name is
+    // `Widget` itself.
+    std::fs::write(
+        fixture.path("src/other.cs"),
+        "namespace Other { public class Widget { } }\n",
+    )
+    .unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/other.cs"));
+
+    assert_eq!(
+        identifier_target(&db, "Render"),
+        None,
+        "an ambiguous receiver type must clear the target reached through a variable's type fact"
+    );
+}
+
+#[test]
+fn delta_fill_resolves_an_aliased_import_once_its_export_appears() {
+    // Tier 2 gates on the import's LOCAL name and looks the candidate up by its
+    // IMPORTED name, so the only names tying this edge to `src/b.ts` are `realName`
+    // (the export) and `localName` (the reference). The delta worklists match on
+    // `target_terminal_name`/`target_receiver` only, and the touched set carries
+    // just the changed file's own symbol names — so nothing connects the two.
+    // `update` is the delta path; `scan` forces a full pass and resolves this
+    // already (see resolution_contract's tier2_aliased_import_* cases).
+    let fixture = FixtureRoot::with_file("src/b.ts", "export function placeholder(): void {}\n");
+    std::fs::write(
+        fixture.path("src/a.ts"),
+        "import { realName as localName } from './b';\n\
+         \n\
+         export function caller(): void {\n\
+         \x20 localName();\n\
+         }\n",
+    )
+    .unwrap();
+    let db = fixture.path("artifact.sqlite");
+    assert_success(scan(fixture.root_str(), &db));
+    assert_eq!(
+        identifier_target(&db, "localName"),
+        None,
+        "the alias cannot resolve before its export exists"
+    );
+
+    std::fs::write(
+        fixture.path("src/b.ts"),
+        "export function placeholder(): void {}\nexport function realName(): void {}\n",
+    )
+    .unwrap();
+    assert_success(update(fixture.root_str(), &db, "src/b.ts"));
+
+    assert_eq!(
+        identifier_outcome(&db, "localName").as_deref(),
+        Some("resolved"),
+        "the delta pass must retry an outcome it previously recorded as `missing`"
+    );
+    assert!(
+        identifier_target(&db, "localName").is_some(),
+        "the aliased import must resolve once the export lands in a changed file"
     );
 }
 
