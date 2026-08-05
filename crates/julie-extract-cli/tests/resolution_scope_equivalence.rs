@@ -67,6 +67,21 @@ fn update(root: &Path, db: &Path, file: &str) {
     ]));
 }
 
+/// Removal is its own verb: `update` on a vanished path reports `file_not_found`
+/// and writes nothing, so a deletion case driven through `update` tests nothing.
+fn delete(root: &Path, db: &Path, file: &str) {
+    assert_success(julie_extract(&[
+        "delete",
+        "--root",
+        path_str(root),
+        "--db",
+        path_str(db),
+        "--file",
+        file,
+        "--json",
+    ]));
+}
+
 /// The overlay as ordered comparable rows. `resolved_at_revision` is excluded: it
 /// records WHEN a row was written, which incremental and single-pass convergence
 /// necessarily disagree on.
@@ -320,4 +335,91 @@ fn a_multi_step_edit_sequence_matches_a_full_rederivation() {
     update(&fixture.root, &db, "src/rival.ts");
 
     assert_matches_full_rederivation(&db, "multi-step edit sequence");
+}
+
+#[test]
+fn a_shadow_file_with_disjoint_exports_matches_a_full_rederivation() {
+    // The sibling shadowing case above defines `helper` in BOTH modules, so the
+    // touched-name set carries the import's own binding and the name unions reach
+    // the consumer on their own. Here the shadow file exports something else
+    // entirely: no touched name matches the import, and the ONLY thing tying the
+    // consumer to this write is that `src/util.ts` is a module-path candidate for
+    // the specifier `./util`. Resolution moves from `helper` to nothing.
+    let fixture = Fixture::new();
+    fixture.write("src/util/index.ts", "export function helper(): void {}\n");
+    fixture.write(
+        "src/consumer.ts",
+        "import { helper as h } from './util';\nexport function run(): void { h(); }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    fixture.write("src/util.ts", "export function unrelated(): void {}\n");
+    update(&fixture.root, &db, "src/util.ts");
+
+    assert_matches_full_rederivation(&db, "shadow file with disjoint exports");
+}
+
+#[test]
+fn deleting_a_disjoint_shadow_file_matches_a_full_rederivation() {
+    // The inverse direction, and the one a name-keyed scope cannot see at all: the
+    // deleted file never shared a name with the import, so removing it restores the
+    // directory module through a path change alone.
+    let fixture = Fixture::new();
+    fixture.write("src/util/index.ts", "export function helper(): void {}\n");
+    fixture.write("src/util.ts", "export function unrelated(): void {}\n");
+    fixture.write(
+        "src/consumer.ts",
+        "import { helper as h } from './util';\nexport function run(): void { h(); }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    std::fs::remove_file(fixture.root.join("src/util.ts")).unwrap();
+    delete(&fixture.root, &db, "src/util.ts");
+
+    assert_matches_full_rederivation(&db, "deleting a disjoint shadow file");
+}
+
+#[test]
+fn deleting_a_same_name_shadow_file_matches_a_full_rederivation() {
+    // Un-shadowing where both modules export the binding. This one the pre-delete
+    // name collection already reaches; pinned so the module-path union is never
+    // "simplified" into covering only the disjoint case.
+    let fixture = Fixture::new();
+    fixture.write("src/util/index.ts", "export function helper(): void {}\n");
+    fixture.write("src/util.ts", "export function helper(): void {}\n");
+    fixture.write(
+        "src/consumer.ts",
+        "import { helper as h } from './util';\nexport function run(): void { h(); }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    std::fs::remove_file(fixture.root.join("src/util.ts")).unwrap();
+    delete(&fixture.root, &db, "src/util.ts");
+
+    assert_matches_full_rederivation(&db, "deleting a same-name shadow file");
+}
+
+#[test]
+fn shadowing_then_unshadowing_converges_to_a_full_rederivation() {
+    // Round trip through the same artifact: the overlay after add-then-remove must
+    // equal a single pass over the final rows, not merely differ from the stale one.
+    let fixture = Fixture::new();
+    fixture.write("src/util/index.ts", "export function helper(): void {}\n");
+    fixture.write(
+        "src/consumer.ts",
+        "import { helper as h } from './util';\nexport function run(): void { h(); }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    fixture.write("src/util.ts", "export function unrelated(): void {}\n");
+    update(&fixture.root, &db, "src/util.ts");
+
+    std::fs::remove_file(fixture.root.join("src/util.ts")).unwrap();
+    delete(&fixture.root, &db, "src/util.ts");
+
+    assert_matches_full_rederivation(&db, "shadow added then removed");
 }

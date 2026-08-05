@@ -356,6 +356,15 @@ pub struct WorkspaceCandidateIndex {
     top_level_by_file: HashMap<String, Vec<usize>>,
     type_facts_by_symbol: HashMap<String, Vec<TypeFact>>,
     imports_by_file: HashMap<String, Vec<ImportRecord>>,
+    /// Importing file -> every workspace path its relative module specifiers could
+    /// bind to, whether or not one exists today. The reverse of
+    /// [`import_module_candidates`], and the only key by which a delta can notice
+    /// that creating or deleting a file re-pointed a specifier: module selection
+    /// turns on PATH existence, so it changes without any symbol name changing.
+    ///
+    /// Empty for an index built by [`WorkspaceCandidateIndex::build`]; populated by
+    /// [`load_index`], which is the only caller that has the importing paths.
+    module_candidates_by_file: HashMap<String, BTreeSet<String>>,
 }
 
 impl WorkspaceCandidateIndex {
@@ -414,6 +423,7 @@ impl WorkspaceCandidateIndex {
             top_level_by_file,
             type_facts_by_symbol,
             imports_by_file,
+            module_candidates_by_file: HashMap::new(),
         }
     }
 
@@ -504,6 +514,27 @@ impl WorkspaceCandidateIndex {
                         .as_deref()
                         .is_some_and(|name| names.contains(name))
             }) {
+                files.insert(file_id.clone());
+            }
+        }
+        files
+    }
+
+    /// Files whose relative module specifiers could bind to one of `changed_paths`.
+    ///
+    /// The name unions above are blind to this: which file `./util` selects depends
+    /// on which candidate PATH exists, so adding or deleting `src/util.ts` re-points
+    /// every importer of `./util` without touching a single symbol name. When the
+    /// new file's exports are disjoint from the import's binding, no touched name
+    /// matches and the importer would otherwise keep a target the full pass has
+    /// already abandoned.
+    fn files_importing_module_candidates(
+        &self,
+        changed_paths: &HashSet<String>,
+    ) -> BTreeSet<String> {
+        let mut files = BTreeSet::new();
+        for (file_id, candidates) in &self.module_candidates_by_file {
+            if candidates.iter().any(|path| changed_paths.contains(path)) {
                 files.insert(file_id.clone());
             }
         }
@@ -1604,7 +1635,7 @@ fn run_resolution(
         let covered = covered_identifiers(tx, &index, &locator, None)?;
         (locator, covered, Vec::new())
     } else {
-        let files = delta_scope_files(tx, scope, &index)?;
+        let files = delta_scope_files(tx, scope, &index, revision)?;
         let file_refs: Vec<&str> = files.iter().map(String::as_str).collect();
         let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
         let covered = covered_identifiers(tx, &index, &locator, Some(&file_refs))?;
@@ -1785,6 +1816,9 @@ fn resolve_delta(
     // re-run the chain; if the outcome no longer yields the same single target,
     // demote or overwrite with the current outcome. The fill sweep below
     // re-resolves demoted pending rows if a new single candidate exists.
+    // The widened delta scope: changed files plus every file the name and
+    // module-candidate unions in `delta_scope_files` had to add. Every file-keyed
+    // worklist below reads it, and it is the same set the locator was built from.
     let scoped_files: Vec<&str> = scope_files.iter().map(String::as_str).collect();
     recheck_resolved_pending_items(
         &mut buf,
@@ -1803,14 +1837,13 @@ fn resolve_delta(
     // Read ownership *after* the demotion flush so an identifier whose pending was
     // just demoted re-enters the recheck instead of keeping a stale target.
     //
-    // Scoped to `scope_files`, not `files`: the recheck worklist below matches by
+    // Read over `scoped_files`, not `files`: the recheck worklist below matches by
     // name across the whole workspace, so an identifier in an UNCHANGED file can
     // enter it. Reading ownership over changed files alone would leave that
     // identifier looking unowned, and the generic chain would overwrite a correct
-    // propagated target. `scope_files` is the same set the locator was built from.
-    let ownership_files: Vec<&str> = scope_files.iter().map(String::as_str).collect();
+    // propagated target.
     let propagation_covered =
-        propagation_covered_identifiers(tx, index, locator, Some(&ownership_files))?;
+        propagation_covered_identifiers(tx, index, locator, Some(&scoped_files))?;
     recheck_resolved_identifier_items(
         &mut buf,
         &merge_by_key(
@@ -1840,7 +1873,7 @@ fn resolve_delta(
         .iter()
         .map(|item| item.pending_relationship_id.clone())
         .collect();
-    for item in unresolved_pending_in_files(tx, &ownership_files)? {
+    for item in unresolved_pending_in_files(tx, &scoped_files)? {
         if seen.insert(item.pending_relationship_id.clone()) {
             pending.push(item);
         }
@@ -1864,8 +1897,7 @@ fn resolve_delta(
         .iter()
         .map(|item| item.identifier_id.clone())
         .collect();
-    for item in
-        resolution_store::worklist_never_attempted_identifiers_by_files(tx, &ownership_files)?
+    for item in resolution_store::worklist_never_attempted_identifiers_by_files(tx, &scoped_files)?
     {
         if seen_ids.insert(item.identifier_id.clone()) {
             identifiers.push(item);
@@ -2236,11 +2268,14 @@ fn current_revision(conn: &Connection) -> rusqlite::Result<i64> {
 }
 
 fn load_index(conn: &Connection) -> rusqlite::Result<WorkspaceCandidateIndex> {
-    Ok(WorkspaceCandidateIndex::build(
+    let (imports, module_candidates_by_file) = load_import_records(conn)?;
+    let mut index = WorkspaceCandidateIndex::build(
         load_candidate_symbols(conn)?,
         load_type_facts(conn)?,
-        load_import_records(conn)?,
-    ))
+        imports,
+    );
+    index.module_candidates_by_file = module_candidates_by_file;
+    Ok(index)
 }
 
 fn load_candidate_symbols(conn: &Connection) -> rusqlite::Result<Vec<CandidateSymbol>> {
@@ -2306,7 +2341,13 @@ fn load_type_facts(conn: &Connection) -> rusqlite::Result<Vec<TypeFact>> {
     rows.collect()
 }
 
-fn load_import_records(conn: &Connection) -> rusqlite::Result<Vec<ImportRecord>> {
+/// Import records plus, per importing file, the module-candidate paths its relative
+/// specifiers could bind to. Both come out of one pass because the candidate list is
+/// already computed here to pick `module_file_id`; recomputing it for the delta scope
+/// would mean a second scan of every import symbol.
+type ImportLoad = (Vec<ImportRecord>, HashMap<String, BTreeSet<String>>);
+
+fn load_import_records(conn: &Connection) -> rusqlite::Result<ImportLoad> {
     // Imports are `kind='import'` symbols; there is no dedicated imports table
     // (Task 4 handoff). Resolve relative module specifiers here so tier 2 only
     // trusts aliased imports whose source module maps to a concrete workspace file.
@@ -2324,12 +2365,19 @@ fn load_import_records(conn: &Connection) -> rusqlite::Result<Vec<ImportRecord>>
         ))
     })?;
     let mut out = Vec::new();
+    let mut candidates_by_file: HashMap<String, BTreeSet<String>> = HashMap::new();
     for row in rows {
         let (file_id, path, language, name, metadata_json) = row?;
         let (local_name, imported_name, source, is_type_only, is_default, is_namespace) =
             import_binding(&name, metadata_json.as_deref());
-        let module_file_id =
-            resolve_import_module_file(&path, source.as_deref(), &files_by_path, &language);
+        let candidates = import_module_candidates(&path, source.as_deref(), &language);
+        let module_file_id = select_module_file(&candidates, &files_by_path, &language);
+        if !candidates.is_empty() {
+            candidates_by_file
+                .entry(file_id.clone())
+                .or_default()
+                .extend(candidates);
+        }
         out.push(ImportRecord {
             file_id,
             local_name,
@@ -2341,7 +2389,7 @@ fn load_import_records(conn: &Connection) -> rusqlite::Result<Vec<ImportRecord>>
             is_namespace,
         });
     }
-    Ok(out)
+    Ok((out, candidates_by_file))
 }
 
 fn load_file_ids_by_path(conn: &Connection) -> rusqlite::Result<HashMap<String, (String, String)>> {
@@ -2413,20 +2461,35 @@ fn import_binding(
     )
 }
 
-fn resolve_import_module_file(
+/// Every workspace path a relative specifier could bind to, in priority order and
+/// independent of which of them exist. Split from selection because the delta scope
+/// needs the paths a specifier WOULD accept — a file that does not exist yet, or no
+/// longer does, is exactly the one that re-points it.
+fn import_module_candidates(
     importing_path: &str,
     source: Option<&str>,
+    language: &str,
+) -> Vec<String> {
+    let Some(source) = source else {
+        return Vec::new();
+    };
+    if !(source.starts_with("./") || source.starts_with("../")) {
+        return Vec::new();
+    }
+    let base = importing_path.rsplit_once('/').map_or("", |(base, _)| base);
+    let Some(module_path) = normalize_relative_module_path(base, source) else {
+        return Vec::new();
+    };
+    module_path_candidates(&module_path, language)
+}
+
+fn select_module_file(
+    candidates: &[String],
     files_by_path: &HashMap<String, (String, String)>,
     language: &str,
 ) -> Option<String> {
-    let source = source?;
-    if !(source.starts_with("./") || source.starts_with("../")) {
-        return None;
-    }
-    let base = importing_path.rsplit_once('/').map_or("", |(base, _)| base);
-    let module_path = normalize_relative_module_path(base, source)?;
-    for candidate in module_path_candidates(&module_path, language) {
-        if let Some((file_id, file_language)) = files_by_path.get(&candidate)
+    for candidate in candidates {
+        if let Some((file_id, file_language)) = files_by_path.get(candidate)
             && file_language == language
         {
             return Some(file_id.clone());
@@ -2477,53 +2540,104 @@ fn module_path_candidates(module_path: &str, language: &str) -> Vec<String> {
 
 /// Unresolved pending rows in any of `file_ids` (delta fill scope — no by-files
 /// pending worklist exists in the storage crate, so the resolver loads it here).
+///
+/// Chunked: the delta fill sweep passes the WIDENED scope, not the changed files, so
+/// this binds one variable per file in the workspace-reachable union rather than the
+/// handful a single-file update touches. Over `SQLITE_MAX_VARIABLE_NUMBER` SQLite
+/// fails the prepare, and it would fail AFTER the source write committed.
 fn unresolved_pending_in_files(
     conn: &Connection,
     file_ids: &[&str],
 ) -> rusqlite::Result<Vec<PendingWorkItem>> {
-    if file_ids.is_empty() {
-        return Ok(Vec::new());
+    let mut out = Vec::new();
+    for chunk in file_ids.chunks(FILE_QUERY_CHUNK) {
+        let sql = format!(
+            "SELECT pr.pending_relationship_id, pr.from_symbol_id, pr.caller_scope_symbol_id, \
+                    pr.file_id, pr.path, f.language, pr.kind, pr.target_display_name, \
+                    pr.target_terminal_name, pr.target_receiver, pr.target_namespace_json, \
+                    pr.target_import_context, pr.start_line, pr.start_byte, pr.end_byte, \
+                    pr.confidence \
+             FROM pending_relationships pr \
+             JOIN files f ON f.file_id = pr.file_id \
+             WHERE pr.file_id IN ({}) \
+               AND pr.pending_relationship_id NOT IN \
+                   (SELECT pending_relationship_id FROM pending_resolutions) \
+             ORDER BY pr.pending_relationship_id",
+            placeholders(chunk.len())
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(rusqlite::params_from_iter(chunk.iter()), |row| {
+            Ok(PendingWorkItem {
+                pending_relationship_id: row.get(0)?,
+                from_symbol_id: row.get(1)?,
+                caller_scope_symbol_id: row.get(2)?,
+                file_id: row.get(3)?,
+                path: row.get(4)?,
+                language: row.get(5)?,
+                kind: row.get(6)?,
+                target_display_name: row.get(7)?,
+                target_terminal_name: row.get(8)?,
+                target_receiver: row.get(9)?,
+                target_namespace_json: row.get(10)?,
+                target_import_context: row.get(11)?,
+                start_line: row.get(12)?,
+                start_byte: row.get(13)?,
+                end_byte: row.get(14)?,
+                confidence: row.get(15)?,
+            })
+        })?;
+        for row in rows {
+            out.push(row?);
+        }
     }
-    let sql = format!(
-        "SELECT pr.pending_relationship_id, pr.from_symbol_id, pr.caller_scope_symbol_id, \
-                pr.file_id, pr.path, f.language, pr.kind, pr.target_display_name, \
-                pr.target_terminal_name, pr.target_receiver, pr.target_namespace_json, \
-                pr.target_import_context, pr.start_line, pr.start_byte, pr.end_byte, \
-                pr.confidence \
-         FROM pending_relationships pr \
-         JOIN files f ON f.file_id = pr.file_id \
-         WHERE pr.file_id IN ({}) \
-           AND pr.pending_relationship_id NOT IN \
-               (SELECT pending_relationship_id FROM pending_resolutions) \
-         ORDER BY pr.pending_relationship_id",
-        placeholders(file_ids.len())
-    );
-    let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map(rusqlite::params_from_iter(file_ids.iter()), |row| {
-        Ok(PendingWorkItem {
-            pending_relationship_id: row.get(0)?,
-            from_symbol_id: row.get(1)?,
-            caller_scope_symbol_id: row.get(2)?,
-            file_id: row.get(3)?,
-            path: row.get(4)?,
-            language: row.get(5)?,
-            kind: row.get(6)?,
-            target_display_name: row.get(7)?,
-            target_terminal_name: row.get(8)?,
-            target_receiver: row.get(9)?,
-            target_namespace_json: row.get(10)?,
-            target_import_context: row.get(11)?,
-            start_line: row.get(12)?,
-            start_byte: row.get(13)?,
-            end_byte: row.get(14)?,
-            confidence: row.get(15)?,
-        })
-    })?;
-    rows.collect()
+    // Each chunk is ordered; the whole is not until the chunks are merged.
+    out.sort_by(|a, b| a.pending_relationship_id.cmp(&b.pending_relationship_id));
+    Ok(out)
 }
 
 fn placeholders(count: usize) -> String {
     vec!["?"; count].join(", ")
+}
+
+/// Paths whose EXISTENCE this revision changed — the only changes that can re-point a
+/// module specifier.
+///
+/// `updated` is excluded deliberately. `file_id` is `stable_id("file", [&path])`, so a
+/// rewrite leaves every candidate path exactly as it was and no specifier can select a
+/// different file; widening on it would pull in every importer of a module on every
+/// edit to that module, which is pure cost for a resolution that provably cannot move.
+/// `deleted` and `unsupported` both drop the `files` row, so both stop satisfying a
+/// candidate — they are structural even though only one is a user-visible delete.
+///
+/// Read from `revision_file_changes` rather than `files` because a removed file's row
+/// is already gone when the hook runs; the writer inserts this revision's row, path
+/// included, ahead of the hook inside the same transaction. Keyed on the
+/// `revision_id` primary-key prefix, so it never scans the whole history.
+fn structurally_changed_paths(
+    conn: &Connection,
+    revision: i64,
+    file_ids: &[&str],
+) -> rusqlite::Result<HashSet<String>> {
+    let mut paths = HashSet::new();
+    // One bind slot is spent on the revision, so this chunk is one narrower.
+    for chunk in file_ids.chunks(FILE_QUERY_CHUNK - 1) {
+        let sql = format!(
+            "SELECT path FROM revision_file_changes \
+             WHERE revision_id = ? AND change_kind IN ('inserted', 'deleted', 'unsupported') \
+               AND file_id IN ({})",
+            placeholders(chunk.len())
+        );
+        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(chunk.len() + 1);
+        params.push(&revision);
+        for id in chunk {
+            params.push(id);
+        }
+        let mut stmt = conn.prepare(&sql)?;
+        for row in stmt.query_map(params.as_slice(), |row| row.get::<_, String>(0))? {
+            paths.insert(row?);
+        }
+    }
+    Ok(paths)
 }
 
 /// Identifier ids whose overlay a co-located edge currently owns: a relationship
@@ -2687,10 +2801,15 @@ fn query_scoped_rows<T>(
 /// a receiver's resolved type), so the index-backed unions below are what make the
 /// delta scope reach the rows those tiers can flip. They read maps `load_index`
 /// already holds, so they cost no extra SQL.
+///
+/// The module-candidate union is not name-keyed at all: a specifier binds by path, so
+/// creating or deleting a file re-points every importer of it while changing no name
+/// the other unions can see.
 fn delta_scope_files(
     conn: &Connection,
     scope: &ResolutionScopeInput,
     index: &WorkspaceCandidateIndex,
+    revision: i64,
 ) -> rusqlite::Result<Vec<String>> {
     let names: Vec<&str> = scope
         .touched_symbol_names
@@ -2713,6 +2832,11 @@ fn delta_scope_files(
     }
     files.extend(index.files_declaring_type_named(&name_set));
     files.extend(index.files_importing_names(&name_set));
+
+    let changed_ids: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
+    let structural_paths = structurally_changed_paths(conn, revision, &changed_ids)?;
+    files.extend(index.files_importing_module_candidates(&structural_paths));
+
     Ok(files.into_iter().collect())
 }
 
@@ -2840,6 +2964,29 @@ impl IdentifierLocator {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// SQLite's default `SQLITE_MAX_VARIABLE_NUMBER` is 32,766. The delta fill sweep
+    /// binds one variable per file in the WIDENED scope, so an unchunked query fails
+    /// the prepare on a large workspace — after the source write has already committed.
+    #[test]
+    fn file_scoped_delta_queries_chunk_past_the_sqlite_variable_limit() {
+        let conn = Connection::open_in_memory().expect("in-memory artifact opens");
+        julie_extract_artifact::schema::create_schema(&conn).expect("schema creates");
+
+        let ids: Vec<String> = (0..40_000).map(|i| format!("file-{i}")).collect();
+        let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
+
+        assert!(
+            unresolved_pending_in_files(&conn, &refs)
+                .expect("chunked pending query runs")
+                .is_empty()
+        );
+        assert!(
+            structurally_changed_paths(&conn, 1, &refs)
+                .expect("chunked changed-path query runs")
+                .is_empty()
+        );
+    }
 
     // ---- builders -------------------------------------------------------
 

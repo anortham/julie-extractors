@@ -75,13 +75,37 @@ doing it. Soundness first is not tidiness; it is the precondition.
    caller at `:1566` passes the index built at `:1556`. Widening *inside* `delta_scope_files` is
    load-bearing: `scope_files` is the set the locator and covered-set are built from, and a file
    outside it makes `IdentifierLocator::locate` return `None` (`:2709`) and silently drops co-location.
-2. **Add the three missing by-files worklists** in `resolution_store.rs`, each via the existing
-   `chunked_by` helper (`:727`): `worklist_resolved_pending_in_files`,
-   `worklist_resolved_identifiers_in_files` (deliberately *without* the `target_symbol_id IS NOT NULL`
-   filter, matching the by-names recheck arm), and `worklist_unattempted_identifiers_in_files`
-   (`r.identifier_id IS NULL OR r.target_symbol_id IS NULL`, closing the frozen-NULL-target class).
+2. **Add the two missing by-files worklists** in `resolution_store.rs`, each via the existing
+   `chunked_by` helper (`:727`): `worklist_resolved_pending_in_files` and
+   `worklist_resolved_identifiers_in_files` — the latter deliberately *without* the
+   `target_symbol_id IS NOT NULL` filter, matching the by-names recheck arm.
+
+   *Revised during implementation.* The plan called for a third worklist,
+   `worklist_unattempted_identifiers_in_files` (`r.identifier_id IS NULL OR r.target_symbol_id IS
+   NULL`), to close the frozen-NULL-target class. It was not needed: dropping the `IS NOT NULL` filter
+   from the RECHECK arm already readmits every ambiguous/missing/no_context row in a scoped file, which
+   is the same set. `restored_receiver_type_uniqueness_matches_a_full_rederivation` is the case that
+   pins it — it fails on unmodified `main` and passes here. A third worklist would have been a second
+   path to the same rows.
 3. **Use them in `resolve_delta`** (`:1699-1806`), merging by-names and by-files results
    de-duplicated and re-sorted on the primary key, the same discipline `chunked_by` already uses.
+4. **Widen by module-candidate PATH, not only by name.** A third accessor,
+   `files_importing_module_candidates(&changed_paths)`, unions in every file whose relative specifiers
+   could bind to a path this write created or deleted. This is not a name-keyed union and cannot be
+   folded into one: module selection turns on which candidate path EXISTS
+   (`import_module_candidates` / `select_module_file`), so adding `src/util.ts` over `src/util/index.ts`
+   re-points `./util` for every importer while changing no symbol name any importer references. The
+   defect is only invisible when the shadowing file happens to export the same binding — which is
+   exactly what the first `module_shadowing_applied_by_a_delta` fixture did, and why the gate passed
+   while the class was still open.
+
+   Changed PATHS (not ids) are the key, and a deleted file's `files` row is already gone when the hook
+   runs, so `changed_file_paths` reads `files` for survivors and this revision's `revision_file_changes`
+   rows — written by the writer ahead of the hook, in the same transaction — for the removed ones.
+
+   This is **not** subsumed by Phase B's `structure_changed` condition below. That condition promotes
+   whole-repo *scans* to Full; the `update` and `delete` verbs are the delta path Miller drives in
+   steady state (`JulieExtractRunner.cs:619-637`) and never reach it.
 
 ### Phase B — let whole-repo scans scope (the speed win)
 
