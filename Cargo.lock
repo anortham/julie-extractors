@@ -475,6 +475,7 @@ version = "2.26.0"
 dependencies = [
  "blake3",
  "clap",
+ "getrandom",
  "ignore",
  "julie-extract-artifact",
  "julie-extractors",

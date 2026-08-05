@@ -6,14 +6,14 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use julie_extract_artifact::jsonl::{JSONL_SCHEMA_VERSION, export_jsonl, export_jsonl_to_path};
-use julie_extract_artifact::metadata::ArtifactMetadata;
+use julie_extract_artifact::metadata::{ArtifactMetadata, RebindMetadata};
 use julie_extract_artifact::model::{
     ArtifactFile, RevisionChangeKind, RevisionInput, WriteMode, WriteOperation,
     WritePhaseDurations, WriteResult,
 };
 use julie_extract_artifact::reports::{
-    ReportCode, ReportDiagnostic, ReportInput, ReportLanguageProfile, ReportMode, ReportOperation,
-    ReportProfile, ReportRevision, ReportStatus, RowDomainCounts,
+    RebindReport, ReportCode, ReportDiagnostic, ReportInput, ReportLanguageProfile, ReportMode,
+    ReportOperation, ReportProfile, ReportRevision, ReportStatus, RowDomainCounts,
 };
 use julie_extract_artifact::writer::{
     ArtifactFileSpool, ArtifactSpoolError, ArtifactWriteError, ArtifactWriter,
@@ -27,12 +27,13 @@ use serde_json::json;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::args::{
-    Cli, Command, DeleteArgs, ExportArgs, InfoArgs, LanguagesArgs, ScanArgs, UpdateArgs,
+    Cli, Command, DeleteArgs, ExportArgs, InfoArgs, LanguagesArgs, RebindArgs, ScanArgs, UpdateArgs,
 };
 use crate::artifact_access::{
     ExistingArtifact, artifact_report_from_connection, existing_artifact_for_root,
     file_row_attribution, jsonl_counts, latest_revision_id, load_existing_content_hashes,
-    open_artifact, open_artifact_for_info, open_artifact_for_root, table_totals,
+    open_artifact, open_artifact_for_info, open_artifact_for_rebind, open_artifact_for_root,
+    table_totals, write_rebind,
 };
 use crate::capability_snapshot::{
     artifact_capability_snapshot, current_capability_fingerprints, flags, kind_coverage_json,
@@ -88,6 +89,7 @@ fn run(cli: Cli) -> CommandOutcome {
         Command::Info(args) => info(args),
         Command::Export(args) => export(args),
         Command::Languages(args) => languages(args),
+        Command::Rebind(args) => rebind(args),
     }
 }
 
@@ -1023,6 +1025,164 @@ fn delete(args: DeleteArgs) -> CommandOutcome {
     };
 
     cleanup_delete(&db, &root, target, existing_artifact, args.json)
+}
+
+/// Retarget an artifact at a new root: a pure metadata rewrite, atomic, with no
+/// copying and no extraction.
+///
+/// Requesting the root the artifact already records is a success, not an error —
+/// a caller that cannot cheaply tell whether the copy it just made needs
+/// retargeting should be able to ask unconditionally — but it writes nothing at
+/// all, which is what `changed: false` reports.
+fn rebind(args: RebindArgs) -> CommandOutcome {
+    let root = match canonicalize_root(&args.root) {
+        Ok(root) => root,
+        Err(error) => {
+            return path_error_outcome(
+                error,
+                ReportOperation::Rebind,
+                ReportMode::Metadata,
+                args.json,
+            );
+        }
+    };
+    let db = match canonicalize_db_path(&args.db) {
+        Ok(db) => db,
+        Err(error) => {
+            return path_error_outcome(
+                error,
+                ReportOperation::Rebind,
+                ReportMode::Metadata,
+                args.json,
+            );
+        }
+    };
+    let input = artifact_input(&db, Some(&root), None, None);
+
+    let artifact =
+        match open_artifact_for_rebind(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
+            Ok(artifact) => artifact,
+            Err(error) => {
+                return outcome(
+                    base_report(
+                        ReportStatus::Failed,
+                        ReportOperation::Rebind,
+                        ReportMode::Metadata,
+                        input,
+                    )
+                    .with_error(error.diagnostic),
+                    error.exit_code,
+                    args.json,
+                    ReportStream::Stdout,
+                );
+            }
+        };
+
+    let revision = ReportRevision {
+        latest_revision_id: latest_revision_id(&artifact.connection),
+        created_revision_id: None,
+    };
+    let mut artifact_report = artifact.report;
+    let previous_root = artifact_report.root_path.clone();
+    let previous_artifact_id = artifact_report.artifact_id.clone();
+    let new_root = display_path(&root);
+    drop(artifact.connection);
+
+    if new_root == previous_root {
+        return outcome(
+            base_report(
+                ReportStatus::NoChange,
+                ReportOperation::Rebind,
+                ReportMode::Metadata,
+                input,
+            )
+            .with_artifact(artifact_report)
+            .with_revision(revision)
+            .with_rebind(RebindReport {
+                previous_root,
+                new_root,
+                previous_artifact_id: previous_artifact_id.clone(),
+                new_artifact_id: previous_artifact_id,
+                changed: false,
+            }),
+            0,
+            args.json,
+            ReportStream::Stdout,
+        );
+    }
+
+    let new_artifact_id = match rebound_artifact_id() {
+        Ok(artifact_id) => artifact_id,
+        Err(error) => {
+            return outcome(
+                base_report(
+                    ReportStatus::Failed,
+                    ReportOperation::Rebind,
+                    ReportMode::Metadata,
+                    input,
+                )
+                .with_error(diagnostic(
+                    ReportCode::InternalError,
+                    format!("a new artifact id could not be generated: {error}"),
+                    Some(display_path(&db)),
+                    None,
+                    true,
+                    json!({}),
+                )),
+                1,
+                args.json,
+                ReportStream::Stdout,
+            );
+        }
+    };
+    let rebound_at = now_rfc3339();
+
+    if let Err(error) = write_rebind(
+        &db,
+        &RebindMetadata {
+            previous_root: &previous_root,
+            previous_artifact_id: &previous_artifact_id,
+            new_root: &new_root,
+            new_artifact_id: &new_artifact_id,
+            rebound_at: &rebound_at,
+        },
+    ) {
+        return outcome(
+            base_report(
+                ReportStatus::Failed,
+                ReportOperation::Rebind,
+                ReportMode::Metadata,
+                input,
+            )
+            .with_error(error.diagnostic),
+            error.exit_code,
+            args.json,
+            ReportStream::Stdout,
+        );
+    }
+
+    artifact_report.root_path = new_root.clone();
+    artifact_report.artifact_id = new_artifact_id.clone();
+    outcome(
+        base_report(
+            ReportStatus::Ok,
+            ReportOperation::Rebind,
+            ReportMode::Metadata,
+            input,
+        )
+        .with_artifact(artifact_report)
+        .with_revision(revision)
+        .with_rebind(RebindReport {
+            previous_root,
+            new_root,
+            previous_artifact_id,
+            new_artifact_id,
+            changed: true,
+        }),
+        0,
+        args.json,
+        ReportStream::Stdout,
+    )
 }
 
 fn info(args: InfoArgs) -> CommandOutcome {
@@ -2346,6 +2506,21 @@ fn now_rfc3339() -> String {
     OffsetDateTime::now_utc()
         .format(&Rfc3339)
         .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
+}
+
+/// Mint the identity a rebound artifact carries from now on.
+///
+/// Random rather than clock-derived: two worktrees rebound from the same copy in
+/// the same nanosecond must not collide, and consumers key cache invalidation on
+/// `artifact_id` changing.
+fn rebound_artifact_id() -> Result<String, getrandom::Error> {
+    let mut bytes = [0u8; 16];
+    getrandom::fill(&mut bytes)?;
+    let hex = bytes
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    Ok(format!("artifact-{hex}"))
 }
 
 fn generated_artifact_id() -> String {

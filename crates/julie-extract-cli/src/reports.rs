@@ -3,8 +3,9 @@ use std::path::Path;
 
 use julie_extract_artifact::model::{ReferenceSiteConflicts, WriteResult};
 use julie_extract_artifact::reports::{
-    ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
-    ReportOperation, ReportProfile, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
+    ArtifactReport, RebindReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput,
+    ReportMode, ReportOperation, ReportProfile, ReportRevision, ReportStatus, RowDomainCounts,
+    ToolReport,
 };
 use julie_extract_artifact::resolution_store::ResolutionReportRow;
 use julie_extract_artifact::writer::{ArtifactSpoolError, ArtifactWriteError};
@@ -344,6 +345,7 @@ pub(crate) fn base_report(
         profile: None,
         errors: Vec::new(),
         warnings: Vec::new(),
+        rebind: None,
         languages: None,
         structural_fact_patterns: None,
     }
@@ -456,6 +458,7 @@ pub(crate) trait ReportBuilder {
     fn with_warning(self, warning: ReportDiagnostic) -> Self;
     fn with_languages(self, languages: Value) -> Self;
     fn with_structural_fact_patterns(self, structural_fact_patterns: Value) -> Self;
+    fn with_rebind(self, rebind: RebindReport) -> Self;
 }
 
 impl ReportBuilder for Report {
@@ -496,6 +499,11 @@ impl ReportBuilder for Report {
 
     fn with_structural_fact_patterns(mut self, structural_fact_patterns: Value) -> Self {
         self.structural_fact_patterns = Some(structural_fact_patterns);
+        self
+    }
+
+    fn with_rebind(mut self, rebind: RebindReport) -> Self {
+        self.rebind = Some(rebind);
         self
     }
 }

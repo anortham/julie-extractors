@@ -105,6 +105,55 @@ pub fn read_index_level(conn: &Connection) -> rusqlite::Result<Option<String>> {
     })
 }
 
+/// Additive `artifact_metadata` keys recording that this artifact was retargeted
+/// at a new root, and what it was retargeted from.
+///
+/// Deliberately absent from [`REQUIRED_METADATA_KEYS`] and
+/// [`ArtifactMetadata::rows`], same as the level and resolution keys: an artifact
+/// that was never rebound carries none of them, and a reader that does not know
+/// them reads the artifact exactly as before.
+pub const KEY_REBOUND_FROM_ROOT: &str = "rebound_from_root";
+pub const KEY_REBOUND_FROM_ARTIFACT_ID: &str = "rebound_from_artifact_id";
+pub const KEY_REBOUND_AT: &str = "rebound_at";
+
+/// The complete set of `artifact_metadata` values one rebind writes.
+pub struct RebindMetadata<'a> {
+    pub previous_root: &'a str,
+    pub previous_artifact_id: &'a str,
+    pub new_root: &'a str,
+    pub new_artifact_id: &'a str,
+    /// RFC3339 stamp shared by `updated_at` and `rebound_at`, so the two never
+    /// disagree about when the retarget happened.
+    pub rebound_at: &'a str,
+}
+
+/// Retarget an artifact's recorded root and identity, writing nothing else.
+///
+/// `created_at`, `binary_version`, both capability fingerprints, the resolution
+/// keys, `index_level`, and every data table are left untouched: a rebind states
+/// where the artifact now lives, not what it contains. Every statement runs on
+/// the caller's connection so the caller owns the transaction — an interrupted
+/// rebind rolls back to a metadata-identical artifact.
+pub fn apply_rebind(conn: &Connection, rebind: &RebindMetadata<'_>) -> rusqlite::Result<()> {
+    let mut statement = conn.prepare(
+        "INSERT INTO artifact_metadata (key, value) VALUES (?1, ?2) \
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )?;
+
+    for (key, value) in [
+        ("root_path", rebind.new_root),
+        ("artifact_id", rebind.new_artifact_id),
+        ("updated_at", rebind.rebound_at),
+        (KEY_REBOUND_FROM_ROOT, rebind.previous_root),
+        (KEY_REBOUND_FROM_ARTIFACT_ID, rebind.previous_artifact_id),
+        (KEY_REBOUND_AT, rebind.rebound_at),
+    ] {
+        statement.execute(params![key, value])?;
+    }
+
+    Ok(())
+}
+
 pub fn read_metadata(conn: &Connection) -> rusqlite::Result<BTreeMap<String, String>> {
     let mut statement = conn.prepare("SELECT key, value FROM artifact_metadata ORDER BY key")?;
     statement

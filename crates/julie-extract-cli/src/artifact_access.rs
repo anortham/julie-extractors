@@ -3,7 +3,8 @@ use std::path::Path;
 
 use julie_extract_artifact::jsonl::{JSONL_RECORD_KINDS, JSONL_SCHEMA_VERSION};
 use julie_extract_artifact::metadata::{
-    ArtifactMetadata, KEY_INDEX_LEVEL, REQUIRED_METADATA_KEYS, read_metadata,
+    ArtifactMetadata, KEY_INDEX_LEVEL, REQUIRED_METADATA_KEYS, RebindMetadata, apply_rebind,
+    read_metadata,
 };
 use julie_extract_artifact::reports::{
     ArtifactReport, ReportCode, ReportDiagnostic, ReportFileRows, RowDomainCounts,
@@ -13,6 +14,7 @@ use julie_extract_artifact::schema::{EXTRACT_CONTRACT_VERSION, SQLITE_SCHEMA_VER
 use rusqlite::{Connection, OpenFlags};
 use serde_json::json;
 
+use crate::capability_snapshot::current_capability_fingerprints;
 use crate::reports::{CommandError, command_error, diagnostic, display_path};
 use crate::resolution::RESOLUTION_VERSION;
 
@@ -314,6 +316,91 @@ pub(crate) fn open_artifact_for_root(
         ));
     }
     Ok(artifact)
+}
+
+/// Open an artifact for `rebind`: the version gate every other verb runs, plus
+/// the two refusals a retarget needs, and deliberately NOT the `RootMismatch`
+/// gate — pointing the artifact at a different root is what the verb is for.
+///
+/// The capability-fingerprint gate runs BEFORE the committed-revision gate: an
+/// artifact built by a different extractor is the more fundamental refusal, and
+/// a shell that fails both should name that reason rather than the emptier one.
+pub(crate) fn open_artifact_for_rebind(
+    db_path: &Path,
+    strict_schema: bool,
+    jsonl_schema_version: Option<i64>,
+) -> Result<OpenArtifact, CommandError> {
+    let artifact = open_artifact(db_path, strict_schema, jsonl_schema_version)?;
+    let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
+        current_capability_fingerprints();
+    if artifact.report.parser_inventory_fingerprint != parser_inventory_fingerprint
+        || artifact.report.capability_snapshot_fingerprint != capability_snapshot_fingerprint
+    {
+        return Err(command_error(
+            3,
+            ReportCode::FingerprintMismatch,
+            "artifact capability fingerprints do not match this binary",
+            Some(display_path(db_path)),
+            None,
+            false,
+            json!({
+                "artifact_parser_inventory_fingerprint": artifact.report.parser_inventory_fingerprint,
+                "expected_parser_inventory_fingerprint": parser_inventory_fingerprint,
+                "artifact_capability_snapshot_fingerprint": artifact.report.capability_snapshot_fingerprint,
+                "expected_capability_snapshot_fingerprint": capability_snapshot_fingerprint,
+                "action": "julie-extract scan",
+            }),
+        ));
+    }
+    if latest_revision_id(&artifact.connection).is_none() {
+        return Err(command_error(
+            3,
+            ReportCode::NoCommittedRevision,
+            "artifact carries no committed extraction revision",
+            Some(display_path(db_path)),
+            None,
+            true,
+            json!({"action": "julie-extract scan"}),
+        ));
+    }
+    Ok(artifact)
+}
+
+/// Commit a rebind's metadata retarget in ONE transaction.
+///
+/// Atomicity is the whole point: an interrupted rebind must leave the artifact
+/// either fully retargeted or metadata-identical, never half-renamed with a
+/// stale identity.
+pub(crate) fn write_rebind(
+    db_path: &Path,
+    rebind: &RebindMetadata<'_>,
+) -> Result<(), CommandError> {
+    let write_failed = |error: rusqlite::Error| {
+        command_error(
+            1,
+            ReportCode::DbWriteFailed,
+            format!("artifact rebind write failed: {error}"),
+            Some(display_path(db_path)),
+            None,
+            true,
+            json!({}),
+        )
+    };
+
+    let connection = Connection::open(db_path).map_err(|error| {
+        command_error(
+            1,
+            ReportCode::DbOpenFailed,
+            format!("could not open SQLite artifact for rebind: {error}"),
+            Some(display_path(db_path)),
+            None,
+            true,
+            json!({}),
+        )
+    })?;
+    let transaction = connection.unchecked_transaction().map_err(write_failed)?;
+    apply_rebind(&transaction, rebind).map_err(write_failed)?;
+    transaction.commit().map_err(write_failed)
 }
 
 fn check_versions(

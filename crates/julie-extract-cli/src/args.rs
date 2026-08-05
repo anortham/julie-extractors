@@ -21,6 +21,7 @@ pub enum Command {
     Info(InfoArgs),
     Export(ExportArgs),
     Languages(LanguagesArgs),
+    Rebind(RebindArgs),
 }
 
 #[derive(Debug, Args)]
@@ -121,6 +122,27 @@ pub struct DeleteArgs {
     /// File whose rows should be removed, as a path inside the root.
     #[arg(long)]
     pub file: PathBuf,
+    /// Fail instead of migrating when the artifact schema version is older.
+    #[arg(long)]
+    pub strict_schema: bool,
+    /// Emit the machine-readable JSON report on stdout.
+    #[arg(long)]
+    pub json: bool,
+}
+
+/// Retarget an artifact at a new source root.
+///
+/// Rewrites only the recorded root and identity metadata: nothing is copied and
+/// nothing is extracted. Run an ordinary `scan` afterwards to reconcile the new
+/// root.
+#[derive(Debug, Args)]
+pub struct RebindArgs {
+    /// Source root directory the artifact should be retargeted at.
+    #[arg(long)]
+    pub root: PathBuf,
+    /// Existing SQLite artifact path.
+    #[arg(long)]
+    pub db: PathBuf,
     /// Fail instead of migrating when the artifact schema version is older.
     #[arg(long)]
     pub strict_schema: bool,

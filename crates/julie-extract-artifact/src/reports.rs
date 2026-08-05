@@ -47,6 +47,11 @@ pub struct Report {
     pub errors: Vec<ReportDiagnostic>,
     pub warnings: Vec<ReportDiagnostic>,
     pub languages: Option<serde_json::Value>,
+    /// Additive `rebind` report section. Present only for the `rebind`
+    /// operation; serialized as the top-level `rebind` key when `Some` and
+    /// omitted entirely when `None`, so every other command's report shape is
+    /// byte-unchanged.
+    pub rebind: Option<RebindReport>,
     /// Additive `languages` report section: the structural-fact pattern
     /// registry payload. Present only when the command populates it (the
     /// `languages` command); serialized as the top-level `structural_fact_patterns`
@@ -62,6 +67,7 @@ impl Serialize for Report {
     {
         let field_count = 11
             + usize::from(self.profile.is_some())
+            + usize::from(self.rebind.is_some())
             + usize::from(self.languages.is_some())
             + usize::from(self.structural_fact_patterns.is_some());
         let mut state = serializer.serialize_struct("Report", field_count)?;
@@ -76,6 +82,9 @@ impl Serialize for Report {
         state.serialize_field("counts", &self.counts)?;
         if let Some(profile) = &self.profile {
             state.serialize_field("profile", profile)?;
+        }
+        if let Some(rebind) = &self.rebind {
+            state.serialize_field("rebind", rebind)?;
         }
         state.serialize_field("errors", &self.errors)?;
         state.serialize_field("warnings", &self.warnings)?;
@@ -120,6 +129,7 @@ pub enum ReportOperation {
     Info,
     Export,
     Languages,
+    Rebind,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -131,6 +141,21 @@ pub enum ReportMode {
     ReadOnly,
     Jsonl,
     CapabilitySnapshot,
+    /// A write that touches artifact metadata only, never extracted rows.
+    Metadata,
+}
+
+/// The `rebind` report section: what the artifact recorded before the retarget,
+/// what it records now, and whether anything was written at all.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RebindReport {
+    pub previous_root: String,
+    pub new_root: String,
+    pub previous_artifact_id: String,
+    pub new_artifact_id: String,
+    /// `false` when the requested root already matched the recorded one, which
+    /// succeeds without mutating a single metadata row.
+    pub changed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -385,10 +410,20 @@ pub enum ReportCode {
     /// scan is unaffected, but the leak protection the flag was adopted for is
     /// inert.
     SpoolLockUnavailable,
+    /// The artifact's recorded parser-inventory or capability-snapshot
+    /// fingerprint does not match the running binary's. Fatal for `rebind`: the
+    /// artifact was built by a different extractor, so retargeting it would
+    /// serve rows this binary would not produce. `details` carries the artifact
+    /// and expected fingerprints.
+    FingerprintMismatch,
+    /// The artifact carries no committed extraction revision, so it is a
+    /// metadata-only shell rather than an index. Fatal for `rebind`: there is
+    /// nothing to retarget.
+    NoCommittedRevision,
 }
 
 impl ReportCode {
-    pub const ALL: [Self; 26] = [
+    pub const ALL: [Self; 28] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -415,9 +450,11 @@ impl ReportCode {
         Self::ParentExited,
         Self::SpoolDirExcluded,
         Self::SpoolLockUnavailable,
+        Self::FingerprintMismatch,
+        Self::NoCommittedRevision,
     ];
 
-    pub const ERROR_CODES: [Self; 18] = [
+    pub const ERROR_CODES: [Self; 20] = [
         Self::UsageError,
         Self::InvalidPath,
         Self::FileOutsideRoot,
@@ -436,6 +473,8 @@ impl ReportCode {
         Self::ExportFailed,
         Self::InternalError,
         Self::ParentExited,
+        Self::FingerprintMismatch,
+        Self::NoCommittedRevision,
     ];
 
     /// Snake-case spelling of the code, identical to its JSON serialization.
@@ -467,6 +506,8 @@ impl ReportCode {
             Self::ParentExited => "parent_exited",
             Self::SpoolDirExcluded => "spool_dir_excluded",
             Self::SpoolLockUnavailable => "spool_lock_unavailable",
+            Self::FingerprintMismatch => "fingerprint_mismatch",
+            Self::NoCommittedRevision => "no_committed_revision",
         }
     }
 }

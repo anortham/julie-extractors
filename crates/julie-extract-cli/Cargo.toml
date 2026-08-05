@@ -42,6 +42,10 @@ workspace = true
 [dependencies]
 blake3 = "1.8"
 clap = { version = "4.5.53", features = ["derive"] }
+# Randomness for `rebind`'s new artifact_id. Already in the lock graph via
+# blake3 -> rand, and the OS entropy syscalls it wraps are out of reach of this
+# workspace's `unsafe_code = "forbid"` lint.
+getrandom = "0.4.2"
 ignore = "0.4"
 julie-extract-artifact = { path = "../julie-extract-artifact" }
 julie-extractors = { path = "../julie-extractors" }

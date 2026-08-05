@@ -122,6 +122,8 @@ fn every_v3_error_code_has_stable_serialized_spelling() {
             json!("export_failed"),
             json!("internal_error"),
             json!("parent_exited"),
+            json!("fingerprint_mismatch"),
+            json!("no_committed_revision"),
         ]
     );
 
@@ -327,6 +329,7 @@ fn sample_report(status: ReportStatus) -> Report {
         warnings: Vec::new(),
         profile: None,
         languages: None,
+        rebind: None,
         structural_fact_patterns: None,
     }
 }
