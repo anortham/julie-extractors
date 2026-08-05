@@ -1513,8 +1513,12 @@ pub const METHOD_TIER1: &str = "tier1_local";
 #[derive(Debug, Clone, PartialEq)]
 pub struct ResolutionReport {
     /// Aggregated per-language/per-tier/per-outcome counts (whole-artifact snapshot
-    /// taken at the end of the pass — the honest current resolution state).
-    pub rows: Vec<ResolutionReportRow>,
+    /// taken at the end of the pass — the honest current resolution state). `None`
+    /// on a scoped delta: the aggregate is an O(workspace) query, and recomputing it
+    /// per single-file update is what regressed the delta gate from 82 ms to 180 ms
+    /// (docs/findings/2026-08-05-single-file-delta-172ms-attribution.md). Durable
+    /// status/version/revision never depend on these rows.
+    pub rows: Option<Vec<ResolutionReportRow>>,
     /// Durable status: `complete` on a clean Full pass with no gated languages,
     /// `partial` after a Delta-only pass or when any processed language is
     /// tier-2-gated, `failed` when the hook errored (set by the CLI, not here).
@@ -1698,7 +1702,13 @@ fn run_resolution(
         )?;
     }
 
-    let rows = resolution_store::resolution_report(tx)?;
+    // The workspace-wide aggregate only runs on passes that re-derived the whole
+    // workspace; a scoped delta would pay O(workspace) for rows it did not change.
+    let rows = if effective_full {
+        Some(resolution_store::resolution_report(tx)?)
+    } else {
+        None
+    };
     // What makes the overlay current for the whole workspace is that every file was
     // hash-checked, NOT that resolution re-derived every row: a scoped pass over a
     // whole-corpus write reaches everything that moved, which is the property the
@@ -2649,9 +2659,11 @@ fn placeholders(count: usize) -> String {
 ///
 /// Measured by `resolution_perf::delta_scope_crossover_sweep`, which fails if this
 /// value promotes to Full later than the crossing it observes. On a 2,000-file / 92k
-/// identifier corpus a scoped pass runs at 0.27x Full for one changed file, 0.57x at a
-/// quarter of the corpus and 0.97x at 60%, then loses: 1.17x at 70%, 1.55x at the whole
-/// corpus. 0.6 is the last point where scoping still wins.
+/// identifier corpus (2026-08-05, after deltas stopped computing the workspace-wide
+/// report aggregate) a scoped pass runs at 0.07x Full for one changed file, 0.37x at a
+/// quarter of the corpus and 0.96x at 70%, then loses: 1.08x at 80%, 1.37x at the whole
+/// corpus. 0.7 is the last point where scoping still wins. (With the report still in
+/// every delta the crossing sat a band lower, at 60–70%.)
 ///
 /// The sweep must disable promotion to measure this — with it live, every point past
 /// the threshold times a Full pass and the measurement just echoes its own input, which
@@ -2659,7 +2671,7 @@ fn placeholders(count: usize) -> String {
 ///
 /// A wrong value here only ever converts a scoped pass into a Full one, so erring low
 /// costs time and never correctness.
-pub const DELTA_SCOPE_CROSSOVER: f64 = 0.6;
+pub const DELTA_SCOPE_CROSSOVER: f64 = 0.7;
 
 /// Whether a delta scope has widened far enough that Full is cheaper.
 ///
@@ -4613,7 +4625,7 @@ mod workspace_tests {
 
     fn report(status: ResolutionStatus, last_full_revision: i64) -> ResolutionReport {
         ResolutionReport {
-            rows: Vec::new(),
+            rows: None,
             status,
             version: RESOLUTION_VERSION,
             last_full_revision,

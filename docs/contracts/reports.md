@@ -317,6 +317,18 @@ Resolution). Those commands report it under the top-level `languages` key:
   `identifier`, `relationship`, and `pending_relationship`. Unresolved pending
   rows and never-attempted identifiers are included in the denominator.
 
+`totals`, `origin_totals`, and `by_language` are recomputed only by passes that
+re-derive the whole workspace (a full scan, a v3 backfill, or a delta promoted
+past the scope crossover). A scoped delta — including every single-file
+`update` — emits `null` for all three: the aggregation is an O(workspace)
+query, and recomputing it inside every incremental write transaction is what
+regressed single-file updates (see
+`docs/findings/2026-08-05-single-file-delta-172ms-attribution.md`). `null`
+means "not recomputed by this pass", never "zero rows"; consumers needing
+fresh aggregates after deltas should read the artifact or run a full scan.
+`status`, `version`, `last_full_revision`, `counts`, `gated_languages`, and
+`failed` are pass-derived and always present.
+
 `counts.rows_written` and `counts.totals` are exhaustive for SQLite schema v4
 row domains. Commands must emit every key with `0` when that row kind is not
 written or not present.

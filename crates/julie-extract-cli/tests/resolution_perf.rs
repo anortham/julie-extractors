@@ -69,13 +69,16 @@ const DELTA_DESIGN_TARGET: Duration = Duration::from_millis(100);
 // release-only speed. Headroom is deliberately generous (CI hosts are noisy),
 // mirroring `writer_perf.rs`'s soft-floor convention.
 //
-//   measured Full  : release 1247ms, debug 3820ms
-//   measured Delta : release   81ms, debug  ~250ms  (after the FINDING-1 fix below)
+//   measured Full  : release  805ms (2026-08-05; was 1247ms on 2026-07-06)
+//   measured Delta : release   51ms (2026-08-05; the historical 81ms figure was
+//                    84% workspace-wide `resolution_report` — see
+//                    docs/findings/2026-08-05-single-file-delta-172ms-attribution.md)
 //
-// The Delta pass now scopes its identifier locator + covered-set load to the files
-// the delta touches (an O(delta) load, since every co-location join is same-file),
-// so single-file Delta MEETS the 100ms design target (81ms release). The release
-// ceiling (150ms) is the measured 81ms × generous headroom for noisy CI hosts.
+// The Delta pass scopes its identifier locator + covered-set load to the files the
+// delta touches (an O(delta) load, since every co-location join is same-file) and
+// skips the O(workspace) report aggregate entirely, so single-file Delta MEETS the
+// 100ms design target (51ms release). The release ceiling (150ms) keeps generous
+// headroom over the measured 51ms for noisy CI hosts.
 const FULL_CEIL_RELEASE: Duration = Duration::from_millis(2_000);
 const FULL_CEIL_DEBUG: Duration = Duration::from_millis(8_000);
 const DELTA_CEIL_RELEASE: Duration = Duration::from_millis(150);
@@ -120,7 +123,12 @@ fn full_resolve_is_within_budget_at_scale() {
     let elapsed = started.elapsed();
     tx.commit().unwrap();
 
-    let outcomes = OutcomeTotals::from_rows(&report.rows);
+    let outcomes = OutcomeTotals::from_rows(
+        report
+            .rows
+            .as_deref()
+            .expect("a full pass carries the aggregate rows"),
+    );
     println!(
         "resolution_perf: FULL resolve {} ms | identifiers={} pending={} | overlay writes: \
          identifier_resolutions={} pending_resolutions={} | outcomes: resolved={} ambiguous={} \
@@ -326,11 +334,12 @@ fn single_file_delta_is_within_budget() {
         DELTA_DESIGN_TARGET.as_secs_f64() / elapsed.as_secs_f64().max(1e-9),
     );
 
-    // Soft check against the design target. Since the FINDING-1 fix the delta pass
-    // scopes its identifier locator + covered-set load to the touched files (O(delta),
-    // not O(workspace)), so single-file delta measures ~81ms release — it MEETS the
-    // 100ms target. Debug builds run ~3x slower and may exceed it; that is expected
-    // and only noted. The hard gate is the regression ceiling below.
+    // Soft check against the design target. The delta pass scopes its identifier
+    // locator + covered-set load to the touched files (O(delta), not O(workspace))
+    // and skips the workspace-wide report aggregate, so single-file delta measures
+    // ~51ms release — it MEETS the 100ms target. Debug builds run ~3x slower and may
+    // exceed it; that is expected and only noted. The hard gate is the regression
+    // ceiling below.
     if elapsed < DELTA_DESIGN_TARGET {
         println!(
             "resolution_perf: DELTA {elapsed:?} MEETS the {DELTA_DESIGN_TARGET:?} design target \
@@ -355,27 +364,17 @@ fn single_file_delta_is_within_budget() {
 
     // Hard gate: measurement-derived regression ceiling (profile-aware).
     //
-    // KNOWN RED as of 2026-08-05, and NOT from the change that surfaced it. This file
-    // stopped compiling when `reference_sites` became a NOT NULL FK on identifiers,
-    // relationships and pending_relationships, so the gate enforced nothing until the
-    // fixture was repaired. Measured the moment it ran again, release, same seed:
-    //
-    //   a8dc664 (main, before the delta-soundness branch)  172 ms
-    //   241c842 (delta soundness, tiers 2/3)               175 ms
-    //   + module-candidate widening and scan scoping       179 ms
-    //
-    // So ~22 ms of the overrun predates the branch entirely and the note above about
-    // ~81 ms is stale. Left failing on purpose: the ceiling is a real target and the
-    // pass really is over it. Fix the pass, or re-baseline deliberately with the
-    // measurement that justifies it — do not relax it to get a green run.
-    //
-    // ROOT CAUSE (2026-08-05, bisected — see
-    // docs/findings/2026-08-05-single-file-delta-172ms-attribution.md): the timed pass
-    // ends with the workspace-wide `resolution_report` aggregate, which was 69 ms of the
-    // original 82 ms and 131 ms of the 180 ms here. 6941e05 rewrote it over the base
-    // tables (82 -> 146 ms in one commit); the reference-sites era doubled the real
-    // delta work (~18 -> ~49 ms). True delta resolution has never been near the ceiling
-    // — the fix is moving the report off the delta path, not relaxing this gate.
+    // This gate was RED at 172–180 ms on 2026-08-05 after the fixture repair let it run
+    // again (it had been dead since `reference_sites` became a NOT NULL FK the seed did
+    // not satisfy). Bisected root cause — see
+    // docs/findings/2026-08-05-single-file-delta-172ms-attribution.md: the timed pass
+    // ended with the workspace-wide `resolution_report` aggregate (69 ms of the original
+    // 82 ms figure, 131 ms of the red 180 ms); 6941e05's report rewrite over the base
+    // tables was the single-commit 82 -> 146 ms jump, and the reference-sites era
+    // doubled the real delta work (~18 -> ~49 ms). Deltas no longer compute the
+    // aggregate (`ResolutionReport::rows` is `None` on a scoped pass), so this gate now
+    // times actual delta resolution. If it goes red again, that is a real delta-path
+    // regression — bisect it; do not relax the ceiling to get a green run.
     let ceil = ceiling(DELTA_CEIL_RELEASE, DELTA_CEIL_DEBUG);
     assert!(
         elapsed < ceil,

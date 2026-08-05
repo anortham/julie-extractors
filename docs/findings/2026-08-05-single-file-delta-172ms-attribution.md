@@ -76,3 +76,19 @@ Fix, do not re-baseline. Ordered:
 
 Not verified: the exact sub-split of the site-era +23 ms (write maintenance vs wider scans), and
 report-query cost at 10M-identifier scale (extrapolated, not measured).
+
+## Outcome (fixed on this branch, same day)
+
+Recommendation 1 landed: `ResolutionReport::rows` is `Option<Vec<_>>`, computed only on passes
+that re-derive the whole workspace (full scan, v3 backfill, crossover-promoted delta); a scoped
+delta returns `None` and the JSON report section renders `totals`/`origin_totals`/`by_language`
+as `null` ("not recomputed", never "zero") — contract updated in `docs/contracts/reports.md`.
+Durable metadata (`status`/`version`/`last_full_revision`) is pass-derived and unchanged.
+
+Measured after the fix (same machine/toolchain/seed): **single-file delta 51 ms** (gate green,
+2.0x headroom under the 100 ms design target; ceiling untouched at 150 ms). The crossover curve
+also dropped: scoped deltas now cross Full at 70–80% of the corpus (0.96x at 70%, 1.08x at 80%),
+so `DELTA_SCOPE_CROSSOVER` moved 0.6 → 0.7 under the same one-sided
+budgets-move-to-measurement rule that set 0.6.
+
+Recommendation 2 (site-era overlay-write cost, ~49 ms real delta work) remains open and bounded.

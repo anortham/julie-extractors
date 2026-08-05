@@ -6,6 +6,7 @@ use julie_extract_artifact::reports::{
     ArtifactReport, Report, ReportCode, ReportCounts, ReportDiagnostic, ReportInput, ReportMode,
     ReportOperation, ReportProfile, ReportRevision, ReportStatus, RowDomainCounts, ToolReport,
 };
+use julie_extract_artifact::resolution_store::ResolutionReportRow;
 use julie_extract_artifact::writer::{ArtifactSpoolError, ArtifactWriteError};
 use serde_json::{Value, json};
 
@@ -653,20 +654,13 @@ pub(crate) fn resolution_report_section(
         return None;
     }
     let counts = &write_result.resolution.counts;
-    let (status, version, last_full_revision, gated, by_language, totals, origin_totals) =
-        match report {
-            Some(report) => (
-                report.status.as_str().to_string(),
-                report.version,
-                report.last_full_revision,
-                report
-                    .tier2_gated_languages
-                    .iter()
-                    .cloned()
-                    .collect::<Vec<_>>(),
-                report
-                    .rows
-                    .iter()
+    // A scoped delta carries no aggregate rows (`ResolutionReport::rows` is `None`):
+    // the three whole-artifact aggregates render as JSON null rather than as empty
+    // (which would read as "zero rows in the artifact").
+    let aggregates = |rows: Option<&Vec<ResolutionReportRow>>| match rows {
+        Some(rows) => (
+            Value::Array(
+                rows.iter()
                     .map(|row| {
                         json!({
                             "language": row.language,
@@ -680,42 +674,50 @@ pub(crate) fn resolution_report_section(
                             "count": row.count,
                         })
                     })
-                    .collect::<Vec<_>>(),
-                resolution_totals(&report.rows, None),
-                report
-                    .rows
-                    .iter()
+                    .collect(),
+            ),
+            resolution_totals(rows, None),
+            Value::Object(
+                rows.iter()
                     .map(|row| row.origin.as_str())
                     .collect::<std::collections::BTreeSet<_>>()
                     .into_iter()
-                    .map(|origin| {
-                        (
-                            origin.to_string(),
-                            resolution_totals(&report.rows, Some(origin)),
-                        )
-                    })
-                    .collect::<serde_json::Map<_, _>>(),
+                    .map(|origin| (origin.to_string(), resolution_totals(rows, Some(origin))))
+                    .collect(),
             ),
-            None => (
-                "failed".to_string(),
-                0,
-                0,
-                Vec::new(),
-                Vec::new(),
-                json!({
-                    "total": 0,
-                    "attempted": 0,
-                    "resolved": 0,
-                    "ambiguous": 0,
-                    "missing": 0,
-                    "no_context": 0,
-                    "unresolved_pending": 0,
-                    "unattempted": 0,
-                    "span_present": 0,
-                    "span_missing": 0,
-                }),
-                serde_json::Map::new(),
-            ),
+        ),
+        None => (Value::Null, Value::Null, Value::Null),
+    };
+    let (status, version, last_full_revision, gated, by_language, totals, origin_totals) =
+        match report {
+            Some(report) => {
+                let (by_language, totals, origin_totals) = aggregates(report.rows.as_ref());
+                (
+                    report.status.as_str().to_string(),
+                    report.version,
+                    report.last_full_revision,
+                    report
+                        .tier2_gated_languages
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>(),
+                    by_language,
+                    totals,
+                    origin_totals,
+                )
+            }
+            None => {
+                let (by_language, totals, origin_totals) = aggregates(Some(&Vec::new()));
+                (
+                    "failed".to_string(),
+                    0,
+                    0,
+                    Vec::new(),
+                    by_language,
+                    totals,
+                    origin_totals,
+                )
+            }
         };
     Some(json!({
         "reference_resolution": {
@@ -973,5 +975,49 @@ mod tests {
             human_report(&report),
             "failed\nunsupported_format: export format is not supported\n"
         );
+    }
+
+    fn resolution_report_with_rows(
+        rows: Option<Vec<ResolutionReportRow>>,
+        status: julie_extract_artifact::resolution_store::ResolutionStatus,
+    ) -> ResolutionReport {
+        ResolutionReport {
+            rows,
+            status,
+            version: crate::resolution::RESOLUTION_VERSION,
+            last_full_revision: 7,
+            tier2_gated_languages: std::collections::BTreeSet::new(),
+        }
+    }
+
+    #[test]
+    fn delta_section_renders_null_aggregates_not_zeroes() {
+        let report = resolution_report_with_rows(
+            None,
+            julie_extract_artifact::resolution_store::ResolutionStatus::Partial,
+        );
+        let section = resolution_report_section(Some(&report), &WriteResult::default())
+            .expect("section present");
+        let section = &section["reference_resolution"];
+        assert!(section["totals"].is_null());
+        assert!(section["origin_totals"].is_null());
+        assert!(section["by_language"].is_null());
+        assert_eq!(section["status"], "partial");
+        assert_eq!(section["last_full_revision"], 7);
+    }
+
+    #[test]
+    fn full_section_renders_aggregates_even_when_empty() {
+        let report = resolution_report_with_rows(
+            Some(Vec::new()),
+            julie_extract_artifact::resolution_store::ResolutionStatus::Complete,
+        );
+        let section = resolution_report_section(Some(&report), &WriteResult::default())
+            .expect("section present");
+        let section = &section["reference_resolution"];
+        assert!(section["totals"].is_object());
+        assert!(section["origin_totals"].is_object());
+        assert!(section["by_language"].is_array());
+        assert_eq!(section["totals"]["total"], 0);
     }
 }
