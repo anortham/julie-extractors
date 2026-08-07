@@ -30,7 +30,7 @@ use crate::args::{
     Cli, Command, DeleteArgs, ExportArgs, InfoArgs, LanguagesArgs, RebindArgs, ScanArgs, UpdateArgs,
 };
 use crate::artifact_access::{
-    ExistingArtifact, artifact_report_from_connection, existing_artifact_for_root,
+    ArtifactAccess, ExistingArtifact, artifact_report_from_connection, existing_artifact_for_root,
     file_row_attribution, jsonl_counts, latest_revision_id, load_existing_content_hashes,
     open_artifact, open_artifact_for_info, open_artifact_for_rebind, open_artifact_for_root,
     table_totals, write_rebind,
@@ -288,7 +288,12 @@ fn scan_collecting_warnings(
     controls.enter_phase("force_metadata");
     let mut force_existing_level = None;
     let force_existing_metadata = if args.force && db.exists() {
-        match open_artifact(&db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
+        match open_artifact(
+            &db,
+            args.strict_schema,
+            Some(JSONL_SCHEMA_VERSION),
+            ArtifactAccess::Write,
+        ) {
             Ok(artifact) if artifact.report.root_path == display_path(&root) => {
                 previous_resolution_version = artifact.reference_resolution_version;
                 resolution_upgrade_required = artifact.reference_resolution_version
@@ -298,6 +303,19 @@ fn scan_collecting_warnings(
                     force_existing_level = Some(artifact.index_level.clone());
                 }
                 Some(artifact.write_metadata)
+            }
+            // A force scan treats an artifact it cannot reuse as one to rebuild from
+            // scratch, but an older schema is the one refusal it must not swallow:
+            // the rebuild writes in place whenever the root still matches, which is
+            // exactly the case that would stamp the current version onto older DDL.
+            Err(error) if error.diagnostic.code == ReportCode::SchemaMigrationRequired => {
+                return outcome(
+                    base_report(ReportStatus::Failed, ReportOperation::Scan, mode, input)
+                        .with_error(error.diagnostic),
+                    error.exit_code,
+                    args.json,
+                    ReportStream::Stdout,
+                );
             }
             Ok(_) | Err(_) => None,
         }
@@ -1267,7 +1285,12 @@ fn export(args: ExportArgs) -> CommandOutcome {
         return outcome(report, 1, args.json, ReportStream::Stdout);
     }
 
-    match open_artifact(&args.db, args.strict_schema, Some(JSONL_SCHEMA_VERSION)) {
+    match open_artifact(
+        &args.db,
+        args.strict_schema,
+        Some(JSONL_SCHEMA_VERSION),
+        ArtifactAccess::Read,
+    ) {
         Ok(artifact) => {
             let export_result = if args.out == Path::new("-") {
                 let stdout = io::stdout();

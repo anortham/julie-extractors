@@ -18,6 +18,20 @@ use crate::capability_snapshot::current_capability_fingerprints;
 use crate::reports::{CommandError, command_error, diagnostic, display_path};
 use crate::resolution::RESOLUTION_VERSION;
 
+/// Whether the caller opens the artifact to read it or to write into it.
+///
+/// A write into an artifact older than this binary's schema is unsafe no matter
+/// what the caller asked for: `CREATE TABLE IF NOT EXISTS` leaves the older DDL
+/// in place while the writer upserts `sqlite_schema_version` to the current
+/// value, so the artifact ends up stamped new with an old shape and columns the
+/// current code never writes again. Reads of an older artifact are merely
+/// degraded, which is why `--strict-schema` still governs them.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ArtifactAccess {
+    Read,
+    Write,
+}
+
 pub(crate) struct OpenArtifact {
     pub(crate) connection: Connection,
     pub(crate) report: ArtifactReport,
@@ -89,6 +103,7 @@ pub(crate) fn open_artifact(
     db_path: &Path,
     strict_schema: bool,
     jsonl_schema_version: Option<i64>,
+    access: ArtifactAccess,
 ) -> Result<OpenArtifact, CommandError> {
     let connection = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(|error| {
@@ -114,7 +129,7 @@ pub(crate) fn open_artifact(
             json!({}),
         )
     })?;
-    check_versions(&metadata, strict_schema)?;
+    check_versions(&metadata, strict_schema, access)?;
     let resolution_metadata = read_resolution_metadata(&connection).ok().flatten();
     let reference_resolution_version = resolution_metadata
         .as_ref()
@@ -185,7 +200,7 @@ pub(crate) fn open_artifact_for_info(
             json!({}),
         )
     })?;
-    check_versions(&metadata, strict_schema)?;
+    check_versions(&metadata, strict_schema, ArtifactAccess::Read)?;
     let report = artifact_report(db_path, &metadata, jsonl_schema_version)?;
     let warnings = missing_metadata_warnings(&metadata);
     Ok(OpenInfoArtifact {
@@ -255,7 +270,12 @@ pub(crate) fn existing_artifact_for_root(
         return Ok(None);
     }
 
-    let artifact = open_artifact(db_path, strict_schema, jsonl_schema_version)?;
+    let artifact = open_artifact(
+        db_path,
+        strict_schema,
+        jsonl_schema_version,
+        ArtifactAccess::Write,
+    )?;
     if artifact.report.root_path != display_path(root) {
         return Err(command_error(
             3,
@@ -300,7 +320,12 @@ pub(crate) fn open_artifact_for_root(
     jsonl_schema_version: Option<i64>,
     root: &Path,
 ) -> Result<OpenArtifact, CommandError> {
-    let artifact = open_artifact(db_path, strict_schema, jsonl_schema_version)?;
+    let artifact = open_artifact(
+        db_path,
+        strict_schema,
+        jsonl_schema_version,
+        ArtifactAccess::Write,
+    )?;
     if artifact.report.root_path != display_path(root) {
         return Err(command_error(
             3,
@@ -330,7 +355,12 @@ pub(crate) fn open_artifact_for_rebind(
     strict_schema: bool,
     jsonl_schema_version: Option<i64>,
 ) -> Result<OpenArtifact, CommandError> {
-    let artifact = open_artifact(db_path, strict_schema, jsonl_schema_version)?;
+    let artifact = open_artifact(
+        db_path,
+        strict_schema,
+        jsonl_schema_version,
+        ArtifactAccess::Write,
+    )?;
     let (parser_inventory_fingerprint, capability_snapshot_fingerprint) =
         current_capability_fingerprints();
     if artifact.report.parser_inventory_fingerprint != parser_inventory_fingerprint
@@ -480,6 +510,7 @@ fn recorded_metadata_value(connection: &Connection, key: &str) -> rusqlite::Resu
 fn check_versions(
     metadata: &BTreeMap<String, String>,
     strict_schema: bool,
+    access: ArtifactAccess,
 ) -> Result<(), CommandError> {
     let sqlite_schema_version = metadata_i64(metadata, "sqlite_schema_version")?;
     let schema_version = metadata_i64(metadata, "schema_version")?;
@@ -500,7 +531,7 @@ fn check_versions(
             }),
         ));
     }
-    if strict_schema
+    if (strict_schema || access == ArtifactAccess::Write)
         && (sqlite_schema_version != SQLITE_SCHEMA_VERSION
             || schema_version != SQLITE_SCHEMA_VERSION)
     {
