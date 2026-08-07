@@ -82,20 +82,6 @@ pub(super) mod writer_prepare_metrics {
     }
 }
 
-const DROP_SYMBOL_LOOKUP_TEMP_TABLE_SQL: &str =
-    "DROP TABLE IF EXISTS temp.julie_symbol_lookup_requested";
-const CREATE_SYMBOL_LOOKUP_TEMP_TABLE_SQL: &str = "
-CREATE TEMP TABLE julie_symbol_lookup_requested (
-    symbol_id TEXT PRIMARY KEY
-) WITHOUT ROWID
-";
-/// Maximum rows per multi-row `INSERT` when bulk-loading the symbol-lookup
-/// temp table (one column per row). The effective chunk is capped at the
-/// connection's runtime `SQLITE_LIMIT_VARIABLE_NUMBER` so a low limit never
-/// blows the host-parameter budget. The full-chunk SQL is stable for a given
-/// limit, so `prepare_cached` reuses one compiled statement.
-const SYMBOL_LOOKUP_REQUESTED_MAX_CHUNK: usize = 500;
-
 /// Maximum rows per multi-row `INSERT` for `structural_facts` (16 columns per
 /// row). The effective chunk is `min(this, variable_limit / 16)`, so a low
 /// runtime limit (the writer-contract test sets 64) is always honored. Only
@@ -178,17 +164,16 @@ impl<'tx> FileRowInserters<'tx> {
     pub(super) fn insert_symbols(
         &mut self,
         file: &ArtifactFile,
-        parent_lookup: Option<&SymbolLookup>,
+        parents: ParentBinding,
     ) -> rusqlite::Result<i64> {
-        insert_symbol_rows(&mut self.symbols, file, parent_lookup)
+        insert_symbol_rows(&mut self.symbols, file, parents)
     }
 
     pub(super) fn update_symbol_parents<'a>(
         &mut self,
         files: impl IntoIterator<Item = &'a ArtifactFile>,
-        symbol_lookup: &SymbolLookup,
     ) -> rusqlite::Result<()> {
-        update_symbol_parent_rows(&mut self.symbol_parent_update, files, symbol_lookup)
+        update_symbol_parent_rows(&mut self.symbol_parent_update, files)
     }
 }
 
@@ -339,9 +324,9 @@ impl<'tx> ChildRowInserters<'tx> {
     pub(super) fn insert_child_rows(
         &mut self,
         file: &ArtifactFile,
-        symbol_lookup: &SymbolLookup,
         counts: &mut RowCounts,
     ) -> rusqlite::Result<()> {
+        let symbol_lookup = &SymbolLookup::from_file(file);
         counts.symbol_annotations +=
             insert_symbol_annotations(&mut self.symbol_annotations, file, symbol_lookup)?;
         counts.reference_sites += insert_reference_sites(
@@ -481,13 +466,15 @@ pub(super) fn replace_parse_diagnostics(
 fn insert_symbol_rows(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
-    parent_lookup: Option<&SymbolLookup>,
+    parents: ParentBinding,
 ) -> rusqlite::Result<i64> {
+    let parent_lookup = match parents {
+        ParentBinding::ResolvedInFile => Some(SymbolLookup::from_file(file)),
+        ParentBinding::Deferred => None,
+    };
     for symbol in &file.symbols {
-        // When a lookup is supplied (spooled path), resolve parent_symbol_id inline so the
-        // separate parent UPDATE pass is unnecessary. Without one (in-memory path), bind NULL and
-        // let update_symbol_parents resolve it afterward — identical to the prior NULL literal.
         let parent = parent_lookup
+            .as_ref()
             .and_then(|lookup| valid_symbol_id(lookup, symbol.parent_symbol_id.as_deref()));
         stmt.execute(params![
             symbol.symbol_id,
@@ -529,9 +516,9 @@ fn insert_symbol_rows(
 fn update_symbol_parent_rows<'a>(
     parent_update: &mut CachedStatement<'_>,
     files: impl IntoIterator<Item = &'a ArtifactFile>,
-    symbol_lookup: &SymbolLookup,
 ) -> rusqlite::Result<()> {
     for file in files {
+        let symbol_lookup = SymbolLookup::from_file(file);
         for symbol in &file.symbols {
             if let Some(parent_symbol_id) = symbol.parent_symbol_id.as_deref()
                 && symbol_lookup.contains(parent_symbol_id)
@@ -546,7 +533,7 @@ fn update_symbol_parent_rows<'a>(
 fn insert_symbol_annotations(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
     for annotation in &file.symbol_annotations {
@@ -671,7 +658,7 @@ fn record_reference_site_conflict(
 fn insert_reference_sites(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
     conflicts: &mut ReferenceSiteConflicts,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
@@ -840,13 +827,11 @@ fn insert_reference_sites(
 fn insert_identifiers(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
-    // Resolve the symbol FKs inline at INSERT time. symbol_lookup is fully populated before any
-    // child rows are written (all symbols for all files are inserted first), so the second
-    // UPDATE pass that older revisions used was pure overhead — one extra statement per
-    // identifier plus double index maintenance on idx_identifiers_containing/target. Unresolved
-    // references bind as SQL NULL via valid_symbol_id, identical to the prior NULL columns.
+    // Every symbol row of this file exists before its child rows are written, so the FKs bind
+    // inline; the second UPDATE pass older revisions ran cost one extra statement per identifier
+    // plus double index maintenance on idx_identifiers_containing/target.
     for identifier in &file.identifiers {
         let containing = valid_symbol_id(symbol_lookup, identifier.containing_symbol_id.as_deref());
         let target = valid_symbol_id(symbol_lookup, identifier.target_symbol_id.as_deref());
@@ -878,7 +863,7 @@ fn insert_identifiers(
 fn insert_relationships(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
     for relationship in &file.relationships {
@@ -910,7 +895,7 @@ fn insert_relationships(
 fn insert_pending_relationships(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
     for pending in &file.pending_relationships {
@@ -946,7 +931,7 @@ fn insert_pending_relationships(
 
 fn relationship_is_insertable(
     relationship: &ArtifactRelationship,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> bool {
     symbol_lookup.contains(&relationship.from_symbol_id)
         && symbol_lookup.contains(&relationship.to_symbol_id)
@@ -954,7 +939,7 @@ fn relationship_is_insertable(
 
 fn pending_relationship_is_insertable(
     pending: &ArtifactPendingRelationship,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> bool {
     symbol_lookup.contains(&pending.from_symbol_id)
 }
@@ -962,7 +947,7 @@ fn pending_relationship_is_insertable(
 fn insert_type_facts(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0;
     for fact in &file.type_facts {
@@ -1032,7 +1017,7 @@ fn insert_type_arguments(
 fn insert_literals(
     stmt: &mut CachedStatement<'_>,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     for literal in &file.literals {
         stmt.execute(params![
@@ -1063,7 +1048,7 @@ fn insert_source_regions(
     multi: &mut CachedStatement<'_>,
     chunk_size: usize,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0i64;
     let mut chunk_rows: Vec<&ArtifactSourceRegion> = Vec::with_capacity(256);
@@ -1108,7 +1093,7 @@ fn insert_structural_facts(
     chunk_size: usize,
     seen_ids: &mut HashSet<String>,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0i64;
     // Buffer capacity is bounded independently of the flush threshold so a
@@ -1361,7 +1346,7 @@ fn insert_complexity_metrics(
     multi: &mut CachedStatement<'_>,
     chunk_size: usize,
     file: &ArtifactFile,
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
     let mut inserted = 0i64;
     let mut chunk_rows: Vec<&ArtifactComplexityMetric> = Vec::with_capacity(256);
@@ -1441,33 +1426,40 @@ fn insert_parse_diagnostics_rows(
     Ok(file.parse_diagnostics.len() as i64)
 }
 
-#[derive(Default)]
-pub(super) struct SymbolLookup {
-    pub(super) ids: HashSet<String>,
+/// The symbol ids one file owns.
+///
+/// Extraction-table rows resolve their symbol FKs against the file they were
+/// extracted from and nothing else, so extracting a file in isolation writes the
+/// same rows as extracting it beside the whole repository. Cross-file targets are
+/// the resolution store's job, not the extraction pass's.
+pub(super) struct SymbolLookup<'a> {
+    ids: HashSet<&'a str>,
 }
 
-impl SymbolLookup {
+impl<'a> SymbolLookup<'a> {
+    fn from_file(file: &'a ArtifactFile) -> Self {
+        Self {
+            ids: file
+                .symbols
+                .iter()
+                .map(|symbol| symbol.symbol_id.as_str())
+                .collect(),
+        }
+    }
+
     fn contains(&self, symbol_id: &str) -> bool {
         self.ids.contains(symbol_id)
     }
 }
 
-pub(super) fn load_symbol_lookup<'a>(
-    tx: &Transaction<'_>,
-    files: impl IntoIterator<Item = &'a ArtifactFile>,
-) -> rusqlite::Result<SymbolLookup> {
-    let mut requested = HashSet::new();
-    let mut local_symbols = HashSet::new();
-    for file in files {
-        collect_requested_symbol_ids(file, &mut requested);
-        collect_file_symbol_ids(file, &mut local_symbols);
-    }
-
-    load_symbol_lookup_for_requested_ids(tx, &requested, &local_symbols)
-}
-
-pub(super) fn collect_file_symbol_ids(file: &ArtifactFile, ids: &mut HashSet<String>) {
-    ids.extend(file.symbols.iter().map(|symbol| symbol.symbol_id.clone()));
+/// Whether `insert_symbols` binds `parent_symbol_id` as it writes each row.
+///
+/// A file may list a child before its parent, so inline binding needs a
+/// transaction that defers foreign keys (the spooled path). Elsewhere the column
+/// binds NULL and `update_symbol_parents` fills it once every symbol row exists.
+pub(super) enum ParentBinding {
+    Deferred,
+    ResolvedInFile,
 }
 
 pub(super) fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut HashSet<String>) {
@@ -1522,94 +1514,8 @@ pub(super) fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut 
     }
 }
 
-fn insert_symbol_lookup_requested(
-    tx: &Transaction<'_>,
-    requested: &[String],
-) -> rusqlite::Result<()> {
-    let chunk_size = symbol_lookup_requested_chunk_size(tx)?;
-    let full_sql = symbol_lookup_requested_insert_sql(chunk_size);
-    for chunk in requested.chunks(chunk_size) {
-        let params: Vec<&str> = chunk.iter().map(String::as_str).collect();
-        if chunk.len() == chunk_size {
-            let mut stmt = tx.prepare_cached(&full_sql)?;
-            stmt.execute(params_from_iter(params))?;
-        } else {
-            let sql = symbol_lookup_requested_insert_sql(chunk.len());
-            tx.execute(&sql, params_from_iter(params))?;
-        }
-    }
-    Ok(())
-}
-
-fn symbol_lookup_requested_chunk_size(tx: &Transaction<'_>) -> rusqlite::Result<usize> {
-    let limit = tx.limit(Limit::SQLITE_LIMIT_VARIABLE_NUMBER)?.max(1) as usize;
-    Ok(SYMBOL_LOOKUP_REQUESTED_MAX_CHUNK.min(limit))
-}
-
-fn symbol_lookup_requested_insert_sql(rows: usize) -> String {
-    let placeholders = std::iter::repeat_n("(?)", rows)
-        .collect::<Vec<_>>()
-        .join(",");
-    format!(
-        "INSERT OR IGNORE INTO temp.julie_symbol_lookup_requested(symbol_id) VALUES {placeholders}"
-    )
-}
-
-pub(super) fn load_symbol_lookup_for_requested_ids(
-    tx: &Transaction<'_>,
-    requested: &HashSet<String>,
-    local_symbols: &HashSet<String>,
-) -> rusqlite::Result<SymbolLookup> {
-    if requested.is_empty() {
-        return Ok(SymbolLookup::default());
-    }
-
-    let mut ids = requested
-        .intersection(local_symbols)
-        .cloned()
-        .collect::<HashSet<_>>();
-    let unresolved = requested.difference(&ids).cloned().collect::<Vec<_>>();
-    if !unresolved.is_empty() {
-        load_existing_symbol_ids_for_requested_ids(tx, &unresolved, &mut ids)?;
-    }
-
-    Ok(SymbolLookup { ids })
-}
-
-fn load_existing_symbol_ids_for_requested_ids(
-    tx: &Transaction<'_>,
-    requested: &[String],
-    ids: &mut HashSet<String>,
-) -> rusqlite::Result<()> {
-    tx.execute(DROP_SYMBOL_LOOKUP_TEMP_TABLE_SQL, [])?;
-    let lookup_result = (|| -> rusqlite::Result<()> {
-        tx.execute(CREATE_SYMBOL_LOOKUP_TEMP_TABLE_SQL, [])?;
-        insert_symbol_lookup_requested(tx, requested)?;
-
-        {
-            let mut stmt = tx.prepare(
-                "SELECT symbols.symbol_id \
-                 FROM symbols \
-                 INNER JOIN temp.julie_symbol_lookup_requested AS requested \
-                    ON requested.symbol_id = symbols.symbol_id",
-            )?;
-            let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
-            for row in rows {
-                ids.insert(row?);
-            }
-        }
-
-        Ok(())
-    })();
-    let cleanup_result = tx.execute(DROP_SYMBOL_LOOKUP_TEMP_TABLE_SQL, []);
-    match (lookup_result, cleanup_result) {
-        (Ok(()), Ok(_)) => Ok(()),
-        (Err(error), _) | (Ok(()), Err(error)) => Err(error),
-    }
-}
-
 fn valid_symbol_id<'a>(
-    symbol_lookup: &SymbolLookup,
+    symbol_lookup: &SymbolLookup<'_>,
     symbol_id: Option<&'a str>,
 ) -> Option<&'a str> {
     symbol_id.filter(|symbol_id| symbol_lookup.contains(symbol_id))

@@ -29,9 +29,9 @@ pub use spool::{
 };
 
 use rows::{
-    ChildRowInserters, FileRowInserters, collect_existing_symbol_names, collect_file_symbol_ids,
-    is_preserved_failure, is_preserved_failure_update, load_symbol_lookup,
-    replace_parse_diagnostics, update_failed_preserved_file,
+    ChildRowInserters, FileRowInserters, ParentBinding, collect_existing_symbol_names,
+    is_preserved_failure, is_preserved_failure_update, replace_parse_diagnostics,
+    update_failed_preserved_file,
 };
 
 pub type ArtifactWriteResult<T> = Result<T, ArtifactWriteError>;
@@ -814,7 +814,7 @@ impl ArtifactWriter {
             }
         }
 
-        let symbol_lookup = {
+        {
             let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
             for (file, _, change_kind) in &planned {
                 file_row_inserters.insert_file(revision_id, file)?;
@@ -829,19 +829,17 @@ impl ArtifactWriter {
             }
 
             for (file, _, _) in &planned {
-                row_counts.symbols += file_row_inserters.insert_symbols(file, None)?;
+                row_counts.symbols +=
+                    file_row_inserters.insert_symbols(file, ParentBinding::Deferred)?;
             }
-            let symbol_lookup = load_symbol_lookup(&tx, planned.iter().map(|(file, _, _)| *file))?;
-            file_row_inserters
-                .update_symbol_parents(planned.iter().map(|(file, _, _)| *file), &symbol_lookup)?;
-            symbol_lookup
-        };
+            file_row_inserters.update_symbol_parents(planned.iter().map(|(file, _, _)| *file))?;
+        }
         clock.lap(|phases| &mut phases.file_symbol_insert);
 
         let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
             for (file, _, _) in &planned {
-                child_row_inserters.insert_child_rows(file, &symbol_lookup, &mut row_counts)?;
+                child_row_inserters.insert_child_rows(file, &mut row_counts)?;
             }
             child_row_inserters.take_reference_site_conflicts()
         };
@@ -1043,7 +1041,7 @@ impl ArtifactWriter {
             .collect::<Vec<_>>();
         clock.lap(|phases| &mut phases.plan);
 
-        let symbol_lookup = {
+        {
             let mut file_row_inserters = FileRowInserters::prepare(&tx)?;
             for existing in &deleted {
                 delete_file_rows(&tx, &existing.file_id, &existing.path)?;
@@ -1075,19 +1073,17 @@ impl ArtifactWriter {
             }
 
             for file in &rewritten_files {
-                row_counts.symbols += file_row_inserters.insert_symbols(file, None)?;
+                row_counts.symbols +=
+                    file_row_inserters.insert_symbols(file, ParentBinding::Deferred)?;
             }
-            let symbol_lookup = load_symbol_lookup(&tx, rewritten_files.iter().copied())?;
-            file_row_inserters
-                .update_symbol_parents(rewritten_files.iter().copied(), &symbol_lookup)?;
-            symbol_lookup
-        };
+            file_row_inserters.update_symbol_parents(rewritten_files.iter().copied())?;
+        }
         clock.lap(|phases| &mut phases.file_symbol_insert);
 
         let reference_site_conflicts = {
             let mut child_row_inserters = ChildRowInserters::prepare(&tx)?;
             for file in &rewritten_files {
-                child_row_inserters.insert_child_rows(file, &symbol_lookup, &mut row_counts)?;
+                child_row_inserters.insert_child_rows(file, &mut row_counts)?;
             }
             child_row_inserters.take_reference_site_conflicts()
         };
@@ -1212,13 +1208,6 @@ impl ArtifactWriter {
         let mut planned_files: HashMap<String, Option<ExistingFile>> = HashMap::new();
         let mut files_skipped = 0;
         let mut rewritten_file_ids = HashSet::new();
-        // Symbol-id sets for the cross-file symbol_lookup, accumulated in this planning pass so the
-        // lookup can be built before symbols are inserted — letting the insert resolve
-        // parent_symbol_id inline instead of in a second UPDATE pass. The referenced ids were
-        // gathered when each file was spooled and travel in its header, so this pass never decodes
-        // a body frame.
-        let mut requested_symbol_ids = HashSet::new();
-        let mut local_symbol_ids = HashSet::new();
         // NEW names for the resolution hook, gathered in this same planning pass;
         // OLD names are added below.
         let mut touched_symbol_names: HashSet<String> = HashSet::new();
@@ -1226,7 +1215,7 @@ impl ArtifactWriter {
 
         let mut reader = spool.reader()?;
         while let Some(header) = reader.next_header() {
-            let mut header = header?;
+            let header = header?;
             if !snapshot_paths.contains(header.path.as_str()) {
                 return Err(ArtifactWriteError::SnapshotMissingSpooledPath {
                     path: header.path.clone(),
@@ -1243,17 +1232,14 @@ impl ArtifactWriter {
                 continue;
             }
 
-            let referenced_symbol_ids = std::mem::take(&mut header.requested_symbol_ids);
             let file = header.into_file_without_child_rows();
             if file.status != FileStatus::FailedPreserved {
                 ensure_data_loss_guard(&tx, &file)?;
             }
-            // Files that will be rewritten (everything except preserved-failure updates) contribute
-            // their symbols to the lookup. This mirrors pass B's else-branch selection exactly.
+            // Files that will be rewritten (everything except preserved-failure updates) supply the
+            // hook's NEW names. This mirrors pass B's else-branch selection exactly.
             if !is_preserved_failure_update(&file, existing.as_ref()) {
                 rewritten_file_ids.insert(file.file_id.clone());
-                requested_symbol_ids.extend(referenced_symbol_ids);
-                collect_file_symbol_ids(&file, &mut local_symbol_ids);
                 touched_symbol_names.extend(file.symbols.iter().map(|symbol| symbol.name.clone()));
             }
             // Carry the existing-file lookup forward; pass B reuses it instead of re-SELECTing.
@@ -1323,13 +1309,6 @@ impl ArtifactWriter {
         write_metadata(&tx, &self.metadata)?;
         establish_staged_index_level(&tx, self.staged_index_level.as_deref())?;
         let mut row_counts = RowCounts::default();
-        // Built before the insert pass (the ids were gathered during planning) so symbols can be
-        // written with their parent resolved in one statement.
-        let symbol_lookup = rows::load_symbol_lookup_for_requested_ids(
-            &tx,
-            &requested_symbol_ids,
-            &local_symbol_ids,
-        )?;
         clock.lap(|phases| &mut phases.plan);
 
         {
@@ -1358,7 +1337,7 @@ impl ArtifactWriter {
                     file_row_inserters.insert_file(revision_id, &file)?;
                     row_counts.files += 1;
                     row_counts.symbols +=
-                        file_row_inserters.insert_symbols(&file, Some(&symbol_lookup))?;
+                        file_row_inserters.insert_symbols(&file, ParentBinding::ResolvedInFile)?;
                 }
                 row_counts.revision_file_changes += file_row_inserters
                     .insert_revision_file_change(
@@ -1391,7 +1370,7 @@ impl ArtifactWriter {
                     continue;
                 }
                 let file = reader.read_file(header)?;
-                child_row_inserters.insert_child_rows(&file, &symbol_lookup, &mut row_counts)?;
+                child_row_inserters.insert_child_rows(&file, &mut row_counts)?;
             }
             child_row_inserters.take_reference_site_conflicts()
         };
@@ -1819,8 +1798,6 @@ fn file_change_kind(file: &ArtifactFile, existing: Option<&ExistingFile>) -> Rev
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::*;
     use crate::model::{
         ArtifactIdentifier, ArtifactPendingRelationship, ArtifactSymbol, ArtifactTypeFact,
@@ -1849,36 +1826,6 @@ mod tests {
             rows::writer_prepare_metrics::child_row_inserter_prepares(),
             1
         );
-    }
-
-    #[test]
-    fn symbol_lookup_uses_current_batch_symbols_without_sqlite_query() {
-        let mut connection = Connection::open_in_memory().unwrap();
-        create_schema(&connection).unwrap();
-        let tx = connection.transaction().unwrap();
-        let requested = (0..36_241)
-            .map(|index| format!("symbol-{index}"))
-            .collect::<HashSet<_>>();
-
-        let lookup =
-            rows::load_symbol_lookup_for_requested_ids(&tx, &requested, &requested).unwrap();
-
-        assert_eq!(lookup.ids.len(), requested.len());
-    }
-
-    #[test]
-    fn symbol_lookup_handles_large_unresolved_requests() {
-        let mut connection = Connection::open_in_memory().unwrap();
-        create_schema(&connection).unwrap();
-        let tx = connection.transaction().unwrap();
-        let requested = (0..36_241)
-            .map(|index| format!("symbol-{index}"))
-            .collect::<HashSet<_>>();
-
-        let lookup =
-            rows::load_symbol_lookup_for_requested_ids(&tx, &requested, &HashSet::new()).unwrap();
-
-        assert!(lookup.ids.is_empty());
     }
 
     fn test_metadata() -> ArtifactMetadata {
