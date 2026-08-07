@@ -1,0 +1,298 @@
+{
+ "total_saves": 40,
+ "mismatches": 0,
+ "corpora": {
+  "julie-rust": {
+   "scan_s": 12.8,
+   "files_in_corpus": 1025,
+   "saves": [
+    {
+     "file": "julie-extract-artifact/src/jsonl.rs",
+     "kind": "rename fmt->fmtRl",
+     "exit": 0,
+     "ms": 9837,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/examples/extract_file.rs",
+     "kind": "rename main->mainRl",
+     "exit": 0,
+     "ms": 4041,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/base/sql_structural_facts.rs",
+     "kind": "rename collect_sql_structural_facts->collect_sql_structural_factsRl",
+     "exit": 0,
+     "ms": 9848,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/bash/signatures.rs",
+     "kind": "rename extract_function_signature->extract_function_signatureRl",
+     "exit": 0,
+     "ms": 5702,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/css/properties.rs",
+     "kind": "rename PropertyExtractor->PropertyExtractorRl",
+     "exit": 0,
+     "ms": 7512,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/go/specs.rs",
+     "kind": "rename extract_import_symbols->extract_import_symbolsRl",
+     "exit": 0,
+     "ms": 6821,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/lua/helpers.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 6310,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/r/mod.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 11208,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/sql/complexity_metrics.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 9277,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/c/preprocessor.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 5333,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/csharp/types.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 6078,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/erlang/visibility.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 5520,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/html/script_style.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 5129,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/kotlin/literals.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 8200,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/php/cross_file_relationships.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 8361,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/qml/relationships.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 7508,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/regex/identifiers.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 3276,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/sql/dml.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 5996,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/typescript/test_call_extraction.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 7729,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "julie-extractors/src/tests/zig/task15.rs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 8212,
+     "stderr_bytes": 0
+    }
+   ]
+  },
+  "miller-csharp": {
+   "scan_s": 5.5,
+   "files_in_corpus": 343,
+   "saves": [
+    {
+     "file": "Miller.Core/Analysis/NearDuplicateAnalyzer.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 4289,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Core/Editing/TextSplicer.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 3394,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Core/Graph/FileRouteBridgeProvider.cs",
+     "kind": "rename FileRouteBridgeProvider->FileRouteBridgeProviderRl",
+     "exit": 0,
+     "ms": 3729,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Core/Resolver/NameNormalizer.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 2846,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Core/Search/SymbolCandidate.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 3662,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Dashboard/Endpoints/DashboardEndpoints.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 4253,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Indexing/ContentCorpusWriter.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 4861,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Indexing/FtsRegionSearchIndex.cs",
+     "kind": "rename FtsRegionSearchIndex->FtsRegionSearchIndexRl",
+     "exit": 0,
+     "ms": 4747,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Indexing/JulieExtractRunner.cs",
+     "kind": "rename JulieExtractRunner->JulieExtractRunnerRl",
+     "exit": 0,
+     "ms": 4513,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Indexing/PatternPathGlobMatcher.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 3735,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Indexing/Semantic/DiskPreflight.cs",
+     "kind": "rename DiskPreflight->DiskPreflightRl",
+     "exit": 0,
+     "ms": 3664,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Indexing/SourceRegionRow.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 3595,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Indexing/TestRoleEvidence.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 2906,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Server/Cli/DashboardCliLauncher.cs",
+     "kind": "rename DashboardCliLauncher->DashboardCliLauncherRl",
+     "exit": 0,
+     "ms": 4508,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Server/Hosting/IndexerCore.cs",
+     "kind": "rename IndexerCore->IndexerCoreRl",
+     "exit": 0,
+     "ms": 3818,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Server/Hosting/WorkspaceBindingResolver.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 4031,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Server/Resolution/TargetResolution.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 4007,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Server/Telemetry/TokenEstimator.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 4068,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Server/Tools/RiskRanking.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 4497,
+     "stderr_bytes": 0
+    },
+    {
+     "file": "Miller.Server/Tools/WorkspaceRender.cs",
+     "kind": "touch",
+     "exit": 0,
+     "ms": 5919,
+     "stderr_bytes": 0
+    }
+   ]
+  }
+ }
+}
