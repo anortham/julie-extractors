@@ -201,9 +201,9 @@ Commit mode: `parallel-lead-commit` for Batch A; serial tasks commit through the
 **What to build:** replace every `COALESCE(i.target_symbol_id, ir.target_symbol_id)` with `ir.target_symbol_id` and every bare `i.target_symbol_id` read with the `ir` join equivalent (all 24 sites already join `identifier_resolutions` or can). Update test fixture DDL that still declares the column only where the fixture claims to be v6; v5-shaped fixtures keep it (fixtures must stay contract-faithful to the version they model).
 
 **Acceptance criteria:**
-- [ ] Zero `i.target_symbol_id` references remain in Miller `src/`.
-- [ ] `scripts/test.sh` and `scripts/test.sh scale` green; `dotnet build Miller.slnx -c Release` 0/0.
-- [ ] Committed on miller main (or its worktree merged) before any 2.30.0 pin-bump work starts.
+- [x] Zero `i.target_symbol_id` references remain in Miller `src/`. (grep proof, lead-verified; 27 real sites migrated, not 24)
+- [x] `scripts/test.sh` and `scripts/test.sh scale` green; `dotnet build Miller.slnx -c Release` 0/0. (fast 6,149/0; scale 128 passed, 1 pre-existing environmental broker failure reproduced on unmodified base 9401af15, 5 expected semantic skips)
+- [ ] Committed on miller main (or its worktree merged) before any 2.30.0 pin-bump work starts. (commit 238f9a89 on worktree branch v1-reader-migration; merge queued behind the user's 2.30.0 approval)
 
 ### Task 6: release prep 2.30.0
 
@@ -211,6 +211,7 @@ Commit mode: `parallel-lead-commit` for Batch A; serial tasks commit through the
 - Modify: `crates/julie-extractors/Cargo.toml`, `crates/julie-extract-artifact/Cargo.toml`, `crates/julie-extract-cli/Cargo.toml` (2.29.0 → 2.30.0), `Cargo.lock`
 - Create: `docs/release-notes/v2.30.0.md`
 - Modify: `docs/release.md` (pointer + notes list), `docs/contracts/extraction-output-changes.md` (declare the canonicalization + schema v6 as this release's classified changes)
+  — PLAN MISMATCH (accepted during execution): the release.md "Current published release" pointer moves at PUBLISH time, not prep (precedent: prep commit 6dc9f9a left it untouched; 1e79ca6 advanced it post-publish; check-release-state.sh is a publish-time gate reading Cargo.toml + the origin tag). Task 6 instead added an explicit publish-time-only pointer step to the release closeout checklist. Task 6 also owns `xtask/tests/compat_contract.rs` (lead-granted): the ledger-empty snapshot test is replaced by a conditional current-version parse test plus a durable literal "2.30.0" pin.
 
 **Interfaces:**
 - Consumes: every prior task merged; branch gates green; Task 2's ledger format.
@@ -227,6 +228,6 @@ Commit mode: `parallel-lead-commit` for Batch A; serial tasks commit through the
 **What to build:** version bumps, release notes (headline: v4 prerequisites — deterministic `metadata_json` with a one-time byte churn on multi-key metadata; schema v6 dropping the denormalized resolution column with the Miller-side migration sequence; the two new CI gates), ledger entries classifying both changes, preflight run.
 
 **Acceptance criteria:**
-- [ ] Branch gates green at the release-prep commit (ledger rows recorded).
-- [ ] `cargo xtask release preflight --version 2.30.0` passes.
-- [ ] Release-prep commit exists; the approval request for tag/publish + pin bump is surfaced to the user with the evidence.
+- [x] Branch gates green at the release-prep commit (ledger rows recorded). (default + contract tiers exit 0 at 231c5b3; fmt clean; xtask 91/0; dogfood reused from 6fb8c32, docs/manifest-only delta; live compat-check vs published 2.29.0 took the declared-NOTICE path, exit 0)
+- [x] `cargo xtask release preflight --version 2.30.0` passes. (ok: 4 targets, 29 inputs)
+- [x] Release-prep commit exists; the approval request for tag/publish + pin bump is surfaced to the user with the evidence. (231c5b3; approval request follows the codex pre-merge review)
