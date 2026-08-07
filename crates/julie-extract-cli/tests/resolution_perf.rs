@@ -1009,6 +1009,29 @@ fn delta_scope_crossover_sweep() {
         let touched: HashSet<String> = (0..n)
             .flat_map(|i| (0..TARGET_FNS_PER_FILE).map(move |k| format!("gfn_{i}_{k}")))
             .collect();
+        // The shipped guard is denominated in identifier rows, so the sweep's x-axis
+        // is the scope's identifier share, not its file share. On this fixture the
+        // two nearly coincide (near-uniform density); measuring the real share keeps
+        // the crossing comparable to the shipped threshold by definition, not by
+        // fixture accident.
+        let ident_fraction: f64 = {
+            let total: i64 = conn
+                .query_row("SELECT COUNT(*) FROM identifiers", [], |row| row.get(0))
+                .unwrap();
+            let in_list = changed_file_ids
+                .iter()
+                .map(|id| format!("'{id}'"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let scoped: i64 = conn
+                .query_row(
+                    &format!("SELECT COUNT(*) FROM identifiers WHERE file_id IN ({in_list})"),
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            scoped as f64 / (total as f64).max(1.0)
+        };
         let scope = ResolutionScopeInput {
             changed_file_ids,
             touched_symbol_names: touched,
@@ -1021,10 +1044,10 @@ fn delta_scope_crossover_sweep() {
         let elapsed = started.elapsed();
         tx.commit().unwrap();
 
-        let fraction = n as f64 / files as f64;
+        let fraction = ident_fraction;
         let ratio = elapsed.as_secs_f64() / full_elapsed.as_secs_f64().max(1e-9);
         println!(
-            "resolution_perf: DELTA n={n:<5} ({:>5.1}% of corpus) {:>6} ms | {:.2}x FULL",
+            "resolution_perf: DELTA n={n:<5} files ({:>5.1}% of identifiers) {:>6} ms | {:.2}x FULL",
             fraction * 100.0,
             elapsed.as_millis(),
             ratio,

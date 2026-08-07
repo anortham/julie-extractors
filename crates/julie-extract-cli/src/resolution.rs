@@ -1662,7 +1662,7 @@ fn run_resolution(
         (locator, covered, Vec::new())
     } else {
         let files = delta_scope_files(tx, scope, &index, revision)?;
-        if delta_scope_crosses_over(tx, files.len(), crossover)? {
+        if delta_scope_crosses_over(tx, scope.changed_file_ids.len(), &files, crossover)? {
             effective_full = true;
             let locator = IdentifierLocator::load_scoped(tx, None)?;
             let covered = covered_identifiers(tx, &index, &locator, None)?;
@@ -1714,8 +1714,13 @@ fn run_resolution(
     // whole-corpus write reaches everything that moved, which is the property the
     // equivalence gate holds. Keying these two on the dispatch switch instead is what
     // would pin `status` to `partial` and freeze `last_full_revision` the moment a
-    // whole-repo scan started scoping.
-    let corpus_current = effective_full || scope.whole_corpus;
+    // whole-repo scan started scoping. The converse holds too: `effective_full` is
+    // NOT sufficient — a single-file update promoted past the crossover re-derives
+    // every resolution row from artifact state but hash-checked one file, so it must
+    // not claim corpus currency. The identifier-denominated crossover makes that
+    // promotion routine on dense files; before it, this leg was almost unreachable
+    // and the old `effective_full ||` here went unnoticed.
+    let corpus_current = scope.whole_corpus;
     // `gated` accumulates only over items the sweep actually visited, so a scoped pass
     // sees only the languages in scope — enough for the report, which describes what
     // THIS pass did, but not enough to claim `complete` for the workspace. Only that
@@ -2655,15 +2660,24 @@ fn placeholders(count: usize) -> String {
     vec!["?"; count].join(", ")
 }
 
-/// Fraction of the workspace a delta scope may cover before Full is the better plan.
+/// Fraction of the workspace's IDENTIFIER ROWS a delta scope may cover before Full is
+/// the better plan.
+///
+/// Denominated in identifier rows, not files: the scoped pass's cost is the identifier
+/// rows it loads and resolves, and the widening unions preferentially select large
+/// files, so file share systematically understates cost on real corpora. Measured on
+/// Miller (1,420 files, C#-dense): a 737-changed-file scan delta covered 52% of FILES
+/// — under the old file-denominated guard it stayed scoped — while holding 99.7% of
+/// IDENTIFIERS and paying 26.0 s scoped vs 11.6 s Full
+/// (miller `spike/index-store-ph0/resolution-growth/results.md:50`). Single-changed-file
+/// scopes are exempt from promotion entirely — see `delta_scope_crosses_over`.
 ///
 /// Measured by `resolution_perf::delta_scope_crossover_sweep`, which fails if this
-/// value promotes to Full later than the crossing it observes. On a 2,000-file / 92k
-/// identifier corpus (2026-08-05, after deltas stopped computing the workspace-wide
-/// report aggregate) a scoped pass runs at 0.07x Full for one changed file, 0.37x at a
-/// quarter of the corpus and 0.96x at 70%, then loses: 1.08x at 80%, 1.37x at the whole
-/// corpus. 0.7 is the last point where scoping still wins. (With the report still in
-/// every delta the crossing sat a band lower, at 60–70%.)
+/// value promotes to Full later than the crossing it observes. The sweep's fixture is
+/// uniform-density (identifier share tracks file share there), so its 2026-08-05
+/// curve stands: a scoped pass runs at 0.07x Full for one changed file, 0.37x at a
+/// quarter of the corpus and 0.96x at 70%, then loses: 1.08x at 80%, 1.37x at the
+/// whole corpus. 0.7 is the last point where scoping still wins.
 ///
 /// The sweep must disable promotion to measure this — with it live, every point past
 /// the threshold times a Full pass and the measurement just echoes its own input, which
@@ -2678,19 +2692,55 @@ pub const DELTA_SCOPE_CROSSOVER: f64 = 0.7;
 /// Past the crossover a scoped pass does everything Full does and then pays extra for
 /// it: the same rows, plus chunked `IN` clauses, per-file worklist bookkeeping, and a
 /// locator built from an explicit file list instead of one unfiltered query.
+///
+/// Compares the scope's identifier rows against the workspace's, because that is the
+/// quantity the pass actually pays for (see [`DELTA_SCOPE_CROSSOVER`]) — EXCEPT for a
+/// single-changed-file scope, which never promotes. Both halves are measured
+/// (2026-08-07, miller corpus, 381k identifiers): a 737-changed-file scan delta at
+/// 99.7% identifier share paid 26.0 s scoped vs 11.6 s Full (the per-changed-file
+/// worklist dominates), while a 1-changed-file save whose scope widened to 90–93% of
+/// identifiers paid the SAME or less on the scoped path as on Full across repeated
+/// A/B runs (miller `spike/index-store-ph1/julie-path-audit/`,
+/// `spike/index-store-ph0/resolution-growth/results.md:50-51`). Promotion exists to
+/// shed worklist overhead, and a one-file worklist has none worth shedding — a dense
+/// single-file save gains nothing from Full and must keep its metadata semantics
+/// (`corpus_current` stays false either way, but the cheaper path is the scoped one).
+///
+/// A workspace with no identifier rows at all falls back to the file-count share:
+/// both passes are near-free there, and the promotion contract (past-crossover scopes
+/// re-derive the workspace aggregate) should not hinge on an empty table.
 fn delta_scope_crosses_over(
     conn: &Connection,
-    scope_file_count: usize,
+    changed_file_count: usize,
+    scope_files: &[String],
     crossover: f64,
 ) -> rusqlite::Result<bool> {
-    if scope_file_count == 0 {
+    if scope_files.is_empty() || changed_file_count <= 1 {
         return Ok(false);
     }
-    let total: i64 = conn.query_row("SELECT COUNT(*) FROM files", [], |row| row.get(0))?;
-    if total <= 0 {
-        return Ok(false);
+    let total_identifiers: i64 =
+        conn.query_row("SELECT COUNT(*) FROM identifiers", [], |row| row.get(0))?;
+    if total_identifiers <= 0 {
+        let total_files: i64 =
+            conn.query_row("SELECT COUNT(*) FROM files", [], |row| row.get(0))?;
+        if total_files <= 0 {
+            return Ok(false);
+        }
+        return Ok(scope_files.len() as f64 >= total_files as f64 * crossover);
     }
-    Ok(scope_file_count as f64 >= total as f64 * crossover)
+    let mut scope_identifiers: i64 = 0;
+    for chunk in scope_files.chunks(FILE_QUERY_CHUNK) {
+        let sql = format!(
+            "SELECT COUNT(*) FROM identifiers WHERE file_id IN ({})",
+            placeholders(chunk.len())
+        );
+        let chunk_count: i64 =
+            conn.query_row(&sql, rusqlite::params_from_iter(chunk.iter()), |row| {
+                row.get(0)
+            })?;
+        scope_identifiers += chunk_count;
+    }
+    Ok(scope_identifiers as f64 >= total_identifiers as f64 * crossover)
 }
 
 /// Languages present in the artifact's pending rows that tier 2 does not cover.

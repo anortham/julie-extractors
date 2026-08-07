@@ -117,3 +117,74 @@ fn crossover_promoted_delta_carries_aggregate_rows() {
          must carry the aggregate rows"
     );
 }
+
+fn seed_identifiers(conn: &Connection, file_id: &str, count: usize) {
+    for i in 0..count {
+        let id = format!("{file_id}-ident-{i}");
+        conn.execute(
+            "INSERT INTO reference_sites \
+             (reference_site_id, file_id, path, language, containing_symbol_id, \
+              start_line, start_column, end_line, end_column, start_byte, end_byte, \
+              is_exact, provenance) \
+             VALUES (?1, ?2, ?3, 'rust', NULL, 1, 0, 1, 8, 0, 8, 1, 'target_token')",
+            rusqlite::params![id, file_id, format!("src/{file_id}.rs")],
+        )
+        .expect("reference site row");
+        conn.execute(
+            "INSERT INTO identifiers \
+             (identifier_id, reference_site_id, file_id, path, language, name, kind, \
+              containing_symbol_id, target_symbol_id, start_line, start_column, end_line, \
+              end_column, start_byte, end_byte, confidence) \
+             VALUES (?1, ?1, ?2, ?3, 'rust', ?4, 'call', NULL, NULL, 1, 0, 1, 8, 0, 8, 1.0)",
+            rusqlite::params![
+                id,
+                file_id,
+                format!("src/{file_id}.rs"),
+                format!("name_{i}")
+            ],
+        )
+        .expect("identifier row");
+    }
+}
+
+#[test]
+fn dense_multi_file_delta_promotes_past_the_identifier_crossover() {
+    let mut conn = seeded_connection();
+    seed_identifiers(&conn, "f1", 60);
+    seed_identifiers(&conn, "f2", 30);
+    for quiet in ["f3", "f4"] {
+        seed_identifiers(&conn, quiet, 3);
+    }
+    run_warm_full(&mut conn);
+    let tx = conn.transaction().expect("tx");
+    let (_counts, report) =
+        resolve_workspace(&tx, &delta_scope(&["f1", "f2"])).expect("dense resolve");
+    assert!(
+        report.rows.is_some(),
+        "two changed files holding 93.75% of the workspace's identifiers are past the \
+         crossover: the cost is denominated in identifier rows, not files (50% of files), \
+         so the pass must promote to Full"
+    );
+}
+
+#[test]
+fn dense_single_file_delta_never_promotes() {
+    let mut conn = seeded_connection();
+    seed_identifiers(&conn, "f1", 90);
+    for quiet in ["f2", "f3", "f4"] {
+        seed_identifiers(&conn, quiet, 2);
+    }
+    run_warm_full(&mut conn);
+    let tx = conn.transaction().expect("tx");
+    let (_counts, report) = resolve_workspace(&tx, &delta_scope(&["f1"])).expect("dense resolve");
+    assert_eq!(
+        report.rows, None,
+        "a single-changed-file scope never promotes: measured A/B (2026-08-07) shows a \
+         dense save pays the same or less on the scoped path, and promotion would only \
+         re-derive the workspace aggregate for nothing"
+    );
+    assert_eq!(
+        report.last_full_revision, 1,
+        "a single-file save must not claim whole-corpus coverage"
+    );
+}
