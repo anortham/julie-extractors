@@ -108,8 +108,9 @@ Task 1 writes the exact DDL authority, but these identities are fixed for the pl
 - `store_meta(key PRIMARY KEY, value)` carries store schema/format epochs, family id,
   extraction epoch, reader/writer floors, creator/binary versions, and retention defaults.
 - `file_versions(version_id INTEGER PRIMARY KEY, path, content_hash, extraction_epoch, language,
-  content_bytes, line_count, metadata_json, complete_l1, complete_l2, complete_l3, UNIQUE(path,
-  content_hash, extraction_epoch))` owns immutable pure file columns. Completion values are
+  content_bytes, line_count, metadata_json, complete_l1, complete_l2, complete_l3)` owns immutable
+  pure file columns. Uniqueness of `(path, content_hash, extraction_epoch)` is emitted only as
+  Task 1's named unique index, never as an inline table constraint. Completion values are
   `store_log.sequence` values and are written with their level's final rows.
 - Every per-version table keys `(version_id, local_id)` and every FK to a per-version row carries
   `version_id`. Existing stable IDs remain the local-id component. No unqualified retained ID.
@@ -321,6 +322,119 @@ tables where compatible with SQLite targets. Store and coordinator schemas are i
 creatable. Schema creation is idempotent; opening an unknown newer schema is a typed refusal,
 not an automatic migration. Enforce the Ph2b catalog allowlist/denylist above; do not create any
 Ph2c resolution table or represent a ready/exact resolution generation.
+
+**Exact DDL resolution:** Task 1 owns the first target-side DDL; these rules remove the choices
+that are not already mechanical from schema 6:
+
+- `STORE_SQLITE_SCHEMA_VERSION`, `STORE_FORMAT_EPOCH`, and
+  `EXTRACTION_IDENTITY_EPOCH` are all integer `1`. Both databases set `PRAGMA user_version=1`.
+  Ordinary tables are `STRICT`; booleans remain checked `INTEGER`, timestamps are canonical
+  RFC 3339 UTC `TEXT` in `store.db`, and coordinator deadlines/heartbeats are Unix-millisecond
+  `INTEGER` values so injected clocks compare without parsing.
+- `store_meta` is unrestricted non-empty `TEXT PRIMARY KEY` to non-null `TEXT`; the documented
+  keys are `store_sqlite_schema_version`, `store_format_epoch`, `family_id`,
+  `extraction_identity_epoch`, `min_reader_version`, `min_writer_version`,
+  `created_by_version`, `binary_version`, `retention_window_days`,
+  `retention_byte_target`, `retention_byte_ceiling`, and `retention_path_cap`. Schema creation
+  seeds the two store versions plus retention defaults `7`, `1.20`, `1.25`, and `24`; Task 2
+  atomically binds the identity/version keys.
+- `file_versions` uses the columns and unique key fixed by the Store Schema Contract above.
+  `version_id` is `INTEGER PRIMARY KEY AUTOINCREMENT`; retained logs may name deleted versions,
+  so SQLite rowid reuse is forbidden. Path, hash, epoch, language, and content bytes are required;
+  line count and metadata remain nullable as in schema 6.
+  Counts are non-negative, stamps are null or positive, L2 implies L1, and L3 implies L2.
+- Fingerprint-global tables retain every schema-6 payload column and add leading
+  `extraction_epoch INTEGER NOT NULL` to every PK and FK. Gap identity is
+  `(extraction_epoch, gap_id)`. The existing gap-status CHECK remains.
+- Each of the 14 children retains its schema-6 payload, nullability, and semantic CHECKs, drops
+  `file_id`, adds leading `version_id INTEGER NOT NULL`, and changes its PK to
+  `(version_id, local_id)`. It keeps denormalized `path`/`language` where schema 6 has them.
+  Every child directly cascades from `file_versions(version_id)`; every cross-child/self FK is
+  `(version_id, local_id) ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED`. Whole-version purge
+  is the only physical delete path and removes all children through the direct version FK; an
+  individual child delete cannot recursively erase other immutable evidence. This intentionally
+  replaces schema 6's optional-link `SET NULL`, which is illegal when the composite's
+  `version_id` is non-null. `reference_sites` adds checked level `1|2` and a version-qualified
+  form of `reference_sites_identity_guard`: its match predicate includes `version_id`, and its
+  mismatch comparison preserves every schema-6 compared payload column plus `level`. V-1
+  resolution columns/tables/indexes do not exist. Ph2d demotion must delete L3 before L2 within
+  one transaction so deferred cross-level references are satisfied at commit.
+- Secondary indexes use an explicit `idx_gc_`/`idx_read_` prefix, or the corresponding
+  `uidx_read_` prefix for unique read indexes, as their exhaustive schema classification. Drop
+  schema-6 file-id-only indexes, resolution indexes, and the unused
+  `type_facts` secondary index. Constraint autoindexes are structural and listed separately.
+  The complete named index authority is:
+
+  | Class | Name and ordered columns |
+  |---|---|
+  | read | `uidx_read_file_versions_identity(path, content_hash, extraction_epoch)` |
+  | read | `idx_read_language_capability_gaps_language(extraction_epoch, language)` |
+  | gc | `idx_gc_symbols_path(version_id, path)`; `idx_gc_symbols_is_test(version_id, is_test)`; `idx_gc_symbols_test_container(version_id, test_container)`; `idx_gc_symbols_test_lifecycle(version_id, test_lifecycle)` |
+  | read | `idx_read_symbols_name_kind(name, kind, version_id)`; `idx_read_symbols_parent(parent_symbol_id, version_id)` |
+  | gc | `idx_gc_symbol_annotations_symbol(version_id, symbol_id)` |
+  | read | `idx_read_reference_sites_containing_symbol(containing_symbol_id, version_id)` |
+  | read | `idx_read_identifiers_name_kind(name, kind, version_id)`; `idx_read_identifiers_containing(containing_symbol_id, version_id)`; `idx_read_identifiers_reference_site(reference_site_id, version_id)` |
+  | read | `idx_read_relationships_from(from_symbol_id, version_id)`; `idx_read_relationships_to(to_symbol_id, version_id)`; `idx_read_relationships_kind(kind, version_id)`; `idx_read_relationships_reference_site(reference_site_id, version_id)` |
+  | read | `idx_read_pending_terminal(target_terminal_name, version_id)`; `idx_read_pending_from(from_symbol_id, version_id)`; `idx_read_pending_caller_scope(caller_scope_symbol_id, version_id)`; `idx_read_pending_reference_site(reference_site_id, version_id)` |
+  | read | `idx_read_type_argument_usages_identifier(identifier_id, version_id)` |
+  | gc | `idx_gc_type_arguments_usage(version_id, usage_id)`; `idx_gc_type_arguments_parent(version_id, parent_type_argument_id)` |
+  | read | `idx_read_literals_containing_symbol(containing_symbol_id, version_id)` |
+  | gc | `idx_gc_source_regions_file_span(version_id, start_byte, end_byte)`; `idx_gc_source_regions_export_order(version_id, path, start_byte, end_byte, kind, source_region_id)` |
+  | read | `idx_read_source_regions_kind(kind, version_id, start_byte)`; `idx_read_source_regions_symbol(containing_symbol_id, version_id)` |
+  | gc | `idx_gc_structural_facts_file_span(version_id, start_byte, end_byte)`; `idx_gc_structural_facts_export_order(version_id, path, start_byte, end_byte, pattern_id, capture_name, structural_fact_id)` |
+  | read | `idx_read_structural_facts_pattern_language_path(pattern_id, language, path, version_id)`; `idx_read_structural_facts_symbol(containing_symbol_id, version_id)` |
+  | gc | `idx_gc_complexity_metrics_file_scope(version_id, scope, start_byte)`; `idx_gc_complexity_metrics_export_order(version_id, path, start_byte, end_byte, scope, symbol_id, complexity_metric_id)` |
+  | read | `idx_read_complexity_metrics_scope_language(scope, language, path, version_id)`; `idx_read_complexity_metrics_symbol(symbol_id, version_id)` |
+  | gc | `idx_gc_diagnostics_path(version_id, path)` |
+  | read | `uidx_read_manifests_hash(view_id, manifest_hash)`; `idx_read_manifest_entries_version(version_id, view_id, generation)` |
+  | read | `uidx_read_store_log_terminal_request(request_id) WHERE terminal = 1`; `idx_read_store_log_request(request_id, sequence)`; `uidx_read_request_chunks_log_sequence(store_log_sequence)` |
+  | read | `uidx_read_requests_idempotency_key(idempotency_key)`; `idx_read_requests_queue(state, created_at, request_id)`; `idx_read_requests_stale(state, claim_heartbeat_at, request_id)` |
+
+  `views.current_generation` joins to `manifest_entries` through the entries PK
+  `(view_id, generation, path)`; this is the exact current-view path Ph3 consumes.
+- The target-owned names `manifests` plus `manifest_entries` supersede the frozen design's
+  conceptual `view_manifest`. `views` is `(view_id TEXT PRIMARY KEY, root TEXT,
+  current_generation INTEGER NULL, resolution_state TEXT DEFAULT 'unbound',
+  resolution_base_id TEXT NULL, resolution_delta_generation INTEGER NULL,
+  resolution_exact_at INTEGER NULL, created_at TEXT, updated_at TEXT)` with non-empty identity/
+  root checks and one CHECK forcing the only Ph2b resolution state to `unbound` with all three
+  binding fields null. Its nullable `(view_id, current_generation)` FK targets `manifests` and
+  is `DEFERRABLE INITIALLY DEFERRED`; publication inserts the manifest before flipping the view.
+- `manifests` is keyed `(view_id, generation)` with positive generation, non-empty
+  `manifest_hash` and `request_id`, canonical `created_at`, FK to `views`, and unique
+  `(view_id, manifest_hash)` enforced only by `uidx_read_manifests_hash`, never a duplicate inline
+  UNIQUE. `manifest_entries` is keyed `(view_id, generation, path)`, FKs to the manifest and
+  nullable version, and carries `status`, `observed_content_hash`, `indexed_at`,
+  `error_class`, and `error_json`. The version FK is `ON DELETE RESTRICT`, never cascade or set
+  null, so every live or historical manifest is a GC root. Status is exactly
+  `indexed|failed_preserved|failed`; indexed requires a version/no error, failed-preserved
+  requires a prior version/error, and a new failed entry requires no version/an error.
+- `store_log` has sole allocator `sequence INTEGER PRIMARY KEY AUTOINCREMENT`, non-empty
+  `request_id`/`event_kind`, nullable view/generation/version/level fields, checked
+  `terminal INTEGER`, non-null `payload_json`, and canonical `created_at`. A classified partial
+  unique index permits one terminal row per request. `request_chunks` is a separate table keyed
+  `(request_id, chunk_index)` with non-negative global chunk index, its effect's log sequence,
+  nullable checked level, payload, and created time; a classified unique index makes one chunk
+  own one log sequence. Log/progress rows deliberately do not FK to prunable log or retained
+  version/manifest rows. Ph2b does not prune `store_log`. Ph2d may prune a terminal row only after
+  its coordinator request is no longer a reconciliation root and after every sidecar cursor plus
+  safety window has passed it; non-terminal coordinator requests root terminal lookup by
+  `request_id`, including the phase-1/phase-2 tear where `terminal_log_sequence` is still null.
+- `coord.db.requests` uses the exact frozen field list plus nullable
+  `terminal_log_sequence INTEGER`: text request/idempotency/kind/requester/owner/result/error,
+  integer deadlines/heartbeats/created/updated times, checked kinds `import|update|delete`, and
+  checked states `queued|claimed|committed|acknowledged|failed`. State-coherence CHECKs require
+  claim owner/heartbeat only while claimed; committed/acknowledged require a terminal sequence,
+  result, and no error; failed requires an error, no result, and permits a null terminal sequence
+  when validation or execution failed before any terminal store effect. `idempotency_key` is not
+  declared inline UNIQUE; only `uidx_read_requests_idempotency_key` enforces it.
+  Classified queue-order and stale-claim indexes are `(state, created_at, request_id)` and
+  `(state, claim_heartbeat_at, request_id)`.
+- `coord.db.writer_lease` is one optional row keyed by checked resource `store-writer`, with
+  non-empty holder id/version, positive PID, integer heartbeat/expiry, and positive fencing token.
+  Acquire inserts, heartbeat/takeover CAS-updates, and release deletes it; equal-version live
+  displacement remains a Task 5 logic rule, not a schema trigger. Reader pins belong to Ph3 and
+  are not in the Ph2b catalog.
 
 **Acceptance:**
 
