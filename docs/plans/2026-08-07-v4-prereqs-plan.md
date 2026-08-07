@@ -120,9 +120,9 @@ Commit mode: `parallel-lead-commit` for Batch A; serial tasks commit through the
 **Approach:** dump via deterministic `SELECT * ORDER BY <pk>` per table to text, then diff — no schema-coupled row structs, so the harness survives schema bumps (a v5-vs-v6 table-set difference is itself a reportable diff the ledger must declare). CI job needs `contents: read` for the release download and must not block on the very first run after a declared change (the notice path). Keep the job out of the tag-triggered release workflow — it belongs to main/PR CI.
 
 **Acceptance criteria:**
-- [ ] `cargo xtask compat-check` with an identical binary pair passes; with a byte-differing pair and no ledger entry fails; with the entry passes-with-notice. All three proven by tests or a recorded local run.
-- [ ] CI job added and green on this branch (against v2.29.0 — pre-canonicalization output equality is expected to FAIL only after Task 1 merges, which the branch run must show as the declared-entry notice path once Task 6 lands the ledger entry; the run order is recorded in the ledger doc).
-- [ ] Worker-scope verification passes and the change is handed to the lead per commit mode.
+- [x] `cargo xtask compat-check` with an identical binary pair passes (run a, exit 0, 19 tables); with a byte-differing pair and no ledger entry fails (run c, exit 1, diff listing; run b vs published v2.29.0 fails honestly on Task 1's 67 key-permutation rows); the notice path proven by unit test. Exit 1 reserved for the verdict; environment errors exit 2.
+- [x] CI job `extractor-compat` added, YAML validated, asset layout verified against the live release. KNOWN RED on this branch until Task 6 writes the `## 2.30.0` ledger entry (the gate refusing to let Task 1's byte change merge unnamed — by design). The workflow-split guard now pins `cargo xtask compat-check` into ci.yml (lead one-line addition).
+- [x] Worker-scope verification passes (xtask 90/0 after test relocation + route test, fmt + clippy clean, harness re-verified through the real entry point) and the change is handed to the lead per commit mode.
 
 ### Task 3: V-1 purity surgery — drop `identifiers.target_symbol_id`, schema v6
 

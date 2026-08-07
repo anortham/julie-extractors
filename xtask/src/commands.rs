@@ -28,6 +28,9 @@ pub fn run_from_env_args(args: impl IntoIterator<Item = OsString>) -> ExitCode {
     {
         return crate::release::run_package_from_args(&args[1..]);
     }
+    if args.first().map(String::as_str) == Some("compat-check") {
+        return crate::compat::run_from_args(&args[1..]);
+    }
     if args.first().map(String::as_str) == Some("dogfood") {
         return crate::dogfood::run_from_args(&args[1..]);
     }

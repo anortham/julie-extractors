@@ -126,6 +126,21 @@ fn commands_route_release_preflight_before_test_tier_parser() {
 }
 
 #[test]
+fn commands_route_compat_check_before_test_tier_parser() {
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .args(["compat-check", "--previous-binary"])
+        .output()
+        .expect("run xtask compat-check");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("missing value for --previous-binary"),
+        "compat-check route must reach the compat argument parser, stderr: {stderr}"
+    );
+}
+
+#[test]
 fn commands_route_performance_baseline_before_test_tier_parser() {
     let temp = TempDir::new().expect("tempdir");
     let out_dir = temp.path().join("baseline");
@@ -226,6 +241,7 @@ fn workflow_commands_keep_fast_and_specialist_gates_separate() {
         "cargo test -p xtask",
         "cargo xtask test default",
         "cargo xtask test contract",
+        "cargo xtask compat-check",
     ] {
         assert!(ci.contains(command), "ci.yml must run `{command}`");
     }
