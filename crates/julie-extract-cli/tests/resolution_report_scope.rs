@@ -168,6 +168,28 @@ fn dense_multi_file_delta_promotes_past_the_identifier_crossover() {
 }
 
 #[test]
+fn recheck_names_matching_rows_outside_the_changed_files_count_toward_the_crossover() {
+    let mut conn = seeded_connection();
+    for sparse in ["f1", "f2"] {
+        seed_identifiers(&conn, sparse, 2);
+    }
+    for dense in ["f3", "f4"] {
+        seed_identifiers(&conn, dense, 45);
+    }
+    run_warm_full(&mut conn);
+    let mut scope = delta_scope(&["f1", "f2"]);
+    scope.touched_symbol_names = (0..41).map(|i| format!("name_{i}")).collect();
+    let tx = conn.transaction().expect("tx");
+    let (_counts, report) = resolve_workspace(&tx, &scope).expect("named delta resolve");
+    assert!(
+        report.rows.is_some(),
+        "the changed files hold 4% of the workspace's identifiers, but the recheck names \
+         select 91% of them: a row-scoped pass pays for the rows it re-derives, not for the \
+         files it sweeps, so both arms count toward the crossover and the pass must promote"
+    );
+}
+
+#[test]
 fn dense_single_file_delta_never_promotes() {
     let mut conn = seeded_connection();
     seed_identifiers(&conn, "f1", 90);

@@ -479,50 +479,9 @@ impl WorkspaceCandidateIndex {
             .unwrap_or(&[])
     }
 
-    /// Files holding a type fact whose `resolved_type` is one of `names`.
-    ///
-    /// Tier 3 reaches its target through the receiver's RESOLVED TYPE, a name that
-    /// appears in neither `target_terminal_name` nor `target_receiver` — the only
-    /// two columns the delta worklists match on. Without this, a changed file that
-    /// makes a type name ambiguous never reaches the members typed by it.
-    fn files_declaring_type_named(&self, names: &HashSet<&str>) -> BTreeSet<String> {
-        let mut files = BTreeSet::new();
-        for (symbol_id, facts) in &self.type_facts_by_symbol {
-            if facts
-                .iter()
-                .any(|fact| names.contains(fact.resolved_type.as_str()))
-                && let Some(symbol) = self.symbol_by_id(symbol_id)
-            {
-                files.insert(symbol.file_id.clone());
-            }
-        }
-        files
-    }
-
-    /// Files importing any of `names` under either the imported or the local name.
-    ///
-    /// Tier 2 gates on `local_name` but looks candidates up by `imported_name`, so
-    /// an aliased import is tied to its export by a name the reference row never
-    /// carries. Both sides are matched here because either can be the touched one.
-    fn files_importing_names(&self, names: &HashSet<&str>) -> BTreeSet<String> {
-        let mut files = BTreeSet::new();
-        for (file_id, imports) in &self.imports_by_file {
-            if imports.iter().any(|import| {
-                names.contains(import.local_name.as_str())
-                    || import
-                        .imported_name
-                        .as_deref()
-                        .is_some_and(|name| names.contains(name))
-            }) {
-                files.insert(file_id.clone());
-            }
-        }
-        files
-    }
-
     /// Files whose relative module specifiers could bind to one of `changed_paths`.
     ///
-    /// The name unions above are blind to this: which file `./util` selects depends
+    /// The name expansions below are blind to this: which file `./util` selects depends
     /// on which candidate PATH exists, so adding or deleting `src/util.ts` re-points
     /// every importer of `./util` without touching a single symbol name. When the
     /// new file's exports are disjoint from the import's binding, no touched name
@@ -539,6 +498,51 @@ impl WorkspaceCandidateIndex {
             }
         }
         files
+    }
+
+    /// Both sides of every import either side of which is one of `names`.
+    ///
+    /// Tier 2 gates on `local_name` but looks candidates up by `imported_name`, so an
+    /// aliased import ties a reference row to an export under a name that row never
+    /// carries. A name-keyed recheck therefore has to carry the alias's other half:
+    /// touching `Foo` must also recheck the rows written against the local `Bar`.
+    fn import_names_linked_to(&self, names: &HashSet<&str>) -> BTreeSet<String> {
+        let mut linked = BTreeSet::new();
+        for imports in self.imports_by_file.values() {
+            for import in imports {
+                let imported = import.imported_name.as_deref();
+                if names.contains(import.local_name.as_str())
+                    || imported.is_some_and(|name| names.contains(name))
+                {
+                    linked.insert(import.local_name.clone());
+                    if let Some(name) = imported {
+                        linked.insert(name.to_string());
+                    }
+                }
+            }
+        }
+        linked
+    }
+
+    /// Names of the symbols whose `type_facts.resolved_type` is one of `names`.
+    ///
+    /// Tier 3 reaches its target through the receiver's RESOLVED TYPE, a name that
+    /// appears in neither `target_terminal_name` nor `target_receiver` — the only two
+    /// columns the delta worklists match on. A name-keyed recheck therefore has to
+    /// carry the receivers bound to a touched type, or the members typed by it are
+    /// never revisited when that type's meaning changes.
+    fn receiver_names_bound_to_types(&self, names: &HashSet<&str>) -> BTreeSet<String> {
+        let mut receivers = BTreeSet::new();
+        for (symbol_id, facts) in &self.type_facts_by_symbol {
+            if facts
+                .iter()
+                .any(|fact| names.contains(fact.resolved_type.as_str()))
+                && let Some(symbol) = self.symbol_by_id(symbol_id)
+            {
+                receivers.insert(symbol.name.clone());
+            }
+        }
+        receivers
     }
 }
 
@@ -1490,12 +1494,14 @@ fn tier4_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
 // storage crate per design §"Module placement & interface").
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use julie_extract_artifact::resolution_store::{
     self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus, ResolutionWriteBuffer,
 };
 use julie_extract_artifact::writer::{ResolutionHookError, ResolutionScopeInput};
 use rusqlite::{Connection, Transaction};
+use serde_json::json;
 
 /// Value stamped into `reference_resolution_version` metadata. Bump when the
 /// resolver's observable output contract changes so Miller can gate on it.
@@ -1652,26 +1658,42 @@ fn run_resolution(
     // an O(delta) load rather than reloading every identifier each incremental
     // scan). A full pass loads the whole workspace.
     //
-    // The delta scope is computed BEFORE the branch is final: the widening unions can
-    // return most of the workspace, and past the crossover a scoped pass is strictly
+    // The delta scope is computed BEFORE the branch is final: the selection can still
+    // cover most of the workspace, and past the crossover a scoped pass is strictly
     // worse than Full — same rows, plus chunked `IN` clauses and per-file bookkeeping.
     let mut effective_full = requested_full;
-    let (locator, covered, scope_files) = if requested_full {
+    let mut shadow_baseline: Option<OverlaySnapshot> = None;
+    let (locator, covered, delta) = if requested_full {
         let locator = IdentifierLocator::load_scoped(tx, None)?;
         let covered = covered_identifiers(tx, &index, &locator, None)?;
-        (locator, covered, Vec::new())
+        (locator, covered, DeltaScope::none())
     } else {
-        let files = delta_scope_files(tx, scope, &index, revision)?;
-        if delta_scope_crosses_over(tx, scope.changed_file_ids.len(), &files, crossover)? {
+        let delta = delta_scope_files(tx, scope, &index, revision)?;
+        if delta_scope_crosses_over(tx, scope.changed_file_ids.len(), &delta, crossover)? {
             effective_full = true;
             let locator = IdentifierLocator::load_scoped(tx, None)?;
             let covered = covered_identifiers(tx, &index, &locator, None)?;
-            (locator, covered, Vec::new())
+            (locator, covered, DeltaScope::none())
         } else {
-            let file_refs: Vec<&str> = files.iter().map(String::as_str).collect();
+            // The scoped delta is the ONLY pass with a narrowing to prove, so it is
+            // the only place the shadow switch is read — a Full or crossover-promoted
+            // pass re-derives the workspace and has nothing to shadow. The legacy leg
+            // runs FIRST, inside a savepoint rolled back before the real pass writes.
+            if let Some(shadow) = ShadowMode::from_env() {
+                shadow_baseline =
+                    Some(shadow_legacy_overlay(tx, scope, &index, revision, &shadow)?);
+            }
+            // Built from the files of the SELECTED ROWS, not from `recheck_files`: a
+            // row the name arm selects in an unchanged file still needs its
+            // co-location join, and a file the locator never loaded answers `None`.
+            let file_refs: Vec<&str> = delta
+                .selected_row_files
+                .iter()
+                .map(String::as_str)
+                .collect();
             let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
             let covered = covered_identifiers(tx, &index, &locator, Some(&file_refs))?;
-            (locator, covered, files)
+            (locator, covered, delta)
         }
     };
 
@@ -1692,7 +1714,7 @@ fn run_resolution(
         resolve_delta(
             tx,
             scope,
-            &scope_files,
+            &delta,
             &index,
             &locator,
             &covered,
@@ -1700,6 +1722,10 @@ fn run_resolution(
             &mut counts,
             &mut gated,
         )?;
+    }
+
+    if let Some(baseline) = shadow_baseline {
+        report_shadow_comparison(&baseline, &OverlaySnapshot::capture(tx)?);
     }
 
     // The workspace-wide aggregate only runs on passes that re-derived the whole
@@ -1779,7 +1805,9 @@ fn resolve_full(
     // 0. Recheck already-resolved overlays against the whole current workspace.
     // A full pass must not preserve stale rows if a prior unique target became
     // ambiguous or disappeared.
-    recheck_resolved_pending_items(
+    // The demoted co-locations are discarded here: a full pass re-derives every
+    // identifier from `worklist_full_identifiers`, so they need no separate repair.
+    let _ = recheck_resolved_pending_items(
         &mut buf,
         &resolution_store::worklist_resolved_pending(tx)?,
         index,
@@ -1852,7 +1880,7 @@ where
 fn resolve_delta(
     tx: &Transaction<'_>,
     scope: &ResolutionScopeInput,
-    scope_files: &[String],
+    delta: &DeltaScope,
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
     covered: &HashSet<String>,
@@ -1860,11 +1888,7 @@ fn resolve_delta(
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
 ) -> rusqlite::Result<()> {
-    let names: Vec<&str> = scope
-        .touched_symbol_names
-        .iter()
-        .map(String::as_str)
-        .collect();
+    let names: Vec<&str> = delta.recheck_names.iter().map(String::as_str).collect();
     let files: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
 
     // Buffered writes, flushed at each phase boundary (below). The flush points are
@@ -1873,19 +1897,18 @@ fn resolve_delta(
     let mut buf = ResolutionWriteBuffer::new();
 
     // --- Demotion sweep -----------------------------------------------------
-    // Resolved pending/identifiers whose terminal OR receiver name is touched:
-    // re-run the chain; if the outcome no longer yields the same single target,
-    // demote or overwrite with the current outcome. The fill sweep below
-    // re-resolves demoted pending rows if a new single candidate exists.
-    // The widened delta scope: changed files plus every file the name and
-    // module-candidate unions in `delta_scope_files` had to add. Every file-keyed
-    // worklist below reads it, and it is the same set the locator was built from.
-    let scoped_files: Vec<&str> = scope_files.iter().map(String::as_str).collect();
-    recheck_resolved_pending_items(
+    // Resolved pending/identifiers keyed by a recheck name: re-run the chain; if the
+    // outcome no longer yields the same single target, demote or overwrite with the
+    // current outcome. The fill sweep below re-resolves demoted pending rows if a new
+    // single candidate exists.
+    // The file-keyed arms carry only the rows no name can select: those in a changed
+    // file, and those in a file whose module specifier the revision re-pointed.
+    let recheck_files: Vec<&str> = delta.recheck_files.iter().map(String::as_str).collect();
+    let demoted_co_locations = recheck_resolved_pending_items(
         &mut buf,
         &merge_by_key(
             resolution_store::worklist_resolved_pending_by_names(tx, &names)?,
-            resolution_store::worklist_resolved_pending_in_files(tx, &scoped_files)?,
+            resolution_store::worklist_resolved_pending_in_files(tx, &recheck_files)?,
             |item| item.pending.pending_relationship_id.clone(),
         ),
         index,
@@ -1898,18 +1921,23 @@ fn resolve_delta(
     // Read ownership *after* the demotion flush so an identifier whose pending was
     // just demoted re-enters the recheck instead of keeping a stale target.
     //
-    // Read over `scoped_files`, not `files`: the recheck worklist below matches by
-    // name across the whole workspace, so an identifier in an UNCHANGED file can
-    // enter it. Reading ownership over changed files alone would leave that
-    // identifier looking unowned, and the generic chain would overwrite a correct
+    // Read over `selected_row_files`, not `recheck_files`: the recheck worklists match
+    // by name across the whole workspace, so an identifier in an UNCHANGED file can
+    // enter them. Reading ownership over the file-keyed arms' set alone would leave
+    // that identifier looking unowned, and the generic chain would overwrite a correct
     // propagated target.
+    let selected_row_files: Vec<&str> = delta
+        .selected_row_files
+        .iter()
+        .map(String::as_str)
+        .collect();
     let propagation_covered =
-        propagation_covered_identifiers(tx, index, locator, Some(&scoped_files))?;
+        propagation_covered_identifiers(tx, index, locator, Some(&selected_row_files))?;
     recheck_resolved_identifier_items(
         &mut buf,
         &merge_by_key(
             resolution_store::worklist_resolved_identifiers_by_names(tx, &names)?,
-            resolution_store::worklist_resolved_identifiers_in_files(tx, &scoped_files)?,
+            resolution_store::worklist_resolved_identifiers_in_files(tx, &recheck_files)?,
             |item| item.identifier.identifier_id.clone(),
         ),
         index,
@@ -1921,20 +1949,18 @@ fn resolve_delta(
     buf.flush(tx)?;
 
     // --- Fill sweep ---------------------------------------------------------
-    // Unresolved pending matching touched names, PLUS every unresolved pending in a
-    // scoped file (a changed file's callee may live in an unchanged file whose
-    // name is not in the touched set).
+    // Unresolved pending matching a recheck name, PLUS every unresolved pending in a
+    // recheck file.
     //
-    // Scoped over `scope_files`, not `files`: an edge whose tier keys on a name the
-    // reference row does not carry — an aliased import's `imported_name`, a
-    // receiver's resolved type — is reachable only through the file unions
-    // `delta_scope_files` adds, never through the name worklists above.
+    // An edge whose tier keys on a name the reference row does not carry — an aliased
+    // import's `imported_name`, a receiver's resolved type — rides the name arm here,
+    // because `recheck_names` carries both relations.
     let mut pending = resolution_store::worklist_unresolved_pending_by_names(tx, &names)?;
     let mut seen: HashSet<String> = pending
         .iter()
         .map(|item| item.pending_relationship_id.clone())
         .collect();
-    for item in unresolved_pending_in_files(tx, &scoped_files)? {
+    for item in unresolved_pending_in_files(tx, &recheck_files)? {
         if seen.insert(item.pending_relationship_id.clone()) {
             pending.push(item);
         }
@@ -1948,19 +1974,38 @@ fn resolve_delta(
     propagate_relationships(tx, &mut buf, index, locator, Some(&files), revision, counts)?;
     buf.flush(tx)?;
 
-    // Never-attempted identifiers matching touched names or in a scoped file.
-    //
-    // Scoped rather than changed: an identifier the first pass never attempted can
-    // sit in an unchanged file that only the tier-2/tier-3 name unions reach.
+    // Never-attempted identifiers matching a recheck name or in a recheck file.
     let mut identifiers =
         resolution_store::worklist_never_attempted_identifiers_by_names(tx, &names)?;
     let mut seen_ids: HashSet<String> = identifiers
         .iter()
         .map(|item| item.identifier_id.clone())
         .collect();
-    for item in resolution_store::worklist_never_attempted_identifiers_by_files(tx, &scoped_files)?
+    for item in resolution_store::worklist_never_attempted_identifiers_by_files(tx, &recheck_files)?
     {
         if seen_ids.insert(item.identifier_id.clone()) {
+            identifiers.push(item);
+        }
+    }
+    // Repair the co-locations the demotion sweep deleted. Selected by name because the
+    // worklists key on names, then narrowed back to the exact demoted ids: an unrelated
+    // identifier sharing the name could sit outside `selected_row_files`, where the
+    // ownership read below cannot see it and the generic chain would overwrite a
+    // propagated target. A row that propagation has since re-resolved is gone from this
+    // worklist already, which is the same answer a full pass reaches by ownership.
+    let demoted_names: Vec<&str> = demoted_co_locations
+        .iter()
+        .map(|demoted| demoted.name.as_str())
+        .collect();
+    let demoted_ids: HashSet<&str> = demoted_co_locations
+        .iter()
+        .map(|demoted| demoted.identifier_id.as_str())
+        .collect();
+    for item in resolution_store::worklist_never_attempted_identifiers_by_names(tx, &demoted_names)?
+    {
+        if demoted_ids.contains(item.identifier_id.as_str())
+            && seen_ids.insert(item.identifier_id.clone())
+        {
             identifiers.push(item);
         }
     }
@@ -1978,13 +2023,28 @@ fn resolve_delta(
     Ok(())
 }
 
+/// An identifier whose overlay row the pending recheck deleted through co-location.
+///
+/// This deletion is the delta's OWN write, not a workspace change, so no selection key
+/// leads back to it: the identifier is named after the pending's terminal name, which a
+/// receiver-keyed or file-keyed recheck never carries. A full pass re-derives it from
+/// its whole-workspace worklist; a scoped pass has to be told.
+struct DemotedCoLocation {
+    identifier_id: String,
+    name: String,
+}
+
+/// Re-check resolved pending rows, demoting the ones whose chain no longer yields the
+/// same single target. Returns the identifiers demoted alongside them, which the caller
+/// must re-derive (see [`DemotedCoLocation`]).
 fn recheck_resolved_pending_items(
     buf: &mut ResolutionWriteBuffer,
     items: &[resolution_store::ResolvedPendingWorkItem],
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
     gated: &mut BTreeSet<String>,
-) -> rusqlite::Result<()> {
+) -> rusqlite::Result<Vec<DemotedCoLocation>> {
+    let mut demoted_co_locations = Vec::new();
     for resolved in items {
         if !tier2_enabled(&resolved.pending.language) {
             gated.insert(resolved.pending.language.clone());
@@ -2012,10 +2072,14 @@ fn recheck_resolved_pending_items(
                 pending.start_line,
             ) {
                 buf.demote_identifier(&identifier_id);
+                demoted_co_locations.push(DemotedCoLocation {
+                    identifier_id,
+                    name: pending.target_terminal_name.clone(),
+                });
             }
         }
     }
-    Ok(())
+    Ok(demoted_co_locations)
 }
 
 fn recheck_resolved_identifier_items(
@@ -2709,13 +2773,20 @@ pub const DELTA_SCOPE_CROSSOVER: f64 = 0.7;
 /// A workspace with no identifier rows at all falls back to the file-count share:
 /// both passes are near-free there, and the promotion contract (past-crossover scopes
 /// re-derive the workspace aggregate) should not hinge on an empty table.
+///
+/// Under row scoping the selection has two arms, so the measure sums both: the rows in
+/// the whole-file arm plus the rows the name arm matches. A row in both is counted
+/// twice, which can only overstate the share and so only ever promotes EARLIER — the
+/// same direction the threshold already errs in. The whole curve is re-measured by
+/// `resolution_perf::delta_scope_crossover_sweep` under row scoping.
 fn delta_scope_crosses_over(
     conn: &Connection,
     changed_file_count: usize,
-    scope_files: &[String],
+    delta: &DeltaScope,
     crossover: f64,
 ) -> rusqlite::Result<bool> {
-    if scope_files.is_empty() || changed_file_count <= 1 {
+    if changed_file_count <= 1 || (delta.recheck_files.is_empty() && delta.recheck_names.is_empty())
+    {
         return Ok(false);
     }
     let total_identifiers: i64 =
@@ -2726,12 +2797,23 @@ fn delta_scope_crosses_over(
         if total_files <= 0 {
             return Ok(false);
         }
-        return Ok(scope_files.len() as f64 >= total_files as f64 * crossover);
+        return Ok(delta.recheck_files.len() as f64 >= total_files as f64 * crossover);
     }
     let mut scope_identifiers: i64 = 0;
-    for chunk in scope_files.chunks(FILE_QUERY_CHUNK) {
+    for chunk in delta.recheck_files.chunks(FILE_QUERY_CHUNK) {
         let sql = format!(
             "SELECT COUNT(*) FROM identifiers WHERE file_id IN ({})",
+            placeholders(chunk.len())
+        );
+        let chunk_count: i64 =
+            conn.query_row(&sql, rusqlite::params_from_iter(chunk.iter()), |row| {
+                row.get(0)
+            })?;
+        scope_identifiers += chunk_count;
+    }
+    for chunk in delta.recheck_names.chunks(FILE_QUERY_CHUNK) {
+        let sql = format!(
+            "SELECT COUNT(*) FROM identifiers WHERE name IN ({})",
             placeholders(chunk.len())
         );
         let chunk_count: i64 =
@@ -2955,53 +3037,89 @@ fn query_scoped_rows<T>(
     Ok(out)
 }
 
-/// The set of files a delta pass will touch: changed files plus the files holding
-/// any pending/identifier the by-name worklists surface (a matching name may live
-/// in an unchanged file). Scopes the delta locator + covered-set load to O(delta)
-/// instead of O(workspace) — safe because every co-location join is same-file.
+/// What a delta pass re-derives, split by the key each worklist arm matches on.
 ///
-/// The name-keyed worklists above match only `target_terminal_name`/`target_receiver`.
-/// Tiers 2 and 3 key on names those columns never carry (an import's `imported_name`,
-/// a receiver's resolved type), so the index-backed unions below are what make the
-/// delta scope reach the rows those tiers can flip. They read maps `load_index`
-/// already holds, so they cost no extra SQL.
+/// The name-keyed arms match only `target_terminal_name` / `target_receiver` /
+/// `identifiers.name`. Tiers 2 and 3 key on names those columns never carry (an
+/// import's `imported_name`, a receiver's resolved type), which is why the whole
+/// FILE holding such a row used to be swept. `recheck_names` carries those relations
+/// instead, so the row itself is selected and its file is not.
+struct DeltaScope {
+    /// Names the by-names arms match: the touched names plus the two keying
+    /// relations that a reference row never spells out. One round of expansion, not
+    /// a fixpoint — a name reached only through a name that was itself reached
+    /// cannot key a row against the touched set.
+    recheck_names: Vec<String>,
+    /// Files the by-files arms sweep whole. Only the changed files and the
+    /// module-candidate importers, which bind by PATH existence and so cannot be
+    /// name-keyed at all.
+    recheck_files: Vec<String>,
+    /// `recheck_files` plus the file of every by-names match. Not a worklist input:
+    /// the locator, the covered set and the ownership read are built from it, because
+    /// a file outside the locator makes `locate` return `None` and silently drops the
+    /// co-location join for a row the name arm did select.
+    selected_row_files: Vec<String>,
+}
+
+impl DeltaScope {
+    /// The empty selection a Full pass carries, so `resolve_delta`'s inputs stay
+    /// non-optional.
+    fn none() -> Self {
+        DeltaScope {
+            recheck_names: Vec::new(),
+            recheck_files: Vec::new(),
+            selected_row_files: Vec::new(),
+        }
+    }
+}
+
+/// Compute the delta selection: which names key its rows, which files it sweeps
+/// whole, and which files hold the rows either arm selects.
 ///
-/// The module-candidate union is not name-keyed at all: a specifier binds by path, so
-/// creating or deleting a file re-points every importer of it while changing no name
-/// the other unions can see.
+/// The two name expansions read maps `load_index` already holds, so they cost no
+/// extra SQL. The four by-names worklists run here only to learn the files their
+/// matches live in; `resolve_delta` re-runs them against the overlay it has since
+/// flushed.
 fn delta_scope_files(
     conn: &Connection,
     scope: &ResolutionScopeInput,
     index: &WorkspaceCandidateIndex,
     revision: i64,
-) -> rusqlite::Result<Vec<String>> {
-    let names: Vec<&str> = scope
+) -> rusqlite::Result<DeltaScope> {
+    let touched: HashSet<&str> = scope
         .touched_symbol_names
         .iter()
         .map(String::as_str)
         .collect();
-    let name_set: HashSet<&str> = names.iter().copied().collect();
-    let mut files: BTreeSet<String> = scope.changed_file_ids.iter().cloned().collect();
-    for item in resolution_store::worklist_resolved_pending_by_names(conn, &names)? {
-        files.insert(item.pending.file_id);
-    }
-    for item in resolution_store::worklist_unresolved_pending_by_names(conn, &names)? {
-        files.insert(item.file_id);
-    }
-    for item in resolution_store::worklist_resolved_identifiers_by_names(conn, &names)? {
-        files.insert(item.identifier.file_id);
-    }
-    for item in resolution_store::worklist_never_attempted_identifiers_by_names(conn, &names)? {
-        files.insert(item.file_id);
-    }
-    files.extend(index.files_declaring_type_named(&name_set));
-    files.extend(index.files_importing_names(&name_set));
+    let mut recheck_names: BTreeSet<String> = scope.touched_symbol_names.iter().cloned().collect();
+    recheck_names.extend(index.import_names_linked_to(&touched));
+    recheck_names.extend(index.receiver_names_bound_to_types(&touched));
+    let names: Vec<&str> = recheck_names.iter().map(String::as_str).collect();
 
     let changed_ids: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
     let structural_paths = structurally_changed_paths(conn, revision, &changed_ids)?;
-    files.extend(index.files_importing_module_candidates(&structural_paths));
+    let mut recheck_files: BTreeSet<String> = scope.changed_file_ids.iter().cloned().collect();
+    recheck_files.extend(index.files_importing_module_candidates(&structural_paths));
 
-    Ok(files.into_iter().collect())
+    let mut selected_row_files = recheck_files.clone();
+    for item in resolution_store::worklist_resolved_pending_by_names(conn, &names)? {
+        selected_row_files.insert(item.pending.file_id);
+    }
+    for item in resolution_store::worklist_unresolved_pending_by_names(conn, &names)? {
+        selected_row_files.insert(item.file_id);
+    }
+    for item in resolution_store::worklist_resolved_identifiers_by_names(conn, &names)? {
+        selected_row_files.insert(item.identifier.file_id);
+    }
+    for item in resolution_store::worklist_never_attempted_identifiers_by_names(conn, &names)? {
+        selected_row_files.insert(item.file_id);
+    }
+
+    Ok(DeltaScope {
+        recheck_names: recheck_names.into_iter().collect(),
+        recheck_files: recheck_files.into_iter().collect(),
+        selected_row_files: selected_row_files.into_iter().collect(),
+    })
 }
 
 /// One identifier's location, for span-based propagation joins.
@@ -3119,6 +3237,386 @@ impl IdentifierLocator {
             None
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Shadow mode — the row-scoped path checked against the legacy file-scoped one
+// ---------------------------------------------------------------------------
+
+/// Switch that turns the legacy-vs-row-scoped comparison on, set to `1`. Off by
+/// default, read exactly once per pass, and only from the scoped-delta branch, so
+/// an unset switch costs one environment lookup on a scoped delta and nothing at
+/// all on any other pass.
+const SHADOW_ENV: &str = "JULIE_RESOLUTION_SHADOW";
+
+/// TEST-ONLY divergence injection, read ONLY when [`SHADOW_ENV`] is on. Its value
+/// is an `identifier_id`; the captured legacy snapshot gets a sentinel value at
+/// that key, so the diff must report a mismatch and the process must exit
+/// non-zero. It doctors the in-memory snapshot and never the artifact, and no
+/// production run reaches the read: shadow mode is off by default and nothing else
+/// consults this variable.
+const SHADOW_INJECT_ENV: &str = "JULIE_RESOLUTION_SHADOW_INJECT";
+
+/// Savepoint the legacy leg writes inside, nested in the writer's open
+/// `SAVEPOINT resolution_hook`. Rolled back before the real pass runs, so the
+/// shadow never contributes a row to the artifact.
+const SHADOW_SAVEPOINT: &str = "julie_resolution_shadow";
+
+/// Value stamped over an injected key. No real serialization can collide with it,
+/// so the injection diverges whether or not the doctored key exists.
+const SHADOW_INJECTED_VALUE: &str = "<injected-shadow-divergence>";
+
+/// Cap on the differences the mismatch report spells out. A scope defect can
+/// diverge on tens of thousands of rows; the total count is always reported, the
+/// row list is not.
+const SHADOW_REPORT_DIFFERENCE_LIMIT: usize = 50;
+
+/// Exit code a shadow mismatch forces. `3` is taken — the CLI already returns it
+/// for compatibility refusals (`schema_migration_required`, `schema_incompatible`,
+/// `fingerprint_mismatch`, `no_committed_revision`; docs/contracts/cli.md) — so `4`
+/// keeps "the two paths disagreed" distinguishable from every live code by exit
+/// status alone. The stderr JSON report remains the authoritative signal.
+pub const SHADOW_MISMATCH_EXIT_CODE: u8 = 4;
+
+static SHADOW_MISMATCH_OBSERVED: AtomicBool = AtomicBool::new(false);
+
+/// The exit code the process must adopt because shadow mode saw a mismatch, or
+/// `None` when it saw none (or never ran).
+///
+/// A mismatch cannot travel out as a [`ResolutionHookError`]: the writer catches
+/// that error, ROLLS BACK the hook's overlay writes and still commits and exits
+/// zero (`writer.rs` §"Failure semantics"). That would both hide the non-zero exit
+/// the contract requires AND destroy the write the contract requires to complete.
+/// So the hook records the mismatch here and `main` reads it after the commit.
+pub fn shadow_mismatch_exit_code() -> Option<u8> {
+    SHADOW_MISMATCH_OBSERVED
+        .load(Ordering::SeqCst)
+        .then_some(SHADOW_MISMATCH_EXIT_CODE)
+}
+
+/// The shadow decision for one pass.
+struct ShadowMode {
+    inject_identifier_id: Option<String>,
+}
+
+impl ShadowMode {
+    /// `Some` only when [`SHADOW_ENV`] is exactly `1`; unset, empty and `0` all
+    /// yield `None`.
+    fn from_env() -> Option<Self> {
+        if std::env::var(SHADOW_ENV).ok().as_deref() != Some("1") {
+            return None;
+        }
+        Some(ShadowMode {
+            inject_identifier_id: std::env::var(SHADOW_INJECT_ENV)
+                .ok()
+                .filter(|value| !value.is_empty()),
+        })
+    }
+
+    fn inject(&self, snapshot: &mut OverlaySnapshot) {
+        if let Some(identifier_id) = &self.inject_identifier_id {
+            snapshot.rows.insert(
+                (
+                    OverlaySnapshot::IDENTIFIER_RESOLUTIONS,
+                    identifier_id.clone(),
+                ),
+                SHADOW_INJECTED_VALUE.to_string(),
+            );
+        }
+    }
+}
+
+/// The three overlay surfaces the shadow compares, natural-keyed.
+///
+/// Column choices mirror the equivalence oracle's `overlay` helper
+/// (`tests/resolution_scope_equivalence.rs`) exactly, including its omission of
+/// `resolved_at_revision`: that column records WHEN a row was written, which two
+/// passes over the same rows necessarily disagree on.
+#[derive(Default)]
+struct OverlaySnapshot {
+    rows: BTreeMap<(&'static str, String), String>,
+}
+
+/// One row the two passes disagree on. `None` on a side means that side wrote no
+/// row under the key at all.
+struct OverlayDifference {
+    table: &'static str,
+    key: String,
+    legacy: Option<String>,
+    scoped: Option<String>,
+}
+
+impl OverlaySnapshot {
+    const PENDING_RESOLUTIONS: &'static str = "pending_resolutions";
+    const IDENTIFIER_RESOLUTIONS: &'static str = "identifier_resolutions";
+    const IDENTIFIER_TARGETS: &'static str = "identifiers.target_symbol_id";
+
+    fn capture(conn: &Connection) -> rusqlite::Result<Self> {
+        let mut rows: BTreeMap<(&'static str, String), String> = BTreeMap::new();
+
+        let mut pending = conn.prepare(
+            "SELECT pending_relationship_id, target_symbol_id, tier, confidence, method \
+             FROM pending_resolutions ORDER BY pending_relationship_id",
+        )?;
+        for row in pending.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                format!(
+                    "{}|{}|{}|{}",
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, f64>(3)?,
+                    row.get::<_, String>(4)?,
+                ),
+            ))
+        })? {
+            let (key, value) = row?;
+            rows.insert((Self::PENDING_RESOLUTIONS, key), value);
+        }
+
+        let mut identifiers = conn.prepare(
+            "SELECT identifier_id, target_symbol_id, tier, confidence, method, outcome, candidates \
+             FROM identifier_resolutions ORDER BY identifier_id",
+        )?;
+        for row in identifiers.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                format!(
+                    "{:?}|{:?}|{:?}|{:?}|{}|{:?}",
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<i64>>(2)?,
+                    row.get::<_, Option<f64>>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, Option<i64>>(6)?,
+                ),
+            ))
+        })? {
+            let (key, value) = row?;
+            rows.insert((Self::IDENTIFIER_RESOLUTIONS, key), value);
+        }
+
+        let mut targets = conn.prepare(
+            "SELECT identifier_id, target_symbol_id FROM identifiers \
+             WHERE target_symbol_id IS NOT NULL ORDER BY identifier_id",
+        )?;
+        for row in targets.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })? {
+            let (key, value) = row?;
+            rows.insert((Self::IDENTIFIER_TARGETS, key), value);
+        }
+
+        Ok(OverlaySnapshot { rows })
+    }
+
+    /// Every key on which the two snapshots disagree, in `(table, key)` order.
+    fn differences(&self, scoped: &OverlaySnapshot) -> Vec<OverlayDifference> {
+        let mut keys: BTreeSet<&(&'static str, String)> = self.rows.keys().collect();
+        keys.extend(scoped.rows.keys());
+        keys.into_iter()
+            .filter_map(|key| {
+                let legacy = self.rows.get(key);
+                let scoped = scoped.rows.get(key);
+                (legacy != scoped).then(|| OverlayDifference {
+                    table: key.0,
+                    key: key.1.clone(),
+                    legacy: legacy.cloned(),
+                    scoped: scoped.cloned(),
+                })
+            })
+            .collect()
+    }
+}
+
+/// Write the mismatch report to stderr and arm the non-zero exit. Silent when the
+/// two passes agree, which is the whole point of running the mode on real repos.
+fn report_shadow_comparison(legacy: &OverlaySnapshot, scoped: &OverlaySnapshot) {
+    let differences = legacy.differences(scoped);
+    if differences.is_empty() {
+        return;
+    }
+    let reported: Vec<_> = differences
+        .iter()
+        .take(SHADOW_REPORT_DIFFERENCE_LIMIT)
+        .map(|difference| {
+            json!({
+                "table": difference.table,
+                "key": difference.key,
+                "legacy": difference.legacy,
+                "scoped": difference.scoped,
+            })
+        })
+        .collect();
+    let report = json!({
+        "julie_resolution_shadow": "mismatch",
+        "difference_count": differences.len(),
+        "reported_count": reported.len(),
+        "truncated": differences.len() > reported.len(),
+        "legacy_row_count": legacy.rows.len(),
+        "scoped_row_count": scoped.rows.len(),
+        "differences": reported,
+    });
+    eprintln!("{report}");
+    SHADOW_MISMATCH_OBSERVED.store(true, Ordering::SeqCst);
+}
+
+/// Run the LEGACY file-scoped delta inside a rolled-back savepoint and return the
+/// overlay it would have written.
+fn shadow_legacy_overlay(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
+    revision: i64,
+    shadow: &ShadowMode,
+) -> rusqlite::Result<OverlaySnapshot> {
+    let legacy_files = legacy_delta_scope_files_for_shadow(tx, scope, index, revision)?;
+    // The legacy pass keyed its name arms on the RAW touched names and swept every
+    // file of the widened set — the same set behind its locator, covered set and
+    // ownership read. Those three fields are exactly what the current executor reads,
+    // so filling them this way reproduces `bbd47bd` without a second copy of
+    // `resolve_delta`. Its co-location repair is a no-op under this scope: every
+    // identifier the repair re-derives sits in the pending's file, which the widened
+    // set already sweeps whole through the by-files arm.
+    let legacy_scope = DeltaScope {
+        recheck_names: scope
+            .touched_symbol_names
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<String>>()
+            .into_iter()
+            .collect(),
+        recheck_files: legacy_files.clone(),
+        selected_row_files: legacy_files,
+    };
+
+    tx.execute_batch(&format!("SAVEPOINT {SHADOW_SAVEPOINT}"))?;
+    let captured = shadow_legacy_leg(tx, scope, index, &legacy_scope, revision);
+    // Roll back whether the leg succeeded or failed: the outer transaction is the
+    // real write and must never carry a shadow row.
+    tx.execute_batch(&format!(
+        "ROLLBACK TO {SHADOW_SAVEPOINT}; RELEASE {SHADOW_SAVEPOINT}"
+    ))?;
+    let mut snapshot = captured?;
+    shadow.inject(&mut snapshot);
+    Ok(snapshot)
+}
+
+fn shadow_legacy_leg(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
+    legacy_scope: &DeltaScope,
+    revision: i64,
+) -> rusqlite::Result<OverlaySnapshot> {
+    let file_refs: Vec<&str> = legacy_scope
+        .selected_row_files
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
+    let covered = covered_identifiers(tx, index, &locator, Some(&file_refs))?;
+    let mut counts = ResolutionCounts::default();
+    let mut gated: BTreeSet<String> = BTreeSet::new();
+    resolve_delta(
+        tx,
+        scope,
+        legacy_scope,
+        index,
+        &locator,
+        &covered,
+        revision,
+        &mut counts,
+        &mut gated,
+    )?;
+    OverlaySnapshot::capture(tx)
+}
+
+/// The delta scope as `bbd47bd` computed it: the changed files, the files holding
+/// any by-name worklist match, and the three index-backed unions.
+///
+/// Exists ONLY as shadow mode's reference and dies with it. The shipped path
+/// replaced the two name-driven unions with keyed name sets
+/// ([`WorkspaceCandidateIndex::import_names_linked_to`],
+/// [`WorkspaceCandidateIndex::receiver_names_bound_to_types`]); nothing outside
+/// this section may call this.
+fn legacy_delta_scope_files_for_shadow(
+    conn: &Connection,
+    scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
+    revision: i64,
+) -> rusqlite::Result<Vec<String>> {
+    let names: Vec<&str> = scope
+        .touched_symbol_names
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let name_set: HashSet<&str> = names.iter().copied().collect();
+    let mut files: BTreeSet<String> = scope.changed_file_ids.iter().cloned().collect();
+    for item in resolution_store::worklist_resolved_pending_by_names(conn, &names)? {
+        files.insert(item.pending.file_id);
+    }
+    for item in resolution_store::worklist_unresolved_pending_by_names(conn, &names)? {
+        files.insert(item.file_id);
+    }
+    for item in resolution_store::worklist_resolved_identifiers_by_names(conn, &names)? {
+        files.insert(item.identifier.file_id);
+    }
+    for item in resolution_store::worklist_never_attempted_identifiers_by_names(conn, &names)? {
+        files.insert(item.file_id);
+    }
+    files.extend(legacy_files_declaring_type_named_for_shadow(
+        index, &name_set,
+    ));
+    files.extend(legacy_files_importing_names_for_shadow(index, &name_set));
+
+    let changed_ids: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
+    let structural_paths = structurally_changed_paths(conn, revision, &changed_ids)?;
+    files.extend(index.files_importing_module_candidates(&structural_paths));
+
+    Ok(files.into_iter().collect())
+}
+
+/// Files holding a type fact whose `resolved_type` is one of `names` — the tier-3
+/// union the row-scoped path replaced. Shadow-only reference; see
+/// [`legacy_delta_scope_files_for_shadow`].
+fn legacy_files_declaring_type_named_for_shadow(
+    index: &WorkspaceCandidateIndex,
+    names: &HashSet<&str>,
+) -> BTreeSet<String> {
+    let mut files = BTreeSet::new();
+    for (symbol_id, facts) in &index.type_facts_by_symbol {
+        if facts
+            .iter()
+            .any(|fact| names.contains(fact.resolved_type.as_str()))
+            && let Some(symbol) = index.symbol_by_id(symbol_id)
+        {
+            files.insert(symbol.file_id.clone());
+        }
+    }
+    files
+}
+
+/// Files importing any of `names` under either side of the import — the tier-2
+/// union the row-scoped path replaced. Shadow-only reference; see
+/// [`legacy_delta_scope_files_for_shadow`].
+fn legacy_files_importing_names_for_shadow(
+    index: &WorkspaceCandidateIndex,
+    names: &HashSet<&str>,
+) -> BTreeSet<String> {
+    let mut files = BTreeSet::new();
+    for (file_id, imports) in &index.imports_by_file {
+        if imports.iter().any(|import| {
+            names.contains(import.local_name.as_str())
+                || import
+                    .imported_name
+                    .as_deref()
+                    .is_some_and(|name| names.contains(name))
+        }) {
+            files.insert(file_id.clone());
+        }
+    }
+    files
 }
 
 // ---------------------------------------------------------------------------
@@ -4644,6 +5142,136 @@ mod tests {
         assert_eq!(
             ReferenceKind::from_identifier_kind("member_access"),
             Some(ReferenceKind::MemberAccess)
+        );
+    }
+
+    // ---- delta name-set expansion ---------------------------------------
+
+    fn import_row(file: &str, local: &str, imported: Option<&str>) -> ImportRecord {
+        ImportRecord {
+            file_id: file.to_string(),
+            local_name: local.to_string(),
+            imported_name: imported.map(str::to_string),
+            source: None,
+            module_file_id: None,
+            is_type_only: false,
+            is_default: false,
+            is_namespace: false,
+        }
+    }
+
+    fn type_fact(symbol_id: &str, resolved_type: &str) -> TypeFact {
+        TypeFact {
+            symbol_id: symbol_id.to_string(),
+            resolved_type: resolved_type.to_string(),
+            is_inferred: false,
+        }
+    }
+
+    fn name_set(values: &[&str]) -> BTreeSet<String> {
+        values.iter().map(|value| value.to_string()).collect()
+    }
+
+    #[test]
+    fn import_names_linked_to_carries_the_export_of_a_touched_local_alias() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![],
+            vec![],
+            vec![import_row("src", "Bar", Some("Foo"))],
+        );
+        assert_eq!(
+            index.import_names_linked_to(&HashSet::from(["Bar"])),
+            name_set(&["Bar", "Foo"])
+        );
+    }
+
+    #[test]
+    fn import_names_linked_to_carries_the_local_of_a_touched_exported_alias() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![],
+            vec![],
+            vec![import_row("src", "Bar", Some("Foo"))],
+        );
+        assert_eq!(
+            index.import_names_linked_to(&HashSet::from(["Foo"])),
+            name_set(&["Bar", "Foo"])
+        );
+    }
+
+    #[test]
+    fn import_names_linked_to_matches_an_import_with_no_imported_name() {
+        let index =
+            WorkspaceCandidateIndex::build(vec![], vec![], vec![import_row("src", "Foo", None)]);
+        assert_eq!(
+            index.import_names_linked_to(&HashSet::from(["Foo"])),
+            name_set(&["Foo"])
+        );
+    }
+
+    #[test]
+    fn import_names_linked_to_leaves_out_imports_neither_side_of_which_was_touched() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![],
+            vec![],
+            vec![
+                import_row("src", "Bar", Some("Foo")),
+                import_row("src", "Qux", Some("Quux")),
+            ],
+        );
+        assert_eq!(
+            index.import_names_linked_to(&HashSet::from(["Foo"])),
+            name_set(&["Bar", "Foo"])
+        );
+    }
+
+    #[test]
+    fn import_names_linked_to_is_empty_for_an_empty_name_set() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![],
+            vec![],
+            vec![import_row("src", "Bar", Some("Foo"))],
+        );
+        assert!(index.import_names_linked_to(&HashSet::new()).is_empty());
+    }
+
+    #[test]
+    fn receiver_names_bound_to_types_carries_receivers_typed_by_a_touched_type() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("svc", "service", SymbolKind::Variable, "rust", "src"),
+                sym("other", "helper", SymbolKind::Variable, "rust", "src"),
+            ],
+            vec![type_fact("svc", "Widget"), type_fact("other", "Gadget")],
+            vec![],
+        );
+        assert_eq!(
+            index.receiver_names_bound_to_types(&HashSet::from(["Widget"])),
+            name_set(&["service"])
+        );
+    }
+
+    #[test]
+    fn receiver_names_bound_to_types_skips_facts_whose_symbol_is_not_indexed() {
+        let index =
+            WorkspaceCandidateIndex::build(vec![], vec![type_fact("missing", "Widget")], vec![]);
+        assert!(
+            index
+                .receiver_names_bound_to_types(&HashSet::from(["Widget"]))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn receiver_names_bound_to_types_is_empty_for_an_empty_name_set() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![sym("svc", "service", SymbolKind::Variable, "rust", "src")],
+            vec![type_fact("svc", "Widget")],
+            vec![],
+        );
+        assert!(
+            index
+                .receiver_names_bound_to_types(&HashSet::new())
+                .is_empty()
         );
     }
 }

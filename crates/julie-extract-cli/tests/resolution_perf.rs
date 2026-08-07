@@ -941,6 +941,43 @@ fn env_usize(name: &str, default: usize) -> usize {
 /// and a hard ceiling here is the wall-clock leak `test_tiers` exists to keep out. The
 /// one thing it does assert is that the shipped threshold sits on the correct side of
 /// what was just measured.
+///
+/// ## What the x-axis measures under row scoping (2026-08-07, v2.29.0)
+///
+/// v2.28.0 read the x-axis as the identifier share of the widened FILE scope. Row
+/// scoping deleted that scope, so the axis was re-derived against what the guard now
+/// weighs: rows in `recheck_files` PLUS rows matching `recheck_names`, double-counting
+/// a row both arms select (see [`selected_row_share`]). Both shares are printed, so
+/// the double count is visible instead of inferred.
+///
+/// Re-measured curve (release, `--test-threads=1`, 2000 files / 92k identifiers,
+/// FULL baseline 659 ms), as selected-row share -> ratio against FULL:
+/// 0.1% -> 0.07x, 2.8% -> 0.11x, 28.3% -> 0.37x, 56.5% -> 0.66x, 67.8% -> 0.77x,
+/// 79.1% -> 0.97x, **90.4% -> 1.08x (the crossing)**, 101.7% -> 1.21x,
+/// 113.0% -> 1.33x. The share passes 100% at the top of the sweep purely because of
+/// the double count.
+///
+/// The measured crossing is therefore **90.4% of selected rows**, and the shipped
+/// `DELTA_SCOPE_CROSSOVER` of 0.7 still sits below it — with MORE margin than the 80%
+/// it was checked against in v2.28.0, not less. The wall-clock curve itself barely
+/// moved (v2.28.0 recorded 0.07x / 0.37x / 0.96x / 1.08x / 1.37x), because this
+/// fixture's touched names are each declared in exactly one file: the file unions row
+/// scoping removed were already proportional to N here, so the fixture cannot show the
+/// amplifier. The save-shape win is measured on a real corpus (v2.29.0 release notes),
+/// not here.
+///
+/// The double count errs toward promoting EARLY: on this fixture a scope reaches a
+/// 0.70 selected share at a true row share near 62%, where a scoped pass still runs at
+/// roughly 0.8x FULL, so the guard can convert a cheaper scoped pass into a Full one.
+/// That costs time and never correctness, which is the direction the threshold already
+/// errs in, and the sweep does not prove the threshold wrong. The recorded fix is a
+/// de-duplicated count, not a lower threshold — deliberately left as a follow-up.
+///
+/// The single-changed-file exemption is NOT re-derived here: this fixture's n=1 point
+/// is a 0.1% scope, and the exemption exists for a DENSE single-file save whose scope
+/// widens to 90%+ of identifiers, a shape a uniform fixture cannot build. It keeps
+/// resting on the Miller-corpus A/B that established it. Row scoping only narrows what
+/// a one-file save selects, so the exemption can cost less than it did, never more.
 #[test]
 fn delta_scope_crossover_sweep() {
     // Above any real fraction, so the scoped path stays scoped while being measured.
@@ -1003,35 +1040,18 @@ fn delta_scope_crossover_sweep() {
     .into_iter()
     .filter(|n| *n <= files)
     {
-        // Names are the file's own symbols, so the widening unions stay proportional
-        // to N rather than pulling the workspace in through one hot shared name.
+        // Names are the file's own symbols, so the name arm stays proportional to N
+        // rather than pulling the workspace in through one hot shared name.
         let changed_file_ids: Vec<String> = (0..n).map(|i| format!("file-{i}")).collect();
-        let touched: HashSet<String> = (0..n)
+        let touched_names: Vec<String> = (0..n)
             .flat_map(|i| (0..TARGET_FNS_PER_FILE).map(move |k| format!("gfn_{i}_{k}")))
             .collect();
-        // The shipped guard is denominated in identifier rows, so the sweep's x-axis
-        // is the scope's identifier share, not its file share. On this fixture the
-        // two nearly coincide (near-uniform density); measuring the real share keeps
-        // the crossing comparable to the shipped threshold by definition, not by
-        // fixture accident.
-        let ident_fraction: f64 = {
-            let total: i64 = conn
-                .query_row("SELECT COUNT(*) FROM identifiers", [], |row| row.get(0))
-                .unwrap();
-            let in_list = changed_file_ids
-                .iter()
-                .map(|id| format!("'{id}'"))
-                .collect::<Vec<_>>()
-                .join(", ");
-            let scoped: i64 = conn
-                .query_row(
-                    &format!("SELECT COUNT(*) FROM identifiers WHERE file_id IN ({in_list})"),
-                    [],
-                    |row| row.get(0),
-                )
-                .unwrap();
-            scoped as f64 / (total as f64).max(1.0)
-        };
+        let touched: HashSet<String> = touched_names.iter().cloned().collect();
+        // Two shares, because they are no longer the same number. `selected` is what
+        // the shipped guard weighs; `changed` is the pre-row-scoping x-axis, printed
+        // so the gap between them is visible rather than inferred.
+        let selected_fraction = selected_row_share(&conn, &changed_file_ids, &touched_names);
+        let changed_fraction = selected_row_share(&conn, &changed_file_ids, &[]);
         let scope = ResolutionScopeInput {
             changed_file_ids,
             touched_symbol_names: touched,
@@ -1044,31 +1064,33 @@ fn delta_scope_crossover_sweep() {
         let elapsed = started.elapsed();
         tx.commit().unwrap();
 
-        let fraction = ident_fraction;
         let ratio = elapsed.as_secs_f64() / full_elapsed.as_secs_f64().max(1e-9);
         println!(
-            "resolution_perf: DELTA n={n:<5} files ({:>5.1}% of identifiers) {:>6} ms | {:.2}x FULL",
-            fraction * 100.0,
+            "resolution_perf: DELTA n={n:<5} files (selected {:>5.1}% of rows, changed-file arm \
+             alone {:>5.1}%) {:>6} ms | {:.2}x FULL",
+            selected_fraction * 100.0,
+            changed_fraction * 100.0,
             elapsed.as_millis(),
             ratio,
         );
         if ratio >= 1.0 && crossing.is_none() {
-            crossing = Some(fraction);
+            crossing = Some(selected_fraction);
         }
     }
 
     match crossing {
         Some(fraction) => {
             println!(
-                "resolution_perf: measured crossover at ~{:.0}% of the corpus; shipped threshold {:.0}%",
+                "resolution_perf: measured crossover at ~{:.0}% of selected rows; shipped threshold {:.0}%",
                 fraction * 100.0,
                 CROSSOVER_THRESHOLD * 100.0,
             );
             assert!(
                 CROSSOVER_THRESHOLD <= fraction + f64::EPSILON,
                 "the shipped crossover threshold ({:.2}) promotes to Full LATER than the measured \
-                 crossing ({:.2}), so scopes between the two run the scoped path when Full is \
-                 already cheaper. Lower DELTA_SCOPE_CROSSOVER to at most the measured value.",
+                 crossing ({:.2}), both in selected-row share, so scopes between the two run the \
+                 scoped path when Full is already cheaper. Lower DELTA_SCOPE_CROSSOVER to at most \
+                 the measured value.",
                 CROSSOVER_THRESHOLD,
                 fraction,
             );
@@ -1078,4 +1100,46 @@ fn delta_scope_crossover_sweep() {
              the shipped threshold only ever costs an unnecessary promotion to Full",
         ),
     }
+}
+
+/// Binds per chunk, mirroring `resolution::FILE_QUERY_CHUNK` so the sweep's count
+/// chunks the same way the guard's does and stays under SQLite's variable limit.
+const SWEEP_QUERY_CHUNK: usize = 16_000;
+
+/// The identifier share the shipped guard weighs, computed the way
+/// `resolution::delta_scope_crosses_over` computes it under row scoping: the rows in
+/// the whole-file arm PLUS the rows the name arm matches, over the workspace's rows.
+///
+/// A row both arms select is counted twice, exactly as the guard counts it — the
+/// sweep must reproduce the guard's arithmetic, including its known overstatement,
+/// or the crossing it reports is in a denomination the threshold is not.
+///
+/// Mirroring is what the test can do: `DeltaScope` and `delta_scope_crosses_over` are
+/// private. The mirror is exact on THIS fixture because both name expansions are
+/// inert here — every seeded import has `local_name == imported_name`, so
+/// `import_names_linked_to` returns names already touched, and every seeded
+/// `type_facts.resolved_type` is a `Cls_*` name the sweep never touches, so
+/// `receiver_names_bound_to_types` returns nothing. `recheck_names` is therefore the
+/// touched set, and `recheck_files` the changed files (the seed writes no
+/// `revision_file_changes`, so the module-candidate arm is empty).
+fn selected_row_share(conn: &Connection, files: &[String], names: &[String]) -> f64 {
+    let total: i64 = conn
+        .query_row("SELECT COUNT(*) FROM identifiers", [], |row| row.get(0))
+        .unwrap();
+    let mut selected: i64 = 0;
+    for (column, values) in [("file_id", files), ("name", names)] {
+        for chunk in values.chunks(SWEEP_QUERY_CHUNK) {
+            let sql = format!(
+                "SELECT COUNT(*) FROM identifiers WHERE {column} IN ({})",
+                vec!["?"; chunk.len()].join(", "),
+            );
+            let count: i64 = conn
+                .query_row(&sql, rusqlite::params_from_iter(chunk.iter()), |row| {
+                    row.get(0)
+                })
+                .unwrap();
+            selected += count;
+        }
+    }
+    selected as f64 / (total as f64).max(1.0)
 }
