@@ -540,6 +540,53 @@ impl WorkspaceCandidateIndex {
         }
         files
     }
+
+    /// Both sides of every import either side of which is one of `names`.
+    ///
+    /// Tier 2 gates on `local_name` but looks candidates up by `imported_name`, so an
+    /// aliased import ties a reference row to an export under a name that row never
+    /// carries. A name-keyed recheck therefore has to carry the alias's other half:
+    /// touching `Foo` must also recheck the rows written against the local `Bar`.
+    #[allow(dead_code)]
+    fn import_names_linked_to(&self, names: &HashSet<&str>) -> BTreeSet<String> {
+        let mut linked = BTreeSet::new();
+        for imports in self.imports_by_file.values() {
+            for import in imports {
+                let imported = import.imported_name.as_deref();
+                if names.contains(import.local_name.as_str())
+                    || imported.is_some_and(|name| names.contains(name))
+                {
+                    linked.insert(import.local_name.clone());
+                    if let Some(name) = imported {
+                        linked.insert(name.to_string());
+                    }
+                }
+            }
+        }
+        linked
+    }
+
+    /// Names of the symbols whose `type_facts.resolved_type` is one of `names`.
+    ///
+    /// Tier 3 reaches its target through the receiver's RESOLVED TYPE, a name that
+    /// appears in neither `target_terminal_name` nor `target_receiver` — the only two
+    /// columns the delta worklists match on. A name-keyed recheck therefore has to
+    /// carry the receivers bound to a touched type, or the members typed by it are
+    /// never revisited when that type's meaning changes.
+    #[allow(dead_code)]
+    fn receiver_names_bound_to_types(&self, names: &HashSet<&str>) -> BTreeSet<String> {
+        let mut receivers = BTreeSet::new();
+        for (symbol_id, facts) in &self.type_facts_by_symbol {
+            if facts
+                .iter()
+                .any(|fact| names.contains(fact.resolved_type.as_str()))
+                && let Some(symbol) = self.symbol_by_id(symbol_id)
+            {
+                receivers.insert(symbol.name.clone());
+            }
+        }
+        receivers
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -4644,6 +4691,136 @@ mod tests {
         assert_eq!(
             ReferenceKind::from_identifier_kind("member_access"),
             Some(ReferenceKind::MemberAccess)
+        );
+    }
+
+    // ---- delta name-set expansion ---------------------------------------
+
+    fn import_row(file: &str, local: &str, imported: Option<&str>) -> ImportRecord {
+        ImportRecord {
+            file_id: file.to_string(),
+            local_name: local.to_string(),
+            imported_name: imported.map(str::to_string),
+            source: None,
+            module_file_id: None,
+            is_type_only: false,
+            is_default: false,
+            is_namespace: false,
+        }
+    }
+
+    fn type_fact(symbol_id: &str, resolved_type: &str) -> TypeFact {
+        TypeFact {
+            symbol_id: symbol_id.to_string(),
+            resolved_type: resolved_type.to_string(),
+            is_inferred: false,
+        }
+    }
+
+    fn name_set(values: &[&str]) -> BTreeSet<String> {
+        values.iter().map(|value| value.to_string()).collect()
+    }
+
+    #[test]
+    fn import_names_linked_to_carries_the_export_of_a_touched_local_alias() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![],
+            vec![],
+            vec![import_row("src", "Bar", Some("Foo"))],
+        );
+        assert_eq!(
+            index.import_names_linked_to(&HashSet::from(["Bar"])),
+            name_set(&["Bar", "Foo"])
+        );
+    }
+
+    #[test]
+    fn import_names_linked_to_carries_the_local_of_a_touched_exported_alias() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![],
+            vec![],
+            vec![import_row("src", "Bar", Some("Foo"))],
+        );
+        assert_eq!(
+            index.import_names_linked_to(&HashSet::from(["Foo"])),
+            name_set(&["Bar", "Foo"])
+        );
+    }
+
+    #[test]
+    fn import_names_linked_to_matches_an_import_with_no_imported_name() {
+        let index =
+            WorkspaceCandidateIndex::build(vec![], vec![], vec![import_row("src", "Foo", None)]);
+        assert_eq!(
+            index.import_names_linked_to(&HashSet::from(["Foo"])),
+            name_set(&["Foo"])
+        );
+    }
+
+    #[test]
+    fn import_names_linked_to_leaves_out_imports_neither_side_of_which_was_touched() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![],
+            vec![],
+            vec![
+                import_row("src", "Bar", Some("Foo")),
+                import_row("src", "Qux", Some("Quux")),
+            ],
+        );
+        assert_eq!(
+            index.import_names_linked_to(&HashSet::from(["Foo"])),
+            name_set(&["Bar", "Foo"])
+        );
+    }
+
+    #[test]
+    fn import_names_linked_to_is_empty_for_an_empty_name_set() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![],
+            vec![],
+            vec![import_row("src", "Bar", Some("Foo"))],
+        );
+        assert!(index.import_names_linked_to(&HashSet::new()).is_empty());
+    }
+
+    #[test]
+    fn receiver_names_bound_to_types_carries_receivers_typed_by_a_touched_type() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("svc", "service", SymbolKind::Variable, "rust", "src"),
+                sym("other", "helper", SymbolKind::Variable, "rust", "src"),
+            ],
+            vec![type_fact("svc", "Widget"), type_fact("other", "Gadget")],
+            vec![],
+        );
+        assert_eq!(
+            index.receiver_names_bound_to_types(&HashSet::from(["Widget"])),
+            name_set(&["service"])
+        );
+    }
+
+    #[test]
+    fn receiver_names_bound_to_types_skips_facts_whose_symbol_is_not_indexed() {
+        let index =
+            WorkspaceCandidateIndex::build(vec![], vec![type_fact("missing", "Widget")], vec![]);
+        assert!(
+            index
+                .receiver_names_bound_to_types(&HashSet::from(["Widget"]))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn receiver_names_bound_to_types_is_empty_for_an_empty_name_set() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![sym("svc", "service", SymbolKind::Variable, "rust", "src")],
+            vec![type_fact("svc", "Widget")],
+            vec![],
+        );
+        assert!(
+            index
+                .receiver_names_bound_to_types(&HashSet::new())
+                .is_empty()
         );
     }
 }

@@ -177,9 +177,9 @@ both directions, absent `imported_name`, receiver facts keyed to a touched type,
 inputs returning empty sets.
 
 **Acceptance criteria:**
-- [ ] Both accessors return exactly the keyed names on a hand-built index fixture.
-- [ ] No behavior change anywhere (accessors are dead code until Task 3).
-- [ ] Worker-scope verification passes and the change is committed per commit mode.
+- [x] Both accessors return exactly the keyed names on a hand-built index fixture.
+- [x] No behavior change anywhere (accessors are dead code until Task 3).
+- [x] Worker-scope verification passes and the change is committed per commit mode.
 
 ### Task 3: The swap — keyed rows replace whole-file recheck
 
