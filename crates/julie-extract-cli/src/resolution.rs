@@ -3271,9 +3271,12 @@ const SHADOW_INJECTED_VALUE: &str = "<injected-shadow-divergence>";
 /// row list is not.
 const SHADOW_REPORT_DIFFERENCE_LIMIT: usize = 50;
 
-/// Exit code a shadow mismatch forces. Distinct from the CLI's own `0`/`1`/`2` so
-/// a dogfood harness can tell "the two paths disagreed" from "the scan failed".
-pub const SHADOW_MISMATCH_EXIT_CODE: u8 = 3;
+/// Exit code a shadow mismatch forces. `3` is taken — the CLI already returns it
+/// for compatibility refusals (`schema_migration_required`, `schema_incompatible`,
+/// `fingerprint_mismatch`, `no_committed_revision`; docs/contracts/cli.md) — so `4`
+/// keeps "the two paths disagreed" distinguishable from every live code by exit
+/// status alone. The stderr JSON report remains the authoritative signal.
+pub const SHADOW_MISMATCH_EXIT_CODE: u8 = 4;
 
 static SHADOW_MISMATCH_OBSERVED: AtomicBool = AtomicBool::new(false);
 
