@@ -66,6 +66,15 @@ fn default_suite_tests_assert_no_wall_clock_budget() {
     );
 }
 
+#[test]
+fn store_schema_contract_is_part_of_the_default_suite() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let source = read(&crate_root.join("tests/store_schema_contract.rs"));
+
+    assert!(!source.contains("#![cfg("));
+    assert!(source.contains("store_and_coordinator_catalogs_match_the_checked_in_authority"));
+}
+
 fn read(path: &PathBuf) -> String {
     fs::read_to_string(path)
         .unwrap_or_else(|err| panic!("failed to read {}: {}", path.display(), err))

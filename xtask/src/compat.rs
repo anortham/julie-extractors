@@ -7,6 +7,9 @@ use std::process::{Command, ExitCode, Output};
 use rusqlite::types::ValueRef;
 use rusqlite::{Connection, OpenFlags};
 
+const COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH: i64 = 1;
+const CURRENT_EXTRACTION_IDENTITY_EPOCH: i64 = 1;
+
 const DEFAULT_FIXTURE: &str = "fixtures/extraction/resolution_contract";
 const LEDGER_PATH: &str = "docs/contracts/extraction-output-changes.md";
 const VERSION_MANIFEST: &str = "crates/julie-extract-cli/Cargo.toml";
@@ -132,6 +135,8 @@ pub struct CompatReport {
     pub outcome: CompatOutcome,
     pub version: String,
     pub previous_binary_version: String,
+    pub previous_extraction_identity_epoch: i64,
+    pub current_extraction_identity_epoch: i64,
     pub previous_binary: PathBuf,
     pub current_binary: PathBuf,
     pub fixture: PathBuf,
@@ -210,6 +215,23 @@ pub fn verdict(diff: &ArtifactDiff, declaration: Option<&LedgerEntry>) -> Compat
         diff,
         declaration.is_some_and(LedgerEntry::authorizes_notice),
     )
+}
+
+pub fn verdict_for_epochs(
+    diff: &ArtifactDiff,
+    previous_epoch: i64,
+    current_epoch: i64,
+    declaration: Option<&LedgerEntry>,
+) -> CompatOutcome {
+    if diff.is_identical() {
+        CompatOutcome::Pass
+    } else if current_epoch > previous_epoch
+        && declaration.is_some_and(LedgerEntry::authorizes_notice)
+    {
+        CompatOutcome::Notice
+    } else {
+        CompatOutcome::Fail
+    }
 }
 
 pub fn fail_reason(version: &str, declaration: Option<&LedgerEntry>) -> String {
@@ -475,9 +497,16 @@ pub fn run(plan: CompatPlan) -> Result<CompatReport, CompatError> {
     let declaration = declared_change_for_current_build()?;
 
     Ok(CompatReport {
-        outcome: verdict(&diff, declaration.as_ref()),
+        outcome: verdict_for_epochs(
+            &diff,
+            COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH,
+            CURRENT_EXTRACTION_IDENTITY_EPOCH,
+            declaration.as_ref(),
+        ),
         version,
         previous_binary_version: binary_version(&previous_binary)?,
+        previous_extraction_identity_epoch: COMPAT_BASELINE_EXTRACTION_IDENTITY_EPOCH,
+        current_extraction_identity_epoch: CURRENT_EXTRACTION_IDENTITY_EPOCH,
         previous_binary,
         current_binary,
         fixture,
@@ -511,8 +540,11 @@ fn print_report(report: &CompatReport) {
                 .and_then(|entry| entry.classification.clone())
                 .unwrap_or_else(|| "unclassified".to_string());
             println!(
-                "NOTICE: extraction output differs from {} and is declared in {LEDGER_PATH} under `## {}` (classification: {classification})",
-                report.previous_binary_version, report.version,
+                "NOTICE: extraction output differs from {} at extraction identity epoch {} and is declared in {LEDGER_PATH} under `## {}` with epoch {} (classification: {classification})",
+                report.previous_binary_version,
+                report.previous_extraction_identity_epoch,
+                report.version,
+                report.current_extraction_identity_epoch,
             );
         }
         CompatOutcome::Fail => {
@@ -520,7 +552,7 @@ fn print_report(report: &CompatReport) {
             eprintln!(
                 "compat-check failed: extraction output differs from {} and {}",
                 report.previous_binary_version,
-                fail_reason(&report.version, report.declaration.as_ref()),
+                report_fail_reason(report),
             );
         }
     }
@@ -528,12 +560,14 @@ fn print_report(report: &CompatReport) {
 
 fn render_diff(report: &CompatReport) -> String {
     let mut rendered = format!(
-        "extraction output differs on {}\n  previous: {} ({})\n  current:  {} ({})\n",
+        "extraction output differs on {}\n  previous: {} ({}) epoch {}\n  current:  {} ({}) epoch {}\n",
         report.fixture.display(),
         report.previous_binary_version,
         report.previous_binary.display(),
+        report.previous_extraction_identity_epoch,
         report.version,
         report.current_binary.display(),
+        report.current_extraction_identity_epoch,
     );
 
     for difference in &report.diff.differences {
@@ -578,6 +612,19 @@ fn render_diff(report: &CompatReport) -> String {
     }
 
     rendered
+}
+
+fn report_fail_reason(report: &CompatReport) -> String {
+    if !report.diff.is_identical()
+        && report.current_extraction_identity_epoch <= report.previous_extraction_identity_epoch
+    {
+        format!(
+            "the extraction identity epoch remained {}; any extraction difference requires a strictly newer epoch and a classified ledger entry",
+            report.current_extraction_identity_epoch
+        )
+    } else {
+        fail_reason(&report.version, report.declaration.as_ref())
+    }
 }
 
 pub fn dump_artifact(db_path: &Path) -> Result<ArtifactDump, CompatError> {
@@ -878,6 +925,54 @@ fn clean_artifact_path(out_dir: &Path, stem: &str) -> Result<PathBuf, CompatErro
         }
     }
     Ok(db_path)
+}
+
+#[cfg(test)]
+mod epoch_policy_tests {
+    use super::{ArtifactDiff, CompatOutcome, LedgerEntry, TableDifference, verdict_for_epochs};
+
+    fn difference() -> ArtifactDiff {
+        ArtifactDiff {
+            differences: vec![TableDifference::OnlyInCurrent {
+                table: "symbols".to_string(),
+            }],
+        }
+    }
+
+    fn declaration() -> LedgerEntry {
+        LedgerEntry {
+            version: "2.30.0".to_string(),
+            classification: Some("compatible".to_string()),
+        }
+    }
+
+    #[test]
+    fn same_epoch_difference_fails_even_when_classified() {
+        assert_eq!(
+            verdict_for_epochs(&difference(), 1, 1, Some(&declaration())),
+            CompatOutcome::Fail
+        );
+    }
+
+    #[test]
+    fn epoch_bump_requires_a_classified_difference() {
+        assert_eq!(
+            verdict_for_epochs(&difference(), 1, 2, None),
+            CompatOutcome::Fail
+        );
+        assert_eq!(
+            verdict_for_epochs(&difference(), 1, 2, Some(&declaration())),
+            CompatOutcome::Notice
+        );
+    }
+
+    #[test]
+    fn byte_identical_output_passes_without_an_epoch_bump() {
+        assert_eq!(
+            verdict_for_epochs(&ArtifactDiff::default(), 1, 1, None),
+            CompatOutcome::Pass
+        );
+    }
 }
 
 fn write_dump(path: &Path, dump: &ArtifactDump) -> Result<(), CompatError> {

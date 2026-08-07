@@ -13,8 +13,11 @@ use std::path::PathBuf;
 #[test]
 fn test_public_contract_version_marks_current_fact_families() {
     let version = crate::EXTRACTION_CONTRACT_VERSION;
+    let extraction_identity_epoch = crate::EXTRACTION_IDENTITY_EPOCH;
     let _structural_fact: Option<crate::StructuralFact> = None;
     let _complexity_metric: Option<crate::ComplexityMetric> = None;
+
+    assert_eq!(extraction_identity_epoch, 1);
 
     for marker in [
         "source-regions-v1",
