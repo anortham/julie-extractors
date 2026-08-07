@@ -1494,12 +1494,14 @@ fn tier4_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
 // storage crate per design §"Module placement & interface").
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use julie_extract_artifact::resolution_store::{
     self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus, ResolutionWriteBuffer,
 };
 use julie_extract_artifact::writer::{ResolutionHookError, ResolutionScopeInput};
 use rusqlite::{Connection, Transaction};
+use serde_json::json;
 
 /// Value stamped into `reference_resolution_version` metadata. Bump when the
 /// resolver's observable output contract changes so Miller can gate on it.
@@ -1660,6 +1662,7 @@ fn run_resolution(
     // cover most of the workspace, and past the crossover a scoped pass is strictly
     // worse than Full — same rows, plus chunked `IN` clauses and per-file bookkeeping.
     let mut effective_full = requested_full;
+    let mut shadow_baseline: Option<OverlaySnapshot> = None;
     let (locator, covered, delta) = if requested_full {
         let locator = IdentifierLocator::load_scoped(tx, None)?;
         let covered = covered_identifiers(tx, &index, &locator, None)?;
@@ -1672,6 +1675,14 @@ fn run_resolution(
             let covered = covered_identifiers(tx, &index, &locator, None)?;
             (locator, covered, DeltaScope::none())
         } else {
+            // The scoped delta is the ONLY pass with a narrowing to prove, so it is
+            // the only place the shadow switch is read — a Full or crossover-promoted
+            // pass re-derives the workspace and has nothing to shadow. The legacy leg
+            // runs FIRST, inside a savepoint rolled back before the real pass writes.
+            if let Some(shadow) = ShadowMode::from_env() {
+                shadow_baseline =
+                    Some(shadow_legacy_overlay(tx, scope, &index, revision, &shadow)?);
+            }
             // Built from the files of the SELECTED ROWS, not from `recheck_files`: a
             // row the name arm selects in an unchanged file still needs its
             // co-location join, and a file the locator never loaded answers `None`.
@@ -1711,6 +1722,10 @@ fn run_resolution(
             &mut counts,
             &mut gated,
         )?;
+    }
+
+    if let Some(baseline) = shadow_baseline {
+        report_shadow_comparison(&baseline, &OverlaySnapshot::capture(tx)?);
     }
 
     // The workspace-wide aggregate only runs on passes that re-derived the whole
@@ -3222,6 +3237,383 @@ impl IdentifierLocator {
             None
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Shadow mode — the row-scoped path checked against the legacy file-scoped one
+// ---------------------------------------------------------------------------
+
+/// Switch that turns the legacy-vs-row-scoped comparison on, set to `1`. Off by
+/// default, read exactly once per pass, and only from the scoped-delta branch, so
+/// an unset switch costs one environment lookup on a scoped delta and nothing at
+/// all on any other pass.
+const SHADOW_ENV: &str = "JULIE_RESOLUTION_SHADOW";
+
+/// TEST-ONLY divergence injection, read ONLY when [`SHADOW_ENV`] is on. Its value
+/// is an `identifier_id`; the captured legacy snapshot gets a sentinel value at
+/// that key, so the diff must report a mismatch and the process must exit
+/// non-zero. It doctors the in-memory snapshot and never the artifact, and no
+/// production run reaches the read: shadow mode is off by default and nothing else
+/// consults this variable.
+const SHADOW_INJECT_ENV: &str = "JULIE_RESOLUTION_SHADOW_INJECT";
+
+/// Savepoint the legacy leg writes inside, nested in the writer's open
+/// `SAVEPOINT resolution_hook`. Rolled back before the real pass runs, so the
+/// shadow never contributes a row to the artifact.
+const SHADOW_SAVEPOINT: &str = "julie_resolution_shadow";
+
+/// Value stamped over an injected key. No real serialization can collide with it,
+/// so the injection diverges whether or not the doctored key exists.
+const SHADOW_INJECTED_VALUE: &str = "<injected-shadow-divergence>";
+
+/// Cap on the differences the mismatch report spells out. A scope defect can
+/// diverge on tens of thousands of rows; the total count is always reported, the
+/// row list is not.
+const SHADOW_REPORT_DIFFERENCE_LIMIT: usize = 50;
+
+/// Exit code a shadow mismatch forces. Distinct from the CLI's own `0`/`1`/`2` so
+/// a dogfood harness can tell "the two paths disagreed" from "the scan failed".
+pub const SHADOW_MISMATCH_EXIT_CODE: u8 = 3;
+
+static SHADOW_MISMATCH_OBSERVED: AtomicBool = AtomicBool::new(false);
+
+/// The exit code the process must adopt because shadow mode saw a mismatch, or
+/// `None` when it saw none (or never ran).
+///
+/// A mismatch cannot travel out as a [`ResolutionHookError`]: the writer catches
+/// that error, ROLLS BACK the hook's overlay writes and still commits and exits
+/// zero (`writer.rs` §"Failure semantics"). That would both hide the non-zero exit
+/// the contract requires AND destroy the write the contract requires to complete.
+/// So the hook records the mismatch here and `main` reads it after the commit.
+pub fn shadow_mismatch_exit_code() -> Option<u8> {
+    SHADOW_MISMATCH_OBSERVED
+        .load(Ordering::SeqCst)
+        .then_some(SHADOW_MISMATCH_EXIT_CODE)
+}
+
+/// The shadow decision for one pass.
+struct ShadowMode {
+    inject_identifier_id: Option<String>,
+}
+
+impl ShadowMode {
+    /// `Some` only when [`SHADOW_ENV`] is exactly `1`; unset, empty and `0` all
+    /// yield `None`.
+    fn from_env() -> Option<Self> {
+        if std::env::var(SHADOW_ENV).ok().as_deref() != Some("1") {
+            return None;
+        }
+        Some(ShadowMode {
+            inject_identifier_id: std::env::var(SHADOW_INJECT_ENV)
+                .ok()
+                .filter(|value| !value.is_empty()),
+        })
+    }
+
+    fn inject(&self, snapshot: &mut OverlaySnapshot) {
+        if let Some(identifier_id) = &self.inject_identifier_id {
+            snapshot.rows.insert(
+                (
+                    OverlaySnapshot::IDENTIFIER_RESOLUTIONS,
+                    identifier_id.clone(),
+                ),
+                SHADOW_INJECTED_VALUE.to_string(),
+            );
+        }
+    }
+}
+
+/// The three overlay surfaces the shadow compares, natural-keyed.
+///
+/// Column choices mirror the equivalence oracle's `overlay` helper
+/// (`tests/resolution_scope_equivalence.rs`) exactly, including its omission of
+/// `resolved_at_revision`: that column records WHEN a row was written, which two
+/// passes over the same rows necessarily disagree on.
+#[derive(Default)]
+struct OverlaySnapshot {
+    rows: BTreeMap<(&'static str, String), String>,
+}
+
+/// One row the two passes disagree on. `None` on a side means that side wrote no
+/// row under the key at all.
+struct OverlayDifference {
+    table: &'static str,
+    key: String,
+    legacy: Option<String>,
+    scoped: Option<String>,
+}
+
+impl OverlaySnapshot {
+    const PENDING_RESOLUTIONS: &'static str = "pending_resolutions";
+    const IDENTIFIER_RESOLUTIONS: &'static str = "identifier_resolutions";
+    const IDENTIFIER_TARGETS: &'static str = "identifiers.target_symbol_id";
+
+    fn capture(conn: &Connection) -> rusqlite::Result<Self> {
+        let mut rows: BTreeMap<(&'static str, String), String> = BTreeMap::new();
+
+        let mut pending = conn.prepare(
+            "SELECT pending_relationship_id, target_symbol_id, tier, confidence, method \
+             FROM pending_resolutions ORDER BY pending_relationship_id",
+        )?;
+        for row in pending.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                format!(
+                    "{}|{}|{}|{}",
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, f64>(3)?,
+                    row.get::<_, String>(4)?,
+                ),
+            ))
+        })? {
+            let (key, value) = row?;
+            rows.insert((Self::PENDING_RESOLUTIONS, key), value);
+        }
+
+        let mut identifiers = conn.prepare(
+            "SELECT identifier_id, target_symbol_id, tier, confidence, method, outcome, candidates \
+             FROM identifier_resolutions ORDER BY identifier_id",
+        )?;
+        for row in identifiers.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                format!(
+                    "{:?}|{:?}|{:?}|{:?}|{}|{:?}",
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<i64>>(2)?,
+                    row.get::<_, Option<f64>>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, Option<i64>>(6)?,
+                ),
+            ))
+        })? {
+            let (key, value) = row?;
+            rows.insert((Self::IDENTIFIER_RESOLUTIONS, key), value);
+        }
+
+        let mut targets = conn.prepare(
+            "SELECT identifier_id, target_symbol_id FROM identifiers \
+             WHERE target_symbol_id IS NOT NULL ORDER BY identifier_id",
+        )?;
+        for row in targets.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })? {
+            let (key, value) = row?;
+            rows.insert((Self::IDENTIFIER_TARGETS, key), value);
+        }
+
+        Ok(OverlaySnapshot { rows })
+    }
+
+    /// Every key on which the two snapshots disagree, in `(table, key)` order.
+    fn differences(&self, scoped: &OverlaySnapshot) -> Vec<OverlayDifference> {
+        let mut keys: BTreeSet<&(&'static str, String)> = self.rows.keys().collect();
+        keys.extend(scoped.rows.keys());
+        keys.into_iter()
+            .filter_map(|key| {
+                let legacy = self.rows.get(key);
+                let scoped = scoped.rows.get(key);
+                (legacy != scoped).then(|| OverlayDifference {
+                    table: key.0,
+                    key: key.1.clone(),
+                    legacy: legacy.cloned(),
+                    scoped: scoped.cloned(),
+                })
+            })
+            .collect()
+    }
+}
+
+/// Write the mismatch report to stderr and arm the non-zero exit. Silent when the
+/// two passes agree, which is the whole point of running the mode on real repos.
+fn report_shadow_comparison(legacy: &OverlaySnapshot, scoped: &OverlaySnapshot) {
+    let differences = legacy.differences(scoped);
+    if differences.is_empty() {
+        return;
+    }
+    let reported: Vec<_> = differences
+        .iter()
+        .take(SHADOW_REPORT_DIFFERENCE_LIMIT)
+        .map(|difference| {
+            json!({
+                "table": difference.table,
+                "key": difference.key,
+                "legacy": difference.legacy,
+                "scoped": difference.scoped,
+            })
+        })
+        .collect();
+    let report = json!({
+        "julie_resolution_shadow": "mismatch",
+        "difference_count": differences.len(),
+        "reported_count": reported.len(),
+        "truncated": differences.len() > reported.len(),
+        "legacy_row_count": legacy.rows.len(),
+        "scoped_row_count": scoped.rows.len(),
+        "differences": reported,
+    });
+    eprintln!("{report}");
+    SHADOW_MISMATCH_OBSERVED.store(true, Ordering::SeqCst);
+}
+
+/// Run the LEGACY file-scoped delta inside a rolled-back savepoint and return the
+/// overlay it would have written.
+fn shadow_legacy_overlay(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
+    revision: i64,
+    shadow: &ShadowMode,
+) -> rusqlite::Result<OverlaySnapshot> {
+    let legacy_files = legacy_delta_scope_files_for_shadow(tx, scope, index, revision)?;
+    // The legacy pass keyed its name arms on the RAW touched names and swept every
+    // file of the widened set — the same set behind its locator, covered set and
+    // ownership read. Those three fields are exactly what the current executor reads,
+    // so filling them this way reproduces `bbd47bd` without a second copy of
+    // `resolve_delta`. Its co-location repair is a no-op under this scope: every
+    // identifier the repair re-derives sits in the pending's file, which the widened
+    // set already sweeps whole through the by-files arm.
+    let legacy_scope = DeltaScope {
+        recheck_names: scope
+            .touched_symbol_names
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<String>>()
+            .into_iter()
+            .collect(),
+        recheck_files: legacy_files.clone(),
+        selected_row_files: legacy_files,
+    };
+
+    tx.execute_batch(&format!("SAVEPOINT {SHADOW_SAVEPOINT}"))?;
+    let captured = shadow_legacy_leg(tx, scope, index, &legacy_scope, revision);
+    // Roll back whether the leg succeeded or failed: the outer transaction is the
+    // real write and must never carry a shadow row.
+    tx.execute_batch(&format!(
+        "ROLLBACK TO {SHADOW_SAVEPOINT}; RELEASE {SHADOW_SAVEPOINT}"
+    ))?;
+    let mut snapshot = captured?;
+    shadow.inject(&mut snapshot);
+    Ok(snapshot)
+}
+
+fn shadow_legacy_leg(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
+    legacy_scope: &DeltaScope,
+    revision: i64,
+) -> rusqlite::Result<OverlaySnapshot> {
+    let file_refs: Vec<&str> = legacy_scope
+        .selected_row_files
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
+    let covered = covered_identifiers(tx, index, &locator, Some(&file_refs))?;
+    let mut counts = ResolutionCounts::default();
+    let mut gated: BTreeSet<String> = BTreeSet::new();
+    resolve_delta(
+        tx,
+        scope,
+        legacy_scope,
+        index,
+        &locator,
+        &covered,
+        revision,
+        &mut counts,
+        &mut gated,
+    )?;
+    OverlaySnapshot::capture(tx)
+}
+
+/// The delta scope as `bbd47bd` computed it: the changed files, the files holding
+/// any by-name worklist match, and the three index-backed unions.
+///
+/// Exists ONLY as shadow mode's reference and dies with it. The shipped path
+/// replaced the two name-driven unions with keyed name sets
+/// ([`WorkspaceCandidateIndex::import_names_linked_to`],
+/// [`WorkspaceCandidateIndex::receiver_names_bound_to_types`]); nothing outside
+/// this section may call this.
+fn legacy_delta_scope_files_for_shadow(
+    conn: &Connection,
+    scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
+    revision: i64,
+) -> rusqlite::Result<Vec<String>> {
+    let names: Vec<&str> = scope
+        .touched_symbol_names
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let name_set: HashSet<&str> = names.iter().copied().collect();
+    let mut files: BTreeSet<String> = scope.changed_file_ids.iter().cloned().collect();
+    for item in resolution_store::worklist_resolved_pending_by_names(conn, &names)? {
+        files.insert(item.pending.file_id);
+    }
+    for item in resolution_store::worklist_unresolved_pending_by_names(conn, &names)? {
+        files.insert(item.file_id);
+    }
+    for item in resolution_store::worklist_resolved_identifiers_by_names(conn, &names)? {
+        files.insert(item.identifier.file_id);
+    }
+    for item in resolution_store::worklist_never_attempted_identifiers_by_names(conn, &names)? {
+        files.insert(item.file_id);
+    }
+    files.extend(legacy_files_declaring_type_named_for_shadow(
+        index, &name_set,
+    ));
+    files.extend(legacy_files_importing_names_for_shadow(index, &name_set));
+
+    let changed_ids: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
+    let structural_paths = structurally_changed_paths(conn, revision, &changed_ids)?;
+    files.extend(index.files_importing_module_candidates(&structural_paths));
+
+    Ok(files.into_iter().collect())
+}
+
+/// Files holding a type fact whose `resolved_type` is one of `names` — the tier-3
+/// union the row-scoped path replaced. Shadow-only reference; see
+/// [`legacy_delta_scope_files_for_shadow`].
+fn legacy_files_declaring_type_named_for_shadow(
+    index: &WorkspaceCandidateIndex,
+    names: &HashSet<&str>,
+) -> BTreeSet<String> {
+    let mut files = BTreeSet::new();
+    for (symbol_id, facts) in &index.type_facts_by_symbol {
+        if facts
+            .iter()
+            .any(|fact| names.contains(fact.resolved_type.as_str()))
+            && let Some(symbol) = index.symbol_by_id(symbol_id)
+        {
+            files.insert(symbol.file_id.clone());
+        }
+    }
+    files
+}
+
+/// Files importing any of `names` under either side of the import — the tier-2
+/// union the row-scoped path replaced. Shadow-only reference; see
+/// [`legacy_delta_scope_files_for_shadow`].
+fn legacy_files_importing_names_for_shadow(
+    index: &WorkspaceCandidateIndex,
+    names: &HashSet<&str>,
+) -> BTreeSet<String> {
+    let mut files = BTreeSet::new();
+    for (file_id, imports) in &index.imports_by_file {
+        if imports.iter().any(|import| {
+            names.contains(import.local_name.as_str())
+                || import
+                    .imported_name
+                    .as_deref()
+                    .is_some_and(|name| names.contains(name))
+        }) {
+            files.insert(file_id.clone());
+        }
+    }
+    files
 }
 
 // ---------------------------------------------------------------------------
