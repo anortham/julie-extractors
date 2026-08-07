@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use rusqlite::Connection;
 use xtask::compat::{
     ArtifactDiff, ArtifactDump, CompatError, CompatOutcome, CompatPlan, DEFAULT_MAX_DIFF_ROWS,
-    LedgerEntry, LineDifference, TableDifference, TableDump, decide,
+    LedgerEntry, LineDifference, TableDifference, TableDump, current_build_version, decide,
     declared_change_for_current_build, default_fixture, diff_dumps, dump_connection,
     find_ledger_entry, plan_from_args,
 };
@@ -39,6 +39,19 @@ fn database(schema: &str) -> Connection {
     let conn = Connection::open_in_memory().expect("in-memory database");
     conn.execute_batch(schema).expect("schema should apply");
     conn
+}
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("xtask crate should live under repo root")
+        .to_path_buf()
+}
+
+fn shipped_ledger() -> String {
+    let path = repo_root().join("docs/contracts/extraction-output-changes.md");
+    std::fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("ledger {} should be readable: {error}", path.display()))
 }
 
 #[test]
@@ -228,10 +241,29 @@ fn a_v_prefixed_heading_declares_the_same_version() {
 }
 
 #[test]
-fn the_shipped_ledger_declares_nothing_for_the_current_version() {
+fn the_shipped_ledger_entry_for_the_current_version_parses_when_present() {
+    let entry = declared_change_for_current_build().expect("ledger should be readable");
+
+    if let Some(entry) = entry {
+        assert_eq!(
+            entry.version,
+            current_build_version().expect("crate version")
+        );
+        assert!(
+            entry.classification.is_some(),
+            "a declared version must carry a classification line: {entry:?}"
+        );
+    }
+}
+
+#[test]
+fn the_shipped_ledger_pins_the_2_30_0_declaration() {
     assert_eq!(
-        declared_change_for_current_build().expect("ledger should be readable"),
-        None
+        find_ledger_entry(&shipped_ledger(), "2.30.0"),
+        Some(LedgerEntry {
+            version: "2.30.0".to_string(),
+            classification: Some("incompatible".to_string()),
+        })
     );
 }
 

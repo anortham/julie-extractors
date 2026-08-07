@@ -81,6 +81,13 @@ test "$(git rev-parse "v<version>")" = "$(git rev-parse origin/main)"
 git diff --quiet "v<version>"..origin/main
 ```
 
+After the tag is published, advance this file's own pointer in the same session:
+set `Current published release` to the new version and add its release-note (and
+any release-evidence directory) to the list under it. This is a publish-time
+step, never a prep-time one — at prep the version is not published yet, so
+moving the pointer early makes a false currency claim. It is listed here because
+the v2.28.0 advance was missed and had to be backfilled a release later.
+
 Rules:
 
 - Do not publish from a stale primary checkout.

@@ -43,12 +43,19 @@ The version checked is the `version` field of `crates/julie-extract-cli/Cargo.to
 build. Add one `## <version>` section per version whose extraction output changes, before the
 change merges. A section needs a `classification:` line and prose that a consumer can act on.
 
-    ## 2.31.0
+```md
+## 2.31.0
 
-    classification: compatible
+classification: compatible
 
-    What changed, which tables and columns move, and what a consumer must do — or why nothing
-    breaks for a reader on the previous release.
+What changed, which tables and columns move, and what a consumer must do — or why nothing
+breaks for a reader on the previous release.
+```
+
+The example above is inside a code fence deliberately. `find_ledger_entry` trims each line before
+matching, so an *indented* example heading is indistinguishable from a real declaration and would
+declare whichever version it names — shadowing the real entry below, because the first match wins.
+Fenced blocks are skipped. Keep any future example fenced.
 
 `classification: compatible` means a reader built for the previous release still reads the new
 output correctly. `classification: incompatible` means it does not, and the change needs an epoch
@@ -70,4 +77,61 @@ In CI, the `Extractor Compatibility` job downloads the latest published release 
 
 ## Declared changes
 
-No versions are declared. Every release so far byte-matches its predecessor on the fixture.
+Every release before 2.30.0 byte-matches its predecessor on the fixture.
+
+## 2.30.0
+
+classification: incompatible
+
+Two independent output changes ship in this release. The section-level classification above is the
+stronger of the two — the schema v6 identifiers shape. The `metadata_json` canonicalization is
+compatible on its own; it is folded into this entry because the gate reports one verdict per
+version, and a reader that survives the key reordering still cannot read a v6 artifact.
+
+**1. Canonical `metadata_json` serialization — compatible on its own.**
+
+Every `metadata_json` value is now serialized through `serde_json::Value` at the CLI's single
+serialization chokepoint, so keys are emitted in sorted order rather than in extractor insertion
+order. The key SET is unchanged and every value is unchanged, so any JSON reader is unaffected.
+Only a consumer byte-comparing the stored strings sees a difference, and it sees it once: rows
+whose metadata carried 2+ keys in non-canonical order are rewritten in canonical order on the first
+scan with this binary, after which the output is already canonical.
+
+Tables affected: every metadata-carrying table. Measured across two scan processes on the
+determinism gate's fixture before the fix, 90 of 210 metadata-carrying rows differed — `symbols` 73
+of 192 and `structural_facts` 17 of 18 — with zero rows present in only one artifact. Against the
+previous release binary on the compat fixture, the difference is confined to `symbols.metadata_json`
+key ordering.
+
+Consumer action: none, unless the consumer persists or diffs raw `metadata_json` bytes. Such a
+consumer must expect one rewrite of the affected rows and should compare parsed objects rather than
+text.
+
+**2. Schema v6 — `identifiers` loses `target_symbol_id` — incompatible.**
+
+The `identifiers` table drops the denormalized `target_symbol_id` column, its
+`FOREIGN KEY (target_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL`, and the
+`idx_identifiers_target` index. `identifier_resolutions` becomes the sole source of identifier
+resolution outcomes; the resolution store's lockstep writes into the column are deleted.
+
+The gate reports this two ways, both of which this entry declares: the `identifiers` dump's
+`#columns` header loses a column, and `idx_identifiers_target` disappears from the runtime
+`sqlite_master` enumeration.
+
+Consumer action: **rebuild via a full rescan.** A v6 binary refuses a v5 artifact with exit code 3
+and `schema_migration_required`; no migration engine exists. Any consumer SQL selecting
+`identifiers.target_symbol_id` must read `identifier_resolutions.target_symbol_id` through a join
+instead. This is why the classification is `incompatible`: a reader built for 2.29.0 cannot read a
+v6 artifact at all.
+
+Not a difference the gate reports, but worth recording beside the shape change: the JSONL export
+contract is **unbumped at 4**. The identifier record keeps its `target_symbol_id` key, now sourced
+through a `LEFT JOIN identifier_resolutions`, and is byte-identical to 2.29.0's output.
+
+**Also in this release, and deliberately absent from the diff.** The extraction pass stopped
+resolving symbol references across file boundaries (`SymbolLookup` is now per-file). That is a
+producer behavior change, but it alters no output on any real corpus — a per-file extractor cannot
+mint another file's stable symbol id, and the corpus survey behind the change found 0 cross-file
+links over 703k rows. The compat harness re-ran after the narrowing and attributed no extraction-
+output difference to it. It is named here so a future reader does not mistake its absence from the
+dumps for an omission.
