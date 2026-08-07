@@ -292,10 +292,14 @@ repo artifact, ≥20 saves each including renames) and records zero mismatches i
 verification ledger. Dogfood evidence is a release hard gate.
 
 **Acceptance criteria:**
-- [ ] Shadow mode exists, is off by default, and detects an injected divergence.
-- [ ] Dogfood: zero mismatches over ≥40 real saves across two real repos, recorded with
-      commands and counts.
-- [ ] Worker-scope verification passes and the change is committed per commit mode.
+- [x] Shadow mode exists, is off by default, and detects an injected divergence.
+      (Worker commit 46401a0; injected-divergence case + real-corpus probe both fire.)
+- [x] Dogfood: zero mismatches over ≥40 real saves across two real repos, recorded with
+      commands and counts. (Lead-run 2026-08-07: 40 saves = 28 touches + 12 renames over
+      the julie Rust crates corpus and the Miller C# src corpus, release binary,
+      `JULIE_RESOLUTION_SHADOW=1`; 40× exit 0, stderr 0 bytes. Driver + per-save log:
+      shadow-dogfood.py / results.json, committed with Task 5's evidence.)
+- [x] Worker-scope verification passes and the change is committed per commit mode.
 
 ### Task 5: Performance proof, sweep re-measurement, release prep
 
@@ -334,9 +338,15 @@ notes, and version bump. Stop before tagging: report the numbers and request rel
 approval.
 
 **Acceptance criteria:**
-- [ ] Save-shape A/B measured and recorded; the win stated in wall-clock and
-      resolution-phase terms against the committed baselines.
-- [ ] `resolution_perf.rs` single-file 150 ms release ceiling holds.
-- [ ] Branch gate green (fmt, xtask, default, contract) + preflight clean.
-- [ ] Release notes written; version bumped; NOTHING tagged or pushed — user approval
-      requested with the evidence.
+- [x] Save-shape A/B measured and recorded; the win stated in wall-clock and row terms
+      against the committed baselines (2.49×/1.73× wall, 13.96×/4.82× rows; the update
+      verb emits no resolution phase in `profile.phases`, so the notes claim wall-clock
+      only — lead-accepted; the ≥3× expectation shortfall reported as measured, the
+      plan's gate being "no win").
+- [x] `resolution_perf.rs` single-file 150 ms release ceiling holds (45.7 ms; sweep
+      re-derived for the row-scoped selection, crossing 90.4%, shipped 0.7 + exemption
+      stand).
+- [x] Branch gate green (fmt, xtask, default 3836/0, contract 202/0) + preflight clean —
+      re-verified at final HEAD after the lead's exit-4 fix (6bba9cd).
+- [x] Release notes written; version bumped; NOTHING tagged or pushed — user approval
+      requested with the evidence. (Worker commit 6dc9f9a.)
