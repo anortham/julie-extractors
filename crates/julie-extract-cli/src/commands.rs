@@ -78,6 +78,15 @@ pub fn run_from_env() -> ExitCode {
 
     let outcome = run(cli);
     write_outcome(&outcome);
+    // A shadow mismatch overrides only a SUCCESSFUL outcome: the flag is set while
+    // the writer transaction is still open, so a later commit or reporting failure
+    // must keep its own nonzero code — exit 4 asserts "the write landed and the two
+    // paths disagreed", and a failed write is the louder fact.
+    if outcome.exit_code == 0
+        && let Some(shadow) = crate::resolution::shadow_mismatch_exit_code()
+    {
+        return ExitCode::from(shadow);
+    }
     ExitCode::from(outcome.exit_code)
 }
 
