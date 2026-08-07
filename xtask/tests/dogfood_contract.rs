@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use julie_extract_artifact::schema::SQLITE_SCHEMA_VERSION;
 use rusqlite::Connection;
 use tempfile::TempDir;
 use xtask::dogfood::{CommandDurations, DogfoodOutputPaths, plan_repo_from_args, validate_outputs};
@@ -106,7 +107,7 @@ fn validate_outputs_accepts_ok_reports_sqlite_metadata_and_valid_jsonl() {
     )
     .expect("valid dogfood outputs");
 
-    assert_eq!(metrics.sqlite_schema_version, 5);
+    assert_eq!(metrics.sqlite_schema_version, SQLITE_SCHEMA_VERSION);
     assert_eq!(metrics.extract_contract_version, 4);
     assert_eq!(metrics.files, 2);
     assert_eq!(metrics.symbols, 3);
@@ -392,9 +393,9 @@ impl DogfoodFixture {
         .expect("schema");
         for (key, value) in [
             ("artifact_id", "artifact".to_string()),
-            ("schema_version", "5".to_string()),
+            ("schema_version", SQLITE_SCHEMA_VERSION.to_string()),
             ("extract_contract_version", "4".to_string()),
-            ("sqlite_schema_version", "5".to_string()),
+            ("sqlite_schema_version", SQLITE_SCHEMA_VERSION.to_string()),
             ("binary_version", "julie-extract 0.1.0".to_string()),
             ("hash_algorithm", "blake3".to_string()),
             ("parser_inventory_fingerprint", "sha256:parser".to_string()),
