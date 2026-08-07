@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-pub const SQLITE_SCHEMA_VERSION: i64 = 5;
+pub const SQLITE_SCHEMA_VERSION: i64 = 6;
 pub const EXTRACT_CONTRACT_VERSION: i64 = 4;
 
 pub fn create_schema(conn: &Connection) -> rusqlite::Result<()> {
@@ -233,7 +233,6 @@ CREATE TABLE IF NOT EXISTS identifiers (
   name TEXT NOT NULL,
   kind TEXT NOT NULL,
   containing_symbol_id TEXT,
-  target_symbol_id TEXT,
   start_line INTEGER NOT NULL,
   start_column INTEGER NOT NULL,
   end_line INTEGER NOT NULL,
@@ -245,8 +244,7 @@ CREATE TABLE IF NOT EXISTS identifiers (
   metadata_json TEXT,
   FOREIGN KEY (reference_site_id) REFERENCES reference_sites(reference_site_id) ON DELETE CASCADE,
   FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE CASCADE,
-  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL,
-  FOREIGN KEY (target_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
+  FOREIGN KEY (containing_symbol_id) REFERENCES symbols(symbol_id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS relationships (
@@ -316,7 +314,9 @@ CREATE TABLE IF NOT EXISTS pending_resolutions (
 -- Identifier resolution overlay (schema v4). Resolved rows carry a target and
 -- CASCADE away when it dies; ambiguous/missing rows have NULL target. The CHECK
 -- enforces outcome/target coherence (outcome='resolved' <=> target NOT NULL).
--- No resolution provenance is ever written to `identifiers.metadata_json`.
+-- Since schema v6 this table is the ONLY place an identifier resolution outcome
+-- is stored: `identifiers` carries no denormalized target column, and no
+-- resolution provenance is ever written to `identifiers.metadata_json`.
 CREATE TABLE IF NOT EXISTS identifier_resolutions (
   identifier_id TEXT PRIMARY KEY
     REFERENCES identifiers(identifier_id) ON DELETE CASCADE,
@@ -553,7 +553,6 @@ CREATE INDEX IF NOT EXISTS idx_reference_sites_containing_symbol
 CREATE INDEX IF NOT EXISTS idx_identifiers_file ON identifiers(file_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_name_kind ON identifiers(name, kind);
 CREATE INDEX IF NOT EXISTS idx_identifiers_containing ON identifiers(containing_symbol_id);
-CREATE INDEX IF NOT EXISTS idx_identifiers_target ON identifiers(target_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_identifiers_reference_site ON identifiers(reference_site_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_from ON relationships(from_symbol_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_to ON relationships(to_symbol_id);

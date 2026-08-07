@@ -486,7 +486,6 @@ fn map_identifiers(
                 name: identifier.name.clone(),
                 kind: identifier.kind.to_string(),
                 containing_symbol_id: identifier.containing_symbol_id.clone(),
-                target_symbol_id: identifier.target_symbol_id.clone(),
                 start_line: i64::from(identifier.start_line),
                 start_column: i64::from(identifier.start_column),
                 end_line: i64::from(identifier.end_line),
@@ -955,8 +954,17 @@ fn optional_json<T: Serialize>(
         .transpose()
 }
 
+/// Serialize one artifact `metadata_json` cell in canonical (sorted-key) form.
+///
+/// Row metadata reaches this chokepoint from `HashMap`-backed extractor maps whose
+/// iteration order reseeds per process, so serializing them directly makes two scans
+/// of the same tree disagree byte-for-byte on rows that carry identical facts.
+/// Routing through `serde_json::Value` sorts the keys because `serde_json::Map` is
+/// BTreeMap-backed while the `preserve_order` feature stays off — the workspace uses
+/// resolver 2, so tree-sitter's build-dependency copy of that feature does not unify
+/// into this graph. Downstream row-equivalence proofs compare this text directly.
 fn json_string<T: Serialize>(value: &T, _target: &FileTarget) -> Result<String, serde_json::Error> {
-    serde_json::to_string(value)
+    serde_json::to_string(&serde_json::to_value(value)?)
 }
 
 fn metadata_flag(metadata: &Option<std::collections::HashMap<String, Value>>, key: &str) -> bool {

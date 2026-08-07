@@ -39,7 +39,9 @@ pub struct ScanArgs {
     /// .gitignore and .julieignore rules. Repeatable.
     #[arg(long = "ignore-file")]
     pub ignore_files: Vec<PathBuf>,
-    /// Fail instead of migrating when the artifact schema version is older.
+    /// Fail on an artifact whose schema version does not match this binary. Write
+    /// commands refuse an older artifact regardless of this flag; the flag extends
+    /// the refusal to read commands.
     #[arg(long)]
     pub strict_schema: bool,
     /// Emit the machine-readable JSON report on stdout.
@@ -103,7 +105,9 @@ pub struct UpdateArgs {
     /// .gitignore and .julieignore rules. Repeatable.
     #[arg(long = "ignore-file")]
     pub ignore_files: Vec<PathBuf>,
-    /// Fail instead of migrating when the artifact schema version is older.
+    /// Fail on an artifact whose schema version does not match this binary. Write
+    /// commands refuse an older artifact regardless of this flag; the flag extends
+    /// the refusal to read commands.
     #[arg(long)]
     pub strict_schema: bool,
     /// Emit the machine-readable JSON report on stdout.
@@ -122,7 +126,9 @@ pub struct DeleteArgs {
     /// File whose rows should be removed, as a path inside the root.
     #[arg(long)]
     pub file: PathBuf,
-    /// Fail instead of migrating when the artifact schema version is older.
+    /// Fail on an artifact whose schema version does not match this binary. Write
+    /// commands refuse an older artifact regardless of this flag; the flag extends
+    /// the refusal to read commands.
     #[arg(long)]
     pub strict_schema: bool,
     /// Emit the machine-readable JSON report on stdout.
@@ -143,7 +149,9 @@ pub struct RebindArgs {
     /// Existing SQLite artifact path.
     #[arg(long)]
     pub db: PathBuf,
-    /// Fail instead of migrating when the artifact schema version is older.
+    /// Fail on an artifact whose schema version does not match this binary. Write
+    /// commands refuse an older artifact regardless of this flag; the flag extends
+    /// the refusal to read commands.
     #[arg(long)]
     pub strict_schema: bool,
     /// Emit the machine-readable JSON report on stdout.
@@ -156,7 +164,9 @@ pub struct InfoArgs {
     /// Existing SQLite artifact path.
     #[arg(long)]
     pub db: PathBuf,
-    /// Fail instead of migrating when the artifact schema version is older.
+    /// Fail on an artifact whose schema version does not match this binary. Write
+    /// commands refuse an older artifact regardless of this flag; the flag extends
+    /// the refusal to read commands.
     #[arg(long)]
     pub strict_schema: bool,
     /// Emit the machine-readable JSON report on stdout.
@@ -175,7 +185,9 @@ pub struct ExportArgs {
     /// Output path for the export.
     #[arg(long)]
     pub out: PathBuf,
-    /// Fail instead of migrating when the artifact schema version is older.
+    /// Fail on an artifact whose schema version does not match this binary. Write
+    /// commands refuse an older artifact regardless of this flag; the flag extends
+    /// the refusal to read commands.
     #[arg(long)]
     pub strict_schema: bool,
     /// Emit the machine-readable JSON report on stdout.

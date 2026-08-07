@@ -13,7 +13,7 @@ use julie_extract_artifact::writer::{
     ArtifactFileSpool, ArtifactWriteError, ArtifactWriter, ResolutionHookError,
     ResolutionScopeInput,
 };
-use rusqlite::{Connection, limits::Limit};
+use rusqlite::{Connection, OptionalExtension, limits::Limit};
 use serde_json::json;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -35,7 +35,6 @@ fn writer_canonicalizes_shared_exact_reference_sites_across_evidence_rows() {
         name: "target".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("file-a-symbol-0".to_string()),
-        target_symbol_id: Some("file-a-symbol-1".to_string()),
         start_line: 2,
         start_column: 4,
         end_line: 2,
@@ -170,7 +169,6 @@ fn writer_keeps_the_first_site_row_when_passes_disagree_about_scope() {
         name: "target".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("file-a-symbol-0".to_string()),
-        target_symbol_id: Some("file-a-symbol-2".to_string()),
         start_line: 2,
         start_column: 4,
         end_line: 2,
@@ -262,7 +260,6 @@ fn writer_keeps_the_first_site_row_when_physical_data_disagrees() {
             name: "target".to_string(),
             kind: "call".to_string(),
             containing_symbol_id: Some("file-a-symbol-0".to_string()),
-            target_symbol_id: Some("file-a-symbol-1".to_string()),
             start_line: 2,
             start_column: start_byte,
             end_line: 2,
@@ -353,11 +350,7 @@ fn writer_module_does_not_own_row_inserter_helpers() {
         "fn update_failed_preserved_file(",
         "fn replace_parse_diagnostics(",
         "struct SymbolLookup",
-        "fn load_symbol_lookup(",
-        "fn collect_file_symbol_ids(",
         "fn collect_requested_symbol_ids(",
-        "fn load_symbol_lookup_for_requested_ids(",
-        "fn load_existing_symbol_ids_for_requested_ids(",
         "fn valid_symbol_id(",
         "struct IdentifierLookup",
         "struct TypeArgumentUsageLookup",
@@ -1405,12 +1398,28 @@ fn scan_skips_child_rows_with_missing_required_references() {
 }
 
 #[test]
-fn scan_batch_allows_relationships_to_symbols_later_in_same_batch() {
+fn update_resolves_only_symbol_ids_the_written_file_owns() {
     let mut writer = open_writer();
-    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
+    writer
+        .write_scan(
+            revision(WriteOperation::Scan, Some(WriteMode::Incremental)),
+            &[file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"])],
+        )
+        .unwrap();
+
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha", "nested"]);
+    file_a.symbols[1].parent_symbol_id = Some("file-a-symbol-0".to_string());
+    file_a.identifiers.push(ArtifactIdentifier {
+        identifier_id: "id-into-another-file".to_string(),
+        reference_site_id: "site-id-into-another-file".to_string(),
+        name: "beta".to_string(),
+        kind: "call".to_string(),
+        containing_symbol_id: Some("file-a-symbol-0".to_string()),
+        ..ArtifactIdentifier::default()
+    });
     file_a.relationships.push(ArtifactRelationship {
-        relationship_id: "cross-file-relationship".to_string(),
-        reference_site_id: "site-cross-file-relationship".to_string(),
+        relationship_id: "relationship-into-another-file".to_string(),
+        reference_site_id: "site-relationship-into-another-file".to_string(),
         from_symbol_id: "file-a-symbol-0".to_string(),
         to_symbol_id: "file-b-symbol-0".to_string(),
         kind: "calls".to_string(),
@@ -1418,6 +1427,42 @@ fn scan_batch_allows_relationships_to_symbols_later_in_same_batch() {
         confidence: 1.0,
         ..ArtifactRelationship::default()
     });
+
+    let result = writer
+        .write_update(
+            revision(WriteOperation::Update, Some(WriteMode::Incremental)),
+            &file_a,
+        )
+        .unwrap();
+
+    assert_eq!(
+        identifier_containing(writer.connection(), "id-into-another-file"),
+        Some("file-a-symbol-0".to_string()),
+        "a containing symbol the written file owns must still bind"
+    );
+    assert_eq!(
+        identifier_resolution_target(writer.connection(), "id-into-another-file"),
+        None,
+        "the update pass must write no resolution for a symbol another file owns"
+    );
+    assert_eq!(
+        symbol_parent(writer.connection(), "file-a-symbol-1"),
+        Some("file-a-symbol-0".to_string()),
+        "a parent the same file owns must still resolve"
+    );
+    assert_eq!(
+        result.rows_written.relationships, 0,
+        "a relationship into another file's symbol must not be written by the extraction pass"
+    );
+    assert_eq!(foreign_key_violation_count(writer.connection()), 0);
+}
+
+#[test]
+fn scan_batch_writes_relationships_only_within_the_owning_file() {
+    let mut writer = open_writer();
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha", "helper"]);
+    file_a.relationships.push(same_file_relationship());
+    file_a.relationships.push(cross_file_relationship());
     let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
 
     let result = writer
@@ -1428,23 +1473,20 @@ fn scan_batch_allows_relationships_to_symbols_later_in_same_batch() {
         .unwrap();
 
     assert_eq!(result.rows_written.relationships, 1);
-    assert_eq!(count(writer.connection(), "relationships"), 1);
+    assert_eq!(
+        relationship_ids(writer.connection()),
+        vec!["same-file-relationship".to_string()],
+        "a relationship into another file's symbol is the resolution store's to make, not the \
+         extraction pass's"
+    );
 }
 
 #[test]
-fn spooled_scan_allows_relationships_to_symbols_later_in_spool() {
+fn spooled_scan_writes_relationships_only_within_the_owning_file() {
     let mut writer = open_writer();
-    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
-    file_a.relationships.push(ArtifactRelationship {
-        relationship_id: "cross-file-relationship".to_string(),
-        reference_site_id: "site-cross-file-relationship".to_string(),
-        from_symbol_id: "file-a-symbol-0".to_string(),
-        to_symbol_id: "file-b-symbol-0".to_string(),
-        kind: "calls".to_string(),
-        start_line: Some(1),
-        confidence: 1.0,
-        ..ArtifactRelationship::default()
-    });
+    let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha", "helper"]);
+    file_a.relationships.push(same_file_relationship());
+    file_a.relationships.push(cross_file_relationship());
     let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
     let snapshot_paths = vec![file_a.path.clone(), file_b.path.clone()];
     let temp_dir = unique_temp_dir("spooled-cross-file");
@@ -1464,16 +1506,16 @@ fn spooled_scan_allows_relationships_to_symbols_later_in_spool() {
     assert_eq!(result.transactions_committed, 1);
     assert_eq!(result.files_changed, 2);
     assert_eq!(result.rows_written.relationships, 1);
-    assert_eq!(count(writer.connection(), "relationships"), 1);
+    assert_eq!(
+        relationship_ids(writer.connection()),
+        vec!["same-file-relationship".to_string()],
+        "the spooled path scopes relationship targets to the owning file too"
+    );
     std::fs::remove_dir_all(temp_dir).unwrap();
 }
 
 #[test]
-fn scan_resolves_identifier_containing_and_target_symbol_ids() {
-    // Guards the identifier FK write: containing/target must resolve to existing symbol ids
-    // (same-file AND cross-file within one scan), and references to symbols present in no file
-    // must persist as NULL — never a dangling id (which foreign_keys=ON would reject). This
-    // pins the resolved values, which the row-count tests never read back.
+fn scan_resolves_identifier_containing_symbol_ids_and_writes_no_resolution() {
     let mut writer = open_writer();
     let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
     file_a.identifiers.push(ArtifactIdentifier {
@@ -1482,7 +1524,6 @@ fn scan_resolves_identifier_containing_and_target_symbol_ids() {
         name: "beta".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("file-a-symbol-0".to_string()),
-        target_symbol_id: Some("file-b-symbol-0".to_string()),
         ..ArtifactIdentifier::default()
     });
     file_a.identifiers.push(ArtifactIdentifier {
@@ -1491,7 +1532,6 @@ fn scan_resolves_identifier_containing_and_target_symbol_ids() {
         name: "ghost".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("does-not-exist".to_string()),
-        target_symbol_id: Some("also-missing".to_string()),
         ..ArtifactIdentifier::default()
     });
     let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
@@ -1505,23 +1545,24 @@ fn scan_resolves_identifier_containing_and_target_symbol_ids() {
 
     assert_eq!(result.rows_written.identifiers, 2);
     assert_eq!(
-        identifier_refs(writer.connection(), "id-resolved"),
-        (
-            Some("file-a-symbol-0".to_string()),
-            Some("file-b-symbol-0".to_string())
-        ),
-        "valid containing/target must resolve, including cross-file within the same scan"
+        identifier_containing(writer.connection(), "id-resolved"),
+        Some("file-a-symbol-0".to_string()),
+        "a containing symbol the file owns must bind"
     );
     assert_eq!(
-        identifier_refs(writer.connection(), "id-dangling"),
-        (None, None),
+        identifier_containing(writer.connection(), "id-dangling"),
+        None,
         "references to nonexistent symbols must persist as NULL, never a dangling id"
+    );
+    assert_eq!(
+        identifier_resolution_target(writer.connection(), "id-resolved"),
+        None,
+        "the writer must record no resolution outcome; the overlay is the only source"
     );
 }
 
 #[test]
-fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
-    // Same guard for the spooled production cold-scan path.
+fn spooled_scan_resolves_identifier_containing_symbol_ids_and_writes_no_resolution() {
     let mut writer = open_writer();
     let mut file_a = file_with_symbols("file-a", "src/a.rs", "hash-a", ["alpha"]);
     file_a.identifiers.push(ArtifactIdentifier {
@@ -1530,7 +1571,6 @@ fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
         name: "beta".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("file-a-symbol-0".to_string()),
-        target_symbol_id: Some("file-b-symbol-0".to_string()),
         ..ArtifactIdentifier::default()
     });
     file_a.identifiers.push(ArtifactIdentifier {
@@ -1539,7 +1579,6 @@ fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
         name: "ghost".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some("does-not-exist".to_string()),
-        target_symbol_id: None,
         ..ArtifactIdentifier::default()
     });
     let file_b = file_with_symbols("file-b", "src/b.rs", "hash-b", ["beta"]);
@@ -1560,17 +1599,19 @@ fn spooled_scan_resolves_identifier_containing_and_target_symbol_ids() {
 
     assert_eq!(result.rows_written.identifiers, 2);
     assert_eq!(
-        identifier_refs(writer.connection(), "id-resolved"),
-        (
-            Some("file-a-symbol-0".to_string()),
-            Some("file-b-symbol-0".to_string())
-        ),
-        "spooled path must resolve containing/target, including cross-file within one spool"
+        identifier_containing(writer.connection(), "id-resolved"),
+        Some("file-a-symbol-0".to_string()),
+        "the spooled path binds the owning file's containing symbol"
     );
     assert_eq!(
-        identifier_refs(writer.connection(), "id-dangling"),
-        (None, None),
+        identifier_containing(writer.connection(), "id-dangling"),
+        None,
         "spooled path must null references to nonexistent symbols"
+    );
+    assert_eq!(
+        identifier_resolution_target(writer.connection(), "id-resolved"),
+        None,
+        "the spooled writer must record no resolution outcome either"
     );
     std::fs::remove_dir_all(temp_dir).unwrap();
 }
@@ -1770,7 +1811,6 @@ fn spooled_scan_deleting_cross_file_symbol_keeps_references_valid() {
         reference_site_id: "site-file-a-identifier-to-b".to_string(),
         name: "beta".to_string(),
         kind: "call".to_string(),
-        target_symbol_id: Some("file-b-symbol-0".to_string()),
         ..ArtifactIdentifier::default()
     });
     file_a.relationships.push(ArtifactRelationship {
@@ -1805,9 +1845,9 @@ fn spooled_scan_deleting_cross_file_symbol_keeps_references_valid() {
 
     assert_eq!(foreign_key_violation_count(writer.connection()), 0);
     assert_eq!(
-        identifier_refs(writer.connection(), "file-a-identifier-to-b"),
-        (None, None),
-        "deleted target symbols must be nulled on surviving identifiers"
+        identifier_containing(writer.connection(), "file-a-identifier-to-b"),
+        None,
+        "a surviving identifier must keep no reference to a deleted symbol"
     );
     assert_eq!(
         count(writer.connection(), "relationships"),
@@ -1884,7 +1924,7 @@ fn spooled_scan_rejects_a_truncated_spool_missing_snapshot_paths() {
 }
 
 #[test]
-fn scan_batches_symbol_lookup_under_sqlite_variable_limit() {
+fn scan_writes_a_wide_file_under_a_low_sqlite_variable_limit() {
     let mut writer = open_writer();
     writer
         .connection()
@@ -2994,7 +3034,6 @@ fn file_with_all_rows(file_id: &str, path: &str, hash: &str) -> ArtifactFile {
         name: "beta".to_string(),
         kind: "call".to_string(),
         containing_symbol_id: Some(format!("{file_id}-symbol-0")),
-        target_symbol_id: Some(format!("{file_id}-symbol-1")),
         ..ArtifactIdentifier::default()
     });
     file.relationships.push(ArtifactRelationship {
@@ -3144,6 +3183,42 @@ fn foreign_key_violation_count(conn: &Connection) -> usize {
         .count()
 }
 
+fn same_file_relationship() -> ArtifactRelationship {
+    ArtifactRelationship {
+        relationship_id: "same-file-relationship".to_string(),
+        reference_site_id: "site-same-file-relationship".to_string(),
+        from_symbol_id: "file-a-symbol-0".to_string(),
+        to_symbol_id: "file-a-symbol-1".to_string(),
+        kind: "calls".to_string(),
+        start_line: Some(1),
+        confidence: 1.0,
+        ..ArtifactRelationship::default()
+    }
+}
+
+fn cross_file_relationship() -> ArtifactRelationship {
+    ArtifactRelationship {
+        relationship_id: "cross-file-relationship".to_string(),
+        reference_site_id: "site-cross-file-relationship".to_string(),
+        from_symbol_id: "file-a-symbol-0".to_string(),
+        to_symbol_id: "file-b-symbol-0".to_string(),
+        kind: "calls".to_string(),
+        start_line: Some(2),
+        confidence: 1.0,
+        ..ArtifactRelationship::default()
+    }
+}
+
+fn relationship_ids(conn: &Connection) -> Vec<String> {
+    let mut stmt = conn
+        .prepare("SELECT relationship_id FROM relationships ORDER BY relationship_id")
+        .unwrap();
+    stmt.query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
 fn structural_fact_captures(conn: &Connection) -> Vec<String> {
     let mut stmt = conn
         .prepare("SELECT capture_name FROM structural_facts ORDER BY structural_fact_id")
@@ -3163,13 +3238,24 @@ fn symbol_parent(conn: &Connection, symbol_id: &str) -> Option<String> {
     .unwrap()
 }
 
-fn identifier_refs(conn: &Connection, identifier_id: &str) -> (Option<String>, Option<String>) {
+fn identifier_containing(conn: &Connection, identifier_id: &str) -> Option<String> {
     conn.query_row(
-        "SELECT containing_symbol_id, target_symbol_id FROM identifiers WHERE identifier_id = ?1",
+        "SELECT containing_symbol_id FROM identifiers WHERE identifier_id = ?1",
         [identifier_id],
-        |row| Ok((row.get(0)?, row.get(1)?)),
+        |row| row.get(0),
     )
     .unwrap()
+}
+
+fn identifier_resolution_target(conn: &Connection, identifier_id: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT target_symbol_id FROM identifier_resolutions WHERE identifier_id = ?1",
+        [identifier_id],
+        |row| row.get(0),
+    )
+    .optional()
+    .unwrap()
+    .flatten()
 }
 
 fn symbols_for_path(conn: &Connection, path: &str) -> Vec<String> {

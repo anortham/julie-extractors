@@ -299,36 +299,160 @@ fn exit_codes_and_json_errors_match_contract() {
 }
 
 #[test]
-fn strict_schema_rejects_older_v4_artifact_with_migration_required() {
+fn strict_schema_rejects_older_v5_artifact_with_migration_required() {
     let temp = TempDir::new().unwrap();
-    let old_v4_db = temp.path().join("old-v4.sqlite");
-    create_artifact_metadata(&old_v4_db, "artifact-old-v4", "4", "4", "4");
+    let old_v5_db = temp.path().join("old-v5.sqlite");
+    create_artifact_metadata(&old_v5_db, "artifact-old-v5", "5", "4", "5");
 
-    let old_v4 = julie_extract(&[
+    let old_v5 = julie_extract(&[
         "info",
         "--db",
-        old_v4_db.to_str().unwrap(),
+        old_v5_db.to_str().unwrap(),
         "--strict-schema",
         "--json",
     ]);
-    assert_eq!(old_v4.status.code(), Some(3));
-    let report = json_report(&old_v4);
+    assert_eq!(old_v5.status.code(), Some(3));
+    let report = json_report(&old_v5);
     assert_common_report_shape(&report, "failed", "info", "read_only");
     assert_eq!(report["errors"][0]["code"], "schema_migration_required");
     assert_eq!(
         report["errors"][0]["details"]["required_sqlite_schema_version"],
-        5
+        6
     );
     assert_eq!(
         report["errors"][0]["details"]["artifact_sqlite_schema_version"],
-        4
+        5
     );
 
-    let non_strict = julie_extract(&["info", "--db", old_v4_db.to_str().unwrap(), "--json"]);
+    let non_strict = julie_extract(&["info", "--db", old_v5_db.to_str().unwrap(), "--json"]);
     assert_ne!(
         json_report(&non_strict)["errors"][0]["code"],
         "schema_migration_required",
-        "without --strict-schema a v4 artifact must not be rejected for migration"
+        "without --strict-schema a v5 artifact must not be rejected for migration"
+    );
+}
+
+#[test]
+fn write_verbs_refuse_older_v5_artifact_without_strict_schema() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().join("repo");
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join("src/lib.rs"), "pub fn seeded() {}\n").unwrap();
+    let file = root.join("src/lib.rs");
+    let db = temp.path().join("artifact.sqlite");
+    let seed = julie_extract(&["scan", "--root", str(&root), "--db", str(&db), "--json"]);
+    assert_eq!(
+        seed.status.code(),
+        Some(0),
+        "fixture scan failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&seed.stdout),
+        String::from_utf8_lossy(&seed.stderr)
+    );
+    downgrade_artifact_schema_version(&db, "5");
+    std::fs::write(root.join("src/added.rs"), "pub fn added() {}\n").unwrap();
+    let untouched = std::fs::read(&db).unwrap();
+
+    let rebind_root = temp.path().join("moved");
+    std::fs::create_dir_all(&rebind_root).unwrap();
+    for (verb, args) in [
+        (
+            "scan",
+            vec!["scan", "--root", str(&root), "--db", str(&db), "--json"],
+        ),
+        (
+            "scan --force",
+            vec![
+                "scan",
+                "--root",
+                str(&root),
+                "--db",
+                str(&db),
+                "--force",
+                "--json",
+            ],
+        ),
+        (
+            "update",
+            vec![
+                "update",
+                "--root",
+                str(&root),
+                "--db",
+                str(&db),
+                "--file",
+                str(&file),
+                "--json",
+            ],
+        ),
+        (
+            "delete",
+            vec![
+                "delete",
+                "--root",
+                str(&root),
+                "--db",
+                str(&db),
+                "--file",
+                str(&file),
+                "--json",
+            ],
+        ),
+        (
+            "rebind",
+            vec![
+                "rebind",
+                "--root",
+                str(&rebind_root),
+                "--db",
+                str(&db),
+                "--json",
+            ],
+        ),
+    ] {
+        let output = julie_extract(&args);
+        assert_eq!(
+            output.status.code(),
+            Some(3),
+            "{verb} must refuse a v5 artifact without --strict-schema\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let report = json_report(&output);
+        assert_eq!(
+            report["errors"][0]["code"], "schema_migration_required",
+            "{verb} refused a v5 artifact for the wrong reason: {report}"
+        );
+        assert_eq!(
+            report["errors"][0]["details"]["required_sqlite_schema_version"], 6,
+            "{verb} must name the required schema version"
+        );
+        assert_eq!(
+            report["errors"][0]["details"]["artifact_sqlite_schema_version"], 5,
+            "{verb} must name the artifact schema version"
+        );
+        assert_eq!(
+            std::fs::read(&db).unwrap(),
+            untouched,
+            "{verb} must leave the refused artifact byte-identical"
+        );
+    }
+
+    let export = julie_extract(&[
+        "export",
+        "--db",
+        str(&db),
+        "--format",
+        "jsonl",
+        "--out",
+        str(&temp.path().join("export.jsonl")),
+        "--json",
+    ]);
+    assert_eq!(
+        export.status.code(),
+        Some(0),
+        "a read verb must still serve a v5 artifact without --strict-schema\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&export.stdout),
+        String::from_utf8_lossy(&export.stderr)
     );
 }
 
@@ -398,6 +522,23 @@ fn assert_common_report_shape(report: &Value, status: &str, operation: &str, mod
     assert!(report["counts"]["totals"].is_object());
     assert!(report["errors"].is_array());
     assert!(report["warnings"].is_array());
+}
+
+fn str(path: &Path) -> &str {
+    path.to_str().unwrap()
+}
+
+fn downgrade_artifact_schema_version(db: &Path, schema_version: &str) {
+    let connection = Connection::open(db).unwrap();
+    for key in ["schema_version", "sqlite_schema_version"] {
+        let updated = connection
+            .execute(
+                "UPDATE artifact_metadata SET value = ?1 WHERE key = ?2",
+                [schema_version, key],
+            )
+            .unwrap();
+        assert_eq!(updated, 1, "artifact metadata is missing {key}");
+    }
 }
 
 fn create_incompatible_artifact(path: &Path) {

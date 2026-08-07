@@ -48,3 +48,51 @@ jobs:
 
       - name: Test contract tier
         run: cargo xtask test contract
+
+  extractor-compat:
+    name: Extractor Compatibility
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Download the previous release binary
+        run: |
+          set -euo pipefail
+          tag="$(gh release list --repo "$GITHUB_REPOSITORY" \
+            --exclude-drafts --exclude-pre-releases --limit 1 \
+            --json tagName --jq '.[0].tagName')"
+          if [ -z "$tag" ]; then
+            echo "no published release to compare extraction output against" >&2
+            exit 1
+          fi
+          echo "comparing extraction output against $tag"
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern '*x86_64-unknown-linux-gnu.tar.gz' --dir previous-release
+          tar -xzf previous-release/*x86_64-unknown-linux-gnu.tar.gz -C previous-release
+          chmod +x previous-release/dist/x86_64-unknown-linux-gnu/julie-extract
+
+      - name: Check extraction output compatibility
+        run: >-
+          cargo xtask compat-check --previous-binary
+          previous-release/dist/x86_64-unknown-linux-gnu/julie-extract
+
+      - name: Upload extraction dumps
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: compat-check-dumps
+          path: target/compat-check/*.dump.txt
+          if-no-files-found: warn

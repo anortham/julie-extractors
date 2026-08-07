@@ -93,7 +93,7 @@ per-file change records, and the extracted data itself: symbols, annotations,
 identifiers, relationships, type facts, literals, source regions, structural
 facts, complexity metrics, and parse diagnostics. The full table and index
 contract is in
-[docs/contracts/sqlite-schema-v5.md](docs/contracts/sqlite-schema-v5.md).
+[docs/contracts/sqlite-schema-v6.md](docs/contracts/sqlite-schema-v6.md).
 
 Artifacts do not store complete source file contents. Consumers that need full
 text should read the matching source tree directly.
@@ -195,7 +195,8 @@ Public contracts:
 
 - [CLI contract](docs/contracts/cli.md)
 - [Extracted data v4](docs/contracts/extracted-data-v4.md)
-- [SQLite schema v5](docs/contracts/sqlite-schema-v5.md)
+- [SQLite schema v6](docs/contracts/sqlite-schema-v6.md)
+- [SQLite schema v5](docs/contracts/sqlite-schema-v5.md) (superseded)
 - [JSONL v4](docs/contracts/jsonl-v4.md)
 - [JSON reports](docs/contracts/reports.md)
 - [Progress file v1](docs/contracts/progress-file-v1.md)

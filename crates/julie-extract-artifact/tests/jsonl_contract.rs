@@ -887,12 +887,20 @@ fn insert_extraction_rows(conn: &Connection) {
     conn.execute(
         "INSERT INTO identifiers
          (identifier_id, reference_site_id, file_id, path, language, name, kind, containing_symbol_id,
-          target_symbol_id, start_line, start_column, end_line, end_column, start_byte,
+          start_line, start_column, end_line, end_column, start_byte,
           end_byte, confidence, code_context, metadata_json)
          VALUES ('ident-beta', 'site-beta', 'file-a', 'src/a.rs', 'rust', 'beta', 'call',
-                 'sym-alpha', 'sym-beta', 2, 4, 2, 8, 16, 20, 0.95,
+                 'sym-alpha', 2, 4, 2, 8, 16, 20, 0.95,
                  'beta();', ?1)",
         [r#"{"identifier":true}"#],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO identifier_resolutions
+         (identifier_id, target_symbol_id, tier, confidence, method, outcome, candidates,
+          resolved_at_revision)
+         VALUES ('ident-beta', 'sym-beta', 1, 0.95, 'tier1_local', 'resolved', NULL, 1)",
+        [],
     )
     .unwrap();
     conn.execute(

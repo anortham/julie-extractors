@@ -350,6 +350,16 @@ fn contract_plan() -> TestPlan {
             "test",
             "-p",
             "julie-extract-cli",
+            "--test",
+            "determinism_contract",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-cli",
             "--features",
             "test-heavy-contracts",
             "--test",

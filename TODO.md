@@ -624,7 +624,7 @@ is rejected.
   confidence (`ReferenceEvidenceReader.cs` in the Miller repo), so a 0.55-confidence
   edge is presented to users as an exact reference — precision matters more than
   recall here. `reference_sites.is_exact` / `provenance` attest span quality, not
-  target correctness (`docs/contracts/sqlite-schema-v5.md`); do not conflate them.
+  target correctness (`docs/contracts/sqlite-schema-v6.md`); do not conflate them.
 - **Verification:** assert no `identifiers` row lacks an `identifier_resolutions`
   row after a full pass, and prove full/delta idempotence. Rate comparisons measure
   recall only — precision needs its own fixture evidence per the repo's data-quality

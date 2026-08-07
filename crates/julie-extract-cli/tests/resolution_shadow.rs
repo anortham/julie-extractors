@@ -138,7 +138,7 @@ fn overlay(db: &Path) -> Vec<String> {
 
     let mut targets = conn
         .prepare(
-            "SELECT identifier_id, target_symbol_id FROM identifiers \
+            "SELECT identifier_id, target_symbol_id FROM identifier_resolutions \
              WHERE target_symbol_id IS NOT NULL ORDER BY identifier_id",
         )
         .unwrap();
@@ -146,7 +146,7 @@ fn overlay(db: &Path) -> Vec<String> {
         targets
             .query_map([], |row| {
                 Ok(format!(
-                    "denormalized|{}|{}",
+                    "resolved_target|{}|{}",
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                 ))

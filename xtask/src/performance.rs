@@ -848,7 +848,6 @@ fn writer_current_schema_identifier(
     symbols_per_file: usize,
 ) -> ArtifactIdentifier {
     let containing_symbol_index = identifier_index % symbols_per_file;
-    let target_symbol_index = (identifier_index + 1) % symbols_per_file;
     let start_line = (identifier_index + 1) as i64;
     ArtifactIdentifier {
         identifier_id: format!("{file_id}-identifier-{identifier_index}"),
@@ -856,7 +855,6 @@ fn writer_current_schema_identifier(
         name: format!("identifier_{identifier_index}"),
         kind: "call".to_string(),
         containing_symbol_id: Some(format!("{file_id}-symbol-{containing_symbol_index}")),
-        target_symbol_id: Some(format!("{file_id}-symbol-{target_symbol_index}")),
         start_line,
         start_column: 4,
         end_line: start_line,

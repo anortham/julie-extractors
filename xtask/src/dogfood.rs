@@ -6,12 +6,12 @@ use std::process::{Command, ExitCode, Output};
 use std::time::{Duration, Instant};
 
 use julie_extract_artifact::jsonl::JSONL_RECORD_KINDS;
+use julie_extract_artifact::schema::SQLITE_SCHEMA_VERSION;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
 use serde_json::Value;
 
 const REPORT_SCHEMA_VERSION: i64 = 3;
-const SQLITE_SCHEMA_VERSION: i64 = 5;
 const EXTRACT_CONTRACT_VERSION: i64 = 4;
 const JSONL_SCHEMA_VERSION: i64 = 4;
 const REQUIRED_METADATA_KEYS: &[&str] = &[

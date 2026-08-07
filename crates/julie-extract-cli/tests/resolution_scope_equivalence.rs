@@ -137,10 +137,10 @@ fn overlay(db: &Path) -> Vec<String> {
             .unwrap(),
     );
 
-    // The denormalized column consumers actually read.
+    // The resolved targets consumers actually read.
     let mut targets = conn
         .prepare(
-            "SELECT identifier_id, target_symbol_id FROM identifiers \
+            "SELECT identifier_id, target_symbol_id FROM identifier_resolutions \
              WHERE target_symbol_id IS NOT NULL ORDER BY identifier_id",
         )
         .unwrap();
@@ -148,7 +148,7 @@ fn overlay(db: &Path) -> Vec<String> {
         targets
             .query_map([], |row| {
                 Ok(format!(
-                    "denormalized|{}|{}",
+                    "resolved_target|{}|{}",
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                 ))
@@ -170,8 +170,7 @@ fn assert_matches_full_rederivation(db: &Path, what: &str) {
     let mut conn = Connection::open(&oracle).expect("oracle opens");
     conn.execute_batch(
         "DELETE FROM pending_resolutions; \
-         DELETE FROM identifier_resolutions; \
-         UPDATE identifiers SET target_symbol_id = NULL;",
+         DELETE FROM identifier_resolutions;",
     )
     .expect("overlay clears");
 

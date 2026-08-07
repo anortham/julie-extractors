@@ -201,7 +201,6 @@ fn dense_identifier_file(identifiers: usize) -> ArtifactFile {
                     "variable_ref".to_string()
                 },
                 containing_symbol_id: Some(hash_id((index / 25) as u64)),
-                target_symbol_id: None,
                 start_line: index as i64 / 4 + 1,
                 start_column: (index % 60) as i64,
                 end_line: index as i64 / 4 + 1,
@@ -329,7 +328,6 @@ fn fully_populated_file() -> ArtifactFile {
             name: "beta".to_string(),
             kind: "call".to_string(),
             containing_symbol_id: Some("sym-alpha".to_string()),
-            target_symbol_id: Some("sym-beta".to_string()),
             start_line: 5,
             start_column: 4,
             end_line: 5,

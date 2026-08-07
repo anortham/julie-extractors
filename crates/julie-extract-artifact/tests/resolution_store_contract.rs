@@ -1,15 +1,15 @@
 //! Contract tests for the resolution overlay storage primitives.
 //!
-//! These primitives are the ONLY sanctioned write path to resolution state
-//! (`pending_resolutions`, `identifier_resolutions`, and the denormalized
-//! `identifiers.target_symbol_id`). Every invariant asserted here is a
-//! contract other tasks (3/4/5) rely on.
+//! These primitives are the ONLY sanctioned write path to resolution state, and
+//! since schema v6 `pending_resolutions` and `identifier_resolutions` are the
+//! only places that state lives. Every invariant asserted here is a contract
+//! other tasks (3/4/5) rely on.
 
 use julie_extract_artifact::resolution_store::{
     self, Outcome, ResolutionMetadata, ResolutionStatus,
 };
 use julie_extract_artifact::schema::create_schema;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -103,11 +103,13 @@ fn identifier_resolution_count(conn: &Connection) -> i64 {
 
 fn identifier_target(conn: &Connection, id: &str) -> Option<String> {
     conn.query_row(
-        "SELECT target_symbol_id FROM identifiers WHERE identifier_id = ?1",
+        "SELECT target_symbol_id FROM identifier_resolutions WHERE identifier_id = ?1",
         [id],
         |r| r.get::<_, Option<String>>(0),
     )
+    .optional()
     .unwrap()
+    .flatten()
 }
 
 // ---------------------------------------------------------------------------
@@ -224,13 +226,13 @@ fn demote_pending_clears_overlay_row() {
 }
 
 // ---------------------------------------------------------------------------
-// identifier_resolutions overlay + denormalized column
+// identifier_resolutions overlay
 // ---------------------------------------------------------------------------
 
 #[test]
-fn record_identifier_resolved_writes_overlay_and_denormalized_column() {
-    // INVARIANT: a resolved identifier writes BOTH the overlay row and the
-    // denormalized identifiers.target_symbol_id in one atomic call.
+fn record_identifier_resolved_writes_overlay_row_carrying_the_target() {
+    // INVARIANT: a resolved identifier writes exactly one overlay row carrying
+    // the target; no other surface records the outcome.
     let mut conn = open();
     seed(&conn);
     let tx = conn.transaction().unwrap();
@@ -261,9 +263,8 @@ fn record_identifier_resolved_writes_overlay_and_denormalized_column() {
 }
 
 #[test]
-fn record_identifier_ambiguous_has_null_target_and_null_denormalized_column() {
-    // INVARIANT: a non-resolved outcome writes a NULL-target overlay row and
-    // leaves the denormalized column NULL.
+fn record_identifier_ambiguous_has_null_target() {
+    // INVARIANT: a non-resolved outcome writes a NULL-target overlay row.
     let mut conn = open();
     seed(&conn);
     let tx = conn.transaction().unwrap();
@@ -296,8 +297,7 @@ fn record_identifier_ambiguous_has_null_target_and_null_denormalized_column() {
 #[test]
 fn resolved_identifier_cascades_on_target_death_row_survives() {
     // INVARIANT: killing the target CASCADE-removes the identifier overlay row
-    // (identifier reverts to never-attempted) AND SET NULLs the denormalized
-    // column; the identifier itself survives.
+    // (identifier reverts to never-attempted); the identifier itself survives.
     let mut conn = open();
     seed(&conn);
     let tx = conn.transaction().unwrap();
@@ -326,7 +326,7 @@ fn resolved_identifier_cascades_on_target_death_row_survives() {
     assert_eq!(
         identifier_target(&conn, "i1"),
         None,
-        "denormalized column SET NULL on target death"
+        "no target survives the cascade"
     );
     let survives: i64 = conn
         .query_row(
@@ -397,9 +397,9 @@ fn check_rejects_non_resolved_with_non_null_target() {
 }
 
 #[test]
-fn demote_identifier_clears_overlay_and_denormalized_column() {
-    // INVARIANT (round-3 finding 1): demotion deletes the overlay row AND clears
-    // the denormalized column in the same batch (FK SET NULL never fires here).
+fn demote_identifier_clears_overlay() {
+    // INVARIANT (round-3 finding 1): demotion deletes the overlay row outright;
+    // FK SET NULL never fires here because the target still exists.
     let mut conn = open();
     seed(&conn);
     let tx = conn.transaction().unwrap();
@@ -422,7 +422,7 @@ fn demote_identifier_clears_overlay_and_denormalized_column() {
     assert_eq!(
         identifier_target(&conn, "i1"),
         None,
-        "demote must clear denormalized column, not rely on FK"
+        "demote must remove the target, not rely on FK"
     );
 }
 
