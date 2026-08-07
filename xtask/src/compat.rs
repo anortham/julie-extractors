@@ -15,15 +15,11 @@ const FIELD_SEPARATOR: char = '\t';
 const COLUMN_HEADER_PREFIX: &str = "#columns";
 
 /// `artifact_metadata`, `extraction_revisions` and `revision_file_changes` carry per-scan identity
-/// and timestamps, so two runs of the SAME binary already differ there. `pending_resolutions` and
-/// `identifier_resolutions` are the deliberate work surface of the resolution tiers, gated by the
-/// resolution-contract fixtures rather than by byte equivalence against the previous release.
+/// and timestamps, so two runs of the SAME binary already differ there.
 const EXCLUDED_TABLES: &[&str] = &[
     "artifact_metadata",
     "extraction_revisions",
     "revision_file_changes",
-    "identifier_resolutions",
-    "pending_resolutions",
 ];
 
 const VOLATILE_COLUMNS: &[(&str, &[&str])] = &[("files", &["indexed_at", "last_revision_id"])];
@@ -102,10 +98,24 @@ impl ArtifactDiff {
     }
 }
 
+/// The ledger documents exactly these two `classification:` values, and requires the line. A
+/// section carrying neither has not classified the change, so it cannot authorize the NOTICE path.
+const DECLARED_CLASSIFICATIONS: &[&str] = &["compatible", "incompatible"];
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LedgerEntry {
     pub version: String,
     pub classification: Option<String>,
+}
+
+impl LedgerEntry {
+    pub fn authorizes_notice(&self) -> bool {
+        self.classification.as_deref().is_some_and(|value| {
+            DECLARED_CLASSIFICATIONS
+                .iter()
+                .any(|declared| value.eq_ignore_ascii_case(declared))
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -192,6 +202,36 @@ pub fn decide(diff: &ArtifactDiff, declared: bool) -> CompatOutcome {
         CompatOutcome::Notice
     } else {
         CompatOutcome::Fail
+    }
+}
+
+pub fn verdict(diff: &ArtifactDiff, declaration: Option<&LedgerEntry>) -> CompatOutcome {
+    decide(
+        diff,
+        declaration.is_some_and(LedgerEntry::authorizes_notice),
+    )
+}
+
+pub fn fail_reason(version: &str, declaration: Option<&LedgerEntry>) -> String {
+    let documented = DECLARED_CLASSIFICATIONS
+        .iter()
+        .map(|value| format!("`{value}`"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    match declaration {
+        None => format!("version {version} has no `## {version}` entry in {LEDGER_PATH}"),
+        Some(LedgerEntry {
+            classification: None,
+            ..
+        }) => format!(
+            "the `## {version}` entry in {LEDGER_PATH} has no `classification:` line; the ledger requires one of {documented}"
+        ),
+        Some(LedgerEntry {
+            classification: Some(value),
+            ..
+        }) => format!(
+            "the `## {version}` entry in {LEDGER_PATH} declares `classification: {value}`, which is not one of {documented}"
+        ),
     }
 }
 
@@ -435,7 +475,7 @@ pub fn run(plan: CompatPlan) -> Result<CompatReport, CompatError> {
     let declaration = declared_change_for_current_build()?;
 
     Ok(CompatReport {
-        outcome: decide(&diff, declaration.is_some()),
+        outcome: verdict(&diff, declaration.as_ref()),
         version,
         previous_binary_version: binary_version(&previous_binary)?,
         previous_binary,
@@ -478,8 +518,9 @@ fn print_report(report: &CompatReport) {
         CompatOutcome::Fail => {
             eprintln!("{}", render_diff(report));
             eprintln!(
-                "compat-check failed: extraction output differs from {} and version {} has no `## {}` entry in {LEDGER_PATH}",
-                report.previous_binary_version, report.version, report.version,
+                "compat-check failed: extraction output differs from {} and {}",
+                report.previous_binary_version,
+                fail_reason(&report.version, report.declaration.as_ref()),
             );
         }
     }

@@ -4,8 +4,8 @@ use rusqlite::Connection;
 use xtask::compat::{
     ArtifactDiff, ArtifactDump, CompatError, CompatOutcome, CompatPlan, DEFAULT_MAX_DIFF_ROWS,
     LedgerEntry, LineDifference, TableDifference, TableDump, current_build_version, decide,
-    declared_change_for_current_build, default_fixture, diff_dumps, dump_connection,
-    find_ledger_entry, plan_from_args,
+    declared_change_for_current_build, default_fixture, diff_dumps, dump_connection, fail_reason,
+    find_ledger_entry, plan_from_args, verdict,
 };
 
 fn dump(tables: &[(&str, &str)]) -> ArtifactDump {
@@ -28,6 +28,13 @@ fn rows_differ(table: &str) -> ArtifactDiff {
             current_lines: 1,
             first_differences: Vec::new(),
         }],
+    }
+}
+
+fn ledger_entry(classification: Option<&str>) -> LedgerEntry {
+    LedgerEntry {
+        version: "2.30.0".to_string(),
+        classification: classification.map(str::to_string),
     }
 }
 
@@ -68,6 +75,93 @@ fn declared_difference_is_a_notice() {
 #[test]
 fn undeclared_difference_fails() {
     assert_eq!(decide(&rows_differ("symbols"), false), CompatOutcome::Fail);
+}
+
+#[test]
+fn a_section_carrying_a_documented_classification_authorizes_a_notice() {
+    assert!(ledger_entry(Some("compatible")).authorizes_notice());
+    assert!(ledger_entry(Some("incompatible")).authorizes_notice());
+}
+
+#[test]
+fn a_section_without_a_classification_line_authorizes_nothing() {
+    assert!(!ledger_entry(None).authorizes_notice());
+}
+
+#[test]
+fn a_section_carrying_an_undocumented_classification_authorizes_nothing() {
+    assert!(!ledger_entry(Some("mostly compatible")).authorizes_notice());
+    assert!(!ledger_entry(Some("")).authorizes_notice());
+}
+
+#[test]
+fn a_difference_declared_by_a_classified_section_is_a_notice() {
+    assert_eq!(
+        verdict(
+            &rows_differ("symbols"),
+            Some(&ledger_entry(Some("incompatible")))
+        ),
+        CompatOutcome::Notice
+    );
+}
+
+#[test]
+fn a_difference_declared_by_a_section_without_a_classification_fails() {
+    assert_eq!(
+        verdict(&rows_differ("symbols"), Some(&ledger_entry(None))),
+        CompatOutcome::Fail
+    );
+}
+
+#[test]
+fn a_difference_declared_by_a_section_with_an_undocumented_classification_fails() {
+    assert_eq!(
+        verdict(
+            &rows_differ("symbols"),
+            Some(&ledger_entry(Some("unknown")))
+        ),
+        CompatOutcome::Fail
+    );
+}
+
+#[test]
+fn an_undeclared_difference_fails_the_verdict() {
+    assert_eq!(verdict(&rows_differ("symbols"), None), CompatOutcome::Fail);
+}
+
+#[test]
+fn identical_dumps_pass_even_when_the_declared_section_is_malformed() {
+    assert_eq!(
+        verdict(&ArtifactDiff::default(), Some(&ledger_entry(None))),
+        CompatOutcome::Pass
+    );
+}
+
+#[test]
+fn the_failure_reason_for_an_undeclared_version_names_the_missing_section() {
+    let reason = fail_reason("2.30.0", None);
+    assert!(
+        reason.contains("no `## 2.30.0` entry"),
+        "unexpected reason: {reason}"
+    );
+}
+
+#[test]
+fn the_failure_reason_for_a_section_without_a_classification_names_the_missing_line() {
+    let reason = fail_reason("2.30.0", Some(&ledger_entry(None)));
+    assert!(
+        reason.contains("`## 2.30.0`") && reason.contains("no `classification:` line"),
+        "unexpected reason: {reason}"
+    );
+}
+
+#[test]
+fn the_failure_reason_for_an_undocumented_classification_quotes_the_value() {
+    let reason = fail_reason("2.30.0", Some(&ledger_entry(Some("mostly compatible"))));
+    assert!(
+        reason.contains("mostly compatible") && reason.contains("compatible`, `incompatible`"),
+        "unexpected reason: {reason}"
+    );
 }
 
 #[test]
@@ -333,7 +427,8 @@ fn the_default_fixture_exists() {
 fn a_dump_drops_excluded_tables_and_volatile_file_columns() {
     let conn = database(
         "CREATE TABLE artifact_metadata (key TEXT PRIMARY KEY, value TEXT);
-         CREATE TABLE identifier_resolutions (id TEXT PRIMARY KEY);
+         CREATE TABLE extraction_revisions (revision_id INTEGER PRIMARY KEY);
+         CREATE TABLE revision_file_changes (revision_id INTEGER PRIMARY KEY);
          CREATE TABLE files (
            file_id TEXT PRIMARY KEY,
            path TEXT NOT NULL,
@@ -354,6 +449,46 @@ fn a_dump_drops_excluded_tables_and_volatile_file_columns() {
     assert_eq!(
         dumped.find("files"),
         Some("#columns\tfile_id\tpath\ntext:f1\ttext:a.rs\n")
+    );
+}
+
+#[test]
+fn a_dump_compares_both_resolution_tables_including_the_resolving_revision() {
+    let conn = database(
+        "CREATE TABLE identifier_resolutions (
+           identifier_id TEXT PRIMARY KEY,
+           target_symbol_id TEXT,
+           outcome TEXT NOT NULL,
+           resolved_at_revision INTEGER NOT NULL
+         );
+         CREATE TABLE pending_resolutions (
+           pending_relationship_id TEXT PRIMARY KEY,
+           target_symbol_id TEXT NOT NULL,
+           resolved_at_revision INTEGER NOT NULL
+         );
+         INSERT INTO identifier_resolutions VALUES ('i1', 's1', 'resolved', 1);
+         INSERT INTO pending_resolutions VALUES ('p1', 's1', 1);",
+    );
+
+    let dumped = dump_connection(&conn).expect("dump should succeed");
+
+    assert_eq!(
+        dumped.table_names().collect::<Vec<_>>(),
+        vec!["identifier_resolutions", "pending_resolutions"],
+        "identifier_resolutions is the sole consumer-visible source of resolved targets since \
+         schema v6, so a resolver regression must reach the comparison"
+    );
+    assert_eq!(
+        dumped.find("identifier_resolutions"),
+        Some(
+            "#columns\tidentifier_id\ttarget_symbol_id\toutcome\tresolved_at_revision\ntext:i1\ttext:s1\ttext:resolved\tint:1\n"
+        )
+    );
+    assert_eq!(
+        dumped.find("pending_resolutions"),
+        Some(
+            "#columns\tpending_relationship_id\ttarget_symbol_id\tresolved_at_revision\ntext:p1\ttext:s1\tint:1\n"
+        )
     );
 }
 
