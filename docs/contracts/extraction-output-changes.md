@@ -23,10 +23,16 @@ Excluded from the comparison:
 
 - `artifact_metadata`, `extraction_revisions`, `revision_file_changes` — per-scan identity and
   timestamps, so two runs of the *same* binary already differ there.
-- `pending_resolutions`, `identifier_resolutions` — the deliberate work surface of the resolution
-  tiers, gated by the resolution-contract fixtures rather than by byte equivalence against the
-  previous release.
 - `files.indexed_at` and `files.last_revision_id` — per-scan columns inside a compared table.
+
+`pending_resolutions` and `identifier_resolutions` ARE compared, including `resolved_at_revision` —
+measured deterministic (a binary scanning the fixture twice produces byte-identical dumps for both
+tables with no normalization). Since schema v6 they are the sole consumer-visible source of resolved
+identifier targets, so a resolver regression must be a reported difference.
+
+Known blind spot: the enumeration filters `sqlite_master` to `type='table'`, so an index or trigger
+added or dropped by a schema change is NOT independently visible to the gate — declare such changes
+in this ledger on the strength of the DDL, not of a gate diff.
 
 ## Exit codes
 
@@ -114,9 +120,10 @@ The `identifiers` table drops the denormalized `target_symbol_id` column, its
 `idx_identifiers_target` index. `identifier_resolutions` becomes the sole source of identifier
 resolution outcomes; the resolution store's lockstep writes into the column are deleted.
 
-The gate reports this two ways, both of which this entry declares: the `identifiers` dump's
-`#columns` header loses a column, and `idx_identifiers_target` disappears from the runtime
-`sqlite_master` enumeration.
+The gate reports this as the `identifiers` dump's `#columns` header losing a column, which this
+entry declares. The dropped `idx_identifiers_target` index is declared here on the strength of the
+DDL alone: the gate's enumeration compares tables only, so index drops are not independently
+visible to it (see the blind-spot note under "What the gate compares").
 
 Consumer action: **rebuild via a full rescan.** A v6 binary refuses a v5 artifact with exit code 3
 and `schema_migration_required`; no migration engine exists. Any consumer SQL selecting
