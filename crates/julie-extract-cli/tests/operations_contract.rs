@@ -2328,7 +2328,9 @@ fn symbol_id_for(db: &Path, name: &str) -> Option<String> {
 fn identifier_target(db: &Path, name: &str) -> Option<String> {
     let conn = Connection::open(db).unwrap();
     conn.query_row(
-        "SELECT target_symbol_id FROM identifiers WHERE name = ?1",
+        "SELECT r.target_symbol_id FROM identifiers i \
+         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
+         WHERE i.name = ?1",
         [name],
         |row| row.get::<_, Option<String>>(0),
     )
@@ -2423,7 +2425,8 @@ fn identifier_target_path(db: &Path, name: &str) -> Option<String> {
     let conn = Connection::open(db).expect("artifact opens");
     conn.query_row(
         "SELECT s.path FROM identifiers i \
-         JOIN symbols s ON s.symbol_id = i.target_symbol_id \
+         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
+         JOIN symbols s ON s.symbol_id = r.target_symbol_id \
          WHERE i.name = ?1 LIMIT 1",
         [name],
         |row| row.get(0),
@@ -2837,7 +2840,6 @@ fn artifact_without_resolution_metadata_requires_full_scan_before_update() {
         conn.execute_batch(
             "DELETE FROM pending_resolutions; \
              DELETE FROM identifier_resolutions; \
-             UPDATE identifiers SET target_symbol_id = NULL; \
              DELETE FROM artifact_metadata WHERE key LIKE 'reference_resolution%';",
         )
         .unwrap();

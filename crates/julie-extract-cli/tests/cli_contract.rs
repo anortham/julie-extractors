@@ -299,36 +299,36 @@ fn exit_codes_and_json_errors_match_contract() {
 }
 
 #[test]
-fn strict_schema_rejects_older_v4_artifact_with_migration_required() {
+fn strict_schema_rejects_older_v5_artifact_with_migration_required() {
     let temp = TempDir::new().unwrap();
-    let old_v4_db = temp.path().join("old-v4.sqlite");
-    create_artifact_metadata(&old_v4_db, "artifact-old-v4", "4", "4", "4");
+    let old_v5_db = temp.path().join("old-v5.sqlite");
+    create_artifact_metadata(&old_v5_db, "artifact-old-v5", "5", "4", "5");
 
-    let old_v4 = julie_extract(&[
+    let old_v5 = julie_extract(&[
         "info",
         "--db",
-        old_v4_db.to_str().unwrap(),
+        old_v5_db.to_str().unwrap(),
         "--strict-schema",
         "--json",
     ]);
-    assert_eq!(old_v4.status.code(), Some(3));
-    let report = json_report(&old_v4);
+    assert_eq!(old_v5.status.code(), Some(3));
+    let report = json_report(&old_v5);
     assert_common_report_shape(&report, "failed", "info", "read_only");
     assert_eq!(report["errors"][0]["code"], "schema_migration_required");
     assert_eq!(
         report["errors"][0]["details"]["required_sqlite_schema_version"],
-        5
+        6
     );
     assert_eq!(
         report["errors"][0]["details"]["artifact_sqlite_schema_version"],
-        4
+        5
     );
 
-    let non_strict = julie_extract(&["info", "--db", old_v4_db.to_str().unwrap(), "--json"]);
+    let non_strict = julie_extract(&["info", "--db", old_v5_db.to_str().unwrap(), "--json"]);
     assert_ne!(
         json_report(&non_strict)["errors"][0]["code"],
         "schema_migration_required",
-        "without --strict-schema a v4 artifact must not be rejected for migration"
+        "without --strict-schema a v5 artifact must not be rejected for migration"
     );
 }
 

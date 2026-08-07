@@ -223,11 +223,11 @@ impl<'tx> ChildRowInserters<'tx> {
             identifiers: tx.prepare_cached(
                 "INSERT INTO identifiers
                  (identifier_id, reference_site_id, file_id, path, language, name, kind,
-                  containing_symbol_id, target_symbol_id, start_line, start_column, end_line,
+                  containing_symbol_id, start_line, start_column, end_line,
                   end_column, start_byte, end_byte, confidence, code_context, metadata_json)
                  VALUES
                  (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-                  ?17, ?18)",
+                  ?17)",
             )?,
             relationships: tx.prepare_cached(
                 "INSERT INTO relationships
@@ -829,12 +829,11 @@ fn insert_identifiers(
     file: &ArtifactFile,
     symbol_lookup: &SymbolLookup<'_>,
 ) -> rusqlite::Result<i64> {
-    // Every symbol row of this file exists before its child rows are written, so the FKs bind
+    // Every symbol row of this file exists before its child rows are written, so the FK binds
     // inline; the second UPDATE pass older revisions ran cost one extra statement per identifier
-    // plus double index maintenance on idx_identifiers_containing/target.
+    // plus double index maintenance on idx_identifiers_containing.
     for identifier in &file.identifiers {
         let containing = valid_symbol_id(symbol_lookup, identifier.containing_symbol_id.as_deref());
-        let target = valid_symbol_id(symbol_lookup, identifier.target_symbol_id.as_deref());
         stmt.execute(params![
             identifier.identifier_id,
             identifier.reference_site_id,
@@ -844,7 +843,6 @@ fn insert_identifiers(
             identifier.name,
             identifier.kind,
             containing,
-            target,
             identifier.start_line,
             identifier.start_column,
             identifier.end_line,
@@ -1474,9 +1472,6 @@ pub(super) fn collect_requested_symbol_ids(file: &ArtifactFile, requested: &mut 
     for identifier in &file.identifiers {
         if let Some(containing_symbol_id) = identifier.containing_symbol_id.as_deref() {
             requested.insert(containing_symbol_id.to_string());
-        }
-        if let Some(target_symbol_id) = identifier.target_symbol_id.as_deref() {
-            requested.insert(target_symbol_id.to_string());
         }
     }
     for relationship in &file.relationships {

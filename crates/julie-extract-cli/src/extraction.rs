@@ -486,7 +486,6 @@ fn map_identifiers(
                 name: identifier.name.clone(),
                 kind: identifier.kind.to_string(),
                 containing_symbol_id: identifier.containing_symbol_id.clone(),
-                target_symbol_id: identifier.target_symbol_id.clone(),
                 start_line: i64::from(identifier.start_line),
                 start_column: i64::from(identifier.start_column),
                 end_line: i64::from(identifier.end_line),

@@ -3349,7 +3349,7 @@ struct OverlayDifference {
 impl OverlaySnapshot {
     const PENDING_RESOLUTIONS: &'static str = "pending_resolutions";
     const IDENTIFIER_RESOLUTIONS: &'static str = "identifier_resolutions";
-    const IDENTIFIER_TARGETS: &'static str = "identifiers.target_symbol_id";
+    const IDENTIFIER_TARGETS: &'static str = "identifier_resolutions.target_symbol_id";
 
     fn capture(conn: &Connection) -> rusqlite::Result<Self> {
         let mut rows: BTreeMap<(&'static str, String), String> = BTreeMap::new();
@@ -3397,7 +3397,7 @@ impl OverlaySnapshot {
         }
 
         let mut targets = conn.prepare(
-            "SELECT identifier_id, target_symbol_id FROM identifiers \
+            "SELECT identifier_id, target_symbol_id FROM identifier_resolutions \
              WHERE target_symbol_id IS NOT NULL ORDER BY identifier_id",
         )?;
         for row in targets.query_map([], |row| {

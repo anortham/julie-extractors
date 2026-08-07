@@ -32,7 +32,7 @@ For a spanless site, `span` and `containing_symbol_id` may be `null`; `is_exact`
 
 `identifier`, `relationship`, and `pending_relationship` records each add the required
 `reference_site_id`. All other record payloads retain their version-3 shape. The checked-in SQLite
-catalog fingerprint in `sqlite-schema-v5.catalog.sha256` is the authority for the corresponding
+catalog fingerprint in `sqlite-schema-v6.catalog.sha256` is the authority for the corresponding
 artifact tables.
 
 ## Identifier `code_context`

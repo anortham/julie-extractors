@@ -1860,7 +1860,6 @@ mod tests {
                 reference_site_id: format!("file-{index}-identifier-site-{identifier_index}"),
                 name: format!("identifier_{index}_{identifier_index}"),
                 containing_symbol_id: Some(format!("file-{index}-symbol-0")),
-                target_symbol_id: Some(format!("file-{index}-symbol-1")),
                 start_line: (identifier_index + 1) as i64,
                 end_line: (identifier_index + 1) as i64,
                 start_byte: (identifier_index * 8) as i64,

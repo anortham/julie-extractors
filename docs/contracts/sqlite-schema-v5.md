@@ -1,7 +1,11 @@
 # SQLite Schema v5
 
-Schema version 5 is the only current SQLite artifact contract. Extraction contract 4 and JSONL
-contract 4 are its matching producer contracts.
+> **Superseded by [SQLite Schema v6](sqlite-schema-v6.md).** v6 removes the denormalized
+> `identifiers.target_symbol_id` column and the `idx_identifiers_target` index; everything else on
+> this page still holds. A v6 binary refuses a v5 artifact with `schema_migration_required`.
+
+Schema version 5 was the current SQLite artifact contract through julie-extract 2.29.0. Extraction
+contract 4 and JSONL contract 4 are its matching producer contracts.
 
 The complete catalog authority is the normalized `sqlite_master` SHA-256 in
 [`sqlite-schema-v5.catalog.sha256`](sqlite-schema-v5.catalog.sha256). The conformance test creates

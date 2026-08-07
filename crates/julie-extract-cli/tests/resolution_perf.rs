@@ -596,9 +596,9 @@ fn seed_artifact_with(conn: &mut Connection, files: usize, scatter_ids: bool) ->
             .prepare(
                 "INSERT INTO identifiers \
                  (identifier_id, reference_site_id, file_id, path, language, name, kind, \
-                  containing_symbol_id, target_symbol_id, start_line, start_column, end_line, \
+                  containing_symbol_id, start_line, start_column, end_line, \
                   end_column, start_byte, end_byte, confidence) \
-                 VALUES (?1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, ?8, 0, ?8, 8, ?9, ?10, 1.0)",
+                 VALUES (?1, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0, ?8, 8, ?9, ?10, 1.0)",
             )
             .unwrap();
         let mut ins_rel = tx

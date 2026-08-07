@@ -860,11 +860,12 @@ fn export_identifiers<W: Write>(
     summary: &mut JsonlExportSummary,
 ) -> JsonlExportResult<()> {
     let mut stmt = conn.prepare(
-        "SELECT identifier_id, reference_site_id, file_id, path, language, name, kind, containing_symbol_id,
-                target_symbol_id, start_line, start_column, end_line, end_column, start_byte,
-                end_byte, confidence, metadata_json
-         FROM identifiers
-         ORDER BY identifier_id",
+        "SELECT i.identifier_id, i.reference_site_id, i.file_id, i.path, i.language, i.name, i.kind,
+                i.containing_symbol_id, ir.target_symbol_id, i.start_line, i.start_column,
+                i.end_line, i.end_column, i.start_byte, i.end_byte, i.confidence, i.metadata_json
+         FROM identifiers i
+         LEFT JOIN identifier_resolutions ir ON ir.identifier_id = i.identifier_id
+         ORDER BY i.identifier_id",
     )?;
     let rows = stmt.query_map([], |row| {
         Ok((

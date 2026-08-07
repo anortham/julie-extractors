@@ -1,11 +1,11 @@
 //! Storage primitives for the workspace reference-resolution overlay.
 //!
-//! Resolution state lives in two FK-governed overlay tables — `pending_resolutions`
-//! and `identifier_resolutions` — plus the denormalized `identifiers.target_symbol_id`
-//! convenience column. This module is the **only** sanctioned write path to that
-//! state: the `record_*` / `demote_*` primitives keep the overlay row and the
-//! denormalized column consistent in a single statement batch, and no caller writes
-//! either surface directly (design §"Resolution state model", round-3 finding 1).
+//! Resolution state lives in exactly two FK-governed overlay tables —
+//! `pending_resolutions` and `identifier_resolutions`. Since schema v6 there is no
+//! denormalized copy anywhere else in the artifact (v4 store contract V-1), so the
+//! overlay cannot drift from a second surface. This module is the **only**
+//! sanctioned write path to that state: no caller writes either table directly
+//! (design §"Resolution state model", round-3 finding 1).
 //!
 //! This crate stays pure storage: it holds no language semantics and no tier policy.
 //! Resolver policy lives in `julie-extract-cli`; it only calls these primitives.
@@ -250,8 +250,7 @@ pub fn record_pending_resolution(
     Ok(())
 }
 
-/// Record (or replace) an identifier resolution outcome, writing the overlay row
-/// AND the denormalized `identifiers.target_symbol_id` in one statement batch.
+/// Record (or replace) an identifier resolution outcome in the overlay.
 ///
 /// `target` must be `Some` iff `outcome` is `Resolved` — the schema CHECK enforces
 /// this and a violating call returns an error rather than corrupting state.
@@ -290,18 +289,11 @@ pub fn record_identifier_outcome(
             revision
         ],
     )?;
-    // Denormalized convenience column: kept in lockstep with the overlay. Non-resolved
-    // outcomes carry no target, so this clears the column.
-    tx.execute(
-        "UPDATE identifiers SET target_symbol_id = ?2 WHERE identifier_id = ?1",
-        params![identifier_id, target],
-    )?;
     Ok(())
 }
 
-/// Delete a pending resolution (demotion): the pending row reverts to unresolved.
-/// Pending relationships carry no denormalized column, so only the overlay row
-/// is removed.
+/// Delete a pending resolution (demotion): the pending row reverts to unresolved
+/// with its context intact.
 pub fn demote_pending(tx: &Transaction<'_>, pending_relationship_id: &str) -> rusqlite::Result<()> {
     tx.execute(
         "DELETE FROM pending_resolutions WHERE pending_relationship_id = ?1",
@@ -310,17 +302,11 @@ pub fn demote_pending(tx: &Transaction<'_>, pending_relationship_id: &str) -> ru
     Ok(())
 }
 
-/// Delete an identifier resolution (demotion): removes the overlay row AND clears
-/// the denormalized `identifiers.target_symbol_id` in the same batch. FK SET NULL
-/// does not fire for demotion (the target still exists), so the clear is explicit
-/// (round-3 finding 1).
+/// Delete an identifier resolution (demotion): the identifier reverts to
+/// unresolved with its extraction facts intact.
 pub fn demote_identifier(tx: &Transaction<'_>, identifier_id: &str) -> rusqlite::Result<()> {
     tx.execute(
         "DELETE FROM identifier_resolutions WHERE identifier_id = ?1",
-        params![identifier_id],
-    )?;
-    tx.execute(
-        "UPDATE identifiers SET target_symbol_id = NULL WHERE identifier_id = ?1",
         params![identifier_id],
     )?;
     Ok(())
@@ -350,8 +336,8 @@ enum PendingOp {
     Demote,
 }
 
-/// A buffered `identifier_resolutions` op (plus the denormalized column). Collapsed
-/// per key (last-op-wins) at flush.
+/// A buffered `identifier_resolutions` op. Collapsed per key (last-op-wins) at
+/// flush.
 enum IdentifierOp {
     Upsert {
         target: Option<String>,
@@ -428,8 +414,8 @@ impl ResolutionWriteBuffer {
             .push((pending_relationship_id.to_string(), PendingOp::Demote));
     }
 
-    /// Buffer an identifier resolution outcome plus its denormalized column
-    /// (mirrors [`record_identifier_outcome`]).
+    /// Buffer an identifier resolution outcome (mirrors
+    /// [`record_identifier_outcome`]).
     #[allow(clippy::too_many_arguments)]
     pub fn record_identifier_outcome(
         &mut self,
@@ -568,19 +554,12 @@ impl ResolutionWriteBuffer {
             }
         }
 
-        // Demotions first: delete the overlay row and clear the denormalized column
-        // (equivalent to `demote_identifier`). Upsert and demote keys are disjoint
-        // after the collapse, so order between the two groups is immaterial.
+        // Upsert and demote keys are disjoint after the collapse, so order between
+        // the two groups is immaterial.
         for chunk in demotes.chunks(FLUSH_CHUNK) {
             let ph = placeholders(chunk.len());
             tx.execute(
                 &format!("DELETE FROM identifier_resolutions WHERE identifier_id IN ({ph})"),
-                params_from_iter(chunk.iter()),
-            )?;
-            tx.execute(
-                &format!(
-                    "UPDATE identifiers SET target_symbol_id = NULL WHERE identifier_id IN ({ph})"
-                ),
                 params_from_iter(chunk.iter()),
             )?;
         }
@@ -601,7 +580,6 @@ impl ResolutionWriteBuffer {
                    resolved_at_revision = excluded.resolved_at_revision"
             );
             let mut binds: Vec<Value> = Vec::with_capacity(chunk.len() * 8);
-            let mut ids: Vec<Value> = Vec::with_capacity(chunk.len());
             for (id, target, tier, confidence, method, outcome, candidates, revision) in chunk {
                 binds.push(Value::Text(id.clone()));
                 binds.push(opt_text(target.clone()));
@@ -611,23 +589,8 @@ impl ResolutionWriteBuffer {
                 binds.push(Value::Text(outcome.as_str().to_string()));
                 binds.push(opt_int(*candidates));
                 binds.push(Value::Integer(*revision));
-                ids.push(Value::Text(id.clone()));
             }
             tx.execute(&sql, params_from_iter(binds.iter()))?;
-
-            // Denormalized `identifiers.target_symbol_id`, kept in lockstep with the
-            // overlay exactly as `record_identifier_outcome` does. The correlated
-            // subquery reads the row we just wrote above, so a resolved outcome sets
-            // the target and every non-resolved outcome clears it (overlay target is
-            // NULL) — one statement per chunk instead of one UPDATE per row.
-            let update_sql = format!(
-                "UPDATE identifiers SET target_symbol_id = ( \
-                     SELECT ir.target_symbol_id FROM identifier_resolutions ir \
-                     WHERE ir.identifier_id = identifiers.identifier_id \
-                 ) WHERE identifier_id IN ({})",
-                placeholders(ids.len())
-            );
-            tx.execute(&update_sql, params_from_iter(ids.iter()))?;
         }
         Ok(())
     }

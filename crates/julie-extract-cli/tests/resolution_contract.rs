@@ -106,10 +106,10 @@ struct IdentifierResolution {
 fn resolved_identifier(db: &Path, name: &str) -> Option<IdentifierResolution> {
     let conn = Connection::open(db).unwrap();
     conn.query_row(
-        "SELECT i.target_symbol_id, r.tier, r.method, r.confidence \
+        "SELECT r.target_symbol_id, r.tier, r.method, r.confidence \
          FROM identifiers i \
          JOIN identifier_resolutions r ON i.identifier_id = r.identifier_id \
-         WHERE i.name = ?1 AND i.target_symbol_id IS NOT NULL",
+         WHERE i.name = ?1 AND r.target_symbol_id IS NOT NULL",
         [name],
         |row| {
             let _target: String = row.get(0)?;
@@ -130,7 +130,7 @@ fn resolved_identifier_of_kind(db: &Path, name: &str, kind: &str) -> Option<Iden
         "SELECT r.tier, r.method, r.confidence \
          FROM identifiers i \
          JOIN identifier_resolutions r ON i.identifier_id = r.identifier_id \
-         WHERE i.name = ?1 AND i.kind = ?2 AND i.target_symbol_id IS NOT NULL",
+         WHERE i.name = ?1 AND i.kind = ?2 AND r.target_symbol_id IS NOT NULL",
         [name, kind],
         |row| {
             Ok(IdentifierResolution {
@@ -179,20 +179,22 @@ fn identifier_receivers(db: &Path, name: &str, kind: &str) -> Vec<String> {
 fn resolved_identifier_count(db: &Path, name: &str, kind: &str) -> i64 {
     let conn = Connection::open(db).unwrap();
     conn.query_row(
-        "SELECT COUNT(*) FROM identifiers \
-         WHERE name = ?1 AND kind = ?2 AND target_symbol_id IS NOT NULL",
+        "SELECT COUNT(*) FROM identifiers i \
+         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
+         WHERE i.name = ?1 AND i.kind = ?2 AND r.target_symbol_id IS NOT NULL",
         [name, kind],
         |row| row.get(0),
     )
     .unwrap()
 }
 
-/// Whether the identifier `name` has a non-NULL denormalized target — i.e. it
-/// resolved to exactly one symbol.
+/// Whether the identifier `name` resolved to exactly one symbol in the overlay.
 fn identifier_has_target(db: &Path, name: &str) -> bool {
     let conn = Connection::open(db).unwrap();
     conn.query_row(
-        "SELECT target_symbol_id FROM identifiers WHERE name = ?1",
+        "SELECT r.target_symbol_id FROM identifiers i \
+         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
+         WHERE i.name = ?1",
         [name],
         |row| row.get::<_, Option<String>>(0),
     )
@@ -537,9 +539,10 @@ fn static_type_receiver_binds_only_qualifications_that_name_the_workspace_type()
 fn call_with_qualifier_resolved(db: &Path, qualifier: &str) -> bool {
     let conn = Connection::open(db).unwrap();
     conn.query_row(
-        "SELECT target_symbol_id FROM identifiers \
-         WHERE name = 'Create' AND kind = 'call' \
-           AND json_extract(metadata_json, '$.receiver_qualifier') = ?1",
+        "SELECT r.target_symbol_id FROM identifiers i \
+         JOIN identifier_resolutions r ON r.identifier_id = i.identifier_id \
+         WHERE i.name = 'Create' AND i.kind = 'call' \
+           AND json_extract(i.metadata_json, '$.receiver_qualifier') = ?1",
         [qualifier],
         |row| row.get::<_, Option<String>>(0),
     )

@@ -151,10 +151,10 @@ Commit mode: `parallel-lead-commit` for Batch A; serial tasks commit through the
 **Approach:** there is no migration engine and none is added — a v6 binary refuses a v5 artifact (`schema_migration_required`), which is the existing, Miller-consumed upgrade path. Do not write ALTER TABLE migration code. The compat gate (Task 2) will report the v6 table-shape diff — the Task 6 ledger entry covers it.
 
 **Acceptance criteria:**
-- [ ] `schema_contract.rs` asserts v6 and the column/index absence; grep proves zero remaining `identifiers`-table `target_symbol_id` references in src (`git grep -n "target_symbol_id" -- crates | grep -v identifier_resolutions | grep -v pending_resolutions` returns only doc/history lines).
-- [ ] Full resolution suite green: `resolution_store_contract`, `resolution_contract`, `resolution_scope_equivalence`, `resolution_shadow`, `operations_contract`.
-- [ ] v6 contract doc + catalog sha256 exist and `xtask/src/release.rs` pins them; `cargo test -p xtask` green.
-- [ ] Worker-scope verification passes and the change is committed by the lead after inline review.
+- [x] `schema_contract.rs` asserts v6 and the column/index/FK absence (new test `identifiers_carry_no_denormalized_resolution_target`); grep proves zero remaining `identifiers`-table `target_symbol_id` references (lead-verified). Lockstep proven empirically on a 970 MB real v5 artifact: 32,267 = 32,267, zero disagreements.
+- [x] Full resolution suite green with assertion intent preserved (two guards strengthened): artifact crate 139/0, CLI crate 460/0. v5-refusal proven in-suite AND by a recorded real-binary run (exit 3, `schema_migration_required`, 5→6 detail). JSONL keeps the `target_symbol_id` key via LEFT JOIN to the overlay — export byte-identical, contract 4 unbumped (lead-accepted judgment call).
+- [x] v6 contract doc + catalog sha256 exist (conformance-test-derived, v5 banner added) and `xtask/src/release.rs` pins them per the v4→v5 precedent; `release_contract` 14/0. `drop_retired_secondary_indexes` deliberately not taught the index (unreachable under version refusal — documented in the v6 doc).
+- [x] Worker-scope verification passes (fmt + clippy clean; compat-check records the identifiers shape diff as designed, awaiting Task 6's ledger entry) and the change is committed by the lead after inline review.
 
 ### Task 4: V-5 — narrow the writer's `SymbolLookup` to file-own symbols
 
