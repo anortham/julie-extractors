@@ -136,11 +136,13 @@ multi-file corpus (2–4 files) written through the real writer path, then one `
 delta. Do not touch existing cases.
 
 **Acceptance criteria:**
-- [ ] All five new cases pass on unmodified main (run before starting Task 3).
-- [ ] Each case fails if its hazard's recheck arm is deleted (verify by temporarily
+- [x] All five new cases pass on unmodified main (run before starting Task 3).
+- [x] Each case fails if its hazard's recheck arm is deleted (verify by temporarily
       commenting the corresponding in-files merge in a scratch build — evidence in the
-      worker report, not committed).
-- [ ] Worker-scope verification passes and the change is committed per commit mode.
+      worker report, not committed). (Lead-run: in-files arms fed empty slices → the three
+      keyed-relation cases + 7 pre-existing arm-gating cases went red; renames stayed green
+      via the by-names arms, as designed.)
+- [x] Worker-scope verification passes and the change is committed per commit mode.
 
 ### Task 2: Name-set expansion accessors
 

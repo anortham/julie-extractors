@@ -423,3 +423,133 @@ fn shadowing_then_unshadowing_converges_to_a_full_rederivation() {
 
     assert_matches_full_rederivation(&db, "shadow added then removed");
 }
+
+#[test]
+fn rename_rederives_old_name_rows_across_files() {
+    let fixture = Fixture::new();
+    fixture.write("src/a.cs", "namespace App { public class Foo { } }\n");
+    fixture.write("src/c.cs", "namespace Other { public class Foo { } }\n");
+    fixture.write(
+        "src/b.cs",
+        "namespace App { public class UseFoo { public Foo Make() { return new Foo(); } } }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    fixture.write("src/a.cs", "namespace App { public class Bar { } }\n");
+    update(&fixture.root, &db, "src/a.cs");
+
+    assert_matches_full_rederivation(
+        &db,
+        "a rename must re-derive the OLD name's rows in files the delta never touched",
+    );
+}
+
+#[test]
+fn rename_captures_new_name_rows_across_files() {
+    let fixture = Fixture::new();
+    fixture.write("src/a.cs", "namespace App { public class Foo { } }\n");
+    fixture.write(
+        "src/c.cs",
+        "namespace Other { public class Unrelated { } }\n",
+    );
+    fixture.write(
+        "src/b.cs",
+        "namespace App { public class UseBar { public Bar Make() { return new Bar(); } } }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    fixture.write("src/a.cs", "namespace App { public class Bar { } }\n");
+    update(&fixture.root, &db, "src/a.cs");
+
+    assert_matches_full_rederivation(
+        &db,
+        "a rename must capture the NEW name's rows in files the delta never touched",
+    );
+}
+
+#[test]
+fn aliased_import_recheck_reaches_local_name_rows() {
+    let fixture = Fixture::new();
+    fixture.write("src/b.ts", "export function realName(): void {}\n");
+    fixture.write(
+        "src/a.ts",
+        "import { realName as localName } from './b';\nexport function caller(): void { localName(); }\n",
+    );
+    fixture.write(
+        "src/c.ts",
+        "import { realName as alsoLocal } from './b';\nexport function otherCaller(): void { alsoLocal(); }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    fixture.write(
+        "src/b.ts",
+        "export function untouchedNeighbor(): void {}\n\nexport function realName(): void {}\n",
+    );
+    update(&fixture.root, &db, "src/b.ts");
+
+    assert_matches_full_rederivation(
+        &db,
+        "moving an aliased export must re-point rows that carry only the LOCAL name",
+    );
+}
+
+#[test]
+fn receiver_type_touch_rechecks_member_rows_in_unchanged_files() {
+    let fixture = Fixture::new();
+    fixture.write(
+        "src/widget.cs",
+        "namespace App { public class Widget { public int Render() { return 1; } } }\n",
+    );
+    fixture.write(
+        "src/rival.cs",
+        "namespace Other { public class Placeholder { } }\n",
+    );
+    fixture.write(
+        "src/consumer.cs",
+        "namespace App { public class Consumer { public int Run() { Widget w = new Widget(); return w.Render(); } } }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    fixture.write(
+        "src/rival.cs",
+        "namespace Other { public class Widget { } }\n",
+    );
+    update(&fixture.root, &db, "src/rival.cs");
+
+    assert_matches_full_rederivation(
+        &db,
+        "touching a receiver's TYPE must recheck member rows whose own name the delta never touched",
+    );
+}
+
+#[test]
+fn module_shadowing_repoint_survives_row_scoping() {
+    let fixture = Fixture::new();
+    fixture.write(
+        "src/util/index.ts",
+        "export function helper(): void {}\nexport function other(): void {}\n",
+    );
+    fixture.write(
+        "src/consumer_a.ts",
+        "import { helper as h } from './util';\nexport function runA(): void { h(); }\n",
+    );
+    fixture.write(
+        "src/consumer_b.ts",
+        "import { other as o } from './util';\nexport function runB(): void { o(); }\n",
+    );
+    let db = fixture.db();
+    scan(&fixture.root, &db);
+
+    fixture.write("src/util.ts", "export function helper(): void {}\n");
+    update(&fixture.root, &db, "src/util.ts");
+
+    assert_matches_full_rederivation(
+        &db,
+        "a shadowing module file must re-point every importer of the specifier, including the one \
+         whose binding shares no touched name",
+    );
+}
