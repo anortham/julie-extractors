@@ -90,10 +90,10 @@ Commit mode: `parallel-lead-commit` for Batch A; serial tasks commit through the
 **Approach:** do NOT change the seven `Option<HashMap>` declarations in `crates/julie-extractors/src/base/types.rs` — the chokepoint fix covers all of them with one function and no 117-file ripple (v4 contract §2 explicitly permits "sorted-key serialization"). The hand-built identifiers map (`extraction.rs:463-501`) is already `serde_json::Map`-backed — leave it. Volatile columns (`indexed_at`, revision ids) are excluded from comparison; compare only `(pk, metadata_json)`.
 
 **Acceptance criteria:**
-- [ ] The gate fails against the pre-fix binary (recorded red run) and passes after the chokepoint change.
-- [ ] Every `metadata_json`-carrying table populated by the fixture scan is compared; the multi-key vacuity guard is asserted.
-- [ ] `cargo test -p julie-extract-cli --test determinism_contract` green; `contract_plan()` carries it.
-- [ ] Worker-scope verification passes and the change is handed to the lead per commit mode.
+- [x] The gate fails against the pre-fix binary (recorded red run: 90/210 rows differed, symbols 73/192 + structural_facts 17/18, zero identity diffs) and passes after the chokepoint change (6 green runs).
+- [x] Every `metadata_json`-carrying table populated by the fixture scan is compared — all 14, via a test-owned supplement that the test asserts non-empty; the ≥2-key vacuity guard is asserted.
+- [x] `cargo test -p julie-extract-cli --test determinism_contract` green; `contract_plan()` carries it (tier mirror test updated, 15/15).
+- [x] Worker-scope verification passes (CLI crate 460/0, fmt + clippy clean) and the change is handed to the lead per commit mode.
 
 ### Task 2: extractor compatibility gate (previous vs current binary)
 
