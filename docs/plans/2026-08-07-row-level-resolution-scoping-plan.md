@@ -233,12 +233,26 @@ behavior-load-bearing). The diff should read as: compute `(recheck_names, rechec
 substitute them at the six call sites, adjust the ownership read, extend the crossover
 count. Nothing else moves.
 
+**AMENDMENT (lead-accepted 2026-08-07, commit a25b677):** the plan's pure substitution was
+measured UNSOUND by the equivalence oracle — the pending recheck deletes its co-located
+identifier's overlay row, and that identifier is named after the pending's terminal name,
+a key no workspace-keyed recheck carries (the delta invalidating its OWN write). The
+accepted repair: `recheck_resolved_pending_items` returns the demoted co-locations, and the
+fill sweep re-derives exactly those ids (name-selected, id-filtered so the ownership read
+stays sound). Two receiver-type equivalence cases go red without it. Also within the
+amendment: `delta_scope_files` returns a three-field `DeltaScope` (recheck_names,
+recheck_files, selected_row_files), the locator/covered/ownership inputs read
+`selected_row_files`, and the obsolete `files_declaring_type_named` /
+`files_importing_names` unions are deleted (rationale preserved in the accessors' docs;
+legacy computation recoverable at `git show bbd47bd` for Task 4's shadow).
+
 **Acceptance criteria:**
-- [ ] Task 1's five hazard cases pass on the row-scoped path.
-- [ ] Full default + contract tiers green with zero test modifications outside the two
-      owned test files.
-- [ ] `RESOLUTION_VERSION` unchanged.
-- [ ] Worker-scope verification passes and the change is committed per commit mode.
+- [x] Task 1's five hazard cases pass on the row-scoped path. (14/14 at a25b677)
+- [x] Full default tier green with zero test modifications outside the two owned test
+      files (3834/0 at a25b677); contract tier runs at the branch gate.
+- [x] `RESOLUTION_VERSION` unchanged (still 6, asserted by the lib suite).
+- [x] Worker-scope verification passes and the change is committed per commit mode
+      (worker commit a25b677).
 
 ### Task 4: Shadow mode + dogfood evidence
 
