@@ -3,6 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::model::{
@@ -17,6 +18,8 @@ use julie_extract_artifact::store::{
 };
 use rusqlite::Connection;
 
+static NEXT_TEMP_DIR: AtomicU64 = AtomicU64::new(0);
+
 struct TempDir(PathBuf);
 
 impl TempDir {
@@ -25,8 +28,11 @@ impl TempDir {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path =
-            std::env::temp_dir().join(format!("julie-store-crash-{}-{nonce}", std::process::id()));
+        let sequence = NEXT_TEMP_DIR.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "julie-store-crash-{}-{nonce}-{sequence}",
+            std::process::id()
+        ));
         fs::create_dir_all(&path).unwrap();
         Self(path)
     }
