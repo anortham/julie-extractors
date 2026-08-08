@@ -14,7 +14,8 @@ use julie_extractors::SymbolKind;
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::resolution::{
-    self, CandidateHit, CandidateLookup, CandidateSymbol, ImportRecord, TypeFact,
+    self, CandidateEvidence, CandidateHit, CandidateLookup, CandidateSummary, CandidateSymbol,
+    ImportRecord, TypeFact,
 };
 use crate::resolution_session::{
     ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk,
@@ -152,6 +153,7 @@ pub struct StoreScratchResolutionSession {
     max_emitted_chunk_size: usize,
     max_store_read_page: Cell<usize>,
     phase_reader_opens: Cell<usize>,
+    visible_root_batches: usize,
 }
 
 impl StoreScratchResolutionSession {
@@ -193,6 +195,7 @@ impl StoreScratchResolutionSession {
             max_emitted_chunk_size: 0,
             max_store_read_page: Cell::new(0),
             phase_reader_opens: Cell::new(0),
+            visible_root_batches: 0,
         };
         session.validate_manifest()?;
         session.initialize_scratch()?;
@@ -249,7 +252,7 @@ impl StoreScratchResolutionSession {
              ORDER BY me.version_id
              LIMIT ?4",
         )?;
-        Ok(statement
+        let versions = statement
             .query_map(
                 params![
                     self.identity.view_id,
@@ -260,7 +263,10 @@ impl StoreScratchResolutionSession {
                 ],
                 |row| row.get(0),
             )?
-            .collect::<Result<Vec<_>, _>>()?)
+            .collect::<Result<Vec<_>, _>>()?;
+        self.max_store_read_page
+            .set(self.max_store_read_page.get().max(versions.len()));
+        Ok(versions)
     }
 
     pub fn exact_path(&self) -> &Path {
@@ -281,6 +287,11 @@ impl StoreScratchResolutionSession {
 
     pub fn phase_reader_opens(&self) -> usize {
         self.phase_reader_opens.get()
+    }
+
+    #[cfg(feature = "test-store-resolution-contract")]
+    pub fn visible_root_batches(&self) -> usize {
+        self.visible_root_batches
     }
 
     #[cfg(feature = "test-store-resolution-contract")]
@@ -471,6 +482,12 @@ impl StoreScratchResolutionSession {
              ) STRICT;
              CREATE TABLE phase_ready(
                phase INTEGER PRIMARY KEY
+             ) STRICT;
+             CREATE TEMP TABLE tier_candidate_accumulator(
+               version_id INTEGER NOT NULL,
+               symbol_id TEXT NOT NULL,
+               confidence REAL NOT NULL,
+               PRIMARY KEY(version_id,symbol_id)
              ) STRICT;",
         )?;
         Ok(())
@@ -845,6 +862,56 @@ impl CandidateLookup for StoreScratchResolutionSession {
         }
         Ok(())
     }
+
+    fn reset_tier_candidates(&self) -> Result<(), Self::Error> {
+        self.scratch
+            .execute("DELETE FROM tier_candidate_accumulator", [])?;
+        Ok(())
+    }
+
+    fn record_tier_candidate(
+        &self,
+        semantic_id: SemanticSymbolId,
+        confidence: f64,
+    ) -> Result<(), Self::Error> {
+        let version_id = store_version(&semantic_id.version)?;
+        self.scratch.execute(
+            "INSERT INTO tier_candidate_accumulator(version_id,symbol_id,confidence)
+             VALUES (?1,?2,?3)
+             ON CONFLICT(version_id,symbol_id) DO UPDATE SET
+               confidence=MAX(confidence,excluded.confidence)",
+            params![version_id, semantic_id.local_id, confidence],
+        )?;
+        Ok(())
+    }
+
+    fn tier_candidate_summary(&self) -> Result<CandidateSummary, Self::Error> {
+        let exact_count = self.scratch.query_row(
+            "SELECT COUNT(*) FROM tier_candidate_accumulator",
+            [],
+            |row| row.get::<_, i64>(0),
+        )? as u64;
+        let mut statement = self.scratch.prepare(
+            "SELECT version_id,symbol_id,confidence
+             FROM tier_candidate_accumulator
+             ORDER BY version_id,symbol_id COLLATE BINARY LIMIT 2",
+        )?;
+        let evidence = statement
+            .query_map([], |row| {
+                Ok(CandidateEvidence {
+                    semantic_id: SemanticSymbolId {
+                        version: SemanticVersionId::Store(row.get(0)?),
+                        local_id: row.get(1)?,
+                    },
+                    confidence: row.get(2)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(CandidateSummary {
+            evidence,
+            exact_count,
+        })
+    }
 }
 
 impl ResolutionSession for StoreScratchResolutionSession {
@@ -873,23 +940,30 @@ impl ResolutionSession for StoreScratchResolutionSession {
         &mut self,
         _request: &ResolutionPassRequest,
     ) -> Result<ResolutionWorklists, Self::Error> {
-        self.scratch.execute("DELETE FROM visible_versions", [])?;
+        let reset = self.scratch.transaction()?;
+        reset.execute("DELETE FROM visible_versions", [])?;
+        reset.execute("DELETE FROM phase_keys", [])?;
+        reset.execute("DELETE FROM phase_ready", [])?;
+        reset.commit()?;
+        self.visible_root_batches = 0;
         let mut after = None;
         loop {
             let versions = self.extraction_versions_window(after)?;
             if versions.is_empty() {
                 break;
             }
-            for version_id in &versions {
-                self.scratch.execute(
-                    "INSERT INTO visible_versions(version_id) VALUES (?1)",
-                    [version_id],
-                )?;
+            let transaction = self.scratch.transaction()?;
+            {
+                let mut insert =
+                    transaction.prepare("INSERT INTO visible_versions(version_id) VALUES (?1)")?;
+                for version_id in &versions {
+                    insert.execute([version_id])?;
+                }
             }
+            transaction.commit()?;
+            self.visible_root_batches += 1;
             after = versions.last().copied();
         }
-        self.scratch.execute("DELETE FROM phase_keys", [])?;
-        self.scratch.execute("DELETE FROM phase_ready", [])?;
         self.active_phase = None;
         self.phase_after = None;
         Ok(ResolutionWorklists {

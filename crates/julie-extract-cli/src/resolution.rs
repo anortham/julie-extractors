@@ -34,6 +34,7 @@
 #[allow(dead_code)]
 pub mod session;
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use julie_extract_artifact::resolution_store::{IdentifierWorkItem, PendingWorkItem};
@@ -281,10 +282,12 @@ pub enum TierOutcome {
         confidence: f64,
         method: String,
     },
-    /// Some tier yielded >= 2 kind-compatible candidates and no tier yielded
-    /// exactly one. `candidates` is ordered by `symbol_id` for determinism.
+    /// Some tier yielded >= 2 unique kind-compatible candidates and no tier
+    /// yielded exactly one. `candidates` is bounded ordered evidence;
+    /// `exact_count` is the complete unique count persisted in the artifact.
     Ambiguous {
         candidates: Vec<session::SemanticSymbolId>,
+        exact_count: u64,
     },
     /// Every attempted tier yielded zero candidates.
     Missing,
@@ -354,6 +357,18 @@ pub struct CandidateHit {
     pub symbol: CandidateSymbol,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct CandidateEvidence {
+    pub semantic_id: session::SemanticSymbolId,
+    pub confidence: f64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CandidateSummary {
+    pub evidence: Vec<CandidateEvidence>,
+    pub exact_count: u64,
+}
+
 pub trait CandidateLookup {
     type Error;
 
@@ -397,6 +412,16 @@ pub trait CandidateLookup {
     fn visit_imports<F>(&self, source_key: &str, visitor: F) -> Result<(), Self::Error>
     where
         F: FnMut(&Self, ImportRecord) -> Result<bool, Self::Error>;
+
+    fn reset_tier_candidates(&self) -> Result<(), Self::Error>;
+
+    fn record_tier_candidate(
+        &self,
+        semantic_id: session::SemanticSymbolId,
+        confidence: f64,
+    ) -> Result<(), Self::Error>;
+
+    fn tier_candidate_summary(&self) -> Result<CandidateSummary, Self::Error>;
 }
 
 // ---------------------------------------------------------------------------
@@ -425,6 +450,7 @@ pub struct WorkspaceCandidateIndex {
     /// Empty for an index built by [`WorkspaceCandidateIndex::build`]; populated by
     /// [`load_index`], which is the only caller that has the importing paths.
     module_candidates_by_file: HashMap<String, BTreeSet<String>>,
+    tier_candidates: RefCell<BTreeMap<session::SemanticSymbolId, f64>>,
 }
 
 impl WorkspaceCandidateIndex {
@@ -540,6 +566,7 @@ impl WorkspaceCandidateIndex {
             type_facts_by_symbol,
             imports_by_file,
             module_candidates_by_file: HashMap::new(),
+            tier_candidates: RefCell::new(BTreeMap::new()),
         }
     }
 
@@ -787,6 +814,39 @@ impl CandidateLookup for WorkspaceCandidateIndex {
         }
         Ok(())
     }
+
+    fn reset_tier_candidates(&self) -> Result<(), Self::Error> {
+        self.tier_candidates.borrow_mut().clear();
+        Ok(())
+    }
+
+    fn record_tier_candidate(
+        &self,
+        semantic_id: session::SemanticSymbolId,
+        confidence: f64,
+    ) -> Result<(), Self::Error> {
+        self.tier_candidates
+            .borrow_mut()
+            .entry(semantic_id)
+            .and_modify(|stored| *stored = stored.max(confidence))
+            .or_insert(confidence);
+        Ok(())
+    }
+
+    fn tier_candidate_summary(&self) -> Result<CandidateSummary, Self::Error> {
+        let candidates = self.tier_candidates.borrow();
+        Ok(CandidateSummary {
+            evidence: candidates
+                .iter()
+                .take(2)
+                .map(|(semantic_id, confidence)| CandidateEvidence {
+                    semantic_id: semantic_id.clone(),
+                    confidence: *confidence,
+                })
+                .collect(),
+            exact_count: candidates.len() as u64,
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -877,7 +937,7 @@ pub fn resolve_with_candidate_lookup<L: CandidateLookup>(
     }
 
     let mut attempted_any = false;
-    let mut first_ambiguous: Option<Vec<session::SemanticSymbolId>> = None;
+    let mut first_ambiguous: Option<CandidateSummary> = None;
 
     for tier in tiers {
         // Tier-2 language gate: skipped (not attempted) where no fixture-tested
@@ -888,26 +948,34 @@ pub fn resolve_with_candidate_lookup<L: CandidateLookup>(
         attempted_any = true;
 
         let candidates = tier_candidates(tier, edge, lookup)?;
-        match candidates.as_slice() {
-            [] => {}
-            [only] => {
+        match candidates.exact_count {
+            0 => {}
+            1 => {
+                let only = &candidates.evidence[0];
                 return Ok(TierOutcome::Resolved {
-                    target_symbol_id: only.symbol_id.clone(),
+                    target_symbol_id: only.semantic_id.clone(),
                     tier: tier.number(),
                     confidence: only.confidence.min(edge.source_confidence),
                     method: tier.method().to_string(),
                 });
             }
-            many => {
+            _ => {
                 if first_ambiguous.is_none() {
-                    first_ambiguous = Some(many.iter().map(|c| c.symbol_id.clone()).collect());
+                    first_ambiguous = Some(candidates);
                 }
             }
         }
     }
 
     Ok(match first_ambiguous {
-        Some(candidates) => TierOutcome::Ambiguous { candidates },
+        Some(summary) => TierOutcome::Ambiguous {
+            candidates: summary
+                .evidence
+                .into_iter()
+                .map(|candidate| candidate.semantic_id)
+                .collect(),
+            exact_count: summary.exact_count,
+        },
         None if attempted_any => TierOutcome::Missing,
         None => TierOutcome::NoContext,
     })
@@ -916,13 +984,6 @@ pub fn resolve_with_candidate_lookup<L: CandidateLookup>(
 // ---------------------------------------------------------------------------
 // Tier chain internals
 // ---------------------------------------------------------------------------
-
-/// One kind-compatible candidate produced by a tier, already carrying that tier's
-/// confidence (tier 3 varies it by `is_inferred`).
-struct TierCandidate {
-    symbol_id: session::SemanticSymbolId,
-    confidence: f64,
-}
 
 /// The ordered tier chain for an edge (design §"Resolution tiers" + §"Data flow"
 /// step 4). Pending rows run tiers 2→4 (tier 1 already materialized); identifiers
@@ -971,7 +1032,7 @@ fn tier_candidates<L: CandidateLookup>(
     tier: Tier,
     edge: &UnresolvedEdge,
     lookup: &L,
-) -> Result<Vec<TierCandidate>, L::Error> {
+) -> Result<CandidateSummary, L::Error> {
     match tier {
         Tier::Local => tier1_candidates(edge, lookup),
         Tier::Import => tier2_candidates(edge, lookup),
@@ -1001,29 +1062,29 @@ fn tier_candidates<L: CandidateLookup>(
 fn static_type_candidates<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     lookup: &L,
-) -> Result<Vec<TierCandidate>, L::Error> {
+) -> Result<CandidateSummary, L::Error> {
+    lookup.reset_tier_candidates()?;
     let Some(receiver) = edge.receiver.as_deref() else {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     };
     if receiver.is_empty() {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     }
     if scope_binds_receiver_name(edge, receiver, lookup)? {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     }
     let Some(type_symbol) = resolve_static_type_symbol(edge, lookup, receiver)? else {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     };
     if !static_receiver_is_reachable(edge, &type_symbol.symbol, lookup)? {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     }
     if !static_type_import_corroborated(edge, &type_symbol.symbol, lookup)? {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     }
 
     let member_kinds = tier123_compatible_kinds(edge.kind);
     let cross_file = type_symbol.symbol.file_id != edge.file_id;
-    let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
     lookup.visit_children_named(
         &type_symbol.symbol.file_id,
         &type_symbol.symbol.symbol_id,
@@ -1034,18 +1095,12 @@ fn static_type_candidates<L: CandidateLookup>(
                 && is_statically_reachable(&member.symbol)
                 && (!cross_file || member_is_cross_file_visible(&member.symbol))
             {
-                set.insert(member.semantic_id);
+                lookup.record_tier_candidate(member.semantic_id, CONFIDENCE_TIER3_STATIC)?;
             }
-            Ok(set.len() < 2)
+            Ok(true)
         },
     )?;
-    Ok(set
-        .into_iter()
-        .map(|symbol_id| TierCandidate {
-            symbol_id,
-            confidence: CONFIDENCE_TIER3_STATIC,
-        })
-        .collect())
+    lookup.tier_candidate_summary()
 }
 
 /// Cross-file static access only binds members that are publicly visible.
@@ -1336,12 +1391,12 @@ fn static_receiver_is_reachable<L: CandidateLookup>(
 fn tier1_candidates<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     lookup: &L,
-) -> Result<Vec<TierCandidate>, L::Error> {
+) -> Result<CandidateSummary, L::Error> {
     let kinds = tier123_compatible_kinds(edge.kind);
     let mut scope = edge.caller_scope_symbol_id.clone();
     let mut source_key = edge.file_id.clone();
     while let Some(scope_id) = scope {
-        let mut hits = Vec::with_capacity(2);
+        lookup.reset_tier_candidates()?;
         lookup.visit_children_named(
             &source_key,
             &scope_id,
@@ -1350,16 +1405,14 @@ fn tier1_candidates<L: CandidateLookup>(
                 if candidate.symbol.language == edge.language
                     && kinds.contains(&candidate.symbol.kind)
                 {
-                    hits.push(TierCandidate {
-                        symbol_id: candidate.semantic_id,
-                        confidence: CONFIDENCE_TIER1,
-                    });
+                    lookup.record_tier_candidate(candidate.semantic_id, CONFIDENCE_TIER1)?;
                 }
-                Ok(hits.len() < 2)
+                Ok(true)
             },
         )?;
-        if !hits.is_empty() {
-            return Ok(hits);
+        let summary = lookup.tier_candidate_summary()?;
+        if summary.exact_count > 0 {
+            return Ok(summary);
         }
         let Some(symbol) = lookup.symbol_by_id(&source_key, &scope_id)? else {
             break;
@@ -1368,17 +1421,14 @@ fn tier1_candidates<L: CandidateLookup>(
         scope = symbol.symbol.parent_symbol_id.clone();
     }
 
-    let mut hits = Vec::with_capacity(2);
+    lookup.reset_tier_candidates()?;
     lookup.visit_top_level_named(&edge.file_id, &edge.terminal_name, |_, candidate| {
         if candidate.symbol.language == edge.language && kinds.contains(&candidate.symbol.kind) {
-            hits.push(TierCandidate {
-                symbol_id: candidate.semantic_id,
-                confidence: CONFIDENCE_TIER1,
-            });
+            lookup.record_tier_candidate(candidate.semantic_id, CONFIDENCE_TIER1)?;
         }
-        Ok(hits.len() < 2)
+        Ok(true)
     })?;
-    Ok(hits)
+    lookup.tier_candidate_summary()
 }
 
 /// Tier 2: candidates reachable through an import whose **local binding**
@@ -1388,9 +1438,9 @@ fn tier1_candidates<L: CandidateLookup>(
 fn tier2_candidates<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     lookup: &L,
-) -> Result<Vec<TierCandidate>, L::Error> {
+) -> Result<CandidateSummary, L::Error> {
     let kinds = tier123_compatible_kinds(edge.kind);
-    let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
+    lookup.reset_tier_candidates()?;
 
     lookup.visit_imports(&edge.file_id, |lookup, import| {
         if import.is_type_only || import.is_namespace {
@@ -1424,20 +1474,13 @@ fn tier2_candidates<L: CandidateLookup>(
                 && kinds.contains(&cand.symbol.kind)
                 && module_ok
             {
-                set.insert(cand.semantic_id);
+                lookup.record_tier_candidate(cand.semantic_id, CONFIDENCE_TIER2)?;
             }
-            Ok(set.len() < 2)
+            Ok(true)
         })?;
-        Ok(set.len() < 2)
+        Ok(true)
     })?;
-
-    Ok(set
-        .into_iter()
-        .map(|symbol_id| TierCandidate {
-            symbol_id,
-            confidence: CONFIDENCE_TIER2,
-        })
-        .collect())
+    lookup.tier_candidate_summary()
 }
 
 /// Tier 3: receiver name → scoped symbol → `type_facts.resolved_type` → unique
@@ -1446,67 +1489,50 @@ fn tier2_candidates<L: CandidateLookup>(
 fn tier3_candidates<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     lookup: &L,
-) -> Result<Vec<TierCandidate>, L::Error> {
+) -> Result<CandidateSummary, L::Error> {
+    lookup.reset_tier_candidates()?;
     let Some(receiver) = edge.receiver.as_deref() else {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     };
     if receiver.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let receiver_symbols = resolve_receiver_symbols(edge, lookup, receiver)?;
-    if receiver_symbols.is_empty() {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     }
 
     let member_kinds = tier123_compatible_kinds(edge.kind);
-    // symbol_id -> is_inferred; BTreeMap keeps the result ordered by symbol_id.
-    // When a member is reachable via both a concrete and an inferred type fact,
-    // prefer the concrete (higher) confidence.
-    let mut members: BTreeMap<session::SemanticSymbolId, bool> = BTreeMap::new();
-
-    for receiver_symbol in receiver_symbols {
-        lookup.visit_type_facts(&receiver_symbol.semantic_id, |lookup, fact| {
-            if let Some(type_symbol) =
-                unique_type_symbol(lookup, &fact.resolved_type, &edge.language)?
-            {
-                lookup.visit_children_named(
-                    &type_symbol.symbol.file_id,
-                    &type_symbol.symbol.symbol_id,
-                    &edge.terminal_name,
-                    |_, member| {
-                        if member.symbol.language == edge.language
-                            && member_kinds.contains(&member.symbol.kind)
-                        {
-                            let entry = members
-                                .entry(member.semantic_id)
-                                .or_insert(fact.is_inferred);
-                            if !fact.is_inferred {
-                                *entry = false;
+    let found_receiver =
+        visit_receiver_symbols(edge, lookup, receiver, |lookup, receiver_symbol| {
+            lookup.visit_type_facts(&receiver_symbol.semantic_id, |lookup, fact| {
+                if let Some(type_symbol) =
+                    unique_type_symbol(lookup, &fact.resolved_type, &edge.language)?
+                {
+                    lookup.visit_children_named(
+                        &type_symbol.symbol.file_id,
+                        &type_symbol.symbol.symbol_id,
+                        &edge.terminal_name,
+                        |_, member| {
+                            if member.symbol.language == edge.language
+                                && member_kinds.contains(&member.symbol.kind)
+                            {
+                                lookup.record_tier_candidate(
+                                    member.semantic_id,
+                                    if fact.is_inferred {
+                                        CONFIDENCE_TIER3_INFERRED
+                                    } else {
+                                        CONFIDENCE_TIER3
+                                    },
+                                )?;
                             }
-                        }
-                        Ok(members.len() < 2)
-                    },
-                )?;
-            }
-            Ok(members.len() < 2)
+                            Ok(true)
+                        },
+                    )?;
+                }
+                Ok(true)
+            })
         })?;
-        if members.len() >= 2 {
-            break;
-        }
+    if !found_receiver {
+        return lookup.tier_candidate_summary();
     }
-
-    Ok(members
-        .into_iter()
-        .map(|(symbol_id, is_inferred)| TierCandidate {
-            symbol_id,
-            confidence: if is_inferred {
-                CONFIDENCE_TIER3_INFERRED
-            } else {
-                CONFIDENCE_TIER3
-            },
-        })
-        .collect())
+    lookup.tier_candidate_summary()
 }
 
 /// Tier 4: exactly one kind-compatible candidate in the same language
@@ -1520,53 +1546,51 @@ fn tier3_candidates<L: CandidateLookup>(
 fn tier4_candidates<L: CandidateLookup>(
     edge: &UnresolvedEdge,
     lookup: &L,
-) -> Result<Vec<TierCandidate>, L::Error> {
+) -> Result<CandidateSummary, L::Error> {
+    lookup.reset_tier_candidates()?;
     let kinds = tier4_compatible_kinds(edge.kind);
     if kinds.is_empty() {
-        return Ok(Vec::new());
+        return lookup.tier_candidate_summary();
     }
     let same_file_only = es_module_language(&edge.language);
-    let mut set: BTreeSet<session::SemanticSymbolId> = BTreeSet::new();
     lookup.visit_by_name(&edge.terminal_name, |_, cand| {
         if cand.symbol.language == edge.language
             && kinds.contains(&cand.symbol.kind)
             && (!same_file_only || cand.symbol.file_id == edge.file_id)
         {
-            set.insert(cand.semantic_id);
+            lookup.record_tier_candidate(cand.semantic_id, CONFIDENCE_TIER4)?;
         }
-        Ok(set.len() < 2)
+        Ok(true)
     })?;
-    Ok(set
-        .into_iter()
-        .map(|symbol_id| TierCandidate {
-            symbol_id,
-            confidence: CONFIDENCE_TIER4,
-        })
-        .collect())
+    lookup.tier_candidate_summary()
 }
 
 /// Resolve the receiver name to symbol(s) in scope: walk the caller's scope chain
 /// (nearest scope first — locals, then enclosing-type fields as an ancestor's
 /// children), then fall back to file top-level symbols. Returns the set found at
 /// the first non-empty precedence level, ordered by `symbol_id`.
-fn resolve_receiver_symbols<L: CandidateLookup>(
+fn visit_receiver_symbols<L: CandidateLookup, F>(
     edge: &UnresolvedEdge,
     lookup: &L,
     receiver: &str,
-) -> Result<Vec<CandidateHit>, L::Error> {
+    mut visitor: F,
+) -> Result<bool, L::Error>
+where
+    F: FnMut(&L, CandidateHit) -> Result<(), L::Error>,
+{
     let mut scope = edge.caller_scope_symbol_id.clone();
     let mut source_key = edge.file_id.clone();
     while let Some(scope_id) = scope {
-        let mut hits = Vec::with_capacity(2);
-        lookup.visit_children_named(&source_key, &scope_id, receiver, |_, hit| {
+        let mut found = false;
+        lookup.visit_children_named(&source_key, &scope_id, receiver, |lookup, hit| {
             if hit.symbol.language == edge.language {
-                hits.push(hit);
+                found = true;
+                visitor(lookup, hit)?;
             }
-            Ok(hits.len() < 2)
+            Ok(true)
         })?;
-        if !hits.is_empty() {
-            hits.sort_by(|a, b| a.semantic_id.cmp(&b.semantic_id));
-            return Ok(hits);
+        if found {
+            return Ok(true);
         }
         let Some(symbol) = lookup.symbol_by_id(&source_key, &scope_id)? else {
             break;
@@ -1575,15 +1599,15 @@ fn resolve_receiver_symbols<L: CandidateLookup>(
         scope = symbol.symbol.parent_symbol_id.clone();
     }
 
-    let mut hits = Vec::with_capacity(2);
-    lookup.visit_top_level_named(&edge.file_id, receiver, |_, hit| {
+    let mut found = false;
+    lookup.visit_top_level_named(&edge.file_id, receiver, |lookup, hit| {
         if hit.symbol.language == edge.language {
-            hits.push(hit);
+            found = true;
+            visitor(lookup, hit)?;
         }
-        Ok(hits.len() < 2)
+        Ok(true)
     })?;
-    hits.sort_by(|a, b| a.semantic_id.cmp(&b.semantic_id));
-    Ok(hits)
+    Ok(found)
 }
 
 /// The single same-language, type-like symbol named `type_name`, or `None` when
@@ -2461,13 +2485,13 @@ fn record_identifier_edge<S: ResolutionSession>(
                 Some(method),
                 None,
             ),
-            TierOutcome::Ambiguous { candidates } => (
+            TierOutcome::Ambiguous { exact_count, .. } => (
                 Outcome::Ambiguous,
                 None,
                 None,
                 None,
                 None,
-                Some(candidates.len() as i64),
+                Some(i64::try_from(exact_count).unwrap_or(i64::MAX)),
             ),
             TierOutcome::Missing => (Outcome::Missing, None, None, None, None, None),
             TierOutcome::NoContext => (Outcome::NoContext, None, None, None, None, None),
@@ -4126,7 +4150,7 @@ mod tests {
         );
         let edge = pending_edge(ReferenceKind::Call, "rust", "f3", "run");
         match resolve_one(&edge, &index) {
-            TierOutcome::Ambiguous { candidates } => assert_eq!(
+            TierOutcome::Ambiguous { candidates, .. } => assert_eq!(
                 candidates
                     .into_iter()
                     .map(|candidate| candidate.local_id)
@@ -4151,7 +4175,7 @@ mod tests {
         );
         let edge = pending_edge(ReferenceKind::Instantiates, "csharp", "f3", "Service");
         match resolve_one(&edge, &index) {
-            TierOutcome::Ambiguous { candidates } => assert_eq!(
+            TierOutcome::Ambiguous { candidates, .. } => assert_eq!(
                 candidates
                     .into_iter()
                     .map(|candidate| candidate.local_id)
@@ -5168,7 +5192,7 @@ mod tests {
             "fixture",
         )]);
         match resolve_one(&static_call_edge("Fixture", "Create"), &index) {
-            TierOutcome::Ambiguous { candidates } => {
+            TierOutcome::Ambiguous { candidates, .. } => {
                 assert_eq!(
                     candidates
                         .into_iter()
@@ -5465,7 +5489,11 @@ mod tests {
         );
         let edge = pending_edge(ReferenceKind::TypeUsage, "rust", "f4", "T");
         match resolve_one(&edge, &index) {
-            TierOutcome::Ambiguous { candidates } => {
+            TierOutcome::Ambiguous {
+                candidates,
+                exact_count,
+            } => {
+                assert_eq!(exact_count, 3);
                 assert_eq!(
                     candidates
                         .into_iter()
@@ -5476,6 +5504,49 @@ mod tests {
             }
             other => panic!("expected Ambiguous, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn duplicate_import_paths_preserve_exact_unique_ambiguity_count() {
+        let index = WorkspaceCandidateIndex::build(
+            vec![
+                sym("alpha", "run", SymbolKind::Function, "typescript", "f1"),
+                sym("mid", "run", SymbolKind::Function, "typescript", "f2"),
+                sym("zeta", "run", SymbolKind::Function, "typescript", "f3"),
+            ],
+            vec![],
+            vec![
+                ImportRecord {
+                    file_id: "f4".to_string(),
+                    local_name: "run".to_string(),
+                    imported_name: None,
+                    source: None,
+                    module_file_id: None,
+                    is_type_only: false,
+                    is_default: false,
+                    is_namespace: false,
+                },
+                ImportRecord {
+                    file_id: "f4".to_string(),
+                    local_name: "run".to_string(),
+                    imported_name: None,
+                    source: None,
+                    module_file_id: None,
+                    is_type_only: false,
+                    is_default: false,
+                    is_namespace: false,
+                },
+            ],
+        );
+        let edge = pending_edge(ReferenceKind::Call, "typescript", "f4", "run");
+
+        assert!(matches!(
+            resolve_one(&edge, &index),
+            TierOutcome::Ambiguous {
+                ref candidates,
+                exact_count: 3
+            } if candidates.len() == 2
+        ));
     }
 
     #[test]

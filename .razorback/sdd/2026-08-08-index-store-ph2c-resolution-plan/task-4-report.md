@@ -2,9 +2,10 @@
 
 ## Status and state
 
-- Status: complete for the Task 4 worker scope.
+- Status: complete after the lead review-fix cycle.
 - Authoritative base: `b7bc598505f9a7c1251b55484354ba00debe2097`.
-- Verified pre-commit HEAD: `b7bc598505f9a7c1251b55484354ba00debe2097`.
+- Initial implementation commit: `f472c73b029d0f97de5c3321c7b62b4fea62eb20`.
+- Final reviewed commit: this report's containing `fix: harden store resolution streaming` commit.
 - Branch: `codex/index-store-ph2c`.
 - Worktree: `/Users/murphy/source/julie-extractors/.claude/worktrees/index-store-ph2c`.
 - Pre-commit status: ten owned source/test paths modified or added plus this report; no unrelated path changed.
@@ -16,7 +17,9 @@
 - `StoreScratchResolutionSession` validates Store family/schema/view/generation/manifest/L2 through `StoreConnectionFactory` before creating output, reads indexed and failed-preserved extraction versions, and exposes failed entries as path facts without extraction rows.
 - The generic resolver owns one fallible policy over `CandidateLookup`; Legacy adapts its memory index and Store implements the same lookup ports with owned version-qualified hits and bounded ordered SQL visitor pages.
 - Resolver phases freeze immutable membership in the local scratch database, page Store reads through fresh readers, batch-hydrate one phase page, and flush each bounded batch in a scratch transaction.
-- Store windows are explicitly capped at 300 keys, keeping the three-parameter row-value predicate below SQLite's 999-variable default. Every SQL limit conversion is checked.
+- Store windows are explicitly capped at 300 keys. Phase hydration uses two parameters per key, so this is a conservative bound below SQLite's 999-variable default. Every SQL limit conversion is checked.
+- Visible version roots are read in bounded Store pages and each page is inserted in one local scratch transaction, avoiding one FULL-synchronous durable transaction per file.
+- Ambiguous outcomes carry two ordered evidence identities plus the exact unique candidate count. Legacy counts through a memory `BTreeMap`; Store counts through a request-local UNIQUE temporary scratch table, so high collisions and duplicate traversal paths remain bounded without changing persisted counts.
 - Scratch creation uses the artifact-owned validated path helper, preserves non-UTF8 paths with `OsString`, refuses symlinked ancestors before file creation, and applies/read-verifies page size 4096, incremental auto-vacuum, WAL, synchronous FULL, foreign keys and secure-delete ON, and autocheckpoint 8000.
 - Streaming base and scratch writers retain ordered-row validation, target validation, fixed-memory integrity scans, and the two-close completion durability boundary.
 - `stream_resolution_diff` and `apply_base_delta` page-merge identifier and pending tables by natural key and payload. Pending removals become tombstones; identifier removal is legal only when the exact version-root set excludes the source version. Gap facts are emitted in-band in deterministic order and sink failure leaves no completed delta.
@@ -28,22 +31,26 @@
 2. Generic API RED: the bounded-port source contract found `WorkspaceCandidateIndex` in the Store-facing contract. The bulk index/locator/overlay seams were replaced by `open_resolution_pass`, explicit phase chunks, fallible locator/qualification, and direct `CandidateLookup` visitor ports.
 3. Window RED: Legacy returned a whole phase `Vec`. A window-size input and `VecDeque` chunking produced identical output at window sizes 1 and 7 with maximum chunks at the configured bound.
 4. Manifest RED: the Store mechanism test initially failed to compile because `StoreScratchResolutionSession` did not exist. The smallest green established factory-based manifest identity validation, ordered windows, indexed plus failed-preserved visibility, retained exclusion, failed path facts, and pre-output L2 refusal.
-5. Candidate-policy RED: the first temporary candidate-index attempt produced empty pending parity and violated the approved architecture. It was removed. The shared tier functions now call fallible lookup ports directly; the pinned Store/Legacy semantic dump and a 10,000-collision ambiguity fixture pass, with Store's observed SQL page at 7 and ambiguity evidence capped at 2.
+5. Candidate-policy RED: the first temporary candidate-index attempt produced empty pending parity and violated the approved architecture. It was removed. The shared tier functions now call fallible lookup ports directly; the pinned Store/Legacy semantic dump and a 10,000-collision ambiguity fixture pass, with Store's observed SQL page capped at 300 and ambiguity evidence capped at 2.
 6. Phase RED: unbounded phase output and mutable same-phase membership were replaced with scratch-frozen keys, bounded pages, visibility barriers, fresh Store readers, batch hydration, and scratch transactions. Exact output is identical at windows 1 and 7; later keys are neither skipped nor duplicated.
 7. Streaming writer RED: artifact tests initially had no streaming base/delta APIs; the first SQLite insert-select implementation also failed with `near "DO": syntax error`. The corrected ordered writers pass out-of-order, missing-visible-target, incomplete-artifact, catalog, and durability tests.
 8. Diff RED: the matrix froze add, replace, delete, multi-delete, path/version reuse, failed, failed-preserved, duplicate-local-ID, exact gap order, totality violation, and sink rollback behavior. The ordered merge and replay implementation makes applied base+delta equal the exact artifact in both semantic tables.
-9. Ceiling RED: full CLI testing found `ambiguous_candidates_sorted_by_symbol_id` expected `['alpha','mid','zeta']` while the bounded exactly-one policy correctly returned `['alpha','mid']`. The contract now asserts deterministic sorted and bounded ambiguity evidence; the full feature suite then passed 641/641.
+9. Ceiling RED: full CLI testing first exposed that ambiguity evidence had been capped at two. Lead review then proved the artifact's `candidates` field requires the complete unique count. `TierOutcome::Ambiguous` now separates bounded ordered evidence from `exact_count`; Legacy persists 3, Store persists 10,000, and duplicate import/type-fact traversal paths do not inflate the count.
 10. Hardening RED: review found unchecked/capless window casts and silent phase hydration loss. Typed invalid-window and phase-corruption errors now cover both; tests assert the 300-key cap and exact frozen-key hydration.
 11. Containment RED: review showed `<exact>.work` was opened before artifact path validation and was derived through lossy display formatting. The artifact-owned creator and symlink-parent test prove refusal with no redirected outside file.
 12. RSS GREEN: the real Store session, scratch database, candidate/phase readers, and streaming exact writer ran in child processes at 1,000 and 8,000 rows with a 32-row window. Peak RSS growth stayed within the fixed 24 MiB allowance; the full test took 72.79 seconds.
+13. Epoch RED: base epoch 6 and exact/delta epoch 7 compiled only after adding typed `ResolverOutputEpochMismatch`. Diff now refuses before scratch creation or gap emission; apply refuses before visibility or semantic-row callbacks.
+14. Root batching RED: the Store test initially lacked `visible_root_batches`. Five exact roots at window 2 now produce three bounded Store reads and three local scratch insert transactions while preserving all exact roots.
+15. Receiver traversal RED: stopping after two same-name receiver symbols lost a member reachable only through the third receiver's type fact. The shared policy now visits every receiver at the first non-empty precedence level through bounded Store pages; duplicated type-fact paths still yield one unique target in both Legacy and Store.
 
 ## Verification ledger
 
-- Worker focused Store contract: `cargo +1.95.0 test -p julie-extract-cli --features test-store-resolution-contract --test store_resolution_mechanism --no-fail-fast` — 9/9 passed, including the real RSS gate before the final containment addition. Post-containment focused rerun excluding the already-proven RSS measurement: 9/9 passed, 1 filtered.
-- Resolver/oracle: `cargo +1.95.0 test -p julie-extract-cli --features test-store-resolution-contract --test resolution_session_contract --test resolution_contract --no-fail-fast` — 34/34 passed.
-- Artifact focused: `cargo +1.95.0 test -p julie-extract-artifact --features test-store-resolution --test store_resolution_schema_contract` — 15/15 passed after final edits.
-- CLI ceiling: `cargo +1.95.0 test -p julie-extract-cli --features test-store-resolution-contract --no-fail-fast` — 641/641 passed, including Store 9/9 and RSS 72.79 seconds.
-- Artifact ceiling: `cargo +1.95.0 test -p julie-extract-artifact --features test-store-resolution --no-fail-fast` — 278/278 passed.
+- Worker focused Store contract: `cargo +1.95.0 test -p julie-extract-cli --features test-store-resolution-contract --test store_resolution_mechanism --no-fail-fast` — 12/12 passed, including exact-count, third-receiver, root-batching, pinned parity, and real RSS gates; RSS completed in 72.27 seconds.
+- Resolver/oracle focused: the resolution policy unit filter passed 73/73 and `cargo +1.95.0 test -p julie-extract-cli --features test-store-resolution-contract --test resolution_session_contract --no-fail-fast` passed 6/6, including the pinned oracle and Legacy persisted-count regression.
+- Artifact focused: `cargo +1.95.0 test -p julie-extract-artifact --features test-store-resolution --test store_resolution_schema_contract` — 17/17 passed after final edits.
+- CLI ceiling: `cargo +1.95.0 test -p julie-extract-cli --features test-store-resolution-contract --no-fail-fast` — 647/647 passed.
+- Artifact ceiling: `cargo +1.95.0 test -p julie-extract-artifact --features test-store-resolution --no-fail-fast` — 280/280 passed.
+- Repository default ceiling: `RUSTUP_TOOLCHAIN=1.97.1 cargo xtask test default` — passed after the final review fixes.
 - CLI all-target Clippy: strict `-D warnings` first reproduced 18 unowned Rust 1.95 `clippy::collapsible_match` findings under `crates/julie-extractors/src/{cpp,elixir,go,php,razor,ruby,rust,scala,sql,typescript,zig}`. Scoped command `cargo +1.95.0 clippy -p julie-extract-cli --all-targets --features test-store-resolution-contract -- -A clippy::collapsible-match -D warnings` passed.
 - Artifact all-target Clippy: `cargo +1.95.0 clippy -p julie-extract-artifact --all-targets --features test-store-resolution -- -A clippy::collapsible-match -D warnings` passed.
 - Formatting and patch hygiene: `cargo +1.95.0 fmt --all -- --check` and `git diff --check` passed.

@@ -4,11 +4,11 @@ use julie_extract_artifact::store::{
     ManifestStore, ResolutionBaseReader, StoreConnectionFactory, StoreLayout,
 };
 use julie_extract_cli::resolution::{
-    CandidateSymbol, EdgeOrigin, ReferenceKind, TierOutcome, UnresolvedEdge,
+    CandidateSymbol, EdgeOrigin, ReferenceKind, TierOutcome, TypeFact, UnresolvedEdge,
     WorkspaceCandidateIndex, resolve_one, resolve_with_candidate_lookup, run_resolution_session,
 };
 use julie_extract_cli::resolution_session::{
-    ResolutionPhase, ResolutionSession, ResolutionWorklists,
+    ResolutionPassRequest, ResolutionPhase, ResolutionSession, ResolutionWorklists,
 };
 use julie_extract_cli::store::resolution_session::{
     StoreManifestIdentity, StoreResolutionError, StoreScratchResolutionSession,
@@ -265,10 +265,25 @@ fn high_collision_store_lookup_matches_legacy_and_caps_ambiguity_evidence() {
                 .unwrap();
         }
     }
+    transaction
+        .execute(
+            "INSERT INTO reference_sites(version_id,reference_site_id,path,language,
+         start_line,start_column,end_line,end_column,start_byte,end_byte,is_exact,provenance,level)
+         VALUES (?1,'collision-site','src/lib.rs','rust',2,1,2,10,2,11,1,'target_token',2)",
+            [version],
+        )
+        .unwrap();
+    transaction.execute(
+        "INSERT INTO identifiers(version_id,identifier_id,reference_site_id,path,language,name,kind,
+         start_line,start_column,end_line,end_column,start_byte,end_byte,confidence)
+         VALUES (?1,'collision-use','collision-site','src/lib.rs','rust','collision','call',2,1,2,10,2,11,1.0)",
+        [version],
+    ).unwrap();
     transaction.commit().unwrap();
     drop(connection);
 
-    let session = StoreScratchResolutionSession::new(
+    let exact_path = temp.path().join("exact.db");
+    let mut session = StoreScratchResolutionSession::new(
         factory,
         StoreManifestIdentity {
             family_id: "family-a".to_string(),
@@ -276,8 +291,8 @@ fn high_collision_store_lookup_matches_legacy_and_caps_ambiguity_evidence() {
             generation: 1,
             manifest_hash: "manifest-a".to_string(),
         },
-        temp.path().join("exact.db"),
-        7,
+        &exact_path,
+        300,
         6,
     )
     .unwrap();
@@ -314,13 +329,130 @@ fn high_collision_store_lookup_matches_legacy_and_caps_ambiguity_evidence() {
     let legacy_outcome = resolve_one(&edge, &legacy);
     let store_outcome = resolve_with_candidate_lookup(&session, &edge).unwrap();
     assert!(
-        matches!(legacy_outcome, TierOutcome::Ambiguous { ref candidates } if candidates.len() == 2)
+        matches!(legacy_outcome, TierOutcome::Ambiguous { ref candidates, exact_count: 10_000 } if candidates.len() == 2)
     );
     assert!(
-        matches!(store_outcome, TierOutcome::Ambiguous { ref candidates } if candidates.len() == 2)
+        matches!(store_outcome, TierOutcome::Ambiguous { ref candidates, exact_count: 10_000 } if candidates.len() == 2)
     );
-    assert!(session.max_store_read_page() <= 7);
-    assert_eq!(session.max_store_read_page(), 7);
+    assert!(session.max_store_read_page() <= 300);
+    assert_eq!(session.max_store_read_page(), 300);
+    run_resolution_session(&mut session, true, true).unwrap();
+    session.finish_exact().unwrap();
+    let rows = ResolutionBaseReader::open(&exact_path)
+        .unwrap()
+        .identifiers()
+        .unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].candidates, Some(10_000));
+}
+
+#[test]
+fn third_same_name_receiver_contributes_type_fact_in_legacy_and_store() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    let version = insert_version(&connection, "src/lib.rs", "rust", true);
+    connection.execute("INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at) VALUES ('view-a',1,'manifest-a','request-a',?1)", [NOW]).unwrap();
+    connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,'src/lib.rs',?1,'indexed','hash',?2)", params![version, NOW]).unwrap();
+    for (symbol_id, name, kind, parent) in [
+        ("alpha", "recv", "variable", None),
+        ("mid", "recv", "variable", None),
+        ("zeta", "recv", "variable", None),
+        ("type-c", "TypeC", "class", None),
+        ("member", "hit", "method", Some("type-c")),
+    ] {
+        connection.execute(
+            "INSERT INTO symbols(version_id,symbol_id,path,language,name,kind,parent_symbol_id,
+             start_line,start_column,end_line,end_column,start_byte,end_byte,is_test,test_container,test_lifecycle)
+             VALUES (?1,?2,'src/lib.rs','rust',?3,?4,?5,1,1,1,1,0,1,0,0,0)",
+            params![version, symbol_id, name, kind, parent],
+        ).unwrap();
+    }
+    for fact_id in ["fact-zeta-a", "fact-zeta-b"] {
+        connection.execute(
+            "INSERT INTO type_facts(version_id,type_fact_id,symbol_id,language,resolved_type,is_inferred)
+             VALUES (?1,?2,'zeta','rust','TypeC',0)",
+            params![version, fact_id],
+        ).unwrap();
+    }
+    drop(connection);
+
+    let session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        2,
+        6,
+    )
+    .unwrap();
+    let edge = UnresolvedEdge {
+        origin: EdgeOrigin::Identifier,
+        kind: ReferenceKind::Call,
+        language: "rust".to_string(),
+        file_id: version.to_string(),
+        terminal_name: "hit".to_string(),
+        receiver: Some("recv".to_string()),
+        caller_scope_symbol_id: None,
+        import_context: None,
+        receiver_qualifier: None,
+        source_confidence: 1.0,
+    };
+    let legacy_symbols = [
+        ("alpha", "recv", SymbolKind::Variable, None),
+        ("mid", "recv", SymbolKind::Variable, None),
+        ("zeta", "recv", SymbolKind::Variable, None),
+        ("type-c", "TypeC", SymbolKind::Class, None),
+        ("member", "hit", SymbolKind::Method, Some("type-c")),
+    ]
+    .into_iter()
+    .map(|(symbol_id, name, kind, parent)| CandidateSymbol {
+        symbol_id: symbol_id.to_string(),
+        file_id: version.to_string(),
+        language: "rust".to_string(),
+        name: name.to_string(),
+        kind,
+        parent_symbol_id: parent.map(str::to_string),
+        visibility: None,
+        signature: None,
+        is_static: None,
+    })
+    .collect();
+    let legacy = WorkspaceCandidateIndex::build(
+        legacy_symbols,
+        vec![
+            TypeFact {
+                symbol_id: "zeta".to_string(),
+                resolved_type: "TypeC".to_string(),
+                is_inferred: false,
+            },
+            TypeFact {
+                symbol_id: "zeta".to_string(),
+                resolved_type: "TypeC".to_string(),
+                is_inferred: false,
+            },
+        ],
+        vec![],
+    );
+
+    for outcome in [
+        resolve_one(&edge, &legacy),
+        resolve_with_candidate_lookup(&session, &edge).unwrap(),
+    ] {
+        assert!(matches!(
+            outcome,
+            TierOutcome::Resolved { target_symbol_id, .. } if target_symbol_id.local_id == "member"
+        ));
+    }
+    assert_eq!(session.max_store_read_page(), 2);
 }
 
 #[test]
@@ -406,6 +538,54 @@ fn store_phase_windows_freeze_membership_and_emit_identical_exact_bases() {
             actual: 0
         }
     ));
+}
+
+#[test]
+fn visible_version_roots_commit_once_per_bounded_store_page() {
+    let temp = TempDir::new().unwrap();
+    let layout = StoreLayout::create(temp.path().join("family"), "family-a", "2.30.0").unwrap();
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+    let mut connection = factory.open_writer().unwrap();
+    ManifestStore::new(&mut connection)
+        .ensure_view("view-a", "/repo")
+        .unwrap();
+    connection.execute("INSERT INTO manifests(view_id,generation,manifest_hash,request_id,created_at) VALUES ('view-a',1,'manifest-a','request-a',?1)", [NOW]).unwrap();
+    let mut versions = Vec::new();
+    for index in 0..5 {
+        let path = format!("src/file-{index}.rs");
+        let version = insert_version(&connection, &path, "rust", true);
+        connection.execute("INSERT INTO manifest_entries(view_id,generation,path,version_id,status,observed_content_hash,indexed_at) VALUES ('view-a',1,?1,?2,'indexed',?3,?4)", params![path, version, format!("hash-{index}"), NOW]).unwrap();
+        versions.push(version);
+    }
+    drop(connection);
+
+    let mut session = StoreScratchResolutionSession::new(
+        factory,
+        StoreManifestIdentity {
+            family_id: "family-a".to_string(),
+            view_id: "view-a".to_string(),
+            generation: 1,
+            manifest_hash: "manifest-a".to_string(),
+        },
+        temp.path().join("exact.db"),
+        2,
+        6,
+    )
+    .unwrap();
+    session
+        .open_resolution_pass(&ResolutionPassRequest::full())
+        .unwrap();
+
+    assert_eq!(session.visible_root_batches(), 3);
+    assert!(session.max_store_read_page() <= 2);
+    let exact = session.finish_exact().unwrap();
+    assert_eq!(
+        ResolutionBaseReader::open(exact.path)
+            .unwrap()
+            .source_versions()
+            .unwrap(),
+        versions
+    );
 }
 
 #[test]

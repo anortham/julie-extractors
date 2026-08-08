@@ -326,14 +326,104 @@ fn streaming_diff_rejects_missing_identifier_from_visible_exact_version() {
     assert!(!delta_path.exists());
 }
 
+#[test]
+fn streaming_diff_rejects_cross_epoch_before_delta_or_gap_emission() {
+    let temp = TempDir::new("diff-epoch");
+    let base_path = temp.path().join("base.db");
+    let exact_path = temp.path().join("exact.db");
+    let delta_path = temp.path().join("delta.db");
+    build_base_with_epoch(&base_path, 6, [10, 20], vec![], vec![]);
+    build_base_with_epoch(
+        &exact_path,
+        7,
+        [10, 20],
+        vec![identifier(10, "added")],
+        vec![],
+    );
+    let base = ResolutionBaseReader::open(&base_path).unwrap();
+    let exact = ResolutionBaseReader::open(&exact_path).unwrap();
+    let mut emitted = 0;
+
+    let error = stream_resolution_diff(&base, &exact, &delta_path, 2, |_| {
+        emitted += 1;
+        Ok(())
+    })
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        ResolutionValidationError::ResolverOutputEpochMismatch {
+            expected: 6,
+            found: 7
+        }
+    ));
+    assert_eq!(emitted, 0);
+    assert!(!delta_path.exists());
+}
+
+#[test]
+fn apply_base_delta_rejects_cross_epoch_before_output_emission() {
+    let temp = TempDir::new("apply-epoch");
+    let base_path = temp.path().join("base.db");
+    let delta_path = temp.path().join("delta.db");
+    build_base_with_epoch(&base_path, 6, [10, 20], vec![], vec![]);
+    ResolutionScratchDelta::new(&delta_path, "manifest-a", 7)
+        .unwrap()
+        .finish()
+        .unwrap();
+    let base = ResolutionBaseReader::open(&base_path).unwrap();
+    let delta = ResolutionScratchReader::open(&delta_path).unwrap();
+    let mut visibility_calls = 0;
+    let mut identifier_rows = 0;
+    let mut pending_rows = 0;
+
+    let error = apply_base_delta(
+        &base,
+        &delta,
+        2,
+        |_| {
+            visibility_calls += 1;
+            Ok(true)
+        },
+        |_| {
+            identifier_rows += 1;
+            Ok(())
+        },
+        |_| {
+            pending_rows += 1;
+            Ok(())
+        },
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        ResolutionValidationError::ResolverOutputEpochMismatch {
+            expected: 6,
+            found: 7
+        }
+    ));
+    assert_eq!((visibility_calls, identifier_rows, pending_rows), (0, 0, 0));
+}
+
 fn build_base(
     path: &Path,
     versions: impl IntoIterator<Item = i64>,
     identifiers: Vec<ResolutionIdentifierRow>,
     pending_rows: Vec<ResolutionPendingRow>,
 ) {
+    build_base_with_epoch(path, 6, versions, identifiers, pending_rows);
+}
+
+fn build_base_with_epoch(
+    path: &Path,
+    epoch: i64,
+    versions: impl IntoIterator<Item = i64>,
+    identifiers: Vec<ResolutionIdentifierRow>,
+    pending_rows: Vec<ResolutionPendingRow>,
+) {
     let visible = BTreeSet::from([(20, "symbol-4".to_string())]);
-    let mut builder = ResolutionBaseBuilder::new(path, "manifest-a", 6, versions).unwrap();
+    let mut builder = ResolutionBaseBuilder::new(path, "manifest-a", epoch, versions).unwrap();
     builder.push_identifier_batch(identifiers);
     builder.push_pending_batch(pending_rows);
     builder.finish(&visible).unwrap();

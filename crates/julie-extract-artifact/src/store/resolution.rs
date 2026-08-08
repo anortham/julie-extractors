@@ -178,6 +178,10 @@ pub enum ResolutionValidationError {
         version_id: i64,
         identifier_id: String,
     },
+    ResolverOutputEpochMismatch {
+        expected: i64,
+        found: i64,
+    },
     PathEscapesRoot {
         path: PathBuf,
         root: PathBuf,
@@ -239,6 +243,10 @@ impl fmt::Display for ResolutionValidationError {
             } => write!(
                 formatter,
                 "exact resolution omitted identifier ({version_id}, {identifier_id}) from a visible version"
+            ),
+            Self::ResolverOutputEpochMismatch { expected, found } => write!(
+                formatter,
+                "resolution output epoch {found} does not match {expected}"
             ),
             Self::PathEscapesRoot { path, root } => {
                 write!(formatter, "resolution path {path:?} escapes {root:?}")

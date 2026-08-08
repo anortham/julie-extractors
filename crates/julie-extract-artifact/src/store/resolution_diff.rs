@@ -559,6 +559,10 @@ where
     if window_size == 0 {
         return Err(ResolutionValidationError::InvalidArgument("window size"));
     }
+    validate_resolver_output_epoch(
+        base.file_identity().resolver_output_epoch,
+        exact.file_identity().resolver_output_epoch,
+    )?;
     let identity = exact.file_identity();
     let mut writer = ResolutionScratchWriter::new(
         scratch_path,
@@ -876,6 +880,10 @@ where
     if window_size == 0 {
         return Err(ResolutionValidationError::InvalidArgument("window size"));
     }
+    validate_resolver_output_epoch(
+        base.file_identity().resolver_output_epoch,
+        delta.file_identity().resolver_output_epoch,
+    )?;
     let mut counts = ResolutionApplyCounts::default();
     let mut visibility = |version_id: i64, cache: &mut Option<(i64, bool)>| {
         if cache.is_none_or(|(cached, _)| cached != version_id) {
@@ -980,6 +988,16 @@ where
         .max(base_pending.max_page)
         .max(changes.max_page());
     Ok(counts)
+}
+
+fn validate_resolver_output_epoch(
+    expected: i64,
+    found: i64,
+) -> Result<(), ResolutionValidationError> {
+    if expected != found {
+        return Err(ResolutionValidationError::ResolverOutputEpochMismatch { expected, found });
+    }
+    Ok(())
 }
 
 struct ScratchIdentifierCursor<'a> {

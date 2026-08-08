@@ -95,6 +95,51 @@ fn legacy_phase_windows_are_bounded_and_output_invariant() {
     assert!(large_peak > 1, "fixture does not exercise multi-row chunks");
 }
 
+#[test]
+fn legacy_ambiguity_persists_complete_candidate_count() {
+    let temp = TempDir::new().expect("temporary fixture root");
+    let root = temp.path().join("repo");
+    std::fs::create_dir(&root).expect("fixture root exists");
+    for (path, source) in [
+        ("a.rs", "pub fn collision() {}\n"),
+        ("b.rs", "pub fn collision() {}\n"),
+        ("c.rs", "pub fn collision() {}\n"),
+        ("use.rs", "pub fn use_it() { collision(); }\n"),
+    ] {
+        std::fs::write(root.join(path), source).expect("fixture source written");
+    }
+    let db = temp.path().join("symbols.db");
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "scan",
+            "--root",
+            root.to_str().expect("fixture root is utf8"),
+            "--db",
+            db.to_str().expect("database path is utf8"),
+            "--json",
+        ])
+        .output()
+        .expect("julie-extract starts");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let connection = Connection::open(db).expect("artifact opens");
+    let row: (String, i64) = connection
+        .query_row(
+            "SELECT ir.outcome,ir.candidates
+             FROM identifier_resolutions AS ir
+             JOIN identifiers AS i ON i.identifier_id=ir.identifier_id
+             WHERE i.name='collision'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("ambiguous identifier row exists");
+    assert_eq!(row, ("ambiguous".to_string(), 3));
+}
+
 fn rerun_resolution_with_window(db: &Path, window_size: usize) -> (Value, usize) {
     let mut connection = Connection::open(db).expect("artifact opens");
     let transaction = connection.transaction().expect("resolution transaction");
