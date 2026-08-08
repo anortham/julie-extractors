@@ -135,6 +135,22 @@ fn performance_override_preserves_the_miller_pending_ratio() {
 }
 
 #[test]
+fn performance_gate_resets_only_its_owned_directories() {
+    let temp = tempfile::tempdir().unwrap();
+    let owned = temp.path().join("run-001");
+    let sibling = temp.path().join("keep.txt");
+    fs::create_dir_all(&owned).unwrap();
+    fs::write(owned.join("stale.db"), b"stale").unwrap();
+    fs::write(&sibling, b"keep").unwrap();
+
+    reset_owned_directory(&owned);
+
+    assert!(owned.is_dir());
+    assert!(!owned.join("stale.db").exists());
+    assert_eq!(fs::read(sibling).unwrap(), b"keep");
+}
+
+#[test]
 fn store_resolution_performance_worker() {
     let Ok(store_root) = std::env::var("JULIE_STORE_RESOLUTION_PERF_WORKER_STORE") else {
         return;
@@ -162,6 +178,7 @@ fn store_resolution_performance_gate() {
     let out_dir = PathBuf::from(out_dir);
     fs::create_dir_all(&out_dir).unwrap();
     let fixture_root = out_dir.join(format!("fixture-{}", std::process::id()));
+    reset_owned_directory(&fixture_root);
     let rows = std::env::var("JULIE_STORE_RESOLUTION_PERF_ROWS")
         .ok()
         .map(|value| value.parse().unwrap())
@@ -175,7 +192,7 @@ fn store_resolution_performance_gate() {
 
     for run in 1..=runs {
         let run_dir = out_dir.join(format!("run-{run:03}"));
-        fs::create_dir_all(&run_dir).unwrap();
+        reset_owned_directory(&run_dir);
         for pair in PAIRS {
             let worker_output = run_dir.join(format!(".{pair}.worker.json"));
             let mut command = timed_worker_command();
@@ -212,6 +229,15 @@ fn store_resolution_performance_gate() {
             fs::remove_file(worker_output).unwrap();
         }
     }
+}
+
+fn reset_owned_directory(path: &Path) {
+    match fs::remove_dir_all(path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => panic!("failed to reset {}: {error}", path.display()),
+    }
+    fs::create_dir_all(path).unwrap();
 }
 
 fn timed_worker_command() -> Command {
