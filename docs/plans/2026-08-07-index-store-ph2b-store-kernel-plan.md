@@ -472,10 +472,10 @@ Ph2d.
 
 **Acceptance:**
 
-- [ ] No valid open resolves outside the supplied family directory.
-- [ ] Every writer reasserts FULL durability, FK enforcement, and secure delete.
-- [ ] A torn first creation is either absent or reopenable; never half-published.
-- [ ] Below-writer-floor opens read-only; below-reader-floor returns a typed not-ready reason.
+- [x] No valid open resolves outside the supplied family directory.
+- [x] Every writer reasserts FULL durability, FK enforcement, and secure delete.
+- [x] A torn first creation is either absent or reopenable; never half-published.
+- [x] Below-writer-floor opens read-only; below-reader-floor returns a typed not-ready reason.
 
 ### Task 3: Persist immutable versions and per-level rows
 
