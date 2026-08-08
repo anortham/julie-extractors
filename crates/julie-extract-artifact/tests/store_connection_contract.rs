@@ -302,6 +302,37 @@ fn creation_recovers_an_initialized_generation_not_yet_published() {
 }
 
 #[test]
+fn creation_reasserts_wal_before_publishing_an_adopted_generation() {
+    let temp = TempStore::new("recover-delete-journal");
+    let generation = temp.path().join("gen-001");
+    fs::create_dir(&generation).unwrap();
+    fs::create_dir(generation.join("bases")).unwrap();
+    let store_db = generation.join("store.db");
+    let connection = Connection::open(&store_db).unwrap();
+    connection
+        .execute_batch("PRAGMA page_size = 4096; PRAGMA auto_vacuum = INCREMENTAL;")
+        .unwrap();
+    create_store_schema(&connection).unwrap();
+    connection
+        .execute(
+            "INSERT INTO store_meta (key, value) VALUES ('family_id', 'family-a')",
+            [],
+        )
+        .unwrap();
+    assert_eq!(pragma_text(&connection, "journal_mode"), "delete");
+    drop(connection);
+
+    let recovered = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+
+    let connection = Connection::open(recovered.store_db()).unwrap();
+    assert_eq!(pragma_text(&connection, "journal_mode"), "wal");
+    assert_eq!(
+        fs::read_to_string(temp.path().join("CURRENT")).unwrap(),
+        "gen-001\n"
+    );
+}
+
+#[test]
 fn creation_refuses_to_publish_a_generation_initialized_with_late_auto_vacuum() {
     let temp = TempStore::new("recover-invalid-pragmas");
     let generation = temp.path().join("gen-001");

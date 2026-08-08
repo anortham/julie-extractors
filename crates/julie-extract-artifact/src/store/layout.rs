@@ -307,8 +307,7 @@ fn partial_generation_scaffold(name: &str) -> bool {
 
 fn validate_existing_generation(path: &Path, expected: &str) -> Result<(), StoreLayoutError> {
     let connection = Connection::open(path)?;
-    verify_integer_pragma(&connection, "page_size", 4096)?;
-    verify_integer_pragma(&connection, "auto_vacuum", 2)?;
+    configure_writer_pragmas(&connection)?;
     create_store_schema(&connection)?;
     let found = connection.query_row(
         "SELECT value FROM store_meta WHERE key = 'family_id'",
@@ -396,14 +395,7 @@ fn initialize_store_database(
     creator_version: &str,
 ) -> Result<(), StoreLayoutError> {
     let mut connection = Connection::open(path)?;
-    connection.execute_batch(
-        "PRAGMA page_size = 4096;
-         PRAGMA auto_vacuum = INCREMENTAL;
-         PRAGMA journal_mode = WAL;
-         PRAGMA synchronous = FULL;
-         PRAGMA foreign_keys = ON;
-         PRAGMA secure_delete = ON;",
-    )?;
+    configure_writer_pragmas(&connection)?;
     create_store_schema(&connection)?;
     let transaction = connection.transaction()?;
     for (key, value) in [
@@ -421,34 +413,37 @@ fn initialize_store_database(
         )?;
     }
     transaction.commit()?;
-    verify_creation_pragmas(&connection)?;
     Ok(())
 }
 
 fn initialize_coordinator_database(path: &Path) -> Result<(), StoreLayoutError> {
     let connection = Connection::open(path)?;
-    connection.execute_batch(
-        "PRAGMA page_size = 4096;
-         PRAGMA auto_vacuum = INCREMENTAL;
-         PRAGMA journal_mode = WAL;
-         PRAGMA synchronous = FULL;
-         PRAGMA foreign_keys = ON;
-         PRAGMA secure_delete = ON;",
-    )?;
+    configure_writer_pragmas(&connection)?;
     create_coordinator_schema(&connection)?;
-    verify_creation_pragmas(&connection)?;
     drop(connection);
     sync_file(path)?;
     Ok(())
 }
 
-fn verify_creation_pragmas(connection: &Connection) -> Result<(), StoreLayoutError> {
+fn configure_writer_pragmas(connection: &Connection) -> Result<(), StoreLayoutError> {
+    connection.execute_batch(
+        "PRAGMA page_size = 4096;
+         PRAGMA auto_vacuum = INCREMENTAL;",
+    )?;
     verify_integer_pragma(connection, "page_size", 4096)?;
+    verify_integer_pragma(connection, "auto_vacuum", 2)?;
+    connection.execute_batch(
+        "PRAGMA journal_mode = WAL;
+         PRAGMA wal_autocheckpoint = 1000;
+         PRAGMA synchronous = FULL;
+         PRAGMA foreign_keys = ON;
+         PRAGMA secure_delete = ON;",
+    )?;
     verify_text_pragma(connection, "journal_mode", "wal")?;
+    verify_integer_pragma(connection, "wal_autocheckpoint", 1000)?;
     verify_integer_pragma(connection, "synchronous", 2)?;
     verify_integer_pragma(connection, "foreign_keys", 1)?;
     verify_integer_pragma(connection, "secure_delete", 1)?;
-    verify_integer_pragma(connection, "auto_vacuum", 2)?;
     Ok(())
 }
 
