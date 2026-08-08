@@ -451,10 +451,10 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] G1 determinism and G2 exactness pass for both semantic tables.
-- [ ] Gap enumeration is exact and in-band with the streaming diff.
-- [ ] Store and legacy sessions produce the same semantic result on the pinned oracle.
-- [ ] No ATTACH, long store snapshot, or whole-corpus materialization exists.
+- [x] G1 determinism and G2 exactness pass for both semantic tables.
+- [x] Gap enumeration is exact and in-band with the streaming diff.
+- [x] Store and legacy sessions produce the same semantic result on the pinned oracle.
+- [x] No ATTACH, long store snapshot, or whole-corpus materialization exists.
 
 ## Task 5: Freeze and Pass the G1–G5 Measurement Gate
 
