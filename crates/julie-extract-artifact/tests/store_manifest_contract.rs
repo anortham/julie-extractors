@@ -137,6 +137,45 @@ fn manifest_flip_from_an_exact_view_invalidates_resolution_before_advancing_the_
         )
         .unwrap();
 
+    let identical = ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(1),
+            [ManifestEntry::indexed(
+                "src/lib.rs",
+                "rust",
+                first_version,
+                "blake3:first",
+                INDEXED_AT,
+            )],
+            "request-identical",
+        )
+        .unwrap();
+    assert_eq!(identical.disposition, ManifestPublishDisposition::Reused);
+    assert_eq!(identical.generation, 1);
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT resolution_state,resolution_base_id,resolution_delta_generation,
+                        resolution_exact_at
+                 FROM views WHERE view_id='view-a'",
+                [],
+                |row| Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<i64>>(2)?,
+                    row.get::<_, Option<i64>>(3)?
+                )),
+            )
+            .unwrap(),
+        (
+            "exact".to_string(),
+            Some("base-a".to_string()),
+            Some(1),
+            Some(1)
+        )
+    );
+
     let second_version = insert_version(&connection, "src/lib.rs", "blake3:second");
     let published = ManifestStore::new(&mut connection)
         .publish(

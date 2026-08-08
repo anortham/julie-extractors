@@ -12,7 +12,11 @@ use sha2::{Digest, Sha256};
 
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::{
-    ResolutionBaseRecord, ResolutionBaseState, StoreConnectionError, StoreConnectionFactory,
+    ResolutionBaseRecord, ResolutionBaseState, ResolutionDeltaRecord, ResolutionGapFact,
+    ResolutionGapKind, ResolutionGapTable, ResolutionIdentifierDeltaRecord,
+    ResolutionPendingDeltaRecord, ResolutionPendingOperation, ResolutionPinOwnerKind,
+    ResolutionPinRecord, ResolutionScratchReader, StoreConnectionError, StoreConnectionFactory,
+    StoreLog, StoreLogEntry, StoreLogError, ViewResolutionState,
 };
 
 pub const RESOLUTION_BASE_USER_VERSION: i64 = 1;
@@ -934,6 +938,1239 @@ fn remove_resolution_file(path: &Path) -> Result<(), ResolutionBaseCatalogError>
         sync_directory_path(parent)?;
     }
     Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionViewBinding {
+    pub view_id: String,
+    pub manifest_generation: i64,
+    pub manifest_hash: String,
+    pub base_id: String,
+    pub delta_generation: i64,
+    pub state: ViewResolutionState,
+    pub exact_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionExactPublish {
+    pub view_id: String,
+    pub manifest_generation: i64,
+    pub manifest_hash: String,
+    pub base_id: String,
+    pub previous_delta_generation: i64,
+    pub resolver_output_epoch: i64,
+    pub request_id: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionConvergenceBegin {
+    pub view_id: String,
+    pub resolver_output_epoch: i64,
+    pub request_id: String,
+    pub pin_id: String,
+    pub owner_id: String,
+    pub expires_at: String,
+    pub created_at: String,
+}
+
+#[derive(Debug)]
+pub enum ResolutionBindingError {
+    ViewNotFound { view_id: String },
+    ManifestMissing { view_id: String },
+    ReadyBaseMissing { resolver_output_epoch: i64 },
+    CasLost { view_id: String },
+    GenerationOutOfRange { view_id: String },
+    ViewUnbound { view_id: String },
+    PinNotFound { pin_id: String },
+    PinOwnerMismatch { pin_id: String },
+    PinExpired { pin_id: String },
+    FenceLost { request_id: String },
+    InvalidPublication { detail: String },
+    Sqlite(rusqlite::Error),
+    Connection(StoreConnectionError),
+    Catalog(ResolutionBaseCatalogError),
+    Log(StoreLogError),
+    Scratch(ResolutionValidationError),
+}
+
+impl fmt::Display for ResolutionBindingError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ViewNotFound { view_id } => {
+                write!(formatter, "resolution view {view_id:?} was not found")
+            }
+            Self::ManifestMissing { view_id } => {
+                write!(formatter, "resolution view {view_id:?} has no manifest")
+            }
+            Self::ReadyBaseMissing {
+                resolver_output_epoch,
+            } => write!(
+                formatter,
+                "no ready resolution base exists for output epoch {resolver_output_epoch}"
+            ),
+            Self::CasLost { view_id } => write!(
+                formatter,
+                "resolution binding CAS was lost for view {view_id:?}"
+            ),
+            Self::GenerationOutOfRange { view_id } => write!(
+                formatter,
+                "resolution delta generation is out of range for view {view_id:?}"
+            ),
+            Self::ViewUnbound { view_id } => {
+                write!(formatter, "resolution view {view_id:?} is unbound")
+            }
+            Self::PinNotFound { pin_id } => {
+                write!(formatter, "resolution pin {pin_id:?} was not found")
+            }
+            Self::PinOwnerMismatch { pin_id } => {
+                write!(
+                    formatter,
+                    "resolution pin {pin_id:?} belongs to another owner"
+                )
+            }
+            Self::PinExpired { pin_id } => {
+                write!(formatter, "resolution pin {pin_id:?} has expired")
+            }
+            Self::FenceLost { request_id } => {
+                write!(
+                    formatter,
+                    "resolution publication fence was lost for {request_id:?}"
+                )
+            }
+            Self::InvalidPublication { detail } => {
+                write!(formatter, "invalid exact resolution publication: {detail}")
+            }
+            Self::Sqlite(error) => error.fmt(formatter),
+            Self::Connection(error) => error.fmt(formatter),
+            Self::Catalog(error) => error.fmt(formatter),
+            Self::Log(error) => error.fmt(formatter),
+            Self::Scratch(error) => error.fmt(formatter),
+        }
+    }
+}
+
+impl Error for ResolutionBindingError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Sqlite(error) => Some(error),
+            Self::Connection(error) => Some(error),
+            Self::Catalog(error) => Some(error),
+            Self::Log(error) => Some(error),
+            Self::Scratch(error) => Some(error),
+            _ => None,
+        }
+    }
+}
+
+impl From<rusqlite::Error> for ResolutionBindingError {
+    fn from(error: rusqlite::Error) -> Self {
+        Self::Sqlite(error)
+    }
+}
+
+impl From<StoreConnectionError> for ResolutionBindingError {
+    fn from(error: StoreConnectionError) -> Self {
+        Self::Connection(error)
+    }
+}
+
+impl From<ResolutionBaseCatalogError> for ResolutionBindingError {
+    fn from(error: ResolutionBaseCatalogError) -> Self {
+        Self::Catalog(error)
+    }
+}
+
+impl From<StoreLogError> for ResolutionBindingError {
+    fn from(error: StoreLogError) -> Self {
+        Self::Log(error)
+    }
+}
+
+impl From<ResolutionValidationError> for ResolutionBindingError {
+    fn from(error: ResolutionValidationError) -> Self {
+        Self::Scratch(error)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ResolutionBindingStore {
+    factory: StoreConnectionFactory,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolutionPublicationFence {
+    pub claim_owner: String,
+    pub holder_id: String,
+    pub holder_pid: u32,
+    pub fencing_token: i64,
+    pub now_ms: i64,
+}
+
+impl ResolutionBindingStore {
+    pub fn new(factory: StoreConnectionFactory) -> Self {
+        Self { factory }
+    }
+
+    pub fn bind_base(
+        &self,
+        view_id: &str,
+        resolver_output_epoch: i64,
+        request_id: &str,
+        now: &str,
+    ) -> Result<ResolutionViewBinding, ResolutionBindingError> {
+        let reader = self.factory.open_reader()?;
+        let current = current_view_manifest(&reader, view_id)?;
+        let base = select_nearest_ready_base(&reader, view_id, current.0, resolver_output_epoch)?
+            .ok_or(ResolutionBindingError::ReadyBaseMissing {
+            resolver_output_epoch,
+        })?;
+        drop(reader);
+        ResolutionBaseCatalog::new(self.factory.clone())
+            .find_ready(&base.manifest_hash, resolver_output_epoch)?
+            .ok_or(ResolutionBindingError::ReadyBaseMissing {
+                resolver_output_epoch,
+            })?;
+
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let rechecked = current_view_manifest(&transaction, view_id)?;
+        if rechecked != current {
+            return Err(ResolutionBindingError::CasLost {
+                view_id: view_id.to_string(),
+            });
+        }
+        if let Some(binding) =
+            current_binding(&transaction, view_id, &current, resolver_output_epoch)?
+        {
+            transaction.commit()?;
+            return Ok(binding);
+        }
+        let maximum: i64 = transaction.query_row(
+            "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",
+            [view_id],
+            |row| row.get(0),
+        )?;
+        let delta_generation =
+            maximum
+                .checked_add(1)
+                .ok_or_else(|| ResolutionBindingError::GenerationOutOfRange {
+                    view_id: view_id.to_string(),
+                })?;
+        let exact = base.manifest_hash == current.1;
+        transaction.execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES (?1,?2,?3,?4,?5,?6,0,0,0,0,0,'{\"files\":[],\"rows\":[]}',?7,?8)",
+            params![view_id,delta_generation,base.base_id,current.0,current.1,
+                    resolver_output_epoch,request_id,now],
+        )?;
+        let state = if exact {
+            ViewResolutionState::Exact
+        } else {
+            ViewResolutionState::Converging
+        };
+        let changed = transaction.execute(
+            "UPDATE views SET resolution_state=?1,resolution_base_id=?2,
+                    resolution_delta_generation=?3,resolution_exact_at=?4,updated_at=?5
+             WHERE view_id=?6 AND current_generation=?7",
+            params![
+                state.as_str(),
+                base.base_id,
+                delta_generation,
+                exact.then_some(current.0),
+                now,
+                view_id,
+                current.0
+            ],
+        )?;
+        if changed != 1 {
+            return Err(ResolutionBindingError::CasLost {
+                view_id: view_id.to_string(),
+            });
+        }
+        let payload = serde_json::json!({
+            "base_id": base.base_id,
+            "delta_generation": delta_generation,
+            "manifest_generation": current.0,
+            "state": state.as_str(),
+        })
+        .to_string();
+        StoreLog::append_effect(
+            &transaction,
+            &StoreLogEntry::new(request_id, "resolution_bound", payload, now)
+                .with_view(view_id)
+                .with_generation(u64::try_from(current.0).map_err(|_| {
+                    ResolutionBindingError::GenerationOutOfRange {
+                        view_id: view_id.to_string(),
+                    }
+                })?),
+        )?;
+        transaction.commit()?;
+        Ok(ResolutionViewBinding {
+            view_id: view_id.to_string(),
+            manifest_generation: current.0,
+            manifest_hash: current.1,
+            base_id: base.base_id,
+            delta_generation,
+            state,
+            exact_at: exact.then_some(current.0),
+        })
+    }
+
+    pub fn begin_convergence(
+        &self,
+        request: &ResolutionConvergenceBegin,
+    ) -> Result<(ResolutionViewBinding, ResolutionPinRecord), ResolutionBindingError> {
+        let binding = self.bind_base(
+            &request.view_id,
+            request.resolver_output_epoch,
+            &request.request_id,
+            &request.created_at,
+        )?;
+        let pin = self.open_pin(
+            &request.pin_id,
+            ResolutionPinOwnerKind::Resolve,
+            &request.owner_id,
+            &request.view_id,
+            &request.expires_at,
+            &request.created_at,
+        )?;
+        Ok((binding, pin))
+    }
+
+    pub fn publish_exact(
+        &self,
+        publication: &ResolutionExactPublish,
+        fence: &ResolutionPublicationFence,
+        scratch: &ResolutionScratchReader,
+        gaps: &[ResolutionGapFact],
+        window_size: usize,
+    ) -> Result<ResolutionViewBinding, ResolutionBindingError> {
+        if window_size == 0 {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "window size must be positive".to_string(),
+            });
+        }
+        if scratch.file_identity().manifest_hash != publication.manifest_hash
+            || scratch.file_identity().resolver_output_epoch != publication.resolver_output_epoch
+        {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "scratch manifest or resolver epoch does not match the publication"
+                    .to_string(),
+            });
+        }
+        let counts = scratch.semantic_counts();
+        let identifier_replacements = checked_publication_count(
+            publication,
+            counts.identifier_replacements,
+            "identifier replacements",
+        )?;
+        let pending_replacements = checked_publication_count(
+            publication,
+            counts.pending_replacements,
+            "pending replacements",
+        )?;
+        let pending_tombstones = checked_publication_count(
+            publication,
+            counts.pending_tombstones,
+            "pending tombstones",
+        )?;
+        let (gap_json, exact_gap_rows, exact_gap_files) = canonical_gap_payload(publication, gaps)?;
+
+        self.validate_publication_fence(publication, fence)?;
+
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let current = transaction
+            .query_row(
+                "SELECT view.current_generation,manifest.manifest_hash,
+                        view.resolution_base_id,view.resolution_delta_generation,
+                        view.resolution_state
+                 FROM views AS view
+                 LEFT JOIN manifests AS manifest
+                   ON manifest.view_id=view.view_id AND manifest.generation=view.current_generation
+                 WHERE view.view_id=?1",
+                [&publication.view_id],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<i64>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, Option<i64>>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or_else(|| ResolutionBindingError::ViewNotFound {
+                view_id: publication.view_id.clone(),
+            })?;
+        if current
+            != (
+                Some(publication.manifest_generation),
+                Some(publication.manifest_hash.clone()),
+                Some(publication.base_id.clone()),
+                Some(publication.previous_delta_generation),
+                "converging".to_string(),
+            )
+        {
+            return Err(ResolutionBindingError::CasLost {
+                view_id: publication.view_id.clone(),
+            });
+        }
+        let maximum: i64 = transaction.query_row(
+            "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",
+            [&publication.view_id],
+            |row| row.get(0),
+        )?;
+        let delta_generation =
+            maximum
+                .checked_add(1)
+                .ok_or_else(|| ResolutionBindingError::GenerationOutOfRange {
+                    view_id: publication.view_id.clone(),
+                })?;
+        transaction.execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)",
+            params![
+                publication.view_id,
+                delta_generation,
+                publication.base_id,
+                publication.manifest_generation,
+                publication.manifest_hash,
+                publication.resolver_output_epoch,
+                identifier_replacements,
+                pending_replacements,
+                pending_tombstones,
+                exact_gap_rows,
+                exact_gap_files,
+                gap_json,
+                publication.request_id,
+                publication.created_at
+            ],
+        )?;
+        copy_identifier_delta_rows(
+            &transaction,
+            &publication.view_id,
+            delta_generation,
+            scratch,
+            window_size,
+        )?;
+        copy_pending_delta_rows(
+            &transaction,
+            &publication.view_id,
+            delta_generation,
+            scratch,
+            window_size,
+        )?;
+        validate_published_delta_visibility(
+            &transaction,
+            &publication.view_id,
+            publication.manifest_generation,
+            delta_generation,
+        )?;
+        let changed = transaction.execute(
+            "UPDATE views SET resolution_state='exact',resolution_delta_generation=?1,
+                    resolution_exact_at=?2,updated_at=?3
+             WHERE view_id=?4 AND current_generation=?2
+               AND resolution_state='converging' AND resolution_base_id=?5
+               AND resolution_delta_generation=?6
+               AND EXISTS(
+                 SELECT 1 FROM manifests
+                 WHERE view_id=?4 AND generation=?2 AND manifest_hash=?7
+               )",
+            params![
+                delta_generation,
+                publication.manifest_generation,
+                publication.created_at,
+                publication.view_id,
+                publication.base_id,
+                publication.previous_delta_generation,
+                publication.manifest_hash,
+            ],
+        )?;
+        if changed != 1 {
+            return Err(ResolutionBindingError::CasLost {
+                view_id: publication.view_id.clone(),
+            });
+        }
+        let payload = serde_json::json!({
+            "base_id": publication.base_id,
+            "delta_generation": delta_generation,
+            "exact_gap_files": exact_gap_files,
+            "exact_gap_rows": exact_gap_rows,
+            "manifest_generation": publication.manifest_generation,
+            "manifest_hash": publication.manifest_hash,
+        })
+        .to_string();
+        StoreLog::append_effect(
+            &transaction,
+            &StoreLogEntry::new(
+                &publication.request_id,
+                "resolution_exact_published",
+                payload,
+                &publication.created_at,
+            )
+            .with_view(&publication.view_id)
+            .with_generation(u64::try_from(publication.manifest_generation).map_err(|_| {
+                ResolutionBindingError::GenerationOutOfRange {
+                    view_id: publication.view_id.clone(),
+                }
+            })?),
+        )?;
+        self.validate_publication_fence(publication, fence)?;
+        transaction.commit()?;
+        Ok(ResolutionViewBinding {
+            view_id: publication.view_id.clone(),
+            manifest_generation: publication.manifest_generation,
+            manifest_hash: publication.manifest_hash.clone(),
+            base_id: publication.base_id.clone(),
+            delta_generation,
+            state: ViewResolutionState::Exact,
+            exact_at: Some(publication.manifest_generation),
+        })
+    }
+
+    fn validate_publication_fence(
+        &self,
+        publication: &ResolutionExactPublish,
+        fence: &ResolutionPublicationFence,
+    ) -> Result<(), ResolutionBindingError> {
+        if fence.claim_owner != fence.holder_id {
+            return Err(ResolutionBindingError::FenceLost {
+                request_id: publication.request_id.clone(),
+            });
+        }
+        let connection = Connection::open_with_flags(
+            self.factory.layout().coordinator_db(),
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        connection.execute_batch("PRAGMA query_only = ON;")?;
+        let valid: i64 = connection.query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM requests AS request
+               JOIN writer_lease AS lease ON lease.resource='store-writer'
+               WHERE request.request_id=?1 AND request.kind='resolve'
+                 AND request.state='claimed' AND request.claim_owner=?2
+                 AND lease.holder_id=?3 AND lease.holder_pid=?4
+                 AND lease.fencing_token=?5 AND lease.expires_at>?6
+             )",
+            params![
+                publication.request_id,
+                fence.claim_owner,
+                fence.holder_id,
+                i64::from(fence.holder_pid),
+                fence.fencing_token,
+                fence.now_ms,
+            ],
+            |row| row.get(0),
+        )?;
+        if valid != 1 {
+            return Err(ResolutionBindingError::FenceLost {
+                request_id: publication.request_id.clone(),
+            });
+        }
+        Ok(())
+    }
+
+    pub fn open_pin(
+        &self,
+        pin_id: &str,
+        owner_kind: ResolutionPinOwnerKind,
+        owner_id: &str,
+        view_id: &str,
+        expires_at: &str,
+        now: &str,
+    ) -> Result<ResolutionPinRecord, ResolutionBindingError> {
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if !timestamp_is_later(&transaction, expires_at, now)? {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "pin expiry must be later than its creation time".to_string(),
+            });
+        }
+        let binding = transaction
+            .query_row(
+                "SELECT current_generation,resolution_base_id,resolution_delta_generation,
+                        resolution_state,resolution_exact_at
+                 FROM views WHERE view_id=?1",
+                [view_id],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<i64>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<i64>>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, Option<i64>>(4)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or_else(|| ResolutionBindingError::ViewNotFound {
+                view_id: view_id.to_string(),
+            })?;
+        let (Some(manifest_generation), Some(base_id), Some(delta_generation), state, exact_at) =
+            binding
+        else {
+            return Err(ResolutionBindingError::ViewUnbound {
+                view_id: view_id.to_string(),
+            });
+        };
+        let pinned_delta =
+            (state == "exact" && exact_at == Some(manifest_generation)).then_some(delta_generation);
+        transaction.execute(
+            "INSERT INTO resolution_pins
+             (pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,
+              delta_generation,expires_at,created_at)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            params![
+                pin_id,
+                owner_kind.as_str(),
+                owner_id,
+                view_id,
+                manifest_generation,
+                base_id,
+                pinned_delta,
+                expires_at,
+                now
+            ],
+        )?;
+        let record = pin_record_by_id(&transaction, pin_id)?.ok_or_else(|| {
+            ResolutionBindingError::PinNotFound {
+                pin_id: pin_id.to_string(),
+            }
+        })?;
+        transaction.commit()?;
+        Ok(record)
+    }
+
+    pub fn renew_pin(
+        &self,
+        pin_id: &str,
+        owner_kind: ResolutionPinOwnerKind,
+        owner_id: &str,
+        expires_at: &str,
+        now: &str,
+    ) -> Result<ResolutionPinRecord, ResolutionBindingError> {
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if !timestamp_is_later(&transaction, expires_at, now)? {
+            return Err(ResolutionBindingError::InvalidPublication {
+                detail: "renewed pin expiry must be in the future".to_string(),
+            });
+        }
+        let changed = transaction.execute(
+            "UPDATE resolution_pins SET expires_at=?1
+             WHERE pin_id=?2 AND owner_kind=?3 AND owner_id=?4
+               AND julianday(expires_at)>julianday(?5)",
+            params![expires_at, pin_id, owner_kind.as_str(), owner_id, now],
+        )?;
+        if changed != 1 {
+            return Err(match pin_record_by_id(&transaction, pin_id)? {
+                Some(record) if record.owner_kind != owner_kind || record.owner_id != owner_id => {
+                    ResolutionBindingError::PinOwnerMismatch {
+                        pin_id: pin_id.to_string(),
+                    }
+                }
+                Some(_) => ResolutionBindingError::PinExpired {
+                    pin_id: pin_id.to_string(),
+                },
+                None => ResolutionBindingError::PinNotFound {
+                    pin_id: pin_id.to_string(),
+                },
+            });
+        }
+        let record = pin_record_by_id(&transaction, pin_id)?.ok_or_else(|| {
+            ResolutionBindingError::PinNotFound {
+                pin_id: pin_id.to_string(),
+            }
+        })?;
+        transaction.commit()?;
+        Ok(record)
+    }
+
+    pub fn release_pin(
+        &self,
+        pin_id: &str,
+        owner_kind: ResolutionPinOwnerKind,
+        owner_id: &str,
+    ) -> Result<bool, ResolutionBindingError> {
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let changed = transaction.execute(
+            "DELETE FROM resolution_pins WHERE pin_id=?1 AND owner_kind=?2 AND owner_id=?3",
+            params![pin_id, owner_kind.as_str(), owner_id],
+        )?;
+        if changed == 0 && pin_record_by_id(&transaction, pin_id)?.is_some() {
+            return Err(ResolutionBindingError::PinOwnerMismatch {
+                pin_id: pin_id.to_string(),
+            });
+        }
+        transaction.commit()?;
+        Ok(changed == 1)
+    }
+
+    pub fn pinned_delta(
+        &self,
+        pin_id: &str,
+        now: &str,
+    ) -> Result<Option<ResolutionDeltaRecord>, ResolutionBindingError> {
+        let connection = self.factory.open_reader()?;
+        Ok(connection
+            .query_row(
+                "SELECT delta.view_id,delta.delta_generation,delta.base_id,
+                        delta.manifest_generation,delta.manifest_hash,delta.resolver_output_epoch,
+                        delta.identifier_replacements,delta.pending_replacements,
+                        delta.pending_tombstones,delta.exact_gap_rows,delta.exact_gap_files,
+                        delta.exact_gap_json,delta.request_id,delta.created_at
+                 FROM resolution_pins AS pin
+                 JOIN resolution_deltas AS delta
+                   ON delta.view_id=pin.view_id AND delta.delta_generation=pin.delta_generation
+                  AND delta.base_id=pin.base_id AND delta.manifest_generation=pin.manifest_generation
+                 WHERE pin.pin_id=?1 AND julianday(pin.expires_at)>julianday(?2)",
+                params![pin_id, now],
+                delta_record_from_row,
+            )
+            .optional()?)
+    }
+
+    pub fn pinned_identifier_delta_window(
+        &self,
+        pin_id: &str,
+        now: &str,
+        after: Option<(i64, &str)>,
+        limit: usize,
+    ) -> Result<Vec<ResolutionIdentifierDeltaRecord>, ResolutionBindingError> {
+        let limit = checked_window_limit(limit)?;
+        let (version_id, identifier_id) = after.unwrap_or((0, ""));
+        let connection = self.factory.open_reader()?;
+        let mut statement = connection.prepare(
+            "SELECT row.view_id,row.delta_generation,row.version_id,row.identifier_id,
+                    row.target_version_id,row.target_symbol_id,row.tier,row.confidence,
+                    row.method,row.outcome,row.candidates
+             FROM resolution_pins AS pin
+             JOIN resolution_deltas AS delta
+               ON delta.view_id=pin.view_id AND delta.delta_generation=pin.delta_generation
+              AND delta.base_id=pin.base_id AND delta.manifest_generation=pin.manifest_generation
+             JOIN resolution_identifier_deltas AS row
+               ON row.view_id=delta.view_id AND row.delta_generation=delta.delta_generation
+             WHERE pin.pin_id=?1 AND julianday(pin.expires_at)>julianday(?2)
+               AND (row.version_id,row.identifier_id)>(?3,?4)
+             ORDER BY row.version_id,row.identifier_id LIMIT ?5",
+        )?;
+        Ok(statement
+            .query_map(
+                params![pin_id, now, version_id, identifier_id, limit],
+                |row| {
+                    Ok(ResolutionIdentifierDeltaRecord {
+                        view_id: row.get(0)?,
+                        delta_generation: row.get(1)?,
+                        version_id: row.get(2)?,
+                        identifier_id: row.get(3)?,
+                        target_version_id: row.get(4)?,
+                        target_symbol_id: row.get(5)?,
+                        tier: row.get(6)?,
+                        confidence: row.get(7)?,
+                        method: row.get(8)?,
+                        outcome: row.get(9)?,
+                        candidates: row.get(10)?,
+                    })
+                },
+            )?
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn pinned_pending_delta_window(
+        &self,
+        pin_id: &str,
+        now: &str,
+        after: Option<(i64, &str)>,
+        limit: usize,
+    ) -> Result<Vec<ResolutionPendingDeltaRecord>, ResolutionBindingError> {
+        let limit = checked_window_limit(limit)?;
+        let (version_id, pending_id) = after.unwrap_or((0, ""));
+        let connection = self.factory.open_reader()?;
+        let mut statement = connection.prepare(
+            "SELECT row.view_id,row.delta_generation,row.version_id,
+                    row.pending_relationship_id,row.operation,row.target_version_id,
+                    row.target_symbol_id,row.tier,row.confidence,row.method
+             FROM resolution_pins AS pin
+             JOIN resolution_deltas AS delta
+               ON delta.view_id=pin.view_id AND delta.delta_generation=pin.delta_generation
+              AND delta.base_id=pin.base_id AND delta.manifest_generation=pin.manifest_generation
+             JOIN resolution_pending_deltas AS row
+               ON row.view_id=delta.view_id AND row.delta_generation=delta.delta_generation
+             WHERE pin.pin_id=?1 AND julianday(pin.expires_at)>julianday(?2)
+               AND (row.version_id,row.pending_relationship_id)>(?3,?4)
+             ORDER BY row.version_id,row.pending_relationship_id LIMIT ?5",
+        )?;
+        Ok(statement
+            .query_map(params![pin_id, now, version_id, pending_id, limit], |row| {
+                let operation = match row.get::<_, String>(4)?.as_str() {
+                    "replace" => ResolutionPendingOperation::Replace,
+                    "tombstone" => ResolutionPendingOperation::Tombstone,
+                    value => {
+                        return Err(rusqlite::Error::FromSqlConversionFailure(
+                            4,
+                            rusqlite::types::Type::Text,
+                            format!("invalid pending delta operation {value:?}").into(),
+                        ));
+                    }
+                };
+                Ok(ResolutionPendingDeltaRecord {
+                    view_id: row.get(0)?,
+                    delta_generation: row.get(1)?,
+                    version_id: row.get(2)?,
+                    pending_relationship_id: row.get(3)?,
+                    operation,
+                    target_version_id: row.get(5)?,
+                    target_symbol_id: row.get(6)?,
+                    tier: row.get(7)?,
+                    confidence: row.get(8)?,
+                    method: row.get(9)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn cleanup_superseded_deltas(
+        &self,
+        view_id: &str,
+        now: &str,
+    ) -> Result<usize, ResolutionBindingError> {
+        let mut connection = self.factory.open_writer()?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        transaction.execute(
+            "DELETE FROM resolution_pins WHERE julianday(expires_at)<=julianday(?1)",
+            [now],
+        )?;
+        let removed = transaction.execute(
+            "DELETE FROM resolution_deltas AS delta
+             WHERE delta.view_id=?1
+               AND delta.delta_generation <> COALESCE(
+                 (SELECT resolution_delta_generation FROM views WHERE view_id=?1),-1)
+               AND NOT EXISTS(
+                 SELECT 1 FROM resolution_pins AS pin
+                 WHERE pin.view_id=delta.view_id
+                   AND pin.delta_generation=delta.delta_generation
+               )",
+            [view_id],
+        )?;
+        transaction.commit()?;
+        Ok(removed)
+    }
+}
+
+fn checked_publication_count(
+    publication: &ResolutionExactPublish,
+    count: u64,
+    label: &str,
+) -> Result<i64, ResolutionBindingError> {
+    i64::try_from(count).map_err(|_| ResolutionBindingError::InvalidPublication {
+        detail: format!(
+            "{} {label} exceed the store count range",
+            publication.view_id
+        ),
+    })
+}
+
+fn timestamp_is_later(
+    connection: &Connection,
+    later: &str,
+    earlier: &str,
+) -> Result<bool, rusqlite::Error> {
+    connection.query_row(
+        "SELECT julianday(?1) IS NOT NULL AND julianday(?2) IS NOT NULL
+                AND julianday(?1)>julianday(?2)",
+        params![later, earlier],
+        |row| row.get(0),
+    )
+}
+
+fn checked_window_limit(limit: usize) -> Result<i64, ResolutionBindingError> {
+    if limit == 0 {
+        return Err(ResolutionBindingError::InvalidPublication {
+            detail: "delta read window size must be positive".to_string(),
+        });
+    }
+    i64::try_from(limit).map_err(|_| ResolutionBindingError::InvalidPublication {
+        detail: "delta read window size exceeds the SQLite range".to_string(),
+    })
+}
+
+fn canonical_gap_payload(
+    publication: &ResolutionExactPublish,
+    gaps: &[ResolutionGapFact],
+) -> Result<(String, i64, i64), ResolutionBindingError> {
+    let mut rows = gaps
+        .iter()
+        .map(|gap| {
+            (
+                gap.version_id,
+                gap.local_id.as_str(),
+                match gap.table {
+                    ResolutionGapTable::Identifier => "identifier",
+                    ResolutionGapTable::Pending => "pending",
+                },
+                match gap.kind {
+                    ResolutionGapKind::Added => "added",
+                    ResolutionGapKind::Replaced => "replaced",
+                    ResolutionGapKind::Removed => "removed",
+                },
+            )
+        })
+        .collect::<Vec<_>>();
+    rows.sort_unstable();
+    let files = rows.iter().map(|row| row.0).collect::<BTreeSet<_>>();
+    let payload = serde_json::json!({
+        "files": files,
+        "rows": rows.into_iter().map(|(version_id,local_id,table,kind)| {
+            serde_json::json!({
+                "kind": kind,
+                "local_id": local_id,
+                "table": table,
+                "version_id": version_id,
+            })
+        }).collect::<Vec<_>>(),
+    })
+    .to_string();
+    Ok((
+        payload,
+        checked_publication_count(publication, gaps.len() as u64, "gap rows")?,
+        checked_publication_count(publication, files.len() as u64, "gap files")?,
+    ))
+}
+
+fn validate_published_delta_visibility(
+    transaction: &Transaction<'_>,
+    view_id: &str,
+    manifest_generation: i64,
+    delta_generation: i64,
+) -> Result<(), ResolutionBindingError> {
+    let invalid = transaction
+        .query_row(
+            "WITH rows(source_version_id,target_version_id,target_symbol_id) AS (
+               SELECT version_id,target_version_id,target_symbol_id
+               FROM resolution_identifier_deltas
+               WHERE view_id=?1 AND delta_generation=?3
+               UNION ALL
+               SELECT version_id,target_version_id,target_symbol_id
+               FROM resolution_pending_deltas
+               WHERE view_id=?1 AND delta_generation=?3 AND operation='replace'
+             )
+             SELECT source_version_id,target_version_id,target_symbol_id
+             FROM rows
+             WHERE NOT EXISTS(
+               SELECT 1 FROM manifest_entries AS source
+               WHERE source.view_id=?1 AND source.generation=?2
+                 AND source.version_id=rows.source_version_id
+                 AND source.status IN ('indexed','failed_preserved')
+             ) OR (
+               rows.target_version_id IS NOT NULL AND NOT EXISTS(
+                 SELECT 1 FROM manifest_entries AS target
+                 JOIN symbols AS symbol ON symbol.version_id=target.version_id
+                 WHERE target.view_id=?1 AND target.generation=?2
+                   AND target.version_id=rows.target_version_id
+                   AND target.status IN ('indexed','failed_preserved')
+                   AND symbol.symbol_id=rows.target_symbol_id
+               )
+             )
+             LIMIT 1",
+            params![view_id, manifest_generation, delta_generation],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, Option<i64>>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            },
+        )
+        .optional()?;
+    match invalid {
+        None => Ok(()),
+        Some((source_version_id, target_version_id, target_symbol_id)) => {
+            Err(ResolutionBindingError::InvalidPublication {
+                detail: format!(
+                    "delta row ({source_version_id},{target_version_id:?},{target_symbol_id:?}) is not manifest-visible"
+                ),
+            })
+        }
+    }
+}
+
+fn copy_identifier_delta_rows(
+    transaction: &Transaction<'_>,
+    view_id: &str,
+    delta_generation: i64,
+    scratch: &ResolutionScratchReader,
+    window_size: usize,
+) -> Result<(), ResolutionBindingError> {
+    let mut after: Option<(i64, String)> = None;
+    loop {
+        let rows = scratch.identifier_replacement_window(
+            after
+                .as_ref()
+                .map(|(version_id, local_id)| (*version_id, local_id.as_str())),
+            window_size,
+        )?;
+        if rows.is_empty() {
+            return Ok(());
+        }
+        for row in &rows {
+            transaction.execute(
+                "INSERT INTO resolution_identifier_deltas
+                 (view_id,delta_generation,version_id,identifier_id,target_version_id,
+                  target_symbol_id,tier,confidence,method,outcome,candidates)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
+                params![
+                    view_id,
+                    delta_generation,
+                    row.version_id,
+                    row.identifier_id,
+                    row.target_version_id,
+                    row.target_symbol_id,
+                    row.tier,
+                    row.confidence,
+                    row.method,
+                    row.outcome,
+                    row.candidates,
+                ],
+            )?;
+        }
+        let last = rows.last().expect("nonempty resolution identifier page");
+        after = Some((last.version_id, last.identifier_id.clone()));
+    }
+}
+
+fn copy_pending_delta_rows(
+    transaction: &Transaction<'_>,
+    view_id: &str,
+    delta_generation: i64,
+    scratch: &ResolutionScratchReader,
+    window_size: usize,
+) -> Result<(), ResolutionBindingError> {
+    let mut replacement_after: Option<(i64, String)> = None;
+    loop {
+        let rows = scratch.pending_replacement_window(
+            replacement_after
+                .as_ref()
+                .map(|(version_id, local_id)| (*version_id, local_id.as_str())),
+            window_size,
+        )?;
+        if rows.is_empty() {
+            break;
+        }
+        for row in &rows {
+            transaction.execute(
+                "INSERT INTO resolution_pending_deltas
+                 (view_id,delta_generation,version_id,pending_relationship_id,operation,
+                  target_version_id,target_symbol_id,tier,confidence,method)
+                 VALUES (?1,?2,?3,?4,'replace',?5,?6,?7,?8,?9)",
+                params![
+                    view_id,
+                    delta_generation,
+                    row.version_id,
+                    row.pending_relationship_id,
+                    row.target_version_id,
+                    row.target_symbol_id,
+                    row.tier,
+                    row.confidence,
+                    row.method,
+                ],
+            )?;
+        }
+        let last = rows.last().expect("nonempty resolution pending page");
+        replacement_after = Some((last.version_id, last.pending_relationship_id.clone()));
+    }
+    let mut tombstone_after: Option<(i64, String)> = None;
+    loop {
+        let rows = scratch.pending_tombstone_window(
+            tombstone_after
+                .as_ref()
+                .map(|(version_id, local_id)| (*version_id, local_id.as_str())),
+            window_size,
+        )?;
+        if rows.is_empty() {
+            return Ok(());
+        }
+        for row in &rows {
+            transaction.execute(
+                "INSERT INTO resolution_pending_deltas
+                 (view_id,delta_generation,version_id,pending_relationship_id,operation,
+                  target_version_id,target_symbol_id,tier,confidence,method)
+                 VALUES (?1,?2,?3,?4,'tombstone',NULL,NULL,NULL,NULL,NULL)",
+                params![
+                    view_id,
+                    delta_generation,
+                    row.version_id,
+                    row.pending_relationship_id,
+                ],
+            )?;
+        }
+        let last = rows.last().expect("nonempty resolution tombstone page");
+        tombstone_after = Some((last.version_id, last.pending_relationship_id.clone()));
+    }
+}
+
+fn pin_record_by_id(
+    connection: &Connection,
+    pin_id: &str,
+) -> Result<Option<ResolutionPinRecord>, rusqlite::Error> {
+    connection
+        .query_row(
+            "SELECT pin_id,owner_kind,owner_id,view_id,manifest_generation,base_id,
+                    delta_generation,expires_at,created_at
+             FROM resolution_pins WHERE pin_id=?1",
+            [pin_id],
+            |row| {
+                let owner_kind = match row.get::<_, String>(1)?.as_str() {
+                    "reader" => ResolutionPinOwnerKind::Reader,
+                    "resolve" => ResolutionPinOwnerKind::Resolve,
+                    value => {
+                        return Err(rusqlite::Error::FromSqlConversionFailure(
+                            1,
+                            rusqlite::types::Type::Text,
+                            format!("invalid resolution pin owner {value:?}").into(),
+                        ));
+                    }
+                };
+                Ok(ResolutionPinRecord {
+                    pin_id: row.get(0)?,
+                    owner_kind,
+                    owner_id: row.get(2)?,
+                    view_id: row.get(3)?,
+                    manifest_generation: row.get(4)?,
+                    base_id: row.get(5)?,
+                    delta_generation: row.get(6)?,
+                    expires_at: row.get(7)?,
+                    created_at: row.get(8)?,
+                })
+            },
+        )
+        .optional()
+}
+
+fn delta_record_from_row(
+    row: &rusqlite::Row<'_>,
+) -> Result<ResolutionDeltaRecord, rusqlite::Error> {
+    Ok(ResolutionDeltaRecord {
+        view_id: row.get(0)?,
+        delta_generation: row.get(1)?,
+        base_id: row.get(2)?,
+        manifest_generation: row.get(3)?,
+        manifest_hash: row.get(4)?,
+        resolver_output_epoch: row.get(5)?,
+        identifier_replacements: row.get(6)?,
+        pending_replacements: row.get(7)?,
+        pending_tombstones: row.get(8)?,
+        exact_gap_rows: row.get(9)?,
+        exact_gap_files: row.get(10)?,
+        exact_gap_json: row.get(11)?,
+        request_id: row.get(12)?,
+        created_at: row.get(13)?,
+    })
+}
+
+fn current_view_manifest(
+    connection: &Connection,
+    view_id: &str,
+) -> Result<(i64, String), ResolutionBindingError> {
+    let row = connection
+        .query_row(
+            "SELECT view.current_generation,manifest.manifest_hash
+         FROM views AS view LEFT JOIN manifests AS manifest
+           ON manifest.view_id=view.view_id AND manifest.generation=view.current_generation
+         WHERE view.view_id=?1",
+            [view_id],
+            |row| {
+                Ok((
+                    row.get::<_, Option<i64>>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                ))
+            },
+        )
+        .optional()?;
+    match row {
+        None => Err(ResolutionBindingError::ViewNotFound {
+            view_id: view_id.to_string(),
+        }),
+        Some((Some(generation), Some(hash))) => Ok((generation, hash)),
+        Some(_) => Err(ResolutionBindingError::ManifestMissing {
+            view_id: view_id.to_string(),
+        }),
+    }
+}
+
+fn select_nearest_ready_base(
+    connection: &Connection,
+    view_id: &str,
+    generation: i64,
+    epoch: i64,
+) -> Result<Option<ResolutionBaseRecord>, rusqlite::Error> {
+    connection.query_row(
+        "SELECT base.base_id,base.manifest_hash,base.resolver_output_epoch,base.state,
+                base.relative_path,base.identifier_count,base.pending_count,base.file_bytes,
+                base.file_sha256,base.request_id,base.created_at,base.updated_at
+         FROM resolution_bases AS base
+         LEFT JOIN resolution_base_versions AS root ON root.base_id=base.base_id
+         LEFT JOIN manifest_entries AS entry
+           ON entry.view_id=?1 AND entry.generation=?2 AND entry.version_id=root.version_id
+         WHERE base.state='ready' AND base.resolver_output_epoch=?3
+         GROUP BY base.base_id
+         ORDER BY (base.manifest_hash=(SELECT manifest_hash FROM manifests WHERE view_id=?1 AND generation=?2)) DESC,
+                  COUNT(entry.version_id) DESC,base.base_id
+         LIMIT 1",
+        params![view_id,generation,epoch],
+        base_record_from_row,
+    ).optional()
+}
+
+fn current_binding(
+    connection: &Connection,
+    view_id: &str,
+    manifest: &(i64, String),
+    resolver_output_epoch: i64,
+) -> Result<Option<ResolutionViewBinding>, rusqlite::Error> {
+    connection
+        .query_row(
+            "SELECT view.resolution_base_id,view.resolution_delta_generation,
+                view.resolution_state,view.resolution_exact_at
+         FROM views AS view
+         JOIN resolution_deltas AS delta
+           ON delta.view_id=view.view_id AND delta.delta_generation=view.resolution_delta_generation
+         WHERE view.view_id=?1 AND delta.manifest_generation=?2 AND delta.manifest_hash=?3
+           AND delta.resolver_output_epoch=?4",
+            params![view_id, manifest.0, manifest.1, resolver_output_epoch],
+            |row| {
+                let state = match row.get::<_, String>(2)?.as_str() {
+                    "converging" => ViewResolutionState::Converging,
+                    "exact" => ViewResolutionState::Exact,
+                    value => {
+                        return Err(rusqlite::Error::FromSqlConversionFailure(
+                            2,
+                            rusqlite::types::Type::Text,
+                            format!("invalid resolution binding state {value:?}").into(),
+                        ));
+                    }
+                };
+                Ok(ResolutionViewBinding {
+                    view_id: view_id.to_string(),
+                    manifest_generation: manifest.0,
+                    manifest_hash: manifest.1.clone(),
+                    base_id: row.get(0)?,
+                    delta_generation: row.get(1)?,
+                    state,
+                    exact_at: row.get(3)?,
+                })
+            },
+        )
+        .optional()
 }
 
 #[derive(Debug)]

@@ -33,8 +33,13 @@ fn legacy_resolution_feature_is_declared_for_the_cli_contract_tier() {
 #[test]
 fn resolution_base_lifecycle_contract_is_feature_gated_out_of_the_default_suite() {
     let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let source = read(&crate_root.join("tests/store_resolution_base_contract.rs"));
-    assert!(source.starts_with("#![cfg(feature = \"test-store-resolution\")]"));
+    for harness in [
+        "store_resolution_base_contract.rs",
+        "store_resolution_binding_contract.rs",
+    ] {
+        let source = read(&crate_root.join("tests").join(harness));
+        assert!(source.starts_with("#![cfg(feature = \"test-store-resolution\")]"));
+    }
 }
 
 /// Gating the perf harness is not enough on its own: a wall-clock budget added

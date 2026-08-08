@@ -608,11 +608,11 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Exact binding is one coherent transaction with one effect record.
-- [ ] CAS losers publish nothing and leave scratch cleanup recoverable.
-- [ ] Pinned sessions never combine mismatched manifest/base/delta state.
-- [ ] Content changes leave exactness behind atomically; identical manifests retain it.
-- [ ] Cleanup removes only unpinned superseded deltas; general GC remains absent.
+- [x] Exact binding is one coherent transaction with one effect record.
+- [x] CAS losers publish nothing and leave scratch cleanup recoverable.
+- [x] Pinned sessions never combine mismatched manifest/base/delta state.
+- [x] Content changes leave exactness behind atomically; identical manifests retain it.
+- [x] Cleanup removes only unpinned superseded deltas; general GC remains absent.
 
 ## Task 9: Add Off-Lease Resolve Requests and the Public Resolve Command
 
