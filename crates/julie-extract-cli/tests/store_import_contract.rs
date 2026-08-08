@@ -320,6 +320,66 @@ fn replay_report_uses_the_original_requests_manifest_and_row_counts_after_a_newe
 }
 
 #[test]
+fn replay_preserves_original_l1_counts_when_a_later_request_deepens_the_same_version() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(
+        root.join("lib.rs"),
+        "pub fn answer(value: u32) -> &'static str { let _ = value; \"answer\" }\n",
+    )
+    .unwrap();
+    let run = |request_id: &str, idempotency_key: &str, level: &str| {
+        let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "import",
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                FAMILY_ID,
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--level",
+                level,
+                "--request-id",
+                request_id,
+                "--idempotency-key",
+                idempotency_key,
+                "--json",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(
+            output.status.code(),
+            Some(0),
+            "stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+    };
+
+    let original = run("request-l1", "idem-l1", "l1");
+    assert_eq!(original["completion"]["l2"], false);
+    assert_eq!(original["completion"]["l3"], false);
+    assert_eq!(original["row_counts"]["l2"], 0);
+    assert_eq!(original["row_counts"]["l3"], 0);
+
+    let deepened = run("request-full", "idem-full", "full");
+    assert_eq!(deepened["completion"]["l2"], true);
+    assert_eq!(deepened["completion"]["l3"], true);
+
+    let replay = run("request-l1-retry", "idem-l1", "l1");
+    assert_eq!(replay["request"]["id"], "request-l1");
+    assert_eq!(replay["manifest"], original["manifest"]);
+    assert_eq!(replay["completion"], original["completion"]);
+    assert_eq!(replay["row_counts"], original["row_counts"]);
+}
+
+#[test]
 fn preflight_failure_never_enqueues_a_request() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");

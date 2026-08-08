@@ -414,13 +414,19 @@ impl StoreRequestExecutor {
     }
 
     fn result(
+        transaction: &Transaction<'_>,
         payload: ImportRequestPayload,
         generation: u64,
         hash: String,
         full: bool,
         manifest_disposition: &str,
-    ) -> ExecutionQuantum {
-        ExecutionQuantum::Complete {
+    ) -> Result<ExecutionQuantum, String> {
+        let counts = terminal_row_counts(
+            transaction,
+            &payload.view_id,
+            i64::try_from(generation).map_err(|_| "invalid_manifest_generation")?,
+        )?;
+        Ok(ExecutionQuantum::Complete {
             event_kind: "store_import_completed".to_string(),
             result_json: serde_json::json!({
                 "family_id": payload.family_id,
@@ -430,12 +436,58 @@ impl StoreRequestExecutor {
                 "manifest_generation": generation,
                 "manifest_hash": hash,
                 "manifest_disposition": manifest_disposition,
+                "row_counts": {
+                    "file_versions": counts.0,
+                    "l1": counts.1,
+                    "l2": counts.2,
+                    "l3": counts.3,
+                },
                 "root": payload.root,
                 "view_id": payload.view_id,
             })
             .to_string(),
-        }
+        })
     }
+}
+
+fn terminal_row_counts(
+    transaction: &Transaction<'_>,
+    view_id: &str,
+    generation: i64,
+) -> Result<(u64, u64, u64, u64), String> {
+    let counts: (i64, i64, i64, i64) = transaction
+        .query_row(
+            "WITH request_versions AS (
+               SELECT DISTINCT version_id FROM manifest_entries
+               WHERE view_id = ?1 AND generation = ?2 AND version_id IS NOT NULL
+             )
+             SELECT
+               (SELECT COUNT(*) FROM request_versions),
+               (SELECT COUNT(*) FROM symbols WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM symbol_annotations WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM reference_sites WHERE level = 1 AND version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM relationships WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM pending_relationships WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM type_facts WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM complexity_metrics WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM parse_diagnostics WHERE version_id IN request_versions),
+               (SELECT COUNT(*) FROM identifiers WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM reference_sites WHERE level = 2 AND version_id IN request_versions),
+               (SELECT COUNT(*) FROM type_arguments WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM type_argument_usages WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM literals WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM source_regions WHERE version_id IN request_versions)
+                 + (SELECT COUNT(*) FROM structural_facts WHERE version_id IN request_versions)",
+            rusqlite::params![view_id, generation],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .map_err(|error| error.to_string())?;
+    Ok((
+        u64::try_from(counts.0).map_err(|_| "invalid_row_count")?,
+        u64::try_from(counts.1).map_err(|_| "invalid_row_count")?,
+        u64::try_from(counts.2).map_err(|_| "invalid_row_count")?,
+        u64::try_from(counts.3).map_err(|_| "invalid_row_count")?,
+    ))
 }
 
 fn validate_payload_bounds(serialized_bytes: usize, files: usize) -> Result<(), String> {
@@ -616,13 +668,14 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 &request.request_id,
             )
             .map_err(|error| error.to_string())?;
-            return Ok(Self::result(
+            return Self::result(
+                transaction,
                 payload,
                 published.generation,
                 published.manifest_hash,
                 requested_full,
                 manifest_disposition(published.disposition),
-            ));
+            );
         }
         let chunk = chunks
             .get(chunk_index)
@@ -767,13 +820,14 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 if let Some(progress) = progress.as_deref() {
                     progress.enter_phase("complete");
                 }
-                return Ok(Self::result(
+                return Self::result(
+                    transaction,
                     payload,
                     published.generation,
                     published.manifest_hash,
                     false,
                     persisted_manifest_disposition,
-                ));
+                );
             }
             return Ok(ExecutionQuantum::Progress {
                 event_kind: "store_import_l1_published".to_string(),
@@ -817,13 +871,14 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         if let Some(progress) = progress.as_deref() {
             progress.enter_phase("complete");
         }
-        Ok(Self::result(
+        Self::result(
+            transaction,
             payload,
             u64::try_from(generation).map_err(|_| "invalid_manifest_generation")?,
             hash,
             true,
             persisted_manifest_disposition,
-        ))
+        )
     }
 }
 

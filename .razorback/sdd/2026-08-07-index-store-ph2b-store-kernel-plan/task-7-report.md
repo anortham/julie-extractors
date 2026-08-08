@@ -35,10 +35,11 @@ request-global chunks, failure manifests, supervision controls, and Task 6 repor
 - Second-review RED/GREEN: parent PID was durable submitter state; it is now only the current executor process watchdog, and a successor completes a queued request after the original submitter and its parent exit.
 - Second-review RED/GREEN: every quantum recreated and truncated progress; the process-local request/path cache now creates once, reconstructs counters once on successor startup, and keeps a parseable monotonic multi-quantum JSONL stream.
 - Second-review inline RED/GREEN: same-key replay with a different caller family returned `internal`; stored-payload integrity validation now uses the trusted store-catalog family before caller-scope comparison returns stable `idempotency_conflict`, with no manifest, log, or coordinator mutation.
+- Independent-review RED/GREEN: replaying L1 request A after unchanged-source Full request B deepened the same version and leaked B's L2/L3 rows into A's counts. The terminal result transaction now durably snapshots A's completion and exact request-generation counts; committed replay preserves those values while partial/nonterminal projection remains request-scoped and never falls back to the current head.
 
 ## Contract evidence
 
-- Focused import: 26/26 passed, including crafted-payload rejection, replay after root deletion, request-specific A/B reports, successor runtime supervision, append-only multi-quantum progress, two-root backlog isolation, canonical replay/family/level conflicts, no-zombie preflight, truthful/partial reports, non-holder timeout, empty Full, fixed-plan crash resume with durable failures, controls, recomputed projected/actual WAL bounds, row-value mismatch, and Rust+Python L1/L2/L3-family persistence.
+- Focused import: 27/27 passed, including immutable terminal counts across same-version deepening, crafted-payload rejection, replay after root deletion, request-specific A/B reports, successor runtime supervision, append-only multi-quantum progress, two-root backlog isolation, canonical replay/family/level conflicts, no-zombie preflight, truthful/partial reports, non-holder timeout, empty Full, fixed-plan crash resume with durable failures, controls, recomputed projected/actual WAL bounds, row-value mismatch, and Rust+Python L1/L2/L3-family persistence.
 - Coordinator: 44/44 passed; feature takeover: 2/2 passed.
 - Store writer contract: 22/22 passed after factoring the legacy wrapper through the transaction-bound core.
 - CLI contract: 14/14 passed.

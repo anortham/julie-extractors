@@ -320,6 +320,7 @@ fn execute_import(
                     &canonical_payload.view_id,
                     &observed.request_id,
                     canonical_payload.requested_level,
+                    false,
                 )?;
                 return Ok(report);
             }
@@ -361,6 +362,7 @@ fn execute_import(
             &canonical_payload.view_id,
             &request.request_id,
             canonical_payload.requested_level,
+            false,
         )?;
         return Ok(report.with_failure(classify_failure(&message), message));
     }
@@ -384,12 +386,24 @@ fn execute_import(
         l2: result["l2"].as_bool().unwrap_or(false),
         l3: result["l3"].as_bool().unwrap_or(false),
     };
+    report.row_counts = result
+        .get("row_counts")
+        .and_then(|counts| {
+            Some(StoreRowCounts {
+                file_versions: counts.get("file_versions")?.as_u64()?,
+                l1: counts.get("l1")?.as_u64()?,
+                l2: counts.get("l2")?.as_u64()?,
+                l3: counts.get("l3")?.as_u64()?,
+            })
+        })
+        .ok_or("invalid_terminal_row_counts")?;
     populate_durable_projection(
         &mut report,
         &layout,
         &canonical_payload.view_id,
         &request.request_id,
         canonical_payload.requested_level,
+        true,
     )?;
     Ok(report)
 }
@@ -400,6 +414,7 @@ fn populate_durable_projection(
     view_id: &str,
     request_id: &str,
     requested_level: RequestedLevel,
+    preserve_terminal_snapshot: bool,
 ) -> Result<(), String> {
     let connection =
         rusqlite::Connection::open(layout.store_db()).map_err(|error| error.to_string())?;
@@ -457,8 +472,10 @@ fn populate_durable_projection(
                 StoreManifestDisposition::Reused
             };
         }
-        report.completion.l1 = true;
-        if requested_level == RequestedLevel::Full {
+        if !preserve_terminal_snapshot {
+            report.completion.l1 = true;
+        }
+        if !preserve_terminal_snapshot && requested_level == RequestedLevel::Full {
             let incomplete: (i64, i64) = connection
                 .query_row(
                     "SELECT
@@ -474,6 +491,9 @@ fn populate_durable_projection(
             report.completion.l2 = incomplete.0 == 0;
             report.completion.l3 = incomplete.1 == 0;
         }
+    }
+    if preserve_terminal_snapshot {
+        return Ok(());
     }
     let counts: (i64, i64, i64, i64) = connection
         .query_row(
