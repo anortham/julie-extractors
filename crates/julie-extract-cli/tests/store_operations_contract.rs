@@ -4,6 +4,9 @@ use std::process::{Command, Output};
 #[cfg(feature = "test-store-contract")]
 use std::time::{Duration, Instant};
 
+use julie_extract_artifact::store::{
+    CoordinatorRequest, RequestKind, RequestState, StoreCoordinator, StoreLayout,
+};
 use rusqlite::Connection;
 use serde_json::Value;
 
@@ -86,6 +89,199 @@ fn update_uses_the_existing_store_family_when_omitted() {
         )
         .unwrap();
     assert_eq!(generation, 2);
+}
+
+#[cfg(unix)]
+#[test]
+fn update_rejects_a_symlink_escape_before_enqueue() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let outside = fixture.path().join("outside.rs");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("inside.rs"), "pub fn inside() {}\n").unwrap();
+    std::fs::write(&outside, "pub fn outside() {}\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-symlink-seed",
+            "--idempotency-key",
+            "idem-symlink-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    std::os::unix::fs::symlink(&outside, root.join("escape.rs")).unwrap();
+
+    let output = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "escape.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-symlink-update",
+        "--idempotency-key",
+        "idem-symlink-update",
+        "--json",
+    ]);
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "invalid_path");
+
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let (generation, entries): (i64, i64) = connection
+        .query_row(
+            "SELECT current_generation,
+                    (SELECT COUNT(*) FROM manifest_entries WHERE view_id = 'view-main')
+             FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((generation, entries), (1, 1));
+    let requests: i64 = Connection::open(store.join("coord.db"))
+        .unwrap()
+        .query_row("SELECT COUNT(*) FROM requests", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(requests, 1);
+}
+
+#[cfg(unix)]
+#[test]
+fn executor_rejects_a_symlink_escape_from_a_durable_update_payload() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let outside = fixture.path().join("outside.rs");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("inside.rs"), "pub fn inside() {}\n").unwrap();
+    std::fs::write(&outside, "pub fn outside() {}\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-symlink-executor-seed",
+            "--idempotency-key",
+            "idem-symlink-executor-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    std::os::unix::fs::symlink(&outside, root.join("escape.rs")).unwrap();
+
+    let layout = StoreLayout::open(&store).unwrap();
+    let root = root.canonicalize().unwrap();
+    let outside_hash = blake3::hash(&std::fs::read(&outside).unwrap()).to_hex();
+    StoreCoordinator::open(&layout)
+        .unwrap()
+        .enqueue(CoordinatorRequest::new(
+            "request-symlink-executor",
+            "idem-symlink-executor",
+            RequestKind::Update,
+            serde_json::json!({
+                "schema_version": 1,
+                "family_id": FAMILY_ID,
+                "root": root,
+                "view_id": "view-main",
+                "requested_level": "l1",
+                "file": {
+                    "root_relative_path": "escape.rs",
+                    "content_hash": format!("blake3:{outside_hash}"),
+                    "content_bytes": 22,
+                },
+                "controls": {
+                    "jobs": 0,
+                    "l1_chunk_versions": 100,
+                    "deep_chunk_versions": 8,
+                },
+            })
+            .to_string(),
+            "crafted-requester",
+            i64::MAX,
+            1,
+        ))
+        .unwrap();
+
+    let output = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "escape.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-symlink-executor-observer",
+        "--idempotency-key",
+        "idem-symlink-executor",
+        "--json",
+    ]);
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "invalid_path");
+
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let (generation, entries): (i64, i64) = connection
+        .query_row(
+            "SELECT current_generation,
+                    (SELECT COUNT(*) FROM manifest_entries WHERE view_id = 'view-main')
+             FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((generation, entries), (1, 1));
+    let request = StoreCoordinator::open(&layout)
+        .unwrap()
+        .request("request-symlink-executor")
+        .unwrap();
+    assert_eq!(request.state, RequestState::Failed);
+    let error: Value = serde_json::from_str(request.error_json.as_deref().unwrap()).unwrap();
+    assert_eq!(error["message"], "invalid_file_path:outside_root");
 }
 
 #[test]

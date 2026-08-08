@@ -1716,14 +1716,22 @@ fn quantum_must_finish_inside_the_structural_lease_bound_before_store_commit() {
     .unwrap();
     enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
 
-    let report = coordinator
-        .drain(&mut SlowExecutor { clock }, &CoordinatorPolicy::default())
-        .unwrap();
+    let error = coordinator
+        .drain(
+            &mut SlowExecutor {
+                clock: Arc::clone(&clock),
+            },
+            &CoordinatorPolicy::default(),
+        )
+        .unwrap_err();
 
-    assert_eq!(report.failed_requests, 1);
+    assert!(matches!(
+        error,
+        CoordinatorError::QuantumDeadlineExceeded { .. }
+    ));
     assert_eq!(
         coordinator.request("request-1").unwrap().state.as_str(),
-        "failed"
+        "queued"
     );
     let store = Connection::open(layout.store_db()).unwrap();
     assert_eq!(
@@ -1735,5 +1743,21 @@ fn quantum_must_finish_inside_the_structural_lease_bound_before_store_commit() {
             )
             .unwrap(),
         0
+    );
+
+    let report = coordinator
+        .drain(
+            &mut RecordingExecutor {
+                order: Vec::new(),
+                clock,
+                advance_ms: 0,
+            },
+            &CoordinatorPolicy::default(),
+        )
+        .unwrap();
+    assert_eq!(report.completed_requests, 1);
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "committed"
     );
 }

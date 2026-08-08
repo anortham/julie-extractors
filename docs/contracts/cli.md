@@ -472,6 +472,11 @@ idempotency key with the same canonical request replays its terminal report. Reu
 different request or operation returns `idempotency_conflict`. A requester timeout does not cancel
 a lease holder that is safely draining the request.
 
+Store imports default to 100 versions per L1 quantum and 8 versions per Full-deepening quantum;
+both remain bounded by the 128 MB projected WAL budget. `MILLER_STORE_CHUNK_VERSIONS=N` applies to
+both waves of a newly enqueued request, with `0` meaning one version. Those limits are stored in the
+request, so a retry uses the original schedule even when a successor process has different settings.
+
 Store JSON uses its own `report_schema_version: 1`. Stable fields include `operation`, request
 identity, family/view/root identity, coordinator state, requested/completed levels, manifest
 generation/hash/disposition, row counts, resolution state, failure class, and a nullable error.

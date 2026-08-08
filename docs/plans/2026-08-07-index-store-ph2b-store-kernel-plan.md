@@ -178,8 +178,10 @@ contract. The schema test fails on an unlabeled index or a non-version-qualified
   `synchronous=FULL`, `page_size=4096`, and creation-time `auto_vacuum=INCREMENTAL`.
 - Bulk import autocheckpoint is 8,000 pages; routine writes use 1,000. Core `secure_delete=ON` is
   reasserted on every writer connection.
-- Default batch quantum is 100 versions or a 128 MB observed WAL budget, whichever binds first.
-  `MILLER_STORE_CHUNK_VERSIONS=0` means one version per chunk.
+- L1 defaults to 100 versions per quantum; Full deepening defaults to 8. Both are bounded by the
+  128 MB projected WAL budget. An explicit `MILLER_STORE_CHUNK_VERSIONS=N` freezes `N` for both
+  waves when a new request is enqueued; `0` means one version. Retries and successor processes use
+  the limits persisted in that request rather than rebuilding its schedule from their environment.
 - Version dedup trusts only the required non-null completion stamp. Incomplete rows are invisible
   and resumable, never treated as a cache hit.
 - Manifest paths are normalized root-relative slash paths and sorted by UTF-8 bytes before

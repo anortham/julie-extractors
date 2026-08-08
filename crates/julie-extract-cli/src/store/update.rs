@@ -7,7 +7,7 @@ use julie_extract_artifact::store::{
 use super::args::{StoreLevelArg, StoreUpdateArgs};
 use super::executor::{
     ImportScanControls, PlannedImportFile, RequestedLevel, StoreRequestExecutor,
-    UpdateRequestPayload,
+    UpdateRequestPayload, frozen_chunk_versions_from_environment, validate_target_within_root,
 };
 use super::import::{
     ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome,
@@ -97,6 +97,8 @@ fn execute_update(
             .as_deref()
             .map(absolute_runtime_path)
             .transpose()?,
+        l1_chunk_versions: 1,
+        deep_chunk_versions: 1,
     };
     let canonical_request = if let Some(existing) = existing_request {
         if existing.kind != RequestKind::Update {
@@ -105,23 +107,31 @@ fn execute_update(
         let validator =
             StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), None);
         let payload = validator.validate_update_payload_json(&existing.payload_json)?;
+        let controls_match = payload.controls.matches_runtime_controls(&controls);
         if payload.family_id != family_id
             || !root_scope_matches(&args.root, &payload.root)
             || payload.view_id != args.view
             || payload.requested_level != requested_level
             || payload.file.root_relative_path != root_relative_path
-            || payload.controls != controls
+            || !controls_match
         {
             return Err("idempotency_conflict".to_string());
         }
         existing
     } else {
+        let (l1_chunk_versions, deep_chunk_versions) = frozen_chunk_versions_from_environment()?;
+        let controls = ImportScanControls {
+            l1_chunk_versions,
+            deep_chunk_versions,
+            ..controls
+        };
         let root_text = require_existing_view(&layout, &args.root, &args.view)?;
         let root = std::path::Path::new(&root_text);
         let target = crate::paths::FileTarget {
             absolute_path: root.join(&root_relative_path),
             root_relative_path: root_relative_path.clone(),
         };
+        validate_target_within_root(root, &root_relative_path)?;
         let (content_hash, content_bytes) =
             crate::extraction::read_source_identity(&target).map_err(|error| error.message)?;
         let payload = UpdateRequestPayload {

@@ -12,7 +12,7 @@ use rusqlite::OptionalExtension;
 use super::args::{StoreImportArgs, StoreLevelArg};
 use super::executor::{
     ImportRequestPayload, ImportScanControls, PlannedImportFile, RequestedLevel,
-    StoreRequestExecutor,
+    StoreRequestExecutor, frozen_chunk_versions_from_environment,
 };
 use super::report::{
     StoreCommandOutcome, StoreCoordinatorDisposition, StoreErrorReport, StoreFailureClass,
@@ -317,6 +317,8 @@ fn execute_import(
             .as_ref()
             .map(|path| absolute_runtime_path(path))
             .transpose()?,
+        l1_chunk_versions: 1,
+        deep_chunk_versions: 1,
     };
 
     let (layout, mut coordinator, canonical_request) =
@@ -325,18 +327,28 @@ fn execute_import(
             let validator =
                 StoreRequestExecutor::new(layout.store_db().to_path_buf(), trusted_family, None);
             let existing_payload = validator.validate_payload_json(&existing.payload_json)?;
+            let controls_match = existing_payload
+                .controls
+                .matches_runtime_controls(&controls);
             if existing.kind != RequestKind::Import
                 || existing_payload.schema_version != 1
                 || existing_payload.family_id != args.family
                 || !root_scope_matches(&args.root, &existing_payload.root)
                 || existing_payload.view_id != args.view
                 || existing_payload.requested_level != requested_level
-                || existing_payload.controls != controls
+                || !controls_match
             {
                 return Err("idempotency_conflict".to_string());
             }
             (layout, coordinator, existing)
         } else {
+            let (l1_chunk_versions, deep_chunk_versions) =
+                frozen_chunk_versions_from_environment()?;
+            let controls = ImportScanControls {
+                l1_chunk_versions,
+                deep_chunk_versions,
+                ..controls
+            };
             let root = args
                 .root
                 .canonicalize()

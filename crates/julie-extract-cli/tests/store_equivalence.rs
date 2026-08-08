@@ -672,7 +672,7 @@ fn public_import_killed_after_manifest_flip_reopens_and_reconciles_once() {
         &store.join("coord.db"),
         "request-public-crash",
         "external_manifest_kill",
-        3,
+        14,
     );
     assert_real_rows(&database, "external_manifest_kill", true);
 }

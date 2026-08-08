@@ -856,9 +856,10 @@ impl StoreCoordinator {
                 fencing_token,
                 request.clone(),
             ) {
-                Ok(())
-                | Err(CoordinatorError::ExecutionFailed { .. })
-                | Err(CoordinatorError::QuantumDeadlineExceeded { .. }) => {}
+                Ok(()) | Err(CoordinatorError::ExecutionFailed { .. }) => {}
+                Err(error @ CoordinatorError::QuantumDeadlineExceeded { .. }) => {
+                    return Err(error);
+                }
                 Err(error) => return Err(error),
             }
             if is_batch {
@@ -964,9 +965,8 @@ impl StoreCoordinator {
         let elapsed_ms = quantum_finished_at.saturating_sub(quantum_started_at);
         if elapsed_ms > policy.maximum_quantum_ms {
             drop(transaction);
-            if !self.fail_request(
+            if !self.requeue_request(
                 &request.request_id,
-                "coordinator quantum exceeded its lease-safe bound",
                 holder,
                 fencing_token,
                 quantum_finished_at,
@@ -1178,6 +1178,34 @@ impl StoreCoordinator {
                )",
             params![
                 error_json,
+                now,
+                request_id,
+                holder.holder_id,
+                STORE_WRITER_RESOURCE,
+                holder.holder_pid,
+                fencing_token,
+            ],
+        )? == 1)
+    }
+
+    fn requeue_request(
+        &self,
+        request_id: &str,
+        holder: &LeaseHolder,
+        fencing_token: i64,
+        now: i64,
+    ) -> Result<bool, CoordinatorError> {
+        let connection = open_coordinator(&self.coordinator_db)?;
+        Ok(connection.execute(
+            "UPDATE requests SET state = 'queued', claim_owner = NULL,
+             claim_heartbeat_at = NULL, result_json = NULL, error_json = NULL, updated_at = ?1
+             WHERE request_id = ?2 AND state = 'claimed' AND claim_owner = ?3
+               AND EXISTS (
+                 SELECT 1 FROM writer_lease
+                 WHERE resource = ?4 AND holder_id = ?3 AND holder_pid = ?5
+                   AND fencing_token = ?6 AND expires_at > ?1
+               )",
+            params![
                 now,
                 request_id,
                 holder.holder_id,
@@ -1601,6 +1629,11 @@ fn sqlite_rfc3339(transaction: &Transaction<'_>, unix_ms: i64) -> Result<String,
 fn open_coordinator(path: &Path) -> Result<Connection, CoordinatorError> {
     let connection = Connection::open(path)?;
     connection.busy_timeout(COORDINATOR_BUSY_TIMEOUT)?;
+    configure_writer_pragmas(&connection, WriterPragmaProfile::Routine).map_err(|error| {
+        CoordinatorError::CorruptRequest {
+            detail: format!("coordinator writer pragma configuration failed: {error:?}"),
+        }
+    })?;
     Ok(connection)
 }
 
@@ -1624,4 +1657,48 @@ fn release_lease_at(
             fencing_token,
         ],
     )? == 1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT_TEMP_PATH: AtomicU64 = AtomicU64::new(0);
+
+    #[test]
+    fn open_coordinator_configures_routine_writer_pragmas() {
+        let sequence = NEXT_TEMP_PATH.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "julie-coordinator-pragmas-{}-{sequence}.db",
+            std::process::id()
+        ));
+        let _ = fs::remove_file(&path);
+        let connection = open_coordinator(&path).unwrap();
+
+        assert_eq!(pragma_integer(&connection, "busy_timeout"), 5_000);
+        assert_eq!(pragma_integer(&connection, "page_size"), 4096);
+        assert_eq!(pragma_integer(&connection, "auto_vacuum"), 2);
+        assert_eq!(pragma_text(&connection, "journal_mode"), "wal");
+        assert_eq!(pragma_integer(&connection, "synchronous"), 2);
+        assert_eq!(pragma_integer(&connection, "foreign_keys"), 1);
+        assert_eq!(pragma_integer(&connection, "secure_delete"), 1);
+        assert_eq!(pragma_integer(&connection, "wal_autocheckpoint"), 1_000);
+
+        drop(connection);
+        let _ = fs::remove_file(path);
+    }
+
+    fn pragma_integer(connection: &Connection, name: &str) -> i64 {
+        connection
+            .query_row(&format!("PRAGMA {name}"), [], |row| row.get(0))
+            .unwrap()
+    }
+
+    fn pragma_text(connection: &Connection, name: &str) -> String {
+        connection
+            .query_row(&format!("PRAGMA {name}"), [], |row| row.get(0))
+            .unwrap()
+    }
 }

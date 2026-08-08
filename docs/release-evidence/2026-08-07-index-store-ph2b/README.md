@@ -75,6 +75,14 @@ Initial requests were `dogfood-julie-l1`, `dogfood-miller-l1`,
 with `busy` after its scheduling quantum exceeded the lease-safe bound. Retrying as the new request
 `dogfood-miller-full-retry` with `MILLER_STORE_CHUNK_VERSIONS=8` committed the retained L1 work.
 
+The pre-merge review connected that honest failure to two recovery defects: an overrun was terminal
+instead of resumable, and each successor rebuilt the chunk schedule from its own environment. The
+repair requeues an overrun without committing its transaction, freezes chunk limits in each durable
+request, and makes 8 versions the default Full-deepening quantum. Re-running an untuned Full import
+against the same disposable Miller root committed 1,534 versions through L1, L2, and L3 in 207
+request chunks, with one terminal effect, no coordinator error, no remaining lease, and clean
+`quick_check`/foreign-key results for both databases.
+
 The 20 mixed requests were:
 
 | View | Requests | Paths | Resulting generations |

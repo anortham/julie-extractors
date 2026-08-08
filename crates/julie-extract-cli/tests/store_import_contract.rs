@@ -1494,6 +1494,295 @@ fn default_chunk_limit_processes_101_l1_versions_in_two_quanta() {
 }
 
 #[test]
+fn default_full_import_freezes_deep_chunks_at_eight_versions() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    for index in 0..17 {
+        std::fs::write(
+            root.join(format!("file_{index:03}.rs")),
+            format!("pub fn answer_{index}() -> usize {{ {index} }}\n"),
+        )
+        .unwrap();
+    }
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            "request-default-deep-chunks",
+            "--idempotency-key",
+            "idem-default-deep-chunks",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
+    let chunks = connection
+        .prepare(
+            "SELECT level, COUNT(*) FROM request_chunks
+             WHERE request_id = 'request-default-deep-chunks' GROUP BY level ORDER BY level",
+        )
+        .unwrap()
+        .query_map([], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(chunks, [(1, 1), (3, 2)]);
+    let deep_progress: Vec<i64> = connection
+        .prepare(
+            "SELECT json_extract(payload_json, '$.completed_files')
+             FROM store_log
+             WHERE request_id = 'request-default-deep-chunks'
+               AND event_kind = 'store_import_l3_chunk'
+             ORDER BY sequence",
+        )
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(deep_progress, [8, 16]);
+}
+
+#[test]
+fn queued_request_keeps_frozen_chunk_schedule_when_environment_changes() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    std::fs::create_dir(&root).unwrap();
+    let root = root.canonicalize().unwrap();
+    let store = fixture.path().join("store");
+    let mut files = Vec::new();
+    for index in 0..3 {
+        let path = root.join(format!("file_{index}.rs"));
+        let contents = format!("pub fn answer_{index}() -> usize {{ {index} }}\n");
+        std::fs::write(&path, &contents).unwrap();
+        files.push(serde_json::json!({
+            "root_relative_path": format!("file_{index}.rs"),
+            "content_hash": format!("blake3:{}", blake3::hash(contents.as_bytes()).to_hex()),
+            "content_bytes": contents.len(),
+        }));
+    }
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    StoreCoordinator::open(&layout)
+        .unwrap()
+        .enqueue(CoordinatorRequest::new(
+            "request-frozen-queue",
+            "idem-frozen-queue",
+            RequestKind::Import,
+            serde_json::json!({
+                "schema_version": 1,
+                "family_id": FAMILY_ID,
+                "root": root,
+                "view_id": "view-main",
+                "requested_level": "l1",
+                "files": files,
+                "controls": {
+                    "jobs": 0,
+                    "l1_chunk_versions": 2,
+                    "deep_chunk_versions": 2,
+                },
+            })
+            .to_string(),
+            "queued-requester",
+            i64::MAX,
+            1,
+        ))
+        .unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "1")
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-frozen-observer",
+            "--idempotency-key",
+            "idem-frozen-queue",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
+    let progress: Vec<i64> = connection
+        .prepare(
+            "SELECT json_extract(payload_json, '$.completed_files')
+             FROM store_log
+             WHERE request_id = 'request-frozen-queue'
+               AND event_kind = 'store_import_l1_chunk'
+             ORDER BY sequence",
+        )
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(progress, [2]);
+}
+
+#[test]
+fn crash_resume_keeps_frozen_chunk_schedule_when_environment_changes() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    for index in 0..5 {
+        std::fs::write(
+            root.join(format!("file_{index}.rs")),
+            format!("pub fn answer_{index}() -> usize {{ {index} }}\n"),
+        )
+        .unwrap();
+    }
+    let root = root.canonicalize().unwrap();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "2")
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            "request-crash-frozen",
+            "--idempotency-key",
+            "idem-crash-frozen",
+            "--json",
+        ])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let database = store.join("gen-001/store.db");
+    let deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        assert!(
+            Instant::now() < deadline,
+            "manifest progress was not observed"
+        );
+        if database.exists()
+            && rusqlite::Connection::open(&database)
+                .and_then(|connection| {
+                    connection.query_row(
+                        "SELECT EXISTS(SELECT 1 FROM store_log
+                         WHERE request_id = 'request-crash-frozen'
+                           AND event_kind = 'manifest_flipped')",
+                        [],
+                        |row| row.get::<_, bool>(0),
+                    )
+                })
+                .unwrap_or(false)
+        {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+
+    let retry = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "1")
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            "request-crash-frozen-observer",
+            "--idempotency-key",
+            "idem-crash-frozen",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        retry.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&retry.stdout),
+        String::from_utf8_lossy(&retry.stderr)
+    );
+    let connection = rusqlite::Connection::open(database).unwrap();
+    let progress: Vec<i64> = connection
+        .prepare(
+            "SELECT json_extract(payload_json, '$.completed_files')
+             FROM store_log
+             WHERE request_id = 'request-crash-frozen'
+               AND event_kind = 'store_import_l1_chunk'
+             ORDER BY sequence",
+        )
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(progress, [2, 4]);
+    let deep_progress: Vec<i64> = connection
+        .prepare(
+            "SELECT json_extract(payload_json, '$.completed_files')
+             FROM store_log
+             WHERE request_id = 'request-crash-frozen'
+               AND event_kind = 'store_import_l3_chunk'
+             ORDER BY sequence",
+        )
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(deep_progress, [2, 4]);
+}
+
+#[test]
 fn first_failed_path_has_no_version_and_prior_good_failure_is_preserved() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");

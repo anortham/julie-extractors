@@ -108,7 +108,7 @@ impl PlannedImportFile {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ImportScanControls {
     pub jobs: usize,
@@ -116,6 +116,32 @@ pub(crate) struct ImportScanControls {
     pub ignore_files: Vec<String>,
     pub spool_dir: Option<String>,
     pub progress_file: Option<String>,
+    #[serde(default = "default_l1_chunk_versions")]
+    pub l1_chunk_versions: usize,
+    #[serde(default = "default_deep_chunk_versions")]
+    pub deep_chunk_versions: usize,
+}
+
+impl ImportScanControls {
+    pub(crate) fn matches_runtime_controls(&self, other: &Self) -> bool {
+        self.jobs == other.jobs
+            && self.ignore_files == other.ignore_files
+            && self.spool_dir == other.spool_dir
+            && self.progress_file == other.progress_file
+    }
+}
+
+impl Default for ImportScanControls {
+    fn default() -> Self {
+        Self {
+            jobs: 0,
+            ignore_files: Vec::new(),
+            spool_dir: None,
+            progress_file: None,
+            l1_chunk_versions: default_l1_chunk_versions(),
+            deep_chunk_versions: default_deep_chunk_versions(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -245,6 +271,10 @@ impl StoreRequestExecutor {
         }
         validate_payload_bounds(payload_json.len(), payload.files.len())?;
         if payload.controls.jobs > IMPORT_JOBS_MAX
+            || payload.controls.l1_chunk_versions == 0
+            || payload.controls.l1_chunk_versions > MAX_CHUNK_VERSIONS
+            || payload.controls.deep_chunk_versions == 0
+            || payload.controls.deep_chunk_versions > MAX_CHUNK_VERSIONS
             || payload.controls.ignore_files.len() > IMPORT_IGNORE_FILES_MAX
         {
             return Err("invalid_import_request_payload:controls_out_of_range".to_string());
@@ -448,6 +478,7 @@ impl StoreRequestExecutor {
         level: ExtractionLevel,
         indexed_at: &str,
     ) -> Result<StoreFileVersion, String> {
+        validate_target_within_root(root, &planned.root_relative_path)?;
         let target = planned.target(root);
         let snapshot = read_source_snapshot(&target).map_err(|error| error.message.clone())?;
         if snapshot.content_hash != planned.content_hash {
@@ -832,6 +863,19 @@ fn valid_root_relative_path(root: &std::path::Path, path: &str) -> bool {
         && root.join(path).starts_with(root)
 }
 
+pub(crate) fn validate_target_within_root(
+    root: &std::path::Path,
+    root_relative_path: &str,
+) -> Result<(), String> {
+    let target = root.join(root_relative_path);
+    if let Ok(canonical) = target.canonicalize()
+        && !canonical.starts_with(root)
+    {
+        return Err("invalid_file_path:outside_root".to_string());
+    }
+    Ok(())
+}
+
 fn load_durable_request_state(
     transaction: &Transaction<'_>,
     request_id: &str,
@@ -890,8 +934,35 @@ fn failure_facts(failures: &std::collections::BTreeMap<String, ManifestEntry>) -
     failures.values().map(FailureFact::from_entry).collect()
 }
 
-const DEFAULT_CHUNK_VERSIONS: usize = 100;
+const DEFAULT_L1_CHUNK_VERSIONS: usize = 100;
+const DEFAULT_DEEP_CHUNK_VERSIONS: usize = 8;
+const MAX_CHUNK_VERSIONS: usize = 1_000_000;
 const WAL_BUDGET_BYTES: u64 = 128 * 1024 * 1024;
+
+fn default_l1_chunk_versions() -> usize {
+    DEFAULT_L1_CHUNK_VERSIONS
+}
+
+fn default_deep_chunk_versions() -> usize {
+    DEFAULT_DEEP_CHUNK_VERSIONS
+}
+
+pub(crate) fn frozen_chunk_versions_from_environment() -> Result<(usize, usize), String> {
+    let Some(value) = std::env::var_os("MILLER_STORE_CHUNK_VERSIONS") else {
+        return Ok((DEFAULT_L1_CHUNK_VERSIONS, DEFAULT_DEEP_CHUNK_VERSIONS));
+    };
+    let value = value
+        .into_string()
+        .map_err(|_| "invalid_store_chunk_versions:non_utf8".to_string())?;
+    let configured = value
+        .parse::<usize>()
+        .map_err(|_| "invalid_store_chunk_versions:expected_non_negative_integer".to_string())?;
+    if configured > MAX_CHUNK_VERSIONS {
+        return Err("invalid_store_chunk_versions:out_of_range".to_string());
+    }
+    let limit = configured.max(1);
+    Ok((limit, limit))
+}
 
 pub(crate) fn estimate_projected_wal_bytes(source_bytes: u64) -> u64 {
     source_bytes.saturating_mul(16).saturating_add(64 * 1024)
@@ -913,12 +984,11 @@ where
     Ok(pool.install(|| items.par_iter().map(map).collect()))
 }
 
-fn build_chunks(files: &[PlannedImportFile], level: StoreLevel) -> Vec<ImportChunk> {
-    let configured = std::env::var("MILLER_STORE_CHUNK_VERSIONS")
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .unwrap_or(DEFAULT_CHUNK_VERSIONS);
-    let version_limit = if configured == 0 { 1 } else { configured };
+fn build_chunks(
+    files: &[PlannedImportFile],
+    level: StoreLevel,
+    version_limit: usize,
+) -> Vec<ImportChunk> {
     chunk_ranges(
         &files
             .iter()
@@ -977,11 +1047,19 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         let root = PathBuf::from(&payload.root);
         let spool_dir = payload.controls.spool_dir.as_deref().map(PathBuf::from);
         let requested_full = payload.requested_level == RequestedLevel::Full;
-        let l1_chunks = build_chunks(&payload.files, StoreLevel::L1);
+        let l1_chunks = build_chunks(
+            &payload.files,
+            StoreLevel::L1,
+            payload.controls.l1_chunk_versions,
+        );
         let l1_chunk_count = l1_chunks.len();
         let mut chunks = l1_chunks;
         if requested_full {
-            chunks.extend(build_chunks(&payload.files, StoreLevel::L3));
+            chunks.extend(build_chunks(
+                &payload.files,
+                StoreLevel::L3,
+                payload.controls.deep_chunk_versions,
+            ));
         }
         let DurableRequestState {
             mut failures,
@@ -1077,6 +1155,9 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     let version = match extracted {
                         Ok(version) => version,
                         Err(message) => {
+                            if message == "invalid_file_path:outside_root" {
+                                return Err(message);
+                            }
                             let prior_version = transaction
                                 .query_row(
                                     "SELECT me.version_id
@@ -1278,8 +1359,9 @@ fn wait_for_full_resume_test_hook() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES, StoreRequestExecutor, WAL_BUDGET_BYTES,
-        chunk_ranges, estimate_projected_wal_bytes, map_with_jobs, validate_payload_bounds,
+        IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES, MAX_CHUNK_VERSIONS, StoreRequestExecutor,
+        WAL_BUDGET_BYTES, chunk_ranges, estimate_projected_wal_bytes, map_with_jobs,
+        validate_payload_bounds,
     };
 
     #[test]
@@ -1313,6 +1395,62 @@ mod tests {
         let source_bytes = 8 * 1024 * 1024;
         assert!(estimate_projected_wal_bytes(source_bytes) > source_bytes);
         assert!(estimate_projected_wal_bytes(source_bytes) >= WAL_BUDGET_BYTES);
+    }
+
+    #[test]
+    fn chunk_limits_keep_the_l1_and_deep_defaults_independent() {
+        let sizes = [1; 101];
+        assert_eq!(chunk_ranges(&sizes, 100), [(0, 100), (100, 101)]);
+        assert_eq!(chunk_ranges(&sizes[..17], 8), [(0, 8), (8, 16), (16, 17)]);
+    }
+
+    #[test]
+    fn durable_chunk_limits_must_be_positive_and_bounded() {
+        let executor = StoreRequestExecutor::new(
+            std::path::PathBuf::from("/trusted/store.db"),
+            "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11".to_string(),
+            None,
+        );
+        for (field, value) in [("l1_chunk_versions", 0), ("deep_chunk_versions", 0)] {
+            let payload = serde_json::json!({
+                "schema_version": 1,
+                "family_id": "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+                "root": "/trusted/root",
+                "view_id": "view-main",
+                "requested_level": "l1",
+                "files": [],
+                "controls": {
+                    "jobs": 1,
+                    "l1_chunk_versions": if field == "l1_chunk_versions" { value } else { 100 },
+                    "deep_chunk_versions": if field == "deep_chunk_versions" { value } else { 8 },
+                },
+            });
+            assert_eq!(
+                executor
+                    .validate_payload_json(&payload.to_string())
+                    .unwrap_err(),
+                "invalid_import_request_payload:controls_out_of_range"
+            );
+        }
+        let payload = serde_json::json!({
+            "schema_version": 1,
+            "family_id": "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+            "root": "/trusted/root",
+            "view_id": "view-main",
+            "requested_level": "l1",
+            "files": [],
+            "controls": {
+                "jobs": 1,
+                "l1_chunk_versions": MAX_CHUNK_VERSIONS + 1,
+                "deep_chunk_versions": 8,
+            },
+        });
+        assert_eq!(
+            executor
+                .validate_payload_json(&payload.to_string())
+                .unwrap_err(),
+            "invalid_import_request_payload:controls_out_of_range"
+        );
     }
 
     #[test]
