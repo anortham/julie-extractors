@@ -778,12 +778,12 @@ resolution overlay/column explicitly.
 
 **Acceptance:**
 
-- [ ] Every crash point reopens with `quick_check=ok` and `foreign_key_check` empty.
-- [ ] Incremental-converged visible rows equal from-scratch rows for every table in Ph2b scope.
-- [ ] Older writers are read-only; older readers fail honestly; the downgrade escape hatch is
+- [x] Every crash point reopens with `quick_check=ok` and `foreign_key_check` empty.
+- [x] Incremental-converged visible rows equal from-scratch rows for every table in Ph2b scope.
+- [x] Older writers are read-only; older readers fail honestly; the downgrade escape hatch is
       explicit and tested without lowering stored floors.
-- [ ] Feature-gate convention keeps the default tier free of process/crash/large fixtures.
-- [ ] Existing legacy artifact determinism and compatibility gates remain green.
+- [x] Feature-gate convention keeps the default tier free of process/crash/large fixtures.
+- [x] Existing legacy artifact determinism and compatibility gates remain green.
 
 ### Task 10: Document, dogfood, and close the slice
 
