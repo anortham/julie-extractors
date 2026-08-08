@@ -338,14 +338,55 @@ fn incremental_update_delete_and_path_reuse_equal_a_fresh_full_import() {
         "idem-fresh-import",
     ]);
 
-    let incremental = normalized_visible_rows(&incremental_store.join("gen-001/store.db"));
-    let fresh = normalized_visible_rows(&fresh_store.join("gen-001/store.db"));
+    let incremental_database = incremental_store.join("gen-001/store.db");
+    let fresh_database = fresh_store.join("gen-001/store.db");
+    let incremental_connection = Connection::open(&incremental_database).unwrap();
+    let original_manifest_hash: String = incremental_connection
+        .query_row(
+            "SELECT m.manifest_hash
+             FROM manifests m
+             JOIN views v ON v.view_id = m.view_id AND v.current_generation = m.generation
+             WHERE v.view_id = 'view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    incremental_connection
+        .execute(
+            "UPDATE manifests
+             SET manifest_hash = 'corrupt-manifest-hash'
+             WHERE view_id = 'view-main'
+               AND generation = (SELECT current_generation FROM views WHERE view_id = 'view-main')",
+            [],
+        )
+        .unwrap();
+    let fresh = normalized_visible_rows(&fresh_database);
+    assert_ne!(
+        normalized_visible_rows(&incremental_database),
+        fresh,
+        "equivalence must compare the current manifest hash"
+    );
+    incremental_connection
+        .execute(
+            "UPDATE manifests
+             SET manifest_hash = ?1
+             WHERE view_id = 'view-main'
+               AND generation = (SELECT current_generation FROM views WHERE view_id = 'view-main')",
+            [&original_manifest_hash],
+        )
+        .unwrap();
+
+    let incremental = normalized_visible_rows(&incremental_database);
+    assert!(
+        incremental.contains_key("manifests"),
+        "equivalence must include the current manifest hash"
+    );
     assert!(
         incremental.contains_key("manifest_entries"),
-        "equivalence must include current manifest status, hash, and error payload"
+        "equivalence must include current manifest-entry status, hash, and error payload"
     );
-    assert_required_languages(&incremental_store.join("gen-001/store.db"));
-    assert_required_languages(&fresh_store.join("gen-001/store.db"));
+    assert_required_languages(&incremental_database);
+    assert_required_languages(&fresh_database);
     assert_every_normalized_table_nonempty(&incremental);
     assert_every_normalized_table_nonempty(&fresh);
     assert!(!incremental.is_empty(), "normalizer must cover Ph2b tables");
@@ -1121,6 +1162,17 @@ fn normalized_visible_rows(_database: &Path) -> BTreeMap<String, Vec<String>> {
     let connection = Connection::open(_database).unwrap();
     let mut result = BTreeMap::new();
     result.insert(
+        "manifests".to_string(),
+        query_rows(
+            &connection,
+            "SELECT m.manifest_hash
+             FROM manifests m
+             JOIN views v ON v.view_id = m.view_id AND v.current_generation = m.generation
+             WHERE v.view_id = 'view-main'",
+            1,
+        ),
+    );
+    result.insert(
         "manifest_entries".to_string(),
         query_rows(
             &connection,
@@ -1247,7 +1299,7 @@ fn query_rows(connection: &Connection, sql: &str, width: usize) -> Vec<String> {
 }
 
 fn assert_every_normalized_table_nonempty(rows: &BTreeMap<String, Vec<String>>) {
-    let empty = ["manifest_entries", "file_versions"]
+    let empty = ["manifests", "manifest_entries", "file_versions"]
         .into_iter()
         .chain(CHILD_TABLES)
         .chain(GLOBAL_TABLES)
