@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
+use julie_extract_cli::store::args::StoreArgs;
+
 #[derive(Debug, Parser)]
 #[command(
     name = "julie-extract",
@@ -15,6 +17,7 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    Store(StoreArgs),
     Scan(ScanArgs),
     Update(UpdateArgs),
     Delete(DeleteArgs),

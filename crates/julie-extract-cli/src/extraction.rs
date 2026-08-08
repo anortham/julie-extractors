@@ -93,6 +93,19 @@ pub(crate) fn read_source_snapshot(
     })
 }
 
+#[allow(dead_code)]
+pub(crate) fn read_source_identity(target: &FileTarget) -> Result<(String, u64), ExtractFileError> {
+    let bytes = fs::read(&target.absolute_path).map_err(|error| ExtractFileError {
+        kind: ExtractFileErrorKind::Read,
+        path: target.absolute_path.display().to_string(),
+        root_relative_path: target.root_relative_path.clone(),
+        message: format!("source file could not be read: {error}"),
+        content_hash: None,
+        content_bytes: None,
+    })?;
+    Ok((content_hash_bytes(&bytes), bytes.len() as u64))
+}
+
 fn decode_source_content(bytes: Vec<u8>) -> Result<String, SourceDecodeError> {
     if let Some(content_bytes) = bytes.strip_prefix(&[0xff, 0xfe]) {
         return decode_utf16_content("UTF-16LE", content_bytes, u16::from_le_bytes);

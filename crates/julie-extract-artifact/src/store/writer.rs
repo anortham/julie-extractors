@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::model::ArtifactCapabilitySnapshot;
 
@@ -11,7 +11,8 @@ use super::rows::{
     delete_level_rows, insert_level_rows, sync_capability_snapshot,
 };
 use super::{
-    StoreConnectionError, StoreConnectionFactory, StoreFileVersion, StoreLevel, StoreRowCounts,
+    StoreConnectionError, StoreConnectionFactory, StoreFileVersion, StoreLevel, StoreLog,
+    StoreLogEntry, StoreLogError, StoreRowCounts, StoreSchemaError, create_store_schema,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +71,8 @@ pub struct StoreWriteResult {
 #[derive(Debug)]
 pub enum StoreWriterError {
     Connection(StoreConnectionError),
+    Log(StoreLogError),
+    Schema(StoreSchemaError),
     Sqlite(rusqlite::Error),
     PreviousLevelIncomplete {
         requested: StoreLevel,
@@ -97,6 +100,8 @@ impl fmt::Display for StoreWriterError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Connection(error) => error.fmt(formatter),
+            Self::Log(error) => error.fmt(formatter),
+            Self::Schema(error) => error.fmt(formatter),
             Self::Sqlite(error) => error.fmt(formatter),
             Self::PreviousLevelIncomplete {
                 requested,
@@ -150,6 +155,8 @@ impl Error for StoreWriterError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Connection(error) => Some(error),
+            Self::Log(error) => Some(error),
+            Self::Schema(error) => Some(error),
             Self::Sqlite(error) => Some(error),
             Self::PreviousLevelIncomplete { .. }
             | Self::CapabilitySnapshotConflict { .. }
@@ -170,6 +177,18 @@ impl From<StoreConnectionError> for StoreWriterError {
 impl From<rusqlite::Error> for StoreWriterError {
     fn from(error: rusqlite::Error) -> Self {
         Self::Sqlite(error)
+    }
+}
+
+impl From<StoreLogError> for StoreWriterError {
+    fn from(error: StoreLogError) -> Self {
+        Self::Log(error)
+    }
+}
+
+impl From<StoreSchemaError> for StoreWriterError {
+    fn from(error: StoreSchemaError) -> Self {
+        Self::Schema(error)
     }
 }
 
@@ -257,23 +276,118 @@ impl StoreWriter {
             .map_err(StoreWriterError::from)
     }
 
-    pub fn write_level(
-        &mut self,
+    pub fn lookup_version_in_transaction(
+        transaction: &Transaction<'_>,
+        path: &str,
+        content_hash: &str,
+        extraction_epoch: u32,
+        required_level: StoreLevel,
+    ) -> Result<Option<StoredFileVersion>, StoreWriterError> {
+        let stamp_column = match required_level {
+            StoreLevel::L1 => "complete_l1",
+            StoreLevel::L2 => "complete_l2",
+            StoreLevel::L3 => "complete_l3",
+        };
+        let sql = format!(
+            "SELECT version_id, path, content_hash, extraction_epoch,
+                    complete_l1, complete_l2, complete_l3
+             FROM file_versions
+             WHERE path = ?1 AND content_hash = ?2 AND extraction_epoch = ?3
+               AND {stamp_column} IS NOT NULL"
+        );
+        transaction
+            .query_row(&sql, params![path, content_hash, extraction_epoch], |row| {
+                Ok(StoredFileVersion {
+                    version_id: row.get(0)?,
+                    path: row.get(1)?,
+                    content_hash: row.get(2)?,
+                    extraction_epoch: row.get(3)?,
+                    complete_l1: row.get(4)?,
+                    complete_l2: row.get(5)?,
+                    complete_l3: row.get(6)?,
+                })
+            })
+            .optional()
+            .map_err(StoreWriterError::from)
+    }
+
+    pub fn l1_projection_matches_in_transaction(
+        transaction: &Transaction<'_>,
+        stored: &StoredFileVersion,
+        candidate: &StoreFileVersion,
+    ) -> Result<bool, StoreWriterError> {
+        if stored.path != candidate.path()
+            || stored.content_hash != candidate.content_hash()
+            || stored.extraction_epoch != candidate.extraction_epoch()
+        {
+            return Ok(false);
+        }
+        let mut staging = Connection::open_in_memory()?;
+        create_store_schema(&staging)?;
+        let staged = staging.transaction()?;
+        let file = candidate.artifact_file();
+        staged.execute(
+            "INSERT INTO file_versions
+             (version_id, path, content_hash, extraction_epoch, language, content_bytes,
+              line_count, metadata_json, complete_l1)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1)",
+            params![
+                stored.version_id,
+                file.path,
+                file.content_hash,
+                candidate.extraction_epoch(),
+                file.language,
+                file.content_bytes,
+                file.line_count,
+                file.metadata_json,
+            ],
+        )?;
+        insert_level_rows(
+            &staged,
+            stored.version_id,
+            candidate,
+            StoreLevel::L1,
+            &mut StatementPreparationCounter::default(),
+        )?;
+        let file_sql = "SELECT path, content_hash, extraction_epoch, language, content_bytes,
+                               line_count, metadata_json
+                        FROM file_versions WHERE version_id = ?1";
+        if query_projection_rows(transaction, file_sql, stored.version_id)?
+            != query_projection_rows(&staged, file_sql, stored.version_id)?
+        {
+            return Ok(false);
+        }
+        for (table, key, predicate) in [
+            ("symbols", "symbol_id", ""),
+            ("symbol_annotations", "annotation_id", ""),
+            ("reference_sites", "reference_site_id", " AND level = 1"),
+            ("relationships", "relationship_id", ""),
+            ("pending_relationships", "pending_relationship_id", ""),
+            ("type_facts", "type_fact_id", ""),
+            ("complexity_metrics", "complexity_metric_id", ""),
+            ("parse_diagnostics", "diagnostic_id", ""),
+        ] {
+            let sql =
+                format!("SELECT * FROM {table} WHERE version_id = ?1{predicate} ORDER BY {key}");
+            if query_projection_rows(transaction, &sql, stored.version_id)?
+                != query_projection_rows(&staged, &sql, stored.version_id)?
+            {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    pub fn write_level_in_transaction(
+        transaction: &Transaction<'_>,
         request: &StoreWriteRequest,
+        capability_snapshot: Option<&ArtifactCapabilitySnapshot>,
         version: &StoreFileVersion,
         level: StoreLevel,
     ) -> Result<StoreWriteResult, StoreWriterError> {
-        let pragma_profile = if request.bulk {
-            WriterPragmaProfile::Bulk
-        } else {
-            WriterPragmaProfile::Routine
-        };
-        configure_wal_autocheckpoint(&self.connection, pragma_profile)
-            .map_err(store_writer_pragma_error)?;
-        let tx = self.connection.transaction()?;
         let mut preparations = StatementPreparationCounter::default();
         let existing = lookup_identity_in_tx(
-            &tx,
+            transaction,
             version.path(),
             version.content_hash(),
             version.extraction_epoch(),
@@ -306,30 +420,26 @@ impl StoreWriter {
                 });
             }
         }
-
-        let mut consumed_capability_snapshot = false;
-        let capability_counts = if level == StoreLevel::L1 {
-            let initialized =
-                capability_epoch_initialized(&tx, version.extraction_epoch(), &mut preparations)?;
-            if let Some(staged) = self.capability_snapshot.as_ref() {
-                if staged.extraction_epoch != version.extraction_epoch() {
-                    return Err(StoreWriterError::CapabilitySnapshotEpochMismatch {
-                        staged_epoch: staged.extraction_epoch,
-                        requested_epoch: version.extraction_epoch(),
-                    });
-                }
-                if staged.snapshot.parser_inventory.is_empty()
-                    || staged.snapshot.languages.is_empty()
-                {
+        let initialized = if level == StoreLevel::L1 {
+            capability_epoch_initialized(
+                transaction,
+                version.extraction_epoch(),
+                &mut preparations,
+            )?
+        } else {
+            true
+        };
+        let capability_counts = match (level, capability_snapshot) {
+            (StoreLevel::L1, Some(snapshot)) => {
+                if snapshot.parser_inventory.is_empty() || snapshot.languages.is_empty() {
                     return Err(StoreWriterError::EmptyCapabilitySnapshot {
                         extraction_epoch: version.extraction_epoch(),
                     });
                 }
-                consumed_capability_snapshot = true;
                 match sync_capability_snapshot(
-                    &tx,
+                    transaction,
                     version.extraction_epoch(),
-                    &staged.snapshot,
+                    snapshot,
                     &mut preparations,
                 ) {
                     Ok(result) => result,
@@ -342,23 +452,17 @@ impl StoreWriter {
                         });
                     }
                 }
-            } else if initialized {
-                StoreRowCounts::default()
-            } else {
+            }
+            (StoreLevel::L1, None) if !initialized => {
                 return Err(StoreWriterError::CapabilitySnapshotRequired {
                     extraction_epoch: version.extraction_epoch(),
                 });
             }
-        } else {
-            StoreRowCounts::default()
+            _ => StoreRowCounts::default(),
         };
         if let Some(existing) = &existing
             && let Some(completion_sequence) = completion_stamp(existing, level)
         {
-            tx.commit()?;
-            if consumed_capability_snapshot {
-                self.capability_snapshot = None;
-            }
             return Ok(StoreWriteResult {
                 state: StoreVersionState::Reused,
                 version_id: existing.version_id,
@@ -368,12 +472,11 @@ impl StoreWriter {
                 statement_preparations: preparations.count(),
             });
         }
-
         let (state, version_id) = match existing {
             Some(existing) => (StoreVersionState::Incomplete, existing.version_id),
             None => {
                 let file = version.artifact_file();
-                tx.execute(
+                transaction.execute(
                     "INSERT INTO file_versions
                      (path, content_hash, extraction_epoch, language, content_bytes, line_count,
                       metadata_json)
@@ -388,12 +491,12 @@ impl StoreWriter {
                         file.metadata_json,
                     ],
                 )?;
-                (StoreVersionState::Created, tx.last_insert_rowid())
+                (StoreVersionState::Created, transaction.last_insert_rowid())
             }
         };
-
-        delete_level_rows(&tx, version_id, level)?;
-        let mut counts = insert_level_rows(&tx, version_id, version, level, &mut preparations)?;
+        delete_level_rows(transaction, version_id, level)?;
+        let mut counts =
+            insert_level_rows(transaction, version_id, version, level, &mut preparations)?;
         if state == StoreVersionState::Created {
             counts.file_versions = 1;
         }
@@ -404,32 +507,26 @@ impl StoreWriter {
             "path": version.path(),
         }))
         .expect("store completion payload is serializable");
-        tx.execute(
-            "INSERT INTO store_log
-             (request_id, event_kind, version_id, level, terminal, payload_json, created_at)
-             VALUES (?1, 'version_level_completed', ?2, ?3, 0, ?4, ?5)",
-            params![
-                request.request_id,
-                version_id,
-                level.as_i64(),
+        let completion_sequence = StoreLog::append_effect(
+            transaction,
+            &StoreLogEntry::new(
+                &request.request_id,
+                "version_level_completed",
                 payload_json,
-                request.created_at
-            ],
+                &request.created_at,
+            )
+            .with_version(version_id)
+            .with_level(level),
         )?;
-        let completion_sequence = tx.last_insert_rowid();
         let stamp_column = match level {
             StoreLevel::L1 => "complete_l1",
             StoreLevel::L2 => "complete_l2",
             StoreLevel::L3 => "complete_l3",
         };
-        tx.execute(
+        transaction.execute(
             &format!("UPDATE file_versions SET {stamp_column} = ?1 WHERE version_id = ?2"),
             params![completion_sequence, version_id],
         )?;
-        tx.commit()?;
-        if consumed_capability_snapshot {
-            self.capability_snapshot = None;
-        }
         Ok(StoreWriteResult {
             state,
             version_id,
@@ -439,6 +536,63 @@ impl StoreWriter {
             statement_preparations: preparations.count(),
         })
     }
+
+    pub fn write_level(
+        &mut self,
+        request: &StoreWriteRequest,
+        version: &StoreFileVersion,
+        level: StoreLevel,
+    ) -> Result<StoreWriteResult, StoreWriterError> {
+        let pragma_profile = if request.bulk {
+            WriterPragmaProfile::Bulk
+        } else {
+            WriterPragmaProfile::Routine
+        };
+        configure_wal_autocheckpoint(&self.connection, pragma_profile)
+            .map_err(store_writer_pragma_error)?;
+        let consumed_capability_snapshot = level == StoreLevel::L1
+            && self
+                .capability_snapshot
+                .as_ref()
+                .is_some_and(|staged| staged.extraction_epoch == version.extraction_epoch());
+        if level == StoreLevel::L1
+            && let Some(staged) = self.capability_snapshot.as_ref()
+            && staged.extraction_epoch != version.extraction_epoch()
+        {
+            return Err(StoreWriterError::CapabilitySnapshotEpochMismatch {
+                staged_epoch: staged.extraction_epoch,
+                requested_epoch: version.extraction_epoch(),
+            });
+        }
+        let snapshot = self
+            .capability_snapshot
+            .as_ref()
+            .filter(|_| level == StoreLevel::L1)
+            .map(|staged| &staged.snapshot);
+        let tx = self.connection.transaction()?;
+        let result = Self::write_level_in_transaction(&tx, request, snapshot, version, level)?;
+        tx.commit()?;
+        if consumed_capability_snapshot {
+            self.capability_snapshot = None;
+        }
+        Ok(result)
+    }
+}
+
+fn query_projection_rows(
+    transaction: &Transaction<'_>,
+    sql: &str,
+    version_id: i64,
+) -> rusqlite::Result<Vec<Vec<rusqlite::types::Value>>> {
+    let mut statement = transaction.prepare(sql)?;
+    let column_count = statement.column_count();
+    statement
+        .query_map([version_id], |row| {
+            (0..column_count)
+                .map(|index| row.get(index))
+                .collect::<rusqlite::Result<Vec<_>>>()
+        })?
+        .collect()
 }
 
 fn store_writer_pragma_error(error: PragmaError) -> StoreWriterError {

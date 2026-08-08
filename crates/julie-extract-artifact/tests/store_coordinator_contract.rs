@@ -373,6 +373,68 @@ fn live_holder_is_not_displaced_but_dead_or_expired_holder_is_fenced() {
 }
 
 #[test]
+fn dead_lease_takeover_transfers_only_the_prior_holders_claims() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut owner = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    for (request_id, idempotency_key) in [("request-a", "idem-a"), ("request-x", "idem-x")] {
+        owner
+            .enqueue(CoordinatorRequest::new(
+                request_id,
+                idempotency_key,
+                RequestKind::Import,
+                "{}",
+                "requester",
+                10_000,
+                1,
+            ))
+            .unwrap();
+    }
+    owner
+        .try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 10)
+        .unwrap();
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    connection
+        .execute(
+            "UPDATE requests SET state = 'claimed', claim_owner = 'holder-a', claim_heartbeat_at = 10
+             WHERE request_id = 'request-a'",
+            [],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE requests SET state = 'claimed', claim_owner = 'holder-x', claim_heartbeat_at = 10
+             WHERE request_id = 'request-x'",
+            [],
+        )
+        .unwrap();
+
+    let mut live = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    assert_eq!(
+        live.try_acquire_or_takeover(LeaseHolder::new("holder-b", "2.30.0", 42), 11)
+            .unwrap(),
+        LeaseDisposition::HeldByOther
+    );
+    assert_eq!(
+        owner.request("request-a").unwrap().claim_owner.as_deref(),
+        Some("holder-a")
+    );
+
+    let mut dead = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
+    assert!(
+        dead.try_acquire_or_takeover(LeaseHolder::new("holder-b", "2.30.0", 42), 11)
+            .unwrap()
+            .acquired()
+    );
+    let transferred = dead.request("request-a").unwrap();
+    let preserved = dead.request("request-x").unwrap();
+    assert_eq!(transferred.claim_owner.as_deref(), Some("holder-b"));
+    assert_eq!(transferred.claim_heartbeat_at, Some(11));
+    assert_eq!(preserved.claim_owner.as_deref(), Some("holder-x"));
+    assert_eq!(preserved.claim_heartbeat_at, Some(10));
+}
+
+#[test]
 fn same_holder_id_with_a_different_live_pid_cannot_renew_or_overwrite() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
@@ -624,6 +686,74 @@ fn coordinator_database_connections_are_centralized_through_one_busy_policy() {
             .count(),
         1
     );
+}
+
+struct PragmaReadbackExecutor;
+
+impl CoordinatorExecutor for PragmaReadbackExecutor {
+    fn execute_quantum(
+        &mut self,
+        transaction: &Transaction<'_>,
+        _request: &CoordinatorRequest,
+        _context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        let text = |name: &str| {
+            transaction
+                .query_row(&format!("PRAGMA {name}"), [], |row| row.get::<_, String>(0))
+                .unwrap()
+        };
+        let integer = |name: &str| {
+            transaction
+                .query_row(&format!("PRAGMA {name}"), [], |row| row.get::<_, i64>(0))
+                .unwrap()
+        };
+        assert_eq!(text("journal_mode"), "wal");
+        assert_eq!(integer("page_size"), 4096);
+        assert_eq!(integer("auto_vacuum"), 2);
+        assert_eq!(integer("synchronous"), 2);
+        assert_eq!(integer("foreign_keys"), 1);
+        assert_eq!(integer("secure_delete"), 1);
+        assert_eq!(integer("wal_autocheckpoint"), 8_000);
+        Ok(ExecutionQuantum::Complete {
+            event_kind: "pragma_readback_completed".to_string(),
+            result_json: "{}".to_string(),
+        })
+    }
+}
+
+#[test]
+fn import_quantum_receives_the_bulk_writer_pragma_profile_before_begin() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        LeaseHolder::new("holder", "2.30.0", 41),
+        clock,
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "request-pragmas",
+            "idem-pragmas",
+            RequestKind::Import,
+            "{}",
+            "requester",
+            1_000,
+            1,
+        ))
+        .unwrap();
+    coordinator
+        .drain(
+            &mut PragmaReadbackExecutor,
+            &CoordinatorPolicy {
+                own_request_id: Some("request-pragmas".to_string()),
+                ..CoordinatorPolicy::default()
+            },
+        )
+        .unwrap();
 }
 
 #[test]

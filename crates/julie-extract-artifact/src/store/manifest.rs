@@ -357,6 +357,40 @@ impl<'connection> ManifestStore<'connection> {
         }
     }
 
+    pub fn ensure_view_in_transaction(
+        transaction: &Transaction<'_>,
+        view_id: &str,
+        root: &str,
+    ) -> Result<ViewEnsureDisposition, ManifestStoreError> {
+        validate_view_identity(view_id, root)?;
+        let inserted = transaction.execute(
+            "INSERT OR IGNORE INTO views
+             (view_id, root, resolution_state, created_at, updated_at)
+             VALUES (?1, ?2, 'unbound',
+                     strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                     strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
+            params![view_id, root],
+        )?;
+        let found = transaction.query_row(
+            "SELECT root FROM views WHERE view_id = ?1",
+            [view_id],
+            |row| row.get::<_, String>(0),
+        )?;
+        if found == root {
+            Ok(if inserted == 1 {
+                ViewEnsureDisposition::Created
+            } else {
+                ViewEnsureDisposition::Existing
+            })
+        } else {
+            Err(ManifestStoreError::ViewRootMismatch {
+                view_id: view_id.to_string(),
+                expected: root.to_string(),
+                found,
+            })
+        }
+    }
+
     pub fn require_view(&self, view_id: &str, root: &str) -> Result<(), ManifestStoreError> {
         validate_view_identity(view_id, root)?;
         let found = self
@@ -455,6 +489,31 @@ impl<'connection> ManifestStore<'connection> {
             }
         }
         unreachable!("bounded manifest retry loop always returns")
+    }
+
+    pub fn publish_in_transaction(
+        transaction: &Transaction<'_>,
+        view_id: &str,
+        expected_generation: Option<u64>,
+        entries: impl IntoIterator<Item = ManifestEntry>,
+        request_id: &str,
+    ) -> Result<ManifestPublishResult, ManifestStoreError> {
+        if request_id.is_empty() {
+            return Err(ManifestStoreError::EmptyRequestId);
+        }
+        if view_id.is_empty() {
+            return Err(ManifestStoreError::EmptyViewId);
+        }
+        require_view_exists(transaction, view_id)?;
+        let actual = current_generation(transaction, view_id)?;
+        if actual != expected_generation {
+            return Err(ManifestStoreError::GenerationMismatch {
+                expected: expected_generation,
+                actual,
+            });
+        }
+        let manifest = build_manifest(transaction, entries.into_iter().collect())?;
+        publish_transaction(transaction, view_id, actual, manifest, request_id)
     }
 
     pub fn invalidate_resolution_binding(

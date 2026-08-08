@@ -111,6 +111,44 @@ fn current_parent_pid() -> Option<u32> {
     None
 }
 
+#[allow(dead_code)]
+pub(crate) fn process_status(pid: u32) -> julie_extract_artifact::store::PidStatus {
+    if pid == std::process::id() {
+        return julie_extract_artifact::store::PidStatus::Alive;
+    }
+    process_status_other(pid)
+}
+
+#[cfg(unix)]
+#[allow(dead_code)]
+fn process_status_other(pid: u32) -> julie_extract_artifact::store::PidStatus {
+    let status = std::process::Command::new("kill")
+        .args(["-0", &pid.to_string()])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+    if status.is_ok_and(|status| status.success()) {
+        return julie_extract_artifact::store::PidStatus::Alive;
+    }
+    let status = std::process::Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "pid="])
+        .output();
+    match status {
+        Ok(output)
+            if output.status.success() && output.stdout.iter().all(u8::is_ascii_whitespace) =>
+        {
+            julie_extract_artifact::store::PidStatus::Dead
+        }
+        Ok(output) if !output.status.success() => julie_extract_artifact::store::PidStatus::Dead,
+        _ => julie_extract_artifact::store::PidStatus::Unknown,
+    }
+}
+
+#[cfg(not(unix))]
+fn process_status_other(_pid: u32) -> julie_extract_artifact::store::PidStatus {
+    julie_extract_artifact::store::PidStatus::Unknown
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

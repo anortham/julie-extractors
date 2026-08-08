@@ -297,24 +297,35 @@ fn failure_constructors_keep_failure_class_and_error_class_coherent() {
 }
 
 #[test]
-fn production_store_command_is_rejected_as_usage_without_output_on_stdout() {
+fn production_store_import_is_exposed_and_reports_json_on_stdout() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
     let output = julie_extract(&[
         "store",
         "import",
         "--store",
-        "/tmp/family",
+        store.to_str().unwrap(),
         "--family",
         "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
         "--root",
-        "/tmp/repo",
+        root.to_str().unwrap(),
         "--view",
         "view-main",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-public-store",
+        "--idempotency-key",
+        "idem-public-store",
+        "--json",
     ]);
-    assert_eq!(output.status.code(), Some(2));
-    assert!(output.stdout.is_empty());
-    let stderr = String::from_utf8(output.stderr).expect("usage diagnostics must be UTF-8");
-    assert!(stderr.contains("error:"));
-    assert!(stderr.contains("unrecognized subcommand 'store'"));
+    assert_eq!(output.status.code(), Some(0));
+    assert!(output.stderr.is_empty());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "import");
+    assert_eq!(report["state"], "committed");
 }
 
 #[test]
@@ -477,13 +488,13 @@ fn parser_rejects_invalid_family_and_nul_values_but_accepts_exact_boundaries() {
 }
 
 #[test]
-fn legacy_help_and_json_parse_contract_do_not_expose_store() {
+fn help_exposes_store_while_legacy_json_contract_stays_unchanged() {
     let help = julie_extract(&["--help"]);
     assert!(help.status.success());
     let help = String::from_utf8(help.stdout).expect("help must be UTF-8");
     assert!(help.contains("scan"));
     assert!(help.contains("languages"));
-    assert!(!help.contains("store"));
+    assert!(help.contains("store"));
 
     let languages = julie_extract(&["languages", "--json"]);
     assert_eq!(languages.status.code(), Some(0));

@@ -5,9 +5,8 @@
 //! `tests/`** (which can only see a crate's public library API, never a binary's
 //! private modules) can exercise them directly.
 //!
-//! The [`store`] module is the internal parser/report test seam for
-//! `tests/store_cli_contract.rs`; it models the future store import contract
-//! without adding a production top-level command or dispatch arm.
+//! The [`store`] module owns the production store-import parser, executor, and
+//! report contract used by both the binary and integration tests.
 //!
 //! The [`resolution`] module's [`resolution::resolve_workspace`] is the DB-bound
 //! workspace reference-resolution pass. The performance gate
@@ -20,3 +19,18 @@
 pub mod limits;
 pub mod resolution;
 pub mod store;
+
+#[allow(dead_code)]
+mod capability_snapshot;
+#[allow(dead_code)]
+mod discovery;
+#[allow(dead_code)]
+mod extraction;
+#[allow(dead_code)]
+mod paths;
+#[allow(dead_code)]
+mod progress;
+#[allow(dead_code)]
+mod spool;
+#[allow(dead_code)]
+mod watchdog;

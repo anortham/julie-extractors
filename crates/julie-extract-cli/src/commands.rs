@@ -63,6 +63,7 @@ use crate::reports::{
 };
 use crate::spool::{ScanSpool, create_scan_spool, is_spool_artifact_name, reap_unowned_spools};
 use crate::watchdog::ParentWatchdog;
+use julie_extract_cli::store::import::StoreExecutionOutcome;
 
 const SCAN_REPORT_FILE_ROW_LIMIT: usize = 20;
 
@@ -77,28 +78,58 @@ pub fn run_from_env() -> ExitCode {
     };
 
     let outcome = run(cli);
-    write_outcome(&outcome);
+    outcome.write();
     // A shadow mismatch overrides only a SUCCESSFUL outcome: the flag is set while
     // the writer transaction is still open, so a later commit or reporting failure
     // must keep its own nonzero code — exit 4 asserts "the write landed and the two
     // paths disagreed", and a failed write is the louder fact.
-    if outcome.exit_code == 0
+    if outcome.exit_code() == 0
         && let Some(shadow) = crate::resolution::shadow_mismatch_exit_code()
     {
         return ExitCode::from(shadow);
     }
-    ExitCode::from(outcome.exit_code)
+    ExitCode::from(outcome.exit_code())
 }
 
-fn run(cli: Cli) -> CommandOutcome {
+enum DispatchOutcome {
+    Legacy(Box<CommandOutcome>),
+    Store(Box<StoreExecutionOutcome>),
+}
+
+impl DispatchOutcome {
+    fn exit_code(&self) -> u8 {
+        match self {
+            Self::Legacy(outcome) => outcome.exit_code,
+            Self::Store(outcome) => outcome.exit_code(),
+        }
+    }
+
+    fn write(&self) {
+        match self {
+            Self::Legacy(outcome) => write_outcome(outcome),
+            Self::Store(outcome) => outcome.write(),
+        }
+    }
+}
+
+impl From<CommandOutcome> for DispatchOutcome {
+    fn from(outcome: CommandOutcome) -> Self {
+        Self::Legacy(Box::new(outcome))
+    }
+}
+
+fn run(cli: Cli) -> DispatchOutcome {
     match cli.command {
-        Command::Scan(args) => scan(args),
-        Command::Update(args) => update(args),
-        Command::Delete(args) => delete(args),
-        Command::Info(args) => info(args),
-        Command::Export(args) => export(args),
-        Command::Languages(args) => languages(args),
-        Command::Rebind(args) => rebind(args),
+        Command::Store(args) => {
+            DispatchOutcome::Store(Box::new(julie_extract_cli::store::import::dispatch(args)))
+        }
+        Command::Scan(args) => scan(args).into(),
+        Command::Update(args) => update(args).into(),
+        Command::Delete(args) => delete(args).into(),
+        Command::Info(args) => info(args).into(),
+        Command::Export(args) => export(args).into(),
+        Command::Languages(args) => languages(args).into(),
+        Command::Rebind(args) => rebind(args).into(),
     }
 }
 

@@ -10,6 +10,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
 use super::connection::compare_versions as compare_store_versions;
+use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::{StoreConnectionError, StoreLayout, StoreLog, StoreLogEntry};
 
 const STORE_WRITER_RESOURCE: &str = "store-writer";
@@ -580,7 +581,7 @@ impl StoreCoordinator {
                 )?;
                 LeaseDisposition::Acquired { fencing_token }
             }
-            Some((_, old_pid, old_expiry, fencing_token))
+            Some((old_holder_id, old_pid, old_expiry, fencing_token))
                 if old_expiry <= now || self.pid_liveness.status(old_pid) == PidStatus::Dead =>
             {
                 let minimum_token = fencing_token
@@ -604,6 +605,11 @@ impl StoreCoordinator {
                         STORE_WRITER_RESOURCE,
                         fencing_token,
                     ],
+                )?;
+                transaction.execute(
+                    "UPDATE requests SET claim_owner = ?1, claim_heartbeat_at = ?2, updated_at = ?2
+                     WHERE state = 'claimed' AND claim_owner = ?3",
+                    params![holder.holder_id, now, old_holder_id],
                 )?;
                 LeaseDisposition::Acquired {
                     fencing_token: next_token,
@@ -919,6 +925,11 @@ impl StoreCoordinator {
             return Ok(());
         }
         let mut store = Connection::open(&self.store_db)?;
+        configure_writer_pragmas(&store, WriterPragmaProfile::Bulk).map_err(|error| {
+            CoordinatorError::CorruptRequest {
+                detail: format!("store writer pragma configuration failed: {error:?}"),
+            }
+        })?;
         let transaction = store.transaction()?;
         let context = ExecutionContext {
             next_chunk_index: reconciliation.next_chunk_index,
