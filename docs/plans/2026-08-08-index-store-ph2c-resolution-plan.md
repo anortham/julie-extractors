@@ -333,10 +333,10 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Existing resolver produces the pinned dump twice with zero differences.
-- [ ] Oracle covers both resolution tables, metadata, aggregate rows, all outcomes, and ordering.
-- [ ] Default tier remains fast; contract tier invokes the exact feature harnesses.
-- [ ] No production behavior changes in this task.
+- [x] Existing resolver produces the pinned dump twice with zero differences.
+- [x] Oracle covers both resolution tables, metadata, aggregate rows, all outcomes, and ordering.
+- [x] Default tier remains fast; contract tier invokes the exact feature harnesses.
+- [x] No production behavior changes in this task.
 
 ## Task 2: Extract the ResolutionSession and Legacy Adapter
 
