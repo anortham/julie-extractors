@@ -668,25 +668,9 @@ impl ResolutionBaseWriter {
                 "SELECT target_version_id,target_symbol_id
                  FROM identifier_resolutions
                  WHERE target_version_id IS NOT NULL
-                 ORDER BY version_id,identifier_id",
-            )?;
-            let mut rows = statement.query([])?;
-            while let Some(row) = rows.next()? {
-                let version_id = row.get::<_, i64>(0)?;
-                let symbol_id = row.get::<_, String>(1)?;
-                if !target_exists(version_id, &symbol_id)? {
-                    return Err(ResolutionValidationError::TargetMissing {
-                        version_id,
-                        symbol_id,
-                    });
-                }
-            }
-        }
-        {
-            let mut statement = self.connection.prepare(
-                "SELECT target_version_id,target_symbol_id
-                 FROM pending_resolutions
-                 ORDER BY version_id,pending_relationship_id",
+                 UNION
+                 SELECT target_version_id,target_symbol_id FROM pending_resolutions
+                 ORDER BY target_version_id,target_symbol_id COLLATE BINARY",
             )?;
             let mut rows = statement.query([])?;
             while let Some(row) = rows.next()? {
@@ -1024,7 +1008,7 @@ impl ResolutionBaseReader {
         let mut statement = self.connection.prepare(
             "SELECT version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates
              FROM identifier_resolutions
-             WHERE version_id>?1 OR (version_id=?1 AND identifier_id>?2)
+             WHERE (version_id,identifier_id)>(?1,?2)
              ORDER BY version_id,identifier_id LIMIT ?3",
         )?;
         Ok(statement
@@ -1076,7 +1060,7 @@ impl ResolutionBaseReader {
         let mut statement = self.connection.prepare(
             "SELECT version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method
              FROM pending_resolutions
-             WHERE version_id>?1 OR (version_id=?1 AND pending_relationship_id>?2)
+             WHERE (version_id,pending_relationship_id)>(?1,?2)
              ORDER BY version_id,pending_relationship_id LIMIT ?3",
         )?;
         Ok(statement

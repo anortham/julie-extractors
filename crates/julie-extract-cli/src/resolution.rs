@@ -130,7 +130,7 @@ const TYPE_LIKE_KINDS: &[SymbolKind] = &[
 /// pending rows run tiers 2→4 (tier 1 is already materialized), identifiers run a
 /// reduced chain that skips tier 2 and reaches the receiver tiers only where the
 /// identifier actually carries a receiver. See [`applicable_tiers`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EdgeOrigin {
     /// A pending relationship row (`pending_relationships`).
     Pending,
@@ -145,7 +145,7 @@ pub enum EdgeOrigin {
 /// `uses`, `extends`, `implements` and any other type edge all collapse to
 /// [`ReferenceKind::TypeUsage`] because they share the same compatible-kind set
 /// and the same tier enablement.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ReferenceKind {
     /// A call: relationship `calls` or identifier `call`. Targets
     /// Function/Method/Constructor (tiers 1–3); tier 4 restricts to
@@ -422,6 +422,12 @@ pub trait CandidateLookup {
     ) -> Result<(), Self::Error>;
 
     fn tier_candidate_summary(&self) -> Result<CandidateSummary, Self::Error>;
+
+    fn cached_resolution(&self, _edge: &UnresolvedEdge) -> Option<TierOutcome> {
+        None
+    }
+
+    fn cache_resolution(&self, _edge: &UnresolvedEdge, _outcome: &TierOutcome) {}
 }
 
 // ---------------------------------------------------------------------------
@@ -928,6 +934,9 @@ pub fn resolve_with_candidate_lookup<L: CandidateLookup>(
     lookup: &L,
     edge: &UnresolvedEdge,
 ) -> Result<TierOutcome, L::Error> {
+    if let Some(outcome) = lookup.cached_resolution(edge) {
+        return Ok(outcome);
+    }
     if edge.terminal_name.is_empty() {
         return Ok(TierOutcome::NoContext);
     }
@@ -952,12 +961,14 @@ pub fn resolve_with_candidate_lookup<L: CandidateLookup>(
             0 => {}
             1 => {
                 let only = &candidates.evidence[0];
-                return Ok(TierOutcome::Resolved {
+                let outcome = TierOutcome::Resolved {
                     target_symbol_id: only.semantic_id.clone(),
                     tier: tier.number(),
                     confidence: only.confidence.min(edge.source_confidence),
                     method: tier.method().to_string(),
-                });
+                };
+                lookup.cache_resolution(edge, &outcome);
+                return Ok(outcome);
             }
             _ => {
                 if first_ambiguous.is_none() {
@@ -967,7 +978,7 @@ pub fn resolve_with_candidate_lookup<L: CandidateLookup>(
         }
     }
 
-    Ok(match first_ambiguous {
+    let outcome = match first_ambiguous {
         Some(summary) => TierOutcome::Ambiguous {
             candidates: summary
                 .evidence
@@ -978,7 +989,9 @@ pub fn resolve_with_candidate_lookup<L: CandidateLookup>(
         },
         None if attempted_any => TierOutcome::Missing,
         None => TierOutcome::NoContext,
-    })
+    };
+    lookup.cache_resolution(edge, &outcome);
+    Ok(outcome)
 }
 
 // ---------------------------------------------------------------------------

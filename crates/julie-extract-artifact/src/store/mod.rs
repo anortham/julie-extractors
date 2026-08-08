@@ -40,12 +40,13 @@ pub use resolution::{
 };
 pub use resolution_diff::{
     RESOLUTION_SCRATCH_FORMAT_VERSION, RESOLUTION_SCRATCH_SQL, RESOLUTION_SCRATCH_USER_VERSION,
-    ResolutionApplyCounts, ResolutionDiffResult, ResolutionGapFact, ResolutionGapKind,
-    ResolutionGapTable, ResolutionPendingTombstone, ResolutionScratchCounts,
+    ResolutionApplyCounts, ResolutionDiffMarker, ResolutionDiffResult, ResolutionGapFact,
+    ResolutionGapKind, ResolutionGapTable, ResolutionPendingTombstone, ResolutionScratchCounts,
     ResolutionScratchDelta, ResolutionScratchDeltaReader, ResolutionScratchReader,
     ResolutionScratchWriter, apply_base_delta, resolution_scratch_catalog_hash,
     resolution_scratch_catalog_hash_for_sql, scratch_identifier_target_set,
     scratch_resolution_counts, scratch_semantic_counts, stream_resolution_diff,
+    stream_resolution_diff_with_markers,
 };
 pub use schema::{
     STORE_FORMAT_EPOCH, STORE_SQLITE_SCHEMA_VERSION, StoreSchemaError, create_coordinator_schema,

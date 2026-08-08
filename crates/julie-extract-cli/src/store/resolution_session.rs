@@ -1,4 +1,5 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
@@ -15,7 +16,7 @@ use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::resolution::{
     self, CandidateEvidence, CandidateHit, CandidateLookup, CandidateSummary, CandidateSymbol,
-    ImportRecord, TypeFact,
+    EdgeOrigin, ImportRecord, ReferenceKind, TierOutcome, TypeFact, UnresolvedEdge,
 };
 use crate::resolution_session::{
     ResolutionCorpusIdentity, ResolutionPassRequest, ResolutionPhase, ResolutionPhaseChunk,
@@ -26,6 +27,37 @@ use crate::resolution_session::{SemanticSymbolId, SemanticVersionId};
 
 const MAX_STORE_RESOLUTION_WINDOW: usize = 300;
 type CandidatePage = (Vec<CandidateHit>, Option<(i64, String)>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ResolutionLookupKey {
+    origin: EdgeOrigin,
+    kind: ReferenceKind,
+    language: String,
+    file_id: String,
+    terminal_name: String,
+    receiver: Option<String>,
+    caller_scope_symbol_id: Option<String>,
+    import_context: Option<String>,
+    receiver_qualifier: Option<String>,
+    source_confidence_bits: u64,
+}
+
+impl From<&UnresolvedEdge> for ResolutionLookupKey {
+    fn from(edge: &UnresolvedEdge) -> Self {
+        Self {
+            origin: edge.origin,
+            kind: edge.kind,
+            language: edge.language.clone(),
+            file_id: edge.file_id.clone(),
+            terminal_name: edge.terminal_name.clone(),
+            receiver: edge.receiver.clone(),
+            caller_scope_symbol_id: edge.caller_scope_symbol_id.clone(),
+            import_context: edge.import_context.clone(),
+            receiver_qualifier: edge.receiver_qualifier.clone(),
+            source_confidence_bits: edge.source_confidence.to_bits(),
+        }
+    }
+}
 
 #[cfg(feature = "test-store-resolution-contract")]
 pub type ResolutionScratchPragmaValues = (i64, i64, String, i64, i64, i64, i64);
@@ -154,6 +186,8 @@ pub struct StoreScratchResolutionSession {
     max_store_read_page: Cell<usize>,
     phase_reader_opens: Cell<usize>,
     visible_root_batches: usize,
+    candidate_reader: RefCell<Option<Connection>>,
+    resolution_cache: RefCell<HashMap<ResolutionLookupKey, TierOutcome>>,
 }
 
 impl StoreScratchResolutionSession {
@@ -196,6 +230,8 @@ impl StoreScratchResolutionSession {
             max_store_read_page: Cell::new(0),
             phase_reader_opens: Cell::new(0),
             visible_root_batches: 0,
+            candidate_reader: RefCell::new(None),
+            resolution_cache: RefCell::new(HashMap::new()),
         };
         session.validate_manifest()?;
         session.initialize_scratch()?;
@@ -438,6 +474,24 @@ impl StoreScratchResolutionSession {
         self.open_reader()
     }
 
+    fn with_candidate_reader<T>(
+        &self,
+        read: impl FnOnce(&Connection) -> Result<T, StoreResolutionError>,
+    ) -> Result<T, StoreResolutionError> {
+        if self.candidate_reader.borrow().is_none() {
+            *self.candidate_reader.borrow_mut() = Some(self.open_phase_reader()?);
+        }
+        let reader = self.candidate_reader.borrow();
+        read(reader.as_ref().expect("candidate reader initialized"))
+    }
+
+    fn reset_candidate_window(&mut self) -> Result<(), StoreResolutionError> {
+        let reader = self.open_phase_reader()?;
+        *self.candidate_reader.get_mut() = Some(reader);
+        self.resolution_cache.get_mut().clear();
+        Ok(())
+    }
+
     fn initialize_scratch(&mut self) -> Result<(), StoreResolutionError> {
         let mut scratch_path = self.exact_path.as_os_str().to_os_string();
         scratch_path.push(".work");
@@ -563,10 +617,10 @@ impl CandidateLookup for StoreScratchResolutionSession {
         local_id: &str,
     ) -> Result<Option<CandidateHit>, Self::Error> {
         let version_id = parse_source_key(source_key)?;
-        let connection = self.open_reader()?;
-        let hit = connection
-            .query_row(
-                "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
+        self.with_candidate_reader(|connection| {
+            let hit = connection
+                .query_row(
+                    "SELECT s.version_id, s.symbol_id, s.language, s.name, s.kind,
                         s.parent_symbol_id, s.visibility, s.signature, s.metadata_json
                  FROM symbols AS s
                  WHERE s.version_id = ?1 AND s.symbol_id = ?2
@@ -576,17 +630,18 @@ impl CandidateLookup for StoreScratchResolutionSession {
                        AND me.status IN ('indexed', 'failed_preserved')
                        AND me.version_id = s.version_id
                    )",
-                params![
-                    version_id,
-                    local_id,
-                    self.identity.view_id,
-                    self.identity.generation
-                ],
-                candidate_hit,
-            )
-            .optional()?
-            .flatten();
-        Ok(hit)
+                    params![
+                        version_id,
+                        local_id,
+                        self.identity.view_id,
+                        self.identity.generation
+                    ],
+                    candidate_hit,
+                )
+                .optional()?
+                .flatten();
+            Ok(hit)
+        })
     }
 
     fn visit_by_name<F>(&self, name: &str, mut visitor: F) -> Result<(), Self::Error>
@@ -603,7 +658,7 @@ impl CandidateLookup for StoreScratchResolutionSession {
                    AND me.status IN ('indexed', 'failed_preserved')
                    AND me.version_id = s.version_id
                )
-               AND (s.version_id>?4 OR (s.version_id=?4 AND s.symbol_id>?5))
+               AND (s.version_id,s.symbol_id)>(?4,?5)
              ORDER BY s.version_id, s.symbol_id COLLATE BINARY LIMIT ?6";
         let mut after = (0, String::new());
         loop {
@@ -912,6 +967,19 @@ impl CandidateLookup for StoreScratchResolutionSession {
             exact_count,
         })
     }
+
+    fn cached_resolution(&self, edge: &UnresolvedEdge) -> Option<TierOutcome> {
+        self.resolution_cache
+            .borrow()
+            .get(&ResolutionLookupKey::from(edge))
+            .cloned()
+    }
+
+    fn cache_resolution(&self, edge: &UnresolvedEdge, outcome: &TierOutcome) {
+        self.resolution_cache
+            .borrow_mut()
+            .insert(ResolutionLookupKey::from(edge), outcome.clone());
+    }
 }
 
 impl ResolutionSession for StoreScratchResolutionSession {
@@ -1023,23 +1091,34 @@ impl ResolutionSession for StoreScratchResolutionSession {
         let SemanticVersionId::Store(version_id) = version else {
             return Ok(None);
         };
-        let connection = self.open_reader()?;
-        let mut statement = connection.prepare(
-            "SELECT identifier_id
-                 FROM identifiers
-                 WHERE version_id=?1 AND name=?2
-                   AND ((?3 IS NOT NULL AND ?4 IS NOT NULL
-                         AND start_byte>=?3 AND end_byte<=?4)
-                        OR ((?3 IS NULL OR ?4 IS NULL) AND start_line=?5))
-                 ORDER BY identifier_id COLLATE BINARY LIMIT 2",
-        )?;
-        let ids = statement
-            .query_map(
-                params![version_id, name, start_byte, end_byte, start_line],
-                |row| row.get::<_, String>(0),
-            )?
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok((ids.len() == 1).then(|| ids[0].clone()))
+        self.with_candidate_reader(|connection| {
+            let ids = if let (Some(start_byte), Some(end_byte)) = (start_byte, end_byte) {
+                connection
+                    .prepare_cached(
+                        "SELECT identifier_id FROM identifiers
+                         WHERE version_id=?1 AND name=?2
+                           AND start_byte>=?3 AND start_byte<=?4 AND end_byte<=?4
+                         ORDER BY identifier_id COLLATE BINARY LIMIT 2",
+                    )?
+                    .query_map(params![version_id, name, start_byte, end_byte], |row| {
+                        row.get::<_, String>(0)
+                    })?
+                    .collect::<Result<Vec<_>, _>>()?
+            } else {
+                connection
+                    .prepare_cached(
+                        "SELECT identifier_id FROM identifiers
+                         WHERE version_id=?1 AND name=?2 AND start_line=?3
+                         ORDER BY identifier_id COLLATE BINARY LIMIT 2",
+                    )?
+                    .query_map(params![version_id, name, start_line], |row| {
+                        row.get::<_, String>(0)
+                    })?
+                    .collect::<Result<Vec<_>, _>>()?
+            };
+            let identifier_id = (ids.len() == 1).then(|| ids[0].clone());
+            Ok(identifier_id)
+        })
     }
 
     fn identifier_is_covered(
@@ -1093,7 +1172,7 @@ impl ResolutionSession for StoreScratchResolutionSession {
         let keys = {
             let mut statement = self.scratch.prepare(
                 "SELECT version_id,local_id FROM phase_keys
-                 WHERE phase=?1 AND (version_id>?2 OR (version_id=?2 AND local_id>?3))
+                 WHERE phase=?1 AND (version_id,local_id)>(?2,?3)
                  ORDER BY version_id,local_id COLLATE BINARY LIMIT ?4",
             )?;
             statement
@@ -1104,10 +1183,13 @@ impl ResolutionSession for StoreScratchResolutionSession {
                 .collect::<Result<Vec<_>, _>>()?
         };
         if keys.is_empty() {
+            *self.candidate_reader.get_mut() = None;
+            self.resolution_cache.get_mut().clear();
             return Ok(None);
         }
         self.phase_after = keys.last().cloned();
         self.max_emitted_chunk_size = self.max_emitted_chunk_size.max(keys.len());
+        self.reset_candidate_window()?;
         match worklists.phase {
             ResolutionPhase::Pending => Ok(Some(ResolutionPhaseChunk::Pending(
                 self.load_pending_page(&keys)?,
@@ -1124,71 +1206,95 @@ impl ResolutionSession for StoreScratchResolutionSession {
 
     fn flush(&mut self, writes: ResolutionWriteBatch) -> Result<ResolutionCounts, Self::Error> {
         let transaction = self.scratch.transaction()?;
-        for write in writes.writes {
-            match write {
-                ResolutionWrite::Pending {
-                    pending_relationship_id,
-                    target_symbol_id,
-                    tier,
-                    confidence,
-                    method,
-                    ..
-                } => {
-                    let version_id = store_version(&pending_relationship_id.version)?;
-                    let target_version_id = store_version(&target_symbol_id.version)?;
-                    transaction.execute(
-                        "INSERT INTO pending_resolutions
-                         (version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method)
-                         VALUES (?1,?2,?3,?4,?5,?6,?7)
-                         ON CONFLICT(version_id,pending_relationship_id) DO UPDATE SET
-                           target_version_id=excluded.target_version_id,
-                           target_symbol_id=excluded.target_symbol_id,tier=excluded.tier,
-                           confidence=excluded.confidence,method=excluded.method",
-                        params![version_id, pending_relationship_id.local_id, target_version_id,
-                            target_symbol_id.local_id, tier, confidence, method],
-                    )?;
-                }
-                ResolutionWrite::DemotePending {
-                    pending_relationship_id,
-                } => {
-                    transaction.execute(
-                        "DELETE FROM pending_resolutions WHERE version_id=?1 AND pending_relationship_id=?2",
-                        params![store_version(&pending_relationship_id.version)?, pending_relationship_id.local_id],
-                    )?;
-                }
-                ResolutionWrite::Identifier {
-                    identifier_id,
-                    target_symbol_id,
-                    outcome,
-                    tier,
-                    confidence,
-                    method,
-                    candidates,
-                    ..
-                } => {
-                    let target_version_id = target_symbol_id
-                        .as_ref()
-                        .map(|id| store_version(&id.version))
-                        .transpose()?;
-                    transaction.execute(
-                        "INSERT INTO identifier_resolutions
-                         (version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates)
-                         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
-                         ON CONFLICT(version_id,identifier_id) DO UPDATE SET
-                           target_version_id=excluded.target_version_id,
-                           target_symbol_id=excluded.target_symbol_id,tier=excluded.tier,
-                           confidence=excluded.confidence,method=excluded.method,
-                           outcome=excluded.outcome,candidates=excluded.candidates",
-                        params![store_version(&identifier_id.version)?, identifier_id.local_id,
-                            target_version_id, target_symbol_id.map(|id| id.local_id), tier,
-                            confidence, method, outcome.as_str(), candidates],
-                    )?;
-                }
-                ResolutionWrite::DemoteIdentifier { identifier_id } => {
-                    transaction.execute(
-                        "DELETE FROM identifier_resolutions WHERE version_id=?1 AND identifier_id=?2",
-                        params![store_version(&identifier_id.version)?, identifier_id.local_id],
-                    )?;
+        {
+            let mut pending_upsert = transaction.prepare(
+                "INSERT INTO pending_resolutions
+                 (version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7)
+                 ON CONFLICT(version_id,pending_relationship_id) DO UPDATE SET
+                   target_version_id=excluded.target_version_id,
+                   target_symbol_id=excluded.target_symbol_id,tier=excluded.tier,
+                   confidence=excluded.confidence,method=excluded.method",
+            )?;
+            let mut pending_delete = transaction.prepare(
+                "DELETE FROM pending_resolutions
+                 WHERE version_id=?1 AND pending_relationship_id=?2",
+            )?;
+            let mut identifier_upsert = transaction.prepare(
+                "INSERT INTO identifier_resolutions
+                 (version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
+                 ON CONFLICT(version_id,identifier_id) DO UPDATE SET
+                   target_version_id=excluded.target_version_id,
+                   target_symbol_id=excluded.target_symbol_id,tier=excluded.tier,
+                   confidence=excluded.confidence,method=excluded.method,
+                   outcome=excluded.outcome,candidates=excluded.candidates",
+            )?;
+            let mut identifier_delete = transaction.prepare(
+                "DELETE FROM identifier_resolutions WHERE version_id=?1 AND identifier_id=?2",
+            )?;
+            for write in writes.writes {
+                match write {
+                    ResolutionWrite::Pending {
+                        pending_relationship_id,
+                        target_symbol_id,
+                        tier,
+                        confidence,
+                        method,
+                        ..
+                    } => {
+                        let version_id = store_version(&pending_relationship_id.version)?;
+                        let target_version_id = store_version(&target_symbol_id.version)?;
+                        pending_upsert.execute(params![
+                            version_id,
+                            pending_relationship_id.local_id,
+                            target_version_id,
+                            target_symbol_id.local_id,
+                            tier,
+                            confidence,
+                            method
+                        ])?;
+                    }
+                    ResolutionWrite::DemotePending {
+                        pending_relationship_id,
+                    } => {
+                        pending_delete.execute(params![
+                            store_version(&pending_relationship_id.version)?,
+                            pending_relationship_id.local_id
+                        ])?;
+                    }
+                    ResolutionWrite::Identifier {
+                        identifier_id,
+                        target_symbol_id,
+                        outcome,
+                        tier,
+                        confidence,
+                        method,
+                        candidates,
+                        ..
+                    } => {
+                        let target_version_id = target_symbol_id
+                            .as_ref()
+                            .map(|id| store_version(&id.version))
+                            .transpose()?;
+                        identifier_upsert.execute(params![
+                            store_version(&identifier_id.version)?,
+                            identifier_id.local_id,
+                            target_version_id,
+                            target_symbol_id.map(|id| id.local_id),
+                            tier,
+                            confidence,
+                            method,
+                            outcome.as_str(),
+                            candidates
+                        ])?;
+                    }
+                    ResolutionWrite::DemoteIdentifier { identifier_id } => {
+                        identifier_delete.execute(params![
+                            store_version(&identifier_id.version)?,
+                            identifier_id.local_id
+                        ])?;
+                    }
                 }
             }
         }
@@ -1207,22 +1313,23 @@ impl StoreScratchResolutionSession {
         sql: &str,
         bind: Vec<rusqlite::types::Value>,
     ) -> Result<CandidatePage, StoreResolutionError> {
-        let connection = self.open_reader()?;
-        let mut statement = connection.prepare(sql)?;
-        let mut rows = statement.query(rusqlite::params_from_iter(bind))?;
-        let mut hits = Vec::new();
-        let mut last = None;
-        let mut page_rows = 0usize;
-        while let Some(row) = rows.next()? {
-            page_rows += 1;
-            last = Some((row.get::<_, i64>(0)?, row.get::<_, String>(1)?));
-            if let Some(hit) = candidate_hit(row)? {
-                hits.push(hit);
+        self.with_candidate_reader(|connection| {
+            let mut statement = connection.prepare_cached(sql)?;
+            let mut rows = statement.query(rusqlite::params_from_iter(bind))?;
+            let mut hits = Vec::new();
+            let mut last = None;
+            let mut page_rows = 0usize;
+            while let Some(row) = rows.next()? {
+                page_rows += 1;
+                last = Some((row.get::<_, i64>(0)?, row.get::<_, String>(1)?));
+                if let Some(hit) = candidate_hit(row)? {
+                    hits.push(hit);
+                }
             }
-        }
-        self.max_store_read_page
-            .set(self.max_store_read_page.get().max(page_rows));
-        Ok((hits, last))
+            self.max_store_read_page
+                .set(self.max_store_read_page.get().max(page_rows));
+            Ok((hits, last))
+        })
     }
 
     fn scratch_identifier_exists(
@@ -1264,7 +1371,7 @@ impl StoreScratchResolutionSession {
                      AND me.status IN ('indexed','failed_preserved')
                      AND me.version_id=source.version_id
                  )
-                   AND (source.version_id>?3 OR (source.version_id=?3 AND source.{id_column}>?4))
+                   AND (source.version_id,source.{id_column})>(?3,?4)
                  ORDER BY source.version_id,source.{id_column} COLLATE BINARY LIMIT ?5"
             );
             let mut after = (0, String::new());
@@ -1292,28 +1399,41 @@ impl StoreScratchResolutionSession {
                 if keys.is_empty() {
                     break;
                 }
-                for (version_id, local_id) in &keys {
-                    let already_written = match phase {
-                    ResolutionPhase::Pending => transaction.query_row(
-                        "SELECT EXISTS(SELECT 1 FROM pending_resolutions WHERE version_id=?1 AND pending_relationship_id=?2)",
-                        params![version_id, local_id],
-                        |row| row.get::<_, bool>(0),
-                    )?,
-                    ResolutionPhase::Identifiers => transaction.query_row(
-                        "SELECT EXISTS(SELECT 1 FROM identifier_resolutions WHERE version_id=?1 AND identifier_id=?2)",
-                        params![version_id, local_id],
-                        |row| row.get::<_, bool>(0),
-                    )?,
-                    _ => false,
-                };
-                    if !already_written {
-                        transaction.execute(
-                            "INSERT INTO phase_keys(phase,version_id,local_id) VALUES (?1,?2,?3)",
-                            params![code, version_id, local_id],
-                        )?;
-                    }
-                }
+                let insert = format!(
+                    "WITH incoming(version_id,local_id) AS (VALUES {})
+                     INSERT INTO phase_keys(phase,version_id,local_id)
+                     SELECT ?,incoming.version_id,incoming.local_id FROM incoming",
+                    key_values_clause(keys.len())
+                );
+                let mut bind = key_params(&keys);
+                bind.push(rusqlite::types::Value::Integer(code));
+                transaction.execute(&insert, rusqlite::params_from_iter(bind))?;
                 after = keys.last().cloned().expect("non-empty key page");
+            }
+            match phase {
+                ResolutionPhase::Pending => {
+                    transaction.execute(
+                        "DELETE FROM phase_keys
+                         WHERE phase=?1 AND EXISTS (
+                           SELECT 1 FROM pending_resolutions AS written
+                           WHERE written.version_id=phase_keys.version_id
+                             AND written.pending_relationship_id=phase_keys.local_id
+                         )",
+                        [code],
+                    )?;
+                }
+                ResolutionPhase::Identifiers => {
+                    transaction.execute(
+                        "DELETE FROM phase_keys
+                         WHERE phase=?1 AND EXISTS (
+                           SELECT 1 FROM identifier_resolutions AS written
+                           WHERE written.version_id=phase_keys.version_id
+                             AND written.identifier_id=phase_keys.local_id
+                         )",
+                        [code],
+                    )?;
+                }
+                _ => {}
             }
         }
         transaction.execute("INSERT INTO phase_ready(phase) VALUES (?1)", [code])?;
@@ -1327,14 +1447,18 @@ impl StoreScratchResolutionSession {
     ) -> Result<Vec<PendingWorkItem>, StoreResolutionError> {
         let connection = self.open_phase_reader()?;
         let sql = format!(
-            "SELECT pr.version_id,pr.pending_relationship_id,pr.from_symbol_id,pr.caller_scope_symbol_id,
+            "WITH wanted(version_id,local_id) AS (VALUES {})
+             SELECT pr.version_id,pr.pending_relationship_id,pr.from_symbol_id,pr.caller_scope_symbol_id,
                     pr.path,fv.language,pr.kind,pr.target_display_name,pr.target_terminal_name,
                     pr.target_receiver,pr.target_namespace_json,pr.target_import_context,
                     pr.start_line,pr.start_byte,pr.end_byte,pr.confidence
-             FROM pending_relationships AS pr
+             FROM wanted
+             JOIN pending_relationships AS pr
+               ON pr.version_id=wanted.version_id
+              AND pr.pending_relationship_id=wanted.local_id
              JOIN file_versions AS fv ON fv.version_id=pr.version_id
-             WHERE {} ORDER BY pr.version_id,pr.pending_relationship_id COLLATE BINARY",
-            key_predicate("pr.version_id", "pr.pending_relationship_id", keys.len())
+             ORDER BY pr.version_id,pr.pending_relationship_id COLLATE BINARY",
+            key_values_clause(keys.len())
         );
         let mut statement = connection.prepare(&sql)?;
         let keyed_rows = statement
@@ -1372,9 +1496,14 @@ impl StoreScratchResolutionSession {
     ) -> Result<Vec<crate::resolution_session::SessionRelationship>, StoreResolutionError> {
         let connection = self.open_phase_reader()?;
         let sql = format!(
-            "SELECT version_id,relationship_id,to_symbol_id,kind,start_line,start_byte,end_byte,confidence
-             FROM relationships WHERE {} ORDER BY version_id,relationship_id COLLATE BINARY",
-            key_predicate("version_id", "relationship_id", keys.len())
+            "WITH wanted(version_id,local_id) AS (VALUES {})
+             SELECT r.version_id,r.relationship_id,r.to_symbol_id,r.kind,r.start_line,r.start_byte,
+                    r.end_byte,r.confidence
+             FROM wanted
+             JOIN relationships AS r
+               ON r.version_id=wanted.version_id AND r.relationship_id=wanted.local_id
+             ORDER BY r.version_id,r.relationship_id COLLATE BINARY",
+            key_values_clause(keys.len())
         );
         let mut statement = connection.prepare(&sql)?;
         let keyed_rows = statement
@@ -1406,12 +1535,17 @@ impl StoreScratchResolutionSession {
     ) -> Result<Vec<IdentifierWorkItem>, StoreResolutionError> {
         let connection = self.open_phase_reader()?;
         let sql = format!(
-            "SELECT version_id,identifier_id,path,language,name,kind,containing_symbol_id,start_line,
-                    start_byte,end_byte,json_extract(metadata_json,'$.receiver'),
-                    json_extract(metadata_json,'$.receiver_qualifier'),
-                    json_extract(metadata_json,'$.import_context'),confidence
-             FROM identifiers WHERE {} ORDER BY version_id,identifier_id COLLATE BINARY",
-            key_predicate("version_id", "identifier_id", keys.len())
+            "WITH wanted(version_id,local_id) AS (VALUES {})
+             SELECT i.version_id,i.identifier_id,i.path,i.language,i.name,i.kind,
+                    i.containing_symbol_id,i.start_line,i.start_byte,i.end_byte,
+                    json_extract(i.metadata_json,'$.receiver'),
+                    json_extract(i.metadata_json,'$.receiver_qualifier'),
+                    json_extract(i.metadata_json,'$.import_context'),i.confidence
+             FROM wanted
+             JOIN identifiers AS i
+               ON i.version_id=wanted.version_id AND i.identifier_id=wanted.local_id
+             ORDER BY i.version_id,i.identifier_id COLLATE BINARY",
+            key_values_clause(keys.len())
         );
         let mut statement = connection.prepare(&sql)?;
         let keyed_rows = statement
@@ -1546,15 +1680,10 @@ fn phase_code(phase: ResolutionPhase) -> i64 {
     }
 }
 
-fn key_predicate(version_column: &str, id_column: &str, count: usize) -> String {
-    (0..count)
-        .map(|index| {
-            let version = index * 2 + 1;
-            let id = version + 1;
-            format!("({version_column}=?{version} AND {id_column}=?{id})")
-        })
+fn key_values_clause(count: usize) -> String {
+    std::iter::repeat_n("(?,?)", count)
         .collect::<Vec<_>>()
-        .join(" OR ")
+        .join(",")
 }
 
 fn key_params(keys: &[(i64, String)]) -> Vec<rusqlite::types::Value> {

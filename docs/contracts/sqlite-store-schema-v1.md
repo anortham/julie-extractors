@@ -7,7 +7,7 @@ All ordinary tables are `STRICT`. `store.db` timestamps are canonical RFC 3339 U
 The executable DDL lives in `julie_extract_artifact::store`. The authority fingerprint normalizes each non-internal `sqlite_master` row with non-null SQL as `type|name|tbl_name|compact_whitespace(sql)`, orders by `(type, name)`, joins with newline, and hashes the UTF-8 bytes with SHA-256.
 
 ```text catalog-authority
-store-catalog-sha256: fb74e28820bc54768ae36e530a27fcb75c48ae1d11bb1e20d56344dfeabd2332
+store-catalog-sha256: 1897879e3cdccc86c7a90bd94e583ea71838e05982c9f218980eb41fa04d4659
 coordinator-catalog-sha256: ab35421934961f1caba2404b8638c667cbc4a6525ac3143e3cbd68d414d2ed56
 ```
 
@@ -58,6 +58,8 @@ gc: idx_gc_symbol_annotations_symbol(version_id, symbol_id)
 read: idx_read_reference_sites_containing_symbol(containing_symbol_id, version_id)
 read: idx_read_identifiers_name_kind(name, kind, version_id)
 read: idx_read_identifiers_containing(containing_symbol_id, version_id)
+read: idx_read_identifiers_locator_line(version_id, name, start_line, identifier_id)
+read: idx_read_identifiers_locator_span(version_id, name, start_byte, end_byte, identifier_id)
 read: idx_read_identifiers_reference_site(reference_site_id, version_id)
 read: idx_read_relationships_from(from_symbol_id, version_id)
 read: idx_read_relationships_to(to_symbol_id, version_id)

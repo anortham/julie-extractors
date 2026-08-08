@@ -488,17 +488,17 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Hard-stop acceptance:**
 
-- [ ] G1 zero semantic differences for every pair/run.
-- [ ] G2 persisted base+delta equals fresh exact output for every pair/run.
-- [ ] G3a is at least 50,000 identifier rows/sec for every pair/run.
-- [ ] G3b is at most 0.50 for every pair/run using the approved denominator.
-- [ ] G3c is at most 30 seconds for every pair/run.
-- [ ] G4 exact gaps pass every run; G5 performs zero foreground identifier work and the
+- [x] G1 zero semantic differences for every pair/run.
+- [x] G2 persisted base+delta equals fresh exact output for every pair/run.
+- [x] G3a is at least 50,000 identifier rows/sec for every pair/run.
+- [x] G3b is at most 0.50 for every pair/run using the approved denominator.
+- [x] G3c is at most 30 seconds for every pair/run.
+- [x] G4 exact gaps pass every run; G5 performs zero foreground identifier work and the
   store-real background pipeline beats the frozen 24,390 ms refuted-bind control on the
   equivalent Miller corpus every run. Foreground milliseconds are recorded, but no new
   post-measurement latency threshold replaces the frozen criterion.
-- [ ] Finding records all metrics and peak RSS without averages hiding a failure.
-- [ ] If any checkbox is false, stop. Do not begin Task 6.
+- [x] Finding records all metrics and peak RSS without averages hiding a failure.
+- [x] If any checkbox is false, stop. Do not begin Task 6.
 
 ## Task 6: Advance Store and Coordinator Catalogs to Schema v2
 

@@ -539,6 +539,12 @@ pub struct ResolutionDiffResult {
     pub max_window_rows: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolutionDiffMarker {
+    DeltaWriteStart,
+    DeltaWriteEnd,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct ResolutionApplyCounts {
     pub identifiers: u64,
@@ -551,10 +557,25 @@ pub fn stream_resolution_diff<F>(
     exact: &super::resolution::ResolutionBaseReader,
     scratch_path: impl AsRef<Path>,
     window_size: usize,
-    mut emit_gap: F,
+    emit_gap: F,
 ) -> Result<ResolutionDiffResult, ResolutionValidationError>
 where
     F: FnMut(ResolutionGapFact) -> Result<(), ResolutionValidationError>,
+{
+    stream_resolution_diff_with_markers(base, exact, scratch_path, window_size, emit_gap, |_| {})
+}
+
+pub fn stream_resolution_diff_with_markers<F, M>(
+    base: &super::resolution::ResolutionBaseReader,
+    exact: &super::resolution::ResolutionBaseReader,
+    scratch_path: impl AsRef<Path>,
+    window_size: usize,
+    mut emit_gap: F,
+    mut mark: M,
+) -> Result<ResolutionDiffResult, ResolutionValidationError>
+where
+    F: FnMut(ResolutionGapFact) -> Result<(), ResolutionValidationError>,
+    M: FnMut(ResolutionDiffMarker),
 {
     if window_size == 0 {
         return Err(ResolutionValidationError::InvalidArgument("window size"));
@@ -564,11 +585,14 @@ where
         exact.file_identity().resolver_output_epoch,
     )?;
     let identity = exact.file_identity();
-    let mut writer = ResolutionScratchWriter::new(
+    mark(ResolutionDiffMarker::DeltaWriteStart);
+    let writer = ResolutionScratchWriter::new(
         scratch_path,
         identity.manifest_hash.clone(),
         identity.resolver_output_epoch,
-    )?;
+    );
+    mark(ResolutionDiffMarker::DeltaWriteEnd);
+    let mut writer = writer?;
     let mut gaps = 0u64;
     let mut base_identifiers = BaseIdentifierCursor::new(base, window_size);
     let mut exact_identifiers = BaseIdentifierCursor::new(exact, window_size);
@@ -592,7 +616,10 @@ where
                         left = base_identifiers.next()?;
                     }
                     std::cmp::Ordering::Greater => {
-                        writer.push_identifier_replacement(exact_row.clone())?;
+                        mark(ResolutionDiffMarker::DeltaWriteStart);
+                        let result = writer.push_identifier_replacement(exact_row.clone());
+                        mark(ResolutionDiffMarker::DeltaWriteEnd);
+                        result?;
                         emit_gap_fact(
                             &mut emit_gap,
                             &mut gaps,
@@ -605,7 +632,10 @@ where
                     }
                     std::cmp::Ordering::Equal => {
                         if base_row != exact_row {
-                            writer.push_identifier_replacement(exact_row.clone())?;
+                            mark(ResolutionDiffMarker::DeltaWriteStart);
+                            let result = writer.push_identifier_replacement(exact_row.clone());
+                            mark(ResolutionDiffMarker::DeltaWriteEnd);
+                            result?;
                             emit_gap_fact(
                                 &mut emit_gap,
                                 &mut gaps,
@@ -633,7 +663,10 @@ where
                 left = base_identifiers.next()?;
             }
             (None, Some(exact_row)) => {
-                writer.push_identifier_replacement(exact_row.clone())?;
+                mark(ResolutionDiffMarker::DeltaWriteStart);
+                let result = writer.push_identifier_replacement(exact_row.clone());
+                mark(ResolutionDiffMarker::DeltaWriteEnd);
+                result?;
                 emit_gap_fact(
                     &mut emit_gap,
                     &mut gaps,
@@ -656,10 +689,13 @@ where
             (Some(base_row), Some(exact_row)) => {
                 match pending_key(base_row).cmp(&pending_key(exact_row)) {
                     std::cmp::Ordering::Less => {
-                        writer.push_pending_tombstone(ResolutionPendingTombstone {
+                        mark(ResolutionDiffMarker::DeltaWriteStart);
+                        let result = writer.push_pending_tombstone(ResolutionPendingTombstone {
                             version_id: base_row.version_id,
                             pending_relationship_id: base_row.pending_relationship_id.clone(),
-                        })?;
+                        });
+                        mark(ResolutionDiffMarker::DeltaWriteEnd);
+                        result?;
                         emit_gap_fact(
                             &mut emit_gap,
                             &mut gaps,
@@ -671,7 +707,10 @@ where
                         left = base_pending.next()?;
                     }
                     std::cmp::Ordering::Greater => {
-                        writer.push_pending_replacement(exact_row.clone())?;
+                        mark(ResolutionDiffMarker::DeltaWriteStart);
+                        let result = writer.push_pending_replacement(exact_row.clone());
+                        mark(ResolutionDiffMarker::DeltaWriteEnd);
+                        result?;
                         emit_gap_fact(
                             &mut emit_gap,
                             &mut gaps,
@@ -684,7 +723,10 @@ where
                     }
                     std::cmp::Ordering::Equal => {
                         if base_row != exact_row {
-                            writer.push_pending_replacement(exact_row.clone())?;
+                            mark(ResolutionDiffMarker::DeltaWriteStart);
+                            let result = writer.push_pending_replacement(exact_row.clone());
+                            mark(ResolutionDiffMarker::DeltaWriteEnd);
+                            result?;
                             emit_gap_fact(
                                 &mut emit_gap,
                                 &mut gaps,
@@ -700,10 +742,13 @@ where
                 }
             }
             (Some(base_row), None) => {
-                writer.push_pending_tombstone(ResolutionPendingTombstone {
+                mark(ResolutionDiffMarker::DeltaWriteStart);
+                let result = writer.push_pending_tombstone(ResolutionPendingTombstone {
                     version_id: base_row.version_id,
                     pending_relationship_id: base_row.pending_relationship_id.clone(),
-                })?;
+                });
+                mark(ResolutionDiffMarker::DeltaWriteEnd);
+                result?;
                 emit_gap_fact(
                     &mut emit_gap,
                     &mut gaps,
@@ -715,7 +760,10 @@ where
                 left = base_pending.next()?;
             }
             (None, Some(exact_row)) => {
-                writer.push_pending_replacement(exact_row.clone())?;
+                mark(ResolutionDiffMarker::DeltaWriteStart);
+                let result = writer.push_pending_replacement(exact_row.clone());
+                mark(ResolutionDiffMarker::DeltaWriteEnd);
+                result?;
                 emit_gap_fact(
                     &mut emit_gap,
                     &mut gaps,
@@ -734,8 +782,11 @@ where
         .max(exact_identifiers.max_page)
         .max(base_pending.max_page)
         .max(exact_pending.max_page);
+    mark(ResolutionDiffMarker::DeltaWriteStart);
+    let delta = writer.finish();
+    mark(ResolutionDiffMarker::DeltaWriteEnd);
     Ok(ResolutionDiffResult {
-        delta: writer.finish()?,
+        delta: delta?,
         gaps,
         max_window_rows,
     })
@@ -1283,7 +1334,7 @@ impl ResolutionScratchReader {
         let mut statement = self.connection.prepare(
             "SELECT version_id,identifier_id,target_version_id,target_symbol_id,tier,confidence,method,outcome,candidates
              FROM identifier_replacements
-             WHERE version_id>?1 OR (version_id=?1 AND identifier_id>?2)
+             WHERE (version_id,identifier_id)>(?1,?2)
              ORDER BY version_id,identifier_id LIMIT ?3",
         )?;
         Ok(statement
@@ -1334,7 +1385,7 @@ impl ResolutionScratchReader {
         let mut statement = self.connection.prepare(
             "SELECT version_id,pending_relationship_id,target_version_id,target_symbol_id,tier,confidence,method
              FROM pending_replacements
-             WHERE version_id>?1 OR (version_id=?1 AND pending_relationship_id>?2)
+             WHERE (version_id,pending_relationship_id)>(?1,?2)
              ORDER BY version_id,pending_relationship_id LIMIT ?3",
         )?;
         Ok(statement
@@ -1377,7 +1428,7 @@ impl ResolutionScratchReader {
         let (version_id, pending_id) = after.unwrap_or((0, ""));
         let mut statement = self.connection.prepare(
             "SELECT version_id,pending_relationship_id FROM pending_tombstones
-             WHERE version_id>?1 OR (version_id=?1 AND pending_relationship_id>?2)
+             WHERE (version_id,pending_relationship_id)>(?1,?2)
              ORDER BY version_id,pending_relationship_id LIMIT ?3",
         )?;
         Ok(statement

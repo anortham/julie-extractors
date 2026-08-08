@@ -776,6 +776,10 @@ CREATE INDEX IF NOT EXISTS idx_read_identifiers_name_kind
   ON identifiers(name, kind, version_id);
 CREATE INDEX IF NOT EXISTS idx_read_identifiers_containing
   ON identifiers(containing_symbol_id, version_id);
+CREATE INDEX IF NOT EXISTS idx_read_identifiers_locator_line
+  ON identifiers(version_id, name, start_line, identifier_id);
+CREATE INDEX IF NOT EXISTS idx_read_identifiers_locator_span
+  ON identifiers(version_id, name, start_byte, end_byte, identifier_id);
 CREATE INDEX IF NOT EXISTS idx_read_identifiers_reference_site
   ON identifiers(reference_site_id, version_id);
 CREATE INDEX IF NOT EXISTS idx_read_relationships_from

@@ -708,6 +708,14 @@ fn expected_store_indexes() -> BTreeMap<String, Vec<String>> {
             "idx_read_identifiers_containing",
             "containing_symbol_id,version_id",
         ),
+        (
+            "idx_read_identifiers_locator_line",
+            "version_id,name,start_line,identifier_id",
+        ),
+        (
+            "idx_read_identifiers_locator_span",
+            "version_id,name,start_byte,end_byte,identifier_id",
+        ),
         ("idx_read_identifiers_name_kind", "name,kind,version_id"),
         (
             "idx_read_identifiers_reference_site",

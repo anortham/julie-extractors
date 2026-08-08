@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -68,6 +69,34 @@ fn streaming_base_writer_requires_order_and_persists_without_corpus_buffers() {
         vec![identifier(10, "identifier-1")]
     );
     assert_eq!(reader.pending().unwrap(), vec![pending(20, "pending-1")]);
+}
+
+#[test]
+fn streaming_base_writer_validates_each_distinct_target_once() {
+    let temp = TempDir::new("streaming-target-dedup");
+    let path = temp.path().join("base.db");
+    let mut writer = ResolutionBaseWriter::new(&path, "manifest-a", 6).unwrap();
+    writer.push_source_version(10).unwrap();
+    writer.push_source_version(20).unwrap();
+    writer
+        .push_identifier_resolution(identifier(10, "identifier-1"))
+        .unwrap();
+    writer
+        .push_identifier_resolution(identifier(10, "identifier-2"))
+        .unwrap();
+    writer
+        .push_pending_resolution(pending(10, "pending-1"))
+        .unwrap();
+    let lookups = Cell::new(0usize);
+
+    writer
+        .finish_with_target_lookup(|version_id, symbol_id| {
+            lookups.set(lookups.get() + 1);
+            Ok(version_id == 20 && symbol_id == "symbol-4")
+        })
+        .unwrap();
+
+    assert_eq!(lookups.get(), 1);
 }
 
 #[test]
