@@ -30,6 +30,10 @@
 //! any tier yielded >= 2 and `Missing` when every attempted tier yielded 0. There
 //! is NO best-guess selection anywhere: a wrong edge is worse than a missing one.
 
+#[path = "resolution_session.rs"]
+#[allow(dead_code)]
+pub mod session;
+
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use julie_extract_artifact::resolution_store::{IdentifierWorkItem, PendingWorkItem};
@@ -435,6 +439,10 @@ impl WorkspaceCandidateIndex {
     /// propagation to find the co-located identifier by name).
     fn symbol_name(&self, id: &str) -> Option<&str> {
         self.symbol_by_id(id).map(|symbol| symbol.name.as_str())
+    }
+
+    pub(crate) fn symbol_source_id(&self, id: &str) -> Option<&str> {
+        self.symbol_by_id(id).map(|symbol| symbol.file_id.as_str())
     }
 
     fn by_name(&self, name: &str) -> impl Iterator<Item = &CandidateSymbol> + '_ {
@@ -1496,8 +1504,13 @@ fn tier4_compatible_kinds(kind: ReferenceKind) -> &'static [SymbolKind] {
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use self::session::{
+    LegacyResolutionSession, ResolutionPassRequest, ResolutionPhase, ResolutionSession,
+    ResolutionWorklists, ResolutionWriteBatch, SemanticIdentifierId, SemanticPendingRelationshipId,
+    SemanticSymbolId, SemanticVersionId, SessionRelationship, SessionSourceKey,
+};
 use julie_extract_artifact::resolution_store::{
-    self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus, ResolutionWriteBuffer,
+    self, Outcome, ResolutionCounts, ResolutionReportRow, ResolutionStatus,
 };
 use julie_extract_artifact::writer::{ResolutionHookError, ResolutionScopeInput};
 use rusqlite::{Connection, Transaction};
@@ -1641,18 +1654,29 @@ fn run_resolution(
     scope: &ResolutionScopeInput,
     crossover: f64,
 ) -> rusqlite::Result<(ResolutionCounts, ResolutionReport)> {
-    let revision = current_revision(tx)?;
-    let prior = resolution_store::read_resolution_metadata(tx)?;
+    let mut session = LegacyResolutionSession::new(tx, scope, crossover);
+    run_resolution_session(&mut session, scope.is_full_scan, scope.whole_corpus)
+}
+
+#[doc(hidden)]
+pub fn run_resolution_session<S: ResolutionSession>(
+    session: &mut S,
+    is_full_scan: bool,
+    whole_corpus: bool,
+) -> Result<(ResolutionCounts, ResolutionReport), S::Error> {
+    let _corpus_identity = session.corpus_identity()?;
+    let revision = session.current_revision()?;
+    let prior = session.prior_resolution_state()?;
     // v3-artifact backfill: a v3 artifact opened by a new binary gets the overlay
     // tables via the additive schema create but has no resolution metadata yet.
     // Any scan then forces a Full resolve so the whole workspace is backfilled
     // (design §"Contract & rollout" item 2 — the WRITE path).
-    let requested_full = scope.is_full_scan || prior.is_none();
+    let requested_full = is_full_scan || prior.is_none();
 
     // Build the candidate index ONCE per hook invocation (design §"Performance &
     // determinism"). The index is always whole-workspace: a delta edge may resolve
     // to a symbol in an unchanged file.
-    let index = load_index(tx)?;
+    let index = session.load_candidate_index()?;
     // The identifier locator + covered-set are only consulted for same-file
     // co-location joins, so a delta scopes both to the files it touches (FINDING 1:
     // an O(delta) load rather than reloading every identifier each incremental
@@ -1661,48 +1685,24 @@ fn run_resolution(
     // The delta scope is computed BEFORE the branch is final: the selection can still
     // cover most of the workspace, and past the crossover a scoped pass is strictly
     // worse than Full — same rows, plus chunked `IN` clauses and per-file bookkeeping.
-    let mut effective_full = requested_full;
-    let mut shadow_baseline: Option<OverlaySnapshot> = None;
-    let (locator, covered, delta) = if requested_full {
-        let locator = IdentifierLocator::load_scoped(tx, None)?;
-        let covered = covered_identifiers(tx, &index, &locator, None)?;
-        (locator, covered, DeltaScope::none())
-    } else {
-        let delta = delta_scope_files(tx, scope, &index, revision)?;
-        if delta_scope_crosses_over(tx, scope.changed_file_ids.len(), &delta, crossover)? {
-            effective_full = true;
-            let locator = IdentifierLocator::load_scoped(tx, None)?;
-            let covered = covered_identifiers(tx, &index, &locator, None)?;
-            (locator, covered, DeltaScope::none())
-        } else {
-            // The scoped delta is the ONLY pass with a narrowing to prove, so it is
-            // the only place the shadow switch is read — a Full or crossover-promoted
-            // pass re-derives the workspace and has nothing to shadow. The legacy leg
-            // runs FIRST, inside a savepoint rolled back before the real pass writes.
-            if let Some(shadow) = ShadowMode::from_env() {
-                shadow_baseline =
-                    Some(shadow_legacy_overlay(tx, scope, &index, revision, &shadow)?);
-            }
-            // Built from the files of the SELECTED ROWS, not from `recheck_files`: a
-            // row the name arm selects in an unchanged file still needs its
-            // co-location join, and a file the locator never loaded answers `None`.
-            let file_refs: Vec<&str> = delta
-                .selected_row_files
-                .iter()
-                .map(String::as_str)
-                .collect();
-            let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
-            let covered = covered_identifiers(tx, &index, &locator, Some(&file_refs))?;
-            (locator, covered, delta)
-        }
-    };
+    let worklists = session.select_worklists(
+        &ResolutionPassRequest {
+            full: requested_full,
+        },
+        &index,
+    )?;
+    let effective_full = worklists.effective_full;
+    session.prepare_shadow(&worklists, &index, revision)?;
+    let locator = session.load_identifier_locator(&worklists.scope)?;
+    let covered = session.load_covered_identifiers(&index, &locator, &worklists.scope)?;
 
     let mut counts = ResolutionCounts::default();
     let mut gated: BTreeSet<String> = BTreeSet::new();
 
     if effective_full {
         resolve_full(
-            tx,
+            session,
+            &worklists,
             &index,
             &locator,
             &covered,
@@ -1712,9 +1712,8 @@ fn run_resolution(
         )?;
     } else {
         resolve_delta(
-            tx,
-            scope,
-            &delta,
+            session,
+            &worklists,
             &index,
             &locator,
             &covered,
@@ -1724,14 +1723,12 @@ fn run_resolution(
         )?;
     }
 
-    if let Some(baseline) = shadow_baseline {
-        report_shadow_comparison(&baseline, &OverlaySnapshot::capture(tx)?);
-    }
+    session.verify_shadow()?;
 
     // The workspace-wide aggregate only runs on passes that re-derived the whole
     // workspace; a scoped delta would pay O(workspace) for rows it did not change.
     let rows = if effective_full {
-        Some(resolution_store::resolution_report(tx)?)
+        Some(session.aggregate_report()?)
     } else {
         None
     };
@@ -1746,7 +1743,7 @@ fn run_resolution(
     // not claim corpus currency. The identifier-denominated crossover makes that
     // promotion routine on dense files; before it, this leg was almost unreachable
     // and the old `effective_full ||` here went unnoticed.
-    let corpus_current = scope.whole_corpus;
+    let corpus_current = whole_corpus;
     // `gated` accumulates only over items the sweep actually visited, so a scoped pass
     // sees only the languages in scope — enough for the report, which describes what
     // THIS pass did, but not enough to claim `complete` for the workspace. Only that
@@ -1755,7 +1752,13 @@ fn run_resolution(
     let status_gated_clear = if effective_full {
         gated.is_empty()
     } else {
-        gated.is_empty() && workspace_tier2_gated_languages(tx)?.is_empty()
+        let mut phase = worklists.clone();
+        phase.phase = ResolutionPhase::WorkspaceGated;
+        gated.is_empty()
+            && session
+                .read_current_overlay(&phase, &index, &locator, &covered)?
+                .gated_languages
+                .is_empty()
     };
     let status = if corpus_current && status_gated_clear {
         ResolutionStatus::Complete
@@ -1781,69 +1784,137 @@ fn run_resolution(
     ))
 }
 
+fn semantic_identifier_id<S: ResolutionSession>(
+    session: &S,
+    source_key: &str,
+    local_id: &str,
+) -> SemanticIdentifierId {
+    SemanticIdentifierId {
+        version: session.qualify_version(source_key),
+        local_id: local_id.to_string(),
+    }
+}
+
+fn semantic_pending_id<S: ResolutionSession>(
+    session: &S,
+    source_key: &str,
+    local_id: &str,
+) -> SemanticPendingRelationshipId {
+    SemanticPendingRelationshipId {
+        version: session.qualify_version(source_key),
+        local_id: local_id.to_string(),
+    }
+}
+
+fn semantic_symbol_id<S: ResolutionSession>(
+    session: &S,
+    index: &WorkspaceCandidateIndex,
+    local_id: &str,
+) -> SemanticSymbolId {
+    SemanticSymbolId {
+        version: session.qualify_version(index.symbol_source_id(local_id).unwrap_or_default()),
+        local_id: local_id.to_string(),
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Full / Delta orchestration
 // ---------------------------------------------------------------------------
 
 #[allow(clippy::too_many_arguments)]
-fn resolve_full(
-    tx: &Transaction<'_>,
+fn resolve_full<S: ResolutionSession>(
+    session: &mut S,
+    worklists: &ResolutionWorklists,
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
-    covered: &HashSet<String>,
+    covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) -> rusqlite::Result<()> {
+) -> Result<(), S::Error> {
     // Overlay writes are buffered and flushed at each phase boundary (below). The
     // flush points are exactly the places where the ORIGINAL immediate-write code
     // let a later worklist SELECT observe an earlier write, so behavior is
     // bit-identical while the count of statement-ends inside the open savepoint
     // drops from ~O(rows) to O(phases × chunks). See the buffer's ordering contract.
-    let mut buf = ResolutionWriteBuffer::new();
+    let mut buf = ResolutionWriteBatch::default();
 
     // 0. Recheck already-resolved overlays against the whole current workspace.
     // A full pass must not preserve stale rows if a prior unique target became
     // ambiguous or disappeared.
     // The demoted co-locations are discarded here: a full pass re-derives every
     // identifier from `worklist_full_identifiers`, so they need no separate repair.
+    let mut phase = worklists.clone();
+    phase.phase = ResolutionPhase::ResolvedPending;
+    let overlay = session.read_current_overlay(&phase, index, locator, covered)?;
     let _ = recheck_resolved_pending_items(
+        session,
         &mut buf,
-        &resolution_store::worklist_resolved_pending(tx)?,
+        &overlay.resolved_pending,
         index,
         locator,
         gated,
-    )?;
+    );
     // Flush demotions so the next worklist SELECT (resolved identifiers, then the
     // unresolved-pending fill) sees the demoted rows as unresolved — matches the
     // original immediate-demote ordering.
-    buf.flush(tx)?;
+    session.flush(std::mem::take(&mut buf))?;
     // Read ownership *after* the demotion flush so an identifier whose pending was
     // just demoted re-enters the recheck instead of keeping a stale target.
-    let propagation_covered = propagation_covered_identifiers(tx, index, locator, None)?;
+    phase.phase = ResolutionPhase::PropagationCovered;
+    let propagation_covered = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .identifier_ids;
+    phase.phase = ResolutionPhase::ResolvedIdentifiers;
+    let resolved_identifiers = session.read_current_overlay(&phase, index, locator, covered)?;
     recheck_resolved_identifier_items(
+        session,
         &mut buf,
-        &resolution_store::worklist_resolved_identifiers(tx)?,
+        &resolved_identifiers.resolved_identifiers,
         index,
         &propagation_covered,
         revision,
         counts,
         gated,
-    )?;
-    buf.flush(tx)?;
+    );
+    session.flush(std::mem::take(&mut buf))?;
     // 1. Resolve every unresolved pending row; propagate resolved ones.
-    let pending = resolution_store::worklist_full_pending(tx)?;
-    resolve_pending_items(&mut buf, &pending, index, locator, revision, counts, gated)?;
+    phase.phase = ResolutionPhase::Pending;
+    let pending = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .pending;
+    resolve_pending_items(
+        session, &mut buf, &pending, index, locator, revision, counts, gated,
+    );
     // Flush pending resolutions + their co-located identifier writes before the
     // tier-1 propagation and the generic identifier worklist read them.
-    buf.flush(tx)?;
+    session.flush(std::mem::take(&mut buf))?;
     // 2. Propagate tier-1 (extraction-time, same-file) relationships workspace-wide.
-    propagate_relationships(tx, &mut buf, index, locator, None, revision, counts)?;
-    buf.flush(tx)?;
+    phase.phase = ResolutionPhase::Relationships;
+    let relationships = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .relationships;
+    propagate_relationship_items(
+        session,
+        &relationships,
+        &mut buf,
+        index,
+        locator,
+        revision,
+        counts,
+    );
+    session.flush(std::mem::take(&mut buf))?;
     // 3. Generic identifier chain for every identifier propagation did not resolve.
-    let owned = propagation_owned_identifiers(tx, covered)?;
-    let identifiers = resolution_store::worklist_full_identifiers(tx)?;
+    phase.phase = ResolutionPhase::PropagationOwned;
+    let owned = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .identifier_ids;
+    phase.phase = ResolutionPhase::Identifiers;
+    let identifiers = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .identifiers;
     resolve_identifier_items(
+        session,
         &mut buf,
         &identifiers,
         index,
@@ -1851,15 +1922,15 @@ fn resolve_full(
         revision,
         counts,
         gated,
-    )?;
-    buf.flush(tx)?;
+    );
+    session.flush(std::mem::take(&mut buf))?;
     Ok(())
 }
 
 /// Union two worklists, keeping the first occurrence of each key and restoring the
 /// primary-key order both queries were issued in. Matches `chunked_by`'s discipline
 /// so a merged worklist stays as deterministic as a single-query one.
-fn merge_by_key<T, K, F>(primary: Vec<T>, secondary: Vec<T>, key: F) -> Vec<T>
+pub(crate) fn merge_by_key<T, K, F>(primary: Vec<T>, secondary: Vec<T>, key: F) -> Vec<T>
 where
     F: Fn(&T) -> K,
     K: Ord + Clone + std::hash::Hash,
@@ -1877,140 +1948,93 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn resolve_delta(
-    tx: &Transaction<'_>,
-    scope: &ResolutionScopeInput,
-    delta: &DeltaScope,
+fn resolve_delta<S: ResolutionSession>(
+    session: &mut S,
+    worklists: &ResolutionWorklists,
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
-    covered: &HashSet<String>,
+    covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) -> rusqlite::Result<()> {
-    let names: Vec<&str> = delta.recheck_names.iter().map(String::as_str).collect();
-    let files: Vec<&str> = scope.changed_file_ids.iter().map(String::as_str).collect();
-
+) -> Result<(), S::Error> {
     // Buffered writes, flushed at each phase boundary (below). The flush points are
     // exactly where the original immediate-write code let a later worklist SELECT
     // observe an earlier write, so behavior is bit-identical.
-    let mut buf = ResolutionWriteBuffer::new();
+    let mut buf = ResolutionWriteBatch::default();
 
-    // --- Demotion sweep -----------------------------------------------------
-    // Resolved pending/identifiers keyed by a recheck name: re-run the chain; if the
-    // outcome no longer yields the same single target, demote or overwrite with the
-    // current outcome. The fill sweep below re-resolves demoted pending rows if a new
-    // single candidate exists.
-    // The file-keyed arms carry only the rows no name can select: those in a changed
-    // file, and those in a file whose module specifier the revision re-pointed.
-    let recheck_files: Vec<&str> = delta.recheck_files.iter().map(String::as_str).collect();
+    let mut phase = worklists.clone();
+    phase.phase = ResolutionPhase::ResolvedPending;
+    let resolved_pending = session.read_current_overlay(&phase, index, locator, covered)?;
     let demoted_co_locations = recheck_resolved_pending_items(
+        session,
         &mut buf,
-        &merge_by_key(
-            resolution_store::worklist_resolved_pending_by_names(tx, &names)?,
-            resolution_store::worklist_resolved_pending_in_files(tx, &recheck_files)?,
-            |item| item.pending.pending_relationship_id.clone(),
-        ),
+        &resolved_pending.resolved_pending,
         index,
         locator,
         gated,
-    )?;
+    );
     // Flush demotions so the resolved-identifier sweep and the unresolved-pending
     // fill worklists (both filter on the overlay tables) see them.
-    buf.flush(tx)?;
-    // Read ownership *after* the demotion flush so an identifier whose pending was
-    // just demoted re-enters the recheck instead of keeping a stale target.
-    //
-    // Read over `selected_row_files`, not `recheck_files`: the recheck worklists match
-    // by name across the whole workspace, so an identifier in an UNCHANGED file can
-    // enter them. Reading ownership over the file-keyed arms' set alone would leave
-    // that identifier looking unowned, and the generic chain would overwrite a correct
-    // propagated target.
-    let selected_row_files: Vec<&str> = delta
-        .selected_row_files
-        .iter()
-        .map(String::as_str)
-        .collect();
-    let propagation_covered =
-        propagation_covered_identifiers(tx, index, locator, Some(&selected_row_files))?;
+    session.flush(std::mem::take(&mut buf))?;
+    phase.phase = ResolutionPhase::PropagationCovered;
+    let propagation_covered = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .identifier_ids;
+    phase.phase = ResolutionPhase::ResolvedIdentifiers;
+    let resolved_identifiers = session.read_current_overlay(&phase, index, locator, covered)?;
     recheck_resolved_identifier_items(
+        session,
         &mut buf,
-        &merge_by_key(
-            resolution_store::worklist_resolved_identifiers_by_names(tx, &names)?,
-            resolution_store::worklist_resolved_identifiers_in_files(tx, &recheck_files)?,
-            |item| item.identifier.identifier_id.clone(),
-        ),
+        &resolved_identifiers.resolved_identifiers,
         index,
         &propagation_covered,
         revision,
         counts,
         gated,
-    )?;
-    buf.flush(tx)?;
+    );
+    session.flush(std::mem::take(&mut buf))?;
 
-    // --- Fill sweep ---------------------------------------------------------
-    // Unresolved pending matching a recheck name, PLUS every unresolved pending in a
-    // recheck file.
-    //
-    // An edge whose tier keys on a name the reference row does not carry — an aliased
-    // import's `imported_name`, a receiver's resolved type — rides the name arm here,
-    // because `recheck_names` carries both relations.
-    let mut pending = resolution_store::worklist_unresolved_pending_by_names(tx, &names)?;
-    let mut seen: HashSet<String> = pending
-        .iter()
-        .map(|item| item.pending_relationship_id.clone())
-        .collect();
-    for item in unresolved_pending_in_files(tx, &recheck_files)? {
-        if seen.insert(item.pending_relationship_id.clone()) {
-            pending.push(item);
-        }
-    }
-    resolve_pending_items(&mut buf, &pending, index, locator, revision, counts, gated)?;
+    phase.phase = ResolutionPhase::Pending;
+    let pending = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .pending;
+    resolve_pending_items(
+        session, &mut buf, &pending, index, locator, revision, counts, gated,
+    );
     // Flush pending resolutions + co-located identifier writes before propagation
     // and the never-attempted identifier worklists read the overlay tables.
-    buf.flush(tx)?;
+    session.flush(std::mem::take(&mut buf))?;
 
-    // Tier-1 relationships in the changed files (their rows were re-extracted).
-    propagate_relationships(tx, &mut buf, index, locator, Some(&files), revision, counts)?;
-    buf.flush(tx)?;
+    phase.phase = ResolutionPhase::Relationships;
+    let relationships = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .relationships;
+    propagate_relationship_items(
+        session,
+        &relationships,
+        &mut buf,
+        index,
+        locator,
+        revision,
+        counts,
+    );
+    session.flush(std::mem::take(&mut buf))?;
 
-    // Never-attempted identifiers matching a recheck name or in a recheck file.
-    let mut identifiers =
-        resolution_store::worklist_never_attempted_identifiers_by_names(tx, &names)?;
-    let mut seen_ids: HashSet<String> = identifiers
-        .iter()
-        .map(|item| item.identifier_id.clone())
+    phase.repair_identifiers = demoted_co_locations
+        .into_iter()
+        .map(|item| (item.identifier_id, item.name))
         .collect();
-    for item in resolution_store::worklist_never_attempted_identifiers_by_files(tx, &recheck_files)?
-    {
-        if seen_ids.insert(item.identifier_id.clone()) {
-            identifiers.push(item);
-        }
-    }
-    // Repair the co-locations the demotion sweep deleted. Selected by name because the
-    // worklists key on names, then narrowed back to the exact demoted ids: an unrelated
-    // identifier sharing the name could sit outside `selected_row_files`, where the
-    // ownership read below cannot see it and the generic chain would overwrite a
-    // propagated target. A row that propagation has since re-resolved is gone from this
-    // worklist already, which is the same answer a full pass reaches by ownership.
-    let demoted_names: Vec<&str> = demoted_co_locations
-        .iter()
-        .map(|demoted| demoted.name.as_str())
-        .collect();
-    let demoted_ids: HashSet<&str> = demoted_co_locations
-        .iter()
-        .map(|demoted| demoted.identifier_id.as_str())
-        .collect();
-    for item in resolution_store::worklist_never_attempted_identifiers_by_names(tx, &demoted_names)?
-    {
-        if demoted_ids.contains(item.identifier_id.as_str())
-            && seen_ids.insert(item.identifier_id.clone())
-        {
-            identifiers.push(item);
-        }
-    }
-    let owned = propagation_owned_identifiers(tx, covered)?;
+    phase.phase = ResolutionPhase::Identifiers;
+    let identifiers = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .identifiers;
+    phase.phase = ResolutionPhase::PropagationOwned;
+    let owned = session
+        .read_current_overlay(&phase, index, locator, covered)?
+        .identifier_ids;
     resolve_identifier_items(
+        session,
         &mut buf,
         &identifiers,
         index,
@@ -2018,8 +2042,8 @@ fn resolve_delta(
         revision,
         counts,
         gated,
-    )?;
-    buf.flush(tx)?;
+    );
+    session.flush(std::mem::take(&mut buf))?;
     Ok(())
 }
 
@@ -2030,20 +2054,21 @@ fn resolve_delta(
 /// receiver-keyed or file-keyed recheck never carries. A full pass re-derives it from
 /// its whole-workspace worklist; a scoped pass has to be told.
 struct DemotedCoLocation {
-    identifier_id: String,
+    identifier_id: SemanticIdentifierId,
     name: String,
 }
 
 /// Re-check resolved pending rows, demoting the ones whose chain no longer yields the
 /// same single target. Returns the identifiers demoted alongside them, which the caller
 /// must re-derive (see [`DemotedCoLocation`]).
-fn recheck_resolved_pending_items(
-    buf: &mut ResolutionWriteBuffer,
+fn recheck_resolved_pending_items<S: ResolutionSession>(
+    session: &S,
+    buf: &mut ResolutionWriteBatch,
     items: &[resolution_store::ResolvedPendingWorkItem],
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
     gated: &mut BTreeSet<String>,
-) -> rusqlite::Result<Vec<DemotedCoLocation>> {
+) -> Vec<DemotedCoLocation> {
     let mut demoted_co_locations = Vec::new();
     for resolved in items {
         if !tier2_enabled(&resolved.pending.language) {
@@ -2060,59 +2085,88 @@ fn recheck_resolved_pending_items(
         };
         if !keep {
             let pending = &resolved.pending;
-            buf.demote_pending(&pending.pending_relationship_id);
+            buf.demote_pending(semantic_pending_id(
+                session,
+                pending.source_key(),
+                &pending.pending_relationship_id,
+            ));
             // Clear the co-located identifier too: `demote_pending` only removes the
             // pending overlay, but the propagated identifier resolution must go with
             // it. A later fill sweep re-propagates if the edge re-resolves.
-            if let Some(identifier_id) = locator.locate(
-                &pending.file_id,
+            let version = session.qualify_version(pending.source_key());
+            if let Some(identifier_id) = session.locate_identifier(
+                locator,
+                &version,
                 &pending.target_terminal_name,
                 pending.start_byte,
                 pending.end_byte,
                 pending.start_line,
             ) {
-                buf.demote_identifier(&identifier_id);
+                buf.demote_identifier(semantic_identifier_id(
+                    session,
+                    pending.source_key(),
+                    &identifier_id,
+                ));
                 demoted_co_locations.push(DemotedCoLocation {
-                    identifier_id,
+                    identifier_id: semantic_identifier_id(
+                        session,
+                        pending.source_key(),
+                        &identifier_id,
+                    ),
                     name: pending.target_terminal_name.clone(),
                 });
             }
         }
     }
-    Ok(demoted_co_locations)
+    demoted_co_locations
 }
 
-fn recheck_resolved_identifier_items(
-    buf: &mut ResolutionWriteBuffer,
+#[allow(clippy::too_many_arguments)]
+fn recheck_resolved_identifier_items<S: ResolutionSession>(
+    session: &S,
+    buf: &mut ResolutionWriteBatch,
     items: &[resolution_store::ResolvedIdentifierWorkItem],
     index: &WorkspaceCandidateIndex,
-    covered: &HashSet<String>,
+    covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) -> rusqlite::Result<()> {
+) {
     for resolved in items {
-        if covered.contains(&resolved.identifier.identifier_id) {
+        if covered.contains(&semantic_identifier_id(
+            session,
+            resolved.identifier.source_key(),
+            &resolved.identifier.identifier_id,
+        )) {
             continue;
         }
-        record_identifier_edge(buf, &resolved.identifier, index, revision, counts, gated)?;
+        record_identifier_edge(
+            session,
+            buf,
+            &resolved.identifier,
+            index,
+            revision,
+            counts,
+            gated,
+        );
     }
-    Ok(())
 }
 
 // ---------------------------------------------------------------------------
 // Per-item resolution + propagation
 // ---------------------------------------------------------------------------
 
-fn resolve_pending_items(
-    buf: &mut ResolutionWriteBuffer,
+#[allow(clippy::too_many_arguments)]
+fn resolve_pending_items<S: ResolutionSession>(
+    session: &S,
+    buf: &mut ResolutionWriteBatch,
     items: &[PendingWorkItem],
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) -> rusqlite::Result<()> {
+) {
     for item in items {
         let Some(edge) = UnresolvedEdge::from_pending(item) else {
             continue; // unsupported relationship kind: no overlay for pending rows.
@@ -2130,8 +2184,8 @@ fn resolve_pending_items(
         } = resolve_one(&edge, index)
         {
             buf.record_pending_resolution(
-                &item.pending_relationship_id,
-                &target_symbol_id,
+                semantic_pending_id(session, item.source_key(), &item.pending_relationship_id),
+                semantic_symbol_id(session, index, &target_symbol_id),
                 tier,
                 confidence,
                 &method,
@@ -2140,17 +2194,19 @@ fn resolve_pending_items(
             counts.pending_resolutions += 1;
             // Propagate onto the co-located identifier by span (line fallback only
             // when exactly one identifier matches — never into an ambiguous join).
-            if let Some(identifier_id) = locator.locate(
-                &item.file_id,
+            let version = session.qualify_version(item.source_key());
+            if let Some(identifier_id) = session.locate_identifier(
+                locator,
+                &version,
                 &item.target_terminal_name,
                 item.start_byte,
                 item.end_byte,
                 item.start_line,
             ) {
                 buf.record_identifier_outcome(
-                    &identifier_id,
+                    semantic_identifier_id(session, item.source_key(), &identifier_id),
                     Outcome::Resolved,
-                    Some(&target_symbol_id),
+                    Some(semantic_symbol_id(session, index, &target_symbol_id)),
                     Some(tier),
                     Some(confidence),
                     Some(&method),
@@ -2161,25 +2217,29 @@ fn resolve_pending_items(
             }
         }
     }
-    Ok(())
 }
 
-fn resolve_identifier_items(
-    buf: &mut ResolutionWriteBuffer,
+#[allow(clippy::too_many_arguments)]
+fn resolve_identifier_items<S: ResolutionSession>(
+    session: &S,
+    buf: &mut ResolutionWriteBatch,
     items: &[IdentifierWorkItem],
     index: &WorkspaceCandidateIndex,
-    covered: &HashSet<String>,
+    covered: &HashSet<SemanticIdentifierId>,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) -> rusqlite::Result<()> {
+) {
     for item in items {
-        if covered.contains(&item.identifier_id) {
+        if covered.contains(&semantic_identifier_id(
+            session,
+            item.source_key(),
+            &item.identifier_id,
+        )) {
             continue; // propagation already wrote this identifier's target.
         }
-        record_identifier_edge(buf, item, index, revision, counts, gated)?;
+        record_identifier_edge(session, buf, item, index, revision, counts, gated);
     }
-    Ok(())
 }
 
 /// Narrow a co-location set down to the identifiers propagation actually resolved.
@@ -2194,7 +2254,7 @@ fn resolve_identifier_items(
 /// reflects this pass. Identifiers not returned here fall through to the generic
 /// identifier chain, whose kind compatibility differs from the pending chain's and
 /// can therefore still resolve some of them.
-fn propagation_owned_identifiers(
+pub(crate) fn propagation_owned_identifiers(
     conn: &Connection,
     covered: &HashSet<String>,
 ) -> rusqlite::Result<HashSet<String>> {
@@ -2219,19 +2279,20 @@ fn propagation_owned_identifiers(
 /// Run the reduced identifier chain for one identifier and record its outcome
 /// (resolved/ambiguous/missing/no_context are all recorded — design §"Data flow"
 /// step 4). Idempotent upsert, so re-running demotes a regressed resolution.
-fn record_identifier_edge(
-    buf: &mut ResolutionWriteBuffer,
+fn record_identifier_edge<S: ResolutionSession>(
+    session: &S,
+    buf: &mut ResolutionWriteBatch,
     item: &IdentifierWorkItem,
     index: &WorkspaceCandidateIndex,
     revision: i64,
     counts: &mut ResolutionCounts,
     gated: &mut BTreeSet<String>,
-) -> rusqlite::Result<()> {
+) {
     let Some(edge) = UnresolvedEdge::from_identifier(item) else {
         // Unsupported identifier kind: record no-context so it stops re-entering
         // the never-attempted worklist for its kind.
         buf.record_identifier_outcome(
-            &item.identifier_id,
+            semantic_identifier_id(session, item.source_key(), &item.identifier_id),
             Outcome::NoContext,
             None,
             None,
@@ -2241,7 +2302,7 @@ fn record_identifier_edge(
             revision,
         );
         counts.identifier_resolutions += 1;
-        return Ok(());
+        return;
     };
     if applicable_tiers(&edge).contains(&Tier::Import) && !tier2_enabled(&item.language) {
         gated.insert(item.language.clone());
@@ -2272,9 +2333,11 @@ fn record_identifier_edge(
         TierOutcome::NoContext => (Outcome::NoContext, None, None, None, None, None),
     };
     buf.record_identifier_outcome(
-        &item.identifier_id,
+        semantic_identifier_id(session, item.source_key(), &item.identifier_id),
         outcome,
-        target.as_deref(),
+        target
+            .as_deref()
+            .map(|id| semantic_symbol_id(session, index, id)),
         tier,
         confidence,
         method.as_deref(),
@@ -2282,59 +2345,45 @@ fn record_identifier_edge(
         revision,
     );
     counts.identifier_resolutions += 1;
-    Ok(())
 }
 
 /// Propagate tier-1 (extraction-time, same-file) `relationships` edges onto their
 /// co-located identifiers. `file_filter` restricts to changed files on a delta
 /// pass; `None` covers the whole workspace on a full pass.
-fn propagate_relationships(
-    tx: &Transaction<'_>,
-    buf: &mut ResolutionWriteBuffer,
+fn propagate_relationship_items<S: ResolutionSession>(
+    session: &S,
+    items: &[SessionRelationship],
+    buf: &mut ResolutionWriteBatch,
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
-    file_filter: Option<&[&str]>,
     revision: i64,
     counts: &mut ResolutionCounts,
-) -> rusqlite::Result<()> {
-    let base = "SELECT to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence \
-                FROM relationships";
-    let rows = match file_filter {
-        Some(files) => {
-            if files.is_empty() {
-                return Ok(());
-            }
-            let sql = format!("{base} WHERE file_id IN ({})", placeholders(files.len()));
-            let mut stmt = tx.prepare(&sql)?;
-            stmt.query_map(
-                rusqlite::params_from_iter(files.iter()),
-                map_relationship_row,
-            )?
-            .collect::<Result<Vec<_>, _>>()?
-        }
-        None => {
-            let mut stmt = tx.prepare(base)?;
-            stmt.query_map([], map_relationship_row)?
-                .collect::<Result<Vec<_>, _>>()?
-        }
-    };
-    for (to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence) in rows {
-        if ReferenceKind::from_relationship_kind(&kind).is_none() {
+) {
+    for item in items {
+        if ReferenceKind::from_relationship_kind(&item.kind).is_none() {
             continue;
         }
-        let Some(name) = index.symbol_name(&to_symbol_id) else {
+        let Some(name) = index.symbol_name(&item.target_symbol_id) else {
             continue;
         };
         let name = name.to_string();
-        if let Some(identifier_id) =
-            locator.locate(&file_id, &name, start_byte, end_byte, start_line)
-        {
+        if let Some(identifier_id) = session.locate_identifier(
+            locator,
+            &item.source_version_id,
+            &name,
+            item.start_byte,
+            item.end_byte,
+            item.start_line,
+        ) {
             buf.record_identifier_outcome(
-                &identifier_id,
+                SemanticIdentifierId {
+                    version: item.source_version_id.clone(),
+                    local_id: identifier_id,
+                },
                 Outcome::Resolved,
-                Some(&to_symbol_id),
+                Some(semantic_symbol_id(session, index, &item.target_symbol_id)),
                 Some(1),
-                Some(confidence.min(CONFIDENCE_TIER1)),
+                Some(item.confidence.min(CONFIDENCE_TIER1)),
                 Some(METHOD_TIER1),
                 None,
                 revision,
@@ -2342,7 +2391,33 @@ fn propagate_relationships(
             counts.identifier_resolutions += 1;
         }
     }
-    Ok(())
+}
+
+pub(crate) fn load_relationship_rows(
+    tx: &Transaction<'_>,
+    file_filter: Option<&[&str]>,
+) -> rusqlite::Result<Vec<RelationshipRow>> {
+    let base = "SELECT to_symbol_id, file_id, kind, start_line, start_byte, end_byte, confidence \
+                FROM relationships";
+    match file_filter {
+        Some(files) => {
+            if files.is_empty() {
+                return Ok(Vec::new());
+            }
+            let sql = format!("{base} WHERE file_id IN ({})", placeholders(files.len()));
+            let mut stmt = tx.prepare(&sql)?;
+            stmt.query_map(
+                rusqlite::params_from_iter(files.iter()),
+                map_relationship_row,
+            )?
+            .collect::<Result<Vec<_>, _>>()
+        }
+        None => {
+            let mut stmt = tx.prepare(base)?;
+            stmt.query_map([], map_relationship_row)?
+                .collect::<Result<Vec<_>, _>>()
+        }
+    }
 }
 
 /// Max file ids bound into one `IN (...)` clause for the delta-scoped loads. Kept
@@ -2366,7 +2441,7 @@ fn map_identifier_location(
     ))
 }
 
-type RelationshipRow = (String, String, String, i64, Option<i64>, Option<i64>, f64);
+pub(crate) type RelationshipRow = (String, String, String, i64, Option<i64>, Option<i64>, f64);
 
 fn map_relationship_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RelationshipRow> {
     Ok((
@@ -2384,7 +2459,7 @@ fn map_relationship_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Relationshi
 // Index / locator loading (read-only)
 // ---------------------------------------------------------------------------
 
-fn current_revision(conn: &Connection) -> rusqlite::Result<i64> {
+pub(crate) fn current_revision(conn: &Connection) -> rusqlite::Result<i64> {
     conn.query_row(
         "SELECT COALESCE(MAX(revision_id), 0) FROM extraction_revisions",
         [],
@@ -2392,7 +2467,7 @@ fn current_revision(conn: &Connection) -> rusqlite::Result<i64> {
     )
 }
 
-fn load_index(conn: &Connection) -> rusqlite::Result<WorkspaceCandidateIndex> {
+pub(crate) fn load_index(conn: &Connection) -> rusqlite::Result<WorkspaceCandidateIndex> {
     let (imports, module_candidates_by_file) = load_import_records(conn)?;
     let mut index = WorkspaceCandidateIndex::build(
         load_candidate_symbols(conn)?,
@@ -2670,7 +2745,7 @@ fn module_path_candidates(module_path: &str, language: &str) -> Vec<String> {
 /// this binds one variable per file in the workspace-reachable union rather than the
 /// handful a single-file update touches. Over `SQLITE_MAX_VARIABLE_NUMBER` SQLite
 /// fails the prepare, and it would fail AFTER the source write committed.
-fn unresolved_pending_in_files(
+pub(crate) fn unresolved_pending_in_files(
     conn: &Connection,
     file_ids: &[&str],
 ) -> rusqlite::Result<Vec<PendingWorkItem>> {
@@ -2779,7 +2854,7 @@ pub const DELTA_SCOPE_CROSSOVER: f64 = 0.7;
 /// twice, which can only overstate the share and so only ever promotes EARLIER — the
 /// same direction the threshold already errs in. The whole curve is re-measured by
 /// `resolution_perf::delta_scope_crossover_sweep` under row scoping.
-fn delta_scope_crosses_over(
+pub(crate) fn delta_scope_crosses_over(
     conn: &Connection,
     changed_file_count: usize,
     delta: &DeltaScope,
@@ -2830,7 +2905,9 @@ fn delta_scope_crosses_over(
 /// `tier2_enabled` is a pure allowlist test, so the workspace-wide answer is exactly
 /// the distinct languages carrying pending work — no need to persist what a previous
 /// pass observed.
-fn workspace_tier2_gated_languages(conn: &Connection) -> rusqlite::Result<BTreeSet<String>> {
+pub(crate) fn workspace_tier2_gated_languages(
+    conn: &Connection,
+) -> rusqlite::Result<BTreeSet<String>> {
     let mut stmt = conn.prepare(
         "SELECT DISTINCT f.language FROM pending_relationships pr \
          JOIN files f ON f.file_id = pr.file_id",
@@ -2896,7 +2973,7 @@ fn structurally_changed_paths(
 /// merely *co-located* with a failed pending edge is owned by nobody, so it must
 /// stay in the recheck worklist — otherwise a generic resolution written on that
 /// span could never be demoted when the workspace changes under it.
-fn propagation_covered_identifiers(
+pub(crate) fn propagation_covered_identifiers(
     conn: &Connection,
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
@@ -2952,7 +3029,7 @@ fn propagation_covered_identifiers(
 /// relationship — the identifiers propagation *may* claim. Whether it actually
 /// did is a separate question, answered by [`propagation_owned_identifiers`]
 /// after the propagation phase and by [`propagation_covered_identifiers`] before it.
-fn covered_identifiers(
+pub(crate) fn covered_identifiers(
     conn: &Connection,
     index: &WorkspaceCandidateIndex,
     locator: &IdentifierLocator,
@@ -3044,33 +3121,21 @@ fn query_scoped_rows<T>(
 /// import's `imported_name`, a receiver's resolved type), which is why the whole
 /// FILE holding such a row used to be swept. `recheck_names` carries those relations
 /// instead, so the row itself is selected and its file is not.
-struct DeltaScope {
+pub(crate) struct DeltaScope {
     /// Names the by-names arms match: the touched names plus the two keying
     /// relations that a reference row never spells out. One round of expansion, not
     /// a fixpoint — a name reached only through a name that was itself reached
     /// cannot key a row against the touched set.
-    recheck_names: Vec<String>,
+    pub(crate) recheck_names: Vec<String>,
     /// Files the by-files arms sweep whole. Only the changed files and the
     /// module-candidate importers, which bind by PATH existence and so cannot be
     /// name-keyed at all.
-    recheck_files: Vec<String>,
+    pub(crate) recheck_files: Vec<String>,
     /// `recheck_files` plus the file of every by-names match. Not a worklist input:
     /// the locator, the covered set and the ownership read are built from it, because
     /// a file outside the locator makes `locate` return `None` and silently drops the
     /// co-location join for a row the name arm did select.
-    selected_row_files: Vec<String>,
-}
-
-impl DeltaScope {
-    /// The empty selection a Full pass carries, so `resolve_delta`'s inputs stay
-    /// non-optional.
-    fn none() -> Self {
-        DeltaScope {
-            recheck_names: Vec::new(),
-            recheck_files: Vec::new(),
-            selected_row_files: Vec::new(),
-        }
-    }
+    pub(crate) selected_row_files: Vec<String>,
 }
 
 /// Compute the delta selection: which names key its rows, which files it sweeps
@@ -3080,7 +3145,7 @@ impl DeltaScope {
 /// extra SQL. The four by-names worklists run here only to learn the files their
 /// matches live in; `resolve_delta` re-runs them against the overlay it has since
 /// flushed.
-fn delta_scope_files(
+pub(crate) fn delta_scope_files(
     conn: &Connection,
     scope: &ResolutionScopeInput,
     index: &WorkspaceCandidateIndex,
@@ -3133,7 +3198,8 @@ struct IdentifierLocation {
 
 /// In-memory identifier index keyed by file, for co-location joins. Built once per
 /// pass; each file's list is sorted by `identifier_id` for deterministic matching.
-struct IdentifierLocator {
+#[derive(Default)]
+pub struct IdentifierLocator {
     by_file: HashMap<String, Vec<IdentifierLocation>>,
 }
 
@@ -3143,7 +3209,7 @@ impl IdentifierLocator {
     /// pass — an O(delta) load instead of O(workspace), since every co-location
     /// join is same-file, so a delta only ever locates within the files it
     /// touches). File ids are chunked to stay under the SQLite variable limit.
-    fn load_scoped(conn: &Connection, files: Option<&[&str]>) -> rusqlite::Result<Self> {
+    pub(crate) fn load_scoped(conn: &Connection, files: Option<&[&str]>) -> rusqlite::Result<Self> {
         let base = "SELECT identifier_id, file_id, name, start_line, start_byte, end_byte \
                     FROM identifiers";
         let mut by_file: HashMap<String, Vec<IdentifierLocation>> = HashMap::new();
@@ -3333,7 +3399,7 @@ impl ShadowMode {
 /// `resolved_at_revision`: that column records WHEN a row was written, which two
 /// passes over the same rows necessarily disagree on.
 #[derive(Default)]
-struct OverlaySnapshot {
+pub(crate) struct OverlaySnapshot {
     rows: BTreeMap<(&'static str, String), String>,
 }
 
@@ -3502,6 +3568,25 @@ fn shadow_legacy_overlay(
     Ok(snapshot)
 }
 
+pub(crate) fn capture_legacy_shadow(
+    tx: &Transaction<'_>,
+    scope: &ResolutionScopeInput,
+    index: &WorkspaceCandidateIndex,
+    revision: i64,
+) -> rusqlite::Result<Option<OverlaySnapshot>> {
+    ShadowMode::from_env()
+        .map(|shadow| shadow_legacy_overlay(tx, scope, index, revision, &shadow))
+        .transpose()
+}
+
+pub(crate) fn verify_legacy_shadow(
+    tx: &Transaction<'_>,
+    baseline: &OverlaySnapshot,
+) -> rusqlite::Result<()> {
+    report_shadow_comparison(baseline, &OverlaySnapshot::capture(tx)?);
+    Ok(())
+}
+
 fn shadow_legacy_leg(
     tx: &Transaction<'_>,
     scope: &ResolutionScopeInput,
@@ -3515,13 +3600,44 @@ fn shadow_legacy_leg(
         .map(String::as_str)
         .collect();
     let locator = IdentifierLocator::load_scoped(tx, Some(&file_refs))?;
-    let covered = covered_identifiers(tx, index, &locator, Some(&file_refs))?;
     let mut counts = ResolutionCounts::default();
     let mut gated: BTreeSet<String> = BTreeSet::new();
+    let mut session = LegacyResolutionSession::new(tx, scope, DELTA_SCOPE_CROSSOVER);
+    let worklists = ResolutionWorklists {
+        scope: self::session::ResolutionWorklistScope::Versions(
+            legacy_scope
+                .selected_row_files
+                .iter()
+                .cloned()
+                .map(SemanticVersionId::LegacyFile)
+                .collect(),
+        ),
+        effective_full: false,
+        recheck_names: legacy_scope.recheck_names.clone(),
+        recheck_versions: legacy_scope
+            .recheck_files
+            .iter()
+            .cloned()
+            .map(SemanticVersionId::LegacyFile)
+            .collect(),
+        selected_versions: legacy_scope
+            .selected_row_files
+            .iter()
+            .cloned()
+            .map(SemanticVersionId::LegacyFile)
+            .collect(),
+        changed_versions: scope
+            .changed_file_ids
+            .iter()
+            .cloned()
+            .map(SemanticVersionId::LegacyFile)
+            .collect(),
+        ..ResolutionWorklists::default()
+    };
+    let covered = session.load_covered_identifiers(index, &locator, &worklists.scope)?;
     resolve_delta(
-        tx,
-        scope,
-        legacy_scope,
+        &mut session,
+        &worklists,
         index,
         &locator,
         &covered,

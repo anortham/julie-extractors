@@ -4,6 +4,13 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use julie_extract_artifact::resolution_store::{read_resolution_metadata, resolution_report};
+use julie_extract_cli::resolution::run_resolution_session;
+use julie_extract_cli::resolution_session::{
+    CurrentResolutionOverlay, IdentifierLocator, ResolutionCorpusIdentity, ResolutionPassRequest,
+    ResolutionPhase, ResolutionSession, ResolutionWorklistScope, ResolutionWorklists,
+    ResolutionWrite, ResolutionWriteBatch, SemanticIdentifierId, SemanticSymbolId,
+    SemanticVersionId, SessionResolutionState,
+};
 use rusqlite::Connection;
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -421,4 +428,188 @@ fn symbol_key(
         "{}|{}|{}|{}|{}",
         path?, kind?, name?, start_line?, start_byte?
     ))
+}
+
+#[derive(Default)]
+struct FakeResolutionSession {
+    writes: Vec<ResolutionWriteBatch>,
+}
+
+impl ResolutionSession for FakeResolutionSession {
+    type Error = std::convert::Infallible;
+
+    fn corpus_identity(&self) -> Result<ResolutionCorpusIdentity, Self::Error> {
+        Ok(ResolutionCorpusIdentity::Store {
+            family_id: "fake-family".to_string(),
+            view_id: "fake-view".to_string(),
+            manifest_generation: 1,
+            manifest_hash: "fake-manifest".to_string(),
+        })
+    }
+
+    fn prior_resolution_state(&mut self) -> Result<Option<SessionResolutionState>, Self::Error> {
+        Ok(None)
+    }
+
+    fn current_revision(&mut self) -> Result<i64, Self::Error> {
+        Ok(1)
+    }
+
+    fn load_candidate_index(
+        &mut self,
+    ) -> Result<julie_extract_cli::resolution::WorkspaceCandidateIndex, Self::Error> {
+        Ok(
+            julie_extract_cli::resolution::WorkspaceCandidateIndex::build(
+                vec![julie_extract_cli::resolution::CandidateSymbol {
+                    symbol_id: "target".to_string(),
+                    file_id: "definitions".to_string(),
+                    language: "rust".to_string(),
+                    name: "launch".to_string(),
+                    kind: julie_extractors::SymbolKind::Function,
+                    parent_symbol_id: None,
+                    visibility: None,
+                    signature: None,
+                    is_static: None,
+                }],
+                vec![],
+                vec![],
+            ),
+        )
+    }
+
+    fn select_worklists(
+        &mut self,
+        _request: &ResolutionPassRequest,
+        _index: &julie_extract_cli::resolution::WorkspaceCandidateIndex,
+    ) -> Result<ResolutionWorklists, Self::Error> {
+        Ok(ResolutionWorklists {
+            effective_full: true,
+            ..ResolutionWorklists::default()
+        })
+    }
+
+    fn load_identifier_locator(
+        &mut self,
+        _scope: &ResolutionWorklistScope,
+    ) -> Result<IdentifierLocator, Self::Error> {
+        Ok(IdentifierLocator::default())
+    }
+
+    fn qualify_version(&self, source_key: &str) -> SemanticVersionId {
+        match source_key {
+            "caller" => SemanticVersionId::Store(10),
+            "definitions" => SemanticVersionId::Store(20),
+            _ => panic!("unexpected fake source key: {source_key}"),
+        }
+    }
+
+    fn locate_identifier(
+        &self,
+        _locator: &IdentifierLocator,
+        _version: &SemanticVersionId,
+        _name: &str,
+        _start_byte: Option<i64>,
+        _end_byte: Option<i64>,
+        _start_line: i64,
+    ) -> Option<String> {
+        None
+    }
+
+    fn load_covered_identifiers(
+        &mut self,
+        _index: &julie_extract_cli::resolution::WorkspaceCandidateIndex,
+        _locator: &IdentifierLocator,
+        _scope: &ResolutionWorklistScope,
+    ) -> Result<
+        std::collections::HashSet<julie_extract_cli::resolution_session::SemanticIdentifierId>,
+        Self::Error,
+    > {
+        Ok(Default::default())
+    }
+
+    fn read_current_overlay(
+        &mut self,
+        worklists: &ResolutionWorklists,
+        _index: &julie_extract_cli::resolution::WorkspaceCandidateIndex,
+        _locator: &IdentifierLocator,
+        _covered: &std::collections::HashSet<
+            julie_extract_cli::resolution_session::SemanticIdentifierId,
+        >,
+    ) -> Result<CurrentResolutionOverlay, Self::Error> {
+        let identifiers = if worklists.phase == ResolutionPhase::Identifiers {
+            vec![
+                julie_extract_artifact::resolution_store::IdentifierWorkItem {
+                    identifier_id: "call-site".to_string(),
+                    file_id: "caller".to_string(),
+                    path: "caller.rs".to_string(),
+                    language: "rust".to_string(),
+                    name: "launch".to_string(),
+                    kind: "call".to_string(),
+                    containing_symbol_id: None,
+                    start_line: 1,
+                    start_byte: 0,
+                    end_byte: 6,
+                    receiver: None,
+                    receiver_qualifier: None,
+                    import_context: None,
+                    confidence: 1.0,
+                },
+            ]
+        } else {
+            Vec::new()
+        };
+        Ok(CurrentResolutionOverlay {
+            identifiers,
+            ..CurrentResolutionOverlay::default()
+        })
+    }
+
+    fn flush(
+        &mut self,
+        writes: ResolutionWriteBatch,
+    ) -> Result<julie_extract_artifact::resolution_store::ResolutionCounts, Self::Error> {
+        self.writes.push(writes);
+        Ok(Default::default())
+    }
+
+    fn aggregate_report(
+        &mut self,
+    ) -> Result<Vec<julie_extract_artifact::resolution_store::ResolutionReportRow>, Self::Error>
+    {
+        Ok(vec![])
+    }
+}
+
+#[test]
+fn resolver_policy_executes_through_a_session_without_sqlite() {
+    let mut session = FakeResolutionSession::default();
+
+    let (counts, _) = run_resolution_session(&mut session, true, true).unwrap();
+
+    assert_eq!(
+        session
+            .writes
+            .into_iter()
+            .filter(|batch| !batch.writes.is_empty())
+            .collect::<Vec<_>>(),
+        vec![ResolutionWriteBatch {
+            writes: vec![ResolutionWrite::Identifier {
+                identifier_id: SemanticIdentifierId {
+                    version: SemanticVersionId::Store(10),
+                    local_id: "call-site".to_string(),
+                },
+                target_symbol_id: Some(SemanticSymbolId {
+                    version: SemanticVersionId::Store(20),
+                    local_id: "target".to_string(),
+                }),
+                outcome: julie_extract_artifact::resolution_store::Outcome::Resolved,
+                tier: Some(4),
+                confidence: Some(0.55),
+                method: Some("tier4_global".to_string()),
+                candidates: None,
+                revision: 1,
+            }],
+        }]
+    );
+    assert_eq!(counts.identifier_resolutions, 1);
 }

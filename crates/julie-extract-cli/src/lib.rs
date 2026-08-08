@@ -18,6 +18,7 @@
 
 pub mod limits;
 pub mod resolution;
+pub use resolution::session as resolution_session;
 pub mod store;
 
 #[allow(dead_code)]
