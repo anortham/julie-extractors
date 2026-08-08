@@ -563,11 +563,11 @@ transactions.
 
 **Acceptance:**
 
-- [ ] A reader pinning an old manifest sees a complete, unchanged entry set after a new publish.
-- [ ] Each manifest flip is atomic with its non-terminal effect log row; only the final request
+- [x] A reader pinning an old manifest sees a complete, unchanged entry set after a new publish.
+- [x] Each manifest flip is atomic with its non-terminal effect log row; only the final request
       transaction writes the unique terminal row.
-- [ ] V-2/V-3/V-4 data exists only on manifest entries, never `file_versions`.
-- [ ] Synthetic path-deletion and multi-delete fixtures pass.
+- [x] V-2/V-3/V-4 data exists only on manifest entries, never `file_versions`.
+- [x] Synthetic path-deletion and multi-delete fixtures pass.
 
 ### Task 5: Implement the durable one-shot coordinator
 
