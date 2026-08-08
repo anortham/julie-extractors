@@ -5,8 +5,12 @@
 //! `tests/`** (which can only see a crate's public library API, never a binary's
 //! private modules) can exercise them directly.
 //!
-//! Today the only re-export is [`resolution`], whose [`resolution::resolve_workspace`]
-//! is the DB-bound workspace reference-resolution pass. The performance gate
+//! The [`store`] module is the internal parser/report test seam for
+//! `tests/store_cli_contract.rs`; it models the future store import contract
+//! without adding a production top-level command or dispatch arm.
+//!
+//! The [`resolution`] module's [`resolution::resolve_workspace`] is the DB-bound
+//! workspace reference-resolution pass. The performance gate
 //! (`tests/resolution_perf.rs`, behind the `test-perf` feature) times that pass at
 //! synthetic scale, which requires calling it in-process against a seeded SQLite
 //! artifact — not through the built binary. The module is fully self-contained (it
@@ -15,3 +19,4 @@
 
 pub mod limits;
 pub mod resolution;
+pub mod store;
