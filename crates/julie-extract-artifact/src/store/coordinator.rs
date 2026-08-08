@@ -254,6 +254,7 @@ impl Default for CoordinatorPolicy {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DrainReport {
     pub completed_requests: usize,
+    pub failed_requests: usize,
     pub progress_quanta: usize,
     pub interactive_quanta: usize,
     pub batch_quanta: usize,
@@ -619,14 +620,19 @@ impl StoreCoordinator {
 
     pub fn release_lease(
         &mut self,
-        holder_id: &str,
+        holder: &LeaseHolder,
         fencing_token: i64,
     ) -> Result<bool, CoordinatorError> {
         let connection = open_coordinator(&self.coordinator_db)?;
         let released = connection.execute(
             "DELETE FROM writer_lease
-             WHERE resource = ?1 AND holder_id = ?2 AND fencing_token = ?3",
-            params![STORE_WRITER_RESOURCE, holder_id, fencing_token],
+             WHERE resource = ?1 AND holder_id = ?2 AND holder_pid = ?3 AND fencing_token = ?4",
+            params![
+                STORE_WRITER_RESOURCE,
+                holder.holder_id,
+                holder.holder_pid,
+                fencing_token,
+            ],
         )? == 1;
         if released && self.held_fencing_token == Some(fencing_token) {
             self.held_fencing_token = None;
@@ -648,16 +654,16 @@ impl StoreCoordinator {
 
     pub fn heartbeat_lease(
         &mut self,
-        holder_id: &str,
+        holder: &LeaseHolder,
         fencing_token: i64,
         now: i64,
     ) -> Result<bool, CoordinatorError> {
-        self.heartbeat_lease_for(holder_id, fencing_token, now, DEFAULT_LEASE_DURATION_MS)
+        self.heartbeat_lease_for(holder, fencing_token, now, DEFAULT_LEASE_DURATION_MS)
     }
 
     fn heartbeat_lease_for(
         &mut self,
-        holder_id: &str,
+        holder: &LeaseHolder,
         fencing_token: i64,
         now: i64,
         lease_duration_ms: i64,
@@ -666,13 +672,14 @@ impl StoreCoordinator {
         let connection = open_coordinator(&self.coordinator_db)?;
         Ok(connection.execute(
             "UPDATE writer_lease SET heartbeat_at = ?1, expires_at = ?2
-             WHERE resource = ?3 AND holder_id = ?4 AND fencing_token = ?5
+             WHERE resource = ?3 AND holder_id = ?4 AND holder_pid = ?5 AND fencing_token = ?6
                AND expires_at > ?1",
             params![
                 now,
                 expires_at,
                 STORE_WRITER_RESOURCE,
-                holder_id,
+                holder.holder_id,
+                holder.holder_pid,
                 fencing_token,
             ],
         )? == 1)
@@ -833,7 +840,18 @@ impl StoreCoordinator {
                 break;
             };
             let is_batch = request.kind == RequestKind::Import;
-            self.execute_request_quantum(executor, policy, holder, fencing_token, request.clone())?;
+            match self.execute_request_quantum(
+                executor,
+                policy,
+                holder,
+                fencing_token,
+                request.clone(),
+            ) {
+                Ok(())
+                | Err(CoordinatorError::ExecutionFailed { .. })
+                | Err(CoordinatorError::QuantumDeadlineExceeded { .. }) => {}
+                Err(error) => return Err(error),
+            }
             if is_batch {
                 report.batch_quanta += 1;
                 interactive_in_burst = 0;
@@ -843,11 +861,16 @@ impl StoreCoordinator {
                 interactive_in_burst += 1;
             }
             let state = self.request(&request.request_id)?.state;
-            if state == RequestState::Committed {
-                report.completed_requests += 1;
-                backlog_remaining.retain(|request_id| request_id != &request.request_id);
-            } else {
-                report.progress_quanta += 1;
+            match state {
+                RequestState::Committed | RequestState::Acknowledged => {
+                    report.completed_requests += 1;
+                    backlog_remaining.retain(|request_id| request_id != &request.request_id);
+                }
+                RequestState::Failed => {
+                    report.failed_requests += 1;
+                    backlog_remaining.retain(|request_id| request_id != &request.request_id);
+                }
+                RequestState::Queued | RequestState::Claimed => report.progress_quanta += 1,
             }
             if awaiting_own_terminal
                 && policy
@@ -883,12 +906,7 @@ impl StoreCoordinator {
             return Ok(());
         }
         let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(
-            &holder.holder_id,
-            fencing_token,
-            now,
-            policy.lease_duration_ms,
-        )? {
+        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         if !self.claim_request(
@@ -911,13 +929,15 @@ impl StoreCoordinator {
             Ok(quantum) => quantum,
             Err(detail) => {
                 drop(transaction);
-                self.fail_request(
+                if !self.fail_request(
                     &request.request_id,
                     &detail,
                     holder,
                     fencing_token,
                     self.clock.now_ms(),
-                )?;
+                )? {
+                    return Err(CoordinatorError::LeaseLost);
+                }
                 return Err(CoordinatorError::ExecutionFailed {
                     request_id: request.request_id,
                     detail,
@@ -928,13 +948,15 @@ impl StoreCoordinator {
         let elapsed_ms = quantum_finished_at.saturating_sub(quantum_started_at);
         if elapsed_ms > policy.maximum_quantum_ms {
             drop(transaction);
-            self.fail_request(
+            if !self.fail_request(
                 &request.request_id,
                 "coordinator quantum exceeded its lease-safe bound",
                 holder,
                 fencing_token,
                 quantum_finished_at,
-            )?;
+            )? {
+                return Err(CoordinatorError::LeaseLost);
+            }
             return Err(CoordinatorError::QuantumDeadlineExceeded {
                 elapsed_ms,
                 maximum_ms: policy.maximum_quantum_ms,
@@ -967,22 +989,12 @@ impl StoreCoordinator {
             }
         };
         let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(
-            &holder.holder_id,
-            fencing_token,
-            now,
-            policy.lease_duration_ms,
-        )? {
+        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         transaction.commit()?;
         let now = self.clock.now_ms();
-        if !self.heartbeat_lease_for(
-            &holder.holder_id,
-            fencing_token,
-            now,
-            policy.lease_duration_ms,
-        )? {
+        if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         if completed {
@@ -1109,10 +1121,10 @@ impl StoreCoordinator {
         holder: &LeaseHolder,
         fencing_token: i64,
         now: i64,
-    ) -> Result<(), CoordinatorError> {
+    ) -> Result<bool, CoordinatorError> {
         let error_json = serde_json::json!({ "message": detail }).to_string();
         let connection = open_coordinator(&self.coordinator_db)?;
-        connection.execute(
+        Ok(connection.execute(
             "UPDATE requests SET state = 'failed', claim_owner = NULL,
              claim_heartbeat_at = NULL, result_json = NULL, error_json = ?1, updated_at = ?2
              WHERE request_id = ?3 AND state = 'claimed' AND claim_owner = ?4
@@ -1130,8 +1142,7 @@ impl StoreCoordinator {
                 holder.holder_pid,
                 fencing_token,
             ],
-        )?;
-        Ok(())
+        )? == 1)
     }
 
     pub fn reconcile(&mut self, request_id: &str) -> Result<ReconcileOutcome, CoordinatorError> {

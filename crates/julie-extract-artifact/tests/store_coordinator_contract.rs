@@ -356,7 +356,8 @@ fn live_holder_is_not_displaced_but_dead_or_expired_holder_is_fenced() {
     };
     assert!(takeover_token > first_token);
 
-    live.release_lease("holder-b", takeover_token).unwrap();
+    live.release_lease(&LeaseHolder::new("holder-b", "2.31.0", 42), takeover_token)
+        .unwrap();
     live.try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 6_000)
         .unwrap();
     let mut dead = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
@@ -416,8 +417,10 @@ fn heartbeat_and_release_require_the_current_owner_and_fencing_token() {
     let layout = layout(temp.path());
     let mut coordinator =
         StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    let holder_a = LeaseHolder::new("holder-a", "2.30.0", 41);
+    let holder_b = LeaseHolder::new("holder-b", "2.30.0", 42);
     let lease = coordinator
-        .try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 10)
+        .try_acquire_or_takeover(holder_a.clone(), 10)
         .unwrap();
     let LeaseDisposition::Acquired { fencing_token } = lease else {
         panic!("lease was not acquired");
@@ -425,29 +428,25 @@ fn heartbeat_and_release_require_the_current_owner_and_fencing_token() {
 
     assert!(
         !coordinator
-            .heartbeat_lease("holder-b", fencing_token, 20)
+            .heartbeat_lease(&holder_b, fencing_token, 20)
             .unwrap()
     );
     assert!(
         !coordinator
-            .heartbeat_lease("holder-a", fencing_token + 1, 20)
+            .heartbeat_lease(&holder_a, fencing_token + 1, 20)
             .unwrap()
     );
     assert!(
         coordinator
-            .heartbeat_lease("holder-a", fencing_token, 20)
+            .heartbeat_lease(&holder_a, fencing_token, 20)
             .unwrap()
     );
     assert!(
         !coordinator
-            .release_lease("holder-a", fencing_token + 1)
+            .release_lease(&holder_a, fencing_token + 1)
             .unwrap()
     );
-    assert!(
-        coordinator
-            .release_lease("holder-a", fencing_token)
-            .unwrap()
-    );
+    assert!(coordinator.release_lease(&holder_a, fencing_token).unwrap());
 }
 
 #[test]
@@ -465,10 +464,12 @@ fn released_lease_reacquires_with_a_new_token_that_rejects_stale_owner_calls() {
     else {
         panic!("first lease was not acquired");
     };
-    assert!(coordinator.release_lease("holder-a", first_token).unwrap());
+    assert!(coordinator.release_lease(&holder, first_token).unwrap());
     let LeaseDisposition::Acquired {
         fencing_token: second_token,
-    } = coordinator.try_acquire_or_takeover(holder, 10).unwrap()
+    } = coordinator
+        .try_acquire_or_takeover(holder.clone(), 10)
+        .unwrap()
     else {
         panic!("second lease was not acquired");
     };
@@ -476,11 +477,55 @@ fn released_lease_reacquires_with_a_new_token_that_rejects_stale_owner_calls() {
     assert!(second_token > first_token);
     assert!(
         !coordinator
-            .heartbeat_lease("holder-a", first_token, 11)
+            .heartbeat_lease(&holder, first_token, 11)
             .unwrap()
     );
-    assert!(!coordinator.release_lease("holder-a", first_token).unwrap());
+    assert!(!coordinator.release_lease(&holder, first_token).unwrap());
     assert!(coordinator.lease().unwrap().is_some());
+}
+
+#[test]
+fn reused_cross_process_token_requires_the_current_holder_pid() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    let holder_a = LeaseHolder::new("shared-holder", "2.30.0", 41);
+    let holder_b = LeaseHolder::new("shared-holder", "2.30.0", 42);
+    let LeaseDisposition::Acquired { fencing_token } = coordinator
+        .try_acquire_or_takeover(holder_a.clone(), 10)
+        .unwrap()
+    else {
+        panic!("lease was not acquired");
+    };
+    assert!(coordinator.release_lease(&holder_a, fencing_token).unwrap());
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    connection
+        .execute(
+            "INSERT INTO writer_lease
+             (resource, holder_id, holder_version, holder_pid, heartbeat_at, expires_at, fencing_token)
+             VALUES ('store-writer', ?1, ?2, ?3, 10, 5010, ?4)",
+            (
+                &holder_b.holder_id,
+                &holder_b.holder_version,
+                holder_b.holder_pid,
+                fencing_token,
+            ),
+        )
+        .unwrap();
+
+    assert!(
+        !coordinator
+            .heartbeat_lease(&holder_a, fencing_token, 11)
+            .unwrap()
+    );
+    assert!(!coordinator.release_lease(&holder_a, fencing_token).unwrap());
+    assert!(
+        coordinator
+            .heartbeat_lease(&holder_b, fencing_token, 11)
+            .unwrap()
+    );
+    assert!(coordinator.release_lease(&holder_b, fencing_token).unwrap());
 }
 
 #[test]
@@ -489,8 +534,9 @@ fn expired_holder_cannot_resurrect_its_lease_with_a_heartbeat() {
     let layout = layout(temp.path());
     let mut coordinator =
         StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    let holder = LeaseHolder::new("holder-a", "2.30.0", 41);
     let lease = coordinator
-        .try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 10)
+        .try_acquire_or_takeover(holder.clone(), 10)
         .unwrap();
     let LeaseDisposition::Acquired { fencing_token } = lease else {
         panic!("lease was not acquired");
@@ -498,7 +544,7 @@ fn expired_holder_cannot_resurrect_its_lease_with_a_heartbeat() {
 
     assert!(
         !coordinator
-            .heartbeat_lease("holder-a", fencing_token, 5_010)
+            .heartbeat_lease(&holder, fencing_token, 5_010)
             .unwrap()
     );
     assert_eq!(coordinator.lease().unwrap().unwrap().expires_at, 5_010);
@@ -547,7 +593,11 @@ fn coordinator_operations_use_a_bounded_busy_policy_instead_of_reporting_lease_l
     let worker = std::thread::spawn(move || {
         let mut coordinator =
             StoreCoordinator::open_with_liveness(&worker_layout, FixedLiveness(true)).unwrap();
-        coordinator.heartbeat_lease("holder-a", fencing_token, 20)
+        coordinator.heartbeat_lease(
+            &LeaseHolder::new("holder-a", "2.30.0", 41),
+            fencing_token,
+            20,
+        )
     });
     std::thread::sleep(std::time::Duration::from_millis(50));
     locker.execute_batch("COMMIT").unwrap();
@@ -752,6 +802,30 @@ struct TakeoverThenFailExecutor {
     coordinator_db: PathBuf,
 }
 
+struct SelectiveFailExecutor {
+    fail_request_ids: Vec<String>,
+    order: Vec<String>,
+}
+
+impl CoordinatorExecutor for SelectiveFailExecutor {
+    fn execute_quantum(
+        &mut self,
+        _transaction: &Transaction<'_>,
+        request: &CoordinatorRequest,
+        _context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        self.order.push(request.request_id.clone());
+        if self.fail_request_ids.contains(&request.request_id) {
+            Err(format!("{} failed", request.request_id))
+        } else {
+            Ok(ExecutionQuantum::Complete {
+                event_kind: "complete".to_string(),
+                result_json: "{}".to_string(),
+            })
+        }
+    }
+}
+
 impl CoordinatorExecutor for TakeoverThenFailExecutor {
     fn execute_quantum(
         &mut self,
@@ -837,7 +911,7 @@ fn stale_holder_cannot_fail_the_successors_claim_after_takeover() {
         .drain(&mut executor, &CoordinatorPolicy::default())
         .unwrap_err();
 
-    assert!(matches!(error, CoordinatorError::ExecutionFailed { .. }));
+    assert!(matches!(error, CoordinatorError::LeaseLost));
     let request = coordinator.request("request-1").unwrap();
     assert_eq!(request.state.as_str(), "claimed");
     assert_eq!(request.claim_owner.as_deref(), Some("holder-b"));
@@ -951,6 +1025,74 @@ fn own_request_runs_exclusively_until_terminal_before_backlog_snapshot() {
     coordinator.drain(&mut executor, &policy).unwrap();
 
     assert_eq!(executor.order, ["request-2", "request-1"]);
+}
+
+#[test]
+fn failed_own_request_transitions_to_backlog_and_drain_continues() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator =
+        StoreCoordinator::open_with_runtime(&layout, holder, clock, Arc::new(FixedLiveness(true)))
+            .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    enqueue_request(&mut coordinator, 2, RequestKind::Update, 2);
+    let mut executor = SelectiveFailExecutor {
+        fail_request_ids: vec!["request-2".to_string()],
+        order: Vec::new(),
+    };
+    let policy = CoordinatorPolicy {
+        own_request_id: Some("request-2".to_string()),
+        ..CoordinatorPolicy::default()
+    };
+
+    let report = coordinator.drain(&mut executor, &policy).unwrap();
+
+    assert_eq!(executor.order, ["request-2", "request-1"]);
+    assert_eq!(report.failed_requests, 1);
+    assert_eq!(report.completed_requests, 1);
+    assert_eq!(
+        coordinator.request("request-2").unwrap().state.as_str(),
+        "failed"
+    );
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "committed"
+    );
+}
+
+#[test]
+fn failed_backlog_request_does_not_block_the_following_snapshot_request() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator =
+        StoreCoordinator::open_with_runtime(&layout, holder, clock, Arc::new(FixedLiveness(true)))
+            .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    enqueue_request(&mut coordinator, 2, RequestKind::Update, 2);
+    let mut executor = SelectiveFailExecutor {
+        fail_request_ids: vec!["request-1".to_string()],
+        order: Vec::new(),
+    };
+
+    let report = coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert_eq!(executor.order, ["request-1", "request-2"]);
+    assert_eq!(report.failed_requests, 1);
+    assert_eq!(report.completed_requests, 1);
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "failed"
+    );
+    assert_eq!(
+        coordinator.request("request-2").unwrap().state.as_str(),
+        "committed"
+    );
 }
 
 #[test]
@@ -1124,10 +1266,10 @@ fn drain_releases_the_lease_on_executor_error_and_panic() {
             }));
             assert!(outcome.is_err());
         } else {
-            let error = coordinator
+            let report = coordinator
                 .drain(&mut FailingExecutor, &CoordinatorPolicy::default())
-                .unwrap_err();
-            assert!(matches!(error, CoordinatorError::ExecutionFailed { .. }));
+                .unwrap();
+            assert_eq!(report.failed_requests, 1);
         }
         assert!(coordinator.lease().unwrap().is_none());
     }
@@ -1444,17 +1586,15 @@ fn quantum_must_finish_inside_the_structural_lease_bound_before_store_commit() {
     .unwrap();
     enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
 
-    let error = coordinator
+    let report = coordinator
         .drain(&mut SlowExecutor { clock }, &CoordinatorPolicy::default())
-        .unwrap_err();
+        .unwrap();
 
-    assert!(matches!(
-        error,
-        CoordinatorError::QuantumDeadlineExceeded {
-            elapsed_ms: 4_001,
-            maximum_ms: 4_000
-        }
-    ));
+    assert_eq!(report.failed_requests, 1);
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "failed"
+    );
     let store = Connection::open(layout.store_db()).unwrap();
     assert_eq!(
         store
