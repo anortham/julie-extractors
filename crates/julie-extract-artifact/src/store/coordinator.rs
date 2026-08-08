@@ -2,9 +2,10 @@ use std::cmp::Ordering;
 use std::error::Error;
 use std::fmt;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
@@ -17,6 +18,8 @@ const DEFAULT_MAX_QUANTUM_MS: i64 = 4_000;
 const DEFAULT_INTERACTIVE_BURST_COUNT: usize = 32;
 const DEFAULT_INTERACTIVE_BURST_MS: i64 = 250;
 const DEFAULT_SERVICE_WINDOW_MS: i64 = 1_000;
+const COORDINATOR_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
+static LAST_FENCING_TOKEN: AtomicI64 = AtomicI64::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RequestKind {
@@ -263,6 +266,9 @@ pub enum CoordinatorError {
         idempotency_key: String,
         existing_request_id: String,
     },
+    RequestIdConflict {
+        request_id: String,
+    },
     RequestNotFound {
         request_id: String,
     },
@@ -274,6 +280,10 @@ pub enum CoordinatorError {
     },
     InvalidVersion {
         value: String,
+    },
+    InvalidTime {
+        field: &'static str,
+        value: i64,
     },
     WriterVersionTooOld {
         running: String,
@@ -306,6 +316,9 @@ impl fmt::Display for CoordinatorError {
                 formatter,
                 "idempotency key {idempotency_key:?} belongs to request {existing_request_id:?}"
             ),
+            Self::RequestIdConflict { request_id } => {
+                write!(formatter, "request id {request_id:?} is already in use")
+            }
             Self::RequestNotFound { request_id } => {
                 write!(
                     formatter,
@@ -320,6 +333,9 @@ impl fmt::Display for CoordinatorError {
                 "coordinator request {request_id:?} is terminal without a terminal store effect"
             ),
             Self::InvalidVersion { value } => write!(formatter, "invalid version {value:?}"),
+            Self::InvalidTime { field, value } => {
+                write!(formatter, "invalid {field} timestamp {value}")
+            }
             Self::WriterVersionTooOld { running, required } => write!(
                 formatter,
                 "writer version {running:?} is below required version {required:?}"
@@ -376,18 +392,30 @@ pub struct StoreCoordinator {
     pid_liveness: Arc<dyn PidLiveness>,
     clock: Arc<dyn UnixMillisClock>,
     holder: Option<LeaseHolder>,
+    held_fencing_token: Option<i64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PidStatus {
+    Alive,
+    Dead,
+    Unknown,
 }
 
 pub trait PidLiveness: fmt::Debug + Send + Sync {
-    fn is_alive(&self, pid: u32) -> bool;
+    fn status(&self, pid: u32) -> PidStatus;
 }
 
 #[derive(Debug)]
 struct SystemPidLiveness;
 
 impl PidLiveness for SystemPidLiveness {
-    fn is_alive(&self, pid: u32) -> bool {
-        pid == std::process::id() || process_is_alive(pid)
+    fn status(&self, pid: u32) -> PidStatus {
+        if pid == std::process::id() {
+            PidStatus::Alive
+        } else {
+            process_status(pid)
+        }
     }
 }
 
@@ -400,7 +428,7 @@ impl StoreCoordinator {
         layout: &StoreLayout,
         pid_liveness: impl PidLiveness + 'static,
     ) -> Result<Self, CoordinatorError> {
-        Connection::open(layout.coordinator_db())?;
+        open_coordinator(layout.coordinator_db())?;
         Connection::open(layout.store_db())?;
         Ok(Self {
             coordinator_db: layout.coordinator_db().to_path_buf(),
@@ -408,6 +436,7 @@ impl StoreCoordinator {
             pid_liveness: Arc::new(pid_liveness),
             clock: Arc::new(SystemClock),
             holder: None,
+            held_fencing_token: None,
         })
     }
 
@@ -421,7 +450,7 @@ impl StoreCoordinator {
         C: UnixMillisClock + 'static,
         L: PidLiveness + 'static,
     {
-        Connection::open(layout.coordinator_db())?;
+        open_coordinator(layout.coordinator_db())?;
         Connection::open(layout.store_db())?;
         Ok(Self {
             coordinator_db: layout.coordinator_db().to_path_buf(),
@@ -429,6 +458,7 @@ impl StoreCoordinator {
             pid_liveness,
             clock,
             holder: Some(holder),
+            held_fencing_token: None,
         })
     }
 
@@ -437,9 +467,15 @@ impl StoreCoordinator {
         request: CoordinatorRequest,
     ) -> Result<EnqueueResult, CoordinatorError> {
         validate_request(&request)?;
-        let mut connection = Connection::open(&self.coordinator_db)?;
-        connection.busy_timeout(std::time::Duration::from_secs(5))?;
-        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        if request_by_id(&transaction, &request.request_id)?
+            .is_some_and(|existing| existing.idempotency_key != request.idempotency_key)
+        {
+            return Err(CoordinatorError::RequestIdConflict {
+                request_id: request.request_id,
+            });
+        }
         if let Some(existing) = request_by_idempotency(&transaction, &request.idempotency_key)? {
             if existing.kind == request.kind && existing.payload_json == request.payload_json {
                 transaction.commit()?;
@@ -486,9 +522,8 @@ impl StoreCoordinator {
             return Err(CoordinatorError::InvalidRequest);
         }
         self.ensure_writer_eligible(&holder.holder_version)?;
-        let mut connection = Connection::open(&self.coordinator_db)?;
-        connection.busy_timeout(std::time::Duration::from_secs(5))?;
-        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
         let existing = transaction
             .query_row(
                 "SELECT holder_id, holder_pid, expires_at, fencing_token FROM writer_lease
@@ -504,10 +539,10 @@ impl StoreCoordinator {
                 },
             )
             .optional()?;
-        let expires_at = now.saturating_add(DEFAULT_LEASE_DURATION_MS);
+        let expires_at = checked_lease_expiry(now, DEFAULT_LEASE_DURATION_MS)?;
         let disposition = match existing {
             None => {
-                let fencing_token = now.max(1);
+                let fencing_token = allocate_fencing_token(now.max(1))?;
                 transaction.execute(
                     "INSERT INTO writer_lease
                      (resource, holder_id, holder_version, holder_pid, heartbeat_at, expires_at, fencing_token)
@@ -524,7 +559,12 @@ impl StoreCoordinator {
                 )?;
                 LeaseDisposition::Acquired { fencing_token }
             }
-            Some((holder_id, _, _, fencing_token)) if holder_id == holder.holder_id => {
+            Some((holder_id, old_pid, old_expiry, fencing_token))
+                if holder_id == holder.holder_id
+                    && old_pid == holder.holder_pid
+                    && old_expiry > now
+                    && self.held_fencing_token == Some(fencing_token) =>
+            {
                 transaction.execute(
                     "UPDATE writer_lease SET holder_version = ?1, holder_pid = ?2,
                      heartbeat_at = ?3, expires_at = ?4 WHERE resource = ?5 AND fencing_token = ?6",
@@ -540,14 +580,15 @@ impl StoreCoordinator {
                 LeaseDisposition::Acquired { fencing_token }
             }
             Some((_, old_pid, old_expiry, fencing_token))
-                if old_expiry <= now || !self.pid_liveness.is_alive(old_pid) =>
+                if old_expiry <= now || self.pid_liveness.status(old_pid) == PidStatus::Dead =>
             {
-                let next_token = fencing_token
+                let minimum_token = fencing_token
                     .checked_add(1)
                     .map(|token| token.max(now.max(1)))
                     .ok_or_else(|| CoordinatorError::CorruptRequest {
                         detail: "writer lease fencing token overflow".to_string(),
                     })?;
+                let next_token = allocate_fencing_token(minimum_token)?;
                 transaction.execute(
                     "UPDATE writer_lease SET holder_id = ?1, holder_version = ?2,
                      holder_pid = ?3, heartbeat_at = ?4, expires_at = ?5, fencing_token = ?6
@@ -570,6 +611,9 @@ impl StoreCoordinator {
             Some(_) => LeaseDisposition::HeldByOther,
         };
         transaction.commit()?;
+        if let LeaseDisposition::Acquired { fencing_token } = disposition {
+            self.held_fencing_token = Some(fencing_token);
+        }
         Ok(disposition)
     }
 
@@ -578,12 +622,28 @@ impl StoreCoordinator {
         holder_id: &str,
         fencing_token: i64,
     ) -> Result<bool, CoordinatorError> {
-        let connection = Connection::open(&self.coordinator_db)?;
-        Ok(connection.execute(
+        let connection = open_coordinator(&self.coordinator_db)?;
+        let released = connection.execute(
             "DELETE FROM writer_lease
              WHERE resource = ?1 AND holder_id = ?2 AND fencing_token = ?3",
             params![STORE_WRITER_RESOURCE, holder_id, fencing_token],
-        )? == 1)
+        )? == 1;
+        if released && self.held_fencing_token == Some(fencing_token) {
+            self.held_fencing_token = None;
+        }
+        Ok(released)
+    }
+
+    fn release_lease_for(
+        &mut self,
+        holder: &LeaseHolder,
+        fencing_token: i64,
+    ) -> Result<bool, CoordinatorError> {
+        let released = release_lease_at(&self.coordinator_db, holder, fencing_token)?;
+        if released && self.held_fencing_token == Some(fencing_token) {
+            self.held_fencing_token = None;
+        }
+        Ok(released)
     }
 
     pub fn heartbeat_lease(
@@ -602,13 +662,15 @@ impl StoreCoordinator {
         now: i64,
         lease_duration_ms: i64,
     ) -> Result<bool, CoordinatorError> {
-        let connection = Connection::open(&self.coordinator_db)?;
+        let expires_at = checked_lease_expiry(now, lease_duration_ms)?;
+        let connection = open_coordinator(&self.coordinator_db)?;
         Ok(connection.execute(
             "UPDATE writer_lease SET heartbeat_at = ?1, expires_at = ?2
-             WHERE resource = ?3 AND holder_id = ?4 AND fencing_token = ?5",
+             WHERE resource = ?3 AND holder_id = ?4 AND fencing_token = ?5
+               AND expires_at > ?1",
             params![
                 now,
-                now.saturating_add(lease_duration_ms),
+                expires_at,
                 STORE_WRITER_RESOURCE,
                 holder_id,
                 fencing_token,
@@ -617,7 +679,7 @@ impl StoreCoordinator {
     }
 
     pub fn lease(&self) -> Result<Option<LeaseRecord>, CoordinatorError> {
-        let connection = Connection::open(&self.coordinator_db)?;
+        let connection = open_coordinator(&self.coordinator_db)?;
         Ok(connection
             .query_row(
                 "SELECT holder_id, holder_version, holder_pid, heartbeat_at, expires_at,
@@ -661,18 +723,28 @@ impl StoreCoordinator {
         let LeaseDisposition::Acquired { fencing_token } = lease else {
             return Err(CoordinatorError::LeaseUnavailable);
         };
-        let guard = LeaseReleaseGuard {
+        let mut guard = LeaseReleaseGuard {
             coordinator_db: self.coordinator_db.clone(),
-            holder_id: holder.holder_id.clone(),
+            holder: holder.clone(),
             fencing_token,
+            armed: true,
         };
         let result = catch_unwind(AssertUnwindSafe(|| {
             self.drain_acquired(executor, policy, &holder, fencing_token, started_at)
         }));
-        drop(guard);
         match result {
-            Ok(result) => result,
-            Err(payload) => resume_unwind(payload),
+            Ok(result) => {
+                let release_result = self.release_lease_for(&holder, fencing_token);
+                if release_result.is_ok() {
+                    guard.disarm();
+                }
+                release_result?;
+                result
+            }
+            Err(payload) => {
+                drop(guard);
+                resume_unwind(payload)
+            }
         }
     }
 
@@ -684,22 +756,34 @@ impl StoreCoordinator {
         fencing_token: i64,
         started_at: i64,
     ) -> Result<DrainReport, CoordinatorError> {
-        let awaiting_own_terminal = policy.own_request_id.as_ref().is_some_and(|request_id| {
-            self.request(request_id).is_ok_and(|request| {
-                !matches!(
-                    request.state,
-                    RequestState::Committed | RequestState::Acknowledged | RequestState::Failed
-                )
-            })
-        });
+        let own_only = policy
+            .own_request_id
+            .clone()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let awaiting_own_terminal = if let Some(request_id) = policy.own_request_id.as_ref() {
+            let request = self.request(request_id)?;
+            !matches!(
+                request.state,
+                RequestState::Committed | RequestState::Acknowledged | RequestState::Failed
+            )
+        } else {
+            false
+        };
         let mut awaiting_own_terminal = awaiting_own_terminal;
         let mut backlog_remaining = if awaiting_own_terminal {
             Vec::new()
         } else {
             self.pending_request_ids()?
         };
-        let mut service_deadline = (!awaiting_own_terminal)
-            .then(|| started_at.saturating_add(policy.service_window_ms.max(0)));
+        let mut service_deadline = if awaiting_own_terminal {
+            None
+        } else {
+            Some(checked_service_deadline(
+                started_at,
+                policy.service_window_ms,
+            )?)
+        };
         let mut report = DrainReport::default();
         let mut interactive_in_burst = 0usize;
         let mut burst_started_at = started_at;
@@ -711,9 +795,9 @@ impl StoreCoordinator {
             });
             let now = self.clock.now_ms();
             let allowed_ids = if awaiting_own_terminal {
-                None
+                Some(&own_only)
             } else if backlog_remaining.is_empty() {
-                if service_deadline.is_some_and(|deadline| now > deadline) {
+                if service_deadline.is_some_and(|deadline| now >= deadline) {
                     break;
                 }
                 None
@@ -777,11 +861,10 @@ impl StoreCoordinator {
             {
                 awaiting_own_terminal = false;
                 backlog_remaining = self.pending_request_ids()?;
-                service_deadline = Some(
-                    self.clock
-                        .now_ms()
-                        .saturating_add(policy.service_window_ms.max(0)),
-                );
+                service_deadline = Some(checked_service_deadline(
+                    self.clock.now_ms(),
+                    policy.service_window_ms,
+                )?);
             }
         }
         Ok(report)
@@ -810,7 +893,8 @@ impl StoreCoordinator {
         }
         if !self.claim_request(
             &request.request_id,
-            &holder.holder_id,
+            holder,
+            fencing_token,
             now,
             policy.lease_duration_ms,
         )? {
@@ -827,7 +911,13 @@ impl StoreCoordinator {
             Ok(quantum) => quantum,
             Err(detail) => {
                 drop(transaction);
-                self.fail_request(&request.request_id, &detail, self.clock.now_ms())?;
+                self.fail_request(
+                    &request.request_id,
+                    &detail,
+                    holder,
+                    fencing_token,
+                    self.clock.now_ms(),
+                )?;
                 return Err(CoordinatorError::ExecutionFailed {
                     request_id: request.request_id,
                     detail,
@@ -841,6 +931,8 @@ impl StoreCoordinator {
             self.fail_request(
                 &request.request_id,
                 "coordinator quantum exceeded its lease-safe bound",
+                holder,
+                fencing_token,
                 quantum_finished_at,
             )?;
             return Err(CoordinatorError::QuantumDeadlineExceeded {
@@ -896,18 +988,33 @@ impl StoreCoordinator {
         if completed {
             self.reconcile(&request.request_id)?;
         } else {
-            let connection = Connection::open(&self.coordinator_db)?;
-            connection.execute(
+            let connection = open_coordinator(&self.coordinator_db)?;
+            let changed = connection.execute(
                 "UPDATE requests SET claim_heartbeat_at = ?1, updated_at = ?1
-                 WHERE request_id = ?2 AND state = 'claimed' AND claim_owner = ?3",
-                params![now, request.request_id, holder.holder_id],
+                 WHERE request_id = ?2 AND state = 'claimed' AND claim_owner = ?3
+                   AND EXISTS (
+                     SELECT 1 FROM writer_lease
+                     WHERE resource = ?4 AND holder_id = ?3 AND holder_pid = ?5
+                       AND fencing_token = ?6 AND expires_at > ?1
+                   )",
+                params![
+                    now,
+                    request.request_id,
+                    holder.holder_id,
+                    STORE_WRITER_RESOURCE,
+                    holder.holder_pid,
+                    fencing_token,
+                ],
             )?;
+            if changed != 1 {
+                return Err(CoordinatorError::LeaseLost);
+            }
         }
         Ok(())
     }
 
     fn pending_request_ids(&self) -> Result<Vec<String>, CoordinatorError> {
-        let connection = Connection::open(&self.coordinator_db)?;
+        let connection = open_coordinator(&self.coordinator_db)?;
         let mut statement = connection.prepare(
             "SELECT request_id FROM requests WHERE state IN ('queued', 'claimed')
              ORDER BY created_at, request_id",
@@ -926,7 +1033,7 @@ impl StoreCoordinator {
         now: i64,
         lease_duration_ms: i64,
     ) -> Result<Option<CoordinatorRequest>, CoordinatorError> {
-        let connection = Connection::open(&self.coordinator_db)?;
+        let connection = open_coordinator(&self.coordinator_db)?;
         let mut statement = connection.prepare(
             "SELECT request_id
              FROM requests WHERE state IN ('queued', 'claimed') ORDER BY created_at, request_id",
@@ -965,11 +1072,12 @@ impl StoreCoordinator {
     fn claim_request(
         &self,
         request_id: &str,
-        holder_id: &str,
+        holder: &LeaseHolder,
+        fencing_token: i64,
         now: i64,
         lease_duration_ms: i64,
     ) -> Result<bool, CoordinatorError> {
-        let connection = Connection::open(&self.coordinator_db)?;
+        let connection = open_coordinator(&self.coordinator_db)?;
         Ok(connection.execute(
             "UPDATE requests SET state = 'claimed', claim_owner = ?1,
              claim_heartbeat_at = ?2, updated_at = ?2
@@ -977,12 +1085,19 @@ impl StoreCoordinator {
                state = 'queued' OR (state = 'claimed' AND (
                  claim_owner = ?1 OR claim_heartbeat_at <= ?4
                ))
+             ) AND EXISTS (
+               SELECT 1 FROM writer_lease
+               WHERE resource = ?5 AND holder_id = ?1 AND holder_pid = ?6
+                 AND fencing_token = ?7 AND expires_at > ?2
              )",
             params![
-                holder_id,
+                holder.holder_id,
                 now,
                 request_id,
-                now.saturating_sub(lease_duration_ms)
+                now.saturating_sub(lease_duration_ms),
+                STORE_WRITER_RESOURCE,
+                holder.holder_pid,
+                fencing_token,
             ],
         )? == 1)
     }
@@ -991,15 +1106,30 @@ impl StoreCoordinator {
         &self,
         request_id: &str,
         detail: &str,
+        holder: &LeaseHolder,
+        fencing_token: i64,
         now: i64,
     ) -> Result<(), CoordinatorError> {
         let error_json = serde_json::json!({ "message": detail }).to_string();
-        let connection = Connection::open(&self.coordinator_db)?;
+        let connection = open_coordinator(&self.coordinator_db)?;
         connection.execute(
             "UPDATE requests SET state = 'failed', claim_owner = NULL,
              claim_heartbeat_at = NULL, result_json = NULL, error_json = ?1, updated_at = ?2
-             WHERE request_id = ?3 AND state = 'claimed'",
-            params![error_json, now, request_id],
+             WHERE request_id = ?3 AND state = 'claimed' AND claim_owner = ?4
+               AND EXISTS (
+                 SELECT 1 FROM writer_lease
+                 WHERE resource = ?5 AND holder_id = ?4 AND holder_pid = ?6
+                   AND fencing_token = ?7 AND expires_at > ?2
+               )",
+            params![
+                error_json,
+                now,
+                request_id,
+                holder.holder_id,
+                STORE_WRITER_RESOURCE,
+                holder.holder_pid,
+                fencing_token,
+            ],
         )?;
         Ok(())
     }
@@ -1013,7 +1143,13 @@ impl StoreCoordinator {
             |row| row.get::<_, i64>(0),
         )?;
         drop(store);
-        let coordinator_request = self.request(request_id)?;
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        let coordinator_request = request_by_id(&transaction, request_id)?.ok_or_else(|| {
+            CoordinatorError::RequestNotFound {
+                request_id: request_id.to_string(),
+            }
+        })?;
         if terminal.is_none()
             && matches!(
                 coordinator_request.state,
@@ -1024,9 +1160,23 @@ impl StoreCoordinator {
                 request_id: request_id.to_string(),
             });
         }
+        if let Some(ref terminal) = terminal
+            && matches!(
+                coordinator_request.state,
+                RequestState::Committed | RequestState::Acknowledged
+            )
+            && (coordinator_request.terminal_log_sequence != Some(terminal.sequence)
+                || coordinator_request.result_json.as_deref()
+                    != Some(terminal.payload_json.as_str()))
+        {
+            return Err(CoordinatorError::CorruptRequest {
+                detail: format!(
+                    "request {request_id:?} terminal coordinator fields do not match store_log"
+                ),
+            });
+        }
         if let Some(ref terminal) = terminal {
-            let connection = Connection::open(&self.coordinator_db)?;
-            let changed = connection.execute(
+            let changed = transaction.execute(
                 "UPDATE requests SET state = 'committed', claim_owner = NULL,
                  claim_heartbeat_at = NULL, terminal_log_sequence = ?1,
                  result_json = ?2, error_json = NULL, updated_at = ?3
@@ -1040,7 +1190,11 @@ impl StoreCoordinator {
             )?;
             if changed == 0
                 && !matches!(
-                    self.request(request_id)?.state,
+                    request_by_id(&transaction, request_id)?
+                        .ok_or_else(|| CoordinatorError::RequestNotFound {
+                            request_id: request_id.to_string(),
+                        })?
+                        .state,
                     RequestState::Committed | RequestState::Acknowledged
                 )
             {
@@ -1051,6 +1205,7 @@ impl StoreCoordinator {
                 });
             }
         }
+        transaction.commit()?;
         Ok(ReconcileOutcome {
             committed_in_fact: terminal.is_some(),
             next_chunk_index: u64::try_from(next_chunk_index).map_err(|_| {
@@ -1062,24 +1217,37 @@ impl StoreCoordinator {
     }
 
     pub fn request(&self, request_id: &str) -> Result<CoordinatorRequest, CoordinatorError> {
-        let connection = Connection::open(&self.coordinator_db)?;
+        let connection = open_coordinator(&self.coordinator_db)?;
         request_by_id(&connection, request_id)?.ok_or_else(|| CoordinatorError::RequestNotFound {
             request_id: request_id.to_string(),
         })
     }
 
     pub fn acknowledge(&mut self, request_id: &str, now: i64) -> Result<bool, CoordinatorError> {
-        let connection = Connection::open(&self.coordinator_db)?;
-        let changed = connection.execute(
+        if now < 0 {
+            return Err(CoordinatorError::InvalidTime {
+                field: "acknowledged_at",
+                value: now,
+            });
+        }
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        let changed = transaction.execute(
             "UPDATE requests SET state = 'acknowledged', updated_at = ?1
              WHERE request_id = ?2 AND state = 'committed'
                AND (requester_deadline IS NULL OR requester_deadline >= ?1)",
             params![now, request_id],
         )?;
         if changed == 1 {
+            transaction.commit()?;
             Ok(true)
         } else {
-            self.request(request_id)?;
+            request_by_id(&transaction, request_id)?.ok_or_else(|| {
+                CoordinatorError::RequestNotFound {
+                    request_id: request_id.to_string(),
+                }
+            })?;
+            transaction.commit()?;
             Ok(false)
         }
     }
@@ -1125,21 +1293,57 @@ pub fn compare_versions(left: &str, right: &str) -> Result<Ordering, Coordinator
 }
 
 #[cfg(unix)]
-fn process_is_alive(pid: u32) -> bool {
-    std::process::Command::new("kill")
+fn process_status(pid: u32) -> PidStatus {
+    let kill_status = std::process::Command::new("kill")
         .args(["-0", &pid.to_string()])
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
-        .status()
-        .is_ok_and(|status| status.success())
+        .status();
+    match kill_status {
+        Ok(status) if status.success() => return PidStatus::Alive,
+        Err(_) => return PidStatus::Unknown,
+        Ok(_) => {}
+    }
+    match std::process::Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "pid="])
+        .output()
+    {
+        Ok(output)
+            if output.status.success() && output.stdout.iter().all(u8::is_ascii_whitespace) =>
+        {
+            PidStatus::Dead
+        }
+        Ok(output) if output.status.success() => PidStatus::Unknown,
+        _ => PidStatus::Unknown,
+    }
 }
 
 #[cfg(not(unix))]
-fn process_is_alive(_pid: u32) -> bool {
-    true
+fn process_status(_pid: u32) -> PidStatus {
+    PidStatus::Unknown
 }
 
 fn validate_request(request: &CoordinatorRequest) -> Result<(), CoordinatorError> {
+    if request.created_at < 0 {
+        return Err(CoordinatorError::InvalidTime {
+            field: "created_at",
+            value: request.created_at,
+        });
+    }
+    if request.updated_at < 0 {
+        return Err(CoordinatorError::InvalidTime {
+            field: "updated_at",
+            value: request.updated_at,
+        });
+    }
+    if let Some(deadline) = request.requester_deadline
+        && deadline < 0
+    {
+        return Err(CoordinatorError::InvalidTime {
+            field: "requester_deadline",
+            value: deadline,
+        });
+    }
     if request.request_id.is_empty()
         || request.idempotency_key.is_empty()
         || request.requester_id.is_empty()
@@ -1150,6 +1354,49 @@ fn validate_request(request: &CoordinatorRequest) -> Result<(), CoordinatorError
     } else {
         Ok(())
     }
+}
+
+fn checked_lease_expiry(now: i64, lease_duration_ms: i64) -> Result<i64, CoordinatorError> {
+    if now < 0 || lease_duration_ms <= 0 {
+        return Err(CoordinatorError::InvalidTime {
+            field: "lease_expiry",
+            value: now,
+        });
+    }
+    now.checked_add(lease_duration_ms)
+        .ok_or(CoordinatorError::InvalidTime {
+            field: "lease_expiry",
+            value: now,
+        })
+}
+
+fn allocate_fencing_token(minimum: i64) -> Result<i64, CoordinatorError> {
+    let mut current = LAST_FENCING_TOKEN.load(AtomicOrdering::SeqCst);
+    loop {
+        let next = current
+            .checked_add(1)
+            .map(|candidate| candidate.max(minimum))
+            .ok_or_else(|| CoordinatorError::CorruptRequest {
+                detail: "writer lease fencing token overflow".to_string(),
+            })?;
+        match LAST_FENCING_TOKEN.compare_exchange(
+            current,
+            next,
+            AtomicOrdering::SeqCst,
+            AtomicOrdering::SeqCst,
+        ) {
+            Ok(_) => return Ok(next),
+            Err(observed) => current = observed,
+        }
+    }
+}
+
+fn checked_service_deadline(now: i64, service_window_ms: i64) -> Result<i64, CoordinatorError> {
+    now.checked_add(service_window_ms)
+        .ok_or(CoordinatorError::InvalidTime {
+            field: "service_deadline",
+            value: now,
+        })
 }
 
 fn request_by_idempotency(
@@ -1245,18 +1492,21 @@ fn query_request(
 
 struct LeaseReleaseGuard {
     coordinator_db: PathBuf,
-    holder_id: String,
+    holder: LeaseHolder,
     fencing_token: i64,
+    armed: bool,
+}
+
+impl LeaseReleaseGuard {
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
 }
 
 impl Drop for LeaseReleaseGuard {
     fn drop(&mut self) {
-        if let Ok(connection) = Connection::open(&self.coordinator_db) {
-            let _ = connection.execute(
-                "DELETE FROM writer_lease
-                 WHERE resource = ?1 AND holder_id = ?2 AND fencing_token = ?3",
-                params![STORE_WRITER_RESOURCE, self.holder_id, self.fencing_token],
-            );
+        if self.armed {
+            let _ = release_lease_at(&self.coordinator_db, &self.holder, self.fencing_token);
         }
     }
 }
@@ -1270,4 +1520,32 @@ fn sqlite_rfc3339(transaction: &Transaction<'_>, unix_ms: i64) -> Result<String,
         |row| row.get::<_, String>(0),
     )?;
     Ok(format!("{base}.{milliseconds:03}Z"))
+}
+
+fn open_coordinator(path: &Path) -> Result<Connection, CoordinatorError> {
+    let connection = Connection::open(path)?;
+    connection.busy_timeout(COORDINATOR_BUSY_TIMEOUT)?;
+    Ok(connection)
+}
+
+fn begin_coordinator(connection: &mut Connection) -> Result<Transaction<'_>, CoordinatorError> {
+    Ok(connection.transaction_with_behavior(TransactionBehavior::Immediate)?)
+}
+
+fn release_lease_at(
+    coordinator_db: &Path,
+    holder: &LeaseHolder,
+    fencing_token: i64,
+) -> Result<bool, CoordinatorError> {
+    let connection = open_coordinator(coordinator_db)?;
+    Ok(connection.execute(
+        "DELETE FROM writer_lease
+         WHERE resource = ?1 AND holder_id = ?2 AND holder_pid = ?3 AND fencing_token = ?4",
+        params![
+            STORE_WRITER_RESOURCE,
+            holder.holder_id,
+            holder.holder_pid,
+            fencing_token,
+        ],
+    )? == 1)
 }

@@ -6,8 +6,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     CoordinatorError, CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest, ExecutionContext,
-    ExecutionQuantum, LeaseDisposition, LeaseHolder, PidLiveness, RequestKind, StoreCoordinator,
-    StoreLayout, StoreLevel, StoreLog, StoreLogEntry, UnixMillisClock, compare_versions,
+    ExecutionQuantum, LeaseDisposition, LeaseHolder, PidLiveness, PidStatus, RequestKind,
+    StoreCoordinator, StoreLayout, StoreLevel, StoreLog, StoreLogEntry, UnixMillisClock,
+    compare_versions,
 };
 use rusqlite::{Connection, Transaction};
 
@@ -156,6 +157,67 @@ fn idempotency_key_reuse_with_different_input_is_a_typed_conflict() {
 }
 
 #[test]
+fn request_id_reuse_with_a_different_key_is_a_typed_conflict() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+
+    let error = coordinator
+        .enqueue(CoordinatorRequest::new(
+            "request-1",
+            "different-key",
+            RequestKind::Update,
+            "{}",
+            "requester",
+            10_000,
+            2,
+        ))
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        CoordinatorError::RequestIdConflict { request_id } if request_id == "request-1"
+    ));
+}
+
+#[test]
+fn invalid_public_request_and_lease_times_are_typed_errors() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    let request_error = coordinator
+        .enqueue(CoordinatorRequest::new(
+            "request-1",
+            "idem-1",
+            RequestKind::Update,
+            "{}",
+            "requester",
+            10,
+            -1,
+        ))
+        .unwrap_err();
+    assert!(matches!(
+        request_error,
+        CoordinatorError::InvalidTime {
+            field: "created_at",
+            value: -1
+        }
+    ));
+
+    let lease_error = coordinator
+        .try_acquire_or_takeover(LeaseHolder::new("holder", "2.30.0", 41), i64::MAX)
+        .unwrap_err();
+    assert!(matches!(
+        lease_error,
+        CoordinatorError::InvalidTime {
+            field: "lease_expiry",
+            value: i64::MAX
+        }
+    ));
+}
+
+#[test]
 fn requester_retry_with_a_new_request_id_reuses_the_original_request() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
@@ -229,9 +291,40 @@ fn two_concurrent_submitters_create_one_request_and_one_effect() {
 struct FixedLiveness(bool);
 
 impl PidLiveness for FixedLiveness {
-    fn is_alive(&self, _pid: u32) -> bool {
-        self.0
+    fn status(&self, _pid: u32) -> PidStatus {
+        if self.0 {
+            PidStatus::Alive
+        } else {
+            PidStatus::Dead
+        }
     }
+}
+
+#[derive(Debug)]
+struct UnknownLiveness;
+
+impl PidLiveness for UnknownLiveness {
+    fn status(&self, _pid: u32) -> PidStatus {
+        PidStatus::Unknown
+    }
+}
+
+#[test]
+fn unknown_pid_liveness_never_authorizes_takeover() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut owner = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    owner
+        .try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 10)
+        .unwrap();
+    let mut contender = StoreCoordinator::open_with_liveness(&layout, UnknownLiveness).unwrap();
+
+    assert_eq!(
+        contender
+            .try_acquire_or_takeover(LeaseHolder::new("holder-b", "2.30.0", 42), 11)
+            .unwrap(),
+        LeaseDisposition::HeldByOther
+    );
 }
 
 #[test]
@@ -242,30 +335,78 @@ fn live_holder_is_not_displaced_but_dead_or_expired_holder_is_fenced() {
     let first = live
         .try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 10)
         .unwrap();
-    assert_eq!(first, LeaseDisposition::Acquired { fencing_token: 10 });
+    let LeaseDisposition::Acquired {
+        fencing_token: first_token,
+    } = first
+    else {
+        panic!("first lease was not acquired");
+    };
     assert_eq!(
         live.try_acquire_or_takeover(LeaseHolder::new("holder-b", "2.31.0", 42), 11)
             .unwrap(),
         LeaseDisposition::HeldByOther
     );
-    assert_eq!(
-        live.try_acquire_or_takeover(LeaseHolder::new("holder-b", "2.31.0", 42), 5_010)
-            .unwrap(),
-        LeaseDisposition::Acquired {
-            fencing_token: 5_010
-        }
-    );
+    let LeaseDisposition::Acquired {
+        fencing_token: takeover_token,
+    } = live
+        .try_acquire_or_takeover(LeaseHolder::new("holder-b", "2.31.0", 42), 5_010)
+        .unwrap()
+    else {
+        panic!("expired lease was not taken over");
+    };
+    assert!(takeover_token > first_token);
 
-    live.release_lease("holder-b", 5_010).unwrap();
+    live.release_lease("holder-b", takeover_token).unwrap();
     live.try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 6_000)
         .unwrap();
     let mut dead = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
+    let LeaseDisposition::Acquired {
+        fencing_token: dead_takeover_token,
+    } = dead
+        .try_acquire_or_takeover(LeaseHolder::new("holder-b", "2.31.0", 42), 6_001)
+        .unwrap()
+    else {
+        panic!("dead lease was not taken over");
+    };
+    assert!(dead_takeover_token > takeover_token);
+}
+
+#[test]
+fn same_holder_id_with_a_different_live_pid_cannot_renew_or_overwrite() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    assert!(
+        coordinator
+            .try_acquire_or_takeover(LeaseHolder::new("holder", "2.30.0", 41), 10)
+            .unwrap()
+            .acquired()
+    );
+
     assert_eq!(
-        dead.try_acquire_or_takeover(LeaseHolder::new("holder-b", "2.31.0", 42), 6_001)
+        coordinator
+            .try_acquire_or_takeover(LeaseHolder::new("holder", "2.31.0", 42), 11)
             .unwrap(),
-        LeaseDisposition::Acquired {
-            fencing_token: 6_001
-        }
+        LeaseDisposition::HeldByOther
+    );
+    let lease = coordinator.lease().unwrap().unwrap();
+    assert_eq!(lease.holder.holder_pid, 41);
+    assert_eq!(lease.holder.holder_version, "2.30.0");
+}
+
+#[test]
+fn a_separate_instance_with_the_same_holder_and_pid_cannot_renew_without_the_token() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let holder = LeaseHolder::new("holder", "2.30.0", 41);
+    let mut owner = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    owner.try_acquire_or_takeover(holder.clone(), 10).unwrap();
+    let mut contender = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+
+    assert_eq!(
+        contender.try_acquire_or_takeover(holder, 11).unwrap(),
+        LeaseDisposition::HeldByOther
     );
 }
 
@@ -307,6 +448,140 @@ fn heartbeat_and_release_require_the_current_owner_and_fencing_token() {
             .release_lease("holder-a", fencing_token)
             .unwrap()
     );
+}
+
+#[test]
+fn released_lease_reacquires_with_a_new_token_that_rejects_stale_owner_calls() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    let holder = LeaseHolder::new("holder-a", "2.30.0", 41);
+    let LeaseDisposition::Acquired {
+        fencing_token: first_token,
+    } = coordinator
+        .try_acquire_or_takeover(holder.clone(), 10)
+        .unwrap()
+    else {
+        panic!("first lease was not acquired");
+    };
+    assert!(coordinator.release_lease("holder-a", first_token).unwrap());
+    let LeaseDisposition::Acquired {
+        fencing_token: second_token,
+    } = coordinator.try_acquire_or_takeover(holder, 10).unwrap()
+    else {
+        panic!("second lease was not acquired");
+    };
+
+    assert!(second_token > first_token);
+    assert!(
+        !coordinator
+            .heartbeat_lease("holder-a", first_token, 11)
+            .unwrap()
+    );
+    assert!(!coordinator.release_lease("holder-a", first_token).unwrap());
+    assert!(coordinator.lease().unwrap().is_some());
+}
+
+#[test]
+fn expired_holder_cannot_resurrect_its_lease_with_a_heartbeat() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    let lease = coordinator
+        .try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 10)
+        .unwrap();
+    let LeaseDisposition::Acquired { fencing_token } = lease else {
+        panic!("lease was not acquired");
+    };
+
+    assert!(
+        !coordinator
+            .heartbeat_lease("holder-a", fencing_token, 5_010)
+            .unwrap()
+    );
+    assert_eq!(coordinator.lease().unwrap().unwrap().expires_at, 5_010);
+}
+
+#[test]
+fn expired_holder_reacquisition_advances_the_fencing_token() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator =
+        StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    let holder = LeaseHolder::new("holder-a", "2.30.0", 41);
+    let LeaseDisposition::Acquired {
+        fencing_token: first_token,
+    } = coordinator
+        .try_acquire_or_takeover(holder.clone(), 10)
+        .unwrap()
+    else {
+        panic!("first lease was not acquired");
+    };
+
+    let LeaseDisposition::Acquired {
+        fencing_token: second_token,
+    } = coordinator.try_acquire_or_takeover(holder, 5_010).unwrap()
+    else {
+        panic!("expired lease was not reacquired");
+    };
+
+    assert!(second_token > first_token);
+}
+
+#[test]
+fn coordinator_operations_use_a_bounded_busy_policy_instead_of_reporting_lease_loss() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut owner = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    let LeaseDisposition::Acquired { fencing_token } = owner
+        .try_acquire_or_takeover(LeaseHolder::new("holder-a", "2.30.0", 41), 10)
+        .unwrap()
+    else {
+        panic!("lease was not acquired");
+    };
+    let locker = Connection::open(layout.coordinator_db()).unwrap();
+    locker.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let worker_layout = layout.clone();
+    let worker = std::thread::spawn(move || {
+        let mut coordinator =
+            StoreCoordinator::open_with_liveness(&worker_layout, FixedLiveness(true)).unwrap();
+        coordinator.heartbeat_lease("holder-a", fencing_token, 20)
+    });
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    locker.execute_batch("COMMIT").unwrap();
+
+    assert!(worker.join().unwrap().unwrap());
+}
+
+#[test]
+fn coordinator_database_connections_are_centralized_through_one_busy_policy() {
+    let source = include_str!("../src/store/coordinator.rs");
+
+    assert!(source.contains("fn open_coordinator("));
+    assert_eq!(
+        source
+            .matches("Connection::open(&self.coordinator_db)")
+            .count(),
+        0
+    );
+    assert!(source.contains("connection.busy_timeout(COORDINATOR_BUSY_TIMEOUT)?"));
+    assert!(source.contains("fn begin_coordinator("));
+    assert_eq!(
+        source
+            .matches("transaction_with_behavior(TransactionBehavior::Immediate)")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn normal_drain_paths_explicitly_release_and_only_panic_relies_on_drop() {
+    let source = include_str!("../src/store/coordinator.rs");
+
+    assert!(source.contains("let release_result = self.release_lease_for("));
+    assert!(source.contains("guard.disarm();"));
 }
 
 #[test]
@@ -427,6 +702,27 @@ fn coordinator_terminal_state_without_store_terminal_is_typed_corruption() {
     ));
 }
 
+#[test]
+fn coordinator_terminal_state_must_exactly_match_the_store_terminal() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    let terminal_sequence = append_terminal(&layout, "request-1", "{\"ok\":true}");
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    connection
+        .execute(
+            "UPDATE requests SET state = 'committed', terminal_log_sequence = ?1,
+             result_json = '{\"ok\":false}', updated_at = 2 WHERE request_id = 'request-1'",
+            [terminal_sequence],
+        )
+        .unwrap();
+
+    let error = coordinator.reconcile("request-1").unwrap_err();
+
+    assert!(matches!(error, CoordinatorError::CorruptRequest { .. }));
+}
+
 #[derive(Debug, Default)]
 struct TestClock(AtomicI64);
 
@@ -450,6 +746,37 @@ struct RecordingExecutor {
     order: Vec<String>,
     clock: Arc<TestClock>,
     advance_ms: i64,
+}
+
+struct TakeoverThenFailExecutor {
+    coordinator_db: PathBuf,
+}
+
+impl CoordinatorExecutor for TakeoverThenFailExecutor {
+    fn execute_quantum(
+        &mut self,
+        _transaction: &Transaction<'_>,
+        request: &CoordinatorRequest,
+        context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        let connection = Connection::open(&self.coordinator_db).unwrap();
+        connection
+            .execute(
+                "UPDATE writer_lease SET holder_id = 'holder-b', holder_pid = 42,
+                 heartbeat_at = 20, expires_at = 5020, fencing_token = ?1
+                 WHERE resource = 'store-writer'",
+                [context.fencing_token + 1],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "UPDATE requests SET claim_owner = 'holder-b', claim_heartbeat_at = 20,
+                 updated_at = 20 WHERE request_id = ?1",
+                [&request.request_id],
+            )
+            .unwrap();
+        Err("holder-a failed after takeover".to_string())
+    }
 }
 
 impl CoordinatorExecutor for RecordingExecutor {
@@ -488,6 +815,82 @@ fn enqueue_request(
 }
 
 #[test]
+fn stale_holder_cannot_fail_the_successors_claim_after_takeover() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder-a", "2.30.0", 41);
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    let mut executor = TakeoverThenFailExecutor {
+        coordinator_db: layout.coordinator_db().to_path_buf(),
+    };
+
+    let error = coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap_err();
+
+    assert!(matches!(error, CoordinatorError::ExecutionFailed { .. }));
+    let request = coordinator.request("request-1").unwrap();
+    assert_eq!(request.state.as_str(), "claimed");
+    assert_eq!(request.claim_owner.as_deref(), Some("holder-b"));
+}
+
+#[test]
+fn stale_holder_cannot_claim_after_takeover_between_heartbeat_and_claim() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    connection
+        .execute_batch(
+            "CREATE TRIGGER takeover_after_heartbeat
+             AFTER UPDATE OF heartbeat_at ON writer_lease
+             WHEN NEW.holder_id = 'holder-a'
+             BEGIN
+               UPDATE writer_lease SET holder_id = 'holder-b', holder_pid = 42,
+                 heartbeat_at = NEW.heartbeat_at, expires_at = NEW.expires_at,
+                 fencing_token = NEW.fencing_token + 1
+               WHERE resource = NEW.resource;
+             END;",
+        )
+        .unwrap();
+    let clock = Arc::new(TestClock::default());
+    clock.set(10);
+    let holder = LeaseHolder::new("holder-a", "2.30.0", 41);
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock,
+        advance_ms: 0,
+    };
+
+    let error = coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap_err();
+
+    assert!(matches!(error, CoordinatorError::LeaseLost));
+    assert!(executor.order.is_empty());
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "queued"
+    );
+}
+
+#[test]
 fn drain_caps_the_interactive_burst_at_32_before_a_batch_quantum() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
@@ -518,6 +921,106 @@ fn drain_caps_the_interactive_burst_at_32_before_a_batch_quantum() {
     assert_eq!(report.interactive_quanta, 33);
     assert_eq!(report.batch_quanta, 1);
     assert!(coordinator.lease().unwrap().is_none());
+}
+
+#[test]
+fn own_request_runs_exclusively_until_terminal_before_backlog_snapshot() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    enqueue_request(&mut coordinator, 2, RequestKind::Update, 2);
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock,
+        advance_ms: 0,
+    };
+    let policy = CoordinatorPolicy {
+        own_request_id: Some("request-2".to_string()),
+        ..CoordinatorPolicy::default()
+    };
+
+    coordinator.drain(&mut executor, &policy).unwrap();
+
+    assert_eq!(executor.order, ["request-2", "request-1"]);
+}
+
+#[test]
+fn missing_own_request_id_is_a_typed_error() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator =
+        StoreCoordinator::open_with_runtime(&layout, holder, clock, Arc::new(FixedLiveness(true)))
+            .unwrap();
+    let policy = CoordinatorPolicy {
+        own_request_id: Some("missing-request".to_string()),
+        ..CoordinatorPolicy::default()
+    };
+
+    let error = coordinator
+        .drain(
+            &mut RecordingExecutor {
+                order: Vec::new(),
+                clock: Arc::new(TestClock::default()),
+                advance_ms: 0,
+            },
+            &policy,
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        CoordinatorError::RequestNotFound { request_id } if request_id == "missing-request"
+    ));
+}
+
+#[test]
+fn overflowing_service_deadline_is_a_typed_time_error() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    clock.set(1);
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    let policy = CoordinatorPolicy {
+        service_window_ms: i64::MAX,
+        ..CoordinatorPolicy::default()
+    };
+
+    let error = coordinator
+        .drain(
+            &mut RecordingExecutor {
+                order: Vec::new(),
+                clock,
+                advance_ms: 0,
+            },
+            &policy,
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        CoordinatorError::InvalidTime {
+            field: "service_deadline",
+            value: 1
+        }
+    ));
 }
 
 #[test]
@@ -728,6 +1231,39 @@ fn initial_backlog_drains_beyond_the_service_window_but_later_arrivals_do_not() 
         .unwrap();
 
     assert_eq!(executor.order, ["request-1", "request-2"]);
+    assert_eq!(
+        coordinator.request("request-1000").unwrap().state.as_str(),
+        "queued"
+    );
+}
+
+#[test]
+fn request_arriving_exactly_at_the_service_deadline_is_not_accepted() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Update, 1);
+    let mut executor = ProducingExecutor {
+        layout,
+        clock,
+        order: Vec::new(),
+        next_request: 1_000,
+        advance_ms: 1_000,
+    };
+
+    coordinator
+        .drain(&mut executor, &CoordinatorPolicy::default())
+        .unwrap();
+
+    assert_eq!(executor.order, ["request-1"]);
     assert_eq!(
         coordinator.request("request-1000").unwrap().state.as_str(),
         "queued"

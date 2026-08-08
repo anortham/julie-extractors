@@ -10,8 +10,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
     CoordinatorExecutor, CoordinatorPolicy, CoordinatorRequest, ExecutionContext, ExecutionQuantum,
-    LeaseDisposition, LeaseHolder, PidLiveness, RequestKind, StoreCoordinator, StoreLayout,
-    UnixMillisClock,
+    LeaseDisposition, LeaseHolder, PidLiveness, PidStatus, RequestKind, StoreCoordinator,
+    StoreLayout, UnixMillisClock,
 };
 use rusqlite::{Connection, Transaction};
 
@@ -68,8 +68,8 @@ impl UnixMillisClock for FixedClock {
 struct LivePid;
 
 impl PidLiveness for LivePid {
-    fn is_alive(&self, _pid: u32) -> bool {
-        true
+    fn status(&self, _pid: u32) -> PidStatus {
+        PidStatus::Alive
     }
 }
 
@@ -135,23 +135,21 @@ fn hard_killed_holder_is_taken_over_without_a_duplicate_terminal_effect() {
     child.wait().unwrap();
 
     let takeover_at = unix_ms().max(first_token.saturating_add(5_000));
-    let lease = coordinator
-        .try_acquire_or_takeover(
-            LeaseHolder::new("holder-b", "2.30.0", std::process::id()),
-            takeover_at,
-        )
+    let holder_b = LeaseHolder::new("holder-b", "2.30.0", std::process::id());
+    let mut draining = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder_b.clone(),
+        Arc::new(FixedClock::new(takeover_at)),
+        Arc::new(LivePid),
+    )
+    .unwrap();
+    let lease = draining
+        .try_acquire_or_takeover(holder_b, takeover_at)
         .unwrap();
     let LeaseDisposition::Acquired { fencing_token } = lease else {
         panic!("dead holder was not taken over");
     };
     assert!(fencing_token > first_token);
-    let mut draining = StoreCoordinator::open_with_runtime(
-        &layout,
-        LeaseHolder::new("holder-b", "2.30.0", std::process::id()),
-        Arc::new(FixedClock::new(takeover_at)),
-        Arc::new(LivePid),
-    )
-    .unwrap();
     draining
         .drain(&mut CompleteExecutor, &CoordinatorPolicy::default())
         .unwrap();
