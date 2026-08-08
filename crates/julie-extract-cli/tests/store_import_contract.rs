@@ -140,6 +140,186 @@ fn idempotency_replay_observes_the_original_request_and_rejects_level_changes() 
 }
 
 #[test]
+fn idempotency_replay_with_a_different_family_is_a_conflict_without_mutation() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn value() {}\n").unwrap();
+    let run = |request_id: &str, family: &str| {
+        Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "import",
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                family,
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--level",
+                "l1",
+                "--request-id",
+                request_id,
+                "--idempotency-key",
+                "idem-family",
+                "--json",
+            ])
+            .output()
+            .unwrap()
+    };
+
+    assert_eq!(run("request-original", FAMILY_ID).status.code(), Some(0));
+    let layout = StoreLayout::open(&store).unwrap();
+    let store_before: (i64, i64) = rusqlite::Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM manifests), (SELECT COUNT(*) FROM store_log)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    let coord_before: i64 = rusqlite::Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row("SELECT COUNT(*) FROM requests", [], |row| row.get(0))
+        .unwrap();
+
+    let conflict = run("request-conflict", "00000000-0000-0000-0000-000000000001");
+    assert_eq!(conflict.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&conflict.stdout).unwrap();
+    assert_eq!(report["failure_class"], "idempotency_conflict");
+    let store_after: (i64, i64) = rusqlite::Connection::open(layout.store_db())
+        .unwrap()
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM manifests), (SELECT COUNT(*) FROM store_log)",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    let coord_after: i64 = rusqlite::Connection::open(layout.coordinator_db())
+        .unwrap()
+        .query_row("SELECT COUNT(*) FROM requests", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(store_after, store_before);
+    assert_eq!(coord_after, coord_before);
+}
+
+#[test]
+fn idempotency_replay_observes_terminal_request_after_root_deletion_without_touching_progress() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let progress = fixture.path().join("scan.progress");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn value() -> u32 { 1 }\n").unwrap();
+    let run = |request_id: &str| {
+        Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "import",
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                FAMILY_ID,
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--level",
+                "l1",
+                "--progress-file",
+                progress.to_str().unwrap(),
+                "--request-id",
+                request_id,
+                "--idempotency-key",
+                "idem-deleted-root",
+                "--json",
+            ])
+            .output()
+            .unwrap()
+    };
+
+    assert_eq!(run("request-original").status.code(), Some(0));
+    std::fs::remove_dir_all(&root).unwrap();
+    std::fs::write(&progress, "progress sentinel\n").unwrap();
+
+    let replay = run("request-retry");
+    assert_eq!(
+        replay.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&replay.stderr)
+    );
+    let replay: serde_json::Value = serde_json::from_slice(&replay.stdout).unwrap();
+    assert_eq!(replay["request"]["id"], "request-original");
+    assert_eq!(
+        std::fs::read_to_string(&progress).unwrap(),
+        "progress sentinel\n"
+    );
+    assert!(!root.exists());
+}
+
+#[test]
+fn replay_report_uses_the_original_requests_manifest_and_row_counts_after_a_newer_flip() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn original() {}\n").unwrap();
+    let run = |request_id: &str, idempotency_key: &str| {
+        let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "import",
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                FAMILY_ID,
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--level",
+                "l1",
+                "--request-id",
+                request_id,
+                "--idempotency-key",
+                idempotency_key,
+                "--json",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(
+            output.status.code(),
+            Some(0),
+            "stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+    };
+
+    let original = run("request-a", "idem-a");
+    std::fs::write(
+        root.join("lib.rs"),
+        "pub fn replacement() {}\npub fn additional() {}\n",
+    )
+    .unwrap();
+    let newer = run("request-b", "idem-b");
+    assert_ne!(
+        newer["manifest"]["generation"],
+        original["manifest"]["generation"]
+    );
+
+    let replay = run("request-a-retry", "idem-a");
+    assert_eq!(replay["request"]["id"], "request-a");
+    assert_eq!(replay["manifest"], original["manifest"]);
+    assert_eq!(replay["row_counts"], original["row_counts"]);
+    assert_eq!(replay["completion"], original["completion"]);
+}
+
+#[test]
 fn preflight_failure_never_enqueues_a_request() {
     let fixture = tempfile::tempdir().unwrap();
     let store = fixture.path().join("store");
@@ -166,6 +346,161 @@ fn preflight_failure_never_enqueues_a_request() {
         .unwrap();
     assert_ne!(output.status.code(), Some(0));
     assert!(!store.join("gen-001/coordinator.db").exists());
+}
+
+#[test]
+fn crafted_payload_cannot_redirect_progress_to_the_live_store_or_escape_root() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("safe.rs"), "pub fn safe() {}\n").unwrap();
+    let outside = fixture.path().join("outside.rs");
+    std::fs::write(&outside, "outside sentinel\n").unwrap();
+    let root = root.canonicalize().unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let redirected_progress = root.join("redirect.progress");
+    std::fs::hard_link(layout.store_db(), &redirected_progress).unwrap();
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "request-crafted",
+            "idem-crafted",
+            RequestKind::Import,
+            serde_json::json!({
+                "schema_version": 1,
+                "family_id": FAMILY_ID,
+                "root": root,
+                "view_id": "view-crafted",
+                "requested_level": "l1",
+                "files": [{
+                    "root_relative_path": "../outside.rs",
+                    "content_hash": format!("blake3:{}", "0".repeat(64)),
+                    "content_bytes": 1,
+                }],
+                "controls": {
+                    "jobs": 1,
+                    "progress_file": redirected_progress,
+                },
+            })
+            .to_string(),
+            "crafted-requester",
+            i64::MAX,
+            1,
+        ))
+        .unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-safe",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-safe",
+            "--idempotency-key",
+            "idem-safe",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0));
+    let crafted = StoreCoordinator::open(&layout)
+        .unwrap()
+        .request("request-crafted")
+        .unwrap();
+    assert_eq!(crafted.state, RequestState::Failed);
+    let crafted_error: serde_json::Value =
+        serde_json::from_str(crafted.error_json.as_deref().unwrap()).unwrap();
+    assert_eq!(
+        crafted_error["message"],
+        "invalid_import_request_payload:invalid_file_path"
+    );
+    let integrity: String = rusqlite::Connection::open(layout.store_db())
+        .unwrap()
+        .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(integrity, "ok");
+    let catalog_rows: i64 = rusqlite::Connection::open(layout.store_db())
+        .unwrap()
+        .query_row("SELECT COUNT(*) FROM store_meta", [], |row| row.get(0))
+        .unwrap();
+    assert!(catalog_rows > 0);
+    assert_eq!(
+        std::fs::read_to_string(outside).unwrap(),
+        "outside sentinel\n"
+    );
+}
+
+#[test]
+fn durable_payload_uses_absolute_scan_paths_and_excludes_process_runtime_authority() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn safe() {}\n").unwrap();
+    std::fs::write(fixture.path().join("custom.ignore"), "ignored.rs\n").unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .current_dir(fixture.path())
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--ignore-file",
+            "custom.ignore",
+            "--spool-dir",
+            "spool",
+            "--progress-file",
+            "progress.jsonl",
+            "--parent-pid",
+            &std::process::id().to_string(),
+            "--request-id",
+            "request-controls",
+            "--idempotency-key",
+            "idem-controls",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0));
+
+    let layout = StoreLayout::open(&store).unwrap();
+    let request = StoreCoordinator::open(&layout)
+        .unwrap()
+        .request("request-controls")
+        .unwrap();
+    let payload: serde_json::Value = serde_json::from_str(&request.payload_json).unwrap();
+    assert!(payload.get("store_db").is_none());
+    assert!(payload.get("parent_pid").is_none());
+    let controls = payload["controls"].as_object().unwrap();
+    assert!(controls.get("store_db").is_none());
+    assert!(controls.get("parent_pid").is_none());
+    for key in ["spool_dir", "progress_file"] {
+        assert!(std::path::Path::new(controls[key].as_str().unwrap()).is_absolute());
+    }
+    assert!(
+        controls["ignore_files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|path| std::path::Path::new(path.as_str().unwrap()).is_absolute())
+    );
 }
 
 #[test]
@@ -311,6 +646,138 @@ fn nonholder_times_out_without_removing_the_durable_queued_request() {
         durable.state,
         RequestState::Queued | RequestState::Claimed
     ));
+}
+
+#[test]
+fn successor_process_completes_a_queued_request_after_the_submitters_parent_exits() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn value() {}\n").unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let mut blocker = StoreCoordinator::open(&layout).unwrap();
+    let blocker_holder =
+        LeaseHolder::new("live-holder", env!("CARGO_PKG_VERSION"), std::process::id());
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let LeaseDisposition::Acquired { fencing_token } = blocker
+        .try_acquire_or_takeover(blocker_holder.clone(), now)
+        .unwrap()
+    else {
+        panic!("blocking lease was not acquired");
+    };
+
+    let submitter = Command::new("sh")
+        .arg("-c")
+        .arg(format!(
+            "\"{}\" store import --store \"{}\" --family {} --root \"{}\" --view view-main --request-id request-orphaned --idempotency-key idem-orphaned --request-timeout-seconds 1 --parent-pid $$ --json",
+            env!("CARGO_BIN_EXE_julie-extract"),
+            store.display(),
+            FAMILY_ID,
+            root.display(),
+        ))
+        .output()
+        .unwrap();
+    assert_eq!(submitter.status.code(), Some(1));
+    assert!(
+        blocker
+            .release_lease(&blocker_holder, fencing_token)
+            .unwrap()
+    );
+
+    let successor = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "request-successor",
+            "--idempotency-key",
+            "idem-orphaned",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        successor.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&successor.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&successor.stdout).unwrap();
+    assert_eq!(report["request"]["id"], "request-orphaned");
+    assert_eq!(report["state"], "committed");
+}
+
+#[test]
+fn multi_quantum_import_keeps_one_append_only_progress_stream_per_process_and_request() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let progress = fixture.path().join("scan.progress");
+    std::fs::create_dir(&root).unwrap();
+    for index in 0..3 {
+        std::fs::write(
+            root.join(format!("file-{index}.rs")),
+            format!("pub fn value_{index}() -> u32 {{ {index} }}\n"),
+        )
+        .unwrap();
+    }
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .env("MILLER_STORE_CHUNK_VERSIONS", "0")
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--progress-file",
+            progress.to_str().unwrap(),
+            "--request-id",
+            "request-progress",
+            "--idempotency-key",
+            "idem-progress",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let records = std::fs::read_to_string(progress)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str::<serde_json::Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    assert!(records.len() >= 3);
+    assert_eq!(records.first().unwrap()["files_extracted"], 0);
+    assert_eq!(records.last().unwrap()["files_extracted"], 6);
+    assert_eq!(records.last().unwrap()["phase"], "complete");
+    assert!(records.windows(2).all(|pair| {
+        pair[0]["files_extracted"].as_u64().unwrap() <= pair[1]["files_extracted"].as_u64().unwrap()
+    }));
 }
 
 #[test]

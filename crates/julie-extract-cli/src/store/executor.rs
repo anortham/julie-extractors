@@ -25,6 +25,7 @@ use crate::spool::create_scan_spool;
 static IMPORT_SPOOL_IO: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ImportRequestPayload {
     pub schema_version: u32,
     pub family_id: String,
@@ -43,12 +44,11 @@ pub(crate) enum RequestedLevel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct PlannedImportFile {
     pub root_relative_path: String,
     pub content_hash: String,
     pub content_bytes: u64,
-    #[serde(default)]
-    pub projected_wal_bytes: u64,
 }
 
 impl PlannedImportFile {
@@ -61,13 +61,13 @@ impl PlannedImportFile {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ImportScanControls {
     pub jobs: usize,
     #[serde(default)]
-    pub store_db: String,
+    pub ignore_files: Vec<String>,
     pub spool_dir: Option<String>,
     pub progress_file: Option<String>,
-    pub parent_pid: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -118,14 +118,142 @@ struct ImportChunk {
     end: usize,
 }
 
-pub(crate) struct StoreRequestExecutor;
+pub(crate) struct StoreRequestExecutor {
+    store_db: PathBuf,
+    family_id: String,
+    watchdog: Option<crate::watchdog::ParentWatchdog>,
+    progress: std::collections::BTreeMap<(String, String), Arc<ScanProgress>>,
+}
+
+/// A durable request may describe a million-file repository without permitting
+/// an unbounded coordinator row or deserialization allocation.
+pub(crate) const IMPORT_PAYLOAD_MAX_BYTES: usize = 64 * 1024 * 1024;
+/// The plan cap is deliberately above the largest supported repository class.
+pub(crate) const IMPORT_PLAN_MAX_FILES: usize = 1_000_000;
+const IMPORT_JOBS_MAX: usize = 1024;
+const IMPORT_IGNORE_FILES_MAX: usize = 1024;
 
 impl StoreRequestExecutor {
-    pub(crate) fn new() -> Self {
-        Self
+    pub(crate) fn new(
+        store_db: PathBuf,
+        family_id: String,
+        watchdog: Option<crate::watchdog::ParentWatchdog>,
+    ) -> Self {
+        Self {
+            store_db,
+            family_id,
+            watchdog,
+            progress: std::collections::BTreeMap::new(),
+        }
+    }
+
+    pub(crate) fn validate_payload_json(
+        &self,
+        payload_json: &str,
+    ) -> Result<ImportRequestPayload, String> {
+        validate_payload_bounds(payload_json.len(), 0)?;
+        let payload: ImportRequestPayload = serde_json::from_str(payload_json)
+            .map_err(|_| "invalid_import_request_payload:invalid_json".to_string())?;
+        if payload.schema_version != 1 {
+            return Err("invalid_import_request_payload:unsupported_schema".to_string());
+        }
+        if payload.family_id != self.family_id {
+            return Err("invalid_import_request_payload:family_mismatch".to_string());
+        }
+        if payload.view_id.is_empty()
+            || payload.view_id.len() > super::args::MAX_STORE_IDENTIFIER_BYTES
+            || payload.view_id.as_bytes().contains(&0)
+        {
+            return Err("invalid_import_request_payload:invalid_view".to_string());
+        }
+        if payload.root.is_empty()
+            || payload.root.len() > super::args::MAX_STORE_PATH_BYTES
+            || payload.root.as_bytes().contains(&0)
+        {
+            return Err("invalid_import_request_payload:invalid_root".to_string());
+        }
+        validate_payload_bounds(payload_json.len(), payload.files.len())?;
+        if payload.controls.jobs > IMPORT_JOBS_MAX
+            || payload.controls.ignore_files.len() > IMPORT_IGNORE_FILES_MAX
+        {
+            return Err("invalid_import_request_payload:controls_out_of_range".to_string());
+        }
+        for path in [
+            payload.controls.spool_dir.as_deref(),
+            payload.controls.progress_file.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if path.is_empty()
+                || path.len() > super::args::MAX_STORE_PATH_BYTES
+                || path.as_bytes().contains(&0)
+                || !std::path::Path::new(path).is_absolute()
+            {
+                return Err("invalid_import_request_payload:invalid_control_path".to_string());
+            }
+        }
+        for path in &payload.controls.ignore_files {
+            if path.is_empty()
+                || path.len() > super::args::MAX_STORE_PATH_BYTES
+                || path.as_bytes().contains(&0)
+                || !std::path::Path::new(path).is_absolute()
+            {
+                return Err("invalid_import_request_payload:invalid_control_path".to_string());
+            }
+        }
+        let root = std::path::Path::new(&payload.root);
+        let mut previous: Option<&str> = None;
+        for file in &payload.files {
+            let path = file.root_relative_path.as_str();
+            if path.is_empty()
+                || path.len() > super::args::MAX_STORE_PATH_BYTES
+                || path.starts_with('/')
+                || path.contains(['\\', ':', '\0'])
+                || path
+                    .split('/')
+                    .any(|part| part.is_empty() || part == "." || part == "..")
+                || !root.join(path).starts_with(root)
+            {
+                return Err("invalid_import_request_payload:invalid_file_path".to_string());
+            }
+            if previous.is_some_and(|previous| previous >= path) {
+                return Err("invalid_import_request_payload:plan_not_strictly_sorted".to_string());
+            }
+            let hash = file.content_hash.as_bytes();
+            if hash.len() != 71
+                || !file.content_hash.starts_with("blake3:")
+                || !hash[7..]
+                    .iter()
+                    .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+            {
+                return Err("invalid_import_request_payload:invalid_content_hash".to_string());
+            }
+            previous = Some(path);
+        }
+        if !root.is_absolute()
+            || (root.exists()
+                && root
+                    .canonicalize()
+                    .ok()
+                    .as_deref()
+                    .and_then(std::path::Path::to_str)
+                    != Some(payload.root.as_str()))
+        {
+            return Err("invalid_import_request_payload:root_not_canonical".to_string());
+        }
+        Ok(payload)
+    }
+
+    fn validated_payload(
+        &self,
+        request: &CoordinatorRequest,
+    ) -> Result<ImportRequestPayload, String> {
+        self.validate_payload_json(&request.payload_json)
     }
 
     fn progress_for(
+        &mut self,
         transaction: &Transaction<'_>,
         request: &CoordinatorRequest,
         payload: &ImportRequestPayload,
@@ -134,12 +262,13 @@ impl StoreRequestExecutor {
         let Some(progress_file) = payload.controls.progress_file.as_deref() else {
             return Ok(None);
         };
+        let key = (request.request_id.clone(), progress_file.to_string());
+        if let Some(progress) = self.progress.get(&key) {
+            return Ok(Some(Arc::clone(progress)));
+        }
         let progress = Arc::new(
-            ScanProgress::create_for_artifact(
-                std::path::Path::new(progress_file),
-                std::path::Path::new(&payload.controls.store_db),
-            )
-            .map_err(|error| format!("{error:?}"))?,
+            ScanProgress::create_for_artifact(std::path::Path::new(progress_file), &self.store_db)
+                .map_err(|error| format!("{error:?}"))?,
         );
         progress.enter_phase("store_import");
         let completed_extractions: i64 = transaction
@@ -158,6 +287,7 @@ impl StoreRequestExecutor {
             progress.advance(Counter::Extracted, completed_extractions);
             progress.advance(Counter::Spooled, completed_extractions);
         }
+        self.progress.insert(key, Arc::clone(&progress));
         Ok(Some(progress))
     }
 
@@ -308,6 +438,16 @@ impl StoreRequestExecutor {
     }
 }
 
+fn validate_payload_bounds(serialized_bytes: usize, files: usize) -> Result<(), String> {
+    if serialized_bytes > IMPORT_PAYLOAD_MAX_BYTES {
+        return Err("invalid_import_request_payload:payload_too_large".to_string());
+    }
+    if files > IMPORT_PLAN_MAX_FILES {
+        return Err("invalid_import_request_payload:too_many_files".to_string());
+    }
+    Ok(())
+}
+
 fn load_durable_request_state(
     transaction: &Transaction<'_>,
     request_id: &str,
@@ -388,10 +528,7 @@ fn build_chunks(files: &[PlannedImportFile], level: StoreLevel) -> Vec<ImportChu
     chunk_ranges(
         &files
             .iter()
-            .map(|file| {
-                file.projected_wal_bytes
-                    .max(estimate_projected_wal_bytes(file.content_bytes))
-            })
+            .map(|file| estimate_projected_wal_bytes(file.content_bytes))
             .collect::<Vec<_>>(),
         version_limit,
     )
@@ -430,17 +567,12 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         if request.kind != RequestKind::Import {
             return Err("unsupported_store_request_kind".to_string());
         }
-        let payload: ImportRequestPayload =
-            serde_json::from_str(&request.payload_json).map_err(|_| "invalid_import_request")?;
-        if payload.schema_version != 1 {
-            return Err("unsupported_import_request_schema".to_string());
-        }
-        if payload.controls.parent_pid.is_some_and(|pid| {
-            matches!(
-                crate::watchdog::process_status(pid),
-                julie_extract_artifact::store::PidStatus::Dead
-            )
-        }) {
+        let payload = self.validated_payload(request)?;
+        if self
+            .watchdog
+            .as_ref()
+            .is_some_and(crate::watchdog::ParentWatchdog::parent_exited)
+        {
             return Err("parent_process_exited".to_string());
         }
         let root = PathBuf::from(&payload.root);
@@ -454,7 +586,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         }
         let (mut failures, mut persisted_manifest_disposition) =
             load_durable_request_state(transaction, &request.request_id)?;
-        let progress = Self::progress_for(transaction, request, &payload, failures.len())?;
+        let progress = self.progress_for(transaction, request, &payload, failures.len())?;
         ManifestStore::ensure_view_in_transaction(transaction, &payload.view_id, &payload.root)
             .map_err(|error| error.to_string())?;
         let indexed_at = OffsetDateTime::now_utc()
@@ -727,7 +859,10 @@ fn wait_for_l1_test_hook() -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{WAL_BUDGET_BYTES, chunk_ranges, estimate_projected_wal_bytes, map_with_jobs};
+    use super::{
+        IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES, StoreRequestExecutor, WAL_BUDGET_BYTES,
+        chunk_ranges, estimate_projected_wal_bytes, map_with_jobs, validate_payload_bounds,
+    };
 
     #[test]
     fn wal_budget_splits_before_the_next_version_would_exceed_128_mib() {
@@ -760,5 +895,49 @@ mod tests {
         let source_bytes = 8 * 1024 * 1024;
         assert!(estimate_projected_wal_bytes(source_bytes) > source_bytes);
         assert!(estimate_projected_wal_bytes(source_bytes) >= WAL_BUDGET_BYTES);
+    }
+
+    #[test]
+    fn durable_plan_bounds_cover_large_repositories_and_reject_the_next_value() {
+        assert_eq!(IMPORT_PAYLOAD_MAX_BYTES, 64 * 1024 * 1024);
+        assert_eq!(IMPORT_PLAN_MAX_FILES, 1_000_000);
+        assert!(validate_payload_bounds(IMPORT_PAYLOAD_MAX_BYTES, IMPORT_PLAN_MAX_FILES).is_ok());
+        assert_eq!(
+            validate_payload_bounds(IMPORT_PAYLOAD_MAX_BYTES + 1, 0).unwrap_err(),
+            "invalid_import_request_payload:payload_too_large"
+        );
+        assert_eq!(
+            validate_payload_bounds(0, IMPORT_PLAN_MAX_FILES + 1).unwrap_err(),
+            "invalid_import_request_payload:too_many_files"
+        );
+    }
+
+    #[test]
+    fn durable_plan_rejects_a_caller_supplied_wal_estimate() {
+        let executor = StoreRequestExecutor::new(
+            std::path::PathBuf::from("/trusted/store.db"),
+            "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11".to_string(),
+            None,
+        );
+        let payload = serde_json::json!({
+            "schema_version": 1,
+            "family_id": "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+            "root": "/trusted/root",
+            "view_id": "view-main",
+            "requested_level": "l1",
+            "files": [{
+                "root_relative_path": "lib.rs",
+                "content_hash": format!("blake3:{}", "0".repeat(64)),
+                "content_bytes": 1,
+                "projected_wal_bytes": 1,
+            }],
+            "controls": { "jobs": 1 },
+        });
+        assert_eq!(
+            executor
+                .validate_payload_json(&payload.to_string())
+                .unwrap_err(),
+            "invalid_import_request_payload:invalid_json"
+        );
     }
 }

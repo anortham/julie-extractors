@@ -98,139 +98,173 @@ fn execute_import(
     request_id: &str,
     idempotency_key: &str,
 ) -> Result<StoreReport, String> {
-    let root = args
-        .root
-        .canonicalize()
+    let observe_started = now_millis();
+    let existing_store = args.store.join("CURRENT").exists();
+    let existing = if existing_store {
+        let layout = StoreLayout::open(&args.store).map_err(|error| error.to_string())?;
+        let holder = LeaseHolder::new(
+            format!("cli-{}", std::process::id()),
+            env!("CARGO_PKG_VERSION"),
+            std::process::id(),
+        );
+        let coordinator = StoreCoordinator::open_with_runtime(
+            &layout,
+            holder,
+            std::sync::Arc::new(ImportClock),
+            std::sync::Arc::new(ImportPidLiveness),
+        )
         .map_err(|error| error.to_string())?;
-    let root_text = root.to_string_lossy().into_owned();
-    let layout = StoreLayout::create(&args.store, &args.family, env!("CARGO_PKG_VERSION"))
-        .map_err(|error| error.to_string())?;
-    let progress = args
-        .scan
-        .progress_file
-        .as_deref()
-        .map(|path| crate::progress::ScanProgress::create_for_artifact(path, layout.store_db()))
-        .transpose()
-        .map_err(|error| format!("{error:?}"))?
-        .map(Arc::new);
-    if let Some(progress) = progress.as_deref() {
-        progress.enter_phase("discovery");
-    }
-    let exclusions = crate::discovery::DiscoveryExclusions {
-        progress_path: args.scan.progress_file.clone(),
-        spool_dir: args.scan.spool_dir.clone(),
+        coordinator
+            .request_by_idempotency_key(idempotency_key)
+            .map_err(|error| error.to_string())?
+            .map(|request| (layout, coordinator, request))
+    } else {
+        None
     };
-    let discovery = crate::discovery::DiscoveryPolicy::build_excluding(
-        &root,
-        layout.store_db(),
-        exclusions,
-        &args.scan.ignore_files,
-    )
-    .map_err(|error| format!("{error:?}"))?
-    .discover_with_progress(progress.as_deref());
-    if let Some(error) = discovery.errors.first() {
-        return Err(error.message.clone());
-    }
-    let mut files = discovery
-        .supported_files
-        .into_iter()
-        .map(|target| {
-            let (content_hash, content_bytes) =
-                crate::extraction::read_source_identity(&target).map_err(|error| error.message)?;
-            Ok(PlannedImportFile {
-                root_relative_path: target.root_relative_path,
-                content_hash,
-                content_bytes,
-                projected_wal_bytes: super::executor::estimate_projected_wal_bytes(content_bytes),
-            })
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    files.sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
-    let planned_payload = ImportRequestPayload {
-        schema_version: 1,
-        family_id: args.family.clone(),
-        root: root_text.clone(),
-        view_id: args.view.clone(),
-        requested_level: match args.level {
-            StoreLevelArg::L1 => RequestedLevel::L1,
-            StoreLevelArg::Full => RequestedLevel::Full,
-        },
-        files,
-        controls: ImportScanControls {
-            jobs: args.scan.jobs,
-            store_db: layout.store_db().to_string_lossy().into_owned(),
-            spool_dir: args
-                .scan
-                .spool_dir
-                .as_ref()
-                .map(|path| path.to_string_lossy().into_owned()),
-            progress_file: args
+
+    let requested_level = match args.level {
+        StoreLevelArg::L1 => RequestedLevel::L1,
+        StoreLevelArg::Full => RequestedLevel::Full,
+    };
+    let controls = ImportScanControls {
+        jobs: args.scan.jobs,
+        ignore_files: canonical_control_paths(&args.scan.ignore_files)?,
+        spool_dir: args
+            .scan
+            .spool_dir
+            .as_ref()
+            .map(|path| absolute_runtime_path(path))
+            .transpose()?,
+        progress_file: args
+            .scan
+            .progress_file
+            .as_ref()
+            .map(|path| absolute_runtime_path(path))
+            .transpose()?,
+    };
+
+    let (layout, mut coordinator, canonical_request) =
+        if let Some((layout, coordinator, existing)) = existing {
+            let trusted_family = trusted_store_family(&layout)?;
+            let validator =
+                StoreRequestExecutor::new(layout.store_db().to_path_buf(), trusted_family, None);
+            let existing_payload = validator.validate_payload_json(&existing.payload_json)?;
+            if existing.kind != RequestKind::Import
+                || existing_payload.schema_version != 1
+                || existing_payload.family_id != args.family
+                || !root_scope_matches(&args.root, &existing_payload.root)
+                || existing_payload.view_id != args.view
+                || existing_payload.requested_level != requested_level
+                || existing_payload.controls != controls
+            {
+                return Err("idempotency_conflict".to_string());
+            }
+            (layout, coordinator, existing)
+        } else {
+            let root = args
+                .root
+                .canonicalize()
+                .map_err(|error| error.to_string())?;
+            let root_text = root.to_string_lossy().into_owned();
+            let layout = StoreLayout::create(&args.store, &args.family, env!("CARGO_PKG_VERSION"))
+                .map_err(|error| error.to_string())?;
+            let progress = args
                 .scan
                 .progress_file
-                .as_ref()
-                .map(|path| path.to_string_lossy().into_owned()),
-            parent_pid: args.scan.parent_pid,
-        },
-    };
-    let payload = serde_json::to_string(&planned_payload).expect("import payload is serializable");
-    let now = now_millis();
-    let deadline_delta = i64::try_from(args.request.request_timeout_seconds)
-        .unwrap_or(i64::MAX)
-        .saturating_mul(1_000);
-    let request = CoordinatorRequest::new(
-        request_id,
-        idempotency_key,
-        RequestKind::Import,
-        payload,
-        format!("cli-{}", std::process::id()),
-        now.saturating_add(deadline_delta),
-        now,
-    );
-    let holder = LeaseHolder::new(
-        format!("cli-{}", std::process::id()),
-        env!("CARGO_PKG_VERSION"),
-        std::process::id(),
-    );
-    let mut coordinator = StoreCoordinator::open_with_runtime(
-        &layout,
-        holder,
-        std::sync::Arc::new(ImportClock),
-        std::sync::Arc::new(ImportPidLiveness),
-    )
-    .map_err(|error| error.to_string())?;
-    let canonical_request = match coordinator
-        .request_by_idempotency_key(idempotency_key)
-        .map_err(|error| error.to_string())?
-    {
-        Some(existing) => {
-            let existing_payload: ImportRequestPayload =
-                serde_json::from_str(&existing.payload_json)
-                    .map_err(|_| "invalid_import_request".to_string())?;
-            if existing.kind != RequestKind::Import
-                || existing_payload.schema_version != planned_payload.schema_version
-                || existing_payload.family_id != planned_payload.family_id
-                || existing_payload.root != planned_payload.root
-                || existing_payload.view_id != planned_payload.view_id
-                || existing_payload.requested_level != planned_payload.requested_level
-                || existing_payload.controls != planned_payload.controls
-            {
-                coordinator
-                    .enqueue(request)
-                    .map_err(|error| error.to_string())?
-                    .request
-            } else {
-                existing
+                .as_deref()
+                .map(|path| {
+                    crate::progress::ScanProgress::create_for_artifact(path, layout.store_db())
+                })
+                .transpose()
+                .map_err(|error| format!("{error:?}"))?
+                .map(Arc::new);
+            if let Some(progress) = progress.as_deref() {
+                progress.enter_phase("discovery");
             }
-        }
-        None => {
-            coordinator
+            let exclusions = crate::discovery::DiscoveryExclusions {
+                progress_path: args.scan.progress_file.clone(),
+                spool_dir: args.scan.spool_dir.clone(),
+            };
+            let discovery = crate::discovery::DiscoveryPolicy::build_excluding(
+                &root,
+                layout.store_db(),
+                exclusions,
+                &args.scan.ignore_files,
+            )
+            .map_err(|error| format!("{error:?}"))?
+            .discover_with_progress(progress.as_deref());
+            if let Some(error) = discovery.errors.first() {
+                return Err(error.message.clone());
+            }
+            let mut files = discovery
+                .supported_files
+                .into_iter()
+                .map(|target| {
+                    let (content_hash, content_bytes) =
+                        crate::extraction::read_source_identity(&target)
+                            .map_err(|error| error.message)?;
+                    Ok(PlannedImportFile {
+                        root_relative_path: target.root_relative_path,
+                        content_hash,
+                        content_bytes,
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            files.sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
+            let planned_payload = ImportRequestPayload {
+                schema_version: 1,
+                family_id: args.family.clone(),
+                root: root_text.clone(),
+                view_id: args.view.clone(),
+                requested_level,
+                files,
+                controls,
+            };
+            let payload =
+                serde_json::to_string(&planned_payload).expect("import payload is serializable");
+            StoreRequestExecutor::new(layout.store_db().to_path_buf(), args.family.clone(), None)
+                .validate_payload_json(&payload)?;
+            let now = now_millis();
+            let deadline_delta = i64::try_from(args.request.request_timeout_seconds)
+                .unwrap_or(i64::MAX)
+                .saturating_mul(1_000);
+            let request = CoordinatorRequest::new(
+                request_id,
+                idempotency_key,
+                RequestKind::Import,
+                payload,
+                format!("cli-{}", std::process::id()),
+                now.saturating_add(deadline_delta),
+                now,
+            );
+            let holder = LeaseHolder::new(
+                format!("cli-{}", std::process::id()),
+                env!("CARGO_PKG_VERSION"),
+                std::process::id(),
+            );
+            let mut coordinator = StoreCoordinator::open_with_runtime(
+                &layout,
+                holder,
+                std::sync::Arc::new(ImportClock),
+                std::sync::Arc::new(ImportPidLiveness),
+            )
+            .map_err(|error| error.to_string())?;
+            let canonical_request = coordinator
                 .enqueue(request)
                 .map_err(|error| error.to_string())?
-                .request
-        }
-    };
+                .request;
+            (layout, coordinator, canonical_request)
+        };
     let canonical_request_id = canonical_request.request_id.clone();
-    let mut executor = StoreRequestExecutor::new();
+    let watchdog = args
+        .scan
+        .parent_pid
+        .map(crate::watchdog::ParentWatchdog::start);
+    let mut executor = StoreRequestExecutor::new(
+        layout.store_db().to_path_buf(),
+        args.family.clone(),
+        watchdog,
+    );
     let policy = CoordinatorPolicy {
         own_request_id: Some(canonical_request_id.clone()),
         ..CoordinatorPolicy::default()
@@ -249,7 +283,11 @@ fn execute_import(
             ) {
                 break;
             }
-            if now_millis() >= canonical_request.requester_deadline.unwrap_or(now) {
+            if now_millis()
+                >= canonical_request
+                    .requester_deadline
+                    .unwrap_or(observe_started)
+            {
                 let canonical_payload: ImportRequestPayload =
                     serde_json::from_str(&observed.payload_json)
                         .map_err(|_| "invalid_import_request".to_string())?;
@@ -365,13 +403,39 @@ fn populate_durable_projection(
 ) -> Result<(), String> {
     let connection =
         rusqlite::Connection::open(layout.store_db()).map_err(|error| error.to_string())?;
+    if report.manifest.generation.is_none() {
+        let progress_payload = connection
+            .query_row(
+                "SELECT payload_json FROM store_log
+                 WHERE request_id = ?1 AND event_kind = 'store_import_l1_published'
+                 ORDER BY sequence DESC LIMIT 1",
+                [request_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|error| error.to_string())?;
+        if let Some(progress_payload) = progress_payload {
+            let progress: serde_json::Value =
+                serde_json::from_str(&progress_payload).map_err(|error| error.to_string())?;
+            report.manifest.generation = progress["generation"].as_u64();
+            report.manifest.hash = progress["manifest_hash"].as_str().map(ToOwned::to_owned);
+            report.manifest.disposition = match progress["manifest_disposition"].as_str() {
+                Some("created") => StoreManifestDisposition::Created,
+                Some("reused") => StoreManifestDisposition::Reused,
+                _ => StoreManifestDisposition::NotPublished,
+            };
+        }
+    }
+    let Some(report_generation) = report.manifest.generation else {
+        return Ok(());
+    };
+    let report_generation =
+        i64::try_from(report_generation).map_err(|_| "invalid_manifest_generation")?;
     let manifest = connection
         .query_row(
-            "SELECT m.generation, m.manifest_hash, m.request_id
-             FROM views v JOIN manifests m
-               ON m.view_id = v.view_id AND m.generation = v.current_generation
-             WHERE v.view_id = ?1",
-            [view_id],
+            "SELECT generation, manifest_hash, request_id
+             FROM manifests WHERE view_id = ?1 AND generation = ?2",
+            rusqlite::params![view_id, report_generation],
             |row| {
                 Ok((
                     row.get::<_, i64>(0)?,
@@ -400,11 +464,10 @@ fn populate_durable_projection(
                     "SELECT
                        COUNT(*) FILTER (WHERE me.version_id IS NOT NULL AND fv.complete_l2 IS NULL),
                        COUNT(*) FILTER (WHERE me.version_id IS NOT NULL AND fv.complete_l3 IS NULL)
-                     FROM views v JOIN manifest_entries me
-                       ON me.view_id = v.view_id AND me.generation = v.current_generation
+                     FROM manifest_entries me
                      LEFT JOIN file_versions fv ON fv.version_id = me.version_id
-                     WHERE v.view_id = ?1",
-                    [view_id],
+                     WHERE me.view_id = ?1 AND me.generation = ?2",
+                    rusqlite::params![view_id, report_generation],
                     |row| Ok((row.get(0)?, row.get(1)?)),
                 )
                 .map_err(|error| error.to_string())?;
@@ -416,9 +479,8 @@ fn populate_durable_projection(
         .query_row(
             "WITH current_versions AS (
                SELECT DISTINCT me.version_id
-               FROM views v JOIN manifest_entries me
-                 ON me.view_id = v.view_id AND me.generation = v.current_generation
-               WHERE v.view_id = ?1 AND me.version_id IS NOT NULL
+               FROM manifest_entries me
+               WHERE me.view_id = ?1 AND me.generation = ?2 AND me.version_id IS NOT NULL
              )
              SELECT
                (SELECT COUNT(*) FROM current_versions),
@@ -437,7 +499,7 @@ fn populate_durable_projection(
                  + (SELECT COUNT(*) FROM literals WHERE version_id IN current_versions)
                  + (SELECT COUNT(*) FROM source_regions WHERE version_id IN current_versions)
                  + (SELECT COUNT(*) FROM structural_facts WHERE version_id IN current_versions)",
-            [view_id],
+            rusqlite::params![view_id, report_generation],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .map_err(|error| error.to_string())?;
@@ -448,6 +510,66 @@ fn populate_durable_projection(
         l3: u64::try_from(counts.3).map_err(|_| "invalid_row_count")?,
     };
     Ok(())
+}
+
+fn root_scope_matches(requested: &std::path::Path, stored: &str) -> bool {
+    if requested == std::path::Path::new(stored) {
+        return true;
+    }
+    if let Ok(canonical) = requested.canonicalize() {
+        return canonical == std::path::Path::new(stored);
+    }
+    let Some(name) = requested.file_name() else {
+        return false;
+    };
+    requested
+        .parent()
+        .and_then(|parent| parent.canonicalize().ok())
+        .is_some_and(|parent| parent.join(name) == std::path::Path::new(stored))
+}
+
+fn absolute_runtime_path(path: &std::path::Path) -> Result<String, String> {
+    let absolute = std::path::absolute(path).map_err(|error| error.to_string())?;
+    let mut existing = absolute.as_path();
+    let mut missing = Vec::new();
+    while !existing.exists() {
+        let leaf = existing
+            .file_name()
+            .ok_or_else(|| "path_has_no_existing_ancestor".to_string())?;
+        missing.push(leaf.to_os_string());
+        existing = existing
+            .parent()
+            .ok_or_else(|| "path_has_no_existing_ancestor".to_string())?;
+    }
+    let mut canonical = existing.canonicalize().map_err(|error| error.to_string())?;
+    for leaf in missing.into_iter().rev() {
+        canonical.push(leaf);
+    }
+    canonical
+        .to_str()
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| "path_is_not_utf8".to_string())
+}
+
+fn canonical_control_paths(paths: &[std::path::PathBuf]) -> Result<Vec<String>, String> {
+    let mut paths = paths
+        .iter()
+        .map(|path| absolute_runtime_path(path))
+        .collect::<Result<Vec<_>, _>>()?;
+    paths.sort();
+    paths.dedup();
+    Ok(paths)
+}
+
+fn trusted_store_family(layout: &StoreLayout) -> Result<String, String> {
+    rusqlite::Connection::open(layout.store_db())
+        .map_err(|error| error.to_string())?
+        .query_row(
+            "SELECT value FROM store_meta WHERE key = 'family_id'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| error.to_string())
 }
 
 fn classify_failure(message: &str) -> StoreFailureClass {
