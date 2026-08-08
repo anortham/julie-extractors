@@ -181,6 +181,22 @@ fn below_reader_floor_is_typed_not_ready() {
 }
 
 #[test]
+fn below_reader_floor_also_blocks_writes() {
+    let temp = TempStore::new("reader-floor-writer");
+    let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
+    set_metadata(layout.store_db(), "min_reader_version", "2.31.0");
+    let factory = StoreConnectionFactory::new(layout, "family-a", "2.30.0");
+
+    let error = factory.open_writer().unwrap_err();
+
+    assert!(matches!(
+        error,
+        StoreConnectionError::WriterVersionTooOld { running, required }
+            if running == "2.30.0" && required == "2.31.0"
+    ));
+}
+
+#[test]
 fn below_writer_floor_can_open_read_only_but_not_for_writes() {
     let temp = TempStore::new("writer-floor");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();

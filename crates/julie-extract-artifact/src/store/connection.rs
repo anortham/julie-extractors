@@ -92,12 +92,18 @@ impl StoreConnectionFactory {
                 metadata_value(connection, "min_reader_version")?,
             ),
             AccessMode::Writer => {
-                let minimum = metadata_value(connection, "min_writer_version")?;
+                let minimum_reader = metadata_value(connection, "min_reader_version")?;
+                let minimum_writer = metadata_value(connection, "min_writer_version")?;
                 let recorded = metadata_value(connection, "binary_version")?;
                 (
                     "min_writer_version",
-                    required_writer_version(&minimum, &recorded, extractor_downgrade_allowed())?
-                        .to_string(),
+                    required_writer_version(
+                        &minimum_reader,
+                        &minimum_writer,
+                        &recorded,
+                        extractor_downgrade_allowed(),
+                    )?
+                    .to_string(),
                 )
             }
         };
@@ -327,11 +333,20 @@ pub(crate) fn compare_versions(left: &str, right: &str) -> Result<Ordering, Stor
 }
 
 pub(crate) fn required_writer_version<'a>(
-    minimum: &'a str,
+    minimum_reader: &'a str,
+    minimum_writer: &'a str,
     recorded_binary: &'a str,
     allow_downgrade: bool,
 ) -> Result<&'a str, StoreConnectionError> {
-    if allow_downgrade || compare_versions(minimum, recorded_binary)? != Ordering::Less {
+    let reader = ParsedVersion::parse("min_reader_version", minimum_reader)?;
+    let writer = ParsedVersion::parse("min_writer_version", minimum_writer)?;
+    let recorded = ParsedVersion::parse("binary_version", recorded_binary)?;
+    let (minimum, minimum_version) = if reader >= writer {
+        (minimum_reader, reader)
+    } else {
+        (minimum_writer, writer)
+    };
+    if allow_downgrade || minimum_version >= recorded {
         Ok(minimum)
     } else {
         Ok(recorded_binary)

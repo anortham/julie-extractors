@@ -6,8 +6,9 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::model::{
-    ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactFile,
-    ArtifactLanguageCapabilityRow, ArtifactParserInventoryRow, FileStatus,
+    ArtifactCapabilityFlags, ArtifactCapabilitySnapshot, ArtifactFile, ArtifactIdentifier,
+    ArtifactLanguageCapabilityRow, ArtifactLiteral, ArtifactParserInventoryRow, ArtifactSymbol,
+    FileStatus, ReferenceSiteProvenance,
 };
 use julie_extract_artifact::store::{
     CoordinatorRequest, ManifestEntry, ManifestStore, RequestKind, RequestState,
@@ -53,6 +54,7 @@ fn hard_kill_after_l1_stamp_reopens_valid_store_with_committed_level() {
     let layout = StoreLayout::open(temp.path()).unwrap();
     let connection = Connection::open(layout.store_db()).unwrap();
     assert_store_is_valid(&connection);
+    assert_store_is_valid(&Connection::open(layout.coordinator_db()).unwrap());
     let completed: i64 = connection
         .query_row(
             "SELECT COUNT(*) FROM file_versions WHERE complete_l1 IS NOT NULL",
@@ -66,6 +68,7 @@ fn hard_kill_after_l1_stamp_reopens_valid_store_with_committed_level() {
         "worker stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    assert_eq!(table_count(&connection, "symbols"), 1);
 }
 
 #[test]
@@ -77,6 +80,7 @@ fn hard_kill_before_l1_chunk_commit_rolls_back_incomplete_level() {
     let layout = StoreLayout::open(temp.path()).unwrap();
     let connection = Connection::open(layout.store_db()).unwrap();
     assert_store_is_valid(&connection);
+    assert_store_is_valid(&Connection::open(layout.coordinator_db()).unwrap());
     let versions: i64 = connection
         .query_row("SELECT COUNT(*) FROM file_versions", [], |row| row.get(0))
         .unwrap();
@@ -86,6 +90,7 @@ fn hard_kill_before_l1_chunk_commit_rolls_back_incomplete_level() {
         "worker stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    assert_eq!(table_count(&connection, "symbols"), 0);
 }
 
 #[test]
@@ -165,6 +170,7 @@ fn deep_level_transaction_is_atomic_before_l3_and_before_commit() {
         let layout = StoreLayout::open(temp.path()).unwrap();
         let connection = Connection::open(layout.store_db()).unwrap();
         assert_store_is_valid(&connection);
+        assert_store_is_valid(&Connection::open(layout.coordinator_db()).unwrap());
         let stamps: (bool, bool, bool) = connection
             .query_row(
                 "SELECT complete_l1 IS NOT NULL, complete_l2 IS NOT NULL, complete_l3 IS NOT NULL
@@ -176,6 +182,17 @@ fn deep_level_transaction_is_atomic_before_l3_and_before_commit() {
         assert_eq!(
             stamps,
             (true, expected_deep, expected_deep),
+            "point={point}"
+        );
+        assert_eq!(table_count(&connection, "symbols"), 1, "point={point}");
+        assert_eq!(
+            table_count(&connection, "identifiers"),
+            i64::from(expected_deep),
+            "point={point}"
+        );
+        assert_eq!(
+            table_count(&connection, "literals"),
+            i64::from(expected_deep),
             "point={point}"
         );
     }
@@ -193,6 +210,7 @@ fn chunk_progress_is_atomic_on_both_sides_of_commit() {
         let layout = StoreLayout::open(temp.path()).unwrap();
         let connection = Connection::open(layout.store_db()).unwrap();
         assert_store_is_valid(&connection);
+        assert_store_is_valid(&Connection::open(layout.coordinator_db()).unwrap());
         let counts: (i64, i64) = connection
             .query_row(
                 "SELECT
@@ -432,20 +450,68 @@ fn fixture_file() -> ArtifactFile {
         indexed_at: "2026-08-08T00:00:00Z".to_string(),
         status: FileStatus::Indexed,
         metadata_json: None,
-        symbols: Vec::new(),
+        symbols: vec![ArtifactSymbol {
+            symbol_id: "symbol-root".to_string(),
+            name: "root".to_string(),
+            kind: "function".to_string(),
+            start_line: 1,
+            end_line: 1,
+            end_byte: 1,
+            ..ArtifactSymbol::default()
+        }],
         symbol_annotations: Vec::new(),
-        identifiers: Vec::new(),
+        identifiers: vec![ArtifactIdentifier {
+            identifier_id: "identifier-call".to_string(),
+            reference_site_id: "site-call".to_string(),
+            name: "callee".to_string(),
+            kind: "call".to_string(),
+            containing_symbol_id: Some("symbol-root".to_string()),
+            start_line: 1,
+            start_column: 0,
+            end_line: 1,
+            end_column: 1,
+            start_byte: 0,
+            end_byte: 1,
+            site_is_exact: true,
+            site_provenance: ReferenceSiteProvenance::TargetToken,
+            confidence: 1.0,
+            code_context: None,
+            metadata_json: None,
+        }],
         relationships: Vec::new(),
         pending_relationships: Vec::new(),
         type_facts: Vec::new(),
         type_argument_usages: Vec::new(),
         type_arguments: Vec::new(),
-        literals: Vec::new(),
+        literals: vec![ArtifactLiteral {
+            literal_id: "literal-value".to_string(),
+            literal_text: "value".to_string(),
+            kind: "string".to_string(),
+            carrier: Some("callee".to_string()),
+            arg_position: 0,
+            containing_symbol_id: Some("symbol-root".to_string()),
+            start_line: 1,
+            start_column: 0,
+            end_line: 1,
+            end_column: 1,
+            start_byte: 0,
+            end_byte: 1,
+            confidence: 1.0,
+            metadata_json: None,
+        }],
         source_regions: Vec::new(),
         structural_facts: Vec::new(),
         complexity_metrics: Vec::new(),
         parse_diagnostics: Vec::new(),
     }
+}
+
+fn table_count(connection: &Connection, table: &str) -> i64 {
+    connection
+        .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+            row.get(0)
+        })
+        .unwrap()
 }
 
 fn assert_store_is_valid(connection: &Connection) {

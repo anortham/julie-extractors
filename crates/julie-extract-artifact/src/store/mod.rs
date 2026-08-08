@@ -7,6 +7,9 @@ mod model;
 mod pragmas;
 mod rows;
 mod schema;
+#[cfg(feature = "test-store-crash")]
+#[doc(hidden)]
+pub mod test_hooks;
 mod writer;
 
 pub use connection::{StoreConnectionError, StoreConnectionFactory};

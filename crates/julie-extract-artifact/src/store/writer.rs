@@ -497,6 +497,8 @@ impl StoreWriter {
         delete_level_rows(transaction, version_id, level)?;
         let mut counts =
             insert_level_rows(transaction, version_id, version, level, &mut preparations)?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("child_rows_before_level_stamp");
         if state == StoreVersionState::Created {
             counts.file_versions = 1;
         }
@@ -527,6 +529,8 @@ impl StoreWriter {
             &format!("UPDATE file_versions SET {stamp_column} = ?1 WHERE version_id = ?2"),
             params![completion_sequence, version_id],
         )?;
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("level_stamp_before_store_commit");
         Ok(StoreWriteResult {
             state,
             version_id,

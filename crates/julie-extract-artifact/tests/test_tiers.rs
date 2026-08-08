@@ -82,6 +82,23 @@ fn store_crash_matrix_is_feature_gated_out_of_the_default_suite() {
     assert!(manifest.contains("test-store-crash = []"));
     let source = read(&crate_root.join("tests/store_crash_contract.rs"));
     assert!(source.starts_with("#![cfg(feature = \"test-store-crash\")]"));
+    let store_module = read(&crate_root.join("src/store/mod.rs"));
+    assert!(
+        store_module.contains(
+            "#[cfg(feature = \"test-store-crash\")]\n#[doc(hidden)]\npub mod test_hooks;"
+        ),
+        "the crash-hook module must not exist in normal builds"
+    );
+    let hook = read(&crate_root.join("src/store/test_hooks.rs"));
+    assert!(hook.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"));
+    for runtime in ["src/store/coordinator.rs", "src/store/writer.rs"] {
+        let source = read(&crate_root.join(runtime));
+        assert!(
+            !source.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"),
+            "{runtime} must not read the crash environment directly"
+        );
+        assert!(source.contains("#[cfg(feature = \"test-store-crash\")]"));
+    }
 }
 
 fn read(path: &PathBuf) -> String {

@@ -87,6 +87,11 @@ fn store_process_contracts_and_hooks_are_feature_gated_out_of_default_suite() {
     let executor = read(&crate_root.join("src/store/executor.rs"));
     assert!(executor.contains("#[cfg(feature = \"test-store-contract\")]\nfn wait_for_test_hook("));
     assert!(!executor.contains("#[cfg(debug_assertions)]\nfn wait_for_test_hook("));
+    assert!(
+        executor
+            .contains("#[cfg(feature = \"test-store-contract\")]\nmacro_rules! store_test_crash")
+    );
+    assert!(!executor.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"));
 }
 
 fn read(path: &PathBuf) -> String {

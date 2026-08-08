@@ -155,6 +155,122 @@ fn downgrade_escape_never_bypasses_reader_or_writer_floors() {
 }
 
 #[test]
+fn reader_floor_also_blocks_public_writer_with_downgrade_escape() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    fs::create_dir(&root).unwrap();
+    fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 1 }\n").unwrap();
+    assert!(
+        run_store(
+            &store,
+            &root,
+            [
+                "import",
+                "--family",
+                FAMILY_ID,
+                "--level",
+                "l1",
+                "--request-id",
+                "request-reader-seed",
+                "--idempotency-key",
+                "idem-reader-seed",
+            ],
+            false,
+        )
+        .status
+        .success()
+    );
+
+    let database = store.join("gen-001/store.db");
+    set_meta(&database, "min_reader_version", "2.31.0");
+    fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 2 }\n").unwrap();
+    let refused = run_store(
+        &store,
+        &root,
+        [
+            "update",
+            "--file",
+            "lib.rs",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-reader-refused",
+            "--idempotency-key",
+            "idem-reader-refused",
+        ],
+        true,
+    );
+
+    assert!(!refused.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(
+        report["error"]["message"],
+        "writer version \"2.30.0\" is below required version \"2.31.0\""
+    );
+    assert_eq!(current_generation(&database), 1);
+    assert_eq!(meta(&database, "min_reader_version"), "2.31.0");
+}
+
+#[test]
+fn malformed_recorded_binary_is_refused_even_with_downgrade_escape() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    fs::create_dir(&root).unwrap();
+    fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 1 }\n").unwrap();
+    assert!(
+        run_store(
+            &store,
+            &root,
+            [
+                "import",
+                "--family",
+                FAMILY_ID,
+                "--level",
+                "l1",
+                "--request-id",
+                "request-malformed-seed",
+                "--idempotency-key",
+                "idem-malformed-seed",
+            ],
+            false,
+        )
+        .status
+        .success()
+    );
+
+    let database = store.join("gen-001/store.db");
+    set_meta(&database, "binary_version", "not-a-version");
+    fs::write(root.join("lib.rs"), "pub fn value() -> i32 { 2 }\n").unwrap();
+    let refused = run_store(
+        &store,
+        &root,
+        [
+            "update",
+            "--file",
+            "lib.rs",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-malformed-refused",
+            "--idempotency-key",
+            "idem-malformed-refused",
+        ],
+        true,
+    );
+
+    assert!(!refused.status.success());
+    let report: serde_json::Value = serde_json::from_slice(&refused.stdout).unwrap();
+    assert_eq!(
+        report["error"]["message"],
+        "invalid version \"not-a-version\""
+    );
+    assert_eq!(current_generation(&database), 1);
+    assert_eq!(meta(&database, "binary_version"), "not-a-version");
+}
+
+#[test]
 fn coordinator_uses_the_same_binary_floor_and_escape_policy_as_connections() {
     let fixture = tempfile::tempdir().unwrap();
     let layout = StoreLayout::create(fixture.path(), FAMILY_ID, "2.30.0").unwrap();

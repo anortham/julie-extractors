@@ -22,6 +22,18 @@ use crate::paths::FileTarget;
 use crate::progress::{Counter, ScanProgress};
 use crate::spool::create_scan_spool;
 
+#[cfg(feature = "test-store-contract")]
+macro_rules! store_test_crash {
+    ($boundary:literal) => {
+        julie_extract_artifact::store::test_hooks::crash_if($boundary)
+    };
+}
+
+#[cfg(not(feature = "test-store-contract"))]
+macro_rules! store_test_crash {
+    ($boundary:literal) => {};
+}
+
 static IMPORT_SPOOL_IO: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -687,14 +699,17 @@ impl StoreRequestExecutor {
                 entries.into_values().collect()
             }
         };
-        ManifestStore::publish_in_transaction(
+        store_test_crash!("manifest_before_publish");
+        let published = ManifestStore::publish_in_transaction(
             transaction,
             &payload.view_id,
             expected,
             entries,
             request_id,
         )
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+        store_test_crash!("manifest_after_publish_before_commit");
+        Ok(published)
     }
 
     fn execute_delete(
@@ -717,6 +732,7 @@ impl StoreRequestExecutor {
             .into_iter()
             .filter(|entry| !deleted.contains(&entry.path))
             .collect::<Vec<_>>();
+        store_test_crash!("manifest_before_publish");
         let published = ManifestStore::publish_in_transaction(
             transaction,
             &payload.view_id,
@@ -725,6 +741,7 @@ impl StoreRequestExecutor {
             &request.request_id,
         )
         .map_err(|error| error.to_string())?;
+        store_test_crash!("manifest_after_publish_before_commit");
         let counts = terminal_row_counts(
             transaction,
             &payload.view_id,
@@ -1118,6 +1135,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                         StoreLevel::L2,
                     )
                     .map_err(|error| error.to_string())?;
+                    store_test_crash!("deep_after_l2_before_l3");
                     StoreWriter::write_level_in_transaction(
                         transaction,
                         &write_request,
@@ -1126,6 +1144,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                         StoreLevel::L3,
                     )
                     .map_err(|error| error.to_string())?;
+                    store_test_crash!("deep_after_l3_before_commit");
                 }
             }
         }
@@ -1141,6 +1160,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             persisted_manifest_disposition = manifest_disposition(published.disposition);
             wait_for_l1_test_hook()?;
             if !requested_full {
+                store_test_crash!("l1_only_final_before_terminal");
                 if let Some(progress) = progress.as_deref() {
                     progress.enter_phase("complete");
                 }

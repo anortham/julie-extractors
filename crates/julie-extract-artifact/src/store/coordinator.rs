@@ -927,6 +927,8 @@ impl StoreCoordinator {
         )? {
             return Ok(());
         }
+        #[cfg(feature = "test-store-crash")]
+        super::test_hooks::crash_if("claim_before_effect");
         let mut store = Connection::open(&self.store_db)?;
         configure_writer_pragmas(&store, WriterPragmaProfile::Bulk).map_err(|error| {
             CoordinatorError::CorruptRequest {
@@ -976,6 +978,19 @@ impl StoreCoordinator {
                 maximum_ms: policy.maximum_quantum_ms,
             });
         }
+        #[cfg(feature = "test-store-crash")]
+        let progress_after_commit_boundary = match &quantum {
+            ExecutionQuantum::Progress { event_kind, .. }
+                if event_kind.ends_with("l1_published") =>
+            {
+                Some("manifest_after_store_commit")
+            }
+            ExecutionQuantum::Progress { event_kind, .. } if event_kind.ends_with("l3_chunk") => {
+                Some("nonfinal_deep_after_store_commit")
+            }
+            ExecutionQuantum::Progress { .. } => Some("progress_after_store_commit"),
+            ExecutionQuantum::Complete { .. } => None,
+        };
         let completed = match quantum {
             ExecutionQuantum::Progress {
                 event_kind,
@@ -989,6 +1004,8 @@ impl StoreCoordinator {
                     entry = entry.with_level(level);
                 }
                 StoreLog::append_progress(&transaction, &entry, reconciliation.next_chunk_index)?;
+                #[cfg(feature = "test-store-crash")]
+                super::test_hooks::crash_if("progress_before_store_commit");
                 false
             }
             ExecutionQuantum::Complete {
@@ -999,6 +1016,8 @@ impl StoreCoordinator {
                 let entry =
                     StoreLogEntry::new(&request.request_id, event_kind, result_json, created_at);
                 StoreLog::append_terminal(&transaction, &entry)?;
+                #[cfg(feature = "test-store-crash")]
+                super::test_hooks::crash_if("terminal_before_store_commit");
                 true
             }
         };
@@ -1007,11 +1026,21 @@ impl StoreCoordinator {
             return Err(CoordinatorError::LeaseLost);
         }
         transaction.commit()?;
+        #[cfg(feature = "test-store-crash")]
+        if let Some(boundary) = progress_after_commit_boundary {
+            super::test_hooks::crash_if(boundary);
+        }
+        #[cfg(feature = "test-store-crash")]
+        if completed {
+            super::test_hooks::crash_if("terminal_after_store_commit");
+        }
         let now = self.clock.now_ms();
         if !self.heartbeat_lease_for(holder, fencing_token, now, policy.lease_duration_ms)? {
             return Err(CoordinatorError::LeaseLost);
         }
         if completed {
+            #[cfg(feature = "test-store-crash")]
+            super::test_hooks::crash_if("post_store_pre_coord_reconcile");
             self.reconcile(&request.request_id)?;
         } else {
             let connection = open_coordinator(&self.coordinator_db)?;
@@ -1287,6 +1316,11 @@ impl StoreCoordinator {
 
     fn ensure_writer_eligible(&self, running: &str) -> Result<(), CoordinatorError> {
         let store = Connection::open(&self.store_db)?;
+        let min_reader_version = store.query_row(
+            "SELECT value FROM store_meta WHERE key = 'min_reader_version'",
+            [],
+            |row| row.get::<_, String>(0),
+        )?;
         let min_writer_version = store.query_row(
             "SELECT value FROM store_meta WHERE key = 'min_writer_version'",
             [],
@@ -1298,6 +1332,7 @@ impl StoreCoordinator {
             |row| row.get::<_, String>(0),
         )?;
         let required = required_writer_version(
+            &min_reader_version,
             &min_writer_version,
             &binary_version,
             extractor_downgrade_allowed(),
