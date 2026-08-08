@@ -552,8 +552,6 @@ fn update_requires_an_existing_view_without_creating_one() {
         "update",
         "--store",
         store.to_str().unwrap(),
-        "--family",
-        FAMILY_ID,
         "--root",
         root.to_str().unwrap(),
         "--view",
@@ -570,6 +568,63 @@ fn update_requires_an_existing_view_without_creating_one() {
     ]);
     assert_eq!(updated.status.code(), Some(1));
     let report: Value = serde_json::from_slice(&updated.stdout).unwrap();
+    assert_eq!(report["family_id"], FAMILY_ID);
+    assert_eq!(report["failure_class"], "view_not_found");
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let view_count: i64 = connection
+        .query_row("SELECT COUNT(*) FROM views", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(view_count, 1);
+}
+
+#[test]
+fn delete_missing_view_reports_the_existing_family_when_omitted() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() {}\n").unwrap();
+    let imported = run_store(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-delete-view-seed",
+        "--idempotency-key",
+        "idem-delete-view-seed",
+        "--json",
+    ]);
+    assert_eq!(imported.status.code(), Some(0));
+
+    let deleted = run_store(&[
+        "store",
+        "delete",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-missing",
+        "--file",
+        "lib.rs",
+        "--request-id",
+        "request-delete-view-missing",
+        "--idempotency-key",
+        "idem-delete-view-missing",
+        "--json",
+    ]);
+    assert_eq!(deleted.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&deleted.stdout).unwrap();
+    assert_eq!(report["family_id"], FAMILY_ID);
     assert_eq!(report["failure_class"], "view_not_found");
     let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
     let view_count: i64 = connection

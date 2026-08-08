@@ -35,16 +35,18 @@ pub(crate) fn run(args: StoreUpdateArgs) -> StoreExecutionOutcome {
         .idempotency_key
         .clone()
         .unwrap_or_else(|| request_id.clone());
-    match execute_update(&args, &request_id, &idempotency_key) {
+    let mut failure_family_id = args.family.clone().unwrap_or_default();
+    match execute_update(&args, &request_id, &idempotency_key, &mut failure_family_id) {
         Ok(report) => StoreExecutionOutcome::success(report, format),
         Err(message) => {
-            let report = base_report(
+            let mut report = base_report(
                 &args,
                 &request_id,
                 &idempotency_key,
                 StoreRequestState::Failed,
-            )
-            .with_failure(classify_failure(&message), message);
+            );
+            report.family_id = failure_family_id;
+            let report = report.with_failure(classify_failure(&message), message);
             StoreExecutionOutcome::failure(report, format)
         }
     }
@@ -54,8 +56,10 @@ fn execute_update(
     args: &StoreUpdateArgs,
     request_id: &str,
     idempotency_key: &str,
+    failure_family_id: &mut String,
 ) -> Result<StoreReport, String> {
     let existing = open_existing_store(&args.store, args.family.as_deref())?;
+    failure_family_id.clone_from(&existing.family_id);
     let layout = existing.layout;
     let family_id = existing.family_id;
     let holder = LeaseHolder::new(
