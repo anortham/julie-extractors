@@ -154,6 +154,13 @@ struct ImportChunk {
     end: usize,
 }
 
+struct DurableRequestState {
+    failures: std::collections::BTreeMap<String, ManifestEntry>,
+    manifest_generation: Option<u64>,
+    manifest_hash: Option<String>,
+    manifest_disposition: &'static str,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum FilePlanOperation {
     Import,
@@ -811,13 +818,7 @@ fn valid_root_relative_path(root: &std::path::Path, path: &str) -> bool {
 fn load_durable_request_state(
     transaction: &Transaction<'_>,
     request_id: &str,
-) -> Result<
-    (
-        std::collections::BTreeMap<String, ManifestEntry>,
-        &'static str,
-    ),
-    String,
-> {
+) -> Result<DurableRequestState, String> {
     let mut statement = transaction
         .prepare(
             "SELECT payload_json FROM store_log
@@ -828,7 +829,9 @@ fn load_durable_request_state(
         .query_map([request_id], |row| row.get::<_, String>(0))
         .map_err(|error| error.to_string())?;
     let mut failures = std::collections::BTreeMap::new();
-    let mut disposition = "not_published";
+    let mut manifest_generation = None;
+    let mut manifest_hash = None;
+    let mut manifest_disposition = "not_published";
     for payload_json in payloads {
         let value: serde_json::Value =
             serde_json::from_str(&payload_json.map_err(|error| error.to_string())?)
@@ -840,16 +843,30 @@ fn load_durable_request_state(
                 failures.insert(fact.path.clone(), fact.into_entry());
             }
         }
-        disposition = match value
+        if let Some(generation) = value.get("generation").and_then(serde_json::Value::as_u64) {
+            manifest_generation = Some(generation);
+        }
+        if let Some(hash) = value
+            .get("manifest_hash")
+            .and_then(serde_json::Value::as_str)
+        {
+            manifest_hash = Some(hash.to_string());
+        }
+        manifest_disposition = match value
             .get("manifest_disposition")
             .and_then(|value| value.as_str())
         {
             Some("created") => "created",
             Some("reused") => "reused",
-            _ => disposition,
+            _ => manifest_disposition,
         };
     }
-    Ok((failures, disposition))
+    Ok(DurableRequestState {
+        failures,
+        manifest_generation,
+        manifest_hash,
+        manifest_disposition,
+    })
 }
 
 fn failure_facts(failures: &std::collections::BTreeMap<String, ManifestEntry>) -> Vec<FailureFact> {
@@ -949,8 +966,12 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         if requested_full {
             chunks.extend(build_chunks(&payload.files, StoreLevel::L3));
         }
-        let (mut failures, mut persisted_manifest_disposition) =
-            load_durable_request_state(transaction, &request.request_id)?;
+        let DurableRequestState {
+            mut failures,
+            manifest_generation,
+            manifest_hash,
+            manifest_disposition: mut persisted_manifest_disposition,
+        } = load_durable_request_state(transaction, &request.request_id)?;
         let progress =
             self.progress_for(transaction, request, &payload, failures.len(), operation)?;
         match operation {
@@ -994,6 +1015,9 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             .get(chunk_index)
             .copied()
             .ok_or_else(|| "chunk_index_out_of_range".to_string())?;
+        if requested_full && chunk_index == l1_chunk_count {
+            wait_for_full_resume_test_hook()?;
+        }
         let mut work = Vec::new();
         for discovered in &payload.files[chunk.start..chunk.end] {
             if chunk.level != StoreLevel::L1
@@ -1155,27 +1179,15 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 level: Some(chunk.level),
             });
         }
-        let generation = transaction
-            .query_row(
-                "SELECT current_generation FROM views WHERE view_id = ?1",
-                [&payload.view_id],
-                |row| row.get::<_, i64>(0),
-            )
-            .map_err(|error| error.to_string())?;
-        let hash = transaction
-            .query_row(
-                "SELECT manifest_hash FROM manifests WHERE view_id = ?1 AND generation = ?2",
-                rusqlite::params![payload.view_id, generation],
-                |row| row.get::<_, String>(0),
-            )
-            .map_err(|error| error.to_string())?;
+        let generation = manifest_generation.ok_or("missing_l1_manifest_generation")?;
+        let hash = manifest_hash.ok_or("missing_l1_manifest_hash")?;
         if let Some(progress) = progress.as_deref() {
             progress.enter_phase("complete");
         }
         Self::result(
             transaction,
             payload,
-            u64::try_from(generation).map_err(|_| "invalid_manifest_generation")?,
+            generation,
             hash,
             true,
             persisted_manifest_disposition,
@@ -1192,25 +1204,54 @@ fn manifest_disposition(disposition: ManifestPublishDisposition) -> &'static str
 }
 
 #[cfg(debug_assertions)]
-fn wait_for_l1_test_hook() -> Result<(), String> {
-    let Ok(ready) = std::env::var("JULIE_EXTRACT_STORE_TEST_L1_READY_FILE") else {
+fn wait_for_test_hook(
+    ready_variable: &str,
+    resume_variable: &str,
+    missing_resume_error: &str,
+    timeout_error: &str,
+) -> Result<(), String> {
+    let Ok(ready) = std::env::var(ready_variable) else {
         return Ok(());
     };
-    let resume = std::env::var("JULIE_EXTRACT_STORE_TEST_L1_RESUME_FILE")
-        .map_err(|_| "missing_l1_test_resume_file".to_string())?;
+    let resume = std::env::var(resume_variable).map_err(|_| missing_resume_error.to_string())?;
     std::fs::write(ready, b"ready").map_err(|error| error.to_string())?;
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
     while !std::path::Path::new(&resume).exists() {
         if std::time::Instant::now() >= deadline {
-            return Err("l1_test_hook_timeout".to_string());
+            return Err(timeout_error.to_string());
         }
         std::thread::sleep(std::time::Duration::from_millis(2));
     }
     Ok(())
 }
 
+#[cfg(debug_assertions)]
+fn wait_for_l1_test_hook() -> Result<(), String> {
+    wait_for_test_hook(
+        "JULIE_EXTRACT_STORE_TEST_L1_READY_FILE",
+        "JULIE_EXTRACT_STORE_TEST_L1_RESUME_FILE",
+        "missing_l1_test_resume_file",
+        "l1_test_hook_timeout",
+    )
+}
+
 #[cfg(not(debug_assertions))]
 fn wait_for_l1_test_hook() -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(debug_assertions)]
+fn wait_for_full_resume_test_hook() -> Result<(), String> {
+    wait_for_test_hook(
+        "JULIE_EXTRACT_STORE_TEST_FULL_RESUME_READY_FILE",
+        "JULIE_EXTRACT_STORE_TEST_FULL_RESUME_FILE",
+        "missing_full_resume_test_file",
+        "full_resume_test_hook_timeout",
+    )
+}
+
+#[cfg(not(debug_assertions))]
+fn wait_for_full_resume_test_hook() -> Result<(), String> {
     Ok(())
 }
 

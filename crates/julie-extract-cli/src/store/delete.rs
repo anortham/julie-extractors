@@ -8,8 +8,8 @@ use super::args::StoreDeleteArgs;
 use super::executor::{DeleteRequestPayload, RequestedLevel, StoreRequestExecutor};
 use super::import::{
     ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome, classify_failure,
-    drain_when_available, mint_request_id, normalize_root_relative, now_millis, open_existing_view,
-    report_request,
+    drain_when_available, mint_request_id, normalize_root_relative, now_millis,
+    open_existing_store, report_request, require_existing_view, root_scope_matches,
 };
 use super::report::{
     StoreOperation, StoreOutputFormat, StoreReport, StoreRequestState, StoreRequestedLevel,
@@ -51,17 +51,9 @@ fn execute_delete(
     request_id: &str,
     idempotency_key: &str,
 ) -> Result<StoreReport, String> {
-    let existing = open_existing_view(&args.store, &args.family, &args.root, &args.view)?;
+    let existing = open_existing_store(&args.store, args.family.as_deref())?;
     let layout = existing.layout;
     let family_id = existing.family_id;
-    let root_text = existing.root;
-    let mut files = args
-        .files
-        .iter()
-        .map(|path| normalize_root_relative(path))
-        .collect::<Result<Vec<_>, _>>()?;
-    files.sort();
-    files.dedup();
     let holder = LeaseHolder::new(
         format!("cli-{}", std::process::id()),
         env!("CARGO_PKG_VERSION"),
@@ -74,16 +66,25 @@ fn execute_delete(
         Arc::new(ImportPidLiveness),
     )
     .map_err(|error| error.to_string())?;
-    let canonical_request = if let Some(existing) = coordinator
+    let existing_request = coordinator
         .request_by_idempotency_key(idempotency_key)
-        .map_err(|error| error.to_string())?
-    {
+        .map_err(|error| error.to_string())?;
+    let mut files = args
+        .files
+        .iter()
+        .map(|path| normalize_root_relative(path))
+        .collect::<Result<Vec<_>, _>>()?;
+    files.sort();
+    files.dedup();
+    let canonical_request = if let Some(existing) = existing_request {
+        if existing.kind != RequestKind::Delete {
+            return Err("idempotency_conflict".to_string());
+        }
         let validator =
             StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), None);
         let payload = validator.validate_delete_payload_json(&existing.payload_json)?;
-        if existing.kind != RequestKind::Delete
-            || payload.family_id != family_id
-            || payload.root != root_text
+        if payload.family_id != family_id
+            || !root_scope_matches(&args.root, &payload.root)
             || payload.view_id != args.view
             || payload.files != files
         {
@@ -91,10 +92,11 @@ fn execute_delete(
         }
         existing
     } else {
+        let root_text = require_existing_view(&layout, &args.root, &args.view)?;
         let payload = DeleteRequestPayload {
             schema_version: 1,
             family_id: family_id.clone(),
-            root: root_text.clone(),
+            root: root_text,
             view_id: args.view.clone(),
             files,
         };
@@ -147,9 +149,14 @@ fn base_report(
     idempotency_key: &str,
     state: StoreRequestState,
 ) -> StoreReport {
-    StoreReport::new(request_id, &args.family, &args.view, state)
-        .with_operation(StoreOperation::Delete)
-        .with_idempotency_key(idempotency_key)
-        .with_root(args.root.to_string_lossy())
-        .with_requested_level(StoreRequestedLevel::L1)
+    StoreReport::new(
+        request_id,
+        args.family.as_deref().unwrap_or_default(),
+        &args.view,
+        state,
+    )
+    .with_operation(StoreOperation::Delete)
+    .with_idempotency_key(idempotency_key)
+    .with_root(args.root.to_string_lossy())
+    .with_requested_level(StoreRequestedLevel::L1)
 }

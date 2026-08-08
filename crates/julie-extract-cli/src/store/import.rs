@@ -65,26 +65,31 @@ impl StoreExecutionOutcome {
     }
 }
 
-pub(crate) struct ExistingViewContext {
+pub(crate) struct ExistingStoreContext {
     pub layout: StoreLayout,
     pub family_id: String,
-    pub root: String,
 }
 
-pub(crate) fn open_existing_view(
+pub(crate) fn open_existing_store(
     store: &Path,
-    requested_family: &str,
-    requested_root: &Path,
-    view_id: &str,
-) -> Result<ExistingViewContext, String> {
+    requested_family: Option<&str>,
+) -> Result<ExistingStoreContext, String> {
     if !store.join("CURRENT").exists() {
         return Err("store_not_found".to_string());
     }
     let layout = StoreLayout::open(store).map_err(|error| error.to_string())?;
     let family_id = trusted_store_family(&layout)?;
-    if family_id != requested_family {
+    if requested_family.is_some_and(|requested| family_id != requested) {
         return Err("family_mismatch".to_string());
     }
+    Ok(ExistingStoreContext { layout, family_id })
+}
+
+pub(crate) fn require_existing_view(
+    layout: &StoreLayout,
+    requested_root: &Path,
+    view_id: &str,
+) -> Result<String, String> {
     let root = requested_root
         .canonicalize()
         .map_err(|error| error.to_string())?
@@ -105,11 +110,7 @@ pub(crate) fn open_existing_view(
     if stored != root {
         return Err("view_root_mismatch".to_string());
     }
-    Ok(ExistingViewContext {
-        layout,
-        family_id,
-        root,
-    })
+    Ok(root)
 }
 
 pub(crate) fn normalize_root_relative(path: &Path) -> Result<String, String> {
@@ -711,7 +712,7 @@ pub(crate) fn populate_durable_projection(
     Ok(())
 }
 
-fn root_scope_matches(requested: &std::path::Path, stored: &str) -> bool {
+pub(crate) fn root_scope_matches(requested: &std::path::Path, stored: &str) -> bool {
     if requested == std::path::Path::new(stored) {
         return true;
     }

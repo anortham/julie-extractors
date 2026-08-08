@@ -2016,3 +2016,172 @@ fn full_import_persists_two_distinct_language_parsers() {
         "rows: {rows:?}"
     );
 }
+
+#[test]
+fn resumed_full_import_reports_its_l1_generation_after_an_intervening_flip() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let ready = fixture.path().join("full-import-resume.ready");
+    let resume = fixture.path().join("full-import-resume.resume");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 1 }\n").unwrap();
+    std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 1 }\n").unwrap();
+    let seed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-full-import-resume-seed",
+            "--idempotency-key",
+            "idem-full-import-resume-seed",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(seed.status.code(), Some(0));
+    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 2 }\n").unwrap();
+    let mut first = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            "request-full-import-resume-a",
+            "--idempotency-key",
+            "idem-full-import-resume-a",
+            "--json",
+        ])
+        .env("JULIE_EXTRACT_STORE_TEST_FULL_RESUME_READY_FILE", &ready)
+        .env("JULIE_EXTRACT_STORE_TEST_FULL_RESUME_FILE", &resume)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !ready.exists() {
+        assert!(
+            first.try_wait().unwrap().is_none(),
+            "full import exited before pausing after durable L1 progress"
+        );
+        assert!(
+            Instant::now() < deadline,
+            "full import did not pause after durable L1 progress"
+        );
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    first.kill().unwrap();
+    let killed = first.wait_with_output().unwrap();
+    assert!(!killed.status.success());
+    let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
+    let generation_two_hash: String = connection
+        .query_row(
+            "SELECT manifest_hash FROM manifests
+             WHERE view_id = 'view-main' AND generation = 2",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    drop(connection);
+    let deleted = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "delete",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "b.rs",
+            "--request-id",
+            "request-full-import-resume-b",
+            "--idempotency-key",
+            "idem-full-import-resume-b",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        deleted.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&deleted.stdout),
+        String::from_utf8_lossy(&deleted.stderr)
+    );
+    let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
+    let current_generation: i64 = connection
+        .query_row(
+            "SELECT current_generation FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(current_generation, 3);
+    drop(connection);
+    let resumed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            "request-full-import-resume-observer",
+            "--idempotency-key",
+            "idem-full-import-resume-a",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        resumed.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&resumed.stdout),
+        String::from_utf8_lossy(&resumed.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&resumed.stdout).unwrap();
+    assert_eq!(report["request"]["id"], "request-full-import-resume-a");
+    assert_eq!(report["manifest"]["generation"], 2);
+    assert_eq!(report["manifest"]["hash"], generation_two_hash);
+    let coordinator = rusqlite::Connection::open(store.join("coord.db")).unwrap();
+    let result_json: String = coordinator
+        .query_row(
+            "SELECT result_json FROM requests
+             WHERE request_id = 'request-full-import-resume-a'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let result: serde_json::Value = serde_json::from_str(&result_json).unwrap();
+    assert_eq!(result["manifest_generation"], 2);
+    assert_eq!(result["manifest_hash"], report["manifest"]["hash"]);
+}

@@ -12,7 +12,8 @@ use super::executor::{
 use super::import::{
     ImportClock, ImportPidLiveness, RequestReportSpec, StoreExecutionOutcome,
     absolute_runtime_path, canonical_control_paths, classify_failure, drain_when_available,
-    mint_request_id, normalize_root_relative, now_millis, open_existing_view, report_request,
+    mint_request_id, normalize_root_relative, now_millis, open_existing_store, report_request,
+    require_existing_view, root_scope_matches,
 };
 use super::report::{
     StoreOperation, StoreOutputFormat, StoreReport, StoreRequestState, StoreRequestedLevel,
@@ -54,11 +55,24 @@ fn execute_update(
     request_id: &str,
     idempotency_key: &str,
 ) -> Result<StoreReport, String> {
-    let existing = open_existing_view(&args.store, &args.family, &args.root, &args.view)?;
+    let existing = open_existing_store(&args.store, args.family.as_deref())?;
     let layout = existing.layout;
     let family_id = existing.family_id;
-    let root_text = existing.root;
-    let root = std::path::PathBuf::from(&root_text);
+    let holder = LeaseHolder::new(
+        format!("cli-{}", std::process::id()),
+        env!("CARGO_PKG_VERSION"),
+        std::process::id(),
+    );
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::new(ImportClock),
+        Arc::new(ImportPidLiveness),
+    )
+    .map_err(|error| error.to_string())?;
+    let existing_request = coordinator
+        .request_by_idempotency_key(idempotency_key)
+        .map_err(|error| error.to_string())?;
     let root_relative_path = normalize_root_relative(&args.file)?;
     let requested_level = match args.level {
         StoreLevelArg::L1 => RequestedLevel::L1,
@@ -80,28 +94,15 @@ fn execute_update(
             .map(absolute_runtime_path)
             .transpose()?,
     };
-    let holder = LeaseHolder::new(
-        format!("cli-{}", std::process::id()),
-        env!("CARGO_PKG_VERSION"),
-        std::process::id(),
-    );
-    let mut coordinator = StoreCoordinator::open_with_runtime(
-        &layout,
-        holder,
-        Arc::new(ImportClock),
-        Arc::new(ImportPidLiveness),
-    )
-    .map_err(|error| error.to_string())?;
-    let canonical_request = if let Some(existing) = coordinator
-        .request_by_idempotency_key(idempotency_key)
-        .map_err(|error| error.to_string())?
-    {
+    let canonical_request = if let Some(existing) = existing_request {
+        if existing.kind != RequestKind::Update {
+            return Err("idempotency_conflict".to_string());
+        }
         let validator =
             StoreRequestExecutor::new(layout.store_db().to_path_buf(), family_id.clone(), None);
         let payload = validator.validate_update_payload_json(&existing.payload_json)?;
-        if existing.kind != RequestKind::Update
-            || payload.family_id != family_id
-            || payload.root != root_text
+        if payload.family_id != family_id
+            || !root_scope_matches(&args.root, &payload.root)
             || payload.view_id != args.view
             || payload.requested_level != requested_level
             || payload.file.root_relative_path != root_relative_path
@@ -111,6 +112,8 @@ fn execute_update(
         }
         existing
     } else {
+        let root_text = require_existing_view(&layout, &args.root, &args.view)?;
+        let root = std::path::Path::new(&root_text);
         let target = crate::paths::FileTarget {
             absolute_path: root.join(&root_relative_path),
             root_relative_path: root_relative_path.clone(),
@@ -120,7 +123,7 @@ fn execute_update(
         let payload = UpdateRequestPayload {
             schema_version: 1,
             family_id: family_id.clone(),
-            root: root_text.clone(),
+            root: root_text,
             view_id: args.view.clone(),
             requested_level,
             file: PlannedImportFile {
@@ -183,12 +186,17 @@ fn base_report(
     idempotency_key: &str,
     state: StoreRequestState,
 ) -> StoreReport {
-    StoreReport::new(request_id, &args.family, &args.view, state)
-        .with_operation(StoreOperation::Update)
-        .with_idempotency_key(idempotency_key)
-        .with_root(args.root.to_string_lossy())
-        .with_requested_level(match args.level {
-            StoreLevelArg::L1 => StoreRequestedLevel::L1,
-            StoreLevelArg::Full => StoreRequestedLevel::Full,
-        })
+    StoreReport::new(
+        request_id,
+        args.family.as_deref().unwrap_or_default(),
+        &args.view,
+        state,
+    )
+    .with_operation(StoreOperation::Update)
+    .with_idempotency_key(idempotency_key)
+    .with_root(args.root.to_string_lossy())
+    .with_requested_level(match args.level {
+        StoreLevelArg::L1 => StoreRequestedLevel::L1,
+        StoreLevelArg::Full => StoreRequestedLevel::Full,
+    })
 }

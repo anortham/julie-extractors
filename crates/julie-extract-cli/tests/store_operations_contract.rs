@@ -5,12 +5,287 @@ use rusqlite::Connection;
 use serde_json::Value;
 
 const FAMILY_ID: &str = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
+const OTHER_FAMILY_ID: &str = "105a746d-2f1a-4eaa-a487-94b0a6c5ca39";
 
 fn run_store(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args(args)
         .output()
         .unwrap()
+}
+
+#[test]
+fn update_uses_the_existing_store_family_when_omitted() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 1 }\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-family-update-seed",
+            "--idempotency-key",
+            "idem-family-update-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 2 }\n").unwrap();
+    let updated = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-family-update",
+        "--idempotency-key",
+        "idem-family-update",
+        "--json",
+    ]);
+    assert_eq!(
+        updated.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&updated.stdout),
+        String::from_utf8_lossy(&updated.stderr)
+    );
+    let report: Value = serde_json::from_slice(&updated.stdout).unwrap();
+    assert_eq!(report["family_id"], FAMILY_ID);
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let generation: i64 = connection
+        .query_row(
+            "SELECT current_generation FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(generation, 2);
+}
+
+#[test]
+fn delete_uses_the_existing_store_family_when_omitted() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() {}\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-family-delete-seed",
+            "--idempotency-key",
+            "idem-family-delete-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    let deleted = run_store(&[
+        "store",
+        "delete",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--request-id",
+        "request-family-delete",
+        "--idempotency-key",
+        "idem-family-delete",
+        "--json",
+    ]);
+    assert_eq!(
+        deleted.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&deleted.stdout),
+        String::from_utf8_lossy(&deleted.stderr)
+    );
+    let report: Value = serde_json::from_slice(&deleted.stdout).unwrap();
+    assert_eq!(report["family_id"], FAMILY_ID);
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let current_entries: i64 = connection
+        .query_row(
+            "SELECT COUNT(*)
+             FROM views v JOIN manifest_entries me
+               ON me.view_id = v.view_id AND me.generation = v.current_generation
+             WHERE v.view_id = 'view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(current_entries, 0);
+}
+
+#[test]
+fn update_rejects_a_supplied_family_that_does_not_match_the_store() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() {}\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-family-update-mismatch-seed",
+            "--idempotency-key",
+            "idem-family-update-mismatch-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    let updated = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        OTHER_FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-family-update-mismatch",
+        "--idempotency-key",
+        "idem-family-update-mismatch",
+        "--json",
+    ]);
+    assert_eq!(updated.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&updated.stdout).unwrap();
+    assert_eq!(report["failure_class"], "family_mismatch");
+    let connection = Connection::open(store.join("coord.db")).unwrap();
+    let requests: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM requests
+             WHERE request_id = 'request-family-update-mismatch'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(requests, 0);
+}
+
+#[test]
+fn delete_rejects_a_supplied_family_that_does_not_match_the_store() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() {}\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-family-delete-mismatch-seed",
+            "--idempotency-key",
+            "idem-family-delete-mismatch-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    let deleted = run_store(&[
+        "store",
+        "delete",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        OTHER_FAMILY_ID,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--request-id",
+        "request-family-delete-mismatch",
+        "--idempotency-key",
+        "idem-family-delete-mismatch",
+        "--json",
+    ]);
+    assert_eq!(deleted.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&deleted.stdout).unwrap();
+    assert_eq!(report["failure_class"], "family_mismatch");
+    let connection = Connection::open(store.join("coord.db")).unwrap();
+    let requests: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM requests
+             WHERE request_id = 'request-family-delete-mismatch'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(requests, 0);
 }
 
 #[test]
@@ -1567,4 +1842,565 @@ fn delete_accepts_repeated_files_and_removes_exactly_the_named_paths() {
         .unwrap();
     assert_eq!(path, "c.rs");
     assert_eq!(versions, 3);
+}
+
+#[test]
+fn terminal_update_replay_uses_the_canonical_request_after_the_root_disappears() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let moved_root = fixture.path().join("moved-root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 1 }\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-replay-root-seed",
+            "--idempotency-key",
+            "idem-replay-root-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 2 }\n").unwrap();
+    let first = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-replay-root-update",
+        "--idempotency-key",
+        "idem-replay-root-update",
+        "--json",
+    ]);
+    assert_eq!(first.status.code(), Some(0));
+    let first_report: Value = serde_json::from_slice(&first.stdout).unwrap();
+    std::fs::rename(&root, moved_root).unwrap();
+    let replay = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-replay-root-observer",
+        "--idempotency-key",
+        "idem-replay-root-update",
+        "--json",
+    ]);
+    assert_eq!(
+        replay.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&replay.stdout),
+        String::from_utf8_lossy(&replay.stderr)
+    );
+    let replay_report: Value = serde_json::from_slice(&replay.stdout).unwrap();
+    assert_eq!(replay_report, first_report);
+    let store_connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let (terminal, manifest_effects): (i64, i64) = store_connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM store_log
+                WHERE request_id = 'request-replay-root-update'
+                  AND event_kind = 'store_update_completed'),
+               (SELECT COUNT(*) FROM store_log
+                WHERE request_id = 'request-replay-root-update'
+                  AND event_kind = 'manifest_flipped')",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((terminal, manifest_effects), (1, 1));
+    let coordinator = Connection::open(store.join("coord.db")).unwrap();
+    let requests: i64 = coordinator
+        .query_row(
+            "SELECT COUNT(*) FROM requests
+             WHERE idempotency_key = 'idem-replay-root-update'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(requests, 1);
+}
+
+#[test]
+fn terminal_delete_replay_uses_the_canonical_request_after_the_root_disappears() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let moved_root = fixture.path().join("moved-root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() {}\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-delete-replay-root-seed",
+            "--idempotency-key",
+            "idem-delete-replay-root-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    let first = run_store(&[
+        "store",
+        "delete",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--request-id",
+        "request-delete-replay-root",
+        "--idempotency-key",
+        "idem-delete-replay-root",
+        "--json",
+    ]);
+    assert_eq!(first.status.code(), Some(0));
+    let first_report: Value = serde_json::from_slice(&first.stdout).unwrap();
+    std::fs::rename(&root, moved_root).unwrap();
+    let replay = run_store(&[
+        "store",
+        "delete",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--request-id",
+        "request-delete-replay-root-observer",
+        "--idempotency-key",
+        "idem-delete-replay-root",
+        "--json",
+    ]);
+    assert_eq!(
+        replay.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&replay.stdout),
+        String::from_utf8_lossy(&replay.stderr)
+    );
+    let replay_report: Value = serde_json::from_slice(&replay.stdout).unwrap();
+    assert_eq!(replay_report, first_report);
+    let store_connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let (terminal, manifest_effects): (i64, i64) = store_connection
+        .query_row(
+            "SELECT
+               (SELECT COUNT(*) FROM store_log
+                WHERE request_id = 'request-delete-replay-root'
+                  AND event_kind = 'store_delete_completed'),
+               (SELECT COUNT(*) FROM store_log
+                WHERE request_id = 'request-delete-replay-root'
+                  AND event_kind = 'manifest_flipped')",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((terminal, manifest_effects), (1, 1));
+    let coordinator = Connection::open(store.join("coord.db")).unwrap();
+    let requests: i64 = coordinator
+        .query_row(
+            "SELECT COUNT(*) FROM requests
+             WHERE idempotency_key = 'idem-delete-replay-root'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(requests, 1);
+}
+
+#[test]
+fn delete_reports_idempotency_conflict_before_parsing_an_update_payload() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 1 }\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-cross-kind-seed",
+            "--idempotency-key",
+            "idem-cross-kind-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    std::fs::write(root.join("lib.rs"), "pub fn answer() -> u32 { 2 }\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-cross-kind-update",
+            "--idempotency-key",
+            "idem-cross-kind",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    let deleted = run_store(&[
+        "store",
+        "delete",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--request-id",
+        "request-cross-kind-delete",
+        "--idempotency-key",
+        "idem-cross-kind",
+        "--json",
+    ]);
+    assert_eq!(deleted.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&deleted.stdout).unwrap();
+    assert_eq!(report["failure_class"], "idempotency_conflict");
+    assert_eq!(report["error"]["message"], "idempotency_conflict");
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let generation: i64 = connection
+        .query_row(
+            "SELECT current_generation FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(generation, 2);
+}
+
+#[test]
+fn update_reports_idempotency_conflict_before_parsing_a_delete_payload() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn answer() {}\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-reverse-cross-kind-seed",
+            "--idempotency-key",
+            "idem-reverse-cross-kind-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    assert_eq!(
+        run_store(&[
+            "store",
+            "delete",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "lib.rs",
+            "--request-id",
+            "request-reverse-cross-kind-delete",
+            "--idempotency-key",
+            "idem-reverse-cross-kind",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    let updated = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "lib.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-reverse-cross-kind-update",
+        "--idempotency-key",
+        "idem-reverse-cross-kind",
+        "--json",
+    ]);
+    assert_eq!(updated.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&updated.stdout).unwrap();
+    assert_eq!(report["failure_class"], "idempotency_conflict");
+    assert_eq!(report["error"]["message"], "idempotency_conflict");
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let generation: i64 = connection
+        .query_row(
+            "SELECT current_generation FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(generation, 2);
+}
+
+#[test]
+fn resumed_full_update_reports_its_l1_generation_after_an_intervening_flip() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    let ready = fixture.path().join("full-resume.ready");
+    let resume = fixture.path().join("full-resume.resume");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 1 }\n").unwrap();
+    std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 1 }\n").unwrap();
+    assert_eq!(
+        run_store(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-full-resume-seed",
+            "--idempotency-key",
+            "idem-full-resume-seed",
+            "--json",
+        ])
+        .status
+        .code(),
+        Some(0)
+    );
+    std::fs::write(root.join("a.rs"), "pub fn a() -> u32 { 2 }\n").unwrap();
+    let mut first = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "update",
+            "--store",
+            store.to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--file",
+            "a.rs",
+            "--level",
+            "full",
+            "--request-id",
+            "request-full-resume-a",
+            "--idempotency-key",
+            "idem-full-resume-a",
+            "--json",
+        ])
+        .env("JULIE_EXTRACT_STORE_TEST_FULL_RESUME_READY_FILE", &ready)
+        .env("JULIE_EXTRACT_STORE_TEST_FULL_RESUME_FILE", &resume)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !ready.exists() {
+        assert!(
+            first.try_wait().unwrap().is_none(),
+            "full update exited before pausing after durable L1 progress"
+        );
+        assert!(
+            Instant::now() < deadline,
+            "full update did not pause after durable L1 progress"
+        );
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    first.kill().unwrap();
+    let killed = first.wait_with_output().unwrap();
+    assert!(!killed.status.success());
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let generation_two_hash: String = connection
+        .query_row(
+            "SELECT manifest_hash FROM manifests
+             WHERE view_id = 'view-main' AND generation = 2",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    drop(connection);
+    std::fs::write(root.join("b.rs"), "pub fn b() -> u32 { 2 }\n").unwrap();
+    let intervening = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "b.rs",
+        "--level",
+        "l1",
+        "--request-id",
+        "request-full-resume-b",
+        "--idempotency-key",
+        "idem-full-resume-b",
+        "--json",
+    ]);
+    assert_eq!(
+        intervening.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&intervening.stdout),
+        String::from_utf8_lossy(&intervening.stderr)
+    );
+    let connection = Connection::open(store.join("gen-001/store.db")).unwrap();
+    let (current_generation, generation_three_hash): (i64, String) = connection
+        .query_row(
+            "SELECT current_generation,
+                    (SELECT manifest_hash FROM manifests
+                     WHERE view_id = views.view_id AND generation = 3)
+             FROM views WHERE view_id = 'view-main'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(current_generation, 3);
+    assert_ne!(generation_two_hash, generation_three_hash);
+    drop(connection);
+    let resumed = run_store(&[
+        "store",
+        "update",
+        "--store",
+        store.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--file",
+        "a.rs",
+        "--level",
+        "full",
+        "--request-id",
+        "request-full-resume-observer",
+        "--idempotency-key",
+        "idem-full-resume-a",
+        "--json",
+    ]);
+    assert_eq!(
+        resumed.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&resumed.stdout),
+        String::from_utf8_lossy(&resumed.stderr)
+    );
+    let report: Value = serde_json::from_slice(&resumed.stdout).unwrap();
+    assert_eq!(report["request"]["id"], "request-full-resume-a");
+    assert_eq!(report["manifest"]["generation"], 2);
+    assert_eq!(report["manifest"]["hash"], generation_two_hash);
+    let coordinator = Connection::open(store.join("coord.db")).unwrap();
+    let result_json: String = coordinator
+        .query_row(
+            "SELECT result_json FROM requests
+             WHERE request_id = 'request-full-resume-a'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let result: Value = serde_json::from_str(&result_json).unwrap();
+    assert_eq!(result["manifest_generation"], 2);
+    assert_eq!(result["manifest_hash"], report["manifest"]["hash"]);
 }

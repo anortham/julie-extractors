@@ -74,9 +74,9 @@ pub struct StoreUpdateArgs {
     /// Existing family-store directory.
     #[arg(long, value_parser = parse_store_path)]
     pub store: PathBuf,
-    /// UUID minted by the family owner.
+    /// Expected family UUID. Defaults to the existing store family.
     #[arg(long, value_parser = parse_family_id)]
-    pub family: String,
+    pub family: Option<String>,
     /// Source root already bound to the view.
     #[arg(long, value_parser = parse_store_path)]
     pub root: PathBuf,
@@ -103,9 +103,9 @@ pub struct StoreDeleteArgs {
     /// Existing family-store directory.
     #[arg(long, value_parser = parse_store_path)]
     pub store: PathBuf,
-    /// UUID minted by the family owner.
+    /// Expected family UUID. Defaults to the existing store family.
     #[arg(long, value_parser = parse_family_id)]
-    pub family: String,
+    pub family: Option<String>,
     /// Source root already bound to the view.
     #[arg(long, value_parser = parse_store_path)]
     pub root: PathBuf,
