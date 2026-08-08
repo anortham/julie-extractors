@@ -608,10 +608,10 @@ exit. Requester deadlines affect acknowledgment only.
 
 **Acceptance:**
 
-- [ ] Every completed request has one terminal store effect and one converged coord state.
-- [ ] No crash point causes duplicate manifest flips or lost committed effects.
-- [ ] Interactive and batch maximum-wait invariants are asserted, not inferred from timing logs.
-- [ ] Store-writer lease exclusivity, stale takeover, and live equal-version non-displacement are
+- [x] Every completed request has one terminal store effect and one converged coord state.
+- [x] No crash point causes duplicate manifest flips or lost committed effects.
+- [x] Interactive and batch maximum-wait invariants are asserted, not inferred from timing logs.
+- [x] Store-writer lease exclusivity, stale takeover, and live equal-version non-displacement are
       asserted. The full governor -> store -> sidecar lock-order gate remains Ph3-owned.
 
 ### Task 6: Add internal store CLI models and versioned reports
