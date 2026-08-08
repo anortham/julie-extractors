@@ -35,6 +35,8 @@ impl StoreLayout {
         fs::create_dir_all(root)?;
         let root = root.canonicalize()?;
         reap_scaffolding(&root)?;
+        let coordinator_db = root.join("coord.db");
+        validate_owned_coordinator_path(&root, &coordinator_db)?;
         if root.join("CURRENT").exists() {
             let layout = Self::open(&root)?;
             validate_existing_generation(layout.store_db(), family_id)?;
@@ -63,7 +65,6 @@ impl StoreLayout {
             Err(error) => return Err(error.into()),
         };
 
-        let coordinator_db = root.join("coord.db");
         initialize_coordinator_database(&coordinator_db)?;
 
         if existing_store_db.is_none() {
@@ -343,6 +344,25 @@ fn ensure_within_root(root: &Path, path: &Path) -> Result<(), StoreLayoutError> 
         Err(StoreLayoutError::PathEscapesRoot {
             path: path.to_path_buf(),
         })
+    }
+}
+
+fn validate_owned_coordinator_path(root: &Path, path: &Path) -> Result<(), StoreLayoutError> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            match path.canonicalize() {
+                Ok(resolved) => ensure_within_root(root, &resolved)?,
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.into()),
+            }
+            Err(StoreLayoutError::UnexpectedPathType {
+                path: path.to_path_buf(),
+                expected: "owned regular file",
+            })
+        }
+        Ok(_) => ensure_path_type(path, PathKind::File),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.into()),
     }
 }
 

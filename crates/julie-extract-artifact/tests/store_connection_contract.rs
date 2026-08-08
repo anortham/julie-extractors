@@ -427,6 +427,64 @@ fn creation_refuses_an_existing_coordinator_with_the_wrong_page_size() {
 
 #[cfg(unix)]
 #[test]
+fn creation_never_opens_an_external_coordinator_symlink() {
+    use std::os::unix::fs::symlink;
+
+    let temp = TempStore::new("coord-symlink-root");
+    let outside = TempStore::new("coord-symlink-outside");
+    let external_coordinator = outside.path().join("coord.db");
+    let connection = Connection::open(&external_coordinator).unwrap();
+    connection
+        .execute_batch(
+            "PRAGMA page_size = 4096;
+             PRAGMA auto_vacuum = INCREMENTAL;
+             CREATE TABLE sentinel (value TEXT NOT NULL);
+             INSERT INTO sentinel (value) VALUES ('unchanged');",
+        )
+        .unwrap();
+    drop(connection);
+    let original = fs::read(&external_coordinator).unwrap();
+    symlink(&external_coordinator, temp.path().join("coord.db")).unwrap();
+
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+
+    assert!(matches!(error, StoreLayoutError::PathEscapesRoot { .. }));
+    let current_published = temp.path().join("CURRENT").exists();
+    let external_changed = fs::read(&external_coordinator).unwrap() != original;
+    assert!(
+        !current_published && !external_changed,
+        "CURRENT published: {current_published}; external target changed: {external_changed}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn creation_rejects_an_internal_coordinator_symlink() {
+    use std::os::unix::fs::symlink;
+
+    let temp = TempStore::new("coord-internal-symlink");
+    let internal_target = temp.path().join("other.db");
+    let connection = Connection::open(&internal_target).unwrap();
+    connection
+        .execute_batch(
+            "PRAGMA page_size = 4096;
+             PRAGMA auto_vacuum = INCREMENTAL;
+             CREATE TABLE sentinel (value TEXT NOT NULL);",
+        )
+        .unwrap();
+    drop(connection);
+    let original = fs::read(&internal_target).unwrap();
+    symlink(&internal_target, temp.path().join("coord.db")).unwrap();
+
+    let error = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap_err();
+
+    assert!(matches!(error, StoreLayoutError::UnexpectedPathType { .. }));
+    assert!(!temp.path().join("CURRENT").exists());
+    assert_eq!(fs::read(&internal_target).unwrap(), original);
+}
+
+#[cfg(unix)]
+#[test]
 fn creation_never_adopts_a_generation_symlink_outside_the_family() {
     use std::os::unix::fs::symlink;
 
