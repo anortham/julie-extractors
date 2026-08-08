@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>Index Store Ph2c Resolution Design</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+      --muted: #898781; --hairline: #e1e0d9; --border: rgba(11,11,11,0.10);
+      --accent: #2a78d6; --accent-track: #cde2fb; --good: #0ca30c;
+      --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+      --good-wash: rgba(12,163,12,0.09); --warn-wash: rgba(250,178,25,0.14);
+      --accent-wash: rgba(42,120,214,0.10); --muted-wash: rgba(137,135,129,0.10);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:where(:not([data-theme="light"])) {
+        color-scheme: dark; --page: #0d0d0d; --surface: #1a1a19; --ink: #fff;
+        --ink-2: #c3c2b7; --muted: #898781; --hairline: #2c2c2a;
+        --border: rgba(255,255,255,0.10); --accent: #3987e5; --accent-track: #104281;
+        --good-text: #0ca30c; --good-wash: rgba(12,163,12,0.16);
+        --warn-wash: rgba(250,178,25,0.14); --accent-wash: rgba(57,135,229,0.16);
+        --muted-wash: rgba(137,135,129,0.14);
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark; --page: #0d0d0d; --surface: #1a1a19; --ink: #fff;
+      --ink-2: #c3c2b7; --muted: #898781; --hairline: #2c2c2a;
+      --border: rgba(255,255,255,0.10); --accent: #3987e5; --accent-track: #104281;
+      --good-text: #0ca30c; --good-wash: rgba(12,163,12,0.16);
+      --warn-wash: rgba(250,178,25,0.14); --accent-wash: rgba(57,135,229,0.16);
+      --muted-wash: rgba(137,135,129,0.14);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--page); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .digest { max-width: 860px; margin: 0 auto; padding: 28px 24px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; line-height: 1; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+    .chip .ico { font-size: 11px; }
+    .chip.done { background: var(--good-wash); color: var(--good-text); }
+    .chip.inprogress { background: var(--accent-wash); color: var(--accent); }
+    .chip.queued { background: var(--muted-wash); color: var(--ink-2); }
+    .chip.revised { background: var(--warn-wash); color: var(--ink); }
+    .meter { height: 10px; border-radius: 0 4px 4px 0; background: var(--accent-track); position: relative; overflow: hidden; }
+    .meter > i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 0 4px 4px 0; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+    .digest header { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end; margin-bottom: 8px; }
+    .digest h1 { font-size: 20px; font-weight: 650; }
+    .digest .goal { color: var(--ink-2); font-size: 14px; margin-top: 3px; max-width: 62ch; }
+    .digest .hprog { text-align: right; }
+    .digest .hprog .n { font-size: 26px; font-weight: 600; }
+    .digest .hprog .n small { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .digest .hprog .meter { width: 180px; margin-top: 6px; }
+    .digest .spine { position: relative; margin-top: 22px; padding-left: 30px; }
+    .digest .spine::before { content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px; background: var(--hairline); }
+    .digest .stage { position: relative; margin-bottom: 26px; }
+    .digest .stage::before { content: ""; position: absolute; left: -27px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--muted); }
+    .digest .stage.done::before { background: var(--good); border-color: var(--good); }
+    .digest .stage.now::before { background: var(--accent); border-color: var(--accent); }
+    .digest .stage h2 { font-size: 15px; font-weight: 650; display: flex; align-items: baseline; gap: 10px; }
+    .digest .stage h2 .chip { position: relative; top: -1px; }
+    .digest .stage .why { font-size: 13px; color: var(--muted); margin: 1px 0 8px; }
+    .digest .trow { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--hairline); font-size: 13.5px; }
+    .digest .trow:first-of-type { border-top: 0; }
+    .digest .trow .st { font-size: 12px; font-weight: 600; }
+    .digest .trow .st.done { color: var(--good-text); }
+    .digest .trow .st.inprogress { color: var(--accent); }
+    .digest .trow .st.queued { color: var(--muted); }
+    .digest .trow .what b { color: var(--muted); margin-right: 4px; }
+    .digest .trow .what span { color: var(--ink-2); }
+    .digest .flag { border-left: 3px solid var(--warning); background: var(--warn-wash); border-radius: 0 8px 8px 0; padding: 9px 12px; margin: 8px 0; font-size: 13px; }
+    .digest .flag b { font-weight: 650; }
+    .digest .flag p { color: var(--ink-2); margin-top: 2px; }
+    .digest .here { display: inline-flex; gap: 8px; align-items: center; margin: 2px 0 8px; font-size: 12.5px; font-weight: 650; color: var(--accent); }
+    .digest .here::before { content: "▶"; font-size: 10px; }
+    .digest .remains { margin-top: 4px; padding: 12px 16px; font-size: 13.5px; color: var(--ink-2); }
+    .digest .remains b { color: var(--ink); }
+    .digest footer { margin-top: 14px; font-size: 13px; color: var(--muted); }
+    .digest .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--hairline); margin-top: 16px; }
+    .digest .tabs button { appearance: none; border: 0; background: none; cursor: pointer; font: 600 13.5px/1 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink-2); padding: 10px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .digest .tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+    .digest .pane { display: none; }
+    .digest .pane.on { display: block; }
+    .digest .dec { padding: 14px 16px; margin: 12px 0 10px; }
+    .digest .dec h3 { font-size: 14px; font-weight: 650; display: flex; gap: 8px; align-items: baseline; }
+    .digest .dec .where { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .digest .dec p { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; }
+    .digest .dec p b { color: var(--ink); }
+    .digest .rail h3 { font-size: 13px; font-weight: 650; margin: 14px 0 6px; }
+    .digest .rail li { margin: 0 0 7px 18px; font-size: 13.5px; color: var(--ink-2); }
+    .digest .rail li strong { color: var(--ink); font-weight: 600; }
+  </style>
+</head>
+<body>
+<section class="digest">
+  <header>
+    <div>
+      <h1>Index Store Ph2c Resolution</h1>
+      <p class="goal">Prove store-shaped resolution first, then publish exact generation-bound bases and deltas.</p>
+    </div>
+    <div class="hprog">
+      <div class="n">0<small> / 2 slices</small></div>
+      <div class="meter" aria-label="0% complete"><i style="width:0%"></i></div>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Digest sections">
+    <button class="on" data-pane="timeline">Timeline</button>
+    <button data-pane="decisions">Decisions</button>
+    <button data-pane="rails">Guardrails</button>
+  </nav>
+
+  <div class="pane on" id="timeline">
+    <div class="spine">
+      <div class="stage now">
+        <h2>Ph2c-a — Mechanism proof <span class="chip inprogress"><span class="ico">◐</span>Design drafted</span></h2>
+        <p class="why">Make G3b measurable and able to fail before exposing new store state.</p>
+        <div class="here">You are here — written design awaiting review</div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>1</b>Freeze legacy output <span>— pin both overlay tables before refactoring.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>2</b>Extract ResolutionSession <span>— one manifest-scoped interface owns joins and readback.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>3</b>Build real scratch mechanism <span>— base rows, streaming diff, replacements, tombstones.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>4</b>Run G1–G5 <span>— three runs, no averaging, every pair must pass.</span></span></div>
+        <div class="flag"><b>⚠ Cut revised after doubt pass.</b><p>The proof slice includes the real diff and durable delta write; a sink-only prototype cannot satisfy G3b.</p></div>
+      </div>
+
+      <div class="stage">
+        <h2>Ph2c-b — Durable binding <span class="chip queued"><span class="ico">○</span>Blocked by gates</span></h2>
+        <p class="why">Expose only the mechanism already proved in the store-shaped Rust pipeline.</p>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>5</b>Freeze schema v2 <span>— bases, roots, deltas, pins, languages, resolve requests.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>6</b>Publish and recover <span>— two-phase rename, CAS exactness, pin-aware cleanup.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>7</b>Add public adapters <span>— resolve, export, and from-artifact.</span></span></div>
+        <div class="trow"><span class="st queued">○ Queued</span><span class="what"><b>8</b>Close branch gates <span>— crash, concurrency, equivalence, and real-store G3b.</span></span></div>
+      </div>
+    </div>
+    <div class="card remains"><b>Remaining:</b> user approval, isolated worktree, detailed implementation plan, then strict test-first execution.</div>
+  </div>
+
+  <div class="pane" id="decisions">
+    <div class="card dec"><h3>One deep session seam <span class="where">Ph2c-a</span></h3><p><b>Landed:</b> the resolver sees one manifest-scoped session that owns corpus worklists and mutable overlay readback. Independent read/write ports were rejected because the current SQL anti-joins couple them.</p></div>
+    <div class="card dec"><h3>L2 completeness before resolution <span class="where">Both slices</span></h3><p>A manifest hash does not change when Full deepening adds identifiers. <b>Landed:</b> resolution refuses any visible indexed or failed-preserved version without a committed L2 stamp.</p></div>
+    <div class="card dec"><h3>Off-lease compute, leased publish <span class="where">Ph2c-b</span></h3><p>Whole-corpus convergence may take seconds or minutes. <b>Landed:</b> computation heartbeats its claim without holding the writer lease; only the CAS publication transaction takes it.</p></div>
+    <div class="card dec"><h3>G3b stays comparable <span class="where">Ph2c-a and Ph2c-b</span></h3><p>The primary denominator remains resolver compute only. Store finalization is a secondary metric, and actual store publication must pass a second G3b gate.</p></div>
+  </div>
+
+  <div class="pane" id="rails">
+    <div class="rail">
+      <h3>Never touch</h3>
+      <ul>
+        <li><strong>Legacy behavior</strong> — no resolver-output change without pinned-oracle proof and an explicit epoch decision.</li>
+        <li><strong>Writer fairness</strong> — no whole-corpus pass under the store-writer lease.</li>
+        <li><strong>Ph2d/Ph3 scope</strong> — no general GC, release, Miller reader wiring, or dashboard work.</li>
+      </ul>
+      <h3>Held constant</h3>
+      <ul>
+        <li><strong>G3b ceiling</strong> — 0.50 for every pair in every run, never averaged.</li>
+        <li><strong>Resolution identity</strong> — semantic rows exclude legacy resolved-at revision bookkeeping.</li>
+        <li><strong>Visibility</strong> — only one immutable manifest generation supplies extraction rows.</li>
+      </ul>
+      <h3>Verification gates</h3>
+      <ul>
+        <li><strong>G1/G2</strong> — both resolution tables, persisted roundtrip, deletions, and totality.</li>
+        <li><strong>State machine</strong> — rename tears, CAS loss, stale deltas, pins, takeover, and reconciliation.</li>
+        <li><strong>Parity</strong> — every supported language across incremental, fresh, export, and legacy paths.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>Digest of <a href="2026-08-08-index-store-ph2c-resolution-design.md">the full Ph2c design</a></footer>
+</section>
+<script>
+  document.querySelectorAll(".tabs button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("on"));
+      document.querySelectorAll(".pane").forEach(p => p.classList.remove("on"));
+      btn.classList.add("on");
+      document.getElementById(btn.dataset.pane).classList.add("on");
+    });
+  });
+</script>
+</body>
+</html>
