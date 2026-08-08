@@ -373,10 +373,10 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Pinned legacy semantic dump remains byte-identical.
-- [ ] Existing scan/update/delete reports and nonfatal hook semantics remain unchanged.
-- [ ] Engine code names no physical v3/store tables, file IDs, connections, or paths.
-- [ ] Fake session exercises the resolver without SQLite.
+- [x] Pinned legacy semantic dump remains byte-identical.
+- [x] Existing scan/update/delete reports and nonfatal hook semantics remain unchanged.
+- [x] Engine code names no physical v3/store tables, file IDs, connections, or paths.
+- [x] Fake session exercises the resolver without SQLite.
 
 ## Task 3: Build the Production Base and Scratch-Delta Schemas
 
