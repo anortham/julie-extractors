@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use julie_extract_artifact::model::FileStatus;
 use julie_extract_artifact::store::{
     CoordinatorExecutor, CoordinatorRequest, ExecutionContext, ExecutionQuantum, ManifestEntry,
     ManifestEntryStatus, ManifestPublishDisposition, ManifestPublishResult, ManifestStore,
-    RequestKind, StoreFileVersion, StoreLevel, StoreWriteRequest, StoreWriter,
+    RequestKind, StoreFileVersion, StoreLevel, StoreLog, StoreLogEntry, StoreWriteRequest,
+    StoreWriter,
 };
 use julie_extractors::{
     EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_from_extension,
@@ -68,6 +70,40 @@ pub(crate) struct DeleteRequestPayload {
     pub root: String,
     pub view_id: String,
     pub files: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct FromArtifactRequestPayload {
+    pub schema_version: u32,
+    pub family_id: String,
+    pub root: String,
+    pub view_id: String,
+    pub source: ArtifactSourceIdentity,
+    pub files: Vec<PlannedArtifactFile>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ArtifactSourceIdentity {
+    pub path: String,
+    pub artifact_id: String,
+    pub file_bytes: u64,
+    pub file_sha256: String,
+    pub extraction_epoch: u32,
+    pub resolver_output_epoch: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct PlannedArtifactFile {
+    pub file_id: String,
+    pub path: String,
+    pub language: String,
+    pub content_hash: String,
+    pub content_bytes: u64,
+    pub indexed_at: String,
+    pub status: String,
 }
 
 impl UpdateRequestPayload {
@@ -355,6 +391,59 @@ impl StoreRequestExecutor {
                     != Some(payload.root.as_str()))
         {
             return Err("invalid_import_request_payload:root_not_canonical".to_string());
+        }
+        Ok(payload)
+    }
+
+    pub(crate) fn validate_from_artifact_payload_json(
+        &self,
+        payload_json: &str,
+    ) -> Result<FromArtifactRequestPayload, String> {
+        validate_payload_bounds(payload_json.len(), 0)?;
+        let payload: FromArtifactRequestPayload = serde_json::from_str(payload_json)
+            .map_err(|_| "invalid_from_artifact_request_payload:invalid_json".to_string())?;
+        if payload.schema_version != 1 {
+            return Err("invalid_from_artifact_request_payload:unsupported_schema".to_string());
+        }
+        if payload.family_id != self.family_id {
+            return Err("invalid_from_artifact_request_payload:family_mismatch".to_string());
+        }
+        validate_payload_bounds(payload_json.len(), payload.files.len())?;
+        let root = std::path::Path::new(&payload.root);
+        let source_path = std::path::Path::new(&payload.source.path);
+        if !root.is_absolute()
+            || payload.view_id.is_empty()
+            || payload.view_id.len() > super::args::MAX_STORE_IDENTIFIER_BYTES
+            || !source_path.is_absolute()
+            || payload.source.artifact_id.is_empty()
+            || payload.source.file_sha256.len() != 64
+            || !payload
+                .source
+                .file_sha256
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+            || payload.source.file_bytes == 0
+            || payload.source.extraction_epoch != EXTRACTION_IDENTITY_EPOCH
+            || payload.source.resolver_output_epoch != crate::resolution::RESOLUTION_VERSION
+            || (root.exists() && root.canonicalize().ok().as_deref() != Some(root))
+        {
+            return Err("invalid_from_artifact_request_payload:identity".to_string());
+        }
+        let mut previous = None::<&str>;
+        for file in &payload.files {
+            if file.file_id.is_empty()
+                || file.language.is_empty()
+                || !valid_root_relative_path(root, &file.path)
+                || !valid_blake3_hash(&file.content_hash)
+                || !matches!(
+                    file.status.as_str(),
+                    "indexed" | "failed_preserved" | "unsupported"
+                )
+                || previous.is_some_and(|previous| previous >= file.path.as_str())
+            {
+                return Err("invalid_from_artifact_request_payload:file_plan".to_string());
+            }
+            previous = Some(&file.path);
         }
         Ok(payload)
     }
@@ -815,6 +904,327 @@ impl StoreRequestExecutor {
             .to_string(),
         })
     }
+
+    fn execute_from_artifact(
+        &self,
+        transaction: &Transaction<'_>,
+        request: &CoordinatorRequest,
+        context: ExecutionContext,
+    ) -> Result<ExecutionQuantum, String> {
+        let payload = self.validate_from_artifact_payload_json(&request.payload_json)?;
+        super::from_artifact::verify_source_identity(&payload)?;
+        ManifestStore::ensure_view_in_transaction(transaction, &payload.view_id, &payload.root)
+            .map_err(|error| error.to_string())?;
+        let chunk_ranges = chunk_ranges(
+            &payload
+                .files
+                .iter()
+                .map(|file| estimate_projected_wal_bytes(file.content_bytes))
+                .collect::<Vec<_>>(),
+            DEFAULT_L1_CHUNK_VERSIONS,
+        );
+        let chunk_index = usize::try_from(context.next_chunk_index)
+            .map_err(|_| "chunk_index_out_of_range".to_string())?;
+        let indexed_at = OffsetDateTime::now_utc()
+            .format(&Rfc3339)
+            .map_err(|error| error.to_string())?;
+        if let Some((start, end)) = chunk_ranges.get(chunk_index).copied() {
+            let write_request = StoreWriteRequest::bulk(&request.request_id, &indexed_at);
+            for planned in &payload.files[start..end] {
+                if planned.status == "unsupported" {
+                    continue;
+                }
+                let mut artifact =
+                    super::from_artifact::load_artifact_file(&payload.source, planned)?;
+                artifact.status = FileStatus::Indexed;
+                let version = StoreFileVersion::try_from_artifact_file(
+                    payload.source.extraction_epoch,
+                    &artifact,
+                )
+                .map_err(|error| error.to_string())?;
+                for level in [StoreLevel::L1, StoreLevel::L2, StoreLevel::L3] {
+                    StoreWriter::write_level_in_transaction(
+                        transaction,
+                        &write_request,
+                        (level == StoreLevel::L1).then_some(&artifact_capability_snapshot()),
+                        &version,
+                        level,
+                    )
+                    .map_err(|error| error.to_string())?;
+                }
+            }
+            return Ok(ExecutionQuantum::Progress {
+                event_kind: "store_from_artifact_versions_written".to_string(),
+                payload_json: serde_json::json!({
+                    "end": end,
+                    "source_artifact_id": payload.source.artifact_id,
+                    "start": start,
+                })
+                .to_string(),
+                level: Some(StoreLevel::L3),
+            });
+        }
+        if chunk_index == chunk_ranges.len() {
+            let entries = payload
+                .files
+                .iter()
+                .map(|planned| match planned.status.as_str() {
+                    "indexed" | "failed_preserved" => {
+                        let version = StoreWriter::lookup_version_in_transaction(
+                            transaction,
+                            &planned.path,
+                            &planned.content_hash,
+                            payload.source.extraction_epoch,
+                            StoreLevel::L3,
+                        )
+                        .map_err(|error| error.to_string())?
+                        .ok_or_else(|| format!("from_artifact_version_missing:{}", planned.path))?;
+                        if planned.status == "indexed" {
+                            Ok(ManifestEntry::indexed(
+                                &planned.path,
+                                &planned.language,
+                                version.version_id,
+                                &planned.content_hash,
+                                &planned.indexed_at,
+                            ))
+                        } else {
+                            Ok(ManifestEntry::failed_preserved(
+                                &planned.path,
+                                &planned.language,
+                                version.version_id,
+                                &planned.content_hash,
+                                &planned.indexed_at,
+                                "source_failed_preserved",
+                                "{\"source_status\":\"failed_preserved\"}",
+                            ))
+                        }
+                    }
+                    "unsupported" => Ok(ManifestEntry::failed(
+                        &planned.path,
+                        &planned.language,
+                        &planned.content_hash,
+                        &planned.indexed_at,
+                        "unsupported",
+                        "{\"source_status\":\"unsupported\"}",
+                    )),
+                    _ => Err(format!(
+                        "invalid_from_artifact_file_status:{}",
+                        planned.path
+                    )),
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            let expected = transaction
+                .query_row(
+                    "SELECT current_generation FROM views WHERE view_id=?1",
+                    [&payload.view_id],
+                    |row| row.get::<_, Option<i64>>(0),
+                )
+                .map_err(|error| error.to_string())?
+                .map(|generation| {
+                    u64::try_from(generation).map_err(|_| "invalid_manifest_generation".to_string())
+                })
+                .transpose()?;
+            store_test_crash!("from_artifact_manifest_before_publish");
+            let published = ManifestStore::publish_in_transaction(
+                transaction,
+                &payload.view_id,
+                expected,
+                entries,
+                &request.request_id,
+            )
+            .map_err(|error| error.to_string())?;
+            store_test_crash!("from_artifact_manifest_after_publish_before_commit");
+            return Ok(ExecutionQuantum::Progress {
+                event_kind: "store_from_artifact_manifest_published".to_string(),
+                payload_json: serde_json::json!({
+                    "generation": published.generation,
+                    "manifest_disposition": manifest_disposition(published.disposition),
+                    "manifest_hash": published.manifest_hash,
+                })
+                .to_string(),
+                level: Some(StoreLevel::L1),
+            });
+        }
+        if chunk_index != chunk_ranges.len().saturating_add(1) {
+            return Err("chunk_index_out_of_range".to_string());
+        }
+        let (generation, manifest_hash) = transaction
+            .query_row(
+                "SELECT view.current_generation,manifest.manifest_hash
+                 FROM views AS view JOIN manifests AS manifest
+                   ON manifest.view_id=view.view_id
+                  AND manifest.generation=view.current_generation
+                 WHERE view.view_id=?1",
+                [&payload.view_id],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+            )
+            .map_err(|error| error.to_string())?;
+        let base = super::from_artifact::materialize_resolution_base(
+            transaction,
+            &self.store_db,
+            &payload,
+            generation,
+            &manifest_hash,
+        )?;
+        store_test_crash!("from_artifact_base_before_catalog");
+        let identifier_count = i64::try_from(base.identity.counts.identifiers)
+            .map_err(|_| "resolution_identifier_count_out_of_range".to_string())?;
+        let pending_count = i64::try_from(base.identity.counts.pending)
+            .map_err(|_| "resolution_pending_count_out_of_range".to_string())?;
+        let file_bytes = i64::try_from(base.identity.file_bytes)
+            .map_err(|_| "resolution_file_size_out_of_range".to_string())?;
+        transaction
+            .execute(
+                "INSERT INTO resolution_bases
+                 (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+                  identifier_count,pending_count,file_bytes,file_sha256,request_id,
+                  created_at,updated_at)
+                 VALUES (?1,?2,?3,'ready',?4,?5,?6,?7,?8,?9,?10,?10)
+                 ON CONFLICT(base_id) DO NOTHING",
+                rusqlite::params![
+                    base.base_id,
+                    manifest_hash,
+                    payload.source.resolver_output_epoch,
+                    base.relative_path,
+                    identifier_count,
+                    pending_count,
+                    file_bytes,
+                    base.identity.file_sha256,
+                    request.request_id,
+                    indexed_at,
+                ],
+            )
+            .map_err(|error| error.to_string())?;
+        let registered: (String, i64, String, i64, i64) = transaction
+            .query_row(
+                "SELECT manifest_hash,resolver_output_epoch,file_sha256,
+                        identifier_count,pending_count
+                 FROM resolution_bases WHERE base_id=?1 AND state='ready'",
+                [&base.base_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .map_err(|error| error.to_string())?;
+        if registered
+            != (
+                manifest_hash.clone(),
+                payload.source.resolver_output_epoch,
+                base.identity.file_sha256.clone(),
+                identifier_count,
+                pending_count,
+            )
+        {
+            return Err("resolution_base_catalog_identity_mismatch".to_string());
+        }
+        for version_id in &base.source_versions {
+            transaction
+                .execute(
+                    "INSERT OR IGNORE INTO resolution_base_versions(base_id,version_id)
+                     VALUES (?1,?2)",
+                    rusqlite::params![base.base_id, version_id],
+                )
+                .map_err(|error| error.to_string())?;
+        }
+        let delta_generation: i64 = transaction
+            .query_row(
+                "SELECT COALESCE(MAX(delta_generation),0) FROM resolution_deltas WHERE view_id=?1",
+                [&payload.view_id],
+                |row| row.get::<_, i64>(0),
+            )
+            .map_err(|error| error.to_string())?
+            .checked_add(1)
+            .ok_or_else(|| "resolution_delta_generation_out_of_range".to_string())?;
+        transaction
+            .execute(
+                "INSERT INTO resolution_deltas
+                 (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+                  resolver_output_epoch,identifier_replacements,pending_replacements,
+                  pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,
+                  request_id,created_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,0,0,0,0,0,
+                         '{\"files\":[],\"rows\":[]}',?7,?8)",
+                rusqlite::params![
+                    payload.view_id,
+                    delta_generation,
+                    base.base_id,
+                    generation,
+                    manifest_hash,
+                    payload.source.resolver_output_epoch,
+                    request.request_id,
+                    indexed_at,
+                ],
+            )
+            .map_err(|error| error.to_string())?;
+        store_test_crash!("from_artifact_exact_before_cas");
+        let changed = transaction
+            .execute(
+                "UPDATE views SET resolution_state='exact',resolution_base_id=?1,
+                        resolution_delta_generation=?2,resolution_exact_at=?3,updated_at=?4
+                 WHERE view_id=?5 AND current_generation=?3",
+                rusqlite::params![
+                    base.base_id,
+                    delta_generation,
+                    generation,
+                    indexed_at,
+                    payload.view_id,
+                ],
+            )
+            .map_err(|error| error.to_string())?;
+        if changed != 1 {
+            return Err("resolution_binding_cas_lost".to_string());
+        }
+        store_test_crash!("from_artifact_exact_after_cas_before_commit");
+        StoreLog::append_effect(
+            transaction,
+            &StoreLogEntry::new(
+                &request.request_id,
+                "resolution_bound",
+                serde_json::json!({
+                    "base_id": base.base_id,
+                    "delta_generation": delta_generation,
+                    "manifest_generation": generation,
+                    "state": "exact",
+                })
+                .to_string(),
+                &indexed_at,
+            )
+            .with_view(&payload.view_id)
+            .with_generation(
+                u64::try_from(generation).map_err(|_| "invalid_manifest_generation".to_string())?,
+            ),
+        )
+        .map_err(|error| error.to_string())?;
+        let counts = terminal_row_counts(transaction, &payload.view_id, generation)?;
+        let state = load_durable_request_state(transaction, &request.request_id)?;
+        Ok(ExecutionQuantum::Complete {
+            event_kind: "store_from_artifact_completed".to_string(),
+            result_json: serde_json::json!({
+                "family_id": payload.family_id,
+                "l1": true,
+                "l2": true,
+                "l3": true,
+                "manifest_generation": generation,
+                "manifest_hash": manifest_hash,
+                "manifest_disposition": state.manifest_disposition,
+                "row_counts": {
+                    "file_versions": counts.0,
+                    "l1": counts.1,
+                    "l2": counts.2,
+                    "l3": counts.3,
+                },
+                "root": payload.root,
+                "view_id": payload.view_id,
+            })
+            .to_string(),
+        })
+    }
 }
 
 fn terminal_row_counts(
@@ -876,6 +1286,12 @@ fn valid_root_relative_path(root: &std::path::Path, path: &str) -> bool {
             .split('/')
             .any(|part| part.is_empty() || part == "." || part == "..")
         && root.join(path).starts_with(root)
+}
+
+fn valid_blake3_hash(hash: &str) -> bool {
+    hash.strip_prefix("blake3:").is_some_and(|value| {
+        value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    })
 }
 
 pub(crate) fn validate_target_within_root(
@@ -1051,7 +1467,10 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     .execution_payload(),
             ),
             RequestKind::Delete => return self.execute_delete(transaction, request, context),
-            RequestKind::Resolve | RequestKind::Export | RequestKind::FromArtifact => {
+            RequestKind::FromArtifact => {
+                return self.execute_from_artifact(transaction, request, context);
+            }
+            RequestKind::Resolve | RequestKind::Export => {
                 return Err(format!(
                     "unsupported_request_kind:{}",
                     request.kind.as_str()

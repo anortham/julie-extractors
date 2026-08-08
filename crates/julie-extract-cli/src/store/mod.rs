@@ -2,6 +2,7 @@ pub mod args;
 mod delete;
 mod executor;
 mod export;
+mod from_artifact;
 pub mod import;
 pub mod report;
 pub mod resolution_session;

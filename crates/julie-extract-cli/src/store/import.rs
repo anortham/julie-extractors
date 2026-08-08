@@ -44,6 +44,13 @@ impl StoreExecutionOutcome {
         }
     }
 
+    pub(crate) fn incompatible(report: StoreReport, format: StoreOutputFormat) -> Self {
+        Self {
+            outcome: StoreCommandOutcome::incompatible(report),
+            format,
+        }
+    }
+
     pub fn exit_code(&self) -> u8 {
         self.outcome.exit_code()
     }
@@ -239,6 +246,9 @@ pub(crate) fn report_request(
 }
 
 pub(crate) fn run(args: StoreImportArgs) -> StoreExecutionOutcome {
+    if args.from_artifact.is_some() {
+        return super::from_artifact::run(args);
+    }
     let format = if args.json {
         StoreOutputFormat::Json
     } else {

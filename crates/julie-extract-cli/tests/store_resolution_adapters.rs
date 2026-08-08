@@ -130,6 +130,31 @@ fn create_full_store(temp: &TempDir) -> PathBuf {
     store
 }
 
+fn create_legacy_artifact(temp: &TempDir) -> (PathBuf, PathBuf) {
+    let root = temp.path().join("legacy-source");
+    let artifact = temp.path().join("legacy.db");
+    fs::create_dir_all(&root).unwrap();
+    fs::write(
+        root.join("lib.rs"),
+        "pub fn answer() -> i32 { helper() }\nfn helper() -> i32 { 1 }\n",
+    )
+    .unwrap();
+    let scan = julie_extract(&[
+        "scan",
+        "--root",
+        root.to_str().unwrap(),
+        "--db",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+    assert!(
+        scan.status.success(),
+        "{}",
+        String::from_utf8_lossy(&scan.stdout)
+    );
+    (root, artifact)
+}
+
 fn resolve(store: &Path) {
     let output = julie_extract(&[
         "store",
@@ -227,6 +252,484 @@ fn export_parser_has_no_coordinator_request_controls() {
             "forbidden"
         });
         assert!(StoreCli::try_parse_from(argv).is_err());
+    }
+}
+
+#[test]
+fn from_artifact_import_is_a_public_import_mode() {
+    let parsed = StoreCli::try_parse_from([
+        "julie-extract",
+        "store",
+        "import",
+        "--store",
+        "/tmp/family",
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        "/tmp/source",
+        "--view",
+        "view-main",
+        "--from-artifact",
+        "/tmp/legacy.db",
+        "--json",
+    ])
+    .expect("from-artifact import should parse");
+
+    let StoreRootCommand::Store(store) = parsed.command;
+    assert!(matches!(store.command, StoreCommand::Import(_)));
+}
+
+#[test]
+fn from_artifact_rejects_extraction_level_and_scan_controls() {
+    for conflicting in [
+        ["--level", "l1"],
+        ["--ignore-file", "/tmp/ignore"],
+        ["--jobs", "1"],
+        ["--spool-dir", "/tmp/spool"],
+        ["--progress-file", "/tmp/progress"],
+        ["--parent-pid", "1"],
+    ] {
+        let mut argv = vec![
+            "julie-extract",
+            "store",
+            "import",
+            "--store",
+            "/tmp/family",
+            "--family",
+            "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+            "--root",
+            "/tmp/source",
+            "--view",
+            "view-main",
+            "--from-artifact",
+            "/tmp/legacy.db",
+        ];
+        argv.extend(conflicting);
+        assert!(StoreCli::try_parse_from(argv).is_err(), "{conflicting:?}");
+    }
+}
+
+#[test]
+fn invalid_v3_from_artifact_never_creates_store_or_coordinator() {
+    let temp = TempDir::new();
+    let root = temp.path().join("source");
+    let store = temp.path().join("family");
+    let artifact = temp.path().join("legacy.db");
+    fs::create_dir_all(&root).unwrap();
+    Connection::open(&artifact).unwrap();
+
+    let output = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(output.stderr.is_empty());
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "from_artifact");
+    assert_eq!(report["failure_class"], "store_incompatible");
+    assert!(!store.exists());
+}
+
+#[test]
+fn from_artifact_rejects_a_different_canonical_root_before_store_creation() {
+    let temp = TempDir::new();
+    let (_, artifact) = create_legacy_artifact(&temp);
+    let different_root = temp.path().join("different-source");
+    let store = temp.path().join("family");
+    fs::create_dir_all(&different_root).unwrap();
+
+    let output = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        different_root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "from_artifact");
+    assert_eq!(report["failure_class"], "view_root_mismatch");
+    assert!(!store.exists());
+}
+
+#[test]
+fn from_artifact_rejects_incomplete_resolution_before_store_creation() {
+    let temp = TempDir::new();
+    let (root, artifact) = create_legacy_artifact(&temp);
+    let store = temp.path().join("family");
+    Connection::open(&artifact)
+        .unwrap()
+        .execute(
+            "UPDATE artifact_metadata SET value='failed'
+             WHERE key='reference_resolution_status'",
+            [],
+        )
+        .unwrap();
+
+    let output = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--json",
+    ]);
+
+    assert_eq!(output.status.code(), Some(1));
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "resolution_input_incomplete");
+    assert!(
+        report["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("reference_resolution_status")
+    );
+    assert!(!store.exists());
+}
+
+#[test]
+fn from_artifact_preflight_rejects_path_hash_and_epoch_mismatch_without_mutation() {
+    for mutation in [
+        "UPDATE files SET path='../escape.rs'",
+        "UPDATE files SET content_hash='sha256:not-blake3'",
+        "UPDATE artifact_metadata SET value='stale' WHERE key='parser_inventory_fingerprint'",
+    ] {
+        let temp = TempDir::new();
+        let (root, artifact) = create_legacy_artifact(&temp);
+        let store = temp.path().join("family");
+        Connection::open(&artifact)
+            .unwrap()
+            .execute(mutation, [])
+            .unwrap();
+        let output = julie_extract(&[
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--from-artifact",
+            artifact.to_str().unwrap(),
+            "--json",
+        ]);
+        assert_eq!(output.status.code(), Some(1), "{mutation}");
+        assert!(!store.exists(), "{mutation}");
+    }
+}
+
+#[test]
+fn current_v3_artifact_imports_full_rows_and_binds_exact() {
+    let temp = TempDir::new();
+    let (root, artifact) = create_legacy_artifact(&temp);
+    let store = temp.path().join("family");
+
+    let output = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11",
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--request-id",
+        "from-artifact-1",
+        "--idempotency-key",
+        "from-artifact-key",
+        "--json",
+    ]);
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["operation"], "from_artifact");
+    assert_eq!(report["state"], "committed");
+    assert_eq!(report["manifest"]["generation"], 1);
+    assert_eq!(report["completion"]["l1"], true);
+    assert_eq!(report["completion"]["l2"], true);
+    assert_eq!(report["completion"]["l3"], true);
+    assert_eq!(report["resolution"]["state"], "exact");
+    assert_eq!(report["resolution"]["exact_at_matches"], true);
+
+    let source = Connection::open(&artifact).unwrap();
+    let imported = Connection::open(store.join("gen-001/store.db")).unwrap();
+    for (source_table, imported_table) in [
+        ("files", "file_versions"),
+        ("symbols", "symbols"),
+        ("symbol_annotations", "symbol_annotations"),
+        ("reference_sites", "reference_sites"),
+        ("identifiers", "identifiers"),
+        ("relationships", "relationships"),
+        ("pending_relationships", "pending_relationships"),
+        ("type_facts", "type_facts"),
+        ("type_argument_usages", "type_argument_usages"),
+        ("type_arguments", "type_arguments"),
+        ("literals", "literals"),
+        ("source_regions", "source_regions"),
+        ("structural_facts", "structural_facts"),
+        ("complexity_metrics", "complexity_metrics"),
+        ("parse_diagnostics", "parse_diagnostics"),
+    ] {
+        let source_count = source
+            .query_row(&format!("SELECT COUNT(*) FROM {source_table}"), [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap();
+        let imported_count = imported
+            .query_row(
+                &format!("SELECT COUNT(*) FROM {imported_table}"),
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap();
+        assert_eq!(imported_count, source_count, "{source_table}");
+    }
+    assert!(
+        imported
+            .query_row(
+                "SELECT resolution_state='exact'
+                        AND resolution_exact_at=current_generation
+                 FROM views WHERE view_id='view-main'",
+                [],
+                |row| row.get::<_, bool>(0),
+            )
+            .unwrap()
+    );
+    let coordinator = Connection::open(store.join("coord.db")).unwrap();
+    assert_eq!(
+        coordinator
+            .query_row(
+                "SELECT COUNT(*) FROM requests
+                 WHERE request_id='from-artifact-1' AND kind='from_artifact' AND state='committed'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+
+    let roundtrip = temp.path().join("roundtrip.db");
+    let export = julie_extract(&[
+        "store",
+        "export",
+        "--store",
+        store.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--out",
+        roundtrip.to_str().unwrap(),
+        "--json",
+    ]);
+    assert!(
+        export.status.success(),
+        "{}",
+        String::from_utf8_lossy(&export.stdout)
+    );
+    let roundtrip_rows = normalized_v3_rows(&roundtrip);
+    let source_rows = normalized_v3_rows(&artifact);
+    for (table, expected) in source_rows {
+        assert_eq!(roundtrip_rows.get(&table), Some(&expected), "{table}");
+    }
+}
+
+#[test]
+fn committed_from_artifact_replay_survives_source_deletion_without_new_effects() {
+    let temp = TempDir::new();
+    let (root, artifact) = create_legacy_artifact(&temp);
+    let store = temp.path().join("family");
+    let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
+    let first = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--request-id",
+        "from-artifact-original",
+        "--idempotency-key",
+        "from-artifact-replay-key",
+        "--json",
+    ]);
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stdout)
+    );
+    let original: Value = serde_json::from_slice(&first.stdout).unwrap();
+    fs::remove_file(&artifact).unwrap();
+
+    let replay = julie_extract(&[
+        "store",
+        "import",
+        "--store",
+        store.to_str().unwrap(),
+        "--family",
+        family,
+        "--root",
+        root.to_str().unwrap(),
+        "--view",
+        "view-main",
+        "--from-artifact",
+        artifact.to_str().unwrap(),
+        "--request-id",
+        "from-artifact-retry",
+        "--idempotency-key",
+        "from-artifact-replay-key",
+        "--json",
+    ]);
+    assert!(
+        replay.status.success(),
+        "{}",
+        String::from_utf8_lossy(&replay.stdout)
+    );
+    let replayed: Value = serde_json::from_slice(&replay.stdout).unwrap();
+    assert_eq!(replayed["request"]["id"], "from-artifact-original");
+    assert_eq!(replayed["manifest"], original["manifest"]);
+    assert_eq!(replayed["row_counts"], original["row_counts"]);
+    assert_eq!(replayed["resolution"], original["resolution"]);
+    let store_db = Connection::open(store.join("gen-001/store.db")).unwrap();
+    assert_eq!(
+        store_db
+            .query_row(
+                "SELECT COUNT(*) FROM store_log WHERE terminal=1 AND request_id='from-artifact-original'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        Connection::open(store.join("coord.db"))
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM requests", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+}
+
+#[test]
+fn from_artifact_crash_boundaries_resume_without_duplicate_versions_or_effects() {
+    for boundary in [
+        "child_rows_before_level_stamp",
+        "level_stamp_before_store_commit",
+        "from_artifact_manifest_before_publish",
+        "from_artifact_manifest_after_publish_before_commit",
+        "resolution_base_after_scratch_close",
+        "from_artifact_base_before_catalog",
+        "from_artifact_exact_before_cas",
+        "from_artifact_exact_after_cas_before_commit",
+        "terminal_before_store_commit",
+        "terminal_after_store_commit",
+        "post_store_pre_coord_reconcile",
+    ] {
+        let temp = TempDir::new();
+        let (root, artifact) = create_legacy_artifact(&temp);
+        let store = temp.path().join("family");
+        let family = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
+        let args = [
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            family,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--from-artifact",
+            artifact.to_str().unwrap(),
+            "--request-id",
+            "from-artifact-crash",
+            "--idempotency-key",
+            "from-artifact-crash-key",
+            "--json",
+        ];
+        let crashed = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args(args)
+            .env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", boundary)
+            .output()
+            .unwrap();
+        assert!(!crashed.status.success(), "{boundary}");
+        let retried = julie_extract(&args);
+        assert!(
+            retried.status.success(),
+            "{boundary}: {}",
+            String::from_utf8_lossy(&retried.stdout)
+        );
+        let store_db = Connection::open(store.join("gen-001/store.db")).unwrap();
+        let facts = store_db
+            .query_row(
+                "SELECT
+                   (SELECT COUNT(*) FROM file_versions),
+                   (SELECT COUNT(*) FROM manifests WHERE view_id='view-main'),
+                   (SELECT COUNT(*) FROM resolution_bases WHERE state='ready'),
+                   (SELECT COUNT(*) FROM resolution_deltas WHERE view_id='view-main'),
+                   (SELECT COUNT(*) FROM store_log
+                    WHERE request_id='from-artifact-crash' AND terminal=1),
+                   (SELECT COUNT(*)-COUNT(DISTINCT chunk_index) FROM request_chunks
+                    WHERE request_id='from-artifact-crash')",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, i64>(4)?,
+                        row.get::<_, i64>(5)?,
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(facts, (1, 1, 1, 1, 1, 0), "{boundary}");
     }
 }
 

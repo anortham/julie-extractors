@@ -733,10 +733,10 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Transformation is row-equivalent, resumable, and creates no duplicate versions/effects.
-- [ ] Imported view is exact at its published generation with a validated ready base.
-- [ ] Invalid/incomplete v3 input mutates neither store nor coordinator.
-- [ ] Replay reports the original durable result even when the source artifact is gone.
+- [x] Transformation is row-equivalent, resumable, and creates no duplicate versions/effects.
+- [x] Imported view is exact at its published generation with a validated ready base.
+- [x] Invalid/incomplete v3 input mutates neither store nor coordinator.
+- [x] Replay reports the original durable result even when the source artifact is gone.
 
 ## Task 12: Close Actual-Store G3b, Crash/Concurrency, Dogfood, and Docs
 

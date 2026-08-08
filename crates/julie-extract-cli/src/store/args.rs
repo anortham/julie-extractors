@@ -62,6 +62,20 @@ pub struct StoreImportArgs {
     /// Extraction depth requested for this import.
     #[arg(long, value_enum, default_value_t = StoreLevelArg::Full)]
     pub level: StoreLevelArg,
+    /// Import a validated current v3 artifact instead of scanning source files.
+    #[arg(
+        long,
+        value_parser = parse_store_path,
+        conflicts_with_all = [
+            "level",
+            "ignore_files",
+            "jobs",
+            "spool_dir",
+            "progress_file",
+            "parent_pid"
+        ]
+    )]
+    pub from_artifact: Option<PathBuf>,
     #[command(flatten)]
     pub scan: StoreScanControls,
     #[command(flatten)]
