@@ -438,11 +438,11 @@ that are not already mechanical from schema 6:
 
 **Acceptance:**
 
-- [ ] Store and coordinator catalogs match the checked-in authority exactly.
-- [ ] Every per-version FK is composite; no retained local ID is globally unique by accident.
-- [ ] Every index is classified; required unique/partial indexes enforce one terminal effect.
-- [ ] Legacy v3 catalog/version tests remain byte-identical and green.
-- [ ] Same-epoch compatibility is executable policy, not a documentation-only ledger entry.
+- [x] Store and coordinator catalogs match the checked-in authority exactly.
+- [x] Every per-version FK is composite; no retained local ID is globally unique by accident.
+- [x] Every index is classified; required unique/partial indexes enforce one terminal effect.
+- [x] Legacy v3 catalog/version tests remain byte-identical and green.
+- [x] Same-epoch compatibility is executable policy, not a documentation-only ledger entry.
 
 ### Task 2: Implement store layout and connection invariants
 
