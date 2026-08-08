@@ -1245,6 +1245,14 @@ impl StoreCoordinator {
         })
     }
 
+    pub fn request_by_idempotency_key(
+        &self,
+        idempotency_key: &str,
+    ) -> Result<Option<CoordinatorRequest>, CoordinatorError> {
+        let connection = open_coordinator(&self.coordinator_db)?;
+        request_by_idempotency(&connection, idempotency_key)
+    }
+
     pub fn acknowledge(&mut self, request_id: &str, now: i64) -> Result<bool, CoordinatorError> {
         if now < 0 {
             return Err(CoordinatorError::InvalidTime {

@@ -46,7 +46,7 @@ use crate::discovery::{
 use crate::extraction::{
     ExtractFileError, SourceSnapshot, extract_artifact_file,
     extract_artifact_file_from_snapshot_at, failed_artifact_file, read_source_snapshot,
-    unchanged_artifact_file,
+    select_extraction_pool, unchanged_artifact_file,
 };
 use crate::paths::{
     FileTarget, canonicalize_db_path, canonicalize_progress_file, canonicalize_root,
@@ -2038,25 +2038,6 @@ fn compute_file_outcome(
             }
         }
     }
-}
-
-/// Pick the thread count for the extraction pool, retrying single-threaded when
-/// the requested count cannot be built. Extraction never runs on a pool without
-/// the 16 MiB stack reservation: the guarded tree walkers permit 1024 frames,
-/// which costs 4-8 KiB per frame in a debug build, so rayon's 2 MiB default
-/// worker stack overflows well inside the guard. A build failure under resource
-/// pressure therefore fails the scan rather than falling back to the global pool.
-fn select_extraction_pool<P, E>(
-    requested_jobs: usize,
-    mut build: impl FnMut(usize) -> Result<P, E>,
-) -> Result<P, E> {
-    build(requested_jobs).or_else(|error| {
-        if requested_jobs == 1 {
-            Err(error)
-        } else {
-            build(1)
-        }
-    })
 }
 
 fn unknown_index_level_diagnostic(db: &Path, recorded: &str) -> ReportDiagnostic {

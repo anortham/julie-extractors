@@ -3,16 +3,20 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use julie_extract_artifact::store::{
-    CoordinatorPolicy, CoordinatorRequest, LeaseHolder, RequestKind, RequestState,
-    StoreCoordinator, StoreLayout,
+    CoordinatorError, CoordinatorPolicy, CoordinatorRequest, LeaseHolder, RequestKind,
+    RequestState, StoreCoordinator, StoreLayout,
 };
+use rusqlite::OptionalExtension;
 
 use super::args::{StoreArgs, StoreCommand, StoreImportArgs, StoreLevelArg};
-use super::executor::{DiscoveredImportFile, ImportRequestPayload, StoreRequestExecutor};
+use super::executor::{
+    ImportRequestPayload, ImportScanControls, PlannedImportFile, RequestedLevel,
+    StoreRequestExecutor,
+};
 use super::report::{
     StoreCommandOutcome, StoreCoordinatorDisposition, StoreFailureClass, StoreLevelCompletion,
     StoreManifestDisposition, StoreOutputFormat, StoreOutputStream, StoreReport, StoreRequestState,
-    StoreRequestedLevel,
+    StoreRequestedLevel, StoreRowCounts,
 };
 
 pub struct StoreExecutionOutcome {
@@ -66,7 +70,11 @@ fn run_import(args: StoreImportArgs) -> StoreExecutionOutcome {
         .unwrap_or_else(|| request_id.clone());
     match execute_import(&args, &request_id, &idempotency_key) {
         Ok(report) => StoreExecutionOutcome {
-            outcome: StoreCommandOutcome::queued(report),
+            outcome: if report.failure_class == StoreFailureClass::RequestTimeout {
+                StoreCommandOutcome::observed_incomplete(report)
+            } else {
+                StoreCommandOutcome::queued(report)
+            },
             format,
         },
         Err(message) => {
@@ -97,13 +105,75 @@ fn execute_import(
     let root_text = root.to_string_lossy().into_owned();
     let layout = StoreLayout::create(&args.store, &args.family, env!("CARGO_PKG_VERSION"))
         .map_err(|error| error.to_string())?;
-    let now = now_millis();
-    let payload = serde_json::to_string(&ImportRequestPayload {
+    let progress = args
+        .scan
+        .progress_file
+        .as_deref()
+        .map(|path| crate::progress::ScanProgress::create_for_artifact(path, layout.store_db()))
+        .transpose()
+        .map_err(|error| format!("{error:?}"))?
+        .map(Arc::new);
+    if let Some(progress) = progress.as_deref() {
+        progress.enter_phase("discovery");
+    }
+    let exclusions = crate::discovery::DiscoveryExclusions {
+        progress_path: args.scan.progress_file.clone(),
+        spool_dir: args.scan.spool_dir.clone(),
+    };
+    let discovery = crate::discovery::DiscoveryPolicy::build_excluding(
+        &root,
+        layout.store_db(),
+        exclusions,
+        &args.scan.ignore_files,
+    )
+    .map_err(|error| format!("{error:?}"))?
+    .discover_with_progress(progress.as_deref());
+    if let Some(error) = discovery.errors.first() {
+        return Err(error.message.clone());
+    }
+    let mut files = discovery
+        .supported_files
+        .into_iter()
+        .map(|target| {
+            let (content_hash, content_bytes) =
+                crate::extraction::read_source_identity(&target).map_err(|error| error.message)?;
+            Ok(PlannedImportFile {
+                root_relative_path: target.root_relative_path,
+                content_hash,
+                content_bytes,
+                projected_wal_bytes: super::executor::estimate_projected_wal_bytes(content_bytes),
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    files.sort_by(|left, right| left.root_relative_path.cmp(&right.root_relative_path));
+    let planned_payload = ImportRequestPayload {
+        schema_version: 1,
         family_id: args.family.clone(),
         root: root_text.clone(),
         view_id: args.view.clone(),
-    })
-    .expect("import payload is serializable");
+        requested_level: match args.level {
+            StoreLevelArg::L1 => RequestedLevel::L1,
+            StoreLevelArg::Full => RequestedLevel::Full,
+        },
+        files,
+        controls: ImportScanControls {
+            jobs: args.scan.jobs,
+            store_db: layout.store_db().to_string_lossy().into_owned(),
+            spool_dir: args
+                .scan
+                .spool_dir
+                .as_ref()
+                .map(|path| path.to_string_lossy().into_owned()),
+            progress_file: args
+                .scan
+                .progress_file
+                .as_ref()
+                .map(|path| path.to_string_lossy().into_owned()),
+            parent_pid: args.scan.parent_pid,
+        },
+    };
+    let payload = serde_json::to_string(&planned_payload).expect("import payload is serializable");
+    let now = now_millis();
     let deadline_delta = i64::try_from(args.request.request_timeout_seconds)
         .unwrap_or(i64::MAX)
         .saturating_mul(1_000);
@@ -128,72 +198,133 @@ fn execute_import(
         std::sync::Arc::new(ImportPidLiveness),
     )
     .map_err(|error| error.to_string())?;
-    coordinator
-        .enqueue(request)
-        .map_err(|error| error.to_string())?;
-    let progress = args
-        .scan
-        .progress_file
-        .as_deref()
-        .map(|path| crate::progress::ScanProgress::create_for_artifact(path, layout.store_db()))
-        .transpose()
-        .map_err(|error| format!("{error:?}"))?
-        .map(Arc::new);
-    if let Some(progress) = progress.as_deref() {
-        progress.enter_phase("discovery");
-    }
-    let discovery =
-        crate::discovery::DiscoveryPolicy::build(&root, layout.store_db(), &args.scan.ignore_files)
-            .map_err(|error| format!("{error:?}"))?
-            .discover_with_progress(progress.as_deref());
-    if let Some(error) = discovery.errors.first() {
-        return Err(error.message.clone());
-    }
-    let files = discovery
-        .supported_files
-        .into_iter()
-        .map(|target| {
-            let (content_hash, content_bytes) =
-                crate::extraction::read_source_identity(&target).map_err(|error| error.message)?;
-            Ok(DiscoveredImportFile {
-                target,
-                content_hash,
-                content_bytes,
-            })
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    if let Some(progress) = progress.as_deref() {
-        progress.enter_phase("store_import");
-    }
-    let watchdog = args
-        .scan
-        .parent_pid
-        .map(crate::watchdog::ParentWatchdog::start);
-    let mut executor = StoreRequestExecutor::new(
-        root,
-        files,
-        args.scan.spool_dir.clone(),
-        args.level == StoreLevelArg::Full,
-        progress,
-        watchdog,
-    );
+    let canonical_request = match coordinator
+        .request_by_idempotency_key(idempotency_key)
+        .map_err(|error| error.to_string())?
+    {
+        Some(existing) => {
+            let existing_payload: ImportRequestPayload =
+                serde_json::from_str(&existing.payload_json)
+                    .map_err(|_| "invalid_import_request".to_string())?;
+            if existing.kind != RequestKind::Import
+                || existing_payload.schema_version != planned_payload.schema_version
+                || existing_payload.family_id != planned_payload.family_id
+                || existing_payload.root != planned_payload.root
+                || existing_payload.view_id != planned_payload.view_id
+                || existing_payload.requested_level != planned_payload.requested_level
+                || existing_payload.controls != planned_payload.controls
+            {
+                coordinator
+                    .enqueue(request)
+                    .map_err(|error| error.to_string())?
+                    .request
+            } else {
+                existing
+            }
+        }
+        None => {
+            coordinator
+                .enqueue(request)
+                .map_err(|error| error.to_string())?
+                .request
+        }
+    };
+    let canonical_request_id = canonical_request.request_id.clone();
+    let mut executor = StoreRequestExecutor::new();
     let policy = CoordinatorPolicy {
-        own_request_id: Some(request_id.to_string()),
+        own_request_id: Some(canonical_request_id.clone()),
         ..CoordinatorPolicy::default()
     };
-    coordinator
-        .drain(&mut executor, &policy)
-        .map_err(|error| error.to_string())?;
-    if let Some(progress) = executor.progress() {
-        progress.enter_phase("complete");
+    if let Err(error) = coordinator.drain(&mut executor, &policy) {
+        if !matches!(error, CoordinatorError::LeaseUnavailable) {
+            return Err(error.to_string());
+        }
+        loop {
+            let observed = coordinator
+                .request(&canonical_request_id)
+                .map_err(|error| error.to_string())?;
+            if matches!(
+                observed.state,
+                RequestState::Committed | RequestState::Acknowledged | RequestState::Failed
+            ) {
+                break;
+            }
+            if now_millis() >= canonical_request.requester_deadline.unwrap_or(now) {
+                let canonical_payload: ImportRequestPayload =
+                    serde_json::from_str(&observed.payload_json)
+                        .map_err(|_| "invalid_import_request".to_string())?;
+                let state = match observed.state {
+                    RequestState::Queued => StoreRequestState::Queued,
+                    RequestState::Claimed => StoreRequestState::Claimed,
+                    _ => StoreRequestState::Queued,
+                };
+                let mut report = StoreReport::new(
+                    &observed.request_id,
+                    &canonical_payload.family_id,
+                    &canonical_payload.view_id,
+                    state,
+                )
+                .with_idempotency_key(&observed.idempotency_key)
+                .with_root(&canonical_payload.root)
+                .with_requested_level(match canonical_payload.requested_level {
+                    RequestedLevel::L1 => StoreRequestedLevel::L1,
+                    RequestedLevel::Full => StoreRequestedLevel::Full,
+                })
+                .with_failure(StoreFailureClass::RequestTimeout, "request_timeout");
+                report.state = state;
+                report.coordinator = match state {
+                    StoreRequestState::Claimed => StoreCoordinatorDisposition::Claimed,
+                    _ => StoreCoordinatorDisposition::Queued,
+                };
+                populate_durable_projection(
+                    &mut report,
+                    &layout,
+                    &canonical_payload.view_id,
+                    &observed.request_id,
+                    canonical_payload.requested_level,
+                )?;
+                return Ok(report);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
     }
     let request = coordinator
-        .request(request_id)
+        .request(&canonical_request_id)
         .map_err(|error| error.to_string())?;
-    if request.state != RequestState::Committed && request.state != RequestState::Acknowledged {
-        return Err(request
+    let canonical_payload: ImportRequestPayload = serde_json::from_str(&request.payload_json)
+        .map_err(|_| "invalid_import_request".to_string())?;
+    let committed = matches!(
+        request.state,
+        RequestState::Committed | RequestState::Acknowledged
+    );
+    let mut report = StoreReport::new(
+        &request.request_id,
+        &canonical_payload.family_id,
+        &canonical_payload.view_id,
+        if committed {
+            StoreRequestState::Committed
+        } else {
+            StoreRequestState::Failed
+        },
+    )
+    .with_idempotency_key(&request.idempotency_key)
+    .with_root(&canonical_payload.root)
+    .with_requested_level(match canonical_payload.requested_level {
+        RequestedLevel::L1 => StoreRequestedLevel::L1,
+        RequestedLevel::Full => StoreRequestedLevel::Full,
+    });
+    if !committed {
+        let message = request
             .error_json
-            .unwrap_or_else(|| "store_import_failed".to_string()));
+            .unwrap_or_else(|| "store_import_failed".to_string());
+        populate_durable_projection(
+            &mut report,
+            &layout,
+            &canonical_payload.view_id,
+            &request.request_id,
+            canonical_payload.requested_level,
+        )?;
+        return Ok(report.with_failure(classify_failure(&message), message));
     }
     let result: serde_json::Value = serde_json::from_str(
         request
@@ -202,12 +333,6 @@ fn execute_import(
             .ok_or("missing_import_result")?,
     )
     .map_err(|error| error.to_string())?;
-    let mut report = base_report(
-        args,
-        request_id,
-        idempotency_key,
-        StoreRequestState::Committed,
-    );
     report.coordinator = StoreCoordinatorDisposition::Committed;
     report.manifest.generation = result["manifest_generation"].as_u64();
     report.manifest.hash = result["manifest_hash"].as_str().map(ToOwned::to_owned);
@@ -221,11 +346,114 @@ fn execute_import(
         l2: result["l2"].as_bool().unwrap_or(false),
         l3: result["l3"].as_bool().unwrap_or(false),
     };
+    populate_durable_projection(
+        &mut report,
+        &layout,
+        &canonical_payload.view_id,
+        &request.request_id,
+        canonical_payload.requested_level,
+    )?;
     Ok(report)
 }
 
+fn populate_durable_projection(
+    report: &mut StoreReport,
+    layout: &StoreLayout,
+    view_id: &str,
+    request_id: &str,
+    requested_level: RequestedLevel,
+) -> Result<(), String> {
+    let connection =
+        rusqlite::Connection::open(layout.store_db()).map_err(|error| error.to_string())?;
+    let manifest = connection
+        .query_row(
+            "SELECT m.generation, m.manifest_hash, m.request_id
+             FROM views v JOIN manifests m
+               ON m.view_id = v.view_id AND m.generation = v.current_generation
+             WHERE v.view_id = ?1",
+            [view_id],
+            |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(|error| error.to_string())?;
+    if let Some((generation, hash, publisher)) = manifest {
+        report.manifest.generation =
+            Some(u64::try_from(generation).map_err(|_| "invalid_manifest_generation")?);
+        report.manifest.hash = Some(hash);
+        if report.manifest.disposition == StoreManifestDisposition::NotPublished {
+            report.manifest.disposition = if publisher == request_id {
+                StoreManifestDisposition::Created
+            } else {
+                StoreManifestDisposition::Reused
+            };
+        }
+        report.completion.l1 = true;
+        if requested_level == RequestedLevel::Full {
+            let incomplete: (i64, i64) = connection
+                .query_row(
+                    "SELECT
+                       COUNT(*) FILTER (WHERE me.version_id IS NOT NULL AND fv.complete_l2 IS NULL),
+                       COUNT(*) FILTER (WHERE me.version_id IS NOT NULL AND fv.complete_l3 IS NULL)
+                     FROM views v JOIN manifest_entries me
+                       ON me.view_id = v.view_id AND me.generation = v.current_generation
+                     LEFT JOIN file_versions fv ON fv.version_id = me.version_id
+                     WHERE v.view_id = ?1",
+                    [view_id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .map_err(|error| error.to_string())?;
+            report.completion.l2 = incomplete.0 == 0;
+            report.completion.l3 = incomplete.1 == 0;
+        }
+    }
+    let counts: (i64, i64, i64, i64) = connection
+        .query_row(
+            "WITH current_versions AS (
+               SELECT DISTINCT me.version_id
+               FROM views v JOIN manifest_entries me
+                 ON me.view_id = v.view_id AND me.generation = v.current_generation
+               WHERE v.view_id = ?1 AND me.version_id IS NOT NULL
+             )
+             SELECT
+               (SELECT COUNT(*) FROM current_versions),
+               (SELECT COUNT(*) FROM symbols WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM symbol_annotations WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM reference_sites WHERE level = 1 AND version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM relationships WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM pending_relationships WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM type_facts WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM complexity_metrics WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM parse_diagnostics WHERE version_id IN current_versions),
+               (SELECT COUNT(*) FROM identifiers WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM reference_sites WHERE level = 2 AND version_id IN current_versions),
+               (SELECT COUNT(*) FROM type_arguments WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM type_argument_usages WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM literals WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM source_regions WHERE version_id IN current_versions)
+                 + (SELECT COUNT(*) FROM structural_facts WHERE version_id IN current_versions)",
+            [view_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .map_err(|error| error.to_string())?;
+    report.row_counts = StoreRowCounts {
+        file_versions: u64::try_from(counts.0).map_err(|_| "invalid_row_count")?,
+        l1: u64::try_from(counts.1).map_err(|_| "invalid_row_count")?,
+        l2: u64::try_from(counts.2).map_err(|_| "invalid_row_count")?,
+        l3: u64::try_from(counts.3).map_err(|_| "invalid_row_count")?,
+    };
+    Ok(())
+}
+
 fn classify_failure(message: &str) -> StoreFailureClass {
-    if message.contains("l1_projection_mismatch") {
+    if message.contains("idempotency") || message.contains("IdempotencyConflict") {
+        StoreFailureClass::IdempotencyConflict
+    } else if message.contains("l1_projection_mismatch") {
         StoreFailureClass::L1ProjectionMismatch
     } else if message.contains("changed_between_waves") {
         StoreFailureClass::ChangedBetweenWaves
@@ -233,6 +461,8 @@ fn classify_failure(message: &str) -> StoreFailureClass {
         && (message.contains("mismatch") || message.contains("does not match"))
     {
         StoreFailureClass::ViewRootMismatch
+    } else if message.contains("request_timeout") {
+        StoreFailureClass::RequestTimeout
     } else if message.contains("lease") {
         StoreFailureClass::Busy
     } else {

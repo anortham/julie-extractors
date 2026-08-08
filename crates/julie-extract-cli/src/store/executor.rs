@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -10,28 +9,106 @@ use julie_extract_artifact::store::{
 use julie_extractors::{
     EXTRACTION_IDENTITY_EPOCH, ExtractionLevel, detect_language_from_extension,
 };
+use rayon::prelude::*;
 use rusqlite::{OptionalExtension, Transaction};
 use serde::{Deserialize, Serialize};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::capability_snapshot::artifact_capability_snapshot;
-use crate::extraction::{extract_artifact_file_from_snapshot_at, read_source_snapshot};
+use crate::extraction::{
+    extract_artifact_file_from_snapshot_at, read_source_snapshot, select_extraction_pool,
+};
 use crate::paths::FileTarget;
 use crate::progress::{Counter, ScanProgress};
 use crate::spool::create_scan_spool;
 
+static IMPORT_SPOOL_IO: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct ImportRequestPayload {
+    pub schema_version: u32,
     pub family_id: String,
     pub root: String,
     pub view_id: String,
+    pub requested_level: RequestedLevel,
+    pub files: Vec<PlannedImportFile>,
+    pub controls: ImportScanControls,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct DiscoveredImportFile {
-    pub target: FileTarget,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum RequestedLevel {
+    L1,
+    Full,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct PlannedImportFile {
+    pub root_relative_path: String,
     pub content_hash: String,
     pub content_bytes: u64,
+    #[serde(default)]
+    pub projected_wal_bytes: u64,
+}
+
+impl PlannedImportFile {
+    fn target(&self, root: &std::path::Path) -> FileTarget {
+        FileTarget {
+            absolute_path: root.join(&self.root_relative_path),
+            root_relative_path: self.root_relative_path.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct ImportScanControls {
+    pub jobs: usize,
+    #[serde(default)]
+    pub store_db: String,
+    pub spool_dir: Option<String>,
+    pub progress_file: Option<String>,
+    pub parent_pid: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct FailureFact {
+    path: String,
+    version_id: Option<i64>,
+    content_hash: String,
+    indexed_at: String,
+    error_json: String,
+}
+
+impl FailureFact {
+    fn from_entry(entry: &ManifestEntry) -> Self {
+        Self {
+            path: entry.path.clone(),
+            version_id: entry.version_id,
+            content_hash: entry.observed_content_hash.clone(),
+            indexed_at: entry.indexed_at.clone(),
+            error_json: entry.error_json.clone().unwrap_or_else(|| "{}".to_string()),
+        }
+    }
+
+    fn into_entry(self) -> ManifestEntry {
+        match self.version_id {
+            Some(version_id) => ManifestEntry::failed_preserved(
+                self.path,
+                version_id,
+                self.content_hash,
+                self.indexed_at,
+                "extract",
+                self.error_json,
+            ),
+            None => ManifestEntry::failed(
+                self.path,
+                self.content_hash,
+                self.indexed_at,
+                "extract",
+                self.error_json,
+            ),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -41,72 +118,67 @@ struct ImportChunk {
     end: usize,
 }
 
-pub(crate) struct StoreRequestExecutor {
-    root: PathBuf,
-    files: Vec<DiscoveredImportFile>,
-    spool_dir: Option<PathBuf>,
-    requested_full: bool,
-    progress: Option<Arc<ScanProgress>>,
-    chunks: Vec<ImportChunk>,
-    l1_chunk_count: usize,
-    manifest_disposition: &'static str,
-    watchdog: Option<crate::watchdog::ParentWatchdog>,
-    full: BTreeMap<String, StoreFileVersion>,
-    failures: BTreeMap<String, ManifestEntry>,
-}
+pub(crate) struct StoreRequestExecutor;
 
 impl StoreRequestExecutor {
-    pub(crate) fn new(
-        root: PathBuf,
-        files: Vec<DiscoveredImportFile>,
-        spool_dir: Option<PathBuf>,
-        requested_full: bool,
-        progress: Option<Arc<ScanProgress>>,
-        watchdog: Option<crate::watchdog::ParentWatchdog>,
-    ) -> Self {
-        let l1_chunks = build_chunks(&files, StoreLevel::L1);
-        let l1_chunk_count = l1_chunks.len();
-        let mut chunks = l1_chunks;
-        if requested_full {
-            chunks.extend(build_chunks(&files, StoreLevel::L2));
-            chunks.extend(build_chunks(&files, StoreLevel::L3));
-        }
-        Self {
-            root,
-            files,
-            spool_dir,
-            requested_full,
-            progress,
-            chunks,
-            l1_chunk_count,
-            manifest_disposition: "not_published",
-            watchdog,
-            full: BTreeMap::new(),
-            failures: BTreeMap::new(),
-        }
+    pub(crate) fn new() -> Self {
+        Self
     }
 
-    pub(crate) fn progress(&self) -> Option<&ScanProgress> {
-        self.progress.as_deref()
+    fn progress_for(
+        transaction: &Transaction<'_>,
+        request: &CoordinatorRequest,
+        payload: &ImportRequestPayload,
+        failed_files: usize,
+    ) -> Result<Option<Arc<ScanProgress>>, String> {
+        let Some(progress_file) = payload.controls.progress_file.as_deref() else {
+            return Ok(None);
+        };
+        let progress = Arc::new(
+            ScanProgress::create_for_artifact(
+                std::path::Path::new(progress_file),
+                std::path::Path::new(&payload.controls.store_db),
+            )
+            .map_err(|error| format!("{error:?}"))?,
+        );
+        progress.enter_phase("store_import");
+        let completed_extractions: i64 = transaction
+            .query_row(
+                "SELECT COUNT(*) FROM store_log
+                 WHERE request_id = ?1 AND event_kind = 'version_level_completed'
+                   AND level IN (1, 2)",
+                [&request.request_id],
+                |row| row.get(0),
+            )
+            .map_err(|error| error.to_string())?;
+        let completed_extractions = u64::try_from(completed_extractions)
+            .map_err(|_| "invalid_progress_count".to_string())?
+            .saturating_add(u64::try_from(failed_files).unwrap_or(u64::MAX));
+        if completed_extractions > 0 {
+            progress.advance(Counter::Extracted, completed_extractions);
+            progress.advance(Counter::Spooled, completed_extractions);
+        }
+        Ok(Some(progress))
     }
 
     fn extract(
-        &self,
-        discovered: &DiscoveredImportFile,
+        root: &std::path::Path,
+        planned: &PlannedImportFile,
+        spool_dir: Option<&std::path::Path>,
+        progress: Option<&ScanProgress>,
         level: ExtractionLevel,
         indexed_at: &str,
     ) -> Result<StoreFileVersion, String> {
-        let snapshot =
-            read_source_snapshot(&discovered.target).map_err(|error| error.message.clone())?;
-        if snapshot.content_hash != discovered.content_hash {
+        let target = planned.target(root);
+        let snapshot = read_source_snapshot(&target).map_err(|error| error.message.clone())?;
+        if snapshot.content_hash != planned.content_hash {
             return Err(if level == ExtractionLevel::Full {
                 "changed_between_waves".to_string()
             } else {
                 "changed_during_l1_wave".to_string()
             });
         }
-        let extension = discovered
-            .target
+        let extension = target
             .absolute_path
             .extension()
             .and_then(|value| value.to_str())
@@ -114,25 +186,27 @@ impl StoreRequestExecutor {
         let language = detect_language_from_extension(extension)
             .unwrap_or("unknown")
             .to_string();
-        if let Some(progress) = self.progress.as_deref() {
+        if let Some(progress) = progress {
             progress.advance(Counter::Extracted, 1);
         }
         let artifact = extract_artifact_file_from_snapshot_at(
-            &self.root,
-            &discovered.target,
+            root,
+            &target,
             language,
             indexed_at.to_string(),
             snapshot,
             level,
         )
         .map_err(|error| error.message)?;
-        let mut spool =
-            create_scan_spool(self.spool_dir.as_deref()).map_err(|error| error.to_string())?;
+        let _spool_guard = IMPORT_SPOOL_IO
+            .lock()
+            .map_err(|_| "import_spool_lock_poisoned".to_string())?;
+        let mut spool = create_scan_spool(spool_dir).map_err(|error| error.to_string())?;
         spool
             .file_spool_mut()
             .push(&artifact)
             .map_err(|error| error.to_string())?;
-        if let Some(progress) = self.progress.as_deref() {
+        if let Some(progress) = progress {
             progress.advance(Counter::Spooled, 1);
         }
         spool
@@ -154,52 +228,53 @@ impl StoreRequestExecutor {
             .map_err(|error| error.to_string())
     }
 
-    fn validated_full(
-        &mut self,
+    fn validate_full(
         transaction: &Transaction<'_>,
-        discovered: &DiscoveredImportFile,
-        indexed_at: &str,
+        planned: &PlannedImportFile,
+        full: &StoreFileVersion,
     ) -> Result<StoreFileVersion, String> {
-        let full = self.extract(discovered, ExtractionLevel::Full, indexed_at)?;
         let stored = StoreWriter::lookup_version_in_transaction(
             transaction,
-            &discovered.target.root_relative_path,
-            &discovered.content_hash,
+            &planned.root_relative_path,
+            &planned.content_hash,
             EXTRACTION_IDENTITY_EPOCH,
             StoreLevel::L1,
         )
         .map_err(|error| error.to_string())?
         .ok_or_else(|| "l1_version_missing_before_deepening".to_string())?;
-        if !StoreWriter::l1_projection_matches_in_transaction(transaction, &stored, &full)
+        if !StoreWriter::l1_projection_matches_in_transaction(transaction, &stored, full)
             .map_err(|error| error.to_string())?
         {
             return Err("l1_projection_mismatch".to_string());
         }
-        Ok(full)
+        Ok(full.clone())
     }
 
     fn manifest_entries(
-        &self,
         transaction: &Transaction<'_>,
+        files: &[PlannedImportFile],
+        failures: &std::collections::BTreeMap<String, ManifestEntry>,
         indexed_at: &str,
     ) -> Result<Vec<ManifestEntry>, String> {
-        self.files
+        files
             .iter()
             .map(|file| {
-                if let Some(failure) = self.failures.get(&file.target.root_relative_path) {
+                if let Some(failure) = failures.get(&file.root_relative_path) {
                     return Ok(failure.clone());
                 }
                 let version = StoreWriter::lookup_version_in_transaction(
                     transaction,
-                    &file.target.root_relative_path,
+                    &file.root_relative_path,
                     &file.content_hash,
                     EXTRACTION_IDENTITY_EPOCH,
                     StoreLevel::L1,
                 )
                 .map_err(|error| error.to_string())?
-                .ok_or_else(|| "l1_version_missing_at_publish".to_string())?;
+                .ok_or_else(|| {
+                    format!("l1_version_missing_at_publish:{}", file.root_relative_path)
+                })?;
                 Ok(ManifestEntry::indexed(
-                    &file.target.root_relative_path,
+                    &file.root_relative_path,
                     version.version_id,
                     &file.content_hash,
                     indexed_at,
@@ -233,10 +308,78 @@ impl StoreRequestExecutor {
     }
 }
 
+fn load_durable_request_state(
+    transaction: &Transaction<'_>,
+    request_id: &str,
+) -> Result<
+    (
+        std::collections::BTreeMap<String, ManifestEntry>,
+        &'static str,
+    ),
+    String,
+> {
+    let mut statement = transaction
+        .prepare(
+            "SELECT payload_json FROM store_log
+             WHERE request_id = ?1 AND terminal = 0 ORDER BY sequence",
+        )
+        .map_err(|error| error.to_string())?;
+    let payloads = statement
+        .query_map([request_id], |row| row.get::<_, String>(0))
+        .map_err(|error| error.to_string())?;
+    let mut failures = std::collections::BTreeMap::new();
+    let mut disposition = "not_published";
+    for payload_json in payloads {
+        let value: serde_json::Value =
+            serde_json::from_str(&payload_json.map_err(|error| error.to_string())?)
+                .map_err(|error| error.to_string())?;
+        if let Some(facts) = value.get("failures") {
+            for fact in serde_json::from_value::<Vec<FailureFact>>(facts.clone())
+                .map_err(|error| error.to_string())?
+            {
+                failures.insert(fact.path.clone(), fact.into_entry());
+            }
+        }
+        disposition = match value
+            .get("manifest_disposition")
+            .and_then(|value| value.as_str())
+        {
+            Some("created") => "created",
+            Some("reused") => "reused",
+            _ => disposition,
+        };
+    }
+    Ok((failures, disposition))
+}
+
+fn failure_facts(failures: &std::collections::BTreeMap<String, ManifestEntry>) -> Vec<FailureFact> {
+    failures.values().map(FailureFact::from_entry).collect()
+}
+
 const DEFAULT_CHUNK_VERSIONS: usize = 100;
 const WAL_BUDGET_BYTES: u64 = 128 * 1024 * 1024;
 
-fn build_chunks(files: &[DiscoveredImportFile], level: StoreLevel) -> Vec<ImportChunk> {
+pub(crate) fn estimate_projected_wal_bytes(source_bytes: u64) -> u64 {
+    source_bytes.saturating_mul(16).saturating_add(64 * 1024)
+}
+
+fn map_with_jobs<T, R, F>(items: &[T], jobs: usize, map: F) -> Result<Vec<R>, String>
+where
+    T: Sync,
+    R: Send,
+    F: Fn(&T) -> R + Send + Sync,
+{
+    let pool = select_extraction_pool(jobs, |threads| {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .stack_size(16 * 1024 * 1024)
+            .build()
+    })
+    .map_err(|error| format!("extraction_pool_unavailable: {error}"))?;
+    Ok(pool.install(|| items.par_iter().map(map).collect()))
+}
+
+fn build_chunks(files: &[PlannedImportFile], level: StoreLevel) -> Vec<ImportChunk> {
     let configured = std::env::var("MILLER_STORE_CHUNK_VERSIONS")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
@@ -245,7 +388,10 @@ fn build_chunks(files: &[DiscoveredImportFile], level: StoreLevel) -> Vec<Import
     chunk_ranges(
         &files
             .iter()
-            .map(|file| file.content_bytes)
+            .map(|file| {
+                file.projected_wal_bytes
+                    .max(estimate_projected_wal_bytes(file.content_bytes))
+            })
             .collect::<Vec<_>>(),
         version_limit,
     )
@@ -284,15 +430,31 @@ impl CoordinatorExecutor for StoreRequestExecutor {
         if request.kind != RequestKind::Import {
             return Err("unsupported_store_request_kind".to_string());
         }
-        if self
-            .watchdog
-            .as_ref()
-            .is_some_and(crate::watchdog::ParentWatchdog::parent_exited)
-        {
-            return Err("parent_process_exited".to_string());
-        }
         let payload: ImportRequestPayload =
             serde_json::from_str(&request.payload_json).map_err(|_| "invalid_import_request")?;
+        if payload.schema_version != 1 {
+            return Err("unsupported_import_request_schema".to_string());
+        }
+        if payload.controls.parent_pid.is_some_and(|pid| {
+            matches!(
+                crate::watchdog::process_status(pid),
+                julie_extract_artifact::store::PidStatus::Dead
+            )
+        }) {
+            return Err("parent_process_exited".to_string());
+        }
+        let root = PathBuf::from(&payload.root);
+        let spool_dir = payload.controls.spool_dir.as_deref().map(PathBuf::from);
+        let requested_full = payload.requested_level == RequestedLevel::Full;
+        let l1_chunks = build_chunks(&payload.files, StoreLevel::L1);
+        let l1_chunk_count = l1_chunks.len();
+        let mut chunks = l1_chunks;
+        if requested_full {
+            chunks.extend(build_chunks(&payload.files, StoreLevel::L3));
+        }
+        let (mut failures, mut persisted_manifest_disposition) =
+            load_durable_request_state(transaction, &request.request_id)?;
+        let progress = Self::progress_for(transaction, request, &payload, failures.len())?;
         ManifestStore::ensure_view_in_transaction(transaction, &payload.view_id, &payload.root)
             .map_err(|error| error.to_string())?;
         let indexed_at = OffsetDateTime::now_utc()
@@ -300,7 +462,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             .map_err(|error| error.to_string())?;
         let chunk_index = usize::try_from(context.next_chunk_index)
             .map_err(|_| "chunk_index_out_of_range".to_string())?;
-        if self.files.is_empty() {
+        if payload.files.is_empty() {
             let expected = transaction
                 .query_row(
                     "SELECT current_generation FROM views WHERE view_id = ?1",
@@ -312,7 +474,8 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     u64::try_from(generation).map_err(|_| "invalid_manifest_generation")
                 })
                 .transpose()?;
-            let entries = self.manifest_entries(transaction, &indexed_at)?;
+            let entries =
+                Self::manifest_entries(transaction, &payload.files, &failures, &indexed_at)?;
             let published = ManifestStore::publish_in_transaction(
                 transaction,
                 &payload.view_id,
@@ -325,27 +488,24 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 payload,
                 published.generation,
                 published.manifest_hash,
-                false,
+                requested_full,
                 manifest_disposition(published.disposition),
             ));
         }
-        let chunk = self
-            .chunks
+        let chunk = chunks
             .get(chunk_index)
             .copied()
             .ok_or_else(|| "chunk_index_out_of_range".to_string())?;
-        for index in chunk.start..chunk.end {
-            let discovered = self.files[index].clone();
+        let mut work = Vec::new();
+        for discovered in &payload.files[chunk.start..chunk.end] {
             if chunk.level != StoreLevel::L1
-                && self
-                    .failures
-                    .contains_key(&discovered.target.root_relative_path)
+                && failures.contains_key(&discovered.root_relative_path)
             {
                 continue;
             }
             let complete = StoreWriter::lookup_version_in_transaction(
                 transaction,
-                &discovered.target.root_relative_path,
+                &discovered.root_relative_path,
                 &discovered.content_hash,
                 EXTRACTION_IDENTITY_EPOCH,
                 chunk.level,
@@ -354,53 +514,68 @@ impl CoordinatorExecutor for StoreRequestExecutor {
             if complete.is_some() {
                 continue;
             }
+            work.push(discovered.clone());
+        }
+        let extraction_level = if chunk.level == StoreLevel::L1 {
+            ExtractionLevel::Symbols
+        } else {
+            ExtractionLevel::Full
+        };
+        let extracted = map_with_jobs(&work, payload.controls.jobs, |discovered| {
+            Self::extract(
+                &root,
+                discovered,
+                spool_dir.as_deref(),
+                progress.as_deref(),
+                extraction_level,
+                &indexed_at,
+            )
+        })?;
+        for (discovered, extracted) in work.into_iter().zip(extracted) {
             let write_request = StoreWriteRequest::bulk(&request.request_id, &indexed_at);
             match chunk.level {
                 StoreLevel::L1 => {
-                    let version =
-                        match self.extract(&discovered, ExtractionLevel::Symbols, &indexed_at) {
-                            Ok(version) => version,
-                            Err(message) => {
-                                let prior_version = transaction
-                                    .query_row(
-                                        "SELECT me.version_id
+                    let version = match extracted {
+                        Ok(version) => version,
+                        Err(message) => {
+                            let prior_version = transaction
+                                .query_row(
+                                    "SELECT me.version_id
                                      FROM views v JOIN manifest_entries me
                                        ON me.view_id = v.view_id
                                       AND me.generation = v.current_generation
                                      WHERE v.view_id = ?1 AND me.path = ?2",
-                                        rusqlite::params![
-                                            payload.view_id,
-                                            discovered.target.root_relative_path
-                                        ],
-                                        |row| row.get::<_, Option<i64>>(0),
-                                    )
-                                    .optional()
-                                    .map_err(|error| error.to_string())?
-                                    .flatten();
-                                let error_json =
-                                    serde_json::json!({ "message": message }).to_string();
-                                let failure = match prior_version {
-                                    Some(version_id) => ManifestEntry::failed_preserved(
-                                        &discovered.target.root_relative_path,
-                                        version_id,
-                                        &discovered.content_hash,
-                                        &indexed_at,
-                                        "extract",
-                                        error_json,
-                                    ),
-                                    None => ManifestEntry::failed(
-                                        &discovered.target.root_relative_path,
-                                        &discovered.content_hash,
-                                        &indexed_at,
-                                        "extract",
-                                        error_json,
-                                    ),
-                                };
-                                self.failures
-                                    .insert(discovered.target.root_relative_path.clone(), failure);
-                                continue;
-                            }
-                        };
+                                    rusqlite::params![
+                                        payload.view_id,
+                                        discovered.root_relative_path
+                                    ],
+                                    |row| row.get::<_, Option<i64>>(0),
+                                )
+                                .optional()
+                                .map_err(|error| error.to_string())?
+                                .flatten();
+                            let error_json = serde_json::json!({ "message": message }).to_string();
+                            let failure = match prior_version {
+                                Some(version_id) => ManifestEntry::failed_preserved(
+                                    &discovered.root_relative_path,
+                                    version_id,
+                                    &discovered.content_hash,
+                                    &indexed_at,
+                                    "extract",
+                                    error_json,
+                                ),
+                                None => ManifestEntry::failed(
+                                    &discovered.root_relative_path,
+                                    &discovered.content_hash,
+                                    &indexed_at,
+                                    "extract",
+                                    error_json,
+                                ),
+                            };
+                            failures.insert(discovered.root_relative_path.clone(), failure);
+                            continue;
+                        }
+                    };
                     let snapshot = artifact_capability_snapshot();
                     StoreWriter::write_level_in_transaction(
                         transaction,
@@ -411,8 +586,8 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     )
                     .map_err(|error| error.to_string())?;
                 }
-                StoreLevel::L2 => {
-                    let full = self.validated_full(transaction, &discovered, &indexed_at)?;
+                StoreLevel::L2 | StoreLevel::L3 => {
+                    let full = Self::validate_full(transaction, &discovered, &extracted?)?;
                     StoreWriter::write_level_in_transaction(
                         transaction,
                         &write_request,
@@ -421,14 +596,6 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                         StoreLevel::L2,
                     )
                     .map_err(|error| error.to_string())?;
-                    self.full
-                        .insert(discovered.target.root_relative_path.clone(), full);
-                }
-                StoreLevel::L3 => {
-                    let full = match self.full.remove(&discovered.target.root_relative_path) {
-                        Some(full) => full,
-                        None => self.validated_full(transaction, &discovered, &indexed_at)?,
-                    };
                     StoreWriter::write_level_in_transaction(
                         transaction,
                         &write_request,
@@ -440,7 +607,7 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 }
             }
         }
-        if chunk.level == StoreLevel::L1 && chunk_index + 1 == self.l1_chunk_count {
+        if chunk.level == StoreLevel::L1 && chunk_index + 1 == l1_chunk_count {
             let expected = transaction
                 .query_row(
                     "SELECT current_generation FROM views WHERE view_id = ?1",
@@ -452,7 +619,8 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                     u64::try_from(generation).map_err(|_| "invalid_manifest_generation")
                 })
                 .transpose()?;
-            let entries = self.manifest_entries(transaction, &indexed_at)?;
+            let entries =
+                Self::manifest_entries(transaction, &payload.files, &failures, &indexed_at)?;
             let published = ManifestStore::publish_in_transaction(
                 transaction,
                 &payload.view_id,
@@ -461,32 +629,42 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 &request.request_id,
             )
             .map_err(|error| error.to_string())?;
-            self.manifest_disposition = manifest_disposition(published.disposition);
+            persisted_manifest_disposition = manifest_disposition(published.disposition);
             wait_for_l1_test_hook()?;
-            if !self.requested_full {
+            if !requested_full {
+                if let Some(progress) = progress.as_deref() {
+                    progress.enter_phase("complete");
+                }
                 return Ok(Self::result(
                     payload,
                     published.generation,
                     published.manifest_hash,
                     false,
-                    self.manifest_disposition,
+                    persisted_manifest_disposition,
                 ));
             }
             return Ok(ExecutionQuantum::Progress {
                 event_kind: "store_import_l1_published".to_string(),
                 payload_json: serde_json::json!({
                     "completed_files": chunk.end,
+                    "failures": failure_facts(&failures),
                     "generation": published.generation,
                     "manifest_hash": published.manifest_hash,
+                    "manifest_disposition": persisted_manifest_disposition,
                 })
                 .to_string(),
                 level: Some(StoreLevel::L1),
             });
         }
-        if chunk_index + 1 < self.chunks.len() {
+        if chunk_index + 1 < chunks.len() {
             return Ok(ExecutionQuantum::Progress {
                 event_kind: format!("store_import_l{}_chunk", chunk.level.as_i64()),
-                payload_json: serde_json::json!({ "completed_files": chunk.end }).to_string(),
+                payload_json: serde_json::json!({
+                    "completed_files": chunk.end,
+                    "failures": failure_facts(&failures),
+                    "manifest_disposition": persisted_manifest_disposition,
+                })
+                .to_string(),
                 level: Some(chunk.level),
             });
         }
@@ -504,12 +682,15 @@ impl CoordinatorExecutor for StoreRequestExecutor {
                 |row| row.get::<_, String>(0),
             )
             .map_err(|error| error.to_string())?;
+        if let Some(progress) = progress.as_deref() {
+            progress.enter_phase("complete");
+        }
         Ok(Self::result(
             payload,
             u64::try_from(generation).map_err(|_| "invalid_manifest_generation")?,
             hash,
             true,
-            self.manifest_disposition,
+            persisted_manifest_disposition,
         ))
     }
 }
@@ -546,7 +727,7 @@ fn wait_for_l1_test_hook() -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{WAL_BUDGET_BYTES, chunk_ranges};
+    use super::{WAL_BUDGET_BYTES, chunk_ranges, estimate_projected_wal_bytes, map_with_jobs};
 
     #[test]
     fn wal_budget_splits_before_the_next_version_would_exceed_128_mib() {
@@ -555,5 +736,29 @@ mod tests {
         for (start, end) in chunk_ranges(&sizes, 100) {
             assert!(sizes[start..end].iter().sum::<u64>() <= WAL_BUDGET_BYTES);
         }
+    }
+
+    #[test]
+    fn jobs_greater_than_one_runs_import_extraction_concurrently() {
+        let in_flight = std::sync::atomic::AtomicUsize::new(0);
+        let maximum = std::sync::atomic::AtomicUsize::new(0);
+        let values = (0..8).collect::<Vec<_>>();
+        let output = map_with_jobs(&values, 4, |_| {
+            let current = in_flight.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+            maximum.fetch_max(current, std::sync::atomic::Ordering::SeqCst);
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            in_flight.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+            1
+        })
+        .unwrap();
+        assert_eq!(output.len(), 8);
+        assert!(maximum.load(std::sync::atomic::Ordering::SeqCst) >= 2);
+    }
+
+    #[test]
+    fn wal_estimate_accounts_for_projected_row_amplification() {
+        let source_bytes = 8 * 1024 * 1024;
+        assert!(estimate_projected_wal_bytes(source_bytes) > source_bytes);
+        assert!(estimate_projected_wal_bytes(source_bytes) >= WAL_BUDGET_BYTES);
     }
 }

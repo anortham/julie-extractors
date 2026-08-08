@@ -24,6 +24,20 @@ use serde_json::Value;
 
 use crate::paths::FileTarget;
 
+/// Build the bounded extraction pool, retrying once with one worker if needed.
+pub(crate) fn select_extraction_pool<P, E>(
+    requested_jobs: usize,
+    mut build: impl FnMut(usize) -> Result<P, E>,
+) -> Result<P, E> {
+    build(requested_jobs).or_else(|error| {
+        if requested_jobs == 1 {
+            Err(error)
+        } else {
+            build(1)
+        }
+    })
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ExtractFileErrorKind {
     Read,

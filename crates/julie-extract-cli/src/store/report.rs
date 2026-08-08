@@ -99,6 +99,7 @@ pub enum StoreFailureClass {
     ViewRootMismatch,
     L1ProjectionMismatch,
     ChangedBetweenWaves,
+    IdempotencyConflict,
     RequestTimeout,
     Busy,
     Internal,
@@ -118,6 +119,7 @@ impl StoreFailureClass {
             Self::ViewRootMismatch => "view_root_mismatch",
             Self::L1ProjectionMismatch => "l1_projection_mismatch",
             Self::ChangedBetweenWaves => "changed_between_waves",
+            Self::IdempotencyConflict => "idempotency_conflict",
             Self::RequestTimeout => "request_timeout",
             Self::Busy => "busy",
             Self::Internal => "internal",
@@ -294,6 +296,10 @@ impl StoreCommandOutcome {
 
     pub fn failed(report: StoreReport) -> Self {
         let report = normalize_failed_report(report);
+        Self::new(report, STORE_EXIT_OPERATIONAL_FAILURE)
+    }
+
+    pub fn observed_incomplete(report: StoreReport) -> Self {
         Self::new(report, STORE_EXIT_OPERATIONAL_FAILURE)
     }
 

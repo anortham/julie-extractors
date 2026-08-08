@@ -1,6 +1,318 @@
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+use julie_extract_artifact::store::{
+    CoordinatorRequest, LeaseDisposition, LeaseHolder, RequestKind, RequestState, StoreCoordinator,
+    StoreLayout,
+};
+
+const FAMILY_ID: &str = "9f8c2c9a-3b92-4f38-9b0d-0e2b8c7a4d11";
+
+#[test]
+fn one_drain_uses_each_queued_imports_own_root_plan_and_level() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root_a = fixture.path().join("root-a");
+    let root_b = fixture.path().join("root-b");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root_a).unwrap();
+    std::fs::create_dir(&root_b).unwrap();
+    std::fs::write(root_a.join("a.rs"), "pub fn a() {}\n").unwrap();
+    let source_b = b"pub fn b(input: u32) -> u32 { input }\n";
+    std::fs::write(root_b.join("b.rs"), source_b).unwrap();
+    let root_b = root_b.canonicalize().unwrap();
+
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "request-b",
+            "idem-b",
+            RequestKind::Import,
+            serde_json::json!({
+                "schema_version": 1,
+                "family_id": FAMILY_ID,
+                "root": root_b,
+                "view_id": "view-b",
+                "requested_level": "full",
+                "files": [{
+                    "root_relative_path": "b.rs",
+                    "content_hash": format!("blake3:{}", blake3::hash(source_b).to_hex()),
+                    "content_bytes": source_b.len(),
+                }],
+                "controls": { "jobs": 0 },
+            })
+            .to_string(),
+            "requester-b",
+            i64::MAX,
+            1,
+        ))
+        .unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root_a.to_str().unwrap(),
+            "--view",
+            "view-a",
+            "--level",
+            "l1",
+            "--request-id",
+            "request-a",
+            "--idempotency-key",
+            "idem-a",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let connection = rusqlite::Connection::open(layout.store_db()).unwrap();
+    let view_b: (String, Option<i64>, Option<i64>) = connection
+        .query_row(
+            "SELECT me.path, fv.complete_l2, fv.complete_l3
+             FROM views v
+             JOIN manifest_entries me ON me.view_id = v.view_id AND me.generation = v.current_generation
+             JOIN file_versions fv ON fv.version_id = me.version_id
+             WHERE v.view_id = 'view-b'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(view_b.0, "b.rs");
+    assert!(view_b.1.is_some());
+    assert!(view_b.2.is_some());
+}
+
+#[test]
+fn idempotency_replay_observes_the_original_request_and_rejects_level_changes() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn value() -> u32 { 1 }\n").unwrap();
+    let run = |request_id: &str, level: &str| {
+        Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+            .args([
+                "store",
+                "import",
+                "--store",
+                store.to_str().unwrap(),
+                "--family",
+                FAMILY_ID,
+                "--root",
+                root.to_str().unwrap(),
+                "--view",
+                "view-main",
+                "--level",
+                level,
+                "--request-id",
+                request_id,
+                "--idempotency-key",
+                "idem-shared",
+                "--json",
+            ])
+            .output()
+            .unwrap()
+    };
+
+    assert_eq!(run("request-original", "l1").status.code(), Some(0));
+    let replay = run("request-retry", "l1");
+    assert_eq!(replay.status.code(), Some(0));
+    let replay: serde_json::Value = serde_json::from_slice(&replay.stdout).unwrap();
+    assert_eq!(replay["request"]["id"], "request-original");
+    assert_eq!(replay["requested_level"], "l1");
+
+    let conflict = run("request-conflict", "full");
+    assert_ne!(conflict.status.code(), Some(0));
+    let conflict: serde_json::Value = serde_json::from_slice(&conflict.stdout).unwrap();
+    assert_eq!(conflict["failure_class"], "idempotency_conflict");
+}
+
+#[test]
+fn preflight_failure_never_enqueues_a_request() {
+    let fixture = tempfile::tempdir().unwrap();
+    let store = fixture.path().join("store");
+    let missing = fixture.path().join("missing-root");
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            missing.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "request-preflight",
+            "--idempotency-key",
+            "idem-preflight",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_ne!(output.status.code(), Some(0));
+    assert!(!store.join("gen-001/coordinator.db").exists());
+}
+
+#[test]
+fn committed_report_contains_truthful_level_row_counts() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(
+        root.join("lib.rs"),
+        "/// documented\npub fn value(input: u32) -> u32 { let answer = input + 42; answer }\n",
+    )
+    .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--level",
+            "full",
+            "--request-id",
+            "request-counts",
+            "--idempotency-key",
+            "idem-counts",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["row_counts"]["file_versions"], 1);
+    assert!(report["row_counts"]["l1"].as_u64().unwrap() > 0);
+    assert!(report["row_counts"]["l2"].as_u64().unwrap() > 0);
+    assert!(report["row_counts"]["l3"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn empty_full_import_reports_all_requested_levels_complete() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-empty",
+            "--level",
+            "full",
+            "--request-id",
+            "request-empty",
+            "--idempotency-key",
+            "idem-empty",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["completion"]["l1"], true);
+    assert_eq!(report["completion"]["l2"], true);
+    assert_eq!(report["completion"]["l3"], true);
+    assert_eq!(report["row_counts"]["file_versions"], 0);
+}
+
+#[test]
+fn nonholder_times_out_without_removing_the_durable_queued_request() {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().join("root");
+    let store = fixture.path().join("store");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("lib.rs"), "pub fn value() {}\n").unwrap();
+    let layout = StoreLayout::create(&store, FAMILY_ID, env!("CARGO_PKG_VERSION")).unwrap();
+    let mut blocker = StoreCoordinator::open(&layout).unwrap();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    assert!(matches!(
+        blocker
+            .try_acquire_or_takeover(
+                LeaseHolder::new("live-holder", env!("CARGO_PKG_VERSION"), std::process::id()),
+                now,
+            )
+            .unwrap(),
+        LeaseDisposition::Acquired { .. }
+    ));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
+        .args([
+            "store",
+            "import",
+            "--store",
+            store.to_str().unwrap(),
+            "--family",
+            FAMILY_ID,
+            "--root",
+            root.to_str().unwrap(),
+            "--view",
+            "view-main",
+            "--request-id",
+            "request-timeout",
+            "--idempotency-key",
+            "idem-timeout",
+            "--request-timeout-seconds",
+            "1",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["failure_class"], "request_timeout");
+    assert!(matches!(
+        report["state"].as_str(),
+        Some("queued" | "claimed")
+    ));
+    let durable = StoreCoordinator::open(&layout)
+        .unwrap()
+        .request("request-timeout")
+        .unwrap();
+    assert!(matches!(
+        durable.state,
+        RequestState::Queued | RequestState::Claimed
+    ));
+}
+
 #[test]
 fn public_store_import_reaches_the_production_executor() {
     let fixture = tempfile::tempdir().unwrap();
@@ -371,6 +683,7 @@ fn retry_after_l1_manifest_progress_resumes_deepening_without_republishing() {
         )
         .unwrap();
     }
+    std::fs::write(root.join("broken.rs"), [0xff, 0xfe, 0x00]).unwrap();
 
     let mut child = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
@@ -414,12 +727,21 @@ fn retry_after_l1_manifest_progress_resumes_deepening_without_republishing() {
                 })
                 .unwrap_or(false)
         {
+            let wal = database.with_extension("db-wal");
+            if wal.exists() {
+                assert!(std::fs::metadata(wal).unwrap().len() <= 128 * 1024 * 1024);
+            }
             break;
         }
         std::thread::sleep(Duration::from_millis(2));
     }
     child.kill().unwrap();
     child.wait().unwrap();
+    std::fs::write(
+        root.join("aaa_inserted_after_crash.rs"),
+        "pub fn inserted() {}\n",
+    )
+    .unwrap();
 
     let retry = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
         .args([
@@ -504,6 +826,22 @@ fn retry_after_l1_manifest_progress_resumes_deepening_without_republishing() {
     assert_eq!(terminal_effects, 1);
     assert_eq!(chunk_span.0, chunk_span.1);
     assert_eq!(l1_chunks, 2);
+    let failed_after_restart: (String, Option<i64>) = connection
+        .query_row(
+            "SELECT status, version_id FROM manifest_entries WHERE path = 'broken.rs'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(failed_after_restart, ("failed".to_string(), None));
+    let inserted_manifest_rows: i64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM manifest_entries WHERE path = 'aaa_inserted_after_crash.rs'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(inserted_manifest_rows, 0);
 }
 
 #[test]
@@ -555,19 +893,7 @@ fn zero_chunk_override_runs_one_version_per_quantum_with_global_indices() {
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
-    assert_eq!(
-        chunks,
-        [
-            (0, 1),
-            (1, 1),
-            (2, 1),
-            (3, 2),
-            (4, 2),
-            (5, 2),
-            (6, 3),
-            (7, 3)
-        ]
-    );
+    assert_eq!(chunks, [(0, 1), (1, 1), (2, 1), (3, 3), (4, 3)]);
 }
 
 #[test]
@@ -605,7 +931,13 @@ fn default_chunk_limit_processes_101_l1_versions_in_two_quanta() {
         ])
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout: {} stderr: {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
     let progress_quanta: i64 = connection
         .query_row(
@@ -806,6 +1138,14 @@ fn source_change_between_waves_keeps_published_l1_and_requires_a_new_request() {
     assert_eq!(output.status.code(), Some(1));
     let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(report["failure_class"], "changed_between_waves");
+    assert_eq!(report["completion"]["l1"], true);
+    assert_eq!(report["completion"]["l2"], false);
+    assert_eq!(report["completion"]["l3"], false);
+    assert!(report["manifest"]["generation"].as_u64().is_some());
+    assert!(report["manifest"]["hash"].as_str().is_some());
+    assert_ne!(report["manifest"]["disposition"], "not_published");
+    assert_eq!(report["row_counts"]["file_versions"], 1);
+    assert!(report["row_counts"]["l1"].as_u64().unwrap() > 0);
 
     let database = store.join("gen-001/store.db");
     let connection = rusqlite::Connection::open(&database).unwrap();
@@ -992,8 +1332,8 @@ fn import_honors_ignore_spool_progress_jobs_and_parent_supervision_controls() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
     let store = fixture.path().join("store");
-    let spool = fixture.path().join("spool");
-    let progress = fixture.path().join("scan.progress");
+    let spool = root.join("spool");
+    let progress = root.join("scan.progress");
     let ignore = fixture.path().join("extra.ignore");
     std::fs::create_dir(&root).unwrap();
     std::fs::create_dir(&spool).unwrap();
@@ -1088,12 +1428,12 @@ fn full_import_persists_two_distinct_language_parsers() {
     std::fs::create_dir(&root).unwrap();
     std::fs::write(
         root.join("lib.rs"),
-        "pub fn answer(input: u32) -> u32 { input + 1 }\n",
+        "pub fn answer(input: u32) -> &'static str { let _ = input; \"rust\" }\n",
     )
     .unwrap();
     std::fs::write(
         root.join("module.py"),
-        "def answer(value):\n    return value + 1\n",
+        "def answer(value):\n    return \"python\" if value else \"none\"\n",
     )
     .unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_julie-extract"))
@@ -1122,11 +1462,12 @@ fn full_import_persists_two_distinct_language_parsers() {
     let connection = rusqlite::Connection::open(store.join("gen-001/store.db")).unwrap();
     let rows = connection
         .prepare(
-            "SELECT fv.language, COUNT(DISTINCT s.symbol_id), COUNT(DISTINCT i.identifier_id)
-             FROM file_versions fv
-             JOIN symbols s ON s.version_id = fv.version_id
-             JOIN identifiers i ON i.version_id = fv.version_id
-             GROUP BY fv.language ORDER BY fv.language",
+            "SELECT fv.language,
+                    (SELECT COUNT(*) FROM symbols s WHERE s.version_id = fv.version_id),
+                    (SELECT COUNT(*) FROM identifiers i WHERE i.version_id = fv.version_id),
+                    (SELECT COUNT(*) FROM reference_sites r WHERE r.version_id = fv.version_id),
+                    (SELECT COUNT(*) FROM source_regions sr WHERE sr.version_id = fv.version_id)
+             FROM file_versions fv ORDER BY fv.language",
         )
         .unwrap()
         .query_map([], |row| {
@@ -1134,11 +1475,17 @@ fn full_import_persists_two_distinct_language_parsers() {
                 row.get::<_, String>(0)?,
                 row.get::<_, i64>(1)?,
                 row.get::<_, i64>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
             ))
         })
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
     assert_eq!(rows.len(), 2);
-    assert!(rows.iter().all(|row| row.1 > 0 && row.2 > 0));
+    assert!(
+        rows.iter()
+            .all(|row| row.1 > 0 && row.2 > 0 && row.3 > 0 && row.4 > 0),
+        "rows: {rows:?}"
+    );
 }
