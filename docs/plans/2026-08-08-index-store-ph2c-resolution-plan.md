@@ -247,7 +247,9 @@ RUSTUP_TOOLCHAIN=1.97.1 cargo fmt --all -- --check
 RUSTUP_TOOLCHAIN=1.97.1 cargo test -p xtask
 RUSTUP_TOOLCHAIN=1.97.1 cargo xtask test default
 RUSTUP_TOOLCHAIN=1.97.1 cargo xtask test contract
-RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-artifact --features test-store-resolution --test store_resolution_contract -- --test-threads=1
+RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-artifact --features test-store-resolution --test store_resolution_schema_contract -- --test-threads=1
+RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-artifact --features test-store-resolution --test store_resolution_base_contract -- --test-threads=1
+RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-artifact --features test-store-resolution --test store_resolution_binding_contract -- --test-threads=1
 RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-cli --features test-store-resolution-contract --test store_resolution_contract -- --test-threads=1
 RUSTUP_TOOLCHAIN=1.97.1 cargo test -p julie-extract-cli --features test-store-resolution-contract --test store_resolution_adapters -- --test-threads=1
 RUSTUP_TOOLCHAIN=1.97.1 cargo xtask performance store-resolution --runs 3
@@ -778,22 +780,22 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Actual-store G3b passes every pair/run with the same denominator and ≤0.50 threshold.
-- [ ] All crash/concurrency/claim/pin/CAS/reconciliation tests pass with no duplicate effects.
-- [ ] Both adapter roundtrips are natural-key equivalent and non-vacuous.
-- [ ] Dogfood reaches exact state after each mutation/recovery and all four DB integrity checks pass.
-- [ ] Default/contract/specialist/clippy/fmt/deny/diff gates pass at final clean HEAD.
-- [ ] Evidence names what shipped, what remains Ph2d/Ph3, and makes no push/release claim.
+- [x] Actual-store G3b passes every pair/run with the same denominator and ≤0.50 threshold.
+- [x] All crash/concurrency/claim/pin/CAS/reconciliation tests pass with no duplicate effects.
+- [x] Both adapter roundtrips are natural-key equivalent and non-vacuous.
+- [x] Dogfood reaches exact state after each mutation/recovery and all four DB integrity checks pass.
+- [x] Default/contract/specialist/clippy/fmt/deny/diff gates pass at final clean HEAD.
+- [x] Evidence names what shipped, what remains Ph2d/Ph3, and makes no push/release claim.
 
 ## Final Acceptance Checklist
 
-- [ ] Legacy v3 artifacts and reports remain byte/row compatible.
-- [ ] Both session adapters satisfy the same resolver contract and semantic oracle.
-- [ ] G1/G2/G3a/G3b/G3c/G4/G5 pass three runs with no averaging.
-- [ ] Store/coord schema v2 is exact and schema-v1 stores refuse before mutation.
-- [ ] Base, delta, pin, claim, manifest, and view states survive every tested crash boundary.
-- [ ] Resolve computes off the writer lease and publishes through a fenced short CAS transaction.
-- [ ] Export and from-artifact are real atomic/resumable adapters, not file-copy shortcuts.
-- [ ] Reports are request-specific, truthful, stable, and preserve existing schema-v1 consumers.
-- [ ] Ph2d GC obligations for base roots, pins, and claims are documented and executable in tests.
-- [ ] Final worktree, branch, commit, status, and all related worktrees are reconciled before merge.
+- [x] Legacy v3 artifacts and reports remain byte/row compatible.
+- [x] Both session adapters satisfy the same resolver contract and semantic oracle.
+- [x] G1/G2/G3a/G3b/G3c/G4/G5 pass three runs with no averaging.
+- [x] Store/coord schema v2 is exact and schema-v1 stores refuse before mutation.
+- [x] Base, delta, pin, claim, manifest, and view states survive every tested crash boundary.
+- [x] Resolve computes off the writer lease and publishes through a fenced short CAS transaction.
+- [x] Export and from-artifact are real atomic/resumable adapters, not file-copy shortcuts.
+- [x] Reports are request-specific, truthful, stable, and preserve existing schema-v1 consumers.
+- [x] Ph2d GC obligations for base roots, pins, and claims are documented and executable in tests.
+- [x] Final worktree, branch, commit, status, and all related worktrees are reconciled before merge.
