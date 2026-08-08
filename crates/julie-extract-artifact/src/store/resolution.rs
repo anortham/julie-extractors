@@ -711,11 +711,15 @@ fn validate_rows(
             ));
         }
         if row.version_id <= 0
-            || !source_versions.contains(&row.version_id)
             || row.identifier_id.is_empty()
             || !identifier_keys.insert((row.version_id, row.identifier_id.clone()))
         {
             return Err(ResolutionValidationError::InvalidArgument("identifier row"));
+        }
+        if !source_versions.contains(&row.version_id) {
+            return Err(ResolutionValidationError::VersionRootMissing {
+                version_id: row.version_id,
+            });
         }
         if row.outcome == "resolved" {
             let target = row
@@ -755,11 +759,15 @@ fn validate_rows(
             ));
         }
         if row.version_id <= 0
-            || !source_versions.contains(&row.version_id)
             || row.pending_relationship_id.is_empty()
             || !pending_keys.insert((row.version_id, row.pending_relationship_id.clone()))
         {
             return Err(ResolutionValidationError::InvalidArgument("pending row"));
+        }
+        if !source_versions.contains(&row.version_id) {
+            return Err(ResolutionValidationError::VersionRootMissing {
+                version_id: row.version_id,
+            });
         }
         if row.target_symbol_id.is_empty() {
             return Err(ResolutionValidationError::InvalidArgument("pending target"));

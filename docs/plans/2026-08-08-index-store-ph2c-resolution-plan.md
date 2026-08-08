@@ -410,10 +410,10 @@ No worker edits another worker's files, reverts shared changes, or commits unrel
 
 **Acceptance:**
 
-- [ ] Production-owned base and scratch DDL exactly match checked-in contracts/hashes.
-- [ ] Two from-scratch builds are semantically and byte-order deterministic.
-- [ ] Invalid, incomplete, escaped, or symlinked files receive typed refusal.
-- [ ] Every base target pair is proven present in the visible symbol set before completion.
+- [x] Production-owned base and scratch DDL exactly match checked-in contracts/hashes.
+- [x] Two from-scratch builds are semantically and byte-order deterministic.
+- [x] Invalid, incomplete, escaped, or symlinked files receive typed refusal.
+- [x] Every base target pair is proven present in the visible symbol set before completion.
 
 ## Task 4: Implement StoreScratchResolutionSession and Streaming Exact Diff
 

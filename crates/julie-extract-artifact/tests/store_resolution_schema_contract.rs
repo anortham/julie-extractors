@@ -545,6 +545,19 @@ fn base_rejects_target_version_missing_from_version_roots() {
         }
     ));
     assert!(!pending_path.exists());
+
+    let source_path = temp.path().join("source-missing-root.db");
+    let mut source_builder =
+        ResolutionBaseBuilder::new(&source_path, "manifest-a", 6, [10]).unwrap();
+    source_builder.push_identifier_resolution(identifier(20, "identifier-1"));
+    let error = source_builder.finish(&visible).unwrap_err();
+    assert!(matches!(
+        error,
+        julie_extract_artifact::store::ResolutionValidationError::VersionRootMissing {
+            version_id: 20
+        }
+    ));
+    assert!(!source_path.exists());
 }
 
 #[test]
