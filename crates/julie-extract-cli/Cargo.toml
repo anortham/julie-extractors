@@ -35,6 +35,9 @@ test-real-world = []
 #   cargo test -p julie-extract-cli --features test-heavy-contracts --test deep_recursion_contract
 #   cargo test -p julie-extract-cli --features test-heavy-contracts --test reference_site_identity
 test-heavy-contracts = []
+# Feature-gated store process/crash/equivalence contracts. The artifact feature
+# exposes only integration-test crash harnesses; normal binaries have no hook.
+test-store-contract = ["julie-extract-artifact/test-store-crash"]
 
 [lints]
 workspace = true

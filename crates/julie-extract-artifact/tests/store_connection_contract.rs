@@ -247,7 +247,7 @@ fn writer_detects_a_late_auto_vacuum_no_op() {
 }
 
 #[test]
-fn writer_advances_binary_version_without_ever_moving_it_back() {
+fn writer_advances_binary_version_and_refuses_an_older_direct_writer() {
     let temp = TempStore::new("binary-version");
     let layout = StoreLayout::create(temp.path(), "family-a", "2.30.0").unwrap();
     StoreConnectionFactory::new(layout.clone(), "family-a", "2.31.0")
@@ -258,9 +258,15 @@ fn writer_advances_binary_version_without_ever_moving_it_back() {
         "2.31.0"
     );
 
-    StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0")
+    let error = StoreConnectionFactory::new(layout.clone(), "family-a", "2.30.0")
         .open_writer()
-        .unwrap();
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        StoreConnectionError::WriterVersionTooOld { running, required }
+            if running == "2.30.0" && required == "2.31.0"
+    ));
 
     assert_eq!(
         metadata_value(&store_metadata(layout.store_db()), "binary_version"),

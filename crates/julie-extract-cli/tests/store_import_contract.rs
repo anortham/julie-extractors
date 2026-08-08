@@ -1619,6 +1619,7 @@ fn first_failed_path_has_no_version_and_prior_good_failure_is_preserved() {
 }
 
 #[test]
+#[cfg(feature = "test-store-contract")]
 fn source_change_between_waves_keeps_published_l1_and_requires_a_new_request() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
@@ -2018,6 +2019,7 @@ fn full_import_persists_two_distinct_language_parsers() {
 }
 
 #[test]
+#[cfg(feature = "test-store-contract")]
 fn resumed_full_import_reports_its_l1_generation_after_an_intervening_flip() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");

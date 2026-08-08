@@ -1203,7 +1203,7 @@ fn manifest_disposition(disposition: ManifestPublishDisposition) -> &'static str
     }
 }
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "test-store-contract")]
 fn wait_for_test_hook(
     ready_variable: &str,
     resume_variable: &str,
@@ -1225,7 +1225,7 @@ fn wait_for_test_hook(
     Ok(())
 }
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "test-store-contract")]
 fn wait_for_l1_test_hook() -> Result<(), String> {
     wait_for_test_hook(
         "JULIE_EXTRACT_STORE_TEST_L1_READY_FILE",
@@ -1235,12 +1235,12 @@ fn wait_for_l1_test_hook() -> Result<(), String> {
     )
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(not(feature = "test-store-contract"))]
 fn wait_for_l1_test_hook() -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "test-store-contract")]
 fn wait_for_full_resume_test_hook() -> Result<(), String> {
     wait_for_test_hook(
         "JULIE_EXTRACT_STORE_TEST_FULL_RESUME_READY_FILE",
@@ -1250,7 +1250,7 @@ fn wait_for_full_resume_test_hook() -> Result<(), String> {
     )
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(not(feature = "test-store-contract"))]
 fn wait_for_full_resume_test_hook() -> Result<(), String> {
     Ok(())
 }

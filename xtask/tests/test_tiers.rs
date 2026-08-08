@@ -220,6 +220,76 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "reference_site_identity",
                 ]
             ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-artifact",
+                    "--features",
+                    "test-store-crash",
+                    "--test",
+                    "store_crash_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-contract",
+                    "--test",
+                    "store_equivalence",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-contract",
+                    "--test",
+                    "store_mixed_version",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-contract",
+                    "--test",
+                    "store_import_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-contract",
+                    "--test",
+                    "store_operations_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
         ]
     );
 }

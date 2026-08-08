@@ -3,6 +3,8 @@ mod delete;
 mod executor;
 pub mod import;
 pub mod report;
+#[cfg(feature = "test-store-contract")]
+pub mod test_support;
 mod update;
 
 use import::StoreExecutionOutcome;

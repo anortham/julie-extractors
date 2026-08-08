@@ -70,6 +70,25 @@ fn heavy_contract_gates_are_feature_gated_out_of_default_suite() {
     }
 }
 
+#[test]
+fn store_process_contracts_and_hooks_are_feature_gated_out_of_default_suite() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let manifest = read(&crate_root.join("Cargo.toml"));
+    assert!(
+        manifest.contains("test-store-contract = [\"julie-extract-artifact/test-store-crash\"]")
+    );
+    for harness in ["store_equivalence.rs", "store_mixed_version.rs"] {
+        let source = read(&crate_root.join("tests").join(harness));
+        assert!(
+            source.starts_with("#![cfg(feature = \"test-store-contract\")]"),
+            "tests/{harness} must stay outside the default process tier"
+        );
+    }
+    let executor = read(&crate_root.join("src/store/executor.rs"));
+    assert!(executor.contains("#[cfg(feature = \"test-store-contract\")]\nfn wait_for_test_hook("));
+    assert!(!executor.contains("#[cfg(debug_assertions)]\nfn wait_for_test_hook("));
+}
+
 fn read(path: &PathBuf) -> String {
     fs::read_to_string(path)
         .unwrap_or_else(|err| panic!("failed to read {}: {}", path.display(), err))

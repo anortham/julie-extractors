@@ -1,4 +1,7 @@
-use std::process::{Command, Output, Stdio};
+#[cfg(feature = "test-store-contract")]
+use std::process::Stdio;
+use std::process::{Command, Output};
+#[cfg(feature = "test-store-contract")]
 use std::time::{Duration, Instant};
 
 use rusqlite::Connection;
@@ -1453,6 +1456,7 @@ fn full_update_rejects_l1_projection_mismatch_without_rewriting_l1() {
 }
 
 #[test]
+#[cfg(feature = "test-store-contract")]
 fn source_change_between_full_update_waves_keeps_the_published_l1_entry() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
@@ -1552,6 +1556,7 @@ fn source_change_between_full_update_waves_keeps_the_published_l1_entry() {
 }
 
 #[test]
+#[cfg(feature = "test-store-contract")]
 fn concurrent_disjoint_updates_converge_without_losing_either_delta() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
@@ -1700,6 +1705,7 @@ fn concurrent_disjoint_updates_converge_without_losing_either_delta() {
 }
 
 #[test]
+#[cfg(feature = "test-store-contract")]
 fn concurrent_same_file_waiter_recomputes_from_the_new_generation() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");
@@ -2290,6 +2296,7 @@ fn update_reports_idempotency_conflict_before_parsing_a_delete_payload() {
 }
 
 #[test]
+#[cfg(feature = "test-store-contract")]
 fn resumed_full_update_reports_its_l1_generation_after_an_intervening_flip() {
     let fixture = tempfile::tempdir().unwrap();
     let root = fixture.path().join("root");

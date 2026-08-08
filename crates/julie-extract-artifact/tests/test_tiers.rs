@@ -75,6 +75,15 @@ fn store_schema_contract_is_part_of_the_default_suite() {
     assert!(source.contains("store_and_coordinator_catalogs_match_the_checked_in_authority"));
 }
 
+#[test]
+fn store_crash_matrix_is_feature_gated_out_of_the_default_suite() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let manifest = read(&crate_root.join("Cargo.toml"));
+    assert!(manifest.contains("test-store-crash = []"));
+    let source = read(&crate_root.join("tests/store_crash_contract.rs"));
+    assert!(source.starts_with("#![cfg(feature = \"test-store-crash\")]"));
+}
+
 fn read(path: &PathBuf) -> String {
     fs::read_to_string(path)
         .unwrap_or_else(|err| panic!("failed to read {}: {}", path.display(), err))

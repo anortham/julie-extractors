@@ -9,7 +9,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 
-use super::connection::compare_versions as compare_store_versions;
+use super::connection::{
+    compare_versions as compare_store_versions, extractor_downgrade_allowed,
+    required_writer_version,
+};
 use super::pragmas::{WriterPragmaProfile, configure_writer_pragmas};
 use super::{StoreConnectionError, StoreLayout, StoreLog, StoreLogEntry};
 
@@ -1294,12 +1297,20 @@ impl StoreCoordinator {
             [],
             |row| row.get::<_, String>(0),
         )?;
-        let required = if compare_versions(&min_writer_version, &binary_version)? == Ordering::Less
-        {
-            binary_version
-        } else {
-            min_writer_version
-        };
+        let required = required_writer_version(
+            &min_writer_version,
+            &binary_version,
+            extractor_downgrade_allowed(),
+        )
+        .map_err(|error| match error {
+            StoreConnectionError::InvalidVersion { value, .. } => {
+                CoordinatorError::InvalidVersion { value }
+            }
+            other => CoordinatorError::CorruptRequest {
+                detail: other.to_string(),
+            },
+        })?
+        .to_string();
         if compare_versions(running, &required)? == Ordering::Less {
             Err(CoordinatorError::WriterVersionTooOld {
                 running: running.to_string(),

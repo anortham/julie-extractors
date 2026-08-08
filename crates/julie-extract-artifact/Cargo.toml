@@ -13,6 +13,7 @@ description = "SQLite artifact persistence for julie-extract"
 #   cargo test -p julie-extract-artifact --features test-perf --test writer_perf -- --nocapture
 test-perf = []
 test-takeover = []
+test-store-crash = []
 
 [lints]
 workspace = true

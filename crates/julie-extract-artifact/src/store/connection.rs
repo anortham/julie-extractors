@@ -86,11 +86,21 @@ impl StoreConnectionFactory {
             });
         }
 
-        let floor_key = match access_mode {
-            AccessMode::Reader => "min_reader_version",
-            AccessMode::Writer => "min_writer_version",
+        let (floor_key, required) = match access_mode {
+            AccessMode::Reader => (
+                "min_reader_version",
+                metadata_value(connection, "min_reader_version")?,
+            ),
+            AccessMode::Writer => {
+                let minimum = metadata_value(connection, "min_writer_version")?;
+                let recorded = metadata_value(connection, "binary_version")?;
+                (
+                    "min_writer_version",
+                    required_writer_version(&minimum, &recorded, extractor_downgrade_allowed())?
+                        .to_string(),
+                )
+            }
         };
-        let required = metadata_value(connection, floor_key)?;
         let running_version = ParsedVersion::parse("binary_version", &self.binary_version)?;
         let required_version = ParsedVersion::parse(floor_key, &required)?;
         if running_version < required_version {
@@ -314,6 +324,22 @@ struct ParsedVersion {
 
 pub(crate) fn compare_versions(left: &str, right: &str) -> Result<Ordering, StoreConnectionError> {
     Ok(ParsedVersion::parse("version", left)?.cmp(&ParsedVersion::parse("version", right)?))
+}
+
+pub(crate) fn required_writer_version<'a>(
+    minimum: &'a str,
+    recorded_binary: &'a str,
+    allow_downgrade: bool,
+) -> Result<&'a str, StoreConnectionError> {
+    if allow_downgrade || compare_versions(minimum, recorded_binary)? != Ordering::Less {
+        Ok(minimum)
+    } else {
+        Ok(recorded_binary)
+    }
+}
+
+pub(crate) fn extractor_downgrade_allowed() -> bool {
+    std::env::var_os("MILLER_ALLOW_EXTRACTOR_DOWNGRADE").is_some_and(|value| value == "1")
 }
 
 impl ParsedVersion {

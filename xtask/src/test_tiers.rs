@@ -378,6 +378,41 @@ fn contract_plan() -> TestPlan {
             "reference_site_identity",
         ],
     ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-artifact",
+            "--features",
+            "test-store-crash",
+            "--test",
+            "store_crash_contract",
+            "--",
+            "--test-threads=1",
+        ],
+    ));
+    for harness in [
+        "store_equivalence",
+        "store_mixed_version",
+        "store_import_contract",
+        "store_operations_contract",
+    ] {
+        commands.push(CommandSpec::new(
+            "cargo",
+            [
+                "test",
+                "-p",
+                "julie-extract-cli",
+                "--features",
+                "test-store-contract",
+                "--test",
+                harness,
+                "--",
+                "--test-threads=1",
+            ],
+        ));
+    }
     TestPlan {
         commands,
         max_duration: None,
