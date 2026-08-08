@@ -18,8 +18,11 @@
 
 pub mod limits;
 pub mod resolution;
+pub use resolution::session as resolution_session;
 pub mod store;
 
+#[allow(dead_code)]
+mod artifact_access;
 #[allow(dead_code)]
 mod capability_snapshot;
 #[allow(dead_code)]
@@ -30,6 +33,8 @@ mod extraction;
 mod paths;
 #[allow(dead_code)]
 mod progress;
+#[allow(dead_code)]
+mod reports;
 #[allow(dead_code)]
 mod spool;
 #[allow(dead_code)]

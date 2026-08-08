@@ -1,17 +1,18 @@
 # Versioned Index Store v1
 
-Status: frozen Ph2b contract.
+Status: frozen Ph2c contract. The exact physical catalog is
+[`sqlite-store-schema-v2.md`](sqlite-store-schema-v2.md).
 
 This contract defines the target-owned family store used after the legacy v3 artifact boundary. It does not change the v3 `ArtifactWriter`, SQLite schema version 6, or the standalone extraction artifact.
 
 ## Identity and compatibility
 
-- `STORE_SQLITE_SCHEMA_VERSION = 1` identifies the physical `store.db` and `coord.db` catalogs.
+- `STORE_SQLITE_SCHEMA_VERSION = 2` identifies the physical `store.db` and `coord.db` catalogs.
 - `STORE_FORMAT_EPOCH = 1` identifies the store generation format.
 - `EXTRACTION_IDENTITY_EPOCH = 1` participates in file-version identity.
 - File-version identity is `(path, content_hash, extraction_epoch)`; extracted output bytes are not identity inputs.
 - Byte-identical extractor output may remain in the same extraction epoch. Any output difference requires a strictly newer epoch and a classified extraction-output ledger entry.
-- Both databases record `PRAGMA user_version = 1`. An uninitialized database may be created at version 1. A nonzero older version is not migrated in place, and a newer version returns a typed refusal.
+- Both databases record `PRAGMA user_version = 2`. An uninitialized database may be created at version 2. Schema-v1 files are not migrated in place and return a typed older-schema refusal before mutation; a newer version also returns a typed refusal.
 
 ## Store metadata
 
@@ -19,7 +20,7 @@ This contract defines the target-owned family store used after the legacy v3 art
 
 | Key | Value |
 |---|---:|
-| `store_sqlite_schema_version` | `1` |
+| `store_sqlite_schema_version` | `2` |
 | `store_format_epoch` | `1` |
 | `retention_window_days` | `7` |
 | `retention_byte_target` | `1.20` |
@@ -45,9 +46,12 @@ The writer atomically binds `family_id`, `extraction_identity_epoch`, `min_reade
 
 ## Views and manifests
 
-Each `views` row names a non-empty `view_id` and root, an optional current manifest generation, canonical creation/update times, and the only Ph2b resolution state: `unbound`. Resolution base, delta-generation, and exact-at fields must all remain null.
+Each `views` row names a non-empty `view_id` and root, an optional current manifest generation,
+canonical creation/update times, and a coherent resolution state. `unbound` has no binding;
+`converging` binds a ready base and cumulative delta without an exact generation; `exact` requires
+`resolution_exact_at = current_generation`.
 
-`manifests` is immutable and keyed by `(view_id, generation)`. `manifest_entries` is keyed by `(view_id, generation, path)` and records one of:
+`manifests` is immutable and keyed by `(view_id, generation)`. `manifest_entries` is keyed by `(view_id, generation, path)`, records a required language that participates in manifest hash v2, and records one of:
 
 - `indexed`: a version is present and error fields are null.
 - `failed_preserved`: a prior version is present and both error fields are present.
@@ -65,13 +69,48 @@ A manifest entry's nullable version FK is `ON DELETE RESTRICT`; live and histori
 
 `coord.db` is independently creatable and contains only `requests` and the optional singleton `writer_lease`.
 
-- Request kinds are `import`, `update`, or `delete`.
+- Request kinds are `import`, `update`, `delete`, `resolve`, `export`, or `from_artifact`.
 - Request states are `queued`, `claimed`, `committed`, `acknowledged`, or `failed`.
 - Only claimed requests may carry claim owner and heartbeat fields.
 - Committed and acknowledged requests require a terminal log sequence and result with no error.
 - Failed requests require an error, prohibit a result, and may lack a terminal sequence.
 - The idempotency key is unique through its named classified index.
+- A partial unique index permits at most one claimed `resolve` request per family coordinator.
 - Coordinator clocks are Unix-millisecond integers.
 - The lease resource is exactly `store-writer`; holder identity/version are non-empty, PID and fencing token are positive, and release deletes the row.
 
-Reader pins and resolution bases/deltas are later-phase state and are absent from this catalog.
+`store.db` also catalogs immutable resolution bases, rooted source versions, cumulative per-view
+deltas, and bounded reader/resolve pins. Semantic result rows remain in immutable base and delta
+files; they are not copied into general Store tables.
+
+## Resolution publication
+
+- `store resolve` claims through `coord.db` without holding the store-writer lease during semantic
+  computation.
+- The input manifest, resolver-output epoch, ready base, request claim, writer holder PID, and
+  fencing token are revalidated before and inside the final publication transaction.
+- Exact publication inserts one cumulative delta, all replacement/tombstone rows, the view binding,
+  and one `resolution_exact_published` log effect in the same `store.db` transaction.
+- A CAS or fence loser publishes none of those rows. A store-committed/coordinator-uncommitted tear
+  reconciles from the terminal store fact without re-executing semantic work.
+- Only the dedicated resolver may claim `resolve` requests. Generic import/update/delete backlog
+  draining leaves them queued while another resolve is claimed.
+- Request-private exact/base scratch files are not catalog data. A successor that owns the same
+  durable request removes an abandoned private `.work` file before retrying.
+
+## Public compatibility adapters
+
+- `store export --store <family> --view <id> --out <artifact.db>` requires an exact current view,
+  holds a reader pin through validation and atomic rename, and emits the current standalone v3
+  artifact contract. It has no coordinator request controls and never mutates store state.
+- `store import --from-artifact <artifact.db>` is an import mode, not a database copy. It rejects
+  scan/extraction controls, validates the artifact schema/root/hash/epoch/completeness before store
+  creation, enqueues one bounded typed plan, and resumes by request-global chunk index.
+- Both adapters preserve natural extraction and resolution keys. Idempotency replay returns the
+  original request-specific result even when the source or artifact path later disappears.
+
+## Retention boundary
+
+Ph2d may reclaim only objects outside every current/historical manifest, ready-base version root,
+live resolution pin, current base/delta binding, and active request/claim. Ph2c does not implement
+general retention, log pruning, repair, or generation promotion.

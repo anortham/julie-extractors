@@ -44,6 +44,13 @@ impl StoreExecutionOutcome {
         }
     }
 
+    pub(crate) fn incompatible(report: StoreReport, format: StoreOutputFormat) -> Self {
+        Self {
+            outcome: StoreCommandOutcome::incompatible(report),
+            format,
+        }
+    }
+
     pub fn exit_code(&self) -> u8 {
         self.outcome.exit_code()
     }
@@ -239,6 +246,9 @@ pub(crate) fn report_request(
 }
 
 pub(crate) fn run(args: StoreImportArgs) -> StoreExecutionOutcome {
+    if args.from_artifact.is_some() {
+        return super::from_artifact::run(args);
+    }
     let format = if args.json {
         StoreOutputFormat::Json
     } else {
@@ -808,7 +818,15 @@ pub(crate) fn classify_failure(message: &str) -> StoreFailureClass {
         StoreFailureClass::ViewRootMismatch
     } else if message.contains("request_timeout") {
         StoreFailureClass::RequestTimeout
-    } else if message.contains("lease") {
+    } else if message.contains("resolution_input_incomplete") {
+        StoreFailureClass::ResolutionInputIncomplete
+    } else if message.contains("resolution_not_exact") {
+        StoreFailureClass::ResolutionNotExact
+    } else if message.contains("output_identity_mismatch") {
+        StoreFailureClass::OutputIdentityMismatch
+    } else if message.contains("resolution_failed") {
+        StoreFailureClass::ResolutionFailed
+    } else if message.contains("lease") || message.contains("busy:") {
         StoreFailureClass::Busy
     } else {
         StoreFailureClass::Internal

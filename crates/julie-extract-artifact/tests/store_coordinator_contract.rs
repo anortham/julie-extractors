@@ -92,6 +92,178 @@ fn enqueue_deduplicates_by_idempotency_key_and_acquires_lease() {
 }
 
 #[test]
+fn schema_v2_request_kinds_roundtrip_and_only_one_resolve_may_be_claimed() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    for (index, kind, expected) in [
+        (1, RequestKind::Resolve, "resolve"),
+        (2, RequestKind::Export, "export"),
+        (3, RequestKind::FromArtifact, "from_artifact"),
+        (4, RequestKind::Resolve, "resolve"),
+    ] {
+        let request_id = format!("request-{index}");
+        coordinator
+            .enqueue(CoordinatorRequest::new(
+                &request_id,
+                format!("idem-{index}"),
+                kind,
+                "{}",
+                "requester",
+                1_000,
+                index,
+            ))
+            .unwrap();
+        assert_eq!(
+            coordinator.request(&request_id).unwrap().kind.as_str(),
+            expected
+        );
+    }
+
+    let connection = Connection::open(layout.coordinator_db()).unwrap();
+    connection
+        .execute(
+            "UPDATE requests SET state='claimed', claim_owner='owner-a', claim_heartbeat_at=10
+             WHERE request_id='request-1'",
+            [],
+        )
+        .unwrap();
+    assert!(
+        connection
+            .execute(
+                "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10
+                 WHERE request_id='request-4'",
+                [],
+            )
+            .is_err()
+    );
+    connection
+        .execute(
+            "UPDATE requests SET state='claimed', claim_owner='owner-b', claim_heartbeat_at=10
+             WHERE request_id='request-2'",
+            [],
+        )
+        .unwrap();
+}
+
+#[test]
+fn resolve_claim_heartbeats_and_stale_takeover_are_fenced_without_a_writer_lease() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut coordinator = StoreCoordinator::open(&layout).unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "resolve-1",
+            "resolve-key-1",
+            RequestKind::Resolve,
+            "{}",
+            "requester",
+            30_000,
+            1,
+        ))
+        .unwrap();
+    coordinator
+        .enqueue(CoordinatorRequest::new(
+            "resolve-2",
+            "resolve-key-2",
+            RequestKind::Resolve,
+            "{}",
+            "requester",
+            30_000,
+            2,
+        ))
+        .unwrap();
+
+    assert!(
+        coordinator
+            .claim_resolve("resolve-1", "resolver-a", 10, 5_000)
+            .unwrap()
+    );
+    assert!(
+        !coordinator
+            .claim_resolve("resolve-2", "resolver-b", 20, 5_000)
+            .unwrap()
+    );
+    assert!(
+        coordinator
+            .heartbeat_resolve("resolve-1", "resolver-a", 30)
+            .unwrap()
+    );
+    assert!(
+        coordinator
+            .resolve_claim_is_current("resolve-1", "resolver-a")
+            .unwrap()
+    );
+    assert!(coordinator.lease().unwrap().is_none());
+
+    assert!(
+        coordinator
+            .claim_resolve("resolve-1", "resolver-b", 5_031, 5_000)
+            .unwrap()
+    );
+    assert!(
+        !coordinator
+            .heartbeat_resolve("resolve-1", "resolver-a", 5_032)
+            .unwrap()
+    );
+    assert!(
+        !coordinator
+            .fail_resolve("resolve-1", "resolver-a", "stale", 5_033)
+            .unwrap()
+    );
+    assert!(
+        coordinator
+            .resolve_claim_is_current("resolve-1", "resolver-b")
+            .unwrap()
+    );
+    assert!(coordinator.lease().unwrap().is_none());
+    append_terminal(&layout, "resolve-1", "{\"resolved\":true}");
+    assert!(matches!(
+        coordinator.commit_resolve("resolve-1", "resolver-a"),
+        Err(CoordinatorError::LeaseLost)
+    ));
+    assert!(
+        coordinator
+            .commit_resolve("resolve-1", "resolver-b")
+            .unwrap()
+            .committed_in_fact
+    );
+}
+
+#[test]
+fn dead_resolve_claimant_is_taken_over_before_the_heartbeat_stales() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let mut live = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(true)).unwrap();
+    live.enqueue(CoordinatorRequest::new(
+        "resolve-1",
+        "resolve-key-1",
+        RequestKind::Resolve,
+        "{}",
+        "requester",
+        30_000,
+        1,
+    ))
+    .unwrap();
+    assert!(
+        live.claim_resolve("resolve-1", "cli-41", 10, 5_000)
+            .unwrap()
+    );
+
+    let dead = StoreCoordinator::open_with_liveness(&layout, FixedLiveness(false)).unwrap();
+    assert!(
+        dead.claim_resolve("resolve-1", "cli-42", 11, 5_000)
+            .unwrap()
+    );
+    assert!(!dead.heartbeat_resolve("resolve-1", "cli-41", 12).unwrap());
+    assert!(
+        dead.resolve_claim_is_current("resolve-1", "cli-42")
+            .unwrap()
+    );
+    assert!(dead.lease().unwrap().is_none());
+}
+
+#[test]
 fn terminal_log_reconciles_a_coord_tear_without_reexecution() {
     let temp = TempDir::new();
     let layout = layout(temp.path());
@@ -1155,6 +1327,50 @@ fn own_request_runs_exclusively_until_terminal_before_backlog_snapshot() {
     coordinator.drain(&mut executor, &policy).unwrap();
 
     assert_eq!(executor.order, ["request-2", "request-1"]);
+}
+
+#[test]
+fn generic_backlog_drain_leaves_resolves_to_the_off_lease_resolver() {
+    let temp = TempDir::new();
+    let layout = layout(temp.path());
+    let clock = Arc::new(TestClock::default());
+    let holder = LeaseHolder::new("holder", "2.30.0", std::process::id());
+    let mut coordinator = StoreCoordinator::open_with_runtime(
+        &layout,
+        holder,
+        Arc::clone(&clock),
+        Arc::new(FixedLiveness(true)),
+    )
+    .unwrap();
+    enqueue_request(&mut coordinator, 1, RequestKind::Resolve, 1);
+    enqueue_request(&mut coordinator, 2, RequestKind::Resolve, 2);
+    enqueue_request(&mut coordinator, 3, RequestKind::Update, 3);
+    assert!(
+        coordinator
+            .claim_resolve("request-1", "resolver-a", 10, 5_000)
+            .unwrap()
+    );
+    let mut executor = RecordingExecutor {
+        order: Vec::new(),
+        clock,
+        advance_ms: 0,
+    };
+    let policy = CoordinatorPolicy {
+        own_request_id: Some("request-3".to_string()),
+        ..CoordinatorPolicy::default()
+    };
+
+    coordinator.drain(&mut executor, &policy).unwrap();
+
+    assert_eq!(executor.order, ["request-3"]);
+    assert_eq!(
+        coordinator.request("request-1").unwrap().state.as_str(),
+        "claimed"
+    );
+    assert_eq!(
+        coordinator.request("request-2").unwrap().state.as_str(),
+        "queued"
+    );
 }
 
 #[test]

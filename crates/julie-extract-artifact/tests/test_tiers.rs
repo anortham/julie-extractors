@@ -23,6 +23,25 @@ fn perf_gate_is_feature_gated_out_of_default_suite() {
     );
 }
 
+#[test]
+fn legacy_resolution_feature_is_declared_for_the_cli_contract_tier() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let manifest = read(&crate_root.join("Cargo.toml"));
+    assert!(manifest.contains("test-store-resolution = []"));
+}
+
+#[test]
+fn resolution_base_lifecycle_contract_is_feature_gated_out_of_the_default_suite() {
+    let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    for harness in [
+        "store_resolution_base_contract.rs",
+        "store_resolution_binding_contract.rs",
+    ] {
+        let source = read(&crate_root.join("tests").join(harness));
+        assert!(source.starts_with("#![cfg(feature = \"test-store-resolution\")]"));
+    }
+}
+
 /// Gating the perf harness is not enough on its own: a wall-clock budget added
 /// to an ungated file is the same leak wearing a different name. `elapsed <
 /// Duration` in the default suite passes on a fast laptop and fails on a shared
@@ -91,7 +110,11 @@ fn store_crash_matrix_is_feature_gated_out_of_the_default_suite() {
     );
     let hook = read(&crate_root.join("src/store/test_hooks.rs"));
     assert!(hook.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"));
-    for runtime in ["src/store/coordinator.rs", "src/store/writer.rs"] {
+    for runtime in [
+        "src/store/coordinator.rs",
+        "src/store/resolution.rs",
+        "src/store/writer.rs",
+    ] {
         let source = read(&crate_root.join(runtime));
         assert!(
             !source.contains("JULIE_EXTRACT_STORE_TEST_CRASH_AT"),

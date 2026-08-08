@@ -19,8 +19,8 @@ fn canonical_hash_is_order_independent_and_cold_publish_uses_cas() {
     create_store_schema(&connection).unwrap();
     let first_version = insert_version(&connection, "src/a.rs", "blake3:a");
     let second_version = insert_version(&connection, "src/b.rs", "blake3:b");
-    let first = ManifestEntry::indexed("src/a.rs", first_version, "blake3:a", INDEXED_AT);
-    let second = ManifestEntry::indexed("src/b.rs", second_version, "blake3:b", INDEXED_AT);
+    let first = ManifestEntry::indexed("src/a.rs", "rust", first_version, "blake3:a", INDEXED_AT);
+    let second = ManifestEntry::indexed("src/b.rs", "rust", second_version, "blake3:b", INDEXED_AT);
 
     let forward = ManifestBuilder::from_entries([first.clone(), second.clone()])
         .build(&connection)
@@ -51,11 +51,173 @@ fn canonical_hash_is_order_independent_and_cold_publish_uses_cas() {
 }
 
 #[test]
+fn manifest_hash_v2_is_language_sensitive_and_language_roundtrips() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let rust = ManifestBuilder::from_entries([ManifestEntry::failed(
+        "src/a.txt",
+        "rust",
+        "blake3:a",
+        INDEXED_AT,
+        "read",
+        r#"{"message":"failed"}"#,
+    )])
+    .build(&connection)
+    .unwrap();
+    let python = ManifestBuilder::from_entries([ManifestEntry::failed(
+        "src/a.txt",
+        "python",
+        "blake3:a",
+        INDEXED_AT,
+        "read",
+        r#"{"message":"failed"}"#,
+    )])
+    .build(&connection)
+    .unwrap();
+
+    assert_ne!(rust.manifest_hash, python.manifest_hash);
+    let mut store = ManifestStore::new(&mut connection);
+    store.ensure_view("view-a", "/repo").unwrap();
+    store
+        .publish("view-a", None, rust.entries, "request-a")
+        .unwrap();
+    assert_eq!(store.entries("view-a", 1).unwrap()[0].language, "rust");
+}
+
+#[test]
+fn manifest_flip_from_an_exact_view_invalidates_resolution_before_advancing_the_head() {
+    let mut connection = Connection::open_in_memory().unwrap();
+    create_store_schema(&connection).unwrap();
+    let first_version = insert_version(&connection, "src/lib.rs", "blake3:first");
+    let first = {
+        let mut store = ManifestStore::new(&mut connection);
+        store.ensure_view("view-a", "/repo").unwrap();
+        store
+            .publish(
+                "view-a",
+                None,
+                [ManifestEntry::indexed(
+                    "src/lib.rs",
+                    "rust",
+                    first_version,
+                    "blake3:first",
+                    INDEXED_AT,
+                )],
+                "request-first",
+            )
+            .unwrap()
+    };
+    connection
+        .execute(
+            "INSERT INTO resolution_bases
+             (base_id,manifest_hash,resolver_output_epoch,state,relative_path,
+              identifier_count,pending_count,file_bytes,file_sha256,request_id,created_at,updated_at)
+             VALUES ('base-a',?1,1,'ready','bases/base-a.db',0,0,1,'sha256:a',
+                     'request-resolve',?2,?2)",
+            params![first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "INSERT INTO resolution_deltas
+             (view_id,delta_generation,base_id,manifest_generation,manifest_hash,
+              resolver_output_epoch,identifier_replacements,pending_replacements,
+              pending_tombstones,exact_gap_rows,exact_gap_files,exact_gap_json,request_id,created_at)
+             VALUES ('view-a',1,'base-a',1,?1,1,0,0,0,0,0,'[]','request-resolve',?2)",
+            params![first.manifest_hash, INDEXED_AT],
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE views
+             SET resolution_state='exact',resolution_base_id='base-a',
+                 resolution_delta_generation=1,resolution_exact_at=1
+             WHERE view_id='view-a'",
+            [],
+        )
+        .unwrap();
+
+    let identical = ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(1),
+            [ManifestEntry::indexed(
+                "src/lib.rs",
+                "rust",
+                first_version,
+                "blake3:first",
+                INDEXED_AT,
+            )],
+            "request-identical",
+        )
+        .unwrap();
+    assert_eq!(identical.disposition, ManifestPublishDisposition::Reused);
+    assert_eq!(identical.generation, 1);
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT resolution_state,resolution_base_id,resolution_delta_generation,
+                        resolution_exact_at
+                 FROM views WHERE view_id='view-a'",
+                [],
+                |row| Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<i64>>(2)?,
+                    row.get::<_, Option<i64>>(3)?
+                )),
+            )
+            .unwrap(),
+        (
+            "exact".to_string(),
+            Some("base-a".to_string()),
+            Some(1),
+            Some(1)
+        )
+    );
+
+    let second_version = insert_version(&connection, "src/lib.rs", "blake3:second");
+    let published = ManifestStore::new(&mut connection)
+        .publish(
+            "view-a",
+            Some(1),
+            [ManifestEntry::indexed(
+                "src/lib.rs",
+                "rust",
+                second_version,
+                "blake3:second",
+                INDEXED_AT,
+            )],
+            "request-second",
+        )
+        .unwrap();
+
+    assert_eq!(published.generation, 2);
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT resolution_state,resolution_base_id,resolution_delta_generation,
+                        resolution_exact_at
+                 FROM views WHERE view_id='view-a'",
+                [],
+                |row| Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<i64>>(2)?,
+                    row.get::<_, Option<i64>>(3)?
+                )),
+            )
+            .unwrap(),
+        ("unbound".to_string(), None, None, None)
+    );
+}
+
+#[test]
 fn import_create_and_update_require_are_distinct_and_identical_sets_reuse() {
     let mut connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
     let version_id = insert_version(&connection, "src/lib.rs", "blake3:lib");
-    let entry = ManifestEntry::indexed("src/lib.rs", version_id, "blake3:lib", INDEXED_AT);
+    let entry = ManifestEntry::indexed("src/lib.rs", "rust", version_id, "blake3:lib", INDEXED_AT);
     let hash = ManifestBuilder::from_entries([entry.clone()])
         .build(&connection)
         .unwrap()
@@ -118,6 +280,7 @@ fn publishing_an_unknown_view_reports_view_not_found_before_manifest_lookup() {
             Some(7),
             [ManifestEntry::failed(
                 "src/missing.rs",
+                "rust",
                 "blake3:missing",
                 INDEXED_AT,
                 "read",
@@ -137,18 +300,21 @@ fn multi_delete_changes_only_the_next_entry_set_and_old_heads_remain_readable() 
     create_store_schema(&connection).unwrap();
     let a = ManifestEntry::indexed(
         "src/a.rs",
+        "rust",
         insert_version(&connection, "src/a.rs", "blake3:a"),
         "blake3:a",
         INDEXED_AT,
     );
     let b = ManifestEntry::indexed(
         "src/b.rs",
+        "rust",
         insert_version(&connection, "src/b.rs", "blake3:b"),
         "blake3:b",
         INDEXED_AT,
     );
     let c = ManifestEntry::indexed(
         "src/c.rs",
+        "rust",
         insert_version(&connection, "src/c.rs", "blake3:c"),
         "blake3:c",
         INDEXED_AT,
@@ -327,9 +493,9 @@ fn canonical_hash_uses_semantic_identity_utf8_order_and_length_delimited_errors(
     let accent_id = insert_version(&first, "src/é.rs", "blake3:accent");
     let beta_id = insert_version(&first, "src/β.rs", "blake3:beta");
     let first_manifest = ManifestBuilder::from_entries([
-        ManifestEntry::indexed("src/β.rs", beta_id, "blake3:beta", INDEXED_AT),
-        ManifestEntry::indexed("src/z.rs", first_id, "blake3:z", INDEXED_AT),
-        ManifestEntry::indexed("src/é.rs", accent_id, "blake3:accent", INDEXED_AT),
+        ManifestEntry::indexed("src/β.rs", "rust", beta_id, "blake3:beta", INDEXED_AT),
+        ManifestEntry::indexed("src/z.rs", "rust", first_id, "blake3:z", INDEXED_AT),
+        ManifestEntry::indexed("src/é.rs", "rust", accent_id, "blake3:accent", INDEXED_AT),
     ])
     .build(&first)
     .unwrap();
@@ -341,15 +507,23 @@ fn canonical_hash_uses_semantic_identity_utf8_order_and_length_delimited_errors(
     let second_accent = insert_version(&second, "src/é.rs", "blake3:accent");
     let second_beta = insert_version(&second, "src/β.rs", "blake3:beta");
     let second_manifest = ManifestBuilder::from_entries([
-        ManifestEntry::indexed("src/z.rs", second_z, "blake3:z", "2026-08-07T13:00:00Z"),
+        ManifestEntry::indexed(
+            "src/z.rs",
+            "rust",
+            second_z,
+            "blake3:z",
+            "2026-08-07T13:00:00Z",
+        ),
         ManifestEntry::indexed(
             "src/é.rs",
+            "rust",
             second_accent,
             "blake3:accent",
             "2026-08-07T13:00:00Z",
         ),
         ManifestEntry::indexed(
             "src/β.rs",
+            "rust",
             second_beta,
             "blake3:beta",
             "2026-08-07T13:00:00Z",
@@ -374,6 +548,7 @@ fn canonical_hash_uses_semantic_identity_utf8_order_and_length_delimited_errors(
 
     let delimiter_left = ManifestBuilder::from_entries([ManifestEntry::failed(
         "src/fail.rs",
+        "rust",
         "blake3:failed",
         INDEXED_AT,
         "a|b",
@@ -383,6 +558,7 @@ fn canonical_hash_uses_semantic_identity_utf8_order_and_length_delimited_errors(
     .unwrap();
     let delimiter_right = ManifestBuilder::from_entries([ManifestEntry::failed(
         "src/fail.rs",
+        "rust",
         "blake3:failed",
         INDEXED_AT,
         "a",
@@ -398,10 +574,30 @@ fn duplicate_paths_status_changes_and_invalid_version_coherence_are_rejected_or_
     let connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
     let version_id = insert_version(&connection, "src/a.rs", "blake3:a");
-    let indexed = ManifestEntry::indexed("src/a.rs", version_id, "blake3:a", INDEXED_AT);
+    let indexed = ManifestEntry::indexed("src/a.rs", "rust", version_id, "blake3:a", INDEXED_AT);
+    assert!(matches!(
+        ManifestBuilder::from_entries([ManifestEntry::indexed(
+            "src/a.rs", "python", version_id, "blake3:a", INDEXED_AT,
+        )])
+        .build(&connection),
+        Err(ManifestStoreError::VersionLanguageMismatch { .. })
+    ));
+    let mut missing_language = ManifestEntry::failed(
+        "src/new.rs",
+        "rust",
+        "blake3:new",
+        INDEXED_AT,
+        "read",
+        r#"{"message":"failed"}"#,
+    );
+    missing_language.language.clear();
+    assert!(matches!(
+        ManifestBuilder::from_entries([missing_language]).build(&connection),
+        Err(ManifestStoreError::InvalidEntry { .. })
+    ));
     let duplicate = ManifestBuilder::from_entries([
         indexed.clone(),
-        ManifestEntry::indexed("src\\a.rs", version_id, "blake3:a", INDEXED_AT),
+        ManifestEntry::indexed("src\\a.rs", "rust", version_id, "blake3:a", INDEXED_AT),
     ])
     .build(&connection)
     .unwrap_err();
@@ -416,6 +612,7 @@ fn duplicate_paths_status_changes_and_invalid_version_coherence_are_rejected_or_
         .manifest_hash;
     let failed_hash = ManifestBuilder::from_entries([ManifestEntry::failed_preserved(
         "src/a.rs",
+        "rust",
         version_id,
         "blake3:new-observation",
         INDEXED_AT,
@@ -429,6 +626,7 @@ fn duplicate_paths_status_changes_and_invalid_version_coherence_are_rejected_or_
 
     let mut invalid_failed = ManifestEntry::failed(
         "src/new.rs",
+        "rust",
         "blake3:new",
         INDEXED_AT,
         "read",
@@ -452,6 +650,7 @@ fn duplicate_paths_status_changes_and_invalid_version_coherence_are_rejected_or_
     assert!(matches!(
         ManifestBuilder::from_entries([ManifestEntry::indexed(
             "src/incomplete.rs",
+            "rust",
             incomplete_id,
             "blake3:incomplete",
             INDEXED_AT,
@@ -475,6 +674,7 @@ fn failed_statuses_and_view_local_fields_never_pollute_file_versions() {
             [
                 ManifestEntry::failed_preserved(
                     "src/prior.rs",
+                    "rust",
                     prior,
                     "blake3:observed-new",
                     INDEXED_AT,
@@ -483,6 +683,7 @@ fn failed_statuses_and_view_local_fields_never_pollute_file_versions() {
                 ),
                 ManifestEntry::failed(
                     "src/new.rs",
+                    "rust",
                     "blake3:new",
                     INDEXED_AT,
                     "read",
@@ -522,12 +723,14 @@ fn stale_cas_and_flip_boundary_failure_leave_no_manifest_entry_or_log_orphans() 
     create_store_schema(&connection).unwrap();
     let first = ManifestEntry::indexed(
         "src/a.rs",
+        "rust",
         insert_version(&connection, "src/a.rs", "blake3:a"),
         "blake3:a",
         INDEXED_AT,
     );
     let second = ManifestEntry::indexed(
         "src/b.rs",
+        "rust",
         insert_version(&connection, "src/b.rs", "blake3:b"),
         "blake3:b",
         INDEXED_AT,
@@ -620,7 +823,7 @@ fn concurrent_cold_imports_create_one_first_generation_with_bounded_loser_recomp
         .ensure_view("view-a", "/repo")
         .unwrap();
     drop(view_connection);
-    let entry = ManifestEntry::indexed("src/lib.rs", version_id, "blake3:lib", INDEXED_AT);
+    let entry = ManifestEntry::indexed("src/lib.rs", "rust", version_id, "blake3:lib", INDEXED_AT);
     let first_connection = store.connection();
     let second_connection = store.connection();
     let (first, second) = run_gate(&store, || {
@@ -685,8 +888,8 @@ fn concurrent_disjoint_changes_rebase_the_loser_delta_without_lost_updates() {
             "view-a",
             None,
             [
-                ManifestEntry::indexed("src/a.rs", a1, "blake3:a1", INDEXED_AT),
-                ManifestEntry::indexed("src/b.rs", b1, "blake3:b1", INDEXED_AT),
+                ManifestEntry::indexed("src/a.rs", "rust", a1, "blake3:a1", INDEXED_AT),
+                ManifestEntry::indexed("src/b.rs", "rust", b1, "blake3:b1", INDEXED_AT),
             ],
             "request-base",
         )
@@ -701,8 +904,8 @@ fn concurrent_disjoint_changes_rebase_the_loser_delta_without_lost_updates() {
             Arc::clone(&barrier),
             Some(1),
             vec![
-                ManifestEntry::indexed("src/a.rs", a2, "blake3:a2", INDEXED_AT),
-                ManifestEntry::indexed("src/b.rs", b1, "blake3:b1", INDEXED_AT),
+                ManifestEntry::indexed("src/a.rs", "rust", a2, "blake3:a2", INDEXED_AT),
+                ManifestEntry::indexed("src/b.rs", "rust", b1, "blake3:b1", INDEXED_AT),
             ],
             "request-update-a",
         );
@@ -711,8 +914,8 @@ fn concurrent_disjoint_changes_rebase_the_loser_delta_without_lost_updates() {
             Arc::clone(&barrier),
             Some(1),
             vec![
-                ManifestEntry::indexed("src/a.rs", a1, "blake3:a1", INDEXED_AT),
-                ManifestEntry::indexed("src/b.rs", b2, "blake3:b2", INDEXED_AT),
+                ManifestEntry::indexed("src/a.rs", "rust", a1, "blake3:a1", INDEXED_AT),
+                ManifestEntry::indexed("src/b.rs", "rust", b2, "blake3:b2", INDEXED_AT),
             ],
             "request-update-b",
         );
@@ -752,7 +955,7 @@ fn hash_reuse_is_view_scoped_and_already_missing_deletes_are_no_ops() {
     let mut connection = Connection::open_in_memory().unwrap();
     create_store_schema(&connection).unwrap();
     let version_id = insert_version(&connection, "src/lib.rs", "blake3:lib");
-    let entry = ManifestEntry::indexed("src/lib.rs", version_id, "blake3:lib", INDEXED_AT);
+    let entry = ManifestEntry::indexed("src/lib.rs", "rust", version_id, "blake3:lib", INDEXED_AT);
     let mut manifests = ManifestStore::new(&mut connection);
     manifests.ensure_view("view-a", "/repo/a").unwrap();
     manifests.ensure_view("view-b", "/repo/b").unwrap();
@@ -815,6 +1018,7 @@ fn manifest_effect_is_nonterminal_and_only_a_separate_final_transaction_commits_
             None,
             [ManifestEntry::indexed(
                 "src/lib.rs",
+                "rust",
                 version_id,
                 "blake3:lib",
                 INDEXED_AT,
@@ -859,6 +1063,7 @@ fn cross_platform_path_policy_json_canonicalization_and_generation_overflow_are_
     let version_id = insert_version(&connection, "src/a.rs", "blake3:a");
     let canonical = ManifestBuilder::from_entries([ManifestEntry::indexed(
         ".\\src\\a.rs",
+        "rust",
         version_id,
         "blake3:a",
         INDEXED_AT,
@@ -881,7 +1086,7 @@ fn cross_platform_path_policy_json_canonicalization_and_generation_overflow_are_
     ] {
         assert!(matches!(
             ManifestBuilder::from_entries([ManifestEntry::failed(
-                path, "blake3:a", INDEXED_AT, "read", "{}",
+                path, "rust", "blake3:a", INDEXED_AT, "read", "{}",
             )])
             .build(&connection),
             Err(ManifestStoreError::InvalidPath { .. })
@@ -890,6 +1095,7 @@ fn cross_platform_path_policy_json_canonicalization_and_generation_overflow_are_
 
     let first_error = ManifestBuilder::from_entries([ManifestEntry::failed(
         "src/fail.rs",
+        "rust",
         "blake3:fail",
         INDEXED_AT,
         "read",
@@ -899,6 +1105,7 @@ fn cross_platform_path_policy_json_canonicalization_and_generation_overflow_are_
     .unwrap();
     let second_error = ManifestBuilder::from_entries([ManifestEntry::failed(
         "src/fail.rs",
+        "rust",
         "blake3:fail",
         INDEXED_AT,
         "read",
@@ -942,6 +1149,7 @@ fn allocating_after_sqlite_max_generation_is_a_typed_overflow() {
     let second_version = insert_version(&connection, "src/lib.rs", "blake3:second");
     let first = ManifestBuilder::from_entries([ManifestEntry::indexed(
         "src/lib.rs",
+        "rust",
         first_version,
         "blake3:first",
         INDEXED_AT,
@@ -963,8 +1171,8 @@ fn allocating_after_sqlite_max_generation_is_a_typed_overflow() {
     transaction
         .execute(
             "INSERT INTO manifest_entries
-             (view_id, generation, path, version_id, status, observed_content_hash, indexed_at)
-             VALUES ('view-a', ?1, 'src/lib.rs', ?2, 'indexed', 'blake3:first', ?3)",
+             (view_id, generation, path, language, version_id, status, observed_content_hash, indexed_at)
+             VALUES ('view-a', ?1, 'src/lib.rs', 'rust', ?2, 'indexed', 'blake3:first', ?3)",
             params![i64::MAX, first_version, INDEXED_AT],
         )
         .unwrap();
@@ -982,6 +1190,7 @@ fn allocating_after_sqlite_max_generation_is_a_typed_overflow() {
             Some(i64::MAX as u64),
             [ManifestEntry::indexed(
                 "src/lib.rs",
+                "rust",
                 second_version,
                 "blake3:second",
                 INDEXED_AT,

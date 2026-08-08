@@ -143,6 +143,34 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                 [
                     "test",
                     "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-resolution-contract",
+                    "--test",
+                    "store_resolution_contract",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-resolution-contract",
+                    "--test",
+                    "store_resolution_adapters",
+                    "--",
+                    "--test-threads=1",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
                     "julie-extract-artifact",
                     "--test",
                     "schema_contract",
@@ -194,6 +222,20 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                     "julie-extract-cli",
                     "--test",
                     "determinism_contract",
+                ]
+            ),
+            CommandSpec::new(
+                "cargo",
+                [
+                    "test",
+                    "-p",
+                    "julie-extract-cli",
+                    "--features",
+                    "test-store-resolution-contract",
+                    "--test",
+                    "resolution_session_contract",
+                    "--",
+                    "--test-threads=1",
                 ]
             ),
             CommandSpec::new(
@@ -291,6 +333,35 @@ fn test_contract_tier_runs_golden_and_capability_gates_with_features() {
                 ]
             ),
         ]
+    );
+}
+
+#[test]
+fn test_contract_tier_routes_legacy_resolution_oracle_serially() {
+    let contract = plan_from_args(["test", "contract"]).expect("contract plan");
+    let expected = CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-cli",
+            "--features",
+            "test-store-resolution-contract",
+            "--test",
+            "resolution_session_contract",
+            "--",
+            "--test-threads=1",
+        ],
+    );
+    assert!(
+        contract.commands.contains(&expected),
+        "contract tier must run the pinned legacy resolution harness exactly"
+    );
+
+    let default = plan_from_args(["test", "default"]).expect("default plan");
+    assert!(
+        !default.commands.iter().any(|command| command == &expected),
+        "default tier must not run the real-CLI resolution oracle"
     );
 }
 

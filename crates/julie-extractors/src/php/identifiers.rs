@@ -158,22 +158,19 @@ pub(super) fn extract_identifier_from_node(
         // Call/MemberAccess/TypeUsage arms above do not own. The row uses the
         // sigil-free inner `name` text (`$total` -> `total`), matching
         // `extract_variable_assignment` symbol naming so name-liveness matches.
-        "variable_name" => {
-            if is_php_value_read_variable(node) {
-                let name = php_variable_bare_name(extractor.get_base(), node);
-                // Rule 5: `$this` is a receiver convention, never a symbol name.
-                if let Some(name) = name
-                    && name != "this"
-                {
-                    let containing_symbol_id =
-                        find_containing_symbol_id(extractor, node, symbol_map);
-                    extractor.get_base_mut().create_identifier(
-                        &node,
-                        name,
-                        IdentifierKind::VariableRef,
-                        containing_symbol_id,
-                    );
-                }
+        "variable_name" if is_php_value_read_variable(node) => {
+            let name = php_variable_bare_name(extractor.get_base(), node);
+            // Rule 5: `$this` is a receiver convention, never a symbol name.
+            if let Some(name) = name
+                && name != "this"
+            {
+                let containing_symbol_id = find_containing_symbol_id(extractor, node, symbol_map);
+                extractor.get_base_mut().create_identifier(
+                    &node,
+                    name,
+                    IdentifierKind::VariableRef,
+                    containing_symbol_id,
+                );
             }
         }
 

@@ -241,13 +241,8 @@ fn is_scala_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
         | "namespace_wildcard" => false,
 
         // Patterns: capitalized = stable reference read; lowercase = binding.
-        "case_clause" => {
-            if is_field("pattern") {
-                starts_uppercase()
-            } else {
-                true // guard / body positions directly under the clause
-            }
-        }
+        "case_clause" if is_field("pattern") => starts_uppercase(),
+        "case_clause" => true,
         "tuple_pattern"
         | "case_class_pattern"
         | "infix_pattern"

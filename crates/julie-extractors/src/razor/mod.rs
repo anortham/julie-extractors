@@ -212,12 +212,8 @@ impl RazorExtractor {
                 // Don't visit children since we already extracted them
                 return;
             }
-            kind if is_razor_expression_node_kind(kind) => {
-                // Skip expressions that are method invocations (@RenderBody(),
-                // @Html.Raw(...), @await RenderSectionAsync(...)) — those are usages.
-                if !self.contains_invocation(node) {
-                    symbol = self.extract_expression(node, parent_id.as_deref());
-                }
+            kind if is_razor_expression_node_kind(kind) && !self.contains_invocation(node) => {
+                symbol = self.extract_expression(node, parent_id.as_deref());
             }
             // Template component references (<PageTitle>, <EditForm>, etc.) are USAGES
             // not definitions — skip them. Component definitions come from the

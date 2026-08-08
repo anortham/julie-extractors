@@ -28,6 +28,10 @@ impl StoreConnectionFactory {
         }
     }
 
+    pub(crate) fn layout(&self) -> &StoreLayout {
+        &self.layout
+    }
+
     /// Opens a query-only connection after enforcing the reader floor.
     pub fn open_reader(&self) -> Result<Connection, StoreConnectionError> {
         let connection = Connection::open_with_flags(

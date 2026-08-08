@@ -14,15 +14,16 @@ with the [CLI contract](contracts/cli.md), [report contract](contracts/reports.m
 
 ## Unreleased versioned store
 
-Ph2b implements the [store v1 contract](contracts/store-v1.md),
-[SQLite store schema v1](contracts/sqlite-store-schema-v1.md), and
-[versioned-store architecture](architecture/versioned-index-store.md). It is unreleased and Miller
-does not use it yet. Ph2c still owns resolution bases/deltas and exact-generation binding. Ph2d
-still owns retention, garbage collection, and repair. The implementation plan and dogfood record
-are:
+Ph2b and Ph2c implement the [store v1 contract](contracts/store-v1.md),
+[SQLite store schema v2](contracts/sqlite-store-schema-v2.md), and
+[versioned-store architecture](architecture/versioned-index-store.md). The work is unreleased and
+Miller does not use it yet. Ph2d still owns retention, garbage collection, repair, and generation
+promotion. The implementation plans and dogfood records are:
 
 - [Ph2b store-kernel plan](plans/2026-08-07-index-store-ph2b-store-kernel-plan.md)
 - [Ph2b implementation evidence](release-evidence/2026-08-07-index-store-ph2b/README.md)
+- [Ph2c resolution plan](plans/2026-08-08-index-store-ph2c-resolution-plan.md)
+- [Ph2c implementation evidence](release-evidence/2026-08-08-index-store-ph2c/README.md)
 
 ## Evidence and historical material
 

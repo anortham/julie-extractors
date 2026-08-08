@@ -292,10 +292,10 @@ impl super::GoExtractor {
                 }
                 "primitive_type" | "type_identifier" | "pointer_type" | "slice_type"
                 | "map_type" | "array_type" | "channel_type" | "function_type"
-                | "qualified_type" | "generic_type" | "interface_type" | "struct_type" => {
-                    if field_type.is_none() {
-                        field_type = Some(child);
-                    }
+                | "qualified_type" | "generic_type" | "interface_type" | "struct_type"
+                    if field_type.is_none() =>
+                {
+                    field_type = Some(child);
                 }
                 "tag" | "field_tag" | "raw_string_literal" | "interpreted_string_literal"
                     if field_tag.is_none() =>

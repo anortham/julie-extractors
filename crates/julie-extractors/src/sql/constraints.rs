@@ -82,10 +82,10 @@ pub(super) fn extract_column_constraints(base: &BaseExtractor, column_node: &Nod
             "keyword_unique" | "unique_constraint" | "unique" => {
                 constraints.push("UNIQUE".to_string());
             }
-            "check_constraint" | "keyword_check" => {
-                if !constraints.iter().any(|constraint| constraint == "CHECK") {
-                    constraints.push("CHECK".to_string());
-                }
+            "check_constraint" | "keyword_check"
+                if !constraints.iter().any(|constraint| constraint == "CHECK") =>
+            {
+                constraints.push("CHECK".to_string());
             }
             "keyword_default" => {
                 // Find the default value (reference logic)

@@ -301,6 +301,34 @@ fn contract_plan() -> TestPlan {
         [
             "test",
             "-p",
+            "julie-extract-cli",
+            "--features",
+            "test-store-resolution-contract",
+            "--test",
+            "store_resolution_contract",
+            "--",
+            "--test-threads=1",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-cli",
+            "--features",
+            "test-store-resolution-contract",
+            "--test",
+            "store_resolution_adapters",
+            "--",
+            "--test-threads=1",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
             "julie-extract-artifact",
             "--test",
             "schema_contract",
@@ -352,6 +380,20 @@ fn contract_plan() -> TestPlan {
             "julie-extract-cli",
             "--test",
             "determinism_contract",
+        ],
+    ));
+    commands.push(CommandSpec::new(
+        "cargo",
+        [
+            "test",
+            "-p",
+            "julie-extract-cli",
+            "--features",
+            "test-store-resolution-contract",
+            "--test",
+            "resolution_session_contract",
+            "--",
+            "--test-threads=1",
         ],
     ));
     commands.push(CommandSpec::new(

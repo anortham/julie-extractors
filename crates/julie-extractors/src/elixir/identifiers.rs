@@ -141,10 +141,8 @@ fn is_elixir_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
     match parent.kind() {
         // Rule 2: a call target is owned by the Call arm (or is a definition
         // macro handled there).
-        "call" => {
-            if parent.child_by_field_name("target").map(|t| t.id()) == Some(node.id()) {
-                return false;
-            }
+        "call" if parent.child_by_field_name("target").map(|t| t.id()) == Some(node.id()) => {
+            return false;
         }
         // Rule 1/2: only the left (receiver) of a dot is our read; the right
         // side is the accessed member.
@@ -186,23 +184,22 @@ fn is_elixir_value_read_identifier(base: &BaseExtractor, node: Node) -> bool {
             }
             // Rule 3: a stab-clause head (`fn q -> …`, `case … do; pat -> …`)
             // binds its patterns.
-            "stab_clause" => {
-                if current.child_by_field_name("left").map(|l| l.id()) == Some(prev.id()) {
-                    return false;
-                }
+            "stab_clause"
+                if current.child_by_field_name("left").map(|l| l.id()) == Some(prev.id()) =>
+            {
+                return false;
             }
             // Rule 3: inside a def/defp/defmacro/defguard head (reached without
             // crossing a body boundary) — parameter patterns and head names.
-            "call" => {
+            "call"
                 if current
                     .child_by_field_name("target")
                     .map(|t| {
                         t.kind() == "identifier" && is_definition_keyword(&base.get_node_text(&t))
                     })
-                    .unwrap_or(false)
-                {
-                    return false;
-                }
+                    .unwrap_or(false) =>
+            {
+                return false;
             }
             // Crossing into a body context: do-blocks, stab bodies, or the
             // keyword list carrying `do:`/`else:` bodies. Anything past these

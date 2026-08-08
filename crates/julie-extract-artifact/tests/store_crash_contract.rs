@@ -13,6 +13,7 @@ use julie_extract_artifact::model::{
 };
 use julie_extract_artifact::store::{
     CoordinatorRequest, ManifestEntry, ManifestStore, RequestKind, RequestState,
+    ResolutionBaseBegin, ResolutionBaseCatalog, ResolutionBaseRecovery, ResolutionBaseWriter,
     StoreConnectionFactory, StoreCoordinator, StoreFileVersion, StoreLayout, StoreLevel, StoreLog,
     StoreLogEntry, StoreWriteRequest, StoreWriter,
 };
@@ -230,6 +231,127 @@ fn chunk_progress_is_atomic_on_both_sides_of_commit() {
     }
 }
 
+#[test]
+fn resolution_base_publication_recovers_every_transaction_and_file_boundary() {
+    for point in [
+        "resolution_base_after_row_insert",
+        "resolution_base_after_root_insert",
+        "resolution_base_after_scratch_close",
+        "resolution_base_after_final_publish",
+        "resolution_base_before_ready_commit",
+        "resolution_base_after_ready_commit",
+    ] {
+        let temp = TempDir::new();
+        let output = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "resolution_base_crash_worker",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env("JULIE_TEST_STORE_CRASH_ROOT", temp.path())
+            .env("JULIE_EXTRACT_STORE_TEST_CRASH_AT", point)
+            .output()
+            .unwrap();
+        assert!(
+            !output.status.success(),
+            "worker reached the end for {point}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let layout = StoreLayout::open(temp.path()).unwrap();
+        let manifest_hash: String = Connection::open(layout.store_db())
+            .unwrap()
+            .query_row("SELECT manifest_hash FROM manifests", [], |row| row.get(0))
+            .unwrap();
+        let catalog = ResolutionBaseCatalog::new(StoreConnectionFactory::new(
+            layout.clone(),
+            "family-resolution-crash",
+            "2.30.0",
+        ));
+        let ready = match catalog
+            .recover(
+                &manifest_hash,
+                7,
+                "request-recovery",
+                false,
+                "2026-08-08T20:00:01Z",
+            )
+            .unwrap()
+        {
+            ResolutionBaseRecovery::Ready(ready) => ready,
+            ResolutionBaseRecovery::Rebuild(build) => {
+                let version_id: i64 = Connection::open(layout.store_db())
+                    .unwrap()
+                    .query_row("SELECT version_id FROM file_versions", [], |row| row.get(0))
+                    .unwrap();
+                let mut writer =
+                    ResolutionBaseWriter::new(&build.scratch_path, &manifest_hash, 7).unwrap();
+                writer.push_source_version(version_id).unwrap();
+                writer.finish_with_target_lookup(|_, _| Ok(true)).unwrap();
+                catalog.publish_scratch(&build).unwrap();
+                catalog.mark_ready(&build, "2026-08-08T20:00:02Z").unwrap()
+            }
+            ResolutionBaseRecovery::LiveOwner(owner) => {
+                panic!("dead crash owner remained live for {point}: {owner:?}")
+            }
+        };
+        let store = Connection::open(layout.store_db()).unwrap();
+        assert_store_is_valid(&store);
+        assert_eq!(
+            store
+                .query_row("SELECT COUNT(*) FROM resolution_bases", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap(),
+            1,
+            "point={point}"
+        );
+        assert_eq!(
+            store
+                .query_row(
+                    "SELECT COUNT(*) FROM resolution_base_versions WHERE base_id=?1",
+                    [&ready.base_id],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            1,
+            "point={point}"
+        );
+        assert_eq!(ready.state.as_str(), "ready");
+        assert!(
+            layout
+                .bases_dir()
+                .join(format!("{}.db", ready.base_id))
+                .is_file()
+        );
+        assert_eq!(
+            fs::read_dir(layout.bases_dir())
+                .unwrap()
+                .filter(|entry| {
+                    entry.as_ref().is_ok_and(|entry| {
+                        entry.path().extension().is_some_and(|value| value == "db")
+                    })
+                })
+                .count(),
+            1,
+            "point={point}"
+        );
+        assert_eq!(
+            fs::read_dir(layout.scratch_dir())
+                .unwrap()
+                .filter(|entry| {
+                    entry.as_ref().is_ok_and(|entry| {
+                        entry.path().extension().is_some_and(|value| value == "db")
+                    })
+                })
+                .count(),
+            0,
+            "point={point}"
+        );
+    }
+}
+
 fn run_crash_worker(root: &Path, point: &str) -> std::process::Output {
     run_specific_worker(root, "crash_after_l1_stamp_worker", point)
 }
@@ -241,6 +363,68 @@ fn run_specific_worker(root: &Path, worker: &str, point: &str) -> std::process::
         .env("JULIE_TEST_STORE_CRASH_POINT", point)
         .output()
         .unwrap()
+}
+
+#[test]
+fn resolution_base_crash_worker() {
+    let Ok(root) = std::env::var("JULIE_TEST_STORE_CRASH_ROOT") else {
+        return;
+    };
+    let layout = StoreLayout::create(&root, "family-resolution-crash", "2.30.0").unwrap();
+    let mut connection = Connection::open(layout.store_db()).unwrap();
+    connection
+        .execute(
+            "INSERT INTO file_versions
+             (path,content_hash,extraction_epoch,language,content_bytes,complete_l1,complete_l2)
+             VALUES ('src/lib.rs','blake3:resolution-crash',1,'rust',1,1,2)",
+            [],
+        )
+        .unwrap();
+    let version_id = connection.last_insert_rowid();
+    let mut manifests = ManifestStore::new(&mut connection);
+    manifests.ensure_view("view-resolution", "/repo").unwrap();
+    manifests
+        .publish(
+            "view-resolution",
+            None,
+            [ManifestEntry::indexed(
+                "src/lib.rs",
+                "rust",
+                version_id,
+                "blake3:resolution-crash",
+                "2026-08-08T20:00:00Z",
+            )],
+            "manifest-resolution-crash",
+        )
+        .unwrap();
+    let manifest_hash: String = connection
+        .query_row("SELECT manifest_hash FROM manifests", [], |row| row.get(0))
+        .unwrap();
+    drop(connection);
+
+    let catalog = ResolutionBaseCatalog::new(StoreConnectionFactory::new(
+        layout,
+        "family-resolution-crash",
+        "2.30.0",
+    ));
+    let build = match catalog
+        .begin_build(
+            &manifest_hash,
+            7,
+            "request-resolution-crash",
+            "2026-08-08T20:00:00Z",
+        )
+        .unwrap()
+    {
+        ResolutionBaseBegin::Build(build) => build,
+        other => panic!("unexpected begin outcome: {other:?}"),
+    };
+    let mut writer = ResolutionBaseWriter::new(&build.scratch_path, &manifest_hash, 7).unwrap();
+    writer.push_source_version(version_id).unwrap();
+    writer.finish_with_target_lookup(|_, _| Ok(true)).unwrap();
+    catalog.publish_scratch(&build).unwrap();
+    catalog.mark_ready(&build, "2026-08-08T20:00:00Z").unwrap();
+    panic!("configured resolution base crash hook did not fire");
 }
 
 #[test]
@@ -268,6 +452,7 @@ fn manifest_crash_worker() {
         .unwrap();
     let entry = ManifestEntry::indexed(
         "src/lib.rs",
+        "rust",
         written.version_id,
         "blake3:crash",
         "2026-08-08T00:00:00Z",

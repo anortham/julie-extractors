@@ -36,4 +36,29 @@ Only deletion of a `file_versions` row cascades into extraction children. Child-
 
 The store format epoch and extraction identity epoch are independent. The initial value of each is 1. A same-epoch extractor comparison must be byte-identical. A changed extraction result is accepted only when the extraction epoch increases and the existing compatibility ledger classifies the change.
 
-Ph2b freezes storage only. Resolution bases/deltas, ready/exact resolution generations, and reader pins are intentionally absent and land in later phases.
+## Resolution model
+
+Ph2c stores exact resolution output in immutable SQLite base files under the family generation.
+Each base is keyed by manifest hash and resolver-output epoch, roots every source version it names,
+and becomes reusable only after its file identity and semantic row counts are durable. A view binds
+to the nearest ready base, computes outside the writer lease, and publishes one cumulative delta in
+a short fenced `store.db` transaction. The transaction copies replacement/tombstone rows, advances
+the view to `exact`, and appends the `resolution_exact_published` effect atomically.
+
+Reader and resolver pins hold one coherent `(view, manifest, base, delta)` tuple. Manifest movement
+invalidates exactness but does not mutate old bases or deltas. A crash before the exact publication
+commit leaves no visible delta; a crash after it is reconciled from the store log without repeating
+the effect. Private scratch databases are request-owned and may be removed by the successor of that
+same durable request.
+
+## Compatibility adapters
+
+`store export` pins one exact generation and builds a standalone v3 artifact through the legacy
+writer contract. `store import --from-artifact` validates a complete current v3 artifact before it
+creates a family or enqueues work, then imports extraction rows, manifest state, and exact resolution
+through resumable store transactions. Neither adapter copies a SQLite database file, and ordinary
+imports still run extraction from source.
+
+Ph2d owns retention, garbage collection, repair, and generation promotion. In particular it must
+respect historical manifests, ready-base version roots, live pins, current view bindings, and active
+claims before deleting versions, bases, deltas, scratch files, or log rows.

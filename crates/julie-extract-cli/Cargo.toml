@@ -38,6 +38,12 @@ test-heavy-contracts = []
 # Feature-gated store process/crash/equivalence contracts. The artifact feature
 # exposes only integration-test crash harnesses; normal binaries have no hook.
 test-store-contract = ["julie-extract-artifact/test-store-crash"]
+# Real-CLI legacy resolution oracle; run from `cargo xtask test contract` with
+# one test thread because each case launches an extractor subprocess.
+test-store-resolution-contract = [
+    "test-store-contract",
+    "julie-extract-artifact/test-store-resolution",
+]
 
 [lints]
 workspace = true

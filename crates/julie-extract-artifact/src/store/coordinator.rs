@@ -30,6 +30,9 @@ pub enum RequestKind {
     Import,
     Update,
     Delete,
+    Resolve,
+    Export,
+    FromArtifact,
 }
 
 impl RequestKind {
@@ -38,7 +41,14 @@ impl RequestKind {
             Self::Import => "import",
             Self::Update => "update",
             Self::Delete => "delete",
+            Self::Resolve => "resolve",
+            Self::Export => "export",
+            Self::FromArtifact => "from_artifact",
         }
+    }
+
+    fn is_batch(self) -> bool {
+        matches!(self, Self::Import | Self::FromArtifact)
     }
 
     fn parse(value: &str) -> Result<Self, CoordinatorError> {
@@ -46,6 +56,9 @@ impl RequestKind {
             "import" => Ok(Self::Import),
             "update" => Ok(Self::Update),
             "delete" => Ok(Self::Delete),
+            "resolve" => Ok(Self::Resolve),
+            "export" => Ok(Self::Export),
+            "from_artifact" => Ok(Self::FromArtifact),
             _ => Err(CoordinatorError::CorruptRequest {
                 detail: format!("unknown request kind {value:?}"),
             }),
@@ -517,6 +530,138 @@ impl StoreCoordinator {
         })
     }
 
+    pub fn claim_resolve(
+        &self,
+        request_id: &str,
+        owner_id: &str,
+        now: i64,
+        stale_after_ms: i64,
+    ) -> Result<bool, CoordinatorError> {
+        if request_id.is_empty() || owner_id.is_empty() || now < 0 || stale_after_ms <= 0 {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        let stale_before = now.saturating_sub(stale_after_ms);
+        let mut connection = open_coordinator(&self.coordinator_db)?;
+        let transaction = begin_coordinator(&mut connection)?;
+        let Some(request) = request_by_id(&transaction, request_id)? else {
+            return Ok(false);
+        };
+        if request.kind != RequestKind::Resolve
+            || !matches!(request.state, RequestState::Queued | RequestState::Claimed)
+        {
+            return Ok(false);
+        }
+        let other_claimed: bool = transaction.query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM requests
+               WHERE kind='resolve' AND state='claimed' AND request_id<>?1
+             )",
+            [request_id],
+            |row| row.get(0),
+        )?;
+        if other_claimed {
+            return Ok(false);
+        }
+        let prior_owner_dead = request
+            .claim_owner
+            .as_deref()
+            .and_then(resolve_owner_pid)
+            .is_some_and(|pid| self.pid_liveness.status(pid) == PidStatus::Dead);
+        let eligible = request.state == RequestState::Queued
+            || request.claim_owner.as_deref() == Some(owner_id)
+            || request
+                .claim_heartbeat_at
+                .is_some_and(|heartbeat| heartbeat <= stale_before)
+            || prior_owner_dead;
+        if !eligible {
+            return Ok(false);
+        }
+        let changed = transaction.execute(
+            "UPDATE requests SET state='claimed',claim_owner=?1,
+                    claim_heartbeat_at=?2,updated_at=?2
+             WHERE request_id=?3 AND kind='resolve'",
+            params![owner_id, now, request_id],
+        )?;
+        transaction.commit()?;
+        Ok(changed == 1)
+    }
+
+    pub fn heartbeat_resolve(
+        &self,
+        request_id: &str,
+        owner_id: &str,
+        now: i64,
+    ) -> Result<bool, CoordinatorError> {
+        if request_id.is_empty() || owner_id.is_empty() || now < 0 {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        let connection = open_coordinator(&self.coordinator_db)?;
+        Ok(connection.execute(
+            "UPDATE requests SET claim_heartbeat_at=?1,updated_at=?1
+             WHERE request_id=?2 AND kind='resolve' AND state='claimed'
+               AND claim_owner=?3",
+            params![now, request_id, owner_id],
+        )? == 1)
+    }
+
+    pub fn resolve_claim_is_current(
+        &self,
+        request_id: &str,
+        owner_id: &str,
+    ) -> Result<bool, CoordinatorError> {
+        if request_id.is_empty() || owner_id.is_empty() {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        let connection = open_coordinator(&self.coordinator_db)?;
+        Ok(connection.query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM requests
+               WHERE request_id=?1 AND kind='resolve' AND state='claimed'
+                 AND claim_owner=?2
+             )",
+            params![request_id, owner_id],
+            |row| row.get(0),
+        )?)
+    }
+
+    pub fn fail_resolve(
+        &self,
+        request_id: &str,
+        owner_id: &str,
+        detail: &str,
+        now: i64,
+    ) -> Result<bool, CoordinatorError> {
+        if request_id.is_empty() || owner_id.is_empty() || detail.is_empty() || now < 0 {
+            return Err(CoordinatorError::InvalidRequest);
+        }
+        let error_json = serde_json::json!({ "message": detail }).to_string();
+        let connection = open_coordinator(&self.coordinator_db)?;
+        Ok(connection.execute(
+            "UPDATE requests SET state='failed',claim_owner=NULL,
+                    claim_heartbeat_at=NULL,result_json=NULL,error_json=?1,updated_at=?2
+             WHERE request_id=?3 AND kind='resolve' AND state='claimed'
+               AND claim_owner=?4",
+            params![error_json, now, request_id, owner_id],
+        )? == 1)
+    }
+
+    pub fn commit_resolve(
+        &mut self,
+        request_id: &str,
+        owner_id: &str,
+    ) -> Result<ReconcileOutcome, CoordinatorError> {
+        if !self.resolve_claim_is_current(request_id, owner_id)? {
+            return Err(CoordinatorError::LeaseLost);
+        }
+        let outcome = self.reconcile(request_id)?;
+        if !outcome.committed_in_fact {
+            return Err(CoordinatorError::CoordinatorAheadOfStore {
+                request_id: request_id.to_string(),
+            });
+        }
+        Ok(outcome)
+    }
+
     pub fn try_acquire_or_takeover(
         &mut self,
         holder: LeaseHolder,
@@ -848,7 +993,7 @@ impl StoreCoordinator {
                 }
                 break;
             };
-            let is_batch = request.kind == RequestKind::Import;
+            let is_batch = request.kind.is_batch();
             match self.execute_request_quantum(
                 executor,
                 policy,
@@ -1100,6 +1245,9 @@ impl StoreCoordinator {
         let mut batch = None;
         for request_id in request_ids {
             let request = self.request(&request_id)?;
+            if request.kind == RequestKind::Resolve {
+                continue;
+            }
             let claim_is_eligible = request.state == RequestState::Queued
                 || request.claim_owner.as_deref() == Some(holder_id)
                 || request
@@ -1111,7 +1259,7 @@ impl StoreCoordinator {
             if allowed_ids.is_some_and(|ids| !ids.contains(&request.request_id)) {
                 continue;
             }
-            if request.kind == RequestKind::Import {
+            if request.kind.is_batch() {
                 batch.get_or_insert(request);
             } else {
                 interactive.get_or_insert(request);
@@ -1425,6 +1573,10 @@ fn process_status(pid: u32) -> PidStatus {
 #[cfg(not(unix))]
 fn process_status(_pid: u32) -> PidStatus {
     PidStatus::Unknown
+}
+
+fn resolve_owner_pid(owner_id: &str) -> Option<u32> {
+    owner_id.strip_prefix("cli-")?.parse().ok()
 }
 
 fn validate_request(request: &CoordinatorRequest) -> Result<(), CoordinatorError> {
